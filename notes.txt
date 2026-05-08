@@ -1,0 +1,586 @@
+erp-frontend/
+│
+├── public/
+│   ├── favicon.ico
+│   └── assets/
+│       ├── images/
+│       └── icons/
+│
+├── src/
+│
+│   ├── app/
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   ├── routes.jsx
+│   │   └── providers.jsx
+│
+│   ├── assets/
+│   │   ├── images/
+│   │   ├── icons/
+│   │   └── styles/
+│   │       └── globals.css
+│
+│
+│   ├── features/
+│   │   ├── auth/
+│   │   │   ├── pages/
+│   │   │   │   ├── LoginPage.jsx
+│   │   │   │   ├── RegisterPage.jsx
+│   │   │   │   ├── ForgotPasswordPage.jsx
+│   │   │   │   └── ResetPasswordPage.jsx
+│   │   │   ├── components/
+│   │   │   ├── services/
+│   │   │   │   └── authService.js
+│   │   │   ├── store/
+│   │   │   │   ├── authSlice.js
+│   │   │   │   ├── authThunk.js
+│   │   │   │   └── authSelector.js
+│   │   │   ├── hooks/
+│   │   │   │   └── useAuth.js
+│   │   │   └── index.js
+│   │   │
+│   │   ├── dashboard/
+│   │   │   ├── pages/
+│   │   │   │   └── DashboardPage.jsx
+│   │   │   ├── components/
+│   │   │   ├── services/
+│   │   │   │   └── dashboardService.js
+│   │   │   └── index.js
+│   │   │
+│   │   └── notifications/
+│   │       ├── components/
+│   │       ├── services/
+│   │       │   └── notificationService.js
+│   │       └── index.js
+│
+│   ├── providers/
+│   │   ├── AppProvider.jsx
+│   │   ├── ReduxProvider.jsx
+│   │   ├── ThemeProvider.jsx
+│   │   ├── ToastProvider.jsx
+│   │   └── index.js
+│
+│   ├── contexts/
+│   │   ├── ThemeContext.jsx
+│   │   ├── SidebarContext.jsx
+│   │   └── index.js
+│
+│   ├── guards/
+│   │   ├── ProtectedRoute.jsx
+│   │   ├── GuestRoute.jsx
+│   │   ├── PermissionGuard.jsx
+│   │   └── index.js
+│
+│   ├── theme/
+│   │   ├── tokens.js
+│   │   ├── getThemeTokens.js
+│   │   ├── createAppTheme.js
+│   │   └── index.js
+│
+│   ├── store/
+│   │   ├── middlewares/
+│   │   │   └── index.js
+│   │   ├── store.js
+│   │   ├── rootReducer.js
+│   │   └── index.js
+│
+│   ├── services/
+│   │   ├── apiClient.js
+│   │   ├── endpoints.js
+│   │   ├── interceptors.js
+│   │   └── index.js
+│
+│   ├── lib/
+│   │   ├── axios.js
+│   │   ├── dayjs.js
+│   │   ├── xlsx.js
+│   │   └── index.js
+│
+│   ├── hooks/
+│   │   ├── useDebounce.js
+│   │   ├── useLocalStorage.js
+│   │   ├── usePagination.js
+│   │   ├── useToggle.js
+│   │   └── index.js
+│
+│   ├── utils/
+│   │   ├── helpers.js
+│   │   ├── validation.js
+│   │   ├── formatDate.js
+│   │   ├── formatCurrency.js
+│   │   ├── exportExcel.js
+│   │   ├── downloadFile.js
+│   │   ├── storage.js
+│   │   ├── permissions.js
+│   │   └── index.js
+│
+│   ├── constants/
+│   │   ├── routes.js
+│   │   ├── app.js
+│   │   ├── roles.js
+│   │   ├── permissions.js
+│   │   ├── statuses.js
+│   │   └── index.js
+│
+│   ├── config/
+│   │   ├── env.js
+│   │   ├── navigation.js
+│   │   ├── sidebarMenu.js
+│   │   └── index.js
+│
+│   ├── index.css
+│   └── vite-env.d.js
+│
+├── .env
+├── .env.example
+├── .gitignore
+├── eslint.config.js
+├── jsconfig.json
+├── package.json
+├── vite.config.js
+└── README.md
+
+
+
+
+
+Folders and Pages Structure
+
+src/
+├── components/
+│   ├── ui/
+│   │   ├── buttons/
+│   │   │   ├── AppButton.jsx
+│   │   │   ├── AppIconButton.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── inputs/
+│   │   │   ├── AppInput.jsx
+│   │   │   ├── AppTextarea.jsx
+│   │   │   ├── AppSelect.jsx
+│   │   │   ├── AppMultiSelect.jsx
+│   │   │   ├── AppAutocomplete.jsx
+│   │   │   ├── AppCheckbox.jsx
+│   │   │   ├── AppRadio.jsx
+│   │   │   ├── AppSwitch.jsx
+│   │   │   ├── AppDatePicker.jsx
+│   │   │   ├── AppFileUpload.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── overlays/
+│   │   │   ├── AppDialog.jsx
+│   │   │   ├── AppDrawer.jsx
+│   │   │   ├── AppMenu.jsx
+│   │   │   ├── AppPopover.jsx
+│   │   │   ├── AppTooltip.jsx
+│   │   │   ├── AppAlert.jsx
+│   │   │   ├── AppToast.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── feedback/
+│   │   │   ├── AppLoader.jsx
+│   │   │   ├── AppSkeleton.jsx
+│   │   │   ├── AppTableSkeleton.jsx
+│   │   │   ├── AppEmptyState.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── navigation/
+│   │   │   ├── AppTabs.jsx
+│   │   │   ├── AppBreadcrumb.jsx
+│   │   │   ├── AppSearchCommand.jsx
+│   │   │   ├── AppShortcutHint.jsx
+│   │   │   ├── AppScrollToTop.jsx
+│   │   │   ├── AppStickyBar.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── data-display/
+│   │   │   ├── AppBadge.jsx
+│   │   │   ├── AppCard.jsx
+│   │   │   ├── AppPagination.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   └── index.js
+│   │
+│   ├── layout/
+│   │   ├── Sidebar.jsx
+│   │   ├── Navbar.jsx
+│   │   ├── MainLayout.jsx
+│   │   ├── PageHeader.jsx
+│   │   └── index.js
+│   │
+│   ├── charts/
+│   │   ├── AppBarChart.jsx
+│   │   ├── AppLineChart.jsx
+│   │   ├── AppPieChart.jsx
+│   │   ├── AppAreaChart.jsx
+│   │   ├── AppKpiCard.jsx
+│   │   └── index.js
+│   │
+│   ├── features/
+│   │   └── notifications/
+│   │       ├── NotificationBell.jsx
+│   │       ├── NotificationList.jsx
+│   │       ├── NotificationItem.jsx
+│   │       └── index.js
+│   │
+│   ├── shared/
+│   │   ├── forms/
+│   │   │   ├── AppForm.jsx
+│   │   │   ├── AppFormField.jsx
+│   │   │   ├── AppFormSection.jsx
+│   │   │   ├── AppFormActions.jsx
+│   │   │   ├── AppFormErrorSummary.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── tables/
+│   │   │   ├── AppTable.jsx
+│   │   │   ├── AppTableToolbar.jsx
+│   │   │   ├── AppColumnManager.jsx
+│   │   │   ├── AppBulkActions.jsx
+│   │   │   ├── AppRowActions.jsx
+│   │   │   ├── AppExport.jsx
+│   │   │   ├── DataTable.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── filters/
+│   │   │   ├── AppTableFilters.jsx
+│   │   │   ├── FilterBar.jsx
+│   │   │   ├── SearchFilter.jsx
+│   │   │   ├── SelectFilter.jsx
+│   │   │   ├── DateRangeFilter.jsx
+│   │   │   ├── AdvancedFilterPanel.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── workflows/
+│   │   │   ├── ApprovalFlow.jsx
+│   │   │   ├── WorkflowActions.jsx
+│   │   │   ├── ApprovalHistory.jsx
+│   │   │   ├── StatusTimeline.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── attachments/
+│   │   │   ├── AttachmentUploader.jsx
+│   │   │   ├── AttachmentList.jsx
+│   │   │   ├── FilePreview.jsx
+│   │   │   ├── FileCard.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── activity/
+│   │   │   ├── ActivityFeed.jsx
+│   │   │   ├── AuditLog.jsx
+│   │   │   ├── ChangeHistory.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── display/
+│   │   │   ├── SummaryCards.jsx
+│   │   │   ├── StatusBadge.jsx
+│   │   │   ├── DetailsSection.jsx
+│   │   │   ├── InfoGrid.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── dialogs/
+│   │   │   ├── ConfirmDialog.jsx
+│   │   │   ├── FilterDialog.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── modules/
+│   └── hrms/
+│       └── employees/
+│           ├── components/
+│           │   ├── EmployeeForm.jsx
+│           │   ├── EmployeeTable.jsx
+│           │   ├── EmployeeCard.jsx
+│           │   └── index.js
+│           │
+│           ├── pages/
+│           │   ├── EmployeeListPage.jsx
+│           │   ├── AddEmployeePage.jsx
+│           │   ├── EditEmployeePage.jsx
+│           │   ├── EmployeeDetailsPage.jsx
+│           │   └── index.js
+│           │
+│           ├── services/
+│           │   └── employeeService.js
+│           │
+│           └── store/
+│               ├── employeeSlice.js
+│               ├── employeeThunk.js
+│               ├── employeeSelector.js
+│               └── index.js
+│
+├── store/
+│   ├── store.js
+│   ├── rootReducer.js
+│   └── index.js
+│
+├── services/
+│   ├── api.js
+│   └── index.js
+│
+├── utils/
+│   ├── formatDate.js
+│   ├── helpers.js
+│   └── index.js
+│
+├── constants/
+│   ├── routes.js
+│   ├── statuses.js
+│   └── index.js
+│
+├── App.jsx
+├── main.jsx
+└── index.css
+
+
+
+✅ = already have
+🆕 = create new
+⭐ = important for SaaS ERP
+
+
+src/
+└── components/
+    ├── ui/
+    │   ├── buttons/ ✅
+    │   │   ├── AppButton.jsx ✅
+    │   │   ├── AppIconButton.jsx ✅
+    │   │   ├── AppButtonGroup.jsx ✅
+    │   │   ├── AppSplitButton.jsx ✅
+    │   │   ├── AppLoadingButton.jsx ✅ ⭐
+    │   │   └── index.js ✅
+    │   │
+    │   ├── inputs/ ✅
+    │   │   ├── AppInput.jsx ✅
+    │   │   ├── AppTextarea.jsx ✅
+    │   │   ├── AppSelect.jsx ✅
+    │   │   ├── AppMultiSelect.jsx ✅
+    │   │   ├── AppAutocomplete.jsx ✅
+    │   │   ├── AppCheckbox.jsx ✅
+    │   │   ├── AppRadio.jsx ✅
+    │   │   ├── AppSwitch.jsx ✅
+    │   │   ├── AppDatePicker.jsx ✅
+    │   │   ├── AppFileUpload.jsx ✅
+    │   │   ├── AppPasswordInput.jsx ✅ ⭐
+    │   │   ├── AppPhoneInput.jsx ✅ ⭐
+    │   │   ├── AppNumberInput.jsx ✅ ⭐
+    │   │   ├── AppCurrencyInput.jsx ✅ ⭐
+    │   │   ├── AppPercentageInput.jsx ✅
+    │   │   ├── AppRadioGroup.jsx ✅
+    │   │   ├── AppDateRangePicker.jsx ✅ ⭐
+    │   │   ├── AppTimePicker.jsx ✅
+    │   │   ├── AppDateTimePicker.jsx ✅
+    │   │   ├── AppImageUpload.jsx ✅
+    │   │   ├── AppSearchInput.jsx ✅ ⭐
+    │   │   └── index.js ✅
+    │   │
+    │   ├── overlays/ ✅
+    │   │   ├── AppDialog.jsx ✅
+    │   │   ├── AppDrawer.jsx ✅
+    │   │   ├── AppMenu.jsx ✅
+    │   │   ├── AppPopover.jsx ✅
+    │   │   ├── AppTooltip.jsx ✅
+    │   │   ├── AppAlert.jsx ✅
+    │   │   ├── AppToast.jsx ✅
+    │   │   ├── AppConfirmModal.jsx ✅ ⭐
+    │   │   ├── AppSidePanel.jsx ✅
+    │   │   ├── AppDropdown.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── feedback/ ✅
+    │   │   ├── AppLoader.jsx ✅
+    │   │   ├── AppSkeleton.jsx ✅
+    │   │   ├── AppTableSkeleton.jsx ✅
+    │   │   ├── AppEmptyState.jsx ✅
+    │   │   ├── AppPageLoader.jsx ✅ ⭐
+    │   │   ├── AppInlineLoader.jsx ✅
+    │   │   ├── AppErrorState.jsx ✅ ⭐
+    │   │   ├── AppNoPermission.jsx ✅ ⭐
+    │   │   ├── AppNotFoundState.jsx ✅
+    │   │   ├── AppCardSkeleton.jsx ✅
+    │   │   ├── AppFormSkeleton.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── navigation/ ✅
+    │   │   ├── AppTabs.jsx ✅
+    │   │   ├── AppBreadcrumb.jsx ✅
+    │   │   ├── AppSearchCommand.jsx ✅
+    │   │   ├── AppShortcutHint.jsx ✅
+    │   │   ├── AppScrollToTop.jsx ✅
+    │   │   ├── AppStickyBar.jsx ✅
+    │   │   ├── AppStepper.jsx ✅ ⭐
+    │   │   ├── AppVerticalTabs.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── data-display/ ✅
+    │   │   ├── AppBadge.jsx ✅
+    │   │   ├── AppCard.jsx ✅
+    │   │   ├── AppPagination.jsx ✅
+    │   │   ├── AppAvatar.jsx ✅ ⭐
+    │   │   ├── AppAvatarGroup.jsx ✅
+    │   │   ├── AppStatusBadge.jsx ✅ ⭐
+    │   │   ├── AppTag.jsx ✅
+    │   │   ├── AppInfoCard.jsx ✅
+    │   │   ├── AppStatCard.jsx ✅ ⭐
+    │   │   ├── AppTimeline.jsx ✅ ⭐
+    │   │   ├── AppDescriptionList.jsx ✅ ⭐
+    │   │   ├── AppKeyValue.jsx ✅
+    │   │   ├── AppAccordion.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── typography/ ✅ ⭐
+    │   │   ├── AppText.jsx ✅
+    │   │   ├── AppHeading.jsx ✅
+    │   │   ├── AppLabel.jsx ✅
+    │   │   ├── AppCaption.jsx ✅
+    │   │   ├── AppLink.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── layout/ ✅ ⭐
+    │   │   ├── AppContainer.jsx ✅
+    │   │   ├── AppBox.jsx ✅
+    │   │   ├── AppStack.jsx ✅
+    │   │   ├── AppGrid.jsx ✅
+    │   │   ├── AppSection.jsx ✅
+    │   │   ├── AppSpacer.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   └── index.js ✅
+    │
+    ├── layout/ 🆕
+    │   ├── Sidebar.jsx 🆕
+    │   ├── Navbar.jsx 🆕
+    │   ├── MainLayout.jsx 🆕
+    │   ├── PageHeader.jsx 🆕
+    │   ├── AuthLayout.jsx 🆕
+    │   ├── ModuleLayout.jsx 🆕
+    │   └── index.js 
+    │
+    ├── charts/ 🆕
+    │   ├── AppBarChart.jsx ✅
+    │   ├── AppLineChart.jsx ✅
+    │   ├── AppPieChart.jsx ✅
+    │   ├── AppAreaChart.jsx ✅
+    │   ├── AppKpiCard.jsx ✅
+    │   ├── AppDonutChart.jsx 🆕
+    │   ├── AppSparkline.jsx 🆕
+    │   └── index.js ✅
+    │
+    ├── features/ ✅
+    │   └── notifications/ ✅
+    │       ├── NotificationBell.jsx ✅
+    │       ├── NotificationList.jsx ✅
+    │       ├── NotificationItem.jsx ✅
+    │       └── index.js ✅
+    │
+    ├── shared/
+    │   ├── forms/ ✅
+    │   │   ├── AppForm.jsx ✅
+    │   │   ├── AppFormField.jsx ✅
+    │   │   ├── AppFormSection.jsx ✅
+    │   │   ├── AppFormActions.jsx ✅
+    │   │   ├── AppFormErrorSummary.jsx ✅
+    │   │   ├── AppFormRow.jsx ✅
+    │   │   ├── AppFormGrid.jsx ✅
+    │   │   ├── AppRequiredMark.jsx ✅
+    │   │   ├── AppFieldHint.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── tables/ ✅
+    │   │   ├── AppTable.jsx ✅
+    │   │   ├── AppTableToolbar.jsx ✅
+    │   │   ├── AppColumnManager.jsx ✅
+    │   │   ├── AppRowActions.jsx ✅
+    │   │   ├── AppExport.jsx ✅
+    │   │   ├── DataTable.jsx ✅
+    │   │   ├── AppBulkActions.jsx ✅
+    │   │   ├── AppTableSearch.jsx ✅
+    │   │   ├── AppTablePagination.jsx ✅
+    │   │   ├── AppEmptyTable.jsx ✅
+    │   │   ├── AppResponsiveTable.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── filters/ ✅
+    │   │   ├── FilterBar.jsx ✅
+    │   │   ├── DateRangeFilter.jsx ✅
+    │   │   ├── AdvancedFilterPanel.jsx ✅
+    │   │   ├── SelectFilter.jsx ✅
+    │   │   ├── SearchFilter.jsx ✅
+    │   │   ├── AppTableFilters.jsx ✅
+    │   │   ├── StatusFilter.jsx ✅
+    │   │   ├── SavedFilters.jsx ✅
+    │   │   ├── FilterChipList.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── workflows/ ✅
+    │   │   ├── ApprovalFlow.jsx ✅
+    │   │   ├── WorkflowActions.jsx ✅
+    │   │   ├── ApprovalHistory.jsx ✅
+    │   │   ├── StatusTimeline.jsx ✅
+    │   │   ├── ApprovalBadge.jsx ✅
+    │   │   ├── ApprovalStepper.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── attachments/ ✅
+    │   │   ├── AttachmentUploader.jsx ✅
+    │   │   ├── AttachmentList.jsx ✅
+    │   │   ├── FilePreview.jsx ✅
+    │   │   ├── FileCard.jsx ✅
+    │   │   ├── FileDropzone.jsx ✅
+    │   │   ├── PdfPreview.jsx ✅
+    │   │   ├── ImagePreview.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── activity/ ✅
+    │   │   ├── ActivityFeed.jsx ✅
+    │   │   ├── AuditLog.jsx ✅
+    │   │   ├── ChangeHistory.jsx ✅
+    │   │   ├── AuditTrailDrawer.jsx ✅ ⭐
+    │   │   ├── AuditTrailItem.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── display/ 🆕
+    │   │   ├── SummaryCards.jsx 🆕
+    │   │   ├── StatusBadge.jsx 🆕
+    │   │   ├── DetailsSection.jsx 🆕
+    │   │   ├── InfoGrid.jsx 🆕
+    │   │   ├── KeyValueList.jsx 🆕
+    │   │   ├── DescriptionList.jsx 🆕
+    │   │   └── index.js 🆕
+    │   │
+    │   ├── dialogs/ 🆕
+    │   │   ├── ConfirmDialog.jsx ✅
+    │   │   ├── FilterDialog.jsx ✅
+    │   │   ├── DeleteConfirmDialog.jsx 🆕
+    │   │   ├── UnsavedChangesDialog.jsx 🆕 ⭐
+    │   │   └── index.js ✅
+    │   │
+    │   ├── page/ ✅ ⭐
+    │   │   ├── PageContainer.jsx ✅
+    │   │   ├── PageContent.jsx ✅
+    │   │   ├── PageActions.jsx ✅
+    │   │   ├── PageToolbar.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── permissions/ 🆕 ⭐
+    │   │   ├── Can.jsx 🆕
+    │   │   ├── RoleGuard.jsx 🆕
+    │   │   ├── PermissionGuard.jsx 🆕
+    │   │   └── index.js 🆕
+    │   │
+    │   ├── import-export/ 🆕 ⭐
+    │   │   ├── ImportWizard.jsx 🆕
+    │   │   ├── ExportButton.jsx 🆕
+    │   │   ├── CsvTemplateDownload.jsx 🆕
+    │   │   ├── ImportPreviewTable.jsx 🆕
+    │   │   └── index.js 🆕
+    │   │
+    │   └── index.js ✅
+    │
+    └── index.js ✅
+    
+    
+

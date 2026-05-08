@@ -1,0 +1,205 @@
+@import "tailwindcss";
+
+/* Tailwind v4 custom dark selector */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ===============================
+   Tailwind theme tokens
+=============================== */
+@theme {
+  --color-bg: var(--app-color-bg);
+  --color-surface: var(--app-color-surface);
+  --color-surface-alt: var(--app-color-surface-alt);
+  --color-surface-hover: var(--app-color-surface-hover);
+  --color-surface-active: var(--app-color-surface-active);
+
+  --color-text: var(--app-color-text);
+  --color-text-muted: var(--app-color-text-muted);
+  --color-text-disabled: var(--app-color-text-disabled);
+  --color-text-inverse: var(--app-color-text-inverse);
+
+  --color-border: var(--app-color-border);
+  --color-border-strong: var(--app-color-border-strong);
+  --color-divider: var(--app-color-divider);
+
+  --color-primary: var(--app-color-primary);
+  --color-primary-hover: var(--app-color-primary-hover);
+  --color-primary-soft: var(--app-color-primary-soft);
+  --color-primary-contrast: var(--app-color-primary-contrast);
+
+  --color-success: var(--app-color-success);
+  --color-success-hover: var(--app-color-success-hover);
+  --color-success-soft: var(--app-color-success-soft);
+  --color-success-contrast: var(--app-color-success-contrast);
+
+  --color-error: var(--app-color-error);
+  --color-error-hover: var(--app-color-error-hover);
+  --color-error-soft: var(--app-color-error-soft);
+  --color-error-contrast: var(--app-color-error-contrast);
+
+  --color-warning: var(--app-color-warning);
+  --color-warning-hover: var(--app-color-warning-hover);
+  --color-warning-soft: var(--app-color-warning-soft);
+  --color-warning-contrast: var(--app-color-warning-contrast);
+
+  --color-info: var(--app-color-info);
+  --color-info-hover: var(--app-color-info-hover);
+  --color-info-soft: var(--app-color-info-soft);
+  --color-info-contrast: var(--app-color-info-contrast);
+
+  --color-neutral-50: var(--app-color-neutral-50);
+  --color-neutral-100: var(--app-color-neutral-100);
+  --color-neutral-200: var(--app-color-neutral-200);
+  --color-neutral-300: var(--app-color-neutral-300);
+  --color-neutral-400: var(--app-color-neutral-400);
+  --color-neutral-500: var(--app-color-neutral-500);
+  --color-neutral-600: var(--app-color-neutral-600);
+  --color-neutral-700: var(--app-color-neutral-700);
+  --color-neutral-800: var(--app-color-neutral-800);
+  --color-neutral-900: var(--app-color-neutral-900);
+}
+
+/* ===============================
+   Fallback default values
+=============================== */
+:root {
+  --app-color-bg: #f7fbfc;
+  --app-color-surface: #ffffff;
+  --app-color-surface-alt: #fbfefe;
+  --app-color-surface-hover: rgba(15, 23, 42, 0.03);
+  --app-color-surface-active: rgba(15, 23, 42, 0.06);
+
+  --app-color-text: #0f2343;
+  --app-color-text-muted: rgba(15, 35, 67, 0.6);
+  --app-color-text-disabled: rgba(15, 35, 67, 0.4);
+  --app-color-text-inverse: #ffffff;
+
+  --app-color-border: rgba(43, 127, 135, 0.16);
+  --app-color-border-strong: rgba(15, 23, 42, 0.25);
+  --app-color-divider: rgba(15, 23, 42, 0.08);
+
+  --app-color-primary: #2b7f87;
+  --app-color-primary-hover: #256f76;
+  --app-color-primary-soft: rgba(43, 127, 135, 0.12);
+  --app-color-primary-contrast: #ffffff;
+
+  --app-color-success: #16a34a;
+  --app-color-success-hover: #15803d;
+  --app-color-success-soft: rgba(22, 163, 74, 0.12);
+  --app-color-success-contrast: #ffffff;
+
+  --app-color-error: #dc2626;
+  --app-color-error-hover: #b91c1c;
+  --app-color-error-soft: rgba(220, 38, 38, 0.12);
+  --app-color-error-contrast: #ffffff;
+
+  --app-color-warning: #d97706;
+  --app-color-warning-hover: #b45309;
+  --app-color-warning-soft: rgba(217, 119, 6, 0.12);
+  --app-color-warning-contrast: #ffffff;
+
+  --app-color-info: #2563eb;
+  --app-color-info-hover: #1d4ed8;
+  --app-color-info-soft: rgba(37, 99, 235, 0.12);
+  --app-color-info-contrast: #ffffff;
+
+  --app-color-neutral-50: #f9fafb;
+  --app-color-neutral-100: #f3f4f6;
+  --app-color-neutral-200: #e5e7eb;
+  --app-color-neutral-300: #d1d5db;
+  --app-color-neutral-400: #9ca3af;
+  --app-color-neutral-500: #6b7280;
+  --app-color-neutral-600: #4b5563;
+  --app-color-neutral-700: #374151;
+  --app-color-neutral-800: #1f2937;
+  --app-color-neutral-900: #111827;
+
+  --app-color-disabled-bg: rgba(15, 23, 42, 0.03);
+  --app-color-disabled-text: rgba(15, 23, 42, 0.4);
+  --app-color-disabled-border: rgba(15, 23, 42, 0.08);
+
+  --app-color-readonly-bg: rgba(15, 23, 42, 0.025);
+
+  --app-color-hover-overlay: rgba(43, 127, 135, 0.06);
+  --app-color-active-overlay: rgba(43, 127, 135, 0.1);
+
+  --app-color-overlay: rgba(0, 0, 0, 0.5);
+
+  --app-focus-ring: 0 0 0 2px rgba(43, 127, 135, 0.35);
+
+  --app-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --app-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.06);
+  --app-shadow-md: 0 6px 16px rgba(0, 0, 0, 0.1);
+  --app-shadow-lg: 0 18px 40px rgba(15, 35, 67, 0.1);
+  --app-shadow-xl: 0 25px 60px rgba(15, 35, 67, 0.18);
+}
+
+/* ===============================
+   Base styles
+=============================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", sans-serif;
+  background-color: var(--app-color-bg);
+  color: var(--app-color-text);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: var(--app-focus-ring);
+}
+
+/* ===============================
+   Scrollbar
+=============================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--app-color-primary) 30%, transparent);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.2);
+}
+
+/* ===============================
+   Selection
+=============================== */
+::selection {
+  background: color-mix(in srgb, var(--app-color-primary) 30%, transparent);
+  color: var(--app-color-text);
+}
