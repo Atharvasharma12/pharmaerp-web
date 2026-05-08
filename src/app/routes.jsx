@@ -1,10 +1,8 @@
-import HomePage from "@/pages/HomePage";
-import UIComponentDisplayPage from "@/pages/UIComponentDisplayPage";
-import { createBrowserRouter } from "react-router-dom";
+import LandingPage from "@/features/public/pages/LandingPage";
+import LoginPage from "@/features/auth/pages/LoginPage";
 
-// const HomePage = () => {
-//   return <div>Home Page</div>;
-// };
+import { createBrowserRouter } from "react-router-dom";
+import { AuthLayout, PublicLayout } from "@/layout";
 
 const AboutPage = () => {
   return <div>About Page</div>;
@@ -17,11 +15,31 @@ const NotFoundPage = () => {
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <HomePage />,
+    element: <PublicLayout />,
+    children: [
+      {
+        index: true,
+        element: <LandingPage />,
+      },
+      {
+        path: "about",
+        element: <AboutPage />,
+      },
+    ],
   },
   {
-    path: "/about",
-    element: <AboutPage />,
+    path: "/",
+    element: <AuthLayout />,
+    children: [
+      {
+        path: "login",
+        element: <LoginPage />,
+      },
+      // {
+      //   path: "register",
+      //   element: <RegisterPage />,
+      // },
+    ],
   },
   {
     path: "*",
