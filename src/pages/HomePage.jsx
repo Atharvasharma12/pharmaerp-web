@@ -1,121 +1,171 @@
 import { useState } from "react";
-import dayjs from "dayjs";
 
 import {
-  AppInput,
-  AppTextarea,
-  AppSelect,
-  AppMultiSelect,
-  AppAutocomplete,
-  AppCheckbox,
-  AppRadio,
-  AppRadioGroup,
-  AppSwitch,
-  AppDatePicker,
-  AppDateRangePicker,
-  AppTimePicker,
-  AppDateTimePicker,
-  AppFileUpload,
-  AppImageUpload,
-  AppSearchInput,
-  AppPasswordInput,
-  AppPhoneInput,
-  AppNumberInput,
-  AppCurrencyInput,
-  AppPercentageInput,
   AppButton,
+  AppBadge,
+  AppCard,
+  AppPagination,
+  AppAvatar,
+  AppAvatarGroup,
+  AppStatusBadge,
+  AppTag,
+  AppInfoCard,
+  AppStatCard,
+  AppTimeline,
+  AppDescriptionList,
+  AppKeyValue,
+  AppAccordion,
 } from "@/components";
 
-const statusOptions = [
-  { label: "Active", value: "active" },
-  { label: "Pending", value: "pending" },
-  { label: "Inactive", value: "inactive", disabled: true },
+const teamMembers = [
+  { id: 1, name: "Rahul Sharma", initials: "RS", colorVariant: "primary" },
+  { id: 2, name: "Priya Mehta", initials: "PM", colorVariant: "success" },
+  { id: 3, name: "Aman Verma", initials: "AV", colorVariant: "warning" },
+  { id: 4, name: "Neha Kapoor", initials: "NK", colorVariant: "info" },
+  { id: 5, name: "Karan Shah", initials: "KS", colorVariant: "error" },
 ];
 
-const skillOptions = [
-  { label: "React", value: "react" },
-  { label: "Node.js", value: "node" },
-  { label: "UI Design", value: "design" },
-  { label: "Testing", value: "testing" },
+const timelineItems = [
+  {
+    id: 1,
+    title: "Record created",
+    description: "A new customer profile was created.",
+    time: "09:00 AM",
+    colorVariant: "success",
+  },
+  {
+    id: 2,
+    title: "Profile updated",
+    description: "Contact information and billing details were changed.",
+    time: "10:30 AM",
+    colorVariant: "info",
+  },
+  {
+    id: 3,
+    title: "Approval pending",
+    description: "The record is waiting for manager approval.",
+    time: "12:15 PM",
+    colorVariant: "warning",
+  },
+  {
+    id: 4,
+    title: "Sync failed",
+    description: "External CRM sync failed and needs retry.",
+    time: "02:45 PM",
+    colorVariant: "error",
+    action: <AppButton size="small">Retry</AppButton>,
+  },
 ];
 
-const cityOptions = [
-  { label: "Mumbai", value: "mumbai" },
-  { label: "Delhi", value: "delhi" },
-  { label: "Bengaluru", value: "bengaluru" },
-  { label: "Pune", value: "pune" },
+const descriptionItems = [
+  {
+    key: "name",
+    label: "Customer Name",
+    value: "Acme Industries",
+    badge: "Verified",
+    badgeColor: "success",
+  },
+  {
+    key: "email",
+    label: "Email",
+    value: "contact@acme.example",
+  },
+  {
+    key: "plan",
+    label: "Plan",
+    value: "Enterprise",
+    badge: "Active",
+    badgeColor: "primary",
+  },
+  {
+    key: "location",
+    label: "Location",
+    value: "Mumbai, India",
+  },
+  {
+    key: "owner",
+    label: "Owner",
+    value: "Priya Mehta",
+  },
+  {
+    key: "renewal",
+    label: "Renewal Date",
+    value: "08 May 2026",
+    badge: "Upcoming",
+    badgeColor: "warning",
+  },
 ];
 
-const planOptions = [
-  { label: "Starter", value: "starter" },
-  { label: "Professional", value: "professional" },
-  { label: "Enterprise", value: "enterprise" },
+const accordionItems = [
+  {
+    id: "details",
+    title: "Customer Details",
+    subtitle: "Basic profile and account information",
+    content: (
+      <AppDescriptionList
+        columns={2}
+        items={descriptionItems.slice(0, 4)}
+        variant="card"
+        bordered
+      />
+    ),
+  },
+  {
+    id: "billing",
+    title: "Billing Summary",
+    subtitle: "Plan, renewal, and payment status",
+    content: (
+      <div className="grid gap-4 md:grid-cols-3">
+        <AppStatCard
+          title="MRR"
+          value="₹1.2L"
+          subtitle="Monthly recurring revenue"
+          trend="up"
+          trendValue="+12%"
+          colorVariant="success"
+          variant="soft"
+        />
+        <AppStatCard
+          title="Invoices"
+          value="24"
+          subtitle="Generated this year"
+          trend="neutral"
+          trendValue="Stable"
+          colorVariant="info"
+          variant="soft"
+        />
+        <AppStatCard
+          title="Due"
+          value="₹18K"
+          subtitle="Pending payment"
+          trend="down"
+          trendValue="-4%"
+          colorVariant="warning"
+          variant="soft"
+        />
+      </div>
+    ),
+  },
+  {
+    id: "activity",
+    title: "Recent Activity",
+    subtitle: "Latest customer timeline",
+    content: <AppTimeline items={timelineItems.slice(0, 3)} dense />,
+  },
 ];
 
 export default function HomePage() {
-  const [form, setForm] = useState({
-    text: "John Doe",
-    email: "john@example.com",
-    password: "password123",
-    phone: "9876543210",
-    search: "",
-    number: 5,
-    currency: 2500,
-    percentage: 18,
-    textarea: "This is a sample description.",
-    status: "active",
-    skills: ["react", "design"],
-    city: cityOptions[0],
-    cities: [cityOptions[0], cityOptions[2]],
-    checkbox: true,
-    radio: "professional",
-    switch: true,
-    singleRadio: true,
-    date: dayjs(),
-    time: dayjs(),
-    dateTime: dayjs(),
-    dateRange: {
-      startDate: dayjs(),
-      endDate: dayjs().add(7, "day"),
-    },
-    file: null,
-    image: null,
-  });
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [removedTags, setRemovedTags] = useState([]);
 
-  const updateField = (field) => (eventOrValue) => {
-    const value = eventOrValue?.target
-      ? eventOrValue.target.value
-      : eventOrValue;
-
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleRemoveTag = (tag) => {
+    setRemovedTags((prev) => [...prev, tag]);
   };
 
-  const updateChecked = (field) => (event) => {
-    setForm((prev) => ({
-      ...prev,
-      [field]: event.target.checked,
-    }));
-  };
-
-  const handleReset = () => {
-    setForm((prev) => ({
-      ...prev,
-      search: "",
-      text: "",
-      email: "",
-      password: "",
-      phone: "",
-      textarea: "",
-      number: 1,
-      currency: 0,
-      percentage: 0,
-      file: null,
-      image: null,
-    }));
-  };
+  const visibleTags = ["Frontend", "Backend", "Urgent", "Customer"].filter(
+    (tag) => !removedTags.includes(tag),
+  );
 
   return (
     <main className="min-h-screen bg-bg text-text">
@@ -123,451 +173,376 @@ export default function HomePage() {
         <header className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
           <p className="text-sm font-semibold text-primary">Component Demo</p>
 
-          <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                Inputs Showcase
-              </h1>
-              <p className="mt-2 max-w-3xl text-text-muted">
-                Demo page for all reusable app input components with controlled
-                values, helper text, states, selects, date pickers, uploads, and
-                specialized inputs.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <AppButton
-                variant="outlined"
-                colorVariant="neutral"
-                onClick={handleReset}
-              >
-                Reset Text Values
-              </AppButton>
-
-              <AppButton colorVariant="primary">Submit Demo</AppButton>
-            </div>
+          <div className="mt-2">
+            <h1 className="text-3xl font-bold tracking-tight">
+              Data Display Showcase
+            </h1>
+            <p className="mt-2 max-w-3xl text-text-muted">
+              Demo page for all reusable data display components including
+              badges, cards, avatars, status badges, tags, statistics,
+              timelines, description lists, key-value rows, pagination, and
+              accordions.
+            </p>
           </div>
         </header>
 
-        <DemoSection title="Basic Inputs">
-          <AppInput
-            label="Text Input"
-            placeholder="Enter full name"
-            value={form.text}
-            onChange={updateField("text")}
-            helperText="Standard AppInput field."
-            fullWidth
-          />
+        <DemoSection title="Badges, Status Badges, and Tags">
+          <DemoCard title="AppBadge Variants">
+            <div className="flex flex-wrap gap-3">
+              <AppBadge label="Soft" variant="soft" colorVariant="primary" />
+              <AppBadge
+                label="Contained"
+                variant="contained"
+                colorVariant="success"
+              />
+              <AppBadge
+                label="Outlined"
+                variant="outlined"
+                colorVariant="warning"
+              />
+              <AppBadge label="Text" variant="text" colorVariant="info" />
+              <AppBadge label="Dot Badge" dot colorVariant="error" />
+            </div>
+          </DemoCard>
 
-          <AppInput
-            label="Email Input"
-            type="email"
-            placeholder="name@example.com"
-            value={form.email}
-            onChange={updateField("email")}
-            success
-            helperText="Success state example."
-            fullWidth
-          />
+          <DemoCard title="AppStatusBadge States">
+            <div className="flex flex-wrap gap-3">
+              <AppStatusBadge status="active" />
+              <AppStatusBadge status="inactive" />
+              <AppStatusBadge status="pending" />
+              <AppStatusBadge status="approved" />
+              <AppStatusBadge status="rejected" />
+              <AppStatusBadge status="draft" />
+              <AppStatusBadge status="blocked" />
+              <AppStatusBadge status="completed" />
+              <AppStatusBadge status="failed" />
+              <AppStatusBadge status="processing" />
+            </div>
+          </DemoCard>
 
-          <AppPasswordInput
-            label="Password Input"
-            value={form.password}
-            onChange={updateField("password")}
-            helperText="Password field with visibility toggle."
-            fullWidth
-          />
+          <DemoCard title="AppTag Removable and Clickable">
+            <div className="flex flex-wrap gap-3">
+              {visibleTags.map((tag) => (
+                <AppTag
+                  key={tag}
+                  label={tag}
+                  removable
+                  onDelete={() => handleRemoveTag(tag)}
+                  clickable
+                  onClick={() => {}}
+                  colorVariant="primary"
+                  variant="soft"
+                />
+              ))}
 
-          <AppSearchInput
-            label="Search Input"
-            placeholder="Search records..."
-            value={form.search}
-            onChange={updateField("search")}
-            clearable
-            onClear={() => updateField("search")("")}
-            fullWidth
-          />
-
-          <AppPhoneInput
-            label="Phone Input"
-            value={form.phone}
-            onChange={updateField("phone")}
-            helperText="Indian mobile number input."
-            fullWidth
-          />
-
-          <AppInput
-            label="Read Only Input"
-            value="Read only value"
-            readOnly
-            helperText="Read-only state."
-            fullWidth
-          />
-
-          <AppInput
-            label="Disabled Input"
-            value="Disabled value"
-            disabled
-            helperText="Disabled state."
-            fullWidth
-          />
-
-          <AppInput
-            label="Error Input"
-            value="Wrong value"
-            error
-            errorText="This field has an error."
-            fullWidth
-          />
+              {visibleTags.length === 0 && (
+                <AppButton
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setRemovedTags([])}
+                >
+                  Reset Tags
+                </AppButton>
+              )}
+            </div>
+          </DemoCard>
         </DemoSection>
 
-        <DemoSection title="Adornments, Variants, Sizes">
-          <AppInput
-            label="Prefix / Suffix"
-            value={form.text}
-            onChange={updateField("text")}
-            prefix="ID"
-            suffix="USR"
-            helperText="Using prefix and suffix props."
-            fullWidth
-          />
-
-          <AppInput
-            label="Soft Variant"
-            value="Soft input"
-            variant="soft"
-            colorVariant="info"
+        <DemoSection title="Cards and Information Blocks">
+          <AppCard
+            title="AppCard Default"
+            subtitle="Reusable content container"
+            action={<AppButton size="small">Action</AppButton>}
+            footer={
+              <span className="text-sm text-text-muted">Card footer</span>
+            }
+            padding="md"
             rounded="lg"
-            fullWidth
-          />
+            bordered
+          >
+            <p className="text-sm text-text-muted">
+              Use AppCard for grouped data, dashboard sections, forms, and list
+              content.
+            </p>
+          </AppCard>
 
-          <AppInput
-            label="Bordered Variant"
-            value="Bordered input"
-            variant="bordered"
-            colorVariant="primary"
+          <AppCard
+            title="Hoverable Card"
+            subtitle="Outlined, hoverable, and clickable"
+            variant="outlined"
+            padding="md"
             rounded="xl"
-            fullWidth
-          />
+            shadow="sm"
+            hoverable
+            clickable
+            onClick={() => {}}
+          >
+            <p className="text-sm text-text-muted">
+              Cards can be interactive with hover and click behavior.
+            </p>
+          </AppCard>
 
-          <AppInput label="Small Size" value="Small" size="small" fullWidth />
-
-          <AppInput
-            label="Medium Size"
-            value="Medium"
-            size="medium"
-            fullWidth
-          />
-
-          <AppInput label="Large Size" value="Large" size="large" fullWidth />
-        </DemoSection>
-
-        <DemoSection title="Textarea">
-          <div className="md:col-span-2">
-            <AppTextarea
-              label="Description"
-              placeholder="Write description..."
-              value={form.textarea}
-              onChange={updateField("textarea")}
-              minRows={4}
-              maxRows={8}
-              showCount
-              maxLength={250}
-              resize="vertical"
-              helperText="Textarea with counter and resize."
-              fullWidth
-            />
-          </div>
-
-          <AppTextarea
-            label="Error Textarea"
-            value="Too short"
-            error
-            errorText="Description must be at least 20 characters."
-            rows={4}
-            fullWidth
-          />
-        </DemoSection>
-
-        <DemoSection title="Select Inputs">
-          <AppSelect
-            label="Single Select"
-            value={form.status}
-            onChange={updateField("status")}
-            options={statusOptions}
-            placeholder="Choose status"
-            helperText="Single dropdown selection."
-            fullWidth
-          />
-
-          <AppMultiSelect
-            label="Multi Select"
-            value={form.skills}
-            onChange={updateField("skills")}
-            options={skillOptions}
-            showCheckbox
-            showChips
-            showSelectAll
-            helperText="Multiple selection with chips."
-            fullWidth
-          />
-
-          <AppAutocomplete
-            label="Autocomplete"
-            value={form.city}
-            onChange={(_, value) => updateField("city")(value)}
-            options={cityOptions}
-            placeholder="Search city"
-            showSearchIcon
-            helperText="Searchable single select."
-            fullWidth
-          />
-
-          <AppAutocomplete
-            label="Multiple Autocomplete"
-            value={form.cities}
-            onChange={(_, value) => updateField("cities")(value)}
-            options={cityOptions}
-            multiple
-            showCheckbox
-            limitTags={2}
-            placeholder="Select cities"
-            helperText="Searchable multi select."
-            fullWidth
-          />
-
-          <AppAutocomplete
-            label="Free Solo Autocomplete"
-            value={form.city}
-            onChange={(_, value) => updateField("city")(value)}
-            options={cityOptions}
-            freeSolo
-            placeholder="Type or select city"
-            helperText="Allows custom values."
-            fullWidth
-          />
-        </DemoSection>
-
-        <DemoSection title="Choice Inputs">
-          <AppCheckbox
-            label="Checkbox"
-            checked={form.checkbox}
-            onChange={updateChecked("checkbox")}
-            helperText="Boolean checkbox field."
-            colorVariant="primary"
-          />
-
-          <AppCheckbox
-            label="Indeterminate Checkbox"
-            checked={false}
-            indeterminate
-            helperText="Indeterminate state."
-            colorVariant="warning"
-          />
-
-          <AppSwitch
-            label="Switch"
-            checked={form.switch}
-            onChange={updateChecked("switch")}
-            helperText="Toggle setting."
-            colorVariant="success"
-          />
-
-          <AppSwitch
-            label="Read Only Switch"
-            checked
-            readOnly
-            helperText="Read-only switch."
+          <AppInfoCard
+            title="AppInfoCard"
+            description="Use this component for contextual guidance, notes, help panels, or important information."
+            badge="Info"
+            badgeColor="info"
             colorVariant="info"
+            variant="soft"
+            action={<AppButton size="small">Learn More</AppButton>}
           />
 
-          <AppRadio
-            label="Single Radio"
-            checked={form.singleRadio}
-            onChange={updateChecked("singleRadio")}
-            helperText="Standalone radio option."
-            colorVariant="primary"
-          />
-
-          <AppRadioGroup
-            label="Radio Group"
-            name="plan"
-            value={form.radio}
-            onChange={updateField("radio")}
-            options={planOptions}
-            direction="row"
-            helperText="Grouped radio options."
-            colorVariant="primary"
+          <AppInfoCard
+            title="Warning Info Card"
+            description="This setting affects all users in the workspace."
+            badge="Warning"
+            badgeColor="warning"
+            colorVariant="warning"
+            variant="outlined"
           />
         </DemoSection>
 
-        <DemoSection title="Number Inputs">
-          <AppNumberInput
-            label="Number Input"
-            value={form.number}
-            onChange={updateField("number")}
-            min={1}
-            max={100}
-            step={1}
-            helperText="Numeric input with min and max."
-            fullWidth
-          />
+        <DemoSection title="Avatars and Avatar Groups">
+          <DemoCard title="AppAvatar Sizes and Status">
+            <div className="flex flex-wrap items-center gap-4">
+              <AppAvatar
+                name="Rahul Sharma"
+                size="xs"
+                showStatus
+                status="online"
+              />
+              <AppAvatar
+                name="Priya Mehta"
+                size="small"
+                showStatus
+                status="away"
+                colorVariant="success"
+              />
+              <AppAvatar
+                name="Aman Verma"
+                size="medium"
+                showStatus
+                status="busy"
+                colorVariant="warning"
+              />
+              <AppAvatar
+                name="Neha Kapoor"
+                size="large"
+                showStatus
+                status="offline"
+                colorVariant="info"
+              />
+              <AppAvatar
+                name="Karan Shah"
+                size="xl"
+                variant="rounded"
+                bordered
+                colorVariant="error"
+              />
+            </div>
+          </DemoCard>
 
-          <AppNumberInput
-            label="Decimal Number"
-            value={form.number}
-            onChange={updateField("number")}
-            allowDecimal
-            step={0.5}
-            helperText="Decimal values allowed."
-            fullWidth
-          />
+          <DemoCard title="AppAvatarGroup">
+            <div className="space-y-4">
+              <AppAvatarGroup
+                items={teamMembers}
+                max={4}
+                size="small"
+                showTooltip
+                bordered
+              />
 
-          <AppCurrencyInput
-            label="Currency Input"
-            value={form.currency}
-            onChange={updateField("currency")}
-            currency="₹"
-            position="prefix"
-            helperText="Currency amount field."
-            fullWidth
-          />
+              <AppAvatarGroup
+                items={teamMembers}
+                max={3}
+                size="medium"
+                showTooltip
+                bordered
+              />
 
-          <AppPercentageInput
-            label="Percentage Input"
-            value={form.percentage}
-            onChange={updateField("percentage")}
-            helperText="Percentage field from 0 to 100."
-            fullWidth
-          />
+              <AppAvatarGroup
+                items={teamMembers}
+                max={5}
+                size="large"
+                showTooltip
+              />
+            </div>
+          </DemoCard>
         </DemoSection>
 
-        <DemoSection title="Date and Time Inputs">
-          <AppDatePicker
-            label="Date Picker"
-            value={form.date}
-            onChange={updateField("date")}
-            showToday
-            showClear
-            helperText="Date-only picker."
-            fullWidth
+        <DemoSection title="Stats and Key-Value Display">
+          <AppStatCard
+            title="Revenue"
+            value="₹24.5L"
+            subtitle="This month"
+            trend="up"
+            trendValue="+18%"
+            colorVariant="success"
+            variant="soft"
           />
 
-          <AppTimePicker
-            label="Time Picker"
-            value={form.time}
-            onChange={updateField("time")}
-            helperText="Time-only picker."
-            fullWidth
+          <AppStatCard
+            title="Open Tickets"
+            value="42"
+            subtitle="Requires attention"
+            trend="down"
+            trendValue="-6%"
+            colorVariant="warning"
+            variant="outlined"
           />
 
-          <AppDateTimePicker
-            label="Date Time Picker"
-            value={form.dateTime}
-            onChange={updateField("dateTime")}
-            disablePast
-            helperText="Combined date and time picker."
-            fullWidth
+          <AppStatCard
+            title="Active Users"
+            value="12,430"
+            subtitle="Across all teams"
+            trend="neutral"
+            trendValue="Stable"
+            colorVariant="info"
+            variant="default"
           />
 
-          <div className="md:col-span-2">
-            <AppDateRangePicker
-              startLabel="Start Date"
-              endLabel="End Date"
-              value={form.dateRange}
-              onChange={updateField("dateRange")}
-              helperText="Date range picker."
-              fullWidth
-            />
+          <DemoCard title="AppKeyValue Rows">
+            <div className="space-y-4">
+              <AppKeyValue
+                label="Invoice No"
+                value="INV-1024"
+                badge="Paid"
+                badgeColor="success"
+              />
+              <AppKeyValue
+                label="Customer"
+                value="Acme Industries"
+                direction="column"
+                size="medium"
+              />
+              <AppKeyValue
+                label="Priority"
+                value="High"
+                badge="Urgent"
+                badgeColor="error"
+                align="space-between"
+              />
+            </div>
+          </DemoCard>
+        </DemoSection>
+
+        <DemoSection title="Description Lists">
+          <div className="md:col-span-2 xl:col-span-3">
+            <DemoCard title="AppDescriptionList Card Variant">
+              <AppDescriptionList
+                columns={3}
+                items={descriptionItems}
+                variant="card"
+                bordered
+                striped
+              />
+            </DemoCard>
+          </div>
+
+          <div className="md:col-span-2 xl:col-span-3">
+            <DemoCard title="AppDescriptionList Default Variant">
+              <AppDescriptionList
+                columns={2}
+                items={descriptionItems}
+                variant="default"
+                size="medium"
+                align="space-between"
+              />
+            </DemoCard>
           </div>
         </DemoSection>
 
-        <DemoSection title="Upload Inputs">
-          <AppFileUpload
-            label="File Upload"
-            value={form.file}
-            onChange={updateField("file")}
-            accept=".pdf,.doc,.docx,.jpg,.png"
-            buttonText="Choose File"
-            dragText="Drag file here"
-            browseText="Browse"
-            showFileList
-            helperText="Upload document or image files."
-            fullWidth
-          />
+        <DemoSection title="Timeline">
+          <div className="md:col-span-2 xl:col-span-3">
+            <DemoCard title="AppTimeline Default">
+              <AppTimeline
+                items={timelineItems}
+                variant="soft"
+                colorVariant="primary"
+                showConnector
+              />
+            </DemoCard>
+          </div>
 
-          <AppFileUpload
-            label="Multiple File Upload"
-            value={form.file}
-            onChange={updateField("file")}
-            multiple
-            maxFiles={5}
-            showFileList
-            showProgress
-            progress={65}
-            helperText="Multiple upload with progress."
-            fullWidth
-          />
+          <DemoCard title="Dense Timeline">
+            <AppTimeline items={timelineItems.slice(0, 3)} dense size="small" />
+          </DemoCard>
 
-          <AppImageUpload
-            label="Image Upload"
-            value={form.image}
-            onChange={updateField("image")}
-            preview
-            previewSize={120}
-            helperText="Image upload with preview."
-            fullWidth
-          />
+          <DemoCard title="Outlined Timeline">
+            <AppTimeline
+              items={timelineItems.slice(0, 3)}
+              variant="outlined"
+              colorVariant="info"
+            />
+          </DemoCard>
         </DemoSection>
 
-        <DemoSection title="Validation and Loading States">
-          <AppInput
-            label="Required Field"
-            value={form.text}
-            onChange={updateField("text")}
-            required
-            helperText="Required input example."
-            fullWidth
-          />
+        <DemoSection title="Pagination">
+          <div className="md:col-span-2 xl:col-span-3">
+            <DemoCard title="AppPagination With Rows Per Page">
+              <AppPagination
+                page={page}
+                count={10}
+                total={96}
+                rowsPerPage={rowsPerPage}
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                onPageChange={setPage}
+                onRowsPerPageChange={setRowsPerPage}
+                showRowsPerPage
+                showTotal
+                variant="outlined"
+                shape="rounded"
+                colorVariant="primary"
+              />
+            </DemoCard>
+          </div>
 
-          <AppInput
-            label="Loading Input"
-            value="Fetching data..."
-            loading
-            helperText="Loading state."
-            fullWidth
-          />
+          <DemoCard title="Contained Pagination">
+            <AppPagination
+              page={page}
+              count={8}
+              onPageChange={setPage}
+              variant="contained"
+              colorVariant="success"
+            />
+          </DemoCard>
 
-          <AppSelect
-            label="Loading Select"
-            value=""
-            options={[]}
-            loading
-            helperText="Loading dropdown state."
-            fullWidth
-          />
+          <DemoCard title="Small Pagination">
+            <AppPagination
+              page={page}
+              count={5}
+              onPageChange={setPage}
+              size="small"
+              colorVariant="info"
+            />
+          </DemoCard>
+        </DemoSection>
 
-          <AppAutocomplete
-            label="Loading Autocomplete"
-            value={null}
-            options={[]}
-            loading
-            loadingText="Loading suggestions..."
-            helperText="Async search loading state."
-            fullWidth
-          />
+        <DemoSection title="Accordion">
+          <div className="md:col-span-2 xl:col-span-3">
+            <DemoCard title="AppAccordion Multiple Sections">
+              <AppAccordion
+                items={accordionItems}
+                defaultExpanded={["details"]}
+                multiple
+                variant="outlined"
+                rounded="lg"
+                showDivider
+              />
+            </DemoCard>
+          </div>
 
-          <AppFileUpload
-            label="Loading Upload"
-            value={null}
-            onChange={updateField("file")}
-            loading
-            loadingText="Uploading..."
-            showProgress
-            progress={45}
-            helperText="Upload loading state."
-            fullWidth
-          />
+          <div className="md:col-span-2 xl:col-span-3">
+            <DemoCard title="Soft Accordion">
+              <AppAccordion
+                items={accordionItems}
+                defaultExpanded="billing"
+                variant="soft"
+                rounded="xl"
+                elevation
+              />
+            </DemoCard>
+          </div>
         </DemoSection>
       </section>
     </main>
@@ -583,5 +558,14 @@ function DemoSection({ title, children }) {
         {children}
       </div>
     </section>
+  );
+}
+
+function DemoCard({ title, children }) {
+  return (
+    <div className="rounded-xl border border-border bg-surface-alt p-4">
+      <h3 className="mb-4 font-semibold">{title}</h3>
+      {children}
+    </div>
   );
 }
