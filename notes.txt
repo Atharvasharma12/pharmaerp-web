@@ -39,6 +39,23 @@ erp-frontend/
 │   │   │   │   └── useAuth.js
 │   │   │   └── index.js
 │   │   │
+│   │   ├── landing/
+│   │   │   ├── pages/
+│   │   │   │   └── LandingPage.jsx
+│   │   │   ├── components/
+│   │   │   │   ├── PublicNavbar.jsx
+│   │   │   │   ├── HeroSection.jsx
+│   │   │   │   ├── DashboardShowcaseSection.jsx
+│   │   │   │   ├── FeaturesSection.jsx
+│   │   │   │   ├── WorkflowSection.jsx
+│   │   │   │   ├── BenefitsSection.jsx
+│   │   │   │   ├── TestimonialsSection.jsx
+│   │   │   │   ├── PricingSection.jsx
+│   │   │   │   ├── FAQSection.jsx
+│   │   │   │   ├── CTASection.jsx
+│   │   │   │   └── PublicFooter.jsx
+│   │   │   └── index.js
+│   │   │
 │   │   ├── dashboard/
 │   │   │   ├── pages/
 │   │   │   │   └── DashboardPage.jsx

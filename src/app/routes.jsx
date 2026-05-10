@@ -1,30 +1,40 @@
-import HomePage from "@/pages/HomePage";
-import UIComponentDisplayPage from "@/pages/UIComponentDisplayPage";
+// src/app/routes.jsx
+
 import { createBrowserRouter } from "react-router-dom";
 
-// const HomePage = () => {
-//   return <div>Home Page</div>;
-// };
+import { ROUTES } from "@/constants";
 
-const AboutPage = () => {
-  return <div>About Page</div>;
-};
+import { PublicLayout, AuthLayout } from "@/layouts";
+
+import authRoutes from "@/features/auth/routes/authRoutes";
+
+import { LandingPage } from "@/features/landing";
 
 const NotFoundPage = () => {
   return <div>404 - Page Not Found</div>;
 };
 
 export const router = createBrowserRouter([
+  // PUBLIC PAGES
   {
-    path: "/",
-    element: <HomePage />,
+    element: <PublicLayout />,
+    children: [
+      {
+        path: ROUTES.HOME,
+        element: <LandingPage />,
+      },
+    ],
   },
+
+  // AUTH PAGES
   {
-    path: "/about",
-    element: <AboutPage />,
+    element: <AuthLayout />,
+    children: authRoutes,
   },
+
+  // 404
   {
-    path: "*",
+    path: ROUTES.NOT_FOUND,
     element: <NotFoundPage />,
   },
 ]);

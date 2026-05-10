@@ -194,14 +194,9 @@ erp-frontend/
 │   │   └── index.js
 │   │
 │   ├── 📂 layouts/
-│   │   ├── MainLayout.jsx        # Main app layout
-│   │   ├── DashboardLayout.jsx   # Dashboard layout with sidebar
-│   │   ├── AuthLayout.jsx        # Auth pages layout
-│   │   ├── Navbar.jsx            # Navigation bar
-│   │   ├── Sidebar.jsx           # Sidebar navigation
-│   │   ├── Footer.jsx            # Footer component
-│   │   ├── PageContainer.jsx     # Page wrapper
-│   │   ├── PageHeader.jsx        # Page header with title
+│   │   ├── PublicLayout.jsx      # Main app layout
+│   │   ├── AuthLayout.jsx        # Dashboard layout with sidebar
+│   │   ├── AppLayout.jsx         # Auth pages layout
 │   │   └── index.js
 │   │
 │   ├── 📂 guards/
