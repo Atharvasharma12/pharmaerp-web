@@ -22,13 +22,32 @@ erp-frontend/
 │
 │
 │   ├── features/
+│   │   ├── public/
+│   │   │   ├── pages/
+│   │   │   │   ├── LandingPage.jsx
+│   │   │   │   ├── AboutPage.jsx
+│   │   │   │   ├── ContactPage.jsx
+│   │   │   │   ├── FeaturesPage.jsx
+│   │   │   │   └── PricingPage.jsx
+│   │   │   ├── components/
+│   │   │   │   ├── HeroSection.jsx
+│   │   │   │   ├── FeaturesSection.jsx
+│   │   │   │   ├── FeatureCard.jsx
+│   │   │   │   ├── PricingSection.jsx
+│   │   │   │   └── PricingCard.jsx
+│   │   │   └── index.js
 │   │   ├── auth/
 │   │   │   ├── pages/
 │   │   │   │   ├── LoginPage.jsx
 │   │   │   │   ├── RegisterPage.jsx
 │   │   │   │   ├── ForgotPasswordPage.jsx
 │   │   │   │   └── ResetPasswordPage.jsx
-│   │   │   ├── components/
+│   │   │   ├── components/     
+│   │   │   │   ├── AuthCard.jsx
+│   │   │   │   ├── LoginForm.jsx
+│   │   │   │   ├── RegisterForm.jsx
+│   │   │   │   ├── ForgotPasswordForm.jsx
+│   │   │   │   └── ResetPasswordForm.jsx
 │   │   │   ├── services/
 │   │   │   │   └── authService.js
 │   │   │   ├── store/
@@ -158,7 +177,32 @@ erp-frontend/
 └── README.md
 
 
-
+src/
+└── layouts/
+    ├── PublicLayout.jsx
+    ├── AuthLayout.jsx
+    ├── DashboardLayout.jsx
+    ├── MinimalLayout.jsx
+    │
+    ├── components/
+    │   ├── PublicNavbar.jsx
+    │   ├── PublicFooter.jsx
+    │   ├── AuthHeader.jsx
+    │   ├── DashboardSidebar.jsx
+    │   ├── DashboardTopbar.jsx
+    │   ├── DashboardFooter.jsx
+    │   ├── Breadcrumbs.jsx
+    │   ├── PageContainer.jsx
+    │   ├── SidebarMenu.jsx
+    │   ├── SidebarItem.jsx
+    │   ├── UserDropdown.jsx
+    │   ├── NotificationDropdown.jsx
+    │   ├── SearchBar.jsx
+    │   ├── ThemeSwitcher.jsx
+    │   ├── Logo.jsx
+    │   └── index.js
+    │
+    └── index.js
 
 
 Folders and Pages Structure

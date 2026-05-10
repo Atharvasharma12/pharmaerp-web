@@ -14,6 +14,14 @@ const NotFoundPage = () => {
   return <div>404 - Page Not Found</div>;
 };
 
+const PublicRoutes = () => {
+  return (
+    <PublicLayout>
+      <Outlet />
+    </PublicLayout>
+  );
+};
+
 export const router = createBrowserRouter([
   // PUBLIC PAGES
   {
