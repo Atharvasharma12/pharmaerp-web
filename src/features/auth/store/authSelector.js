@@ -1,5 +1,3 @@
-// src/features/auth/store/authSelector.js
-
 export const selectAuth = (state) => state.auth;
 
 export const selectAuthUser = (state) => state.auth.user;
@@ -22,3 +20,9 @@ export const selectResetPasswordStatus = (state) =>
 
 export const selectChangePasswordStatus = (state) =>
   state.auth.changePasswordStatus;
+
+export const selectSendEmailOtpStatus = (state) =>
+  state.auth.sendEmailOtpStatus;
+
+export const selectVerifyEmailOtpStatus = (state) =>
+  state.auth.verifyEmailOtpStatus;

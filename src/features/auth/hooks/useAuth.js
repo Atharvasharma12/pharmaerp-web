@@ -1,5 +1,3 @@
-// src/features/auth/hooks/useAuth.js
-
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -9,6 +7,8 @@ import {
   forgotPassword,
   resetPassword,
   changePassword,
+  sendEmailOtp,
+  verifyEmailOtp,
 } from "../store/authThunk";
 
 import {
@@ -28,6 +28,8 @@ import {
   selectForgotPasswordStatus,
   selectResetPasswordStatus,
   selectChangePasswordStatus,
+  selectSendEmailOtpStatus,
+  selectVerifyEmailOtpStatus,
 } from "../store/authSelector";
 
 const useAuth = () => {
@@ -44,6 +46,8 @@ const useAuth = () => {
   const forgotPasswordStatus = useSelector(selectForgotPasswordStatus);
   const resetPasswordStatus = useSelector(selectResetPasswordStatus);
   const changePasswordStatus = useSelector(selectChangePasswordStatus);
+  const sendEmailOtpStatus = useSelector(selectSendEmailOtpStatus);
+  const verifyEmailOtpStatus = useSelector(selectVerifyEmailOtpStatus);
 
   const register = (payload) => {
     return dispatch(registerUser(payload)).unwrap();
@@ -67,6 +71,14 @@ const useAuth = () => {
 
   const submitChangePassword = (payload) => {
     return dispatch(changePassword(payload)).unwrap();
+  };
+
+  const submitSendEmailOtp = (payload) => {
+    return dispatch(sendEmailOtp(payload)).unwrap();
+  };
+
+  const submitVerifyEmailOtp = (payload) => {
+    return dispatch(verifyEmailOtp(payload)).unwrap();
   };
 
   const clearError = () => {
@@ -97,6 +109,8 @@ const useAuth = () => {
     forgotPasswordStatus,
     resetPasswordStatus,
     changePasswordStatus,
+    sendEmailOtpStatus,
+    verifyEmailOtpStatus,
 
     register,
     login,
@@ -105,6 +119,8 @@ const useAuth = () => {
     forgotPassword: sendForgotPasswordRequest,
     resetPassword: submitResetPassword,
     changePassword: submitChangePassword,
+    sendEmailOtp: submitSendEmailOtp,
+    verifyEmailOtp: submitVerifyEmailOtp,
 
     clearError,
     clearMessage,

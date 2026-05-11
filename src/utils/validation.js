@@ -8,19 +8,17 @@ export const isValidPassword = (password = "") => {
   return password.length >= 6 && password.length <= 128;
 };
 
-export const isValidUsername = (username = "") => {
-  return /^[a-z0-9._-]{3,40}$/.test(username);
-};
-
 export const isValidPhone = (phone = "") => {
   return /^[6-9][0-9]{9}$/.test(phone);
 };
 
-export const validateLoginForm = ({ identifier, password }) => {
+export const validateLoginForm = ({ email, password }) => {
   const errors = {};
 
-  if (!identifier?.trim()) {
-    errors.identifier = "Email or username is required";
+  if (!email?.trim()) {
+    errors.email = "Email is required";
+  } else if (!isValidEmail(email)) {
+    errors.email = "Invalid email address";
   }
 
   if (!password) {
@@ -30,19 +28,8 @@ export const validateLoginForm = ({ identifier, password }) => {
   return errors;
 };
 
-export const validateRegisterForm = ({
-  username,
-  email,
-  password,
-  fullName,
-  phone,
-}) => {
+export const validateRegisterForm = ({ email, password, fullName, phone }) => {
   const errors = {};
-
-  if (!isValidUsername(username)) {
-    errors.username =
-      "Username must be 3-40 characters and contain only letters, numbers, dot, underscore and hyphen";
-  }
 
   if (!isValidEmail(email)) {
     errors.email = "Invalid email address";

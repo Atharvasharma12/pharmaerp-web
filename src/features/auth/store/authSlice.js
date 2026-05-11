@@ -1,5 +1,3 @@
-// src/features/auth/store/authSlice.js
-
 import { createSlice } from "@reduxjs/toolkit";
 
 import { API_STATUS, TOKEN_KEY, USER_STORAGE_KEY } from "@/constants";
@@ -12,6 +10,8 @@ import {
   forgotPassword,
   resetPassword,
   changePassword,
+  sendEmailOtp,
+  verifyEmailOtp,
 } from "./authThunk";
 
 const initialState = {
@@ -26,6 +26,8 @@ const initialState = {
   forgotPasswordStatus: API_STATUS.IDLE,
   resetPasswordStatus: API_STATUS.IDLE,
   changePasswordStatus: API_STATUS.IDLE,
+  sendEmailOtpStatus: API_STATUS.IDLE,
+  verifyEmailOtpStatus: API_STATUS.IDLE,
 
   message: null,
 };
@@ -162,6 +164,40 @@ const authSlice = createSlice({
       .addCase(changePassword.rejected, (state, action) => {
         state.changePasswordStatus = API_STATUS.ERROR;
         state.error = action.payload || "Password change failed";
+      })
+
+      .addCase(sendEmailOtp.pending, (state) => {
+        state.sendEmailOtpStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(sendEmailOtp.fulfilled, (state, action) => {
+        state.sendEmailOtpStatus = API_STATUS.SUCCESS;
+        state.message = action.payload?.message || "OTP sent successfully";
+      })
+      .addCase(sendEmailOtp.rejected, (state, action) => {
+        state.sendEmailOtpStatus = API_STATUS.ERROR;
+        state.error = action.payload || "OTP send failed";
+      })
+
+      .addCase(verifyEmailOtp.pending, (state) => {
+        state.verifyEmailOtpStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(verifyEmailOtp.fulfilled, (state, action) => {
+        state.verifyEmailOtpStatus = API_STATUS.SUCCESS;
+        state.user = action.payload?.user || state.user;
+
+        if (action.payload?.user) {
+          storage.set(USER_STORAGE_KEY, action.payload.user);
+        }
+
+        state.message = "Email verified successfully";
+      })
+      .addCase(verifyEmailOtp.rejected, (state, action) => {
+        state.verifyEmailOtpStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Email verification failed";
       });
   },
 });

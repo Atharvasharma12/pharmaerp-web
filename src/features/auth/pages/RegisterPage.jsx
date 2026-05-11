@@ -34,7 +34,6 @@ const RegisterPage = () => {
 
   const [formData, setFormData] = useState({
     fullName: "",
-    username: "",
     email: "",
     phone: "",
     password: "",
@@ -96,7 +95,6 @@ const RegisterPage = () => {
 
     const payload = {
       fullName: formData.fullName.trim(),
-      username: formData.username.trim().toLowerCase(),
       email: formData.email.trim().toLowerCase(),
       password: formData.password,
       phone: formData.phone.trim(),
@@ -278,20 +276,6 @@ const RegisterPage = () => {
                 />
 
                 <InputField
-                  label="Username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  error={formErrors.username}
-                  icon={<FiUser />}
-                  placeholder="Enter username"
-                  helperText="Only letters, numbers, dot, underscore and hyphen"
-                />
-              </div>
-
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <InputField
                   label="Business / Pharmacy Name"
                   name="businessName"
                   value={formData.businessName}
@@ -300,7 +284,9 @@ const RegisterPage = () => {
                   icon={<FiBriefcase />}
                   placeholder="Enter pharmacy name"
                 />
+              </div>
 
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <SelectField
                   label="State"
                   name="state"
@@ -309,9 +295,7 @@ const RegisterPage = () => {
                   disabled={isLoading}
                   icon={<FiMapPin />}
                 />
-              </div>
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <SelectField
                   label="City"
                   name="city"
@@ -320,7 +304,9 @@ const RegisterPage = () => {
                   disabled={isLoading}
                   icon={<FiHome />}
                 />
+              </div>
 
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <PasswordField
                   label="Password"
                   name="password"
@@ -333,9 +319,7 @@ const RegisterPage = () => {
                   onTogglePassword={() => setShowPassword((prev) => !prev)}
                   helperText="Minimum 6 characters"
                 />
-              </div>
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <PasswordField
                   label="Confirm Password"
                   name="confirmPassword"

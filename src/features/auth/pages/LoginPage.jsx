@@ -29,7 +29,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
-    identifier: "",
+    email: "",
     password: "",
   });
 
@@ -84,7 +84,7 @@ const LoginPage = () => {
     event.preventDefault();
 
     const payload = {
-      identifier: formData.identifier.trim().toLowerCase(),
+      email: formData.email.trim().toLowerCase(),
       password: formData.password,
     };
 
@@ -225,24 +225,25 @@ const LoginPage = () => {
 
               <div
                 className={`mt-1.5 flex h-[44px] items-center gap-3 rounded-lg border px-4 text-slate-500 ${
-                  formErrors.identifier ? "border-red-400" : "border-slate-200"
+                  formErrors.email ? "border-red-400" : "border-slate-200"
                 }`}
               >
                 <FiMail className="text-[18px]" />
+
                 <input
-                  type="text"
-                  name="identifier"
-                  value={formData.identifier}
+                  type="email"
+                  name="email"
+                  value={formData.email}
                   onChange={handleChange}
                   disabled={isLoading}
-                  placeholder="Enter your email or username"
+                  placeholder="Enter your email"
                   className="h-full w-full bg-transparent text-[13.5px] outline-none placeholder:text-slate-500 disabled:cursor-not-allowed"
                 />
               </div>
 
-              {formErrors.identifier && (
+              {formErrors.email && (
                 <p className="mt-1 text-[12px] font-medium text-red-500">
-                  {formErrors.identifier}
+                  {formErrors.email}
                 </p>
               )}
 
@@ -256,6 +257,7 @@ const LoginPage = () => {
                 }`}
               >
                 <FiLock className="text-[18px]" />
+
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"

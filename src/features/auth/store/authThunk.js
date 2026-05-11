@@ -1,7 +1,7 @@
-// src/features/auth/store/authThunk.js
-
 import { createAsyncThunk } from "@reduxjs/toolkit";
+
 import authService from "../services/authService";
+
 import { TOKEN_KEY, USER_STORAGE_KEY } from "@/constants";
 import { getErrorMessage, storage } from "@/utils";
 
@@ -98,6 +98,36 @@ export const changePassword = createAsyncThunk(
     try {
       const response = await authService.changePassword(payload);
       return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const sendEmailOtp = createAsyncThunk(
+  "auth/sendEmailOtp",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response = await authService.sendEmailOtp(payload);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const verifyEmailOtp = createAsyncThunk(
+  "auth/verifyEmailOtp",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response = await authService.verifyEmailOtp(payload);
+      const data = response.data?.data;
+
+      if (data?.user) {
+        storage.set(USER_STORAGE_KEY, data.user);
+      }
+
+      return data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }

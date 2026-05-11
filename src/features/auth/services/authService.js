@@ -1,5 +1,3 @@
-// src/features/auth/services/authService.js
-
 import { apiClient, ENDPOINTS } from "@/services";
 
 const authService = {
@@ -25,6 +23,14 @@ const authService = {
 
   changePassword(payload) {
     return apiClient.post(ENDPOINTS.AUTH.CHANGE_PASSWORD, payload);
+  },
+
+  sendEmailOtp(payload) {
+    return apiClient.post(ENDPOINTS.AUTH.SEND_EMAIL_OTP, payload);
+  },
+
+  verifyEmailOtp(payload) {
+    return apiClient.post(ENDPOINTS.AUTH.VERIFY_EMAIL_OTP, payload);
   },
 };
 
