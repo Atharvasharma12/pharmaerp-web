@@ -9,6 +9,7 @@ import { PublicLayout, AuthLayout } from "@/layouts";
 import authRoutes from "@/features/auth/routes/authRoutes";
 
 import { LandingPage } from "@/features/landing";
+import HomePage from "@/pages/HomePage";
 
 const NotFoundPage = () => {
   return <div>404 - Page Not Found</div>;
@@ -21,7 +22,7 @@ export const router = createBrowserRouter([
     children: [
       {
         path: ROUTES.HOME,
-        element: <LandingPage />,
+        element: <HomePage />,
       },
     ],
   },

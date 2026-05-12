@@ -6,13 +6,13 @@ import { Outlet } from "react-router-dom";
 const PublicLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <PublicNavbar />
+      {/* <PublicNavbar /> */}
 
       <main className="flex-1">
         <Outlet />
       </main>
 
-      <PublicFooter />
+      {/* <PublicFooter /> */}
     </div>
   );
 };

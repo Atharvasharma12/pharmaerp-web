@@ -1,12 +1,17 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 
-import { useTheme } from "@/contexts/ThemeContext";
-import { getThemeTokens } from "@/theme/getThemeTokens";
-import { AppDialog, AppButton, AppAlert } from "@/components";
+import {
+  AppDialog,
+  AppAlert,
+  AppStack,
+  AppText,
+  AppButton,
+  AppLoadingButton,
+} from "@/components";
 
 const ConfirmDialog = ({
   open = false,
@@ -39,14 +44,23 @@ const ConfirmDialog = ({
   sx = {},
   ...props
 }) => {
-  const { theme } = useTheme();
-  const t = getThemeTokens(theme);
-
   const severityIconMap = {
     warning: <WarningAmberRoundedIcon />,
     error: <DeleteOutlineRoundedIcon />,
     info: <InfoOutlinedIcon />,
-    success: <InfoOutlinedIcon />,
+    success: <CheckCircleOutlineRoundedIcon />,
+  };
+
+  const confirmColorMap = {
+    warning: "warning",
+    error: "error",
+    info: "info",
+    success: "success",
+  };
+
+  const handleClose = () => {
+    if (loading) return;
+    onClose?.();
   };
 
   const handleConfirm = async (event) => {
@@ -57,12 +71,12 @@ const ConfirmDialog = ({
   return (
     <AppDialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={title}
       maxWidth={maxWidth}
       fullWidth
       showClose={!loading}
-      closeOnBackdrop={closeOnBackdrop}
+      closeOnBackdrop={closeOnBackdrop && !loading}
       showActions={false}
       paperSx={{
         maxWidth: 420,
@@ -73,70 +87,65 @@ const ConfirmDialog = ({
       }}
       {...props}
     >
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-        }}
-      >
-        {description && (
-          <Typography
+      <AppStack spacing={2}>
+        {description ? (
+          <AppText
             sx={{
-              fontSize: "0.9rem",
+              color: "var(--color-text-muted)",
               lineHeight: 1.6,
-              color: t.textMuted,
+              fontSize: "0.9rem",
             }}
           >
             {description}
-          </Typography>
-        )}
+          </AppText>
+        ) : null}
 
-        {showAlert && (alertTitle || alertMessage) && (
+        {showAlert && (alertTitle || alertMessage) ? (
           <AppAlert
             severity={severity}
             variant={variant}
             dense
-            icon={severityIconMap[severity]}
+            icon={severityIconMap[severity] || severityIconMap.warning}
             title={alertTitle}
           >
             {alertMessage}
           </AppAlert>
-        )}
+        ) : null}
 
         {children}
 
-        <Box
+        <AppStack
+          direction="row"
+          justify="flex-end"
+          align="center"
+          spacing={1}
           sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            gap: 1,
             pt: 1,
           }}
         >
           <AppButton
             variant="outlined"
             colorVariant="dark"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={loading}
             {...cancelButtonProps}
           >
             {cancelText}
           </AppButton>
 
-          <AppButton
+          <AppLoadingButton
             variant="contained"
-            colorVariant={severity === "error" ? "error" : severity}
-            onClick={handleConfirm}
+            colorVariant={confirmColorMap[severity] || "primary"}
             loading={loading}
+            loadingText="Please wait..."
+            onClick={handleConfirm}
             disabled={disabled}
             {...confirmButtonProps}
           >
             {confirmText}
-          </AppButton>
-        </Box>
-      </Box>
+          </AppLoadingButton>
+        </AppStack>
+      </AppStack>
     </AppDialog>
   );
 };

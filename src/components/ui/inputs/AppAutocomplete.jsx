@@ -726,11 +726,11 @@ const AppAutocomplete = forwardRef(function AppAutocomplete(
               startAdornment: (
                 <>
                   {renderExtraStartAdornment()}
-                  {params.InputProps?.startAdornment}
+                  {params.InputProps.startAdornment}
                 </>
               ),
               endAdornment: renderExtraEndAdornment(
-                params.InputProps?.endAdornment,
+                params.InputProps.endAdornment,
               ),
               sx: {
                 borderRadius: radiusMap[rounded] || radiusMap.md,

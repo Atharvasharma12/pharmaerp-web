@@ -1,9 +1,14 @@
-import React, { useState } from "react";
-import { Box } from "@mui/material";
+import React, { useEffect, useState } from "react";
 import FilterAltRoundedIcon from "@mui/icons-material/FilterAltRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 
-import { AppButton, AppIconButton, AppDialog, FilterBar } from "@/components";
+import {
+  AppButton,
+  AppIconButton,
+  AppDialog,
+  AppStack,
+  FilterBar,
+} from "@/components";
 
 const FilterDialog = ({
   filters = [],
@@ -40,12 +45,23 @@ const FilterDialog = ({
   showReset = true,
 
   triggerVariant = "button", // button | icon
+
+  closeOnBackdrop = true,
+
+  sx = {},
 }) => {
   const isControlled = typeof controlledOpen === "boolean";
+
   const [internalOpen, setInternalOpen] = useState(false);
   const [draftValues, setDraftValues] = useState(values);
 
   const open = isControlled ? controlledOpen : internalOpen;
+
+  useEffect(() => {
+    if (open) {
+      setDraftValues(values);
+    }
+  }, [open, values]);
 
   const handleOpen = () => {
     if (disabled) return;
@@ -60,6 +76,8 @@ const FilterDialog = ({
   };
 
   const handleClose = () => {
+    if (loading) return;
+
     if (!isControlled) {
       setInternalOpen(false);
     }
@@ -71,23 +89,39 @@ const FilterDialog = ({
     setDraftValues(nextValues);
   };
 
+  const getEmptyValueByType = (type) => {
+    const normalizedType = String(type || "").toLowerCase();
+
+    if (
+      normalizedType === "multiselect" ||
+      normalizedType === "multi-select" ||
+      normalizedType === "multi"
+    ) {
+      return [];
+    }
+
+    if (normalizedType === "switch" || normalizedType === "checkbox") {
+      return false;
+    }
+
+    if (
+      normalizedType === "date" ||
+      normalizedType === "daterange" ||
+      normalizedType === "date-range"
+    ) {
+      return null;
+    }
+
+    return "";
+  };
+
   const handleReset = () => {
+    if (disabled || loading) return;
+
     const resetValues = {};
 
     filters.forEach((filter) => {
-      if (
-        filter.type === "multiSelect" ||
-        filter.type === "multiselect" ||
-        filter.type === "multi"
-      ) {
-        resetValues[filter.key] = [];
-      } else if (filter.type === "switch") {
-        resetValues[filter.key] = false;
-      } else if (filter.type === "date") {
-        resetValues[filter.key] = null;
-      } else {
-        resetValues[filter.key] = "";
-      }
+      resetValues[filter.key] = getEmptyValueByType(filter.type);
     });
 
     if (showSearch) {
@@ -99,21 +133,11 @@ const FilterDialog = ({
   };
 
   const handleApply = () => {
+    if (disabled || loading) return;
+
     onChange?.(draftValues);
     onApply?.(draftValues);
     handleClose();
-  };
-
-  const cancelButtonSx = {
-    backgroundColor: "var(--app-color-surface-alt)",
-    color: "var(--app-color-text)",
-    border: "1px solid var(--app-color-border-strong)",
-
-    "&:hover": {
-      backgroundColor: "var(--app-color-surface-hover)",
-      borderColor: "var(--app-color-primary)",
-      color: "var(--app-color-text)",
-    },
   };
 
   return (
@@ -152,9 +176,12 @@ const FilterDialog = ({
         subtitle={subtitle}
         maxWidth={maxWidth}
         fullWidth
+        showClose={!loading}
+        closeOnBackdrop={closeOnBackdrop && !loading}
         showActions={false}
+        paperSx={sx}
       >
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <AppStack spacing={2}>
           <FilterBar
             filters={filters}
             values={draftValues}
@@ -176,12 +203,12 @@ const FilterDialog = ({
             }}
           />
 
-          <Box
+          <AppStack
+            direction="row"
+            align="center"
+            justify="space-between"
+            spacing={1}
             sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 1,
               pt: 1,
             }}
           >
@@ -193,26 +220,21 @@ const FilterDialog = ({
                 onClick={handleReset}
                 disabled={disabled || loading}
                 sx={{
-                  color: "var(--app-color-text-muted)",
-                  "&:hover": {
-                    color: "var(--app-color-text)",
-                    backgroundColor: "var(--app-color-surface-hover)",
-                  },
+                  color: "var(--color-text-muted)",
                 }}
               >
                 {resetText}
               </AppButton>
             ) : (
-              <Box />
+              <span />
             )}
 
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <AppStack direction="row" spacing={1}>
               <AppButton
-                variant="soft"
+                variant="outlined"
                 colorVariant="dark"
                 onClick={handleClose}
                 disabled={loading}
-                sx={cancelButtonSx}
               >
                 {cancelText}
               </AppButton>
@@ -227,9 +249,9 @@ const FilterDialog = ({
               >
                 {applyText}
               </AppButton>
-            </Box>
-          </Box>
-        </Box>
+            </AppStack>
+          </AppStack>
+        </AppStack>
       </AppDialog>
     </>
   );

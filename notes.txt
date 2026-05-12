@@ -1,208 +1,131 @@
-erp-frontend/
-│
-├── public/
-│   ├── favicon.ico
-│   └── assets/
-│       ├── images/
-│       └── icons/
-│
-├── src/
-│
-│   ├── app/
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   ├── routes.jsx
-│   │   └── providers.jsx
-│
-│   ├── assets/
-│   │   ├── images/
-│   │   ├── icons/
-│   │   └── styles/
-│   │       └── globals.css
-│
-│
-│   ├── features/
-│   │   ├── public/
-│   │   │   ├── pages/
-│   │   │   │   ├── LandingPage.jsx
-│   │   │   │   ├── AboutPage.jsx
-│   │   │   │   ├── ContactPage.jsx
-│   │   │   │   ├── FeaturesPage.jsx
-│   │   │   │   └── PricingPage.jsx
-│   │   │   ├── components/
-│   │   │   │   ├── HeroSection.jsx
-│   │   │   │   ├── FeaturesSection.jsx
-│   │   │   │   ├── FeatureCard.jsx
-│   │   │   │   ├── PricingSection.jsx
-│   │   │   │   └── PricingCard.jsx
-│   │   │   └── index.js
-│   │   ├── auth/
-│   │   │   ├── pages/
-│   │   │   │   ├── LoginPage.jsx
-│   │   │   │   ├── RegisterPage.jsx
-│   │   │   │   ├── ForgotPasswordPage.jsx
-│   │   │   │   └── ResetPasswordPage.jsx
-│   │   │   ├── components/     
-│   │   │   │   ├── AuthCard.jsx
-│   │   │   │   ├── LoginForm.jsx
-│   │   │   │   ├── RegisterForm.jsx
-│   │   │   │   ├── ForgotPasswordForm.jsx
-│   │   │   │   └── ResetPasswordForm.jsx
-│   │   │   ├── services/
-│   │   │   │   └── authService.js
-│   │   │   ├── store/
-│   │   │   │   ├── authSlice.js
-│   │   │   │   ├── authThunk.js
-│   │   │   │   └── authSelector.js
-│   │   │   ├── hooks/
-│   │   │   │   └── useAuth.js
-│   │   │   └── index.js
-│   │   │
-│   │   ├── landing/
-│   │   │   ├── pages/
-│   │   │   │   └── LandingPage.jsx
-│   │   │   ├── components/
-│   │   │   │   ├── PublicNavbar.jsx
-│   │   │   │   ├── HeroSection.jsx
-│   │   │   │   ├── DashboardShowcaseSection.jsx
-│   │   │   │   ├── FeaturesSection.jsx
-│   │   │   │   ├── WorkflowSection.jsx
-│   │   │   │   ├── BenefitsSection.jsx
-│   │   │   │   ├── TestimonialsSection.jsx
-│   │   │   │   ├── PricingSection.jsx
-│   │   │   │   ├── FAQSection.jsx
-│   │   │   │   ├── CTASection.jsx
-│   │   │   │   └── PublicFooter.jsx
-│   │   │   └── index.js
-│   │   │
-│   │   ├── dashboard/
-│   │   │   ├── pages/
-│   │   │   │   └── DashboardPage.jsx
-│   │   │   ├── components/
-│   │   │   ├── services/
-│   │   │   │   └── dashboardService.js
-│   │   │   └── index.js
-│   │   │
-│   │   └── notifications/
-│   │       ├── components/
-│   │       ├── services/
-│   │       │   └── notificationService.js
-│   │       └── index.js
-│
-│   ├── providers/
-│   │   ├── AppProvider.jsx
-│   │   ├── ReduxProvider.jsx
-│   │   ├── ThemeProvider.jsx
-│   │   ├── ToastProvider.jsx
-│   │   └── index.js
-│
-│   ├── contexts/
-│   │   ├── ThemeContext.jsx
-│   │   ├── SidebarContext.jsx
-│   │   └── index.js
-│
-│   ├── guards/
-│   │   ├── ProtectedRoute.jsx
-│   │   ├── GuestRoute.jsx
-│   │   ├── PermissionGuard.jsx
-│   │   └── index.js
-│
-│   ├── theme/
-│   │   ├── tokens.js
-│   │   ├── getThemeTokens.js
-│   │   ├── createAppTheme.js
-│   │   └── index.js
-│
-│   ├── store/
-│   │   ├── middlewares/
-│   │   │   └── index.js
-│   │   ├── store.js
-│   │   ├── rootReducer.js
-│   │   └── index.js
-│
-│   ├── services/
-│   │   ├── apiClient.js
-│   │   ├── endpoints.js
-│   │   ├── interceptors.js
-│   │   └── index.js
-│
-│   ├── lib/
-│   │   ├── axios.js
-│   │   ├── dayjs.js
-│   │   ├── xlsx.js
-│   │   └── index.js
-│
-│   ├── hooks/
-│   │   ├── useDebounce.js
-│   │   ├── useLocalStorage.js
-│   │   ├── usePagination.js
-│   │   ├── useToggle.js
-│   │   └── index.js
-│
-│   ├── utils/
-│   │   ├── helpers.js
-│   │   ├── validation.js
-│   │   ├── formatDate.js
-│   │   ├── formatCurrency.js
-│   │   ├── exportExcel.js
-│   │   ├── downloadFile.js
-│   │   ├── storage.js
-│   │   ├── permissions.js
-│   │   └── index.js
-│
-│   ├── constants/
-│   │   ├── routes.js
-│   │   ├── app.js
-│   │   ├── roles.js
-│   │   ├── permissions.js
-│   │   ├── statuses.js
-│   │   └── index.js
-│
-│   ├── config/
-│   │   ├── env.js
-│   │   ├── navigation.js
-│   │   ├── sidebarMenu.js
-│   │   └── index.js
-│
-│   ├── index.css
-│   └── vite-env.d.js
-│
-├── .env
-├── .env.example
-├── .gitignore
-├── eslint.config.js
-├── jsconfig.json
-├── package.json
-├── vite.config.js
-└── README.md
+Main flow (recommended)
+
+Lead Created (CRM)
+
+Source: website form / referral / call / LinkedIn
+
+Qualification (CRM)
+
+Decide: fit or not fit
+
+If not fit → Lost/Closed
+
+Discovery Call / Requirement Gathering (CRM)
+
+Proposal / Quotation (CRM)
+
+Scope + timeline + cost + payment terms
+
+Negotiation / Revision (CRM)
+
+Deal Won (CRM)
+
+Client confirms (email/PO/approval)
+
+NDA + Contract/SOW Signed (Contracts module)
+
+NDA (if needed)
+
+MSA/SOW (usually required)
+
+Client Onboarding (Projects/Operations)
+
+Kickoff meeting
+
+Access setup
+
+Communication channels
+
+Assign team
+
+Project Execution (Projects)
+
+Tasks, milestones, delivery
+
+Invoicing (Invoicing module)
+Depending on your billing model:
+
+Advance invoice (before work starts), OR
+
+Milestone-based invoice, OR
+
+Monthly retainer invoice
+
+Payment Received (Invoicing/Finance)
+
+Delivery + Closure (Projects)
+
+Offboarding / Support / AMC (Support module)
+
+Handover docs
+
+Support tickets / maintenance contract
 
 
-src/
-└── layouts/
-    ├── PublicLayout.jsx
-    ├── AuthLayout.jsx
-    ├── DashboardLayout.jsx
-    ├── MinimalLayout.jsx
-    │
-    ├── components/
-    │   ├── PublicNavbar.jsx
-    │   ├── PublicFooter.jsx
-    │   ├── AuthHeader.jsx
-    │   ├── DashboardSidebar.jsx
-    │   ├── DashboardTopbar.jsx
-    │   ├── DashboardFooter.jsx
-    │   ├── Breadcrumbs.jsx
-    │   ├── PageContainer.jsx
-    │   ├── SidebarMenu.jsx
-    │   ├── SidebarItem.jsx
-    │   ├── UserDropdown.jsx
-    │   ├── NotificationDropdown.jsx
-    │   ├── SearchBar.jsx
-    │   ├── ThemeSwitcher.jsx
-    │   ├── Logo.jsx
-    │   └── index.js
-    │
-    └── index.js
+
+
+
+Lead Created
+   ↓
+Qualification (Lead.status)
+   ↓
+Discovery Call (DiscoveryCall model)
+   ↓
+Deal Pipeline (Deal.stage)
+   ↓
+Proposal (Proposal model)
+   ↓
+Negotiation (Deal.stage)
+   ↓
+Deal Won
+   ↓
+Create Client (Client model)
+   ↓
+Contract (Contract model)
+   ↓
+Onboarding (Onboarding model)
+   ↓
+Project (Project model)
+   ↓
+Invoice
+   ↓
+Payment
+
+
+Employee flow models
+
+JobOpening
+↓
+Candidate
+↓
+Interview
+↓
+Assessment
+↓
+Offer
+↓
+Employee
+↓
+EmployeeDocument
+↓
+EmployeeOnboarding
+
+
+Project
+ ├── Project Members
+ ├── Tickets
+ │     ├── Comments
+ │     ├── Attachments
+ │     ├── History
+ │     └── Relations
+ ├── Sprints
+ ├── Milestones
+ ├── Docs
+ │     └── Doc Comments
+ ├── Labels
+ ├── Activity Logs
+ └── Notifications
+
 
 
 Folders and Pages Structure
@@ -511,23 +434,23 @@ src/
     │   │
     │   └── index.js ✅
     │
-    ├── layout/ 🆕
-    │   ├── Sidebar.jsx 🆕
-    │   ├── Navbar.jsx 🆕
-    │   ├── MainLayout.jsx 🆕
-    │   ├── PageHeader.jsx 🆕
-    │   ├── AuthLayout.jsx 🆕
-    │   ├── ModuleLayout.jsx 🆕
+    ├── layout/ ✅
+    │   ├── Sidebar.jsx ✅
+    │   ├── Navbar.jsx ✅
+    │   ├── MainLayout.jsx ✅
+    │   ├── PageHeader.jsx ✅
+    │   ├── AuthLayout.jsx ✅
+    │   ├── ModuleLayout.jsx ✅
     │   └── index.js 
     │
-    ├── charts/ 🆕
+    ├── charts/ ✅
     │   ├── AppBarChart.jsx ✅
     │   ├── AppLineChart.jsx ✅
     │   ├── AppPieChart.jsx ✅
     │   ├── AppAreaChart.jsx ✅
     │   ├── AppKpiCard.jsx ✅
-    │   ├── AppDonutChart.jsx 🆕
-    │   ├── AppSparkline.jsx 🆕
+    │   ├── AppDonutChart.jsx ✅
+    │   ├── AppSparkline.jsx ✅
     │   └── index.js ✅
     │
     ├── features/ ✅
@@ -603,20 +526,20 @@ src/
     │   │   ├── AuditTrailItem.jsx ✅
     │   │   └── index.js ✅
     │   │
-    │   ├── display/ 🆕
-    │   │   ├── SummaryCards.jsx 🆕
-    │   │   ├── StatusBadge.jsx 🆕
-    │   │   ├── DetailsSection.jsx 🆕
-    │   │   ├── InfoGrid.jsx 🆕
-    │   │   ├── KeyValueList.jsx 🆕
-    │   │   ├── DescriptionList.jsx 🆕
-    │   │   └── index.js 🆕
+    │   ├── display/ ✅
+    │   │   ├── SummaryCards.jsx ✅
+    │   │   ├── StatusBadge.jsx ✅
+    │   │   ├── DetailsSection.jsx ✅
+    │   │   ├── InfoGrid.jsx ✅
+    │   │   ├── KeyValueList.jsx ✅
+    │   │   ├── DescriptionList.jsx ✅
+    │   │   └── index.js ✅
     │   │
-    │   ├── dialogs/ 🆕
+    │   ├── dialogs/ ✅
     │   │   ├── ConfirmDialog.jsx ✅
     │   │   ├── FilterDialog.jsx ✅
-    │   │   ├── DeleteConfirmDialog.jsx 🆕
-    │   │   ├── UnsavedChangesDialog.jsx 🆕 ⭐
+    │   │   ├── DeleteConfirmDialog.jsx ✅
+    │   │   ├── UnsavedChangesDialog.jsx ✅ ⭐
     │   │   └── index.js ✅
     │   │
     │   ├── page/ ✅ ⭐
@@ -626,22 +549,19 @@ src/
     │   │   ├── PageToolbar.jsx ✅
     │   │   └── index.js ✅
     │   │
-    │   ├── permissions/ 🆕 ⭐
-    │   │   ├── Can.jsx 🆕
-    │   │   ├── RoleGuard.jsx 🆕
-    │   │   ├── PermissionGuard.jsx 🆕
-    │   │   └── index.js 🆕
+    │   ├── permissions/ ✅ ⭐
+    │   │   ├── Can.jsx ✅
+    │   │   ├── RoleGuard.jsx ✅
+    │   │   ├── PermissionGuard.jsx ✅
+    │   │   └── index.js ✅
     │   │
-    │   ├── import-export/ 🆕 ⭐
-    │   │   ├── ImportWizard.jsx 🆕
-    │   │   ├── ExportButton.jsx 🆕
-    │   │   ├── CsvTemplateDownload.jsx 🆕
-    │   │   ├── ImportPreviewTable.jsx 🆕
-    │   │   └── index.js 🆕
+    │   ├── import-export/ ✅ ⭐
+    │   │   ├── ImportWizard.jsx ✅
+    │   │   ├── ExportButton.jsx ✅
+    │   │   ├── CsvTemplateDownload.jsx ✅
+    │   │   ├── ImportPreviewTable.jsx ✅
+    │   │   └── index.js ✅
     │   │
     │   └── index.js ✅
     │
     └── index.js ✅
-    
-    
-
