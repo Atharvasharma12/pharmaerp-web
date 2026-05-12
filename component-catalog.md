@@ -628,11 +628,13 @@ Affected Components:
 - `AppDateTimePicker`
 - `AppDateRangePicker`
 
+---
+
 ## Charts
 
 ### AppKpiCard
 
-Path: `src/components/ui/charts/AppKpiCard.jsx`  
+Path: `src/components/charts/AppKpiCard.jsx`  
 Use for: Dashboard stats, analytics summaries, metric highlight cards, compact reporting widgets.
 
 Props:  
@@ -651,7 +653,7 @@ Example:
 
 ### AppBarChart
 
-Path: `src/components/ui/charts/AppBarChart.jsx`  
+Path: `src/components/charts/AppBarChart.jsx`  
 Use for: Category comparisons, grouped bars, stacked totals, and horizontal ranking charts.  
 Replaces: Direct `@mui/x-charts/BarChart` usage in pages.
 
@@ -671,7 +673,7 @@ Example:
 
 ### AppLineChart
 
-Path: `src/components/ui/charts/AppLineChart.jsx`  
+Path: `src/components/charts/AppLineChart.jsx`  
 Use for: Trends over time, analytics timelines, comparative growth charts, activity monitoring.  
 Replaces: Direct `@mui/x-charts/LineChart` usage in pages.
 
@@ -691,7 +693,7 @@ Example:
 
 ### AppAreaChart
 
-Path: `src/components/ui/charts/AppAreaChart.jsx`  
+Path: `src/components/charts/AppAreaChart.jsx`  
 Use for: Filled trend charts, cumulative metrics, stacked area comparisons, volume-over-time visuals.  
 Replaces: Direct `@mui/x-charts/LineChart` usage when area styling is required.
 
@@ -711,7 +713,7 @@ Example:
 
 ### AppPieChart
 
-Path: `src/components/ui/charts/AppPieChart.jsx`  
+Path: `src/components/charts/AppPieChart.jsx`  
 Use for: Category distribution, percentage breakdowns, donut charts, single-series share visuals.  
 Replaces: Direct `@mui/x-charts/PieChart` usage in pages.
 
@@ -738,9 +740,13 @@ Example:
 - Use `AppPieChart` only for simple part-to-whole distribution charts.
 - Do not use raw `@mui/x-charts` components directly in pages when these wrappers fit.
 - Pass semantic chart colors through `colorVariant`; avoid hardcoded colors in page code.
-- Keep chart data normalized as arrays of objects and configure series through `bars`, `lines`, `areas`, or pie `data`.
+- Keep chart data normalized as arrays of objects and configure series through `bars`, `lines`, `areas`, or pie data.
 - Use `loading` and `emptyText` states instead of rendering ad hoc placeholders around charts.
 - Use `sx` or `chartSx` only for page-specific layout overrides.
+
+---
+
+---
 
 ## Overlays
 
@@ -822,9 +828,7 @@ Props:
 `children: ReactNode`, `title: string | ReactNode`, `placement: string`, `arrow: boolean`, `enterDelay: number`, `leaveDelay: number`, `disabled: boolean`, `variant: string`, `size: string`, `maxWidth: number | string`, `followCursor: boolean`, `open: boolean`, `onOpen: function`, `onClose: function`, `sx: object`, `slotProps: object`, `...props: object`
 
 Values:  
-`variant=default|dark|light|primary|success|error|warning|info`  
-`size=small|medium|large`  
-`placement=top|bottom|left|right`
+`variant=default|dark|light|primary|success|error|warning|info`, `size=small|medium|large`, `placement=top|bottom|left|right`
 
 Example:  
 `<AppTooltip title="Edit record"><AppIconButton icon={<EditIcon />} /></AppTooltip>`
@@ -841,9 +845,7 @@ Props:
 `title: string | ReactNode`, `children: ReactNode`, `severity: string`, `variant: string`, `showIcon: boolean`, `closable: boolean`, `onClose: function`, `icon: ReactNode`, `actions: ReactNode`, `fullWidth: boolean`, `rounded: string`, `dense: boolean`, `visible: boolean`, `sx: object`, `contentSx: object`, `...props: object`
 
 Values:  
-`severity=success|error|warning|info`  
-`variant=soft|outlined|filled`  
-`rounded=sm|md|lg`
+`severity=success|error|warning|info`, `variant=soft|outlined|filled`, `rounded=sm|md|lg`
 
 Example:  
 `<AppAlert severity="success" title="Saved">Your changes were saved successfully.</AppAlert>`
@@ -860,9 +862,7 @@ Props:
 `open: boolean`, `onClose: function`, `title: string | ReactNode`, `message: string | ReactNode`, `children: ReactNode`, `severity: string`, `variant: string`, `position: string`, `autoHideDuration: number`, `showIcon: boolean`, `closable: boolean`, `icon: ReactNode`, `actions: ReactNode`, `rounded: string`, `dense: boolean`, `fullWidth: boolean`, `disableClickAway: boolean`, `transition: ReactElementType`, `sx: object`, `alertSx: object`, `contentSx: object`, `...props: object`
 
 Values:  
-`severity=success|error|warning|info`  
-`variant=soft|outlined|filled`  
-`position=top-right|top-left|bottom-right|bottom-left|top-center|bottom-center`
+`severity=success|error|warning|info`, `variant=soft|outlined|filled`, `position=top-right|top-left|bottom-right|bottom-left|top-center|bottom-center`
 
 Example:  
 `<AppToast open={open} onClose={handleClose} severity="success" message="Saved successfully" />`
@@ -913,11 +913,7 @@ Props:
 `label: string`, `icon: ReactNode`, `items: array`, `children: ReactNode`, `triggerType: string`, `trigger: function | ReactElement`, `variant: string`, `colorVariant: string`, `size: string`, `rounded: string`, `disabled: boolean`, `loading: boolean`, `buttonProps: object`, `iconButtonProps: object`, `menuMinWidth: number | string`, `menuMaxWidth: number | string`, `closeOnItemClick: boolean`, `endIcon: ReactNode`, `...props: object`
 
 Values:  
-`triggerType=button|icon|custom`  
-`variant=contained|outlined|text|soft|gradient`  
-`colorVariant=primary|success|error|warning|info|dark`  
-`size=small|medium|large`  
-`rounded=sm|md|lg`
+`triggerType=button|icon|custom`, `variant=contained|outlined|text|soft|gradient`, `colorVariant=primary|success|error|warning|info|dark`, `size=small|medium|large`, `rounded=sm|md|lg`
 
 Example:  
 `<AppDropdown label="Actions" items={[{ label: "Edit", onClick: handleEdit }]} />`
@@ -942,6 +938,10 @@ Example:
 - Pass objects only to style/config props like `sx`, `paperSx`, `bodySx`, `headerSx`, `footerSx`, `contentSx`, `slotProps`, `buttonProps`, and `iconButtonProps`.
 - Do not hardcode colors inside pages; use theme tokens, component props, or CSS variables.
 - Use `closeOnBackdrop={false}` for critical confirmation or unsaved-change flows.
+
+---
+
+---
 
 ## Feedback
 
@@ -1139,6 +1139,10 @@ Example:
 - Pass objects only to style props like `sx`, `textSx`, and `itemSx`.
 - Do not hardcode colors inside pages; use theme tokens, component props, or CSS variables.
 
+---
+
+---
+
 ## Navigation
 
 ### AppTabs
@@ -1302,6 +1306,10 @@ Example:
 - Pass objects only to style/config props like `sx`, `tabsSx`, `tabSx`, `panelSx`, `dialogProps`, `contentSx`, `inputProps`, `containerSx`, and `buttonSx`.
 - Keep navigation data normalized as arrays of objects.
 - Do not hardcode colors inside pages; use `colorVariant`, theme tokens, or CSS variables.
+
+---
+
+---
 
 ## Data Display
 
@@ -1559,3 +1567,1425 @@ Example:
 - Pass objects only to style/config props like `sx`, `itemSx`, `iconSx`, `labelSx`, `valueSx`, `summarySx`, and `detailsSx`.
 - Keep display data normalized as arrays of objects for `items`, timeline entries, accordion rows, avatar groups, and description lists.
 - Do not hardcode colors inside pages; use `colorVariant`, theme tokens, or CSS variables.
+
+---
+
+## Typography
+
+### AppText
+
+Path: `src/components/ui/typography/AppText.jsx`  
+Use for: Standard body text, descriptions, paragraphs, inline text, and custom typography.  
+Replaces: MUI `Typography`
+
+Props:  
+`children: ReactNode`, `variant: string`, `color: string`, `weight: number | string`, `align: string`, `sx: object`, `...props: object`
+
+Values:  
+`variant=body1|body2|subtitle1|subtitle2|caption|overline|h1|h2|h3|h4|h5|h6`, `align=left|center|right|justify`
+
+Example:  
+`<AppText variant="body1" weight={500}>Welcome back</AppText>`
+
+---
+
+### AppHeading
+
+Path: `src/components/ui/typography/AppHeading.jsx`  
+Use for: Page titles, section headings, card titles, modal headings, and content headers.  
+Replaces: MUI `Typography` heading variants
+
+Props:  
+`children: ReactNode`, `level: number`, `weight: number | string`, `gutterBottom: boolean`, `sx: object`, `...props: object`
+
+Values:  
+`level=1|2|3|4|5|6`, `weight=400|500|600|700|800`, `gutterBottom=true|false`
+
+Example:  
+`<AppHeading level={3} gutterBottom>User Details</AppHeading>`
+
+---
+
+### AppLabel
+
+Path: `src/components/ui/typography/AppLabel.jsx`  
+Use for: Form labels, field labels, filter labels, setting labels, and required field labels.  
+Replaces: MUI `Typography` used as labels
+
+Props:  
+`children: ReactNode`, `required: boolean`, `sx: object`, `...props: object`
+
+Values:  
+`required=true|false`
+
+Example:  
+`<AppLabel required>Email Address</AppLabel>`
+
+---
+
+### AppCaption
+
+Path: `src/components/ui/typography/AppCaption.jsx`  
+Use for: Helper text, hints, metadata, muted descriptions, timestamps, and small notes.  
+Replaces: MUI `Typography` caption variant
+
+Props:  
+`children: ReactNode`, `sx: object`, `...props: object`
+
+Values:  
+No fixed values.
+
+Example:  
+`<AppCaption>Last updated 2 hours ago</AppCaption>`
+
+---
+
+### AppLink
+
+Path: `src/components/ui/typography/AppLink.jsx`  
+Use for: Text links, navigation links, inline links, external links, and action links.  
+Replaces: MUI `Link`
+
+Props:  
+`children: ReactNode`, `href: string`, `underline: string`, `sx: object`, `...props: object`
+
+Values:  
+`underline=none|hover|always`
+
+Example:  
+`<AppLink href="/settings">Manage Settings</AppLink>`
+
+---
+
+### Typography AI Rules
+
+- Use `AppText` for normal text content.
+- Use `AppHeading` for page titles, section titles, and card headings.
+- Use `AppLabel` for form labels and required field labels.
+- Use `AppCaption` for helper text, hints, timestamps, and muted notes.
+- Use `AppLink` for clickable text links.
+- Never use raw MUI `Typography` or `Link` directly in pages.
+- Always use `AppHeading level={1}` to `level={6}` instead of manually setting heading variants.
+- Always pass strings or CSS variables to color props.
+- Always pass numbers or strings to weight props.
+- Pass objects only to style props like `sx`.
+- Pass React nodes only to `children`.
+- Use `required` only on `AppLabel`.
+- Use `href` only on `AppLink`.
+- Keep typography styles consistent with app CSS variables.
+
+## Layout
+
+### AppContainer
+
+Path: `src/components/ui/layout/AppContainer.jsx`  
+Use for: Page wrappers, centered content areas, responsive containers, and max-width layouts.  
+Replaces: MUI `Container`
+
+Props:  
+`children: ReactNode`, `maxWidth: string | number`, `centered: boolean`, `disablePadding: boolean`, `fluid: boolean`, `sx: object`, `...props: object`
+
+Values:  
+`maxWidth=sm|md|lg|xl|full`, `centered=true|false`, `disablePadding=true|false`, `fluid=true|false`
+
+Example:  
+`<AppContainer maxWidth="lg"><PageContent /></AppContainer>`
+
+---
+
+### AppBox
+
+Path: `src/components/ui/layout/AppBox.jsx`  
+Use for: Generic layout wrappers, cards, flex containers, spacing blocks, and themed surfaces.  
+Replaces: MUI `Box`
+
+Props:  
+`children: ReactNode`, `display: string`, `flexDirection: string`, `alignItems: string`, `justifyContent: string`, `flexWrap: string`, `gap: number | string`, `p: number | string | object`, `px: number | string | object`, `py: number | string | object`, `m: number | string | object`, `mx: number | string | object`, `my: number | string | object`, `width: number | string`, `height: number | string`, `minHeight: number | string`, `surface: boolean`, `bordered: boolean`, `hoverable: boolean`, `rounded: boolean`, `elevation: boolean`, `sx: object`, `...props: object`
+
+Values:  
+`display=flex|block|grid|inline-flex|none`, `flexDirection=row|column|row-reverse|column-reverse`, `flexWrap=nowrap|wrap|wrap-reverse`, `surface=true|false`, `bordered=true|false`, `hoverable=true|false`, `rounded=true|false`, `elevation=true|false`
+
+Example:  
+`<AppBox surface bordered p={2}>Content</AppBox>`
+
+---
+
+### AppStack
+
+Path: `src/components/ui/layout/AppStack.jsx`  
+Use for: Vertical or horizontal spacing layouts, form groups, toolbar rows, and aligned content groups.  
+Replaces: MUI `Stack`
+
+Props:  
+`children: ReactNode`, `direction: string`, `spacing: number | string`, `gap: number | string`, `align: string`, `justify: string`, `wrap: string`, `fullWidth: boolean`, `fullHeight: boolean`, `surface: boolean`, `bordered: boolean`, `rounded: boolean`, `elevation: boolean`, `hoverable: boolean`, `divider: ReactNode`, `sx: object`, `...props: object`
+
+Values:  
+`direction=row|column|row-reverse|column-reverse`, `align=stretch|flex-start|center|flex-end|baseline`, `justify=flex-start|center|flex-end|space-between|space-around|space-evenly`, `wrap=nowrap|wrap|wrap-reverse`, `fullWidth=true|false`, `fullHeight=true|false`, `surface=true|false`, `bordered=true|false`, `rounded=true|false`, `elevation=true|false`, `hoverable=true|false`
+
+Example:  
+`<AppStack direction="row" spacing={2} align="center">Content</AppStack>`
+
+---
+
+### AppGrid
+
+Path: `src/components/ui/layout/AppGrid.jsx`  
+Use for: Responsive grids, card grids, form grids, dashboard layouts, and multi-column sections.  
+Replaces: CSS grid wrappers or MUI `Box` grid usage
+
+Props:  
+`children: ReactNode`, `columns: number | string`, `xs: number | string`, `sm: number | string`, `md: number | string`, `lg: number | string`, `xl: number | string`, `gap: number | string`, `rowGap: number | string`, `columnGap: number | string`, `align: string`, `justify: string`, `fullWidth: boolean`, `surface: boolean`, `bordered: boolean`, `rounded: boolean`, `sx: object`, `...props: object`
+
+Values:  
+`columns=number|string`, `xs=number|string`, `sm=number|string`, `md=number|string`, `lg=number|string`, `xl=number|string`, `align=stretch|start|center|end`, `justify=stretch|start|center|end`, `fullWidth=true|false`, `surface=true|false`, `bordered=true|false`, `rounded=true|false`
+
+Example:  
+`<AppGrid xs={1} md={2} lg={3} gap={3}>Cards</AppGrid>`
+
+---
+
+### AppSection
+
+Path: `src/components/ui/layout/AppSection.jsx`  
+Use for: Page sections, card-like content blocks, titled sections, settings panels, and grouped content areas.  
+Built with: `AppHeading`, `AppText`, MUI `Box`, MUI `Divider`
+
+Props:  
+`children: ReactNode`, `title: string`, `description: string`, `action: ReactNode`, `padded: boolean`, `bordered: boolean`, `surface: boolean`, `rounded: boolean`, `divider: boolean`, `headerAlign: string`, `spacing: number | string`, `sx: object`, `headerSx: object`, `contentSx: object`, `...props: object`
+
+Values:  
+`padded=true|false`, `bordered=true|false`, `surface=true|false`, `rounded=true|false`, `divider=true|false`, `headerAlign=flex-start|center|flex-end|stretch`
+
+Example:  
+`<AppSection title="Profile" description="Manage user details" action={<AppButton>Edit</AppButton>}>Content</AppSection>`
+
+---
+
+### AppSpacer
+
+Path: `src/components/ui/layout/AppSpacer.jsx`  
+Use for: Vertical spacing, horizontal spacing, layout gaps, and controlled empty space between components.  
+Replaces: Empty divs, margin hacks, and manual spacer elements
+
+Props:  
+`size: string | number`, `axis: string`, `sx: object`, `...props: object`
+
+Values:  
+`size=xs|sm|md|lg|xl|2xl|number`, `axis=vertical|horizontal`
+
+Example:  
+`<AppSpacer size="lg" />`
+
+---
+
+### Layout AI Rules
+
+- Use `AppContainer` for page-level width control and responsive page wrappers.
+- Use `AppBox` for generic layout wrappers and themed surface blocks.
+- Use `AppStack` for one-dimensional vertical or horizontal spacing.
+- Use `AppGrid` for responsive multi-column layouts.
+- Use `AppSection` for titled content sections with optional description and actions.
+- Use `AppSpacer` only when spacing cannot be handled cleanly with `gap`, `spacing`, `p`, or `m`.
+- Never use raw MUI `Container`, `Box`, or `Stack` directly in pages.
+- Prefer `AppStack` over manually applying flex styles for simple row or column layouts.
+- Prefer `AppGrid` over custom CSS grid blocks.
+- Prefer `AppSection` for repeated panel-like UI sections.
+- Pass React elements only to props like `children`, `action`, and `divider`.
+- Pass objects only to style props like `sx`, `headerSx`, and `contentSx`.
+- Pass booleans only to visual props like `surface`, `bordered`, `rounded`, `elevation`, and `hoverable`.
+- Use CSS variables for custom colors, borders, shadows, and surfaces.
+
+## Notifications
+
+### NotificationBell
+
+Path: `src/components/features/notifications/NotificationBell.jsx`  
+Use for: Notification trigger buttons, unread notification indicators, header notification icons, and notification menu toggles.  
+Built with: `AppIconButton`, MUI `Badge`, MUI `Box`
+
+Props:  
+`unreadCount: number`, `onClick: function`, `loading: boolean`, `disabled: boolean`, `tooltip: string`
+
+Values:  
+`unreadCount=number`, `loading=true|false`, `disabled=true|false`
+
+Example:  
+`<NotificationBell unreadCount={5} onClick={openNotifications} />`
+
+---
+
+### NotificationList
+
+Path: `src/components/features/notifications/NotificationList.jsx`  
+Use for: Notification dropdowns, notification panels, notification popovers, and notification center lists.  
+Built with: `NotificationItem`, `AppButton`, MUI `Box`, MUI `Typography`, MUI `Divider`
+
+Props:  
+`notifications: array`, `loading: boolean`, `emptyText: string`, `onMarkAllRead: function`, `onNotificationClick: function`
+
+Notification shape:  
+`{ id: string | number, title: string, message: string, time: string, isRead: boolean, icon: ReactNode }`
+
+Values:  
+`loading=true|false`
+
+Example:  
+`<NotificationList notifications={notifications} onMarkAllRead={markAllRead} onNotificationClick={handleNotificationClick} />`
+
+---
+
+### NotificationItem
+
+Path: `src/components/features/notifications/NotificationItem.jsx`  
+Use for: Single notification rows, unread notification states, notification previews, and clickable notification items.  
+Built with: MUI `Box`, MUI `Typography`, MUI `CircleIcon`
+
+Props:  
+`notification: object`, `onClick: function`
+
+Notification shape:  
+`{ title: string, message: string, time: string, isRead: boolean, icon: ReactNode }`
+
+Values:  
+`isRead=true|false`
+
+Example:  
+`<NotificationItem notification={notification} onClick={handleClick} />`
+
+---
+
+### Notifications AI Rules
+
+- Use `NotificationBell` for header notification icons and unread count triggers.
+- Use `NotificationList` for dropdowns, popovers, drawers, and notification panels.
+- Use `NotificationItem` only inside notification lists or custom notification feeds.
+- Never use raw MUI `Badge` with notification logic directly in pages.
+- Never manually build notification rows when `NotificationItem` can be used.
+- Always pass an array to `notifications`.
+- Always pass notification objects using the expected notification shape.
+- Pass functions only to event props like `onClick`, `onMarkAllRead`, and `onNotificationClick`.
+- Pass React elements only to icon props like `icon`.
+- Use `isRead=false` for unread notifications.
+- Use `unreadCount` from unread notification length when possible.
+- Keep notification actions outside `NotificationItem`; use parent callbacks instead.
+- Use `emptyText` to customize empty notification states.
+
+## Forms
+
+### AppForm
+
+Path: `src/components/shared/forms/AppForm.jsx`  
+Use for: Form wrappers, submit handling, reset handling, form validation summaries, and form action layouts.  
+Built with: `AppFormActions`, `AppFormErrorSummary`, `AppFormRow`, MUI `Box`
+
+Props:  
+`children: ReactNode`, `onSubmit: function`, `onReset: function`, `errors: object`, `fieldLabels: object`, `showErrorSummary: boolean`, `errorSummaryTitle: string`, `errorSummaryMessage: string`, `showActions: boolean`, `submitText: string`, `cancelText: string`, `resetText: string`, `onCancel: function`, `submitLoading: boolean`, `submitDisabled: boolean`, `cancelDisabled: boolean`, `resetDisabled: boolean`, `showCancel: boolean`, `showReset: boolean`, `actionsAlign: string`, `actionsSticky: boolean`, `spacing: number | string`, `noValidate: boolean`, `fullWidth: boolean`, `actionsProps: object`, `errorSummaryProps: object`, `sx: object`, `...props: object`
+
+Values:  
+`showErrorSummary=true|false`, `showActions=true|false`, `showCancel=true|false`, `showReset=true|false`, `actionsAlign=left|center|right|space-between`, `actionsSticky=true|false`, `noValidate=true|false`, `fullWidth=true|false`
+
+Example:  
+`<AppForm onSubmit={handleSubmit} showActions submitText="Save">Form fields</AppForm>`
+
+---
+
+### AppFormField
+
+Path: `src/components/shared/forms/AppFormField.jsx`  
+Use for: Rendering common form fields with label, error, helper text, and consistent field behavior.  
+Built with: `AppInput`, `AppTextarea`, `AppSelect`, `AppMultiSelect`, `AppCheckbox`, `AppRadio`, `AppSwitch`, `AppDatePicker`, `AppFileUpload`, `AppRequiredMark`, `AppFieldHint`
+
+Props:  
+`type: string`, `name: string`, `label: string`, `value: any`, `defaultValue: any`, `checked: boolean`, `defaultChecked: boolean`, `onChange: function`, `error: string | object`, `errors: object`, `helperText: string`, `required: boolean`, `disabled: boolean`, `readOnly: boolean`, `fullWidth: boolean`, `component: ReactNode`, `children: ReactNode`, `wrapperSx: object`, `labelSx: object`, `fieldSx: object`, `hintSx: object`, `...props: object`
+
+Values:  
+`type=input|textarea|select|multiselect|checkbox|radio|switch|date|file|custom`, `required=true|false`, `disabled=true|false`, `readOnly=true|false`, `fullWidth=true|false`
+
+Example:  
+`<AppFormField type="input" name="email" label="Email" required errors={errors} />`
+
+---
+
+### AppFormSection
+
+Path: `src/components/shared/forms/AppFormSection.jsx`  
+Use for: Grouping related form fields, titled form sections, card sections, soft sections, and form panels.  
+Built with: `AppCard`, `AppFormGrid`, `AppFormRow`, `AppFieldHint`, MUI `Box`, MUI `Divider`, MUI `Typography`
+
+Props:  
+`children: ReactNode`, `title: string`, `subtitle: string`, `description: string`, `icon: ReactNode`, `actions: ReactNode`, `variant: string`, `columns: number | object`, `gap: number | string`, `spacing: number | string`, `divider: boolean`, `bordered: boolean`, `padding: string`, `rounded: string`, `shadow: string`, `fullWidth: boolean`, `disabled: boolean`, `sx: object`, `headerSx: object`, `contentSx: object`, `titleSx: object`, `subtitleSx: object`, `descriptionSx: object`, `...props: object`
+
+Values:  
+`variant=default|card|plain|soft`, `padding=sm|md|lg`, `rounded=sm|md|lg|xl`, `shadow=none|sm|md|lg`, `divider=true|false`, `bordered=true|false`, `fullWidth=true|false`, `disabled=true|false`
+
+Example:  
+`<AppFormSection title="Personal Details" columns={2} variant="card">Fields</AppFormSection>`
+
+---
+
+### AppFormActions
+
+Path: `src/components/shared/forms/AppFormActions.jsx`  
+Use for: Form submit, cancel, reset buttons, sticky form action bars, and form footer actions.  
+Built with: `AppButton`, `AppFormRow`
+
+Props:  
+`submitText: string`, `cancelText: string`, `resetText: string`, `onSubmit: function`, `onCancel: function`, `onReset: function`, `showSubmit: boolean`, `showCancel: boolean`, `showReset: boolean`, `submitLoading: boolean`, `cancelLoading: boolean`, `resetLoading: boolean`, `submitDisabled: boolean`, `cancelDisabled: boolean`, `resetDisabled: boolean`, `align: string`, `direction: string`, `fullWidth: boolean`, `sticky: boolean`, `submitProps: object`, `cancelProps: object`, `resetProps: object`, `children: ReactNode`, `sx: object`
+
+Values:  
+`align=left|center|right|space-between`, `direction=row|column`, `showSubmit=true|false`, `showCancel=true|false`, `showReset=true|false`, `fullWidth=true|false`, `sticky=true|false`
+
+Example:  
+`<AppFormActions onSubmit={handleSave} showCancel onCancel={handleCancel} submitText="Save" />`
+
+---
+
+### AppFormErrorSummary
+
+Path: `src/components/shared/forms/AppFormErrorSummary.jsx`  
+Use for: Displaying grouped form validation errors, submit errors, and field-level error summaries.  
+Built with: `AppAlert`, `AppFieldHint`, MUI `Box`, MUI `Typography`, MUI `ErrorOutlineRoundedIcon`
+
+Props:  
+`errors: object`, `title: string`, `message: string`, `visible: boolean`, `showIcon: boolean`, `closable: boolean`, `onClose: function`, `maxErrors: number`, `fieldLabels: object`, `variant: string`, `severity: string`, `dense: boolean`, `sx: object`, `listSx: object`, `itemSx: object`
+
+Values:  
+`visible=true|false`, `showIcon=true|false`, `closable=true|false`, `variant=soft|filled|outlined|standard`, `severity=error|warning|info|success`, `dense=true|false`
+
+Example:  
+`<AppFormErrorSummary errors={errors} fieldLabels={{ email: "Email Address" }} />`
+
+---
+
+### AppFormRow
+
+Path: `src/components/shared/forms/AppFormRow.jsx`  
+Use for: Horizontal form rows, responsive field rows, grouped controls, and action rows.  
+Replaces: Manual flex row wrappers
+
+Props:  
+`children: ReactNode`, `gap: number | string`, `align: string`, `justify: string`, `wrap: boolean`, `className: string`, `sx: object`, `...props: object`
+
+Values:  
+`align=flex-start|center|flex-end|stretch|baseline`, `justify=flex-start|center|flex-end|space-between|space-around|space-evenly`, `wrap=true|false`
+
+Example:  
+`<AppFormRow gap={2} align="center">Fields</AppFormRow>`
+
+---
+
+### AppFormGrid
+
+Path: `src/components/shared/forms/AppFormGrid.jsx`  
+Use for: Responsive form field grids, multi-column form layouts, and aligned form sections.  
+Replaces: Manual CSS grid wrappers
+
+Props:  
+`children: ReactNode`, `columns: object`, `gap: number | string`, `className: string`, `sx: object`, `...props: object`
+
+Values:  
+`columns={ xs: number, sm: number, md: number, lg: number }`
+
+Example:  
+`<AppFormGrid columns={{ xs: 1, sm: 2, md: 3 }}>Fields</AppFormGrid>`
+
+---
+
+### AppRequiredMark
+
+Path: `src/components/shared/forms/AppRequiredMark.jsx`  
+Use for: Required field indicators, custom label required marks, and required validation UI.  
+Replaces: Manual required asterisk spans
+
+Props:  
+`color: string`, `children: ReactNode`, `sx: object`, `...props: object`
+
+Values:  
+No fixed values.
+
+Example:  
+`<AppRequiredMark />`
+
+---
+
+### AppFieldHint
+
+Path: `src/components/shared/forms/AppFieldHint.jsx`  
+Use for: Field helper text, hints, validation messages, descriptions, and muted field notes.  
+Replaces: Manual caption helper text
+
+Props:  
+`children: ReactNode`, `color: string`, `className: string`, `sx: object`, `...props: object`
+
+Values:  
+No fixed values.
+
+Example:  
+`<AppFieldHint>Password must be at least 8 characters</AppFieldHint>`
+
+---
+
+### Forms AI Rules
+
+- Use `AppForm` as the main wrapper for forms.
+- Use `AppFormField` for standard input, textarea, select, checkbox, radio, switch, date, file, and custom field rendering.
+- Use `AppFormSection` to group related form fields.
+- Use `AppFormActions` for submit, cancel, and reset button rows.
+- Use `AppFormErrorSummary` for grouped validation errors.
+- Use `AppFormRow` for responsive horizontal form rows.
+- Use `AppFormGrid` for responsive multi-column form layouts.
+- Use `AppRequiredMark` only for required field indicators.
+- Use `AppFieldHint` for helper text, hints, and field descriptions.
+- Never manually build repeated form layouts when these components can be used.
+- Never use raw MUI `Box`, `Typography`, or button groups directly for shared form structures.
+- Always pass functions only to event props like `onSubmit`, `onReset`, `onCancel`, and `onChange`.
+- Always pass objects only to style props like `sx`, `wrapperSx`, `fieldSx`, `labelSx`, `hintSx`, `actionsProps`, and `errorSummaryProps`.
+- Always pass React elements only to props like `children`, `component`, `icon`, and `actions`.
+- Always pass validation errors as an object to `errors`.
+- Use `fieldLabels` when error field keys are not user-friendly.
+- Use `showErrorSummary` only when the user should see all validation issues at once.
+- Use `actionsSticky` or `sticky` for long forms with important submit actions.
+- Use `type="custom"` in `AppFormField` only when no built-in field type matches.
+- Keep form spacing controlled through `spacing`, `gap`, `columns`, and layout props instead of custom margins.
+
+## Tables
+
+### AppTable
+
+Path: `src/components/shared/tables/AppTable.jsx`  
+Use for: Standard desktop tables, selectable rows, loading states, empty states, row actions, and custom cell rendering.  
+Replaces: Raw MUI `Table`, `TableContainer`, `TableHead`, `TableBody`, `TableRow`, and `TableCell`
+
+Props:  
+`columns: array`, `rows: array`, `getRowId: function`, `loading: boolean`, `skeleton: boolean`, `selectable: boolean`, `selectedIds: array`, `onSelectRow: function`, `onSelectAll: function`, `showRowActions: boolean`, `rowActionsProps: object`, `onView: function`, `onEdit: function`, `onDelete: function`, `onDuplicate: function`, `emptyTitle: string`, `emptyDescription: string`, `emptyVariant: string`, `emptyActionLabel: string`, `onEmptyAction: function`, `dense: boolean`, `bordered: boolean`, `rounded: boolean`, `hover: boolean`, `stickyHeader: boolean`, `minWidth: number | string`, `maxHeight: number | string`, `sx: object`, `containerSx: object`, `tableSx: object`, `headSx: object`, `bodySx: object`, `rowSx: object`, `cellSx: object`, `...props: object`
+
+Column shape:  
+`{ id: string, key: string, label: string, align: string, width: number | string, minWidth: number | string, maxWidth: number | string, hidden: boolean, noWrap: boolean, render: function, headerSx: object, cellSx: object }`
+
+Values:  
+`emptyVariant=empty|search|filter|error|permission`, `dense=true|false`, `bordered=true|false`, `rounded=true|false`, `hover=true|false`, `stickyHeader=true|false`
+
+Example:  
+`<AppTable columns={columns} rows={rows} selectable selectedIds={selectedIds} onSelectRow={handleSelectRow} />`
+
+---
+
+### AppTableToolbar
+
+Path: `src/components/shared/tables/AppTableToolbar.jsx`  
+Use for: Table search bars, column controls, bulk actions, export actions, and table-level toolbar actions.  
+Built with: `AppTableSearch`, `AppColumnManager`, `AppBulkActions`, `AppExport`, `AppStack`, MUI `Box`
+
+Props:  
+`title: string`, `subtitle: string`, `searchValue: string`, `onSearchChange: function`, `onSearch: function`, `onSearchClear: function`, `searchPlaceholder: string`, `showSearch: boolean`, `searchProps: object`, `columns: array`, `visibleColumns: array`, `onColumnChange: function`, `showColumnManager: boolean`, `columnManagerProps: object`, `selectedRows: array`, `selectedIds: array`, `onClearSelection: function`, `bulkActions: array`, `showBulkActions: boolean`, `bulkActionsProps: object`, `exportData: array`, `exportFilename: string`, `onExport: function`, `showExport: boolean`, `exportProps: object`, `actions: ReactNode`, `leftActions: ReactNode`, `rightActions: ReactNode`, `dense: boolean`, `sticky: boolean`, `sx: object`, `leftSx: object`, `rightSx: object`, `...props: object`
+
+Values:  
+`showSearch=true|false`, `showColumnManager=true|false`, `showBulkActions=true|false`, `showExport=true|false`, `dense=true|false`, `sticky=true|false`
+
+Example:  
+`<AppTableToolbar searchValue={search} onSearchChange={handleSearchChange} columns={columns} onColumnChange={setVisibleColumns} />`
+
+---
+
+### AppColumnManager
+
+Path: `src/components/shared/tables/AppColumnManager.jsx`  
+Use for: Showing, hiding, resetting, and selecting visible table columns.  
+Built with: `AppDropdown`, `AppCheckbox`, `AppStack`, `AppText`, `AppButton`
+
+Props:  
+`columns: array`, `visibleColumns: array`, `onChange: function`, `label: string`, `tooltip: string`, `disabled: boolean`, `loading: boolean`, `dense: boolean`, `showReset: boolean`, `resetLabel: string`, `selectAllLabel: string`, `triggerType: string`, `size: string`, `variant: string`, `colorVariant: string`, `sx: object`, `...props: object`
+
+Column manager column shape:  
+`{ key: string, label: string, required: boolean, hideFromColumnManager: boolean }`
+
+Values:  
+`triggerType=button|icon|custom`, `variant=contained|outlined|text|soft|gradient`, `colorVariant=primary|success|error|warning|info|dark`, `size=small|medium|large`, `disabled=true|false`, `loading=true|false`, `dense=true|false`, `showReset=true|false`
+
+Example:  
+`<AppColumnManager columns={columns} visibleColumns={visibleColumns} onChange={setVisibleColumns} />`
+
+---
+
+### AppRowActions
+
+Path: `src/components/shared/tables/AppRowActions.jsx`  
+Use for: Per-row action menus like view, edit, duplicate, and delete with confirmation.  
+Built with: `AppMenu`, `ConfirmDialog`
+
+Props:  
+`row: object`, `actions: array`, `onView: function`, `onEdit: function`, `onDelete: function`, `onDuplicate: function`, `showView: boolean`, `showEdit: boolean`, `showDelete: boolean`, `showDuplicate: boolean`, `trigger: ReactNode`, `triggerTooltip: string`, `disabled: boolean`, `deleteTitle: string`, `deleteDescription: string`, `deleteAlertTitle: string`, `deleteAlertMessage: string`, `deleteConfirmText: string`, `deleteCancelText: string`, `deleteLoading: boolean`, `menuMinWidth: number | string`, `menuMaxWidth: number | string`, `onActionClick: function`
+
+Action shape:  
+`{ id: string, label: string, icon: ReactNode, type: string, danger: boolean, disabled: boolean, onClick: function }`
+
+Values:  
+`showView=true|false`, `showEdit=true|false`, `showDelete=true|false`, `showDuplicate=true|false`, `disabled=true|false`, `deleteLoading=true|false`
+
+Example:  
+`<AppRowActions row={row} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} />`
+
+---
+
+### AppExport
+
+Path: `src/components/shared/tables/AppExport.jsx`  
+Use for: Exporting table data to CSV, Excel, PDF, or custom export handlers.  
+Built with: `AppDropdown`
+
+Props:  
+`data: array`, `filename: string`, `onExport: function`, `onCsvExport: function`, `onExcelExport: function`, `onPdfExport: function`, `label: string`, `disabled: boolean`, `loading: boolean`, `dense: boolean`, `formats: array`, `triggerType: string`, `variant: string`, `colorVariant: string`, `sx: object`, `...props: object`
+
+Values:  
+`formats=csv|excel|pdf`, `triggerType=button|icon|custom`, `variant=contained|outlined|text|soft|gradient`, `colorVariant=primary|success|error|warning|info|dark`, `disabled=true|false`, `loading=true|false`, `dense=true|false`
+
+Example:  
+`<AppExport data={rows} filename="users" onExport={handleExport} />`
+
+---
+
+### DataTable
+
+Path: `src/components/shared/tables/DataTable.jsx`  
+Use for: Complete table screens with toolbar, search, filters, responsive table, selection, row actions, export, and pagination.  
+Built with: `AppResponsiveTable`, `AppTableToolbar`, `AppTablePagination`, `FilterChipList`, MUI `Box`
+
+Props:  
+`columns: array`, `rows: array`, `getRowId: function`, `loading: boolean`, `searchable: boolean`, `searchValue: string`, `onSearchChange: function`, `onSearch: function`, `onSearchClear: function`, `searchPlaceholder: string`, `filters: array`, `onFilterRemove: function`, `onFiltersClear: function`, `showFilterChips: boolean`, `selectable: boolean`, `selectedIds: array`, `onSelectedIdsChange: function`, `showRowActions: boolean`, `rowActionsProps: object`, `onView: function`, `onEdit: function`, `onDelete: function`, `onDuplicate: function`, `pagination: boolean`, `page: number`, `pageSize: number`, `totalItems: number`, `onPageChange: function`, `onPageSizeChange: function`, `showToolbar: boolean`, `toolbarActions: ReactNode`, `leftToolbarActions: ReactNode`, `rightToolbarActions: ReactNode`, `showColumnManager: boolean`, `visibleColumns: array`, `onColumnChange: function`, `showExport: boolean`, `exportData: array`, `exportFilename: string`, `onExport: function`, `emptyTitle: string`, `emptyDescription: string`, `emptyVariant: string`, `dense: boolean`, `bordered: boolean`, `rounded: boolean`, `hover: boolean`, `stickyHeader: boolean`, `sx: object`, `toolbarSx: object`, `filterChipSx: object`, `tableSx: object`, `paginationSx: object`, `tableProps: object`, `toolbarProps: object`, `paginationProps: object`
+
+Values:  
+`emptyVariant=empty|search|filter|error|permission`, `searchable=true|false`, `showFilterChips=true|false`, `selectable=true|false`, `showRowActions=true|false`, `pagination=true|false`, `showToolbar=true|false`, `showColumnManager=true|false`, `showExport=true|false`, `dense=true|false`, `bordered=true|false`, `rounded=true|false`, `hover=true|false`, `stickyHeader=true|false`
+
+Example:  
+`<DataTable columns={columns} rows={rows} searchable selectable pagination onSearch={handleSearch} />`
+
+---
+
+### AppBulkActions
+
+Path: `src/components/shared/tables/AppBulkActions.jsx`  
+Use for: Bulk actions shown when rows are selected, including delete, export, approve, reject, and custom selected-row actions.  
+Built with: `AppBox`, `AppStack`, `AppText`, `AppDropdown`, `AppIconButton`
+
+Props:  
+`selectedRows: array`, `selectedIds: array`, `selectedCount: number`, `actions: array`, `onClearSelection: function`, `label: string`, `clearTooltip: string`, `dense: boolean`, `disabled: boolean`, `loading: boolean`, `showCount: boolean`, `showClear: boolean`, `triggerLabel: string`, `triggerVariant: string`, `triggerColorVariant: string`, `sx: object`, `...props: object`
+
+Bulk action shape:  
+`{ label: string, icon: ReactNode, disabled: boolean, danger: boolean, onClick: function }`
+
+Values:  
+`dense=true|false`, `disabled=true|false`, `loading=true|false`, `showCount=true|false`, `showClear=true|false`, `triggerVariant=contained|outlined|text|soft|gradient`, `triggerColorVariant=primary|success|error|warning|info|dark`
+
+Example:  
+`<AppBulkActions selectedIds={selectedIds} actions={bulkActions} onClearSelection={clearSelection} />`
+
+---
+
+### AppTableSearch
+
+Path: `src/components/shared/tables/AppTableSearch.jsx`  
+Use for: Debounced table search, shortcut-focused search inputs, result count metadata, and clearable table filters.  
+Built with: `AppSearchInput`, `AppIconButton`, `AppShortcutHint`, `AppLoader`, `AppTooltip`, MUI `Box`, MUI `Typography`
+
+Props:  
+`value: string`, `defaultValue: string`, `onChange: function`, `onSearch: function`, `onClear: function`, `placeholder: string`, `label: string`, `helperText: string`, `debounce: number`, `minLength: number`, `loading: boolean`, `disabled: boolean`, `clearable: boolean`, `fullWidth: boolean`, `width: number | string`, `size: string`, `variant: string`, `rounded: string`, `showResultCount: boolean`, `resultCount: number`, `totalCount: number`, `resultLabel: string`, `showShortcut: boolean`, `shortcutKeys: array`, `focusShortcut: boolean`, `autoFocus: boolean`, `dense: boolean`, `tooltip: string`, `sx: object`, `inputSx: object`, `wrapperSx: object`, `metaSx: object`, `...props: object`
+
+Values:  
+`size=small|medium|large`, `variant=surface|outlined|filled|standard|soft`, `rounded=sm|md|lg|full`, `loading=true|false`, `disabled=true|false`, `clearable=true|false`, `fullWidth=true|false`, `showResultCount=true|false`, `showShortcut=true|false`, `focusShortcut=true|false`, `autoFocus=true|false`, `dense=true|false`
+
+Example:  
+`<AppTableSearch value={search} onChange={handleChange} onSearch={handleSearch} showResultCount resultCount={12} />`
+
+---
+
+### AppTablePagination
+
+Path: `src/components/shared/tables/AppTablePagination.jsx`  
+Use for: Table pagination footers, page-size controls, compact page controls, and table result summaries.  
+Built with: `AppPagination`, `AppSelect`, `AppButton`, `AppIconButton`, `AppBox`, `AppStack`, `AppText`
+
+Props:  
+`page: number`, `pageSize: number`, `totalItems: number`, `pageSizeOptions: array`, `onPageChange: function`, `onPageSizeChange: function`, `showPageSize: boolean`, `showSummary: boolean`, `showFirstLast: boolean`, `showCompactControls: boolean`, `rowsPerPageLabel: string`, `ofLabel: string`, `showingLabel: string`, `size: string`, `variant: string`, `rounded: string`, `align: string`, `compact: boolean`, `dense: boolean`, `disabled: boolean`, `loading: boolean`, `sx: object`, `summarySx: object`, `pageSizeSx: object`, `paginationSx: object`, `...props: object`
+
+Values:  
+`size=small|medium|large`, `variant=outlined|text|contained|soft`, `rounded=sm|md|lg|full`, `align=flex-start|center|flex-end|space-between|space-around|space-evenly`, `compact=true|false`, `dense=true|false`, `disabled=true|false`, `loading=true|false`, `showPageSize=true|false`, `showSummary=true|false`, `showFirstLast=true|false`, `showCompactControls=true|false`
+
+Example:  
+`<AppTablePagination page={page} pageSize={pageSize} totalItems={total} onPageChange={setPage} onPageSizeChange={setPageSize} />`
+
+---
+
+### AppEmptyTable
+
+Path: `src/components/shared/tables/AppEmptyTable.jsx`  
+Use for: Empty table states, no search results, no filtered results, table errors, permission states, and empty table rows.  
+Built with: `AppEmptyState`, `AppBox`, `AppStack`, `AppText`, `AppButton`
+
+Props:  
+`title: string`, `description: string`, `variant: string`, `icon: ReactNode`, `action: ReactNode`, `actionLabel: string`, `onAction: function`, `actionIcon: ReactNode`, `secondaryActionLabel: string`, `onSecondaryAction: function`, `secondaryActionIcon: ReactNode`, `size: string`, `align: string`, `fullHeight: boolean`, `bordered: boolean`, `surface: boolean`, `rounded: boolean`, `minHeight: number | string`, `colSpan: number`, `asTableRow: boolean`, `sx: object`, `contentSx: object`, `actionSx: object`, `...props: object`
+
+Values:  
+`variant=empty|search|filter|error|permission`, `size=small|medium|large|page`, `align=left|center|right`, `fullHeight=true|false`, `bordered=true|false`, `surface=true|false`, `rounded=true|false`, `asTableRow=true|false`
+
+Example:  
+`<AppEmptyTable variant="search" actionLabel="Clear search" onAction={clearSearch} />`
+
+---
+
+### AppResponsiveTable
+
+Path: `src/components/shared/tables/AppResponsiveTable.jsx`  
+Use for: Responsive table layouts that render desktop tables and mobile card-based lists from the same data.  
+Built with: `AppTable`, `AppCard`, `AppCheckbox`, `AppRowActions`, `AppEmptyTable`, `AppTableSkeleton`, `AppLoader`
+
+Props:  
+`columns: array`, `rows: array`, `getRowId: function`, `loading: boolean`, `skeleton: boolean`, `emptyTitle: string`, `emptyDescription: string`, `emptyVariant: string`, `selectable: boolean`, `selectedIds: array`, `onSelectRow: function`, `onSelectAll: function`, `showRowActions: boolean`, `rowActionsProps: object`, `onView: function`, `onEdit: function`, `onDelete: function`, `onDuplicate: function`, `mobileBreakpoint: string`, `mobileTitleKey: string`, `mobileSubtitleKey: string`, `mobileDescriptionKey: string`, `renderMobileTitle: function`, `renderMobileSubtitle: function`, `renderMobileDescription: function`, `renderMobileFooter: function`, `renderMobileCard: function`, `hideColumnsOnMobile: array`, `mobileVisibleColumnIds: array`, `dense: boolean`, `bordered: boolean`, `rounded: boolean`, `hover: boolean`, `stickyHeader: boolean`, `minWidth: number | string`, `maxHeight: number | string`, `cardVariant: string`, `cardPadding: string`, `cardShadow: string`, `sx: object`, `tableSx: object`, `mobileSx: object`, `cardSx: object`, `fieldSx: object`, `labelSx: object`, `valueSx: object`, `tableProps: object`
+
+Mobile column shape:  
+`{ id: string, key: string, label: string, mobileLabel: string, hideOnMobile: boolean, render: function, renderMobile: function, mobileLabelSx: object, mobileValueSx: object }`
+
+Values:  
+`mobileBreakpoint=xs|sm|md|lg`, `emptyVariant=empty|search|filter|error|permission`, `cardVariant=default|outlined|soft`, `cardPadding=sm|md|lg`, `cardShadow=none|sm|md|lg`, `dense=true|false`, `bordered=true|false`, `rounded=true|false`, `hover=true|false`, `stickyHeader=true|false`
+
+Example:  
+`<AppResponsiveTable columns={columns} rows={rows} mobileTitleKey="name" selectable />`
+
+---
+
+### Tables AI Rules
+
+- Use `DataTable` for full table pages with toolbar, filters, export, selection, row actions, and pagination.
+- Use `AppResponsiveTable` when the table must work well on mobile screens.
+- Use `AppTable` for simple desktop-only data tables.
+- Use `AppTableToolbar` for reusable table search, export, column manager, and bulk action controls.
+- Use `AppTableSearch` for debounced table search inputs.
+- Use `AppTablePagination` for table-specific pagination footers.
+- Use `AppColumnManager` when users can show or hide table columns.
+- Use `AppBulkActions` only when row selection is enabled.
+- Use `AppRowActions` for per-row view, edit, duplicate, and delete actions.
+- Use `AppExport` for CSV, Excel, PDF, or custom export menus.
+- Use `AppEmptyTable` for table empty, search, filter, error, and permission states.
+- Never use raw MUI table components directly in pages.
+- Always pass arrays to `columns`, `rows`, `selectedIds`, `selectedRows`, `bulkActions`, `filters`, and `formats`.
+- Always pass functions only to event props like `onSelectRow`, `onSelectAll`, `onSearch`, `onExport`, `onPageChange`, and row action handlers.
+- Always pass objects only to style props like `sx`, `tableSx`, `toolbarSx`, `containerSx`, `cellSx`, `rowSx`, and `paginationSx`.
+- Always define stable row IDs using `getRowId` when rows do not have an `id` field.
+- Use `column.render` for custom desktop cell rendering.
+- Use `column.renderMobile` for custom mobile card field rendering.
+- Use `visibleColumns` with `AppColumnManager` or `DataTable` for user-controlled columns.
+- Use `selectedIds` and `onSelectedIdsChange` for controlled selection.
+- Use `emptyVariant="search"` when search returns no results.
+- Use `emptyVariant="filter"` when filters return no results.
+- Use `emptyVariant="error"` when table data fails to load.
+- Use `emptyVariant="permission"` when access is restricted.
+- Use `dense` for compact admin tables.
+- Use `stickyHeader` only when the table container has a constrained height.
+- Keep table actions inside toolbar, bulk actions, or row actions instead of placing scattered buttons around tables.
+
+## Filters
+
+### FilterBar
+
+Path: `src/components/shared/filters/FilterBar.jsx`  
+Use for: Inline page filters, table filters, list filters, search filters, status filters, saved filters, and filter action bars.  
+Built with: `SearchFilter`, `SelectFilter`, `DateRangeFilter`, `StatusFilter`, `SavedFilters`, `FilterChipList`, `AppButton`, `AppStack`, MUI `Box`
+
+Props:  
+`values: object`, `onChange: function`, `filters: array`, `onRemoveFilter: function`, `onClearFilters: function`, `showSearch: boolean`, `searchName: string`, `searchLabel: string`, `searchPlaceholder: string`, `showStatus: boolean`, `statusName: string`, `statusLabel: string`, `statusOptions: array`, `showSavedFilters: boolean`, `savedFilterName: string`, `savedFilterOptions: array`, `onSavedFilterChange: function`, `selects: array`, `dateRanges: array`, `leftContent: ReactNode`, `rightContent: ReactNode`, `actions: ReactNode`, `showChips: boolean`, `showClear: boolean`, `clearLabel: string`, `dense: boolean`, `disabled: boolean`, `loading: boolean`, `sticky: boolean`, `bordered: boolean`, `surface: boolean`, `sx: object`, `fieldsSx: object`, `chipsSx: object`, `actionsSx: object`, `...props: object`
+
+Values:  
+`showSearch=true|false`, `showStatus=true|false`, `showSavedFilters=true|false`, `showChips=true|false`, `showClear=true|false`, `dense=true|false`, `disabled=true|false`, `loading=true|false`, `sticky=true|false`, `bordered=true|false`, `surface=true|false`
+
+Example:  
+`<FilterBar values={filters} onChange={setFilters} showStatus statusOptions={statusOptions} onClearFilters={clearFilters} />`
+
+---
+
+### DateRangeFilter
+
+Path: `src/components/shared/filters/DateRangeFilter.jsx`  
+Use for: Date range filters, created date filters, updated date filters, reporting period filters, and timeline filters.  
+Built with: `AppDateRangePicker`
+
+Props:  
+`name: string`, `label: string`, `value: any`, `onChange: function`, `placeholder: string`, `size: string`, `fullWidth: boolean`, `clearable: boolean`, `disabled: boolean`, `loading: boolean`, `required: boolean`, `helperText: string`, `startIcon: ReactNode`, `variant: string`, `rounded: string`, `sx: object`, `...props: object`
+
+Values:  
+`size=small|medium|large`, `variant=surface|outlined|filled|standard|soft`, `rounded=sm|md|lg|full`, `fullWidth=true|false`, `clearable=true|false`, `disabled=true|false`, `loading=true|false`, `required=true|false`
+
+Example:  
+`<DateRangeFilter value={dateRange} onChange={setDateRange} />`
+
+---
+
+### AdvancedFilterPanel
+
+Path: `src/components/shared/filters/AdvancedFilterPanel.jsx`  
+Use for: Advanced filter panels, expanded filter sections, filter drawers, report filters, and multi-field filter layouts.  
+Built with: `SearchFilter`, `SelectFilter`, `DateRangeFilter`, `StatusFilter`, `SavedFilters`, `FilterChipList`, `AppBox`, `AppStack`, `AppButton`, `AppText`
+
+Props:  
+`values: object`, `onChange: function`, `filters: array`, `onRemoveFilter: function`, `onClearFilters: function`, `title: string`, `description: string`, `searchable: boolean`, `searchName: string`, `searchLabel: string`, `searchPlaceholder: string`, `showStatus: boolean`, `statusName: string`, `statusLabel: string`, `statusOptions: array`, `showSavedFilters: boolean`, `savedFilterName: string`, `savedFilterOptions: array`, `onSavedFilterChange: function`, `selects: array`, `dateRanges: array`, `actions: ReactNode`, `footer: ReactNode`, `collapsible: boolean`, `collapsed: boolean`, `dense: boolean`, `disabled: boolean`, `loading: boolean`, `showChips: boolean`, `showClear: boolean`, `clearLabel: string`, `columns: number`, `sx: object`, `headerSx: object`, `fieldsSx: object`, `chipsSx: object`, `footerSx: object`, `...props: object`
+
+Values:  
+`searchable=true|false`, `showStatus=true|false`, `showSavedFilters=true|false`, `collapsible=true|false`, `collapsed=true|false`, `dense=true|false`, `disabled=true|false`, `loading=true|false`, `showChips=true|false`, `showClear=true|false`
+
+Example:  
+`<AdvancedFilterPanel values={filters} onChange={setFilters} selects={selectFilters} dateRanges={dateFilters} />`
+
+---
+
+### SelectFilter
+
+Path: `src/components/shared/filters/SelectFilter.jsx`  
+Use for: Dropdown filters, category filters, user filters, role filters, type filters, and single or multi-select filters.  
+Built with: `AppSelect`
+
+Props:  
+`name: string`, `label: string`, `value: any`, `onChange: function`, `options: array`, `placeholder: string`, `multiple: boolean`, `clearable: boolean`, `size: string`, `fullWidth: boolean`, `disabled: boolean`, `loading: boolean`, `required: boolean`, `startIcon: ReactNode`, `helperText: string`, `variant: string`, `rounded: string`, `sx: object`, `...props: object`
+
+Option shape:  
+`{ label: string, value: string | number | boolean, disabled: boolean }`
+
+Values:  
+`multiple=true|false`, `clearable=true|false`, `size=small|medium|large`, `fullWidth=true|false`, `disabled=true|false`, `loading=true|false`, `required=true|false`, `variant=surface|outlined|filled|standard|soft`, `rounded=sm|md|lg|full`
+
+Example:  
+`<SelectFilter name="role" label="Role" value={role} options={roleOptions} onChange={handleRoleChange} />`
+
+---
+
+### SearchFilter
+
+Path: `src/components/shared/filters/SearchFilter.jsx`  
+Use for: Search filters, keyword filters, list search, table search, and text-based filtering.  
+Built with: `AppSearchInput`
+
+Props:  
+`name: string`, `value: string`, `onChange: function`, `onSearch: function`, `onClear: function`, `label: string`, `placeholder: string`, `size: string`, `fullWidth: boolean`, `clearable: boolean`, `disabled: boolean`, `loading: boolean`, `debounce: number`, `minLength: number`, `sx: object`, `...props: object`
+
+Values:  
+`size=small|medium|large`, `fullWidth=true|false`, `clearable=true|false`, `disabled=true|false`, `loading=true|false`
+
+Example:  
+`<SearchFilter value={search} onChange={handleSearchChange} onSearch={handleSearch} />`
+
+---
+
+### AppTableFilters
+
+Path: `src/components/shared/filters/AppTableFilters.jsx`  
+Use for: Table-specific filter rows, table search, status filters, select filters, date range filters, filter chips, and clear filter actions.  
+Built with: `SearchFilter`, `SelectFilter`, `DateRangeFilter`, `StatusFilter`, `FilterChipList`, `AppButton`, `AppStack`, MUI `Box`
+
+Props:  
+`values: object`, `onChange: function`, `onRemove: function`, `onClear: function`, `search: boolean`, `searchName: string`, `searchPlaceholder: string`, `searchLabel: string`, `status: boolean`, `statusName: string`, `statusOptions: array`, `statusLabel: string`, `selects: array`, `dateRanges: array`, `filters: array`, `showChips: boolean`, `showClear: boolean`, `clearLabel: string`, `dense: boolean`, `disabled: boolean`, `loading: boolean`, `layout: string`, `columns: number`, `sx: object`, `fieldsSx: object`, `chipsSx: object`, `actionsSx: object`, `...props: object`
+
+Values:  
+`search=true|false`, `status=true|false`, `showChips=true|false`, `showClear=true|false`, `dense=true|false`, `disabled=true|false`, `loading=true|false`, `layout=inline|grid|stack`
+
+Example:  
+`<AppTableFilters values={filters} onChange={setFilters} filters={activeFilters} onClear={clearFilters} />`
+
+---
+
+### StatusFilter
+
+Path: `src/components/shared/filters/StatusFilter.jsx`  
+Use for: Status dropdown filters, approval state filters, active/inactive filters, and workflow status filters.  
+Built with: `SelectFilter`
+
+Props:  
+`value: any`, `onChange: function`, `options: array`, `name: string`, `label: string`, `placeholder: string`, `multiple: boolean`, `size: string`, `fullWidth: boolean`, `clearable: boolean`, `disabled: boolean`, `loading: boolean`, `sx: object`, `...props: object`
+
+Default options:  
+`Active`, `Inactive`, `Pending`, `Approved`, `Rejected`
+
+Values:  
+`multiple=true|false`, `size=small|medium|large`, `fullWidth=true|false`, `clearable=true|false`, `disabled=true|false`, `loading=true|false`
+
+Example:  
+`<StatusFilter value={status} onChange={handleStatusChange} multiple />`
+
+---
+
+### SavedFilters
+
+Path: `src/components/shared/filters/SavedFilters.jsx`  
+Use for: Saved filter presets, reusable filter views, saved search filters, and user-defined filter templates.  
+Built with: `SelectFilter`
+
+Props:  
+`value: any`, `onChange: function`, `options: array`, `name: string`, `label: string`, `placeholder: string`, `size: string`, `fullWidth: boolean`, `clearable: boolean`, `disabled: boolean`, `loading: boolean`, `sx: object`, `...props: object`
+
+Values:  
+`size=small|medium|large`, `fullWidth=true|false`, `clearable=true|false`, `disabled=true|false`, `loading=true|false`
+
+Example:  
+`<SavedFilters value={savedFilter} onChange={handleSavedFilterChange} options={savedFilterOptions} />`
+
+---
+
+### FilterChipList
+
+Path: `src/components/shared/filters/FilterChipList.jsx`  
+Use for: Active filter chips, removable filter badges, selected filter summaries, and clear-all filter controls.  
+Built with: `AppBadge`, `AppButton`, MUI `Stack`, MUI `Box`
+
+Props:  
+`filters: array`, `onRemove: function`, `onClearAll: function`, `clearLabel: string`, `showClearAll: boolean`, `size: string`, `colorVariant: string`, `empty: ReactNode`, `sx: object`, `...props: object`
+
+Filter shape:  
+`{ key: string, name: string, label: string, value: any, displayValue: string | array, colorVariant: string }`
+
+Values:  
+`size=small|medium|large`, `colorVariant=primary|success|error|warning|info|dark`, `showClearAll=true|false`
+
+Example:  
+`<FilterChipList filters={activeFilters} onRemove={removeFilter} onClearAll={clearFilters} />`
+
+---
+
+### Filters AI Rules
+
+- Use `FilterBar` for common inline page filters.
+- Use `AdvancedFilterPanel` for expanded, multi-field, or advanced filtering.
+- Use `AppTableFilters` for table-specific filter controls.
+- Use `SearchFilter` for keyword and text search filters.
+- Use `SelectFilter` for dropdown, category, type, role, and multi-select filters.
+- Use `DateRangeFilter` for date range filtering.
+- Use `StatusFilter` for status-based filtering.
+- Use `SavedFilters` for saved filter presets.
+- Use `FilterChipList` for active filter summaries and removable filter chips.
+- Never manually build repeated filter rows when these components can be used.
+- Never use raw `AppSelect`, `AppSearchInput`, or `AppDateRangePicker` directly for shared filter UIs when filter wrappers exist.
+- Always pass current filter state through `values`.
+- Always update filter state through `onChange`.
+- Always pass arrays to `filters`, `selects`, `dateRanges`, `options`, and `savedFilterOptions`.
+- Always pass functions only to event props like `onChange`, `onClearFilters`, `onRemoveFilter`, `onSearch`, and `onClear`.
+- Always pass React elements only to props like `leftContent`, `rightContent`, `actions`, `footer`, `startIcon`, and `empty`.
+- Always pass objects only to style props like `sx`, `fieldsSx`, `chipsSx`, `actionsSx`, `headerSx`, and `footerSx`.
+- Use `showChips` when users need to see active filters.
+- Use `showClear` when users need one-click filter reset.
+- Use `dense` for compact admin/table filter areas.
+- Use `layout="grid"` for many filters.
+- Use `layout="stack"` for narrow panels and drawers.
+- Use `sticky` only for filters that should remain visible while scrolling.
+- Use `collapsible` and `collapsed` for advanced panels hidden behind a toggle.
+
+## Workflows
+
+### ApprovalFlow
+
+Path: `src/components/shared/workflows/ApprovalFlow.jsx`  
+Use for: Full approval workflow cards, requester details, approver lists, approval timelines, and workflow action summaries.  
+Built with: `AppCard`, `AppStack`, `AppGrid`, `AppHeading`, `AppText`, `AppStatusBadge`, `AppAvatar`, `AppTimeline`, `AppButton`
+
+Props:  
+`title: string`, `description: string`, `status: string`, `requester: object`, `approvers: array`, `steps: array`, `primaryAction: object`, `secondaryAction: object`, `showRequester: boolean`, `showApprovers: boolean`, `showTimeline: boolean`, `loading: boolean`, `emptyText: string`, `sx: object`
+
+Requester shape:  
+`{ id: string | number, name: string, role: string, avatar: string }`
+
+Approver shape:  
+`{ id: string | number, name: string, role: string, avatar: string, status: string }`
+
+Action shape:  
+`{ label: string, onClick: function, colorVariant: string, loading: boolean, disabled: boolean }`
+
+Values:  
+`status=pending|approved|rejected|cancelled|escalated|failed|draft|in_review|processing`, `showRequester=true|false`, `showApprovers=true|false`, `showTimeline=true|false`, `loading=true|false`
+
+Example:  
+`<ApprovalFlow requester={requester} approvers={approvers} steps={steps} status="pending" primaryAction={{ label: "Approve", onClick: handleApprove }} />`
+
+---
+
+### WorkflowActions
+
+Path: `src/components/shared/workflows/WorkflowActions.jsx`  
+Use for: Workflow action bars, approval buttons, reject/approve controls, inline workflow actions, and card-based action sections.  
+Built with: `AppCard`, `AppStack`, `AppButton`, `AppText`, `AppTooltip`
+
+Props:  
+`actions: array`, `align: string`, `direction: string`, `size: string`, `variant: string`, `loading: boolean`, `disabled: boolean`, `title: string`, `description: string`, `sx: object`
+
+Action shape:  
+`{ id: string | number, label: string, variant: string, colorVariant: string, size: string, loading: boolean, disabled: boolean, startIcon: ReactNode, endIcon: ReactNode, tooltip: string, onClick: function, sx: object }`
+
+Values:  
+`align=left|center|right`, `direction=row|column`, `size=small|medium|large`, `variant=card|inline`, `loading=true|false`, `disabled=true|false`
+
+Example:  
+`<WorkflowActions actions={[{ label: "Approve", colorVariant: "success", onClick: handleApprove }]} />`
+
+---
+
+### ApprovalHistory
+
+Path: `src/components/shared/workflows/ApprovalHistory.jsx`  
+Use for: Approval audit history, workflow activity timelines, approval event logs, and historical approval records.  
+Built with: `AppCard`, `AppTimeline`, `AppHeading`, `AppText`, `AppStack`, `AppButton`
+
+Props:  
+`title: string`, `description: string`, `items: array`, `emptyTitle: string`, `emptyDescription: string`, `showHeader: boolean`, `showFooter: boolean`, `footerAction: object`, `timelineSize: string`, `loading: boolean`, `sx: object`
+
+Footer action shape:  
+`{ label: string, onClick: function, variant: string, colorVariant: string, size: string, startIcon: ReactNode, endIcon: ReactNode, loading: boolean, disabled: boolean }`
+
+Values:  
+`timelineSize=small|medium|large`, `showHeader=true|false`, `showFooter=true|false`, `loading=true|false`
+
+Example:  
+`<ApprovalHistory items={historyItems} showFooter footerAction={{ label: "View all", onClick: handleViewAll }} />`
+
+---
+
+### StatusTimeline
+
+Path: `src/components/shared/workflows/StatusTimeline.jsx`  
+Use for: Status change timelines, process timelines, workflow progress history, and current status tracking.  
+Built with: `AppCard`, `AppTimeline`, `AppHeading`, `AppText`, `AppStack`, `AppStatusBadge`
+
+Props:  
+`title: string`, `description: string`, `status: string`, `items: array`, `timelineSize: string`, `colorVariant: string`, `showStatus: boolean`, `showHeader: boolean`, `emptyTitle: string`, `emptyDescription: string`, `sx: object`
+
+Values:  
+`status=pending|approved|rejected|cancelled|escalated|failed|draft|in_review|processing|success|error|warning|info`, `timelineSize=small|medium|large`, `colorVariant=primary|success|error|warning|info|dark`, `showStatus=true|false`, `showHeader=true|false`
+
+Example:  
+`<StatusTimeline status="processing" items={timelineItems} />`
+
+---
+
+### ApprovalBadge
+
+Path: `src/components/shared/workflows/ApprovalBadge.jsx`  
+Use for: Approval status labels, workflow state badges, review status badges, and clickable approval indicators.  
+Built with: `AppBadge`, `AppTooltip`
+
+Props:  
+`status: string`, `label: string`, `size: string`, `variant: string`, `rounded: string`, `showIcon: boolean`, `showDot: boolean`, `tooltip: string`, `clickable: boolean`, `onClick: function`, `sx: object`, `...props: object`
+
+Values:  
+`status=approved|pending|rejected|cancelled|escalated|failed|draft|in_review`, `size=small|medium|large`, `variant=soft|filled|outlined`, `rounded=sm|md|lg|full`, `showIcon=true|false`, `showDot=true|false`, `clickable=true|false`
+
+Example:  
+`<ApprovalBadge status="approved" showIcon tooltip="Approved by manager" />`
+
+---
+
+### ApprovalStepper
+
+Path: `src/components/shared/workflows/ApprovalStepper.jsx`  
+Use for: Approval progress steppers, multi-step approval flows, approver progress tracking, and workflow stage visualization.  
+Built with: `AppCard`, `AppStepper`, `AppHeading`, `AppText`, `AppStack`, `AppStatusBadge`, `AppAvatar`, `AppGrid`
+
+Props:  
+`title: string`, `description: string`, `steps: array`, `activeStep: number`, `approvers: array`, `orientation: string`, `size: string`, `clickable: boolean`, `onStepClick: function`, `showApprovers: boolean`, `showHeader: boolean`, `showStepStatus: boolean`, `currentStatus: string`, `sx: object`
+
+Approver shape:  
+`{ id: string | number, name: string, role: string, avatar: string, status: string }`
+
+Values:  
+`orientation=horizontal|vertical`, `size=small|medium|large`, `clickable=true|false`, `showApprovers=true|false`, `showHeader=true|false`, `showStepStatus=true|false`, `currentStatus=pending|approved|rejected|cancelled|escalated|failed|draft|in_review|processing`
+
+Example:  
+`<ApprovalStepper steps={steps} activeStep={1} approvers={approvers} currentStatus="pending" />`
+
+---
+
+### Workflows AI Rules
+
+- Use `ApprovalFlow` for complete approval workflow summaries.
+- Use `WorkflowActions` for approval, reject, submit, cancel, escalate, and workflow action buttons.
+- Use `ApprovalHistory` for approval history and workflow audit activity.
+- Use `StatusTimeline` for general status progress and lifecycle timelines.
+- Use `ApprovalBadge` for approval-specific status badges.
+- Use `ApprovalStepper` for multi-step approval progress.
+- Never manually build approval workflow UI when these workflow components can be used.
+- Use `ApprovalFlow` when requester, approvers, actions, and timeline need to appear together.
+- Use `ApprovalStepper` when approval stage progress is the main focus.
+- Use `ApprovalHistory` when the main content is historical activity.
+- Use `StatusTimeline` when showing status changes over time.
+- Use `WorkflowActions` when only workflow buttons/actions are needed.
+- Pass arrays only to `approvers`, `steps`, `items`, and `actions`.
+- Pass objects only to `requester`, `primaryAction`, `secondaryAction`, `footerAction`, and `sx`.
+- Pass functions only to event props like `onClick`, `onStepClick`, and action handlers.
+- Pass React elements only to icon props like `startIcon` and `endIcon`.
+- Use status values consistently across `ApprovalBadge`, `AppStatusBadge`, `ApprovalFlow`, `StatusTimeline`, and `ApprovalStepper`.
+- Use `loading` to disable workflow actions during async operations.
+- Use `showHeader=false` only when the parent layout already provides a section heading.
+- Use `showApprovers=false` when approver details are shown elsewhere.
+- Use `showTimeline=false` when timeline/history is handled by `ApprovalHistory` or `StatusTimeline`.
+
+## Attachments
+
+### AttachmentUploader
+
+Path: `src/components/shared/attachments/AttachmentUploader.jsx`  
+Use for: Uploading attachments, drag-and-drop upload sections, pending upload lists, uploaded file lists, and attachment management panels.  
+Built with: `FileDropzone`, `AttachmentList`, `AppCard`, `AppStack`, `AppBox`, `AppHeading`, `AppText`, `AppCaption`, `AppButton`, `AppBadge`
+
+Props:  
+`title: string`, `description: string`, `files: array`, `value: array`, `accept: string`, `multiple: boolean`, `maxSize: number`, `maxFiles: number`, `uploadLabel: string`, `browseLabel: string`, `loading: boolean`, `disabled: boolean`, `autoUpload: boolean`, `onChange: function`, `onUpload: function`, `onReject: function`, `onPreview: function`, `onDownload: function`, `onDelete: function`, `showList: boolean`, `listLayout: string`, `sx: object`
+
+Values:  
+`multiple=true|false`, `loading=true|false`, `disabled=true|false`, `autoUpload=true|false`, `showList=true|false`, `listLayout=list|grid`
+
+Example:  
+`<AttachmentUploader files={files} onUpload={handleUpload} onPreview={handlePreview} onDelete={handleDelete} />`
+
+---
+
+### AttachmentList
+
+Path: `src/components/shared/attachments/AttachmentList.jsx`  
+Use for: Displaying uploaded files, attachment lists, attachment grids, empty attachment states, and attachment actions.  
+Built with: `FileCard`, `AppCard`, `AppStack`, `AppGrid`, `AppBox`, `AppHeading`, `AppText`, `AppCaption`, `AppBadge`, `AppEmptyState`, `AppInlineLoader`
+
+Props:  
+`title: string`, `description: string`, `files: array`, `layout: string`, `columns: object`, `loading: boolean`, `loadingText: string`, `emptyTitle: string`, `emptyDescription: string`, `showHeader: boolean`, `showCount: boolean`, `showPreview: boolean`, `showDownload: boolean`, `showDelete: boolean`, `onPreview: function`, `onDownload: function`, `onDelete: function`, `compact: boolean`, `bordered: boolean`, `surface: boolean`, `sx: object`
+
+Values:  
+`layout=list|grid`, `loading=true|false`, `showHeader=true|false`, `showCount=true|false`, `showPreview=true|false`, `showDownload=true|false`, `showDelete=true|false`, `compact=true|false`, `bordered=true|false`, `surface=true|false`
+
+Example:  
+`<AttachmentList files={files} layout="grid" onPreview={handlePreview} onDownload={handleDownload} />`
+
+---
+
+### FilePreview
+
+Path: `src/components/shared/attachments/FilePreview.jsx`  
+Use for: Generic file preview dialogs, image previews, PDF previews, file metadata display, and open/download actions.  
+Built with: `AppDialog`, `AppStack`, `AppBox`, `AppText`, `AppCaption`, `AppButton`, `AppBadge`
+
+Props:  
+`open: boolean`, `onClose: function`, `file: object`, `title: string`, `subtitle: string`, `showDownload: boolean`, `showOpenNew: boolean`, `onDownload: function`, `onOpenNew: function`, `maxWidth: string`, `sx: object`
+
+File shape:  
+`{ id: string | number, name: string, size: number, type: string, mimeType: string, url: string, previewUrl: string }`
+
+Values:  
+`open=true|false`, `showDownload=true|false`, `showOpenNew=true|false`, `maxWidth=xs|sm|md|lg|xl`
+
+Example:  
+`<FilePreview open={previewOpen} file={selectedFile} onClose={closePreview} onDownload={downloadFile} />`
+
+---
+
+### FileCard
+
+Path: `src/components/shared/attachments/FileCard.jsx`  
+Use for: Single file cards, attachment rows, file metadata display, preview/download/delete actions, and upload status display.  
+Built with: `AppCard`, `AppStack`, `AppBox`, `AppText`, `AppCaption`, `AppBadge`, `AppIconButton`, `AppTooltip`
+
+Props:  
+`file: object`, `name: string`, `size: number`, `type: string`, `url: string`, `thumbnail: string`, `status: string`, `showPreview: boolean`, `showDownload: boolean`, `showDelete: boolean`, `showType: boolean`, `showSize: boolean`, `onPreview: function`, `onDownload: function`, `onDelete: function`, `disabled: boolean`, `loading: boolean`, `variant: string`, `compact: boolean`, `sx: object`
+
+File shape:  
+`{ id: string | number, name: string, size: number, type: string, mimeType: string, url: string, thumbnail: string, status: string }`
+
+Values:  
+`status=pending|uploaded|failed`, `showPreview=true|false`, `showDownload=true|false`, `showDelete=true|false`, `showType=true|false`, `showSize=true|false`, `disabled=true|false`, `loading=true|false`, `variant=default|soft|ghost`, `compact=true|false`
+
+Example:  
+`<FileCard file={file} onPreview={handlePreview} onDownload={handleDownload} onDelete={handleDelete} />`
+
+---
+
+### FileDropzone
+
+Path: `src/components/shared/attachments/FileDropzone.jsx`  
+Use for: Drag-and-drop file upload areas, browse file inputs, upload validation, accepted file type hints, and max file/size limits.  
+Built with: `AppBox`, `AppStack`, `AppText`, `AppHeading`, `AppCaption`, `AppButton`, `AppBadge`
+
+Props:  
+`title: string`, `description: string`, `accept: string`, `multiple: boolean`, `disabled: boolean`, `loading: boolean`, `maxSize: number`, `maxFiles: number`, `browseLabel: string`, `onFilesChange: function`, `onDrop: function`, `onReject: function`, `showAcceptedTypes: boolean`, `showLimits: boolean`, `sx: object`
+
+Values:  
+`multiple=true|false`, `disabled=true|false`, `loading=true|false`, `showAcceptedTypes=true|false`, `showLimits=true|false`
+
+Example:  
+`<FileDropzone accept=".pdf,.docx,image/*" maxFiles={5} maxSize={5242880} onFilesChange={handleFilesChange} />`
+
+---
+
+### PdfPreview
+
+Path: `src/components/shared/attachments/PdfPreview.jsx`  
+Use for: PDF preview dialogs, embedded PDF viewing, PDF open actions, and PDF download actions.  
+Built with: `AppDialog`, `AppStack`, `AppBox`, `AppText`, `AppCaption`, `AppButton`, `AppBadge`
+
+Props:  
+`open: boolean`, `onClose: function`, `file: object`, `src: string`, `title: string`, `subtitle: string`, `showDownload: boolean`, `showOpenNew: boolean`, `onDownload: function`, `onOpenNew: function`, `maxWidth: string`, `sx: object`
+
+File shape:  
+`{ id: string | number, name: string, url: string, previewUrl: string }`
+
+Values:  
+`open=true|false`, `showDownload=true|false`, `showOpenNew=true|false`, `maxWidth=xs|sm|md|lg|xl`
+
+Example:  
+`<PdfPreview open={pdfOpen} file={selectedPdf} onClose={closePdf} onDownload={downloadPdf} />`
+
+---
+
+### ImagePreview
+
+Path: `src/components/shared/attachments/ImagePreview.jsx`  
+Use for: Image preview dialogs, full-size image viewing, image open actions, and image download actions.  
+Built with: `AppDialog`, `AppStack`, `AppBox`, `AppText`, `AppCaption`, `AppButton`, `AppBadge`
+
+Props:  
+`open: boolean`, `onClose: function`, `image: object`, `src: string`, `alt: string`, `title: string`, `subtitle: string`, `showDownload: boolean`, `showOpenNew: boolean`, `onDownload: function`, `onOpenNew: function`, `maxWidth: string`, `sx: object`
+
+Image shape:  
+`{ id: string | number, name: string, url: string, previewUrl: string, thumbnail: string }`
+
+Values:  
+`open=true|false`, `showDownload=true|false`, `showOpenNew=true|false`, `maxWidth=xs|sm|md|lg|xl`
+
+Example:  
+`<ImagePreview open={imageOpen} image={selectedImage} onClose={closeImage} onDownload={downloadImage} />`
+
+---
+
+### Attachments AI Rules
+
+- Use `AttachmentUploader` for complete upload + attachment management sections.
+- Use `FileDropzone` when only drag-and-drop or browse upload input is needed.
+- Use `AttachmentList` to display uploaded or existing files.
+- Use `FileCard` for individual attachment rows or cards.
+- Use `FilePreview` for generic preview handling across file types.
+- Use `ImagePreview` for image-only preview dialogs.
+- Use `PdfPreview` for PDF-only preview dialogs.
+- Never manually build file cards or upload dropzones when these components can be used.
+- Always pass arrays to `files` and `value`.
+- Always pass file objects using the expected file shape.
+- Always pass functions only to event props like `onChange`, `onUpload`, `onReject`, `onPreview`, `onDownload`, `onDelete`, and `onClose`.
+- Always pass objects only to style props like `sx`.
+- Use `accept` to restrict uploadable file types.
+- Use `maxSize` and `maxFiles` for client-side validation.
+- Always validate uploads again on the server.
+- Use `autoUpload=true` only when files should upload immediately after selection.
+- Use `showList=false` when uploaded files are displayed elsewhere.
+- Use `layout="grid"` for visual-heavy attachment lists.
+- Use `layout="list"` for compact document/file lists.
+- Use `FilePreview` when file type may vary.
+- Use `ImagePreview` only when the selected file is known to be an image.
+- Use `PdfPreview` only when the selected file is known to be a PDF.
+- Use `showPreview`, `showDownload`, and `showDelete` to control available file actions.
+
+## Activity
+
+### ActivityFeed
+
+Path: `src/components/shared/activity/ActivityFeed.jsx`  
+Use for: Recent activity lists, user activity feeds, record timelines, audit activity summaries, and activity cards.  
+Built with: `AuditTrailItem`, `AppCard`, `AppStack`, `AppBox`, `AppHeading`, `AppText`, `AppBadge`, `AppEmptyState`, `AppInlineLoader`
+
+Props:  
+`title: string`, `description: string`, `items: array`, `loading: boolean`, `loadingText: string`, `emptyTitle: string`, `emptyDescription: string`, `showHeader: boolean`, `showCount: boolean`, `compact: boolean`, `maxHeight: number | string`, `scrollable: boolean`, `itemVariant: string`, `sx: object`
+
+Values:  
+`loading=true|false`, `showHeader=true|false`, `showCount=true|false`, `compact=true|false`, `scrollable=true|false`, `itemVariant=inline|card`
+
+Example:  
+`<ActivityFeed items={activities} loading={isLoading} scrollable maxHeight={420} />`
+
+---
+
+### AuditLog
+
+Path: `src/components/shared/activity/AuditLog.jsx`  
+Use for: Audit log tables, system event records, compliance logs, user action logs, and security/activity records.  
+Built with: `AppTable`, `AppCard`, `AppStack`, `AppBox`, `AppHeading`, `AppText`, `AppBadge`, `AppEmptyState`, `AppInlineLoader`
+
+Props:  
+`title: string`, `description: string`, `rows: array`, `columns: array`, `loading: boolean`, `loadingText: string`, `showHeader: boolean`, `showCount: boolean`, `dense: boolean`, `maxHeight: number | string`, `emptyTitle: string`, `emptyDescription: string`, `sx: object`
+
+Audit row shape:  
+`{ id: string | number, time: string, user: string | object, action: string, module: string, description: string, ipAddress: string }`
+
+Values:  
+`loading=true|false`, `showHeader=true|false`, `showCount=true|false`, `dense=true|false`
+
+Example:  
+`<AuditLog rows={auditRows} maxHeight={520} />`
+
+---
+
+### ChangeHistory
+
+Path: `src/components/shared/activity/ChangeHistory.jsx`  
+Use for: Field-level change history, old/new value comparisons, record edit history, and change audit sections.  
+Built with: `AppCard`, `AppStack`, `AppGrid`, `AppBox`, `AppHeading`, `AppText`, `AppCaption`, `AppBadge`, `AppEmptyState`, `AppInlineLoader`
+
+Props:  
+`title: string`, `description: string`, `changes: array`, `loading: boolean`, `loadingText: string`, `emptyTitle: string`, `emptyDescription: string`, `showHeader: boolean`, `showCount: boolean`, `compact: boolean`, `sx: object`
+
+Change shape:  
+`{ id: string | number, field: string, oldValue: any, newValue: any, type: string, user: string, time: string }`
+
+Values:  
+`type=added|removed|updated`, `loading=true|false`, `showHeader=true|false`, `showCount=true|false`, `compact=true|false`
+
+Example:  
+`<ChangeHistory changes={changes} compact />`
+
+---
+
+### AuditTrailDrawer
+
+Path: `src/components/shared/activity/AuditTrailDrawer.jsx`  
+Use for: Side drawer audit trails, activity drawers, audit logs, change history drawers, and exportable audit panels.  
+Built with: `ActivityFeed`, `AuditLog`, `ChangeHistory`, `AppDrawer`, `AppStack`, `AppBox`, `AppText`, `AppBadge`, `AppButton`, `AppEmptyState`, `AppInlineLoader`
+
+Props:  
+`open: boolean`, `onClose: function`, `title: string`, `subtitle: string`, `mode: string`, `activities: array`, `auditRows: array`, `changes: array`, `loading: boolean`, `width: number | string`, `showExport: boolean`, `onExport: function`, `sx: object`
+
+Values:  
+`mode=activity|audit|changes`, `open=true|false`, `loading=true|false`, `showExport=true|false`
+
+Example:  
+`<AuditTrailDrawer open={open} onClose={closeDrawer} mode="activity" activities={activities} onExport={exportAuditTrail} />`
+
+---
+
+### AuditTrailItem
+
+Path: `src/components/shared/activity/AuditTrailItem.jsx`  
+Use for: Single activity items, audit trail rows, user action cards, inline activity records, and metadata display.  
+Built with: `AppCard`, `AppStack`, `AppBox`, `AppText`, `AppCaption`, `AppBadge`, `AppAvatar`, `AppTooltip`
+
+Props:  
+`item: object`, `action: string`, `title: string`, `description: string`, `user: object`, `time: string`, `module: string`, `metadata: string | object`, `variant: string`, `compact: boolean`, `showAvatar: boolean`, `showBadge: boolean`, `showMetadata: boolean`, `sx: object`
+
+Item shape:  
+`{ id: string | number, action: string, title: string, description: string, user: object, time: string, module: string, metadata: string | object }`
+
+User shape:  
+`{ name: string, avatar: string, initials: string }`
+
+Values:  
+`action=created|updated|deleted|approved|rejected|login|attachment|comment|default`, `variant=card|inline`, `compact=true|false`, `showAvatar=true|false`, `showBadge=true|false`, `showMetadata=true|false`
+
+Example:  
+`<AuditTrailItem item={activity} variant="inline" compact />`
+
+---
+
+### Activity AI Rules
+
+- Use `ActivityFeed` for general activity lists.
+- Use `AuditLog` for structured audit records in table format.
+- Use `ChangeHistory` for field-level old/new value comparisons.
+- Use `AuditTrailDrawer` when activity, audit logs, or changes should appear in a side drawer.
+- Use `AuditTrailItem` for individual activity records.
+- Never manually build repeated activity or audit rows when these components can be used.
+- Use `mode="activity"` in `AuditTrailDrawer` for feed-style activity.
+- Use `mode="audit"` in `AuditTrailDrawer` for table-based audit records.
+- Use `mode="changes"` in `AuditTrailDrawer` for field-level change history.
+- Always pass arrays to `items`, `rows`, `activities`, `auditRows`, and `changes`.
+- Always pass objects to `item`, `user`, `metadata`, and `sx`.
+- Always pass functions only to event props like `onClose` and `onExport`.
+- Use `loading` when records are being fetched.
+- Use `showHeader=false` when the parent layout already provides a heading.
+- Use `showCount=false` when count badges are not needed.
+- Use `compact` for dense activity panels.
+- Use `scrollable` with `maxHeight` for long activity feeds.
+- Use `itemVariant="inline"` inside drawers or compact panels.
+- Use `itemVariant="card"` for standalone activity feeds.
+- Use `columns` in `AuditLog` only when custom audit table columns are needed.
+- Use `metadata` in `AuditTrailItem` for extra audit details.
+
+## Page
+
+### PageContainer
+
+Path: `src/components/shared/page/PageContainer.jsx`  
+Use for: Page-level wrappers, responsive page containers, centered page layouts, and consistent page spacing.  
+Built with: `AppContainer`, `AppStack`
+
+Props:  
+`children: ReactNode`, `maxWidth: string | number`, `fluid: boolean`, `centered: boolean`, `disablePadding: boolean`, `spacing: number | string`, `minHeight: number | string`, `sx: object`, `contentSx: object`, `...props: object`
+
+Values:  
+`maxWidth=sm|md|lg|xl|full|number`, `fluid=true|false`, `centered=true|false`, `disablePadding=true|false`
+
+Example:  
+`<PageContainer maxWidth="xl"><PageContent>Content</PageContent></PageContainer>`
+
+---
+
+### PageContent
+
+Path: `src/components/shared/page/PageContent.jsx`  
+Use for: Main page content sections, vertical page spacing, grouped page body content, and optional content surfaces.  
+Built with: `AppBox`, `AppStack`
+
+Props:  
+`children: ReactNode`, `spacing: number | string`, `surface: boolean`, `bordered: boolean`, `rounded: boolean`, `elevation: boolean`, `padded: boolean`, `sx: object`, `...props: object`
+
+Values:  
+`surface=true|false`, `bordered=true|false`, `rounded=true|false`, `elevation=true|false`, `padded=true|false`
+
+Example:  
+`<PageContent spacing={3}>Sections</PageContent>`
+
+---
+
+### PageActions
+
+Path: `src/components/shared/page/PageActions.jsx`  
+Use for: Page header actions, toolbar buttons, action groups, CTA rows, and aligned page controls.  
+Built with: `AppStack`
+
+Props:  
+`children: ReactNode`, `align: string`, `justify: string`, `direction: string`, `wrap: string`, `spacing: number | string`, `fullWidth: boolean`, `sx: object`, `...props: object`
+
+Values:  
+`align=stretch|flex-start|center|flex-end|baseline`, `justify=flex-start|center|flex-end|space-between|space-around|space-evenly`, `direction=row|column|row-reverse|column-reverse`, `wrap=nowrap|wrap|wrap-reverse`, `fullWidth=true|false`
+
+Example:  
+`<PageActions><AppButton>Create</AppButton></PageActions>`
+
+---
+
+### PageToolbar
+
+Path: `src/components/shared/page/PageToolbar.jsx`  
+Use for: Page toolbar rows, filter/action bars, sticky toolbars, page-level controls, and grouped toolbar content.  
+Built with: `AppBox`, `AppStack`
+
+Props:  
+`children: ReactNode`, `justify: string`, `align: string`, `wrap: string`, `spacing: number | string`, `surface: boolean`, `bordered: boolean`, `rounded: boolean`, `elevation: boolean`, `padded: boolean`, `sticky: boolean`, `top: number | string`, `zIndex: number`, `sx: object`, `...props: object`
+
+Values:  
+`justify=flex-start|center|flex-end|space-between|space-around|space-evenly`, `align=stretch|flex-start|center|flex-end|baseline`, `wrap=nowrap|wrap|wrap-reverse`, `surface=true|false`, `bordered=true|false`, `rounded=true|false`, `elevation=true|false`, `padded=true|false`, `sticky=true|false`
+
+Example:  
+`<PageToolbar sticky surface bordered><FilterBar /><PageActions>Actions</PageActions></PageToolbar>`
+
+---
+
+### Page AI Rules
+
+- Use `PageContainer` as the outer wrapper for every page.
+- Use `PageContent` for the main page body.
+- Use `PageActions` for page-level action buttons.
+- Use `PageToolbar` for toolbar rows, filters, and grouped page controls.
+- Never manually build page wrappers with raw layout components when page components can be used.
+- Use `PageContainer` to control page max width, padding, centering, and vertical spacing.
+- Use `PageContent` to keep page sections consistently spaced.
+- Use `PageActions` inside headers, toolbars, and page footers.
+- Use `PageToolbar` when actions, filters, or controls need a shared horizontal container.
+- Use `sticky=true` on `PageToolbar` only when toolbar controls must stay visible during scroll.
+- Pass React elements only to `children`.
+- Pass objects only to style props like `sx` and `contentSx`.
+- Pass booleans only to visual props like `surface`, `bordered`, `rounded`, `elevation`, `padded`, `fluid`, `centered`, `disablePadding`, `fullWidth`, and `sticky`.
+- Prefer `spacing` props over custom margins for page layout consistency.
+- Use `fluid=true` only for full-width dashboards or data-heavy pages.
+- Use `disablePadding=true` only when the parent layout already controls padding.
