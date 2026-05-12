@@ -674,7 +674,7 @@ Example:
 ### AppLineChart
 
 Path: `src/components/charts/AppLineChart.jsx`  
-Use for: Trends over time, analytics timelines, comparative growth charts, activity monitoring.  
+Use for: Trends over time, analytics timelines, comparative growth charts, and activity monitoring.  
 Replaces: Direct `@mui/x-charts/LineChart` usage in pages.
 
 Props:  
@@ -694,7 +694,7 @@ Example:
 ### AppAreaChart
 
 Path: `src/components/charts/AppAreaChart.jsx`  
-Use for: Filled trend charts, cumulative metrics, stacked area comparisons, volume-over-time visuals.  
+Use for: Filled trend charts, cumulative metrics, stacked area comparisons, and volume-over-time visuals.  
 Replaces: Direct `@mui/x-charts/LineChart` usage when area styling is required.
 
 Props:  
@@ -714,7 +714,7 @@ Example:
 ### AppPieChart
 
 Path: `src/components/charts/AppPieChart.jsx`  
-Use for: Category distribution, percentage breakdowns, donut charts, single-series share visuals.  
+Use for: Category distribution, percentage breakdowns, donut charts, and single-series share visuals.  
 Replaces: Direct `@mui/x-charts/PieChart` usage in pages.
 
 Props:  
@@ -731,22 +731,64 @@ Example:
 
 ---
 
+### AppDonutChart
+
+Path: `src/components/charts/AppDonutChart.jsx`  
+Use for: Donut charts, center-labeled distribution charts, part-to-whole breakdowns, percentage summaries, and dashboard share visuals.  
+Replaces: Direct `@mui/x-charts/PieChart` usage for donut-specific charts.
+
+Props:  
+`data: array`, `title: string | ReactNode`, `subtitle: string | ReactNode`, `height: number`, `innerRadius: number`, `outerRadius: number`, `paddingAngle: number`, `cornerRadius: number`, `startAngle: number`, `endAngle: number`, `centerLabel: string | ReactNode`, `centerValue: string | number | ReactNode`, `centerSubtitle: string | ReactNode`, `showLegend: boolean`, `showLabels: boolean`, `labelType: string`, `loading: boolean`, `emptyText: string`, `valueFormatter: function`, `sx: object`, `chartSx: object`
+
+Data shape:  
+`{ id: string | number, label: string, value: number, colorVariant: string, color: string }`
+
+Values:  
+`labelType=value|percent|both`, `colorVariant=primary|success|error|warning|info|dark|neutral`, `showLegend=true|false`, `showLabels=true|false`, `loading=true|false`
+
+Example:  
+`<AppDonutChart title="Users by Status" centerLabel="Total" centerValue={1200} data={statusData} />`
+
+---
+
+### AppSparkline
+
+Path: `src/components/charts/AppSparkline.jsx`  
+Use for: Compact trend charts, mini dashboard charts, KPI card trends, activity sparklines, and small inline analytics visuals.  
+Replaces: Direct `@mui/x-charts/SparkLineChart` usage in pages.
+
+Props:  
+`data: array`, `xData: array`, `title: string | ReactNode`, `value: string | number | ReactNode`, `subtitle: string | ReactNode`, `footer: string | ReactNode`, `height: number`, `width: number | string`, `colorVariant: string`, `variant: string`, `showArea: boolean`, `showTooltip: boolean`, `showHighlight: boolean`, `trend: object`, `loading: boolean`, `emptyText: string`, `valueFormatter: function`, `sx: object`, `chartSx: object`
+
+Data shape:  
+`number[]` or `{ value: number, label: string, date: string, name: string }[]`
+
+Trend shape:  
+`{ value: string | number, direction: string, label: string }`
+
+Values:  
+`variant=line|area|bar`, `colorVariant=primary|success|error|warning|info|dark|neutral`, `trend.direction=up|down|neutral`, `showArea=true|false`, `showTooltip=true|false`, `showHighlight=true|false`, `loading=true|false`
+
+Example:  
+`<AppSparkline title="Visitors" value="24.5k" data={[10, 14, 18, 16, 22]} trend={{ value: "+8%", direction: "up", label: "this week" }} />`
+
+---
+
 ### Chart AI Rules
 
 - Use `AppKpiCard` for single metrics before building custom stat cards.
 - Use `AppBarChart` for category comparisons, grouped bars, stacked totals, and horizontal ranking charts.
 - Use `AppLineChart` for trend lines and time-series comparisons.
 - Use `AppAreaChart` for filled trend charts and stacked volume/cumulative views.
-- Use `AppPieChart` only for simple part-to-whole distribution charts.
+- Use `AppPieChart` for simple part-to-whole distribution charts.
+- Use `AppDonutChart` when the chart needs a center label, center value, or donut-specific layout.
+- Use `AppSparkline` for compact metric trends and mini chart previews.
 - Do not use raw `@mui/x-charts` components directly in pages when these wrappers fit.
 - Pass semantic chart colors through `colorVariant`; avoid hardcoded colors in page code.
-- Keep chart data normalized as arrays of objects and configure series through `bars`, `lines`, `areas`, or pie data.
+- Keep chart data normalized as arrays of objects and configure series through `bars`, `lines`, `areas`, or pie/donut data.
+- Use simple number arrays or `{ value, label }` arrays for `AppSparkline`.
 - Use `loading` and `emptyText` states instead of rendering ad hoc placeholders around charts.
 - Use `sx` or `chartSx` only for page-specific layout overrides.
-
----
-
----
 
 ## Overlays
 
@@ -2989,3 +3031,415 @@ Example:
 - Prefer `spacing` props over custom margins for page layout consistency.
 - Use `fluid=true` only for full-width dashboards or data-heavy pages.
 - Use `disablePadding=true` only when the parent layout already controls padding.
+
+## Display
+
+### SummaryCards
+
+Path: `src/components/shared/display/SummaryCards.jsx`  
+Use for: Dashboard summary cards, KPI cards, metric cards, statistic cards, trend cards, and clickable overview cards.  
+Built with: `AppGrid`, `AppCard`, `AppStack`, `AppBox`, `AppBadge`, `AppStatusBadge`, `AppText`, `AppHeading`, `AppTooltip`, `AppSkeleton`, `AppIconButton`
+
+Props:  
+`items: array`, `columns: object`, `loading: boolean`, `skeletonCount: number`, `variant: string`, `cardVariant: string`, `cardPadding: string`, `rounded: string`, `shadow: string`, `bordered: boolean`, `hoverable: boolean`, `showTrend: boolean`, `showStatus: boolean`, `showFooter: boolean`, `onCardClick: function`, `sx: object`, `cardSx: object`, `...props: object`
+
+Item shape:  
+`{ key: string, id: string | number, title: string, label: string, value: ReactNode, description: string, icon: ReactNode, iconTooltip: string, colorVariant: string, change: string, trend: string, trendColor: string, trendIcon: ReactNode, badge: string, badgeColor: string, status: string, statusLabel: string, footer: string, action: object, cardVariant: string, padding: string, rounded: string, shadow: string, bordered: boolean, hoverable: boolean, disabled: boolean, uppercaseLabel: boolean, onClick: function, sx: object }`
+
+Values:  
+`variant=default|compact|detailed`, `cardVariant=default|outlined|soft|ghost`, `cardPadding=sm|md|lg`, `rounded=sm|md|lg|xl|full`, `shadow=none|sm|md|lg`, `trend=up|increase|positive|down|decrease|negative|neutral`, `showTrend=true|false`, `showStatus=true|false`, `showFooter=true|false`, `loading=true|false`, `bordered=true|false`, `hoverable=true|false`
+
+Example:  
+`<SummaryCards items={summaryItems} loading={loading} onCardClick={handleCardClick} />`
+
+---
+
+### StatusBadge
+
+Path: `src/components/shared/display/StatusBadge.jsx`  
+Use for: Generic status badges, display status labels, active/inactive indicators, and lightweight status wrappers.  
+Built with: `AppStatusBadge`
+
+Props:  
+`status: string`, `label: string`, `size: string`, `variant: string`, `rounded: string`, `showDot: boolean`, `showIcon: boolean`, `sx: object`, `...props: object`
+
+Values:  
+`size=small|medium|large`, `variant=soft|filled|outlined|text`, `rounded=sm|md|lg|full`, `showDot=true|false`, `showIcon=true|false`
+
+Example:  
+`<StatusBadge status="active" label="Active" />`
+
+---
+
+### DetailsSection
+
+Path: `src/components/shared/display/DetailsSection.jsx`  
+Use for: Detail panels, record details, profile details, grouped information sections, accordion detail groups, and compact details.  
+Built with: `AppSection`, `AppStack`, `AppGrid`, `AppText`, `AppButton`, `AppIconButton`, `AppDescriptionList`, `AppAccordion`, `AppSkeleton`, `AppBox`
+
+Props:  
+`title: string`, `description: string`, `items: array`, `columns: object`, `loading: boolean`, `variant: string`, `size: string`, `bordered: boolean`, `surface: boolean`, `rounded: boolean`, `divider: boolean`, `collapsible: boolean`, `defaultExpanded: boolean`, `action: ReactNode`, `actions: array`, `emptyText: string`, `contentSx: object`, `sx: object`, `...props: object`
+
+Action shape:  
+`{ key: string, label: string, iconOnly: boolean, icon: ReactNode, tooltip: string, variant: string, colorVariant: string, size: string, startIcon: ReactNode, endIcon: ReactNode, onClick: function }`
+
+Values:  
+`variant=default|accordion|compact`, `size=small|medium|large`, `bordered=true|false`, `surface=true|false`, `rounded=true|false`, `divider=true|false`, `collapsible=true|false`, `defaultExpanded=true|false`, `loading=true|false`
+
+Example:  
+`<DetailsSection title="User Details" items={details} columns={{ xs: 1, md: 2 }} />`
+
+---
+
+### InfoGrid
+
+Path: `src/components/shared/display/InfoGrid.jsx`  
+Use for: Information cards, overview grids, entity summaries, clickable info tiles, profile cards, and compact info displays.  
+Built with: `AppGrid`, `AppCard`, `AppStack`, `AppText`, `AppHeading`, `AppBadge`, `AppStatusBadge`, `AppAvatar`, `AppTooltip`, `AppSkeleton`, `AppBox`, `AppIconButton`
+
+Props:  
+`items: array`, `columns: object`, `loading: boolean`, `skeletonCount: number`, `variant: string`, `size: string`, `cardVariant: string`, `hoverable: boolean`, `bordered: boolean`, `rounded: string`, `shadow: string`, `onItemClick: function`, `emptyText: string`, `sx: object`, `cardSx: object`, `...props: object`
+
+Item shape:  
+`{ key: string, id: string | number, title: string, subtitle: string, value: ReactNode, description: string, icon: ReactNode, avatar: object, colorVariant: string, badge: string, badgeColor: string, status: string, footer: string, meta: string, action: object, cardVariant: string, bordered: boolean, rounded: string, shadow: string, hoverable: boolean, onClick: function, sx: object }`
+
+Values:  
+`variant=default|compact|bordered`, `size=small|medium|large`, `cardVariant=default|outlined|soft|ghost`, `rounded=sm|md|lg|xl|full`, `shadow=none|sm|md|lg`, `loading=true|false`, `hoverable=true|false`, `bordered=true|false`
+
+Example:  
+`<InfoGrid items={infoItems} columns={{ xs: 1, sm: 2, md: 3 }} />`
+
+---
+
+### KeyValueList
+
+Path: `src/components/shared/display/KeyValueList.jsx`  
+Use for: Key-value detail lists, settings summaries, metadata lists, profile attributes, and compact record summaries.  
+Built with: `AppKeyValue`, `AppStatusBadge`, `AppBadge`, `AppBox`, `AppStack`, `AppText`, `AppHeading`, `AppSkeleton`, MUI `Divider`
+
+Props:  
+`title: string`, `description: string`, `items: array`, `loading: boolean`, `skeletonCount: number`, `variant: string`, `size: string`, `direction: string`, `bordered: boolean`, `surface: boolean`, `rounded: boolean`, `divider: boolean`, `dense: boolean`, `emptyText: string`, `sx: object`, `itemSx: object`, `headerSx: object`, `...props: object`
+
+Item shape:  
+`{ key: string, label: string, value: ReactNode, icon: ReactNode, badge: string, badgeColor: string, status: string, statusLabel: string, tag: string, tagColor: string, action: ReactNode, muted: boolean, ellipsis: boolean, props: object, sx: object }`
+
+Values:  
+`variant=default|card|minimal`, `size=small|medium|large`, `direction=row|column`, `bordered=true|false`, `surface=true|false`, `rounded=true|false`, `divider=true|false`, `dense=true|false`, `loading=true|false`
+
+Example:  
+`<KeyValueList title="Metadata" items={items} direction="row" />`
+
+---
+
+### DescriptionList
+
+Path: `src/components/shared/display/DescriptionList.jsx`  
+Use for: Description lists, structured detail grids, read-only field summaries, metadata sections, and card/minimal detail displays.  
+Built with: `AppDescriptionList`, `AppBox`, `AppStack`, `AppText`, `AppHeading`, `AppSkeleton`
+
+Props:  
+`title: string`, `description: string`, `items: array`, `columns: number | string | object`, `loading: boolean`, `skeletonCount: number`, `variant: string`, `size: string`, `bordered: boolean`, `striped: boolean`, `dense: boolean`, `emptyText: string`, `sx: object`, `headerSx: object`, `listSx: object`, `itemSx: object`, `...props: object`
+
+Values:  
+`variant=default|card|minimal`, `size=small|medium|large`, `bordered=true|false`, `striped=true|false`, `dense=true|false`, `loading=true|false`
+
+Example:  
+`<DescriptionList title="Details" items={details} columns={2} />`
+
+---
+
+### Display AI Rules
+
+- Use `SummaryCards` for dashboard KPIs, metrics, totals, and overview cards.
+- Use `InfoGrid` for rich information tiles and clickable entity summary cards.
+- Use `DetailsSection` for grouped record details inside a page section.
+- Use `KeyValueList` for simple key-value metadata lists.
+- Use `DescriptionList` for structured description/detail grids.
+- Use `StatusBadge` for generic status display.
+- Never manually build repeated summary, info, detail, or key-value display layouts when these components can be used.
+- Use `SummaryCards` when values, trends, statuses, or KPI-style metrics are the main content.
+- Use `InfoGrid` when each item needs title, subtitle, icon/avatar, description, badge/status, and optional action.
+- Use `DetailsSection` when details need a heading, actions, collapsible behavior, or accordion layout.
+- Use `DescriptionList` when displaying read-only field summaries in a grid.
+- Use `KeyValueList` when displaying label-value pairs in a simple vertical list.
+- Always pass arrays to `items`.
+- Always pass objects to `columns`, `sx`, `cardSx`, `headerSx`, `listSx`, `itemSx`, and `contentSx`.
+- Always pass functions only to event props like `onCardClick`, `onItemClick`, and action `onClick`.
+- Always pass React elements only to props like `icon`, `action`, `actions`, `startIcon`, `endIcon`, `footer`, and item values when needed.
+- Use `loading` and `skeletonCount` for async detail or summary sections.
+- Use `variant="compact"` for dense dashboards or side panels.
+- Use `variant="minimal"` when the parent container already provides surface, border, and padding.
+- Use `variant="accordion"` in `DetailsSection` when grouped details should expand/collapse.
+- Use `collapsible=true` when an entire details section should collapse.
+- Use `emptyText` to customize no-data states.
+
+## Dialogs
+
+### ConfirmDialog
+
+Path: `src/components/shared/dialogs/ConfirmDialog.jsx`  
+Use for: Generic confirmation dialogs, destructive confirmations, status confirmations, and async confirm actions.  
+Built with: `AppDialog`, `AppAlert`, `AppStack`, `AppText`, `AppButton`, `AppLoadingButton`
+
+Props:  
+`open: boolean`, `onClose: function`, `onConfirm: function`, `title: string`, `description: string`, `confirmText: string`, `cancelText: string`, `severity: string`, `variant: string`, `loading: boolean`, `disabled: boolean`, `showAlert: boolean`, `alertTitle: string`, `alertMessage: string`, `maxWidth: string`, `closeOnBackdrop: boolean`, `confirmButtonProps: object`, `cancelButtonProps: object`, `children: ReactNode`, `sx: object`, `...props: object`
+
+Values:  
+`severity=warning|error|info|success`, `variant=soft|outlined|filled`, `loading=true|false`, `disabled=true|false`, `showAlert=true|false`, `closeOnBackdrop=true|false`, `maxWidth=xs|sm|md|lg|xl`
+
+Example:  
+`<ConfirmDialog open={open} onClose={closeDialog} onConfirm={handleConfirm} title="Are you sure?" />`
+
+---
+
+### FilterDialog
+
+Path: `src/components/shared/dialogs/FilterDialog.jsx`  
+Use for: Opening advanced filters in a dialog, applying table filters, resetting filter values, and mobile-friendly filter panels.  
+Built with: `AppDialog`, `FilterBar`, `AppButton`, `AppIconButton`, `AppStack`
+
+Props:  
+`filters: array`, `values: object`, `onChange: function`, `onReset: function`, `onApply: function`, `title: string`, `subtitle: string`, `trigger: ReactNode`, `triggerText: string`, `triggerTooltip: string`, `open: boolean`, `onOpen: function`, `onClose: function`, `applyText: string`, `resetText: string`, `cancelText: string`, `disabled: boolean`, `loading: boolean`, `size: string`, `maxWidth: string`, `showSearch: boolean`, `searchKey: string`, `searchPlaceholder: string`, `showReset: boolean`, `triggerVariant: string`, `closeOnBackdrop: boolean`, `sx: object`
+
+Values:  
+`triggerVariant=button|icon`, `size=small|medium|large`, `maxWidth=xs|sm|md|lg|xl`, `showSearch=true|false`, `showReset=true|false`, `disabled=true|false`, `loading=true|false`, `closeOnBackdrop=true|false`
+
+Example:  
+`<FilterDialog filters={filters} values={filterValues} onApply={handleApplyFilters} />`
+
+---
+
+### DeleteConfirmDialog
+
+Path: `src/components/shared/dialogs/DeleteConfirmDialog.jsx`  
+Use for: Delete confirmations, permanent action warnings, selected item deletion, and destructive record removal dialogs.  
+Built with: `AppDialog`, `AppAlert`, `AppStack`, `AppBox`, `AppText`, `AppHeading`, `AppButton`, `AppLoadingButton`, `AppBadge`
+
+Props:  
+`open: boolean`, `onClose: function`, `onConfirm: function`, `title: string`, `description: string`, `itemName: string`, `itemType: string`, `confirmText: string`, `cancelText: string`, `loading: boolean`, `disabled: boolean`, `severity: string`, `showWarning: boolean`, `warningTitle: string`, `warningMessage: string`, `showItemBadge: boolean`, `maxWidth: string`, `confirmButtonProps: object`, `cancelButtonProps: object`, `sx: object`
+
+Values:  
+`severity=error|warning|info|success`, `loading=true|false`, `disabled=true|false`, `showWarning=true|false`, `showItemBadge=true|false`, `maxWidth=xs|sm|md|lg|xl`
+
+Example:  
+`<DeleteConfirmDialog open={open} itemName="User record" onConfirm={handleDelete} onClose={closeDialog} />`
+
+---
+
+### UnsavedChangesDialog
+
+Path: `src/components/shared/dialogs/UnsavedChangesDialog.jsx`  
+Use for: Unsaved form changes, route leave confirmations, save-before-exit flows, discard changes prompts, and guarded navigation.  
+Built with: `AppDialog`, `AppAlert`, `AppStack`, `AppBox`, `AppText`, `AppHeading`, `AppButton`, `AppLoadingButton`
+
+Props:  
+`open: boolean`, `onClose: function`, `onSave: function`, `onDiscard: function`, `onCancel: function`, `title: string`, `description: string`, `warningTitle: string`, `warningMessage: string`, `saveText: string`, `discardText: string`, `cancelText: string`, `saveLoading: boolean`, `discardLoading: boolean`, `saveDisabled: boolean`, `discardDisabled: boolean`, `showSave: boolean`, `showDiscard: boolean`, `showWarning: boolean`, `maxWidth: string`, `saveButtonProps: object`, `discardButtonProps: object`, `cancelButtonProps: object`, `sx: object`
+
+Values:  
+`saveLoading=true|false`, `discardLoading=true|false`, `saveDisabled=true|false`, `discardDisabled=true|false`, `showSave=true|false`, `showDiscard=true|false`, `showWarning=true|false`, `maxWidth=xs|sm|md|lg|xl`
+
+Example:  
+`<UnsavedChangesDialog open={hasUnsavedChanges} onSave={handleSave} onDiscard={handleDiscard} onClose={closeDialog} />`
+
+---
+
+### Dialogs AI Rules
+
+- Use `ConfirmDialog` for generic confirmation flows.
+- Use `DeleteConfirmDialog` for delete or permanent destructive actions.
+- Use `UnsavedChangesDialog` for unsaved form, navigation, and discard/save flows.
+- Use `FilterDialog` for advanced filter flows and mobile-friendly filter panels.
+- Never build confirmation dialogs manually when these shared dialogs can be used.
+- Never use raw MUI `Dialog` directly in pages.
+- Always control dialogs with an `open` boolean.
+- Always pass functions only to event props like `onClose`, `onConfirm`, `onSave`, `onDiscard`, `onCancel`, `onApply`, and `onReset`.
+- Always pass objects only to style or override props like `sx`, `confirmButtonProps`, `cancelButtonProps`, `saveButtonProps`, and `discardButtonProps`.
+- Always use `loading` props to prevent duplicate confirm, save, delete, or discard actions.
+- Use `disabled` props when the action should be blocked.
+- Use `closeOnBackdrop=false` for destructive or important confirmations.
+- Use `severity="error"` for delete and destructive actions.
+- Use `severity="warning"` for risky but reversible actions.
+- Use `showWarning` or `showAlert` when the user needs extra context before confirming.
+- Use `itemName` and `showItemBadge` in `DeleteConfirmDialog` when deleting a known record.
+- Use `showSave` and `showDiscard` in `UnsavedChangesDialog` to customize save/discard flows.
+- Use `triggerVariant="icon"` in `FilterDialog` for compact toolbar filter buttons.
+
+## Permissions
+
+### Can
+
+Path: `src/components/shared/permissions/Can.jsx`  
+Use for: Conditional UI rendering based on user roles, permissions, or both.  
+Built with: `AppNoPermission`
+
+Props:  
+`children: ReactNode`, `user: object`, `roles: string | array`, `permissions: string | array`, `requireAll: boolean`, `fallback: ReactNode`, `showFallback: boolean`, `noPermissionTitle: string`, `noPermissionDescription: string`, `render: function`
+
+User shape:  
+`{ role: string, roles: array, permissions: array }`
+
+Values:  
+`requireAll=true|false`, `showFallback=true|false`
+
+Example:  
+`<Can user={user} permissions="users.create"><AppButton>Create User</AppButton></Can>`
+
+---
+
+### RoleGuard
+
+Path: `src/components/shared/permissions/RoleGuard.jsx`  
+Use for: Protecting pages, routes, layouts, or sections based on user roles.  
+Built with: React Router `Navigate`, `AppNoPermission`
+
+Props:  
+`children: ReactNode`, `user: object`, `roles: string | array`, `requireAll: boolean`, `redirectTo: string`, `fallback: ReactNode`, `showFallback: boolean`, `noPermissionTitle: string`, `noPermissionDescription: string`, `loading: boolean`, `loadingFallback: ReactNode`
+
+User shape:  
+`{ role: string, roles: array }`
+
+Values:  
+`requireAll=true|false`, `showFallback=true|false`, `loading=true|false`
+
+Example:  
+`<RoleGuard user={user} roles={["admin", "manager"]} redirectTo="/dashboard"><AdminPage /></RoleGuard>`
+
+---
+
+### PermissionGuard
+
+Path: `src/components/shared/permissions/PermissionGuard.jsx`  
+Use for: Protecting pages, routes, layouts, or sections based on user permissions.  
+Built with: React Router `Navigate`, `AppNoPermission`
+
+Props:  
+`children: ReactNode`, `user: object`, `permissions: string | array`, `requireAll: boolean`, `redirectTo: string`, `fallback: ReactNode`, `showFallback: boolean`, `noPermissionTitle: string`, `noPermissionDescription: string`, `loading: boolean`, `loadingFallback: ReactNode`
+
+User shape:  
+`{ permissions: array }`
+
+Values:  
+`requireAll=true|false`, `showFallback=true|false`, `loading=true|false`
+
+Example:  
+`<PermissionGuard user={user} permissions="reports.view"><ReportsPage /></PermissionGuard>`
+
+---
+
+### Permissions AI Rules
+
+- Use `Can` for conditional rendering inside pages and components.
+- Use `RoleGuard` for route-level or page-level role protection.
+- Use `PermissionGuard` for route-level or page-level permission protection.
+- Use `roles` when access depends on user role names.
+- Use `permissions` when access depends on capability strings.
+- Use `requireAll=false` when the user needs any one role or permission.
+- Use `requireAll=true` when the user must have every required role or permission.
+- Use `redirectTo` when unauthorized users should be redirected.
+- Use `fallback` when unauthorized users should see custom UI.
+- Use `showFallback=true` when unauthorized users should see `AppNoPermission`.
+- Use `loading=true` while user access data is being fetched.
+- Use `loadingFallback` for loaders or skeletons during auth loading.
+- Never manually duplicate role or permission checks inside page JSX when `Can`, `RoleGuard`, or `PermissionGuard` can be used.
+- Never use `RoleGuard` for permission-only checks.
+- Never use `PermissionGuard` for role-only checks.
+- Always pass strings or arrays to `roles` and `permissions`.
+- Always pass functions only to `render`.
+- Always pass React elements only to `children`, `fallback`, and `loadingFallback`.
+- Keep permission names consistent with backend capability keys.
+
+## Import Export
+
+### ImportWizard
+
+Path: `src/components/shared/import-export/ImportWizard.jsx`  
+Use for: Multi-step import flows, file upload imports, preview-before-import workflows, and import completion dialogs.  
+Built with: `AppDialog`, `AppStepper`, `AppFileUpload`, `AppTable`, `AppAlert`, `AppButton`, `AppLoadingButton`, `AppCard`, `AppBox`, `AppStack`, `AppHeading`, `AppText`, `AppEmptyState`
+
+Props:  
+`open: boolean`, `onClose: function`, `title: string`, `subtitle: string`, `steps: array`, `acceptedFileTypes: string`, `file: File | object`, `onFileChange: function`, `columns: array`, `rows: array`, `loading: boolean`, `importing: boolean`, `error: string`, `successMessage: string`, `onImport: function`, `onBack: function`, `importButtonText: string`, `nextButtonText: string`, `backButtonText: string`, `maxWidth: string`, `sx: object`
+
+Step shape:  
+`{ label: string, description: string }`
+
+Values:  
+`acceptedFileTypes=.csv,.xlsx,.xls`, `loading=true|false`, `importing=true|false`, `maxWidth=xs|sm|md|lg|xl`
+
+Example:  
+`<ImportWizard open={open} file={file} onFileChange={setFile} columns={columns} rows={rows} onImport={handleImport} onClose={closeWizard} />`
+
+---
+
+### ExportButton
+
+Path: `src/components/shared/import-export/ExportButton.jsx`  
+Use for: Export buttons, async export actions, CSV/Excel/PDF download triggers, and report export CTAs.  
+Wraps: `AppLoadingButton`
+
+Props:  
+`children: ReactNode`, `onClick: function`, `loading: boolean`, `disabled: boolean`, `format: string`, `loadingText: string`, `variant: string`, `colorVariant: string`, `size: string`, `rounded: string`, `startIcon: ReactNode`, `sx: object`, `...props: object`
+
+Values:  
+`format=CSV|Excel|PDF`, `variant=contained|outlined|text|soft|gradient`, `colorVariant=primary|success|error|warning|info|dark`, `size=small|medium|large`, `rounded=sm|md|lg|full`, `loading=true|false`, `disabled=true|false`
+
+Example:  
+`<ExportButton loading={isExporting} onClick={handleExport}>Export CSV</ExportButton>`
+
+---
+
+### CsvTemplateDownload
+
+Path: `src/components/shared/import-export/CsvTemplateDownload.jsx`  
+Use for: CSV template downloads, import format guidance, required column previews, and template download cards.  
+Built with: `AppButton`, `AppCard`, `AppStack`, `AppHeading`, `AppText`, `AppAlert`
+
+Props:  
+`title: string`, `description: string`, `fileName: string`, `templateUrl: string`, `columns: array`, `buttonText: string`, `variant: string`, `colorVariant: string`, `showColumns: boolean`, `disabled: boolean`, `onDownload: function`, `sx: object`
+
+Values:  
+`variant=default|outlined|soft|elevated`, `colorVariant=primary|success|error|warning|info|dark`, `showColumns=true|false`, `disabled=true|false`
+
+Example:  
+`<CsvTemplateDownload templateUrl="/templates/users.csv" columns={["name", "email", "role"]} />`
+
+---
+
+### ImportPreviewTable
+
+Path: `src/components/shared/import-export/ImportPreviewTable.jsx`  
+Use for: Previewing imported records, showing row import statuses, import validation errors, warnings, and paginated preview tables.  
+Built with: `AppCard`, `AppStack`, `AppHeading`, `AppText`, `AppAlert`, `AppTable`, `AppTablePagination`, `AppEmptyState`, `AppStatusBadge`
+
+Props:  
+`title: string`, `description: string`, `columns: array`, `rows: array`, `page: number`, `pageSize: number`, `totalItems: number`, `onPageChange: function`, `onPageSizeChange: function`, `loading: boolean`, `errors: array`, `warnings: array`, `selectable: boolean`, `selectedIds: array`, `onSelectRow: function`, `onSelectAll: function`, `showRowStatus: boolean`, `bordered: boolean`, `rounded: boolean`, `sx: object`
+
+Values:  
+`loading=true|false`, `selectable=true|false`, `showRowStatus=true|false`, `bordered=true|false`, `rounded=true|false`
+
+Example:  
+`<ImportPreviewTable columns={columns} rows={previewRows} errors={errors} warnings={warnings} />`
+
+---
+
+### Import Export AI Rules
+
+- Use `ImportWizard` for complete multi-step import flows.
+- Use `CsvTemplateDownload` before import flows when users need a sample/template CSV.
+- Use `ImportPreviewTable` when imported rows must be reviewed before confirmation.
+- Use `ExportButton` for simple one-click export actions.
+- Use table-level `AppExport` when export belongs inside a table toolbar.
+- Never build custom import wizards manually when `ImportWizard` can be used.
+- Never use raw file inputs for import flows when `AppFileUpload` or `ImportWizard` can be used.
+- Always pass arrays to `columns`, `rows`, `steps`, `errors`, and `warnings`.
+- Always pass functions only to event props like `onClose`, `onFileChange`, `onImport`, `onBack`, `onDownload`, `onClick`, `onPageChange`, and `onPageSizeChange`.
+- Always pass objects only to style props like `sx`.
+- Use `loading` while parsing or previewing files.
+- Use `importing` while the final import request is running.
+- Use `errors` for invalid import records or blocking validation issues.
+- Use `warnings` for non-blocking import issues.
+- Use `showRowStatus=true` when preview rows include import status values.
+- Use `acceptedFileTypes` to restrict supported import file types.
+- Use `templateUrl` for direct downloadable templates.
+- Use `onDownload` when template generation is handled in code.
+- Use `ExportButton` for standalone exports outside tables.
+- Use `format` to make export button text clear when no custom children are passed.
