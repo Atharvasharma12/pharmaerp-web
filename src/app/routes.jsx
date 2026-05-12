@@ -1,48 +1,40 @@
-import LandingPage from "@/features/public/pages/LandingPage";
-import LoginPage from "@/features/auth/pages/LoginPage";
+// src/app/routes.jsx
 
 import { createBrowserRouter } from "react-router-dom";
-import { AuthLayout, PublicLayout } from "@/layout";
 
-const AboutPage = () => {
-  return <div>About Page</div>;
-};
+import { ROUTES } from "@/constants";
+
+import { PublicLayout, AuthLayout } from "@/layouts";
+
+import authRoutes from "@/features/auth/routes/authRoutes";
+
+import { LandingPage } from "@/features/landing";
 
 const NotFoundPage = () => {
   return <div>404 - Page Not Found</div>;
 };
 
 export const router = createBrowserRouter([
+  // PUBLIC PAGES
   {
-    path: "/",
     element: <PublicLayout />,
     children: [
       {
-        index: true,
+        path: ROUTES.HOME,
         element: <LandingPage />,
       },
-      {
-        path: "about",
-        element: <AboutPage />,
-      },
     ],
   },
+
+  // AUTH PAGES
   {
-    path: "/",
     element: <AuthLayout />,
-    children: [
-      {
-        path: "login",
-        element: <LoginPage />,
-      },
-      // {
-      //   path: "register",
-      //   element: <RegisterPage />,
-      // },
-    ],
+    children: authRoutes,
   },
+
+  // 404
   {
-    path: "*",
+    path: ROUTES.NOT_FOUND,
     element: <NotFoundPage />,
   },
 ]);
