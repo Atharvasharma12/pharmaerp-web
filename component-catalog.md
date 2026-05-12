@@ -633,54 +633,39 @@ Affected Components:
 ### AppKpiCard
 
 Path: `src/components/ui/charts/AppKpiCard.jsx`  
-Use for: Dashboard stats, analytics summaries, metric highlight cards, compact reporting widgets.  
-Props: `title`, `value`, `subtitle`, `icon`, `trend`, `trendDirection`, `colorVariant`, `loading`, `sx`  
-Values: `colorVariant=primary|success|error|warning|info|dark|neutral`, `trendDirection=up|down|neutral`  
-Example: `<AppKpiCard title="Revenue" value="$24,500" trend="+12%" trendDirection="up" colorVariant="success" />`
+Use for: Dashboard stats, analytics summaries, metric highlight cards, compact reporting widgets.
+
+Props:  
+`title: string | ReactNode`, `value: string | number | ReactNode`, `subtitle: string | ReactNode`, `icon: ReactNode`, `footer: string | ReactNode`, `trend: object`, `badge: string | ReactNode`, `variant: string`, `colorVariant: string`, `size: string`, `loading: boolean`, `compact: boolean`, `elevation: boolean`, `fullHeight: boolean`, `onClick: function`, `sx: object`, `contentSx: object`, `...props: object`
+
+Trend shape:  
+`{ value: string | number, direction: string, label: string }`
+
+Values:  
+`variant=surface|soft|outlined`, `colorVariant=primary|success|error|warning|info|dark|neutral`, `size=small|medium|large`, `trend.direction=up|down|neutral`
+
+Example:  
+`<AppKpiCard title="Revenue" value="$24,500" trend={{ value: "+12%", direction: "up", label: "vs last month" }} colorVariant="success" />`
 
 ---
 
 ### AppBarChart
 
 Path: `src/components/ui/charts/AppBarChart.jsx`  
-Use for: Category comparisons, grouped metrics, stacked totals, ranking charts, horizontal comparisons.  
-Replaces: Direct `@mui/x-charts/BarChart` usage in pages.  
-Props: `data`, `bars`, `xKey`, `title`, `subtitle`, `height`, `variant`, `layout`, `showLegend`, `showGrid`, `loading`, `emptyText`, `valueFormatter`, `sx`  
-Bar shape: `{ key, label, colorVariant }`  
-Values:
+Use for: Category comparisons, grouped bars, stacked totals, and horizontal ranking charts.  
+Replaces: Direct `@mui/x-charts/BarChart` usage in pages.
 
-- `variant=grouped|stacked`
-- `layout=vertical|horizontal`
-- `colorVariant=primary|success|error|warning|info|dark|neutral`
+Props:  
+`data: array`, `bars: array`, `xKey: string`, `title: string | ReactNode`, `subtitle: string | ReactNode`, `height: number`, `variant: string`, `layout: string`, `showLegend: boolean`, `showGrid: boolean`, `loading: boolean`, `emptyText: string`, `valueFormatter: function`, `sx: object`
 
-Example:
+Bar shape:  
+`{ key: string, label: string, colorVariant: string }`
 
-```jsx
-<AppBarChart
-  title="Monthly Revenue"
-  subtitle="Q1 Performance"
-  data={[
-    { month: "Jan", sales: 4000, profit: 2400 },
-    { month: "Feb", sales: 3000, profit: 1398 },
-    { month: "Mar", sales: 5000, profit: 3200 },
-  ]}
-  xKey="month"
-  bars={[
-    {
-      key: "sales",
-      label: "Sales",
-      colorVariant: "primary",
-    },
-    {
-      key: "profit",
-      label: "Profit",
-      colorVariant: "success",
-    },
-  ]}
-  variant="grouped"
-  layout="vertical"
-/>
-```
+Values:  
+`variant=grouped|stacked`, `layout=vertical|horizontal`, `colorVariant=primary|success|error|warning|info|dark|neutral`
+
+Example:  
+`<AppBarChart title="Sales by Region" data={salesData} xKey="region" bars={[{ key: "sales", label: "Sales", colorVariant: "primary" }]} />`
 
 ---
 
@@ -688,11 +673,19 @@ Example:
 
 Path: `src/components/ui/charts/AppLineChart.jsx`  
 Use for: Trends over time, analytics timelines, comparative growth charts, activity monitoring.  
-Replaces: Direct `@mui/x-charts/LineChart` usage in pages.  
-Props: `data`, `lines`, `xKey`, `title`, `subtitle`, `height`, `curve`, `showLegend`, `showGrid`, `showArea`, `stacked`, `loading`, `emptyText`, `valueFormatter`, `xValueFormatter`, `sx`  
-Line shape: `{ key, label, colorVariant, curve, area, showMark, stacked }`  
-Values: `curve=linear|monotone|step|stepBefore|stepAfter|natural`, `colorVariant=primary|success|error|warning|info|dark|neutral`  
-Example: `<AppLineChart title="Visitors" data={visitorData} xKey="date" lines={[{ key: "visitors", label: "Visitors", colorVariant: "info" }]} />`
+Replaces: Direct `@mui/x-charts/LineChart` usage in pages.
+
+Props:  
+`data: array`, `lines: array`, `xKey: string`, `title: string | ReactNode`, `subtitle: string | ReactNode`, `height: number`, `curve: string`, `showLegend: boolean`, `showGrid: boolean`, `showArea: boolean`, `stacked: boolean`, `loading: boolean`, `emptyText: string`, `valueFormatter: function`, `xValueFormatter: function`, `sx: object`
+
+Line shape:  
+`{ key: string, label: string, colorVariant: string, curve: string, area: boolean, showMark: boolean, stacked: boolean }`
+
+Values:  
+`curve=linear|monotone|step|stepBefore|stepAfter|natural`, `colorVariant=primary|success|error|warning|info|dark|neutral`
+
+Example:  
+`<AppLineChart title="Visitors" data={visitorData} xKey="date" lines={[{ key: "visitors", label: "Visitors", colorVariant: "info" }]} />`
 
 ---
 
@@ -700,11 +693,19 @@ Example: `<AppLineChart title="Visitors" data={visitorData} xKey="date" lines={[
 
 Path: `src/components/ui/charts/AppAreaChart.jsx`  
 Use for: Filled trend charts, cumulative metrics, stacked area comparisons, volume-over-time visuals.  
-Replaces: Direct `@mui/x-charts/LineChart` usage when area styling is required.  
-Props: `data`, `areas`, `xKey`, `title`, `subtitle`, `height`, `curve`, `showLegend`, `showGrid`, `stacked`, `showMark`, `loading`, `emptyText`, `valueFormatter`, `xValueFormatter`, `maxWidth`, `sx`, `chartSx`  
-Area shape: `{ key, label, colorVariant, color, curve, stacked, showMark }`  
-Values: `curve=linear|monotone|step|stepBefore|stepAfter|natural`, `colorVariant=primary|success|error|warning|info|dark|neutral`  
-Example: `<AppAreaChart title="Revenue Trend" data={revenueData} xKey="month" stacked areas={[{ key: "product", label: "Product", colorVariant: "primary" }]} />`
+Replaces: Direct `@mui/x-charts/LineChart` usage when area styling is required.
+
+Props:  
+`data: array`, `areas: array`, `xKey: string`, `title: string | ReactNode`, `subtitle: string | ReactNode`, `height: number`, `curve: string`, `showLegend: boolean`, `showGrid: boolean`, `stacked: boolean`, `showMark: boolean`, `loading: boolean`, `emptyText: string`, `valueFormatter: function`, `xValueFormatter: function`, `maxWidth: number | string`, `sx: object`, `chartSx: object`
+
+Area shape:  
+`{ key: string, label: string, colorVariant: string, color: string, curve: string, stacked: boolean, showMark: boolean }`
+
+Values:  
+`curve=linear|monotone|step|stepBefore|stepAfter|natural`, `colorVariant=primary|success|error|warning|info|dark|neutral`
+
+Example:  
+`<AppAreaChart title="Revenue Trend" data={revenueData} xKey="month" stacked areas={[{ key: "product", label: "Product", colorVariant: "primary" }]} />`
 
 ---
 
@@ -712,11 +713,19 @@ Example: `<AppAreaChart title="Revenue Trend" data={revenueData} xKey="month" st
 
 Path: `src/components/ui/charts/AppPieChart.jsx`  
 Use for: Category distribution, percentage breakdowns, donut charts, single-series share visuals.  
-Replaces: Direct `@mui/x-charts/PieChart` usage in pages.  
-Props: `data`, `title`, `subtitle`, `height`, `variant`, `innerRadius`, `outerRadius`, `paddingAngle`, `cornerRadius`, `startAngle`, `endAngle`, `showLegend`, `showLabels`, `labelType`, `loading`, `emptyText`, `valueFormatter`, `sx`, `chartSx`  
-Data shape: `{ id, label, value, colorVariant, color }`  
-Values: `variant=pie|donut`, `labelType=value|percent|both`, `colorVariant=primary|success|error|warning|info|dark|neutral`  
-Example: `<AppPieChart title="Lead Sources" data={[{ label: "Organic", value: 45, colorVariant: "primary" }]} variant="donut" />`
+Replaces: Direct `@mui/x-charts/PieChart` usage in pages.
+
+Props:  
+`data: array`, `title: string | ReactNode`, `subtitle: string | ReactNode`, `height: number`, `variant: string`, `innerRadius: number`, `outerRadius: number`, `paddingAngle: number`, `cornerRadius: number`, `startAngle: number`, `endAngle: number`, `showLegend: boolean`, `showLabels: boolean`, `labelType: string`, `loading: boolean`, `emptyText: string`, `valueFormatter: function`, `sx: object`, `chartSx: object`
+
+Data shape:  
+`{ id: string | number, label: string, value: number, colorVariant: string, color: string }`
+
+Values:  
+`variant=pie|donut`, `labelType=value|percent|both`, `colorVariant=primary|success|error|warning|info|dark|neutral`
+
+Example:  
+`<AppPieChart title="Lead Sources" data={[{ label: "Organic", value: 45, colorVariant: "primary" }]} variant="donut" />`
 
 ---
 
@@ -729,6 +738,824 @@ Example: `<AppPieChart title="Lead Sources" data={[{ label: "Organic", value: 45
 - Use `AppPieChart` only for simple part-to-whole distribution charts.
 - Do not use raw `@mui/x-charts` components directly in pages when these wrappers fit.
 - Pass semantic chart colors through `colorVariant`; avoid hardcoded colors in page code.
-- Keep chart data normalized as arrays of objects and configure series through `bars`, `lines`, or `areas`.
+- Keep chart data normalized as arrays of objects and configure series through `bars`, `lines`, `areas`, or pie `data`.
 - Use `loading` and `emptyText` states instead of rendering ad hoc placeholders around charts.
 - Use `sx` or `chartSx` only for page-specific layout overrides.
+
+## Overlays
+
+### AppDialog
+
+Path: `src/components/ui/overlays/AppDialog.jsx`  
+Use for: Modal dialogs, confirmation flows, forms in popup, focused user actions.  
+Replaces: MUI `Dialog`
+
+Props:  
+`open: boolean`, `onClose: function`, `title: string | ReactNode`, `subtitle: string | ReactNode`, `children: ReactNode`, `maxWidth: string | false`, `fullWidth: boolean`, `fullScreen: boolean`, `showHeader: boolean`, `showClose: boolean`, `closeOnBackdrop: boolean`, `showActions: boolean`, `actions: ReactNode`, `cancelLabel: string`, `confirmLabel: string`, `onCancel: function`, `onConfirm: function`, `confirmLoading: boolean`, `confirmDisabled: boolean`, `cancelProps: object`, `confirmProps: object`, `headerSx: object`, `contentSx: object`, `actionsSx: object`, `paperSx: object`, `titleSx: object`, `subtitleSx: object`, `...props: object`
+
+Values:  
+`maxWidth=xs|sm|md|lg|xl|false`
+
+Example:  
+`<AppDialog open={open} onClose={handleClose} title="Edit Record" showActions onConfirm={handleSave}>Content</AppDialog>`
+
+---
+
+### AppDrawer
+
+Path: `src/components/ui/overlays/AppDrawer.jsx`  
+Use for: Side drawers, detail panels, filters, quick forms, contextual actions.  
+Replaces: MUI `Drawer`
+
+Props:  
+`open: boolean`, `onClose: function`, `title: string | ReactNode`, `subtitle: string | ReactNode`, `children: ReactNode`, `anchor: string`, `width: number | string`, `height: number | string`, `showHeader: boolean`, `showClose: boolean`, `closeOnBackdrop: boolean`, `footer: ReactNode`, `showFooter: boolean`, `primaryActionLabel: string`, `secondaryActionLabel: string`, `onPrimaryAction: function`, `onSecondaryAction: function`, `primaryActionProps: object`, `secondaryActionProps: object`, `primaryLoading: boolean`, `primaryDisabled: boolean`, `headerSx: object`, `bodySx: object`, `footerSx: object`, `paperSx: object`, `titleSx: object`, `subtitleSx: object`, `...props: object`
+
+Values:  
+`anchor=left|right|top|bottom`
+
+Example:  
+`<AppDrawer open={open} onClose={handleClose} title="Filters" showFooter onPrimaryAction={applyFilters}>Content</AppDrawer>`
+
+---
+
+### AppMenu
+
+Path: `src/components/ui/overlays/AppMenu.jsx`  
+Use for: Action menus, row actions, kebab menus, compact option lists.  
+Replaces: MUI `Menu`
+
+Props:  
+`trigger: function | ReactElement`, `triggerIcon: ReactNode`, `triggerTooltip: string`, `triggerProps: object`, `items: array`, `children: ReactNode`, `anchorOrigin: object`, `transformOrigin: object`, `minWidth: number | string`, `maxWidth: number | string`, `dense: boolean`, `closeOnItemClick: boolean`, `disabled: boolean`, `menuSx: object`, `paperSx: object`, `itemSx: object`, `onOpen: function`, `onClose: function`, `...props: object`
+
+Item shape:  
+`{ id: string | number, label: string, description: string, icon: ReactNode, endIcon: ReactNode, onClick: function, disabled: boolean, selected: boolean, danger: boolean, type: string, sx: object, closeOnClick: boolean }`
+
+Values:  
+`type=divider|label`
+
+Example:  
+`<AppMenu items={[{ label: "Edit", onClick: handleEdit }, { label: "Delete", danger: true, onClick: handleDelete }]} />`
+
+---
+
+### AppPopover
+
+Path: `src/components/ui/overlays/AppPopover.jsx`  
+Use for: Floating content panels, compact previews, contextual popovers, mini forms.  
+Replaces: MUI `Popover`
+
+Props:  
+`trigger: function | ReactElement`, `triggerIcon: ReactNode`, `triggerTooltip: string`, `triggerProps: object`, `open: boolean`, `anchorEl: HTMLElement | null`, `onOpen: function`, `onClose: function`, `title: string | ReactNode`, `subtitle: string | ReactNode`, `children: ReactNode`, `showHeader: boolean`, `showClose: boolean`, `footer: ReactNode`, `anchorOrigin: object`, `transformOrigin: object`, `width: number | string`, `maxWidth: number | string`, `maxHeight: number | string`, `closeOnBackdrop: boolean`, `disabled: boolean`, `paperSx: object`, `headerSx: object`, `bodySx: object`, `footerSx: object`, `titleSx: object`, `subtitleSx: object`, `...props: object`
+
+Example:  
+`<AppPopover title="Details" showHeader triggerTooltip="View details">Content</AppPopover>`
+
+---
+
+### AppTooltip
+
+Path: `src/components/ui/overlays/AppTooltip.jsx`  
+Use for: Hover hints, icon explanations, helper text, compact guidance.  
+Replaces: MUI `Tooltip`
+
+Props:  
+`children: ReactNode`, `title: string | ReactNode`, `placement: string`, `arrow: boolean`, `enterDelay: number`, `leaveDelay: number`, `disabled: boolean`, `variant: string`, `size: string`, `maxWidth: number | string`, `followCursor: boolean`, `open: boolean`, `onOpen: function`, `onClose: function`, `sx: object`, `slotProps: object`, `...props: object`
+
+Values:  
+`variant=default|dark|light|primary|success|error|warning|info`  
+`size=small|medium|large`  
+`placement=top|bottom|left|right`
+
+Example:  
+`<AppTooltip title="Edit record"><AppIconButton icon={<EditIcon />} /></AppTooltip>`
+
+---
+
+### AppAlert
+
+Path: `src/components/ui/overlays/AppAlert.jsx`  
+Use for: Inline alerts, form warnings, success/error/info messages, contextual notices.  
+Replaces: MUI `Alert`
+
+Props:  
+`title: string | ReactNode`, `children: ReactNode`, `severity: string`, `variant: string`, `showIcon: boolean`, `closable: boolean`, `onClose: function`, `icon: ReactNode`, `actions: ReactNode`, `fullWidth: boolean`, `rounded: string`, `dense: boolean`, `visible: boolean`, `sx: object`, `contentSx: object`, `...props: object`
+
+Values:  
+`severity=success|error|warning|info`  
+`variant=soft|outlined|filled`  
+`rounded=sm|md|lg`
+
+Example:  
+`<AppAlert severity="success" title="Saved">Your changes were saved successfully.</AppAlert>`
+
+---
+
+### AppToast
+
+Path: `src/components/ui/overlays/AppToast.jsx`  
+Use for: Toast notifications, transient success/error/warning/info feedback.  
+Replaces: MUI `Snackbar`
+
+Props:  
+`open: boolean`, `onClose: function`, `title: string | ReactNode`, `message: string | ReactNode`, `children: ReactNode`, `severity: string`, `variant: string`, `position: string`, `autoHideDuration: number`, `showIcon: boolean`, `closable: boolean`, `icon: ReactNode`, `actions: ReactNode`, `rounded: string`, `dense: boolean`, `fullWidth: boolean`, `disableClickAway: boolean`, `transition: ReactElementType`, `sx: object`, `alertSx: object`, `contentSx: object`, `...props: object`
+
+Values:  
+`severity=success|error|warning|info`  
+`variant=soft|outlined|filled`  
+`position=top-right|top-left|bottom-right|bottom-left|top-center|bottom-center`
+
+Example:  
+`<AppToast open={open} onClose={handleClose} severity="success" message="Saved successfully" />`
+
+---
+
+### AppConfirmModal
+
+Path: `src/components/ui/overlays/AppConfirmModal.jsx`  
+Use for: Delete confirmations, destructive actions, approval prompts, irreversible action warnings.  
+Built with: `AppDialog`, `AppButton`, `AppLoadingButton`
+
+Props:  
+`open: boolean`, `onClose: function`, `onConfirm: function`, `onCancel: function`, `title: string | ReactNode`, `message: string | ReactNode`, `description: string | ReactNode`, `variant: string`, `icon: ReactNode`, `showIcon: boolean`, `confirmLabel: string`, `cancelLabel: string`, `loading: boolean`, `confirmDisabled: boolean`, `cancelDisabled: boolean`, `closeOnBackdrop: boolean`, `maxWidth: string | false`, `fullWidth: boolean`, `contentSx: object`, `iconSx: object`, `messageSx: object`, `descriptionSx: object`, `cancelProps: object`, `confirmProps: object`, `...props: object`
+
+Values:  
+`variant=warning|error|info|success`
+
+Example:  
+`<AppConfirmModal open={open} variant="error" confirmLabel="Delete" onConfirm={handleDelete} />`
+
+---
+
+### AppSidePanel
+
+Path: `src/components/ui/overlays/AppSidePanel.jsx`  
+Use for: Right-side edit panels, create forms, details panels, persistent drawer workflows.  
+Built with: `AppDrawer`, `AppButton`
+
+Props:  
+`open: boolean`, `onClose: function`, `title: string | ReactNode`, `subtitle: string | ReactNode`, `children: ReactNode`, `anchor: string`, `width: number | string`, `showHeader: boolean`, `showClose: boolean`, `closeOnBackdrop: boolean`, `showFooter: boolean`, `footer: ReactNode`, `primaryActionLabel: string`, `secondaryActionLabel: string`, `onPrimaryAction: function`, `onSecondaryAction: function`, `primaryLoading: boolean`, `primaryDisabled: boolean`, `secondaryDisabled: boolean`, `primaryActionProps: object`, `secondaryActionProps: object`, `contentPadding: number | string`, `stickyFooter: boolean`, `bodySx: object`, `footerSx: object`, `paperSx: object`, `...props: object`
+
+Values:  
+`anchor=left|right|top|bottom`
+
+Example:  
+`<AppSidePanel open={open} onClose={handleClose} title="Create User" onPrimaryAction={handleSubmit}>Form</AppSidePanel>`
+
+---
+
+### AppDropdown
+
+Path: `src/components/ui/overlays/AppDropdown.jsx`  
+Use for: Dropdown buttons, icon dropdowns, custom trigger menus, action selectors.  
+Built with: `AppButton`, `AppIconButton`, `AppMenu`
+
+Props:  
+`label: string`, `icon: ReactNode`, `items: array`, `children: ReactNode`, `triggerType: string`, `trigger: function | ReactElement`, `variant: string`, `colorVariant: string`, `size: string`, `rounded: string`, `disabled: boolean`, `loading: boolean`, `buttonProps: object`, `iconButtonProps: object`, `menuMinWidth: number | string`, `menuMaxWidth: number | string`, `closeOnItemClick: boolean`, `endIcon: ReactNode`, `...props: object`
+
+Values:  
+`triggerType=button|icon|custom`  
+`variant=contained|outlined|text|soft|gradient`  
+`colorVariant=primary|success|error|warning|info|dark`  
+`size=small|medium|large`  
+`rounded=sm|md|lg`
+
+Example:  
+`<AppDropdown label="Actions" items={[{ label: "Edit", onClick: handleEdit }]} />`
+
+---
+
+### Overlay AI Rules
+
+- Use `AppDialog` for modal workflows instead of raw MUI `Dialog`.
+- Use `AppDrawer` for generic drawers and `AppSidePanel` for form/detail side panels.
+- Use `AppMenu` for action menus and row menus.
+- Use `AppDropdown` when the menu needs a button, icon, or custom dropdown trigger.
+- Use `AppPopover` for floating contextual content richer than a menu.
+- Use `AppTooltip` for hover-only helper text.
+- Use `AppAlert` for inline status messages.
+- Use `AppToast` for temporary global feedback messages.
+- Use `AppConfirmModal` for confirmation flows, especially destructive actions.
+- Never use raw MUI `Dialog`, `Drawer`, `Menu`, `Popover`, `Tooltip`, `Alert`, or `Snackbar` in pages when these wrappers fit.
+- Prefer component props like `variant`, `severity`, `colorVariant`, `size`, `rounded`, `loading`, and `disabled` before custom styles.
+- Pass functions only to event props like `onClose`, `onConfirm`, `onCancel`, `onOpen`, and `onClick`.
+- Pass React elements only to visual props like `icon`, `triggerIcon`, `endIcon`, `actions`, and `footer`.
+- Pass objects only to style/config props like `sx`, `paperSx`, `bodySx`, `headerSx`, `footerSx`, `contentSx`, `slotProps`, `buttonProps`, and `iconButtonProps`.
+- Do not hardcode colors inside pages; use theme tokens, component props, or CSS variables.
+- Use `closeOnBackdrop={false}` for critical confirmation or unsaved-change flows.
+
+## Feedback
+
+### AppLoader
+
+Path: `src/components/ui/feedback/AppLoader.jsx`  
+Use for: Loading indicators, async page states, section loaders, inline loading feedback.  
+Replaces: Raw MUI `CircularProgress` usage in pages.
+
+Props:  
+`size: string`, `variant: string`, `colorVariant: string`, `text: string`, `fullScreen: boolean`, `center: boolean`, `overlay: boolean`, `thickness: number`, `sx: object`, `textSx: object`
+
+Values:  
+`size=small|medium|large|page|fullscreen`, `variant=spinner|dots|pulse`, `colorVariant=primary|success|error|warning|info`
+
+Example:  
+`<AppLoader size="page" text="Loading data..." />`
+
+---
+
+### AppSkeleton
+
+Path: `src/components/ui/feedback/AppSkeleton.jsx`  
+Use for: Generic skeleton placeholders, text placeholders, avatar placeholders, card/content loading blocks.  
+Replaces: Raw MUI `Skeleton` usage in pages.
+
+Props:  
+`variant: string`, `width: number | string | array`, `height: number | string`, `count: number`, `gap: number | string`, `animation: string | false`, `rounded: boolean`, `colorVariant: string`, `fullWidth: boolean`, `sx: object`, `itemSx: object`
+
+Values:  
+`variant=text|circular|rectangular|rounded`, `animation=pulse|wave|false`, `colorVariant=default|primary|success|error|warning|info`
+
+Example:  
+`<AppSkeleton variant="text" count={3} />`
+
+---
+
+### AppTableSkeleton
+
+Path: `src/components/ui/feedback/AppTableSkeleton.jsx`  
+Use for: Table loading states, data-grid placeholders, list-table skeleton screens.
+
+Props:  
+`rows: number`, `columns: number`, `showHeader: boolean`, `showToolbar: boolean`, `rowHeight: number`, `headerHeight: number`, `toolbarHeight: number`, `gap: number | string`, `rounded: boolean`, `sx: object`
+
+Example:  
+`<AppTableSkeleton rows={8} columns={5} showToolbar />`
+
+---
+
+### AppEmptyState
+
+Path: `src/components/ui/feedback/AppEmptyState.jsx`  
+Use for: Empty lists, no records, no search results, blank dashboard states, first-use states.
+
+Props:  
+`title: string | ReactNode`, `description: string | ReactNode`, `icon: ReactNode`, `action: ReactNode`, `size: string`, `align: string`, `fullHeight: boolean`, `sx: object`
+
+Values:  
+`size=small|medium|large|page`, `align=center|left`
+
+Example:  
+`<AppEmptyState title="No records found" description="Try changing your filters." />`
+
+---
+
+### AppPageLoader
+
+Path: `src/components/ui/feedback/AppPageLoader.jsx`  
+Use for: Full-page loading states, route-level loading, dashboard/page fetching states.  
+Built with: `AppLoader`
+
+Props:  
+`text: string`, `variant: string`, `colorVariant: string`, `overlay: boolean`, `fullScreen: boolean`, `sx: object`
+
+Values:  
+`variant=spinner|dots|pulse`, `colorVariant=primary|success|error|warning|info`
+
+Example:  
+`<AppPageLoader text="Loading page..." />`
+
+---
+
+### AppInlineLoader
+
+Path: `src/components/ui/feedback/AppInlineLoader.jsx`  
+Use for: Inline loading states inside buttons, labels, table cells, compact async content.  
+Built with: `AppLoader`
+
+Props:  
+`text: string`, `variant: string`, `colorVariant: string`, `size: string`, `direction: string`, `sx: object`, `textSx: object`
+
+Values:  
+`variant=spinner|dots|pulse`, `colorVariant=primary|success|error|warning|info`, `size=small|medium`, `direction=row|column`
+
+Example:  
+`<AppInlineLoader text="Checking..." size="small" />`
+
+---
+
+### AppErrorState
+
+Path: `src/components/ui/feedback/AppErrorState.jsx`  
+Use for: Error screens, failed data fetch states, retryable page or section errors.  
+Built with: `AppEmptyState`, `AppButton`
+
+Props:  
+`title: string | ReactNode`, `description: string | ReactNode`, `actionText: string`, `onRetry: function`, `showAction: boolean`, `size: string`, `fullHeight: boolean`, `sx: object`
+
+Values:  
+`size=small|medium|large|page`
+
+Example:  
+`<AppErrorState onRetry={fetchData} />`
+
+---
+
+### AppNoPermission
+
+Path: `src/components/ui/feedback/AppNoPermission.jsx`  
+Use for: Access denied screens, restricted pages, role/permission-based blocked states.  
+Built with: `AppEmptyState`, `AppButton`
+
+Props:  
+`title: string | ReactNode`, `description: string | ReactNode`, `actionText: string`, `onAction: function`, `showAction: boolean`, `size: string`, `fullHeight: boolean`, `sx: object`
+
+Values:  
+`size=small|medium|large|page`
+
+Example:  
+`<AppNoPermission showAction onAction={goBack} />`
+
+---
+
+### AppNotFoundState
+
+Path: `src/components/ui/feedback/AppNotFoundState.jsx`  
+Use for: 404 pages, missing resources, deleted records, invalid route states.  
+Built with: `AppEmptyState`, `AppButton`
+
+Props:  
+`title: string | ReactNode`, `description: string | ReactNode`, `actionText: string`, `onAction: function`, `showAction: boolean`, `size: string`, `fullHeight: boolean`, `sx: object`
+
+Values:  
+`size=small|medium|large|page`
+
+Example:  
+`<AppNotFoundState onAction={goToDashboard} />`
+
+---
+
+### AppCardSkeleton
+
+Path: `src/components/ui/feedback/AppCardSkeleton.jsx`  
+Use for: Card loading states, profile card placeholders, dashboard card skeletons.
+
+Props:  
+`showAvatar: boolean`, `showActions: boolean`, `lines: number`, `sx: object`
+
+Example:  
+`<AppCardSkeleton showAvatar lines={4} />`
+
+---
+
+### AppFormSkeleton
+
+Path: `src/components/ui/feedback/AppFormSkeleton.jsx`  
+Use for: Form loading states, edit/create form placeholders, detail form skeletons.
+
+Props:  
+`fields: number`, `showHeader: boolean`, `showActions: boolean`, `sx: object`
+
+Example:  
+`<AppFormSkeleton fields={6} />`
+
+---
+
+### Feedback AI Rules
+
+- Use `AppLoader` for reusable loading indicators instead of raw `CircularProgress`.
+- Use `AppPageLoader` for route-level or full-page loading states.
+- Use `AppInlineLoader` for compact inline loading inside content.
+- Use `AppSkeleton` for simple reusable skeleton placeholders.
+- Use `AppTableSkeleton` for table or data-grid loading states.
+- Use `AppCardSkeleton` for card loading placeholders.
+- Use `AppFormSkeleton` for form loading placeholders.
+- Use `AppEmptyState` for generic empty data states.
+- Use `AppErrorState` for retryable error states.
+- Use `AppNoPermission` for restricted access states.
+- Use `AppNotFoundState` for missing resource or 404 states.
+- Do not use raw MUI `CircularProgress` or `Skeleton` in pages when these wrappers fit.
+- Prefer `loading`, `emptyText`, `AppLoader`, `AppSkeleton`, and state components over ad hoc placeholders.
+- Pass functions only to event props like `onRetry` and `onAction`.
+- Pass React elements only to visual props like `icon` and `action`.
+- Pass objects only to style props like `sx`, `textSx`, and `itemSx`.
+- Do not hardcode colors inside pages; use theme tokens, component props, or CSS variables.
+
+## Navigation
+
+### AppTabs
+
+Path: `src/components/ui/navigation/AppTabs.jsx`  
+Use for: Page tabs, section tabs, settings tabs, segmented navigation with optional panels.  
+Replaces: MUI `Tabs` and `Tab` in pages.
+
+Props:  
+`tabs: array`, `value: string | number`, `onChange: function`, `variant: string`, `colorVariant: string`, `size: string`, `rounded: string`, `fullWidth: boolean`, `centered: boolean`, `scrollable: boolean`, `showPanels: boolean`, `panelSx: object`, `disabled: boolean`, `elevation: boolean`, `stretch: boolean`, `tabMinWidth: number | string`, `sx: object`, `tabsSx: object`, `tabSx: object`, `...props: object`
+
+Tab shape:  
+`{ label: string, value: string | number, icon: ReactNode, badge: string | number, disabled: boolean, panel: ReactNode }`
+
+Values:  
+`variant=line|pills|soft|enclosed|text`, `colorVariant=primary|success|error|warning|info|dark|neutral`, `size=small|medium|large`, `rounded=sm|md|lg|full`
+
+Example:  
+`<AppTabs value={tab} onChange={setTab} tabs={[{ label: "Overview", value: "overview" }]} />`
+
+---
+
+### AppVerticalTabs
+
+Path: `src/components/ui/navigation/AppVerticalTabs.jsx`  
+Use for: Sidebar tab navigation, settings sections, account panels, vertical section switching.
+
+Props:  
+`tabs: array`, `value: string | number`, `onChange: function`, `variant: string`, `colorVariant: string`, `size: string`, `showPanels: boolean`, `fullHeight: boolean`, `width: number | string`, `contentWidth: number | string`, `disabled: boolean`, `showShortcuts: boolean`, `sx: object`, `tabsSx: object`, `tabSx: object`, `panelSx: object`
+
+Tab shape:  
+`{ label: string, value: string | number, description: string, icon: ReactNode, badge: string | number, shortcut: string, disabled: boolean, panel: ReactNode }`
+
+Values:  
+`variant=soft|line|pills|cards`, `colorVariant=primary|success|error|warning|info|neutral`, `size=small|medium|large`
+
+Example:  
+`<AppVerticalTabs value={section} onChange={setSection} tabs={[{ label: "Profile", value: "profile", panel: <Profile /> }]} />`
+
+---
+
+### AppBreadcrumb
+
+Path: `src/components/ui/navigation/AppBreadcrumb.jsx`  
+Use for: Breadcrumb navigation, page hierarchy, route trails, parent-child navigation paths.  
+Replaces: MUI `Breadcrumbs` usage in pages.
+
+Props:  
+`items: array`, `variant: string`, `colorVariant: string`, `size: string`, `rounded: string`, `separator: ReactNode`, `maxItems: number`, `showHome: boolean`, `homeLabel: string`, `homeHref: string`, `homeIcon: ReactNode`, `onHomeClick: function`, `disabled: boolean`, `capitalize: boolean`, `elevation: boolean`, `sx: object`, `itemSx: object`, `currentItemSx: object`, `...props: object`
+
+Item shape:  
+`{ label: string, href: string, icon: ReactNode, onClick: function, disabled: boolean, current: boolean }`
+
+Values:  
+`variant=text|soft|contained|outlined`, `colorVariant=primary|success|error|warning|info|dark|neutral`, `size=small|medium|large`, `rounded=sm|md|lg|full`
+
+Example:  
+`<AppBreadcrumb showHome items={[{ label: "Users", href: "/users" }, { label: "Edit", current: true }]} />`
+
+---
+
+### AppSearchCommand
+
+Path: `src/components/ui/navigation/AppSearchCommand.jsx`  
+Use for: Command palette, global search, keyboard shortcuts, quick navigation, searchable app actions.
+
+Props:  
+`open: boolean`, `defaultOpen: boolean`, `onOpenChange: function`, `items: array`, `title: string`, `placeholder: string`, `emptyText: string`, `shortcutLabel: string`, `showShortcutHint: boolean`, `closeOnSelect: boolean`, `disableAutoFocus: boolean`, `maxHeight: number | string`, `width: number | string`, `filterFn: function`, `initialQuery: string`, `showGroups: boolean`, `loopNavigation: boolean`, `sx: object`, `dialogProps: object`, `contentSx: object`, `inputProps: object`
+
+Item shape:  
+`{ key: string, label: string, description: string, group: string, icon: ReactNode, shortcut: string, keywords: array, color: string, disabled: boolean, onSelect: function }`
+
+Values:  
+`color=primary|success|error|warning|info|neutral`
+
+Example:  
+`<AppSearchCommand items={[{ label: "Create user", group: "Actions", shortcut: "C", onSelect: handleCreate }]} />`
+
+---
+
+### AppShortcutHint
+
+Path: `src/components/ui/navigation/AppShortcutHint.jsx`  
+Use for: Keyboard shortcut labels, command hints, action shortcuts, compact key combinations.
+
+Props:  
+`keys: string | array`, `size: string`, `variant: string`, `colorVariant: string`, `rounded: string`, `separator: string | ReactNode`, `sx: object`, `keySx: object`
+
+Values:  
+`size=small|medium|large`, `variant=soft|outlined|filled|text`, `colorVariant=primary|success|error|warning|info|dark|neutral`, `rounded=sm|md|lg|full`
+
+Example:  
+`<AppShortcutHint keys={["Ctrl", "K"]} />`
+
+---
+
+### AppScrollToTop
+
+Path: `src/components/ui/navigation/AppScrollToTop.jsx`  
+Use for: Floating scroll-to-top buttons, long page navigation, back-to-top page actions.
+
+Props:  
+`threshold: number`, `position: string`, `behavior: string`, `icon: ReactNode`, `tooltip: string`, `colorVariant: string`, `variant: string`, `size: string`, `rounded: string`, `container: Window | HTMLElement`, `sx: object`, `buttonSx: object`
+
+Values:  
+`position=bottom-right|bottom-left|top-right|top-left`, `behavior=smooth|auto`, `colorVariant=primary|success|error|warning|info|dark|neutral`, `variant=contained|outlined|soft|text`, `size=small|medium|large`, `rounded=sm|md|lg|full`
+
+Example:  
+`<AppScrollToTop threshold={300} />`
+
+---
+
+### AppStickyBar
+
+Path: `src/components/ui/navigation/AppStickyBar.jsx`  
+Use for: Sticky headers, sticky footers, filter bars, action bars, page toolbar sections.
+
+Props:  
+`children: ReactNode`, `left: ReactNode`, `center: ReactNode`, `right: ReactNode`, `position: string`, `variant: string`, `rounded: string`, `elevation: boolean`, `blur: boolean`, `divider: boolean`, `fullWidth: boolean`, `maxWidth: number | string`, `offsetTop: number | string`, `offsetBottom: number | string`, `zIndex: number`, `padding: number | string`, `minHeight: number | string`, `containerSx: object`, `contentSx: object`, `sx: object`, `...props: object`
+
+Values:  
+`position=top|bottom`, `variant=surface|soft|bordered|transparent`, `rounded=none|sm|md|lg|full`
+
+Example:  
+`<AppStickyBar left={<PageTitle />} right={<AppButton>Save</AppButton>} />`
+
+---
+
+### AppStepper
+
+Path: `src/components/ui/navigation/AppStepper.jsx`  
+Use for: Multi-step forms, onboarding progress, checkout steps, workflow status indicators.
+
+Props:  
+`steps: array`, `activeStep: number`, `orientation: string`, `clickable: boolean`, `showDescription: boolean`, `showStepNumber: boolean`, `onStepClick: function`, `size: string`, `sx: object`
+
+Step shape:  
+`{ id: string | number, label: string, description: string, status: string, disabled: boolean }`
+
+Values:  
+`orientation=horizontal|vertical`, `size=small|medium|large`, `status=completed|active|pending|error`
+
+Example:  
+`<AppStepper activeStep={1} steps={[{ label: "Details" }, { label: "Review" }, { label: "Submit" }]} />`
+
+---
+
+### Navigation AI Rules
+
+- Use `AppTabs` for horizontal tab navigation instead of raw MUI `Tabs`.
+- Use `AppVerticalTabs` for sidebar-style tab navigation.
+- Use `AppBreadcrumb` for route hierarchy and parent-child page trails.
+- Use `AppSearchCommand` for command palettes, global search, and quick app actions.
+- Use `AppShortcutHint` for keyboard shortcut labels.
+- Use `AppScrollToTop` for long pages that need quick return navigation.
+- Use `AppStickyBar` for sticky page headers, filters, and action bars.
+- Use `AppStepper` for multi-step workflows instead of custom step indicators.
+- Do not use raw MUI `Tabs`, `Tab`, or `Breadcrumbs` in pages when these wrappers fit.
+- Pass functions only to event props like `onChange`, `onStepClick`, `onOpenChange`, `onHomeClick`, and `onSelect`.
+- Pass React elements only to visual props like `icon`, `homeIcon`, `left`, `center`, `right`, `children`, and `panel`.
+- Pass objects only to style/config props like `sx`, `tabsSx`, `tabSx`, `panelSx`, `dialogProps`, `contentSx`, `inputProps`, `containerSx`, and `buttonSx`.
+- Keep navigation data normalized as arrays of objects.
+- Do not hardcode colors inside pages; use `colorVariant`, theme tokens, or CSS variables.
+
+## Data Display
+
+### AppBadge
+
+Path: `src/components/ui/data-display/AppBadge.jsx`  
+Use for: Status labels, count badges, category pills, metadata indicators, compact labels.  
+Replaces: Raw MUI `Chip` or custom badge spans in pages.
+
+Props:  
+`label: string | number | ReactNode`, `children: ReactNode`, `variant: string`, `colorVariant: string`, `size: string`, `rounded: string`, `dot: boolean`, `startIcon: ReactNode`, `endIcon: ReactNode`, `removable: boolean`, `onDelete: function`, `clickable: boolean`, `onClick: function`, `disabled: boolean`, `sx: object`, `...props: object`
+
+Values:  
+`variant=soft|contained|outlined|text`, `colorVariant=primary|success|error|warning|info|dark|neutral`, `size=small|medium|large`, `rounded=sm|md|lg|full`
+
+Example:  
+`<AppBadge label="Active" colorVariant="success" variant="soft" />`
+
+---
+
+### AppCard
+
+Path: `src/components/ui/data-display/AppCard.jsx`  
+Use for: Content containers, dashboard sections, form sections, list cards, grouped data blocks.  
+Replaces: Raw MUI `Card`, `Paper`, or repeated bordered `Box` containers in pages.
+
+Props:  
+`children: ReactNode`, `title: string | ReactNode`, `subtitle: string | ReactNode`, `action: ReactNode`, `footer: ReactNode`, `variant: string`, `padding: string`, `rounded: string`, `shadow: string`, `bordered: boolean`, `hoverable: boolean`, `clickable: boolean`, `onClick: function`, `fullHeight: boolean`, `sx: object`, `headerSx: object`, `contentSx: object`, `footerSx: object`, `...props: object`
+
+Values:  
+`variant=default|soft|outlined|ghost`, `padding=none|xs|sm|md|lg`, `rounded=sm|md|lg|xl`, `shadow=none|xs|sm|md|lg`
+
+Example:  
+`<AppCard title="Customer Details" padding="md" rounded="lg">Content</AppCard>`
+
+---
+
+### AppPagination
+
+Path: `src/components/ui/data-display/AppPagination.jsx`  
+Use for: Table pagination, list pagination, page navigation, server-side paged data controls.  
+Replaces: Raw MUI `Pagination` or custom pagination controls in pages.
+
+Props:  
+`page: number`, `count: number`, `total: number`, `rowsPerPage: number`, `rowsPerPageOptions: array`, `onPageChange: function`, `onRowsPerPageChange: function`, `showRowsPerPage: boolean`, `showTotal: boolean`, `variant: string`, `shape: string`, `size: string`, `colorVariant: string`, `disabled: boolean`, `sx: object`, `paginationSx: object`, `selectSx: object`, `...props: object`
+
+Values:  
+`variant=text|outlined|contained`, `shape=circular|rounded`, `size=small|medium|large`, `colorVariant=primary|success|error|warning|info|dark|neutral`
+
+Example:  
+`<AppPagination page={page} count={10} onPageChange={setPage} />`
+
+---
+
+### AppAvatar
+
+Path: `src/components/ui/data-display/AppAvatar.jsx`  
+Use for: User avatars, profile images, initials, compact identity display.  
+Replaces: Raw MUI `Avatar` usage in pages.
+
+Props:  
+`src: string`, `alt: string`, `name: string`, `initials: string`, `icon: ReactNode`, `size: string`, `colorVariant: string`, `variant: string`, `bordered: boolean`, `status: string`, `statusColor: string`, `showStatus: boolean`, `clickable: boolean`, `onClick: function`, `sx: object`, `imgProps: object`, `...props: object`
+
+Values:  
+`size=xs|small|medium|large|xl`, `colorVariant=primary|success|error|warning|info|dark|neutral`, `variant=circular|rounded|square`, `status=online|offline|busy|away`, `statusColor=success|error|warning|neutral`
+
+Example:  
+`<AppAvatar name="Rahul Sharma" size="medium" />`
+
+---
+
+### AppAvatarGroup
+
+Path: `src/components/ui/data-display/AppAvatarGroup.jsx`  
+Use for: User groups, assignee lists, team members, participants, compact avatar stacks.  
+Built with: `AppAvatar`
+
+Props:  
+`items: array`, `max: number`, `size: string`, `spacing: number`, `showTooltip: boolean`, `bordered: boolean`, `onClick: function`, `sx: object`
+
+Item shape:  
+`{ id: string | number, name: string, src: string, alt: string, initials: string, icon: ReactNode, colorVariant: string, sx: object }`
+
+Values:  
+`size=xs|small|medium|large|xl`
+
+Example:  
+`<AppAvatarGroup items={teamMembers} max={4} size="small" />`
+
+---
+
+### AppStatusBadge
+
+Path: `src/components/ui/data-display/AppStatusBadge.jsx`  
+Use for: Record statuses, approval states, workflow states, active/inactive indicators.  
+Built with: `AppBadge`
+
+Props:  
+`status: string`, `label: string | ReactNode`, `size: string`, `variant: string`, `rounded: string`, `showDot: boolean`, `showIcon: boolean`, `sx: object`, `...props: object`
+
+Values:  
+`status=active|inactive|pending|approved|rejected|draft|blocked|completed|failed|processing`, `size=small|medium|large`, `variant=soft|contained|outlined|text`, `rounded=sm|md|lg|full`
+
+Example:  
+`<AppStatusBadge status="approved" />`
+
+---
+
+### AppTag
+
+Path: `src/components/ui/data-display/AppTag.jsx`  
+Use for: Tags, labels, categories, removable filters, clickable metadata pills.  
+Built with: `AppBadge`
+
+Props:  
+`label: string | number | ReactNode`, `children: ReactNode`, `colorVariant: string`, `variant: string`, `size: string`, `rounded: string`, `removable: boolean`, `onDelete: function`, `clickable: boolean`, `onClick: function`, `showIcon: boolean`, `icon: ReactNode`, `disabled: boolean`, `sx: object`, `...props: object`
+
+Values:  
+`variant=soft|contained|outlined|text`, `colorVariant=primary|success|error|warning|info|dark|neutral`, `size=small|medium|large`, `rounded=sm|md|lg|full`
+
+Example:  
+`<AppTag label="Frontend" removable onDelete={handleRemove} />`
+
+---
+
+### AppInfoCard
+
+Path: `src/components/ui/data-display/AppInfoCard.jsx`  
+Use for: Informational cards, contextual notes, help blocks, summary callouts, guidance panels.  
+Built with: `AppCard`, `AppBadge`
+
+Props:  
+`title: string | ReactNode`, `description: string | ReactNode`, `icon: ReactNode`, `badge: string | ReactNode`, `badgeColor: string`, `colorVariant: string`, `action: ReactNode`, `children: ReactNode`, `variant: string`, `sx: object`, `iconSx: object`
+
+Values:  
+`variant=default|outlined|soft|ghost`, `colorVariant=primary|success|error|warning|info`, `badgeColor=primary|success|error|warning|info|dark|neutral`
+
+Example:  
+`<AppInfoCard title="Note" description="This setting affects all users." colorVariant="info" />`
+
+---
+
+### AppStatCard
+
+Path: `src/components/ui/data-display/AppStatCard.jsx`  
+Use for: Dashboard metrics, statistic cards, quick summaries, KPI-like display cards.  
+Built with: `AppCard`, `AppBadge`
+
+Props:  
+`title: string | ReactNode`, `value: string | number | ReactNode`, `subtitle: string | ReactNode`, `icon: ReactNode`, `trend: string`, `trendValue: string | number | ReactNode`, `colorVariant: string`, `variant: string`, `loading: boolean`, `sx: object`, `iconSx: object`
+
+Values:  
+`trend=up|down|neutral`, `colorVariant=primary|success|error|warning|info`, `variant=default|soft|outlined`
+
+Example:  
+`<AppStatCard title="Orders" value="1,240" trend="up" trendValue="+8%" colorVariant="success" />`
+
+---
+
+### AppTimeline
+
+Path: `src/components/ui/data-display/AppTimeline.jsx`  
+Use for: Activity history, audit trails, order tracking, workflow events, chronological logs.
+
+Props:  
+`items: array`, `variant: string`, `size: string`, `colorVariant: string`, `showConnector: boolean`, `align: string`, `dense: boolean`, `sx: object`, `itemSx: object`, `dotSx: object`, `contentSx: object`
+
+Item shape:  
+`{ id: string | number, title: string | ReactNode, description: string | ReactNode, time: string | ReactNode, icon: ReactNode, colorVariant: string, dotColor: string, action: ReactNode, sx: object }`
+
+Values:  
+`variant=default|outlined|filled|soft`, `size=small|medium|large`, `colorVariant=primary|success|error|warning|info|dark|neutral`, `align=left|right|alternate`
+
+Example:  
+`<AppTimeline items={[{ title: "Created", description: "Record was created", time: "Today" }]} />`
+
+---
+
+### AppDescriptionList
+
+Path: `src/components/ui/data-display/AppDescriptionList.jsx`  
+Use for: Detail views, read-only record information, profile details, invoice metadata, key-value grids.  
+Built with: `AppKeyValue`, `AppCard`
+
+Props:  
+`items: array`, `columns: number | string`, `variant: string`, `size: string`, `bordered: boolean`, `striped: boolean`, `dense: boolean`, `labelWidth: number | string`, `align: string`, `sx: object`, `itemSx: object`
+
+Item shape:  
+`{ key: string | number, label: string | ReactNode, value: string | number | ReactNode, icon: ReactNode, badge: string | ReactNode, badgeColor: string, props: object, sx: object }`
+
+Values:  
+`columns=1|2|3|4`, `variant=default|card`, `size=small|medium|large`, `align=start|center|end|space-between`
+
+Example:  
+`<AppDescriptionList columns={2} items={[{ label: "Email", value: user.email }]} />`
+
+---
+
+### AppKeyValue
+
+Path: `src/components/ui/data-display/AppKeyValue.jsx`  
+Use for: Single label-value pairs, metadata rows, compact detail fields, inline data summaries.  
+Built with: `AppBadge`
+
+Props:  
+`label: string | ReactNode`, `value: string | number | ReactNode`, `icon: ReactNode`, `badge: string | ReactNode`, `badgeColor: string`, `direction: string`, `align: string`, `size: string`, `muted: boolean`, `ellipsis: boolean`, `sx: object`, `labelSx: object`, `valueSx: object`
+
+Values:  
+`direction=row|column`, `align=start|center|end|space-between`, `size=small|medium|large`, `badgeColor=primary|success|error|warning|info|dark|neutral`
+
+Example:  
+`<AppKeyValue label="Invoice No" value="INV-1024" badge="Paid" badgeColor="success" />`
+
+---
+
+### AppAccordion
+
+Path: `src/components/ui/data-display/AppAccordion.jsx`  
+Use for: Expandable sections, FAQ lists, collapsible details, grouped settings, nested content blocks.  
+Replaces: Raw MUI `Accordion` usage in pages.
+
+Props:  
+`items: array`, `defaultExpanded: string | number | array`, `expanded: string | number | array`, `onChange: function`, `multiple: boolean`, `variant: string`, `size: string`, `rounded: string`, `elevation: boolean`, `disabled: boolean`, `showDivider: boolean`, `sx: object`, `itemSx: object`, `summarySx: object`, `detailsSx: object`, `...props: object`
+
+Item shape:  
+`{ id: string | number, title: string | ReactNode, subtitle: string | ReactNode, content: ReactNode, icon: ReactNode, action: ReactNode, disabled: boolean, sx: object }`
+
+Values:  
+`variant=default|soft|outlined|ghost`, `size=small|medium|large`, `rounded=sm|md|lg|xl`
+
+Example:  
+`<AppAccordion items={[{ id: "details", title: "Details", content: <Details /> }]} />`
+
+---
+
+### Data Display AI Rules
+
+- Use `AppBadge` for compact labels, statuses, counts, and pills instead of raw MUI `Chip`.
+- Use `AppStatusBadge` for known workflow/status values like active, pending, approved, failed, or processing.
+- Use `AppTag` for tags, categories, filters, and removable labels.
+- Use `AppCard` for reusable content containers instead of raw MUI `Card`, `Paper`, or repeated bordered `Box` layouts.
+- Use `AppInfoCard` for contextual notes, information blocks, and help callouts.
+- Use `AppStatCard` for compact dashboard metrics when a full chart KPI card is not needed.
+- Use `AppAvatar` for user/profile display.
+- Use `AppAvatarGroup` for grouped users, teams, assignees, or participants.
+- Use `AppPagination` for paginated lists and tables.
+- Use `AppTimeline` for activity history, logs, tracking, and chronological events.
+- Use `AppDescriptionList` for read-only detail grids.
+- Use `AppKeyValue` for individual label-value pairs.
+- Use `AppAccordion` for collapsible sections instead of raw MUI `Accordion`.
+- Do not use raw MUI `Chip`, `Card`, `Paper`, `Avatar`, `Pagination`, or `Accordion` in pages when these wrappers fit.
+- Prefer component props like `variant`, `colorVariant`, `size`, `rounded`, `loading`, and `disabled` before custom styling.
+- Pass functions only to event props like `onClick`, `onDelete`, `onChange`, and pagination handlers.
+- Pass React elements only to visual/content props like `icon`, `action`, `children`, `footer`, `content`, and `title`.
+- Pass objects only to style/config props like `sx`, `itemSx`, `iconSx`, `labelSx`, `valueSx`, `summarySx`, and `detailsSx`.
+- Keep display data normalized as arrays of objects for `items`, timeline entries, accordion rows, avatar groups, and description lists.
+- Do not hardcode colors inside pages; use `colorVariant`, theme tokens, or CSS variables.
