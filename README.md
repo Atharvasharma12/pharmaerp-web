@@ -1,107 +1,837 @@
-# Frontend Template
+# ERP Frontend
 
-🚀 A production-ready React starter template for building modern dashboard applications with a complete architecture including Redux state management, routing, authentication, theming, and API integration.
+🚀 A comprehensive Enterprise Resource Planning (ERP) system frontend built with React, Redux, and Material UI. Complete with modular features, role-based access control, real-time dashboard, and enterprise-grade architecture.
 
-**Perfect for**: Building scalable SPA (Single Page Applications), admin dashboards, internal tools, and enterprise React applications.
+**Purpose**: Full-stack ERP solution providing employee management, workspace organization, subscription handling, authentication, and comprehensive dashboard analytics.
 
 ---
 
 ## 📋 Table of Contents
 
+- [Project Overview](#project-overview)
 - [Features](#features)
-- [Why This Template](#why-this-template)
-- [What's Included](#whats-included)
+- [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
+- [Feature Modules](#feature-modules)
 - [Getting Started](#getting-started)
+- [Development](#development)
+- [API Integration](#api-integration)
+- [Authentication & Authorization](#authentication--authorization)
+- [State Management](#state-management)
+- [UI Components](#ui-components)
 - [Configuration](#configuration)
-- [Redux Store & State Management](#redux-store--state-management)
-- [Routing & Navigation](#routing--navigation)
-- [Providers Architecture](#providers-architecture)
-- [Authentication Flow](#authentication-flow)
-- [Theme System](#theme-system)
-- [Services & API Integration](#services--api-integration)
-- [Route Guards](#route-guards)
-- [Hooks & Utilities](#hooks--utilities)
-- [Components Structure](#components-structure)
-- [Development Workflow](#development-workflow)
-- [Building & Deployment](#building--deployment)
-- [Best Practices](#best-practices)
+- [Deployment](#deployment)
+- [Contributing Guidelines](#contributing-guidelines)
+
+---
+
+## 🎯 Project Overview
+
+The ERP Frontend is the user-facing application for a complete enterprise resource management system. It provides role-based access to various business modules including user and workspace management, subscription handling, analytics dashboards, and comprehensive administration tools.
+
+### Key Objectives
+
+- ✅ Centralized employee and user management
+- ✅ Multi-workspace support with role-based access
+- ✅ Subscription and billing management
+- ✅ Real-time analytics and reporting
+- ✅ Workflow automation and task management
+- ✅ Secure authentication and authorization
+- ✅ Responsive design for all devices
 
 ---
 
 ## ✨ Features
 
-### Modern Development Stack
+### Core Business Features
 
-- ⚡ **Vite** - Lightning-fast development server and optimized production builds
-- ⚛️ **React 19** - Latest React with hooks and modern component patterns
-- 🎯 **React Router DOM v7** - Advanced routing with lazy loading and guards
-- 🔄 **Redux Toolkit** - Simplified state management with built-in DevTools
-- 🎨 **Material UI (MUI)** - Comprehensive component library with accessibility
-- 💎 **Tailwind CSS** - Utility-first CSS framework for rapid UI development
+- **👥 User Management** - Complete employee lifecycle management with roles and permissions
+- **🏢 Workspace Organization** - Multi-workspace support with team collaboration
+- **💳 Subscription Management** - Billing, subscription plans, and payment tracking
+- **📊 Analytics Dashboard** - Real-time KPIs, charts, and business metrics
+- **🔔 Notifications System** - Real-time notifications for user activities
+- **🔐 Authentication** - Secure login, registration, password recovery with JWT
+- **👤 User Profiles** - Personal profile management and preferences
+- **📝 Activity Logs** - Track user actions and system activities
+- **📎 File Attachments** - Upload and manage attachments
+- **🔗 Workflows** - Automated workflow management and approvals
 
-### Pre-built Features
+### System Features
 
-- 🔐 **Authentication System** - Complete auth scaffolding with login, register, forgot password, and reset password flows
-- 🛡️ **Route Guards** - ProtectedRoute, GuestRoute, and PermissionGuard for secure navigation
-- 🎭 **Theme System** - Dark/light mode support with centralized tokens
-- 📱 **Responsive Layouts** - Dashboard layout with sidebar, navbar, and responsive design
-- 🔌 **API Integration** - Axios client with interceptors for authentication and error handling
-- 📊 **Charts & Analytics** - MUI X Charts integration for data visualization
-- 🍞 **Toast Notifications** - Provider-based toast system for user feedback
-- 🎣 **Custom Hooks** - Reusable hooks for debouncing, local storage, pagination, and more
-
----
-
-## 🎯 Why This Template
-
-Building React applications from scratch often involves:
-
-- Setting up routing with navigation guards
-- Configuring Redux store with slices and middleware
-- Creating multiple providers and context layers
-- Building authentication flows and protected routes
-- Setting up API client with interceptors
-- Implementing theming system
-- Creating reusable component hierarchy
-
-**This template eliminates this boilerplate work**, giving you:
-
-- ✅ Production-ready directory structure
-- ✅ Pre-configured state management and providers
-- ✅ Authentication scaffolding
-- ✅ Route protection mechanisms
-- ✅ API service layer
-- ✅ Theme and styling infrastructure
-- ✅ Custom hooks and utilities
-- ✅ ESLint and best practices configured
-
-Start building features immediately instead of spending time on infrastructure.
+- **🎭 Dark/Light Theme** - Customizable theme with persistent preferences
+- **📱 Responsive UI** - Mobile-first design for all screen sizes
+- **♿ Accessibility** - WCAG compliant components
+- **🛡️ Route Guards** - Protected routes with permission-based access
+- **🔌 REST API Integration** - Axios with interceptors for API communication
+- **💾 Local Storage** - Persistent user preferences and data
+- **🎣 Custom Hooks** - Reusable hooks for common functionality
+- **📦 Component Library** - Comprehensive pre-built components
 
 ---
 
-## 📦 What's Included
+## 🛠️ Tech Stack
 
-### Core Dependencies
+### Frontend Framework
 
-```json
-{
-  "react": "^19.2.5",
-  "react-dom": "^19.2.5",
-  "react-router-dom": "^7.15.0",
-  "@reduxjs/toolkit": "^2.11.2",
-  "react-redux": "^9.2.0",
-  "@mui/material": "^9.0.0",
-  "@mui/icons-material": "^9.0.0",
-  "@mui/x-charts": "^9.0.4",
-  "axios": "^1.16.0",
-  "dayjs": "^1.11.20",
-  "framer-motion": "^12.38.0",
-  "tailwindcss": "^4.2.4",
-  "@tailwindcss/vite": "^4.2.4",
-  "react-icons": "^5.6.0"
+- ⚡ **Vite 8.0** - Next-generation build tool
+- ⚛️ **React 19** - Latest React with hooks
+- 🎯 **React Router DOM 7** - Client-side routing
+- 🎨 **Material UI (MUI) 9** - Component library
+- 💎 **Tailwind CSS 4** - Utility-first styling
+- 🔄 **Redux Toolkit 2** - State management
+- 📊 **MUI X Charts** - Data visualization
+
+### Additional Libraries
+
+- 📅 **DayJS** - Date manipulation
+- 🎬 **Framer Motion** - Animation library
+- 🔗 **Axios** - HTTP client
+- 🎪 **React Icons** - Icon library
+- 😊 **Emotion** - CSS-in-JS styling
+
+---
+
+## 📂 Project Structure
+
+```
+erp-frontend/
+├── src/
+│   ├── app/                      # Application entry point
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   ├── providers.jsx
+│   │   └── routes.jsx
+│   │
+│   ├── components/               # Reusable components
+│   │   ├── charts/              # Chart components
+│   │   │   ├── AppAreaChart.jsx
+│   │   │   ├── AppBarChart.jsx
+│   │   │   ├── AppDonutChart.jsx
+│   │   │   ├── AppKpiCard.jsx
+│   │   │   ├── AppLineChart.jsx
+│   │   │   ├── AppPieChart.jsx
+│   │   │   └── AppSparkline.jsx
+│   │   │
+│   │   ├── features/             # Feature-specific components
+│   │   │   └── notifications/
+│   │   │
+│   │   ├── shared/              # Shared UI components
+│   │   │   ├── activity/
+│   │   │   ├── attachments/
+│   │   │   ├── dialogs/
+│   │   │   ├── display/
+│   │   │   ├── filters/
+│   │   │   ├── forms/
+│   │   │   ├── import-export/
+│   │   │   ├── layout/
+│   │   │   ├── page/
+│   │   │   ├── permissions/
+│   │   │   ├── tables/
+│   │   │   └── workflows/
+│   │   │
+│   │   └── ui/                  # Base UI components
+│   │       ├── buttons/
+│   │       ├── data-display/
+│   │       ├── feedback/
+│   │       ├── inputs/
+│   │       ├── layout/
+│   │       ├── navigation/
+│   │       ├── overlays/
+│   │       └── typography/
+│   │
+│   ├── features/                # Feature modules
+│   │   ├── auth/               # Authentication
+│   │   │   ├── components/
+│   │   │   ├── hooks/
+│   │   │   ├── pages/
+│   │   │   ├── routes/
+│   │   │   ├── services/
+│   │   │   └── store/
+│   │   │
+│   │   ├── dashboard/          # Dashboard & analytics
+│   │   │   ├── components/
+│   │   │   └── pages/
+│   │   │
+│   │   ├── user/               # User management
+│   │   │   ├── components/
+│   │   │   ├── pages/
+│   │   │   ├── hooks/
+│   │   │   └── services/
+│   │   │
+│   │   ├── workspace/          # Workspace management
+│   │   │   ├── components/
+│   │   │   ├── pages/
+│   │   │   └── services/
+│   │   │
+│   │   ├── subscription/       # Subscription & billing
+│   │   │   ├── components/
+│   │   │   ├── pages/
+│   │   │   └── services/
+│   │   │
+│   │   ├── landing/            # Landing pages
+│   │   ├── public/             # Public routes
+│   │   └── admin/              # Admin features (if applicable)
+│   │
+│   ├── config/                 # Application configuration
+│   │   ├── env.js
+│   │   ├── index.js
+│   │   ├── navigation.js
+│   │   └── sidebarMenu.js
+│   │
+│   ├── constants/              # Application constants
+│   │   ├── app.js
+│   │   ├── permissions.js
+│   │   ├── roles.js
+│   │   ├── routes.js
+│   │   └── statuses.js
+│   │
+│   ├── contexts/               # React contexts
+│   │   ├── SidebarContext.jsx
+│   │   └── ThemeContext.jsx
+│   │
+│   ├── guards/                 # Route guards
+│   │   ├── ProtectedRoute.jsx
+│   │   ├── GuestRoute.jsx
+│   │   └── PermissionGuard.jsx
+│   │
+│   ├── hooks/                  # Custom hooks
+│   │   ├── useDebounce.js
+│   │   ├── useLocalStorage.js
+│   │   ├── usePagination.js
+│   │   └── useToggle.js
+│   │
+│   ├── layouts/                # Layout components
+│   │   ├── AppLayout.jsx
+│   │   ├── AuthLayout.jsx
+│   │   └── PublicLayout.jsx
+│   │
+│   ├── pages/                  # Page components
+│   │   ├── HomePage.jsx
+│   │   └── UIComponentDisplayPage.jsx
+│   │
+│   ├── providers/              # Context providers
+│   │   ├── AppProvider.jsx
+│   │   ├── ReduxProvider.jsx
+│   │   ├── ThemeProvider.jsx
+│   │   └── ToastProvider.jsx
+│   │
+│   ├── services/               # API services
+│   │   ├── apiClient.js
+│   │   ├── endpoints.js
+│   │   ├── interceptors.js
+│   │   └── index.js
+│   │
+│   ├── store/                  # Redux store
+│   │   ├── rootReducer.js
+│   │   ├── store.js
+│   │   └── middlewares/
+│   │
+│   ├── theme/                  # Theme configuration
+│   │   ├── createAppTheme.js
+│   │   ├── getThemeTokens.js
+│   │   ├── tokens.js
+│   │   └── index.js
+│   │
+│   ├── utils/                  # Utility functions
+│   │   ├── downloadFile.js
+│   │   ├── exportExcel.js
+│   │   ├── formatCurrency.js
+│   │   ├── formatDate.js
+│   │   ├── helpers.js
+│   │   ├── permissions.js
+│   │   ├── storage.js
+│   │   ├── validation.js
+│   │   └── index.js
+│   │
+│   └── assets/                 # Static assets
+│       ├── styles/
+│       └── dashboard-showcase/
+│
+├── public/                     # Public static files
+├── index.html
+├── vite.config.js
+├── eslint.config.js
+├── jsconfig.json
+├── package.json
+├── tailwind.config.js
+└── README.md
+```
+
+---
+
+## 🔧 Feature Modules
+
+### Authentication (`/features/auth`)
+
+- User registration and login
+- Password reset and recovery
+- JWT token management
+- Session handling
+- Login persistence
+
+### Dashboard (`/features/dashboard`)
+
+- Analytics and KPI cards
+- Real-time charts and graphs
+- Activity feeds
+- Quick action panels
+- Customizable widgets
+
+### User Management (`/features/user`)
+
+- User profile management
+- Employee directory
+- Role and permission management
+- User activity tracking
+- Profile updates and preferences
+
+### Workspace Management (`/features/workspace`)
+
+- Create and manage workspaces
+- Team member invitation
+- Workspace settings
+- Resource allocation
+- Workspace switching
+
+### Subscription (`/features/subscription`)
+
+- Plan selection and upgrade
+- Billing information
+- Payment history
+- Invoice management
+- Usage tracking
+
+### Landing (`/features/landing`)
+
+- Public landing pages
+- Marketing content
+- Feature showcases
+- Pricing information
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 16+ and npm/yarn
+- Git
+- Modern web browser
+
+### Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone <repository-url>
+   cd erp-frontend
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. **Configure environment variables**
+   Create a `.env.local` file in the root directory:
+
+   ```env
+   VITE_API_BASE_URL=http://localhost:3000/api
+   VITE_APP_NAME=ERP System
+   ```
+
+4. **Start development server**
+
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+5. **Open in browser**
+   Navigate to `http://localhost:5173`
+
+---
+
+## 💻 Development
+
+### Available Scripts
+
+```bash
+# Start development server with hot reload
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build locally
+npm run preview
+
+# Run ESLint for code quality
+npm run lint
+
+# Fix ESLint issues automatically
+npm run lint --fix
+```
+
+### Development Workflow
+
+1. Create feature branch from `main`
+2. Implement changes following the project structure
+3. Run linter to ensure code quality
+4. Test thoroughly in development
+5. Create pull request for review
+6. Merge to main after approval
+
+### Code Style
+
+- **ESLint** - Code quality and style consistency
+- **Prettier** - Code formatting (configured via ESLint)
+- **React Hooks Rules** - Proper hook usage
+- **React Refresh** - Fast module refresh in development
+
+---
+
+## 📡 API Integration
+
+### Service Layer (`/services`)
+
+The application uses a centralized API service layer:
+
+```javascript
+// services/apiClient.js
+import axios from "axios";
+import { ENDPOINTS } from "./endpoints.js";
+
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+export default apiClient;
+```
+
+### API Endpoints (`/services/endpoints.js`)
+
+Centralized endpoint definitions:
+
+```javascript
+export const ENDPOINTS = {
+  AUTH: {
+    LOGIN: "/auth/login",
+    REGISTER: "/auth/register",
+    LOGOUT: "/auth/logout",
+    REFRESH: "/auth/refresh",
+  },
+  USERS: {
+    GET_ALL: "/users",
+    GET_ONE: (id) => `/users/${id}`,
+    CREATE: "/users",
+    UPDATE: (id) => `/users/${id}`,
+    DELETE: (id) => `/users/${id}`,
+  },
+  // ... more endpoints
+};
+```
+
+### Interceptors (`/services/interceptors.js`)
+
+- Automatic JWT token injection
+- Response error handling
+- Request/response logging
+- Token refresh on expiry
+
+### Making API Calls
+
+```javascript
+import apiClient from "@/services/apiClient.js";
+import { ENDPOINTS } from "@/services/endpoints.js";
+
+// GET request
+const fetchUsers = async () => {
+  try {
+    const response = await apiClient.get(ENDPOINTS.USERS.GET_ALL);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch users:", error);
+    throw error;
+  }
+};
+
+// POST request
+const createUser = async (userData) => {
+  try {
+    const response = await apiClient.post(ENDPOINTS.USERS.CREATE, userData);
+    return response.data;
+  } catch (error) {
+    console.error("Failed to create user:", error);
+    throw error;
+  }
+};
+```
+
+---
+
+## 🔐 Authentication & Authorization
+
+### Authentication Flow
+
+1. User submits login credentials
+2. Backend validates and returns JWT token
+3. Token stored in Redux store and localStorage
+4. Token included in all subsequent requests
+5. On token expiry, refresh token is used to obtain new token
+6. Failed auth redirects to login page
+
+### Route Guards
+
+#### ProtectedRoute
+
+Prevents unauthenticated users from accessing protected pages:
+
+```javascript
+<ProtectedRoute>
+  <Dashboard />
+</ProtectedRoute>
+```
+
+#### GuestRoute
+
+Prevents authenticated users from accessing guest pages (login, register):
+
+```javascript
+<GuestRoute>
+  <LoginPage />
+</GuestRoute>
+```
+
+#### PermissionGuard
+
+Restricts access based on user permissions:
+
+```javascript
+<PermissionGuard permissions={["user:read", "user:write"]}>
+  <UserManagement />
+</PermissionGuard>
+```
+
+### Role-Based Access Control
+
+Roles and permissions defined in `/constants/roles.js` and `/constants/permissions.js`:
+
+```javascript
+// constants/roles.js
+export const ROLES = {
+  ADMIN: "admin",
+  MANAGER: "manager",
+  EMPLOYEE: "employee",
+  VIEWER: "viewer",
+};
+
+// constants/permissions.js
+export const PERMISSIONS = {
+  USER_READ: "user:read",
+  USER_WRITE: "user:write",
+  USER_DELETE: "user:delete",
+  WORKSPACE_MANAGE: "workspace:manage",
+  // ... more permissions
+};
+```
+
+---
+
+## 🔄 State Management
+
+### Redux Store Structure
+
+```
+store/
+├── rootReducer.js      # Combines all reducers
+├── store.js            # Store configuration
+└── middlewares/
+    └── custom middlewares
+```
+
+### Redux Slices
+
+Feature modules contain their own Redux slices:
+
+```javascript
+// features/auth/store/authSlice.js
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+
+export const loginUser = createAsyncThunk("auth/login", async (credentials) => {
+  // API call
+});
+
+const authSlice = createSlice({
+  name: "auth",
+  initialState: { user: null, loading: false },
+  reducers: {},
+  extraReducers: (builder) => {
+    builder.addCase(loginUser.fulfilled, (state, action) => {
+      state.user = action.payload;
+    });
+  },
+});
+
+export default authSlice.reducer;
+```
+
+### Using Redux in Components
+
+```javascript
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "@/features/auth/store/authSlice.js";
+
+export function LoginComponent() {
+  const dispatch = useDispatch();
+  const { user, loading } = useSelector((state) => state.auth);
+
+  const handleLogin = async (credentials) => {
+    await dispatch(loginUser(credentials));
+  };
+
+  return <form onSubmit={handleLogin}>...</form>;
 }
 ```
+
+---
+
+## 🎨 UI Components
+
+### Component Categories
+
+#### Chart Components (`/components/charts`)
+
+- Area charts
+- Bar charts
+- Donut charts
+- Line charts
+- Pie charts
+- Sparklines
+- KPI cards
+
+#### Shared Components (`/components/shared`)
+
+- **Activity** - Activity feeds and logs
+- **Attachments** - File upload and display
+- **Dialogs** - Modal dialogs and confirmations
+- **Display** - Data display components
+- **Filters** - Filter controls
+- **Forms** - Form components
+- **Import/Export** - Bulk operations
+- **Layout** - Layout components
+- **Page** - Page containers
+- **Permissions** - Permission-based rendering
+- **Tables** - Data tables with sorting/filtering
+- **Workflows** - Workflow components
+
+#### UI Base Components (`/components/ui`)
+
+- Buttons, inputs, forms
+- Data display (lists, tables, cards)
+- Feedback (alerts, tooltips)
+- Layout containers
+- Navigation components
+- Overlays (modals, popovers)
+- Typography
+
+### Component Usage
+
+```javascript
+import { AppBarChart } from "@/components/charts";
+import { DataTable } from "@/components/shared/tables";
+import { PrimaryButton } from "@/components/ui/buttons";
+
+export function Dashboard() {
+  return (
+    <div>
+      <AppBarChart data={chartData} />
+      <DataTable columns={columns} rows={rows} />
+      <PrimaryButton onClick={handleClick}>Action</PrimaryButton>
+    </div>
+  );
+}
+```
+
+---
+
+## ⚙️ Configuration
+
+### Environment Configuration (`/config`)
+
+**env.js** - Environment-based configuration:
+
+```javascript
+export const ENV_CONFIG = {
+  API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+  APP_NAME: import.meta.env.VITE_APP_NAME,
+  ENVIRONMENT: import.meta.env.MODE,
+};
+```
+
+### Navigation Configuration
+
+**navigation.js** - Route definitions and menu items
+
+**sidebarMenu.js** - Sidebar menu structure with roles
+
+### Theme Configuration (`/theme`)
+
+**tokens.js** - Design tokens (colors, spacing, typography)
+
+**createAppTheme.js** - Theme factory function
+
+**getThemeTokens.js** - Dynamic token generation
+
+### Tailwind Configuration
+
+Customized Tailwind CSS configuration in `tailwind.config.js`:
+
+- Custom colors
+- Custom spacing
+- Custom typography
+- Plugin extensions
+
+---
+
+## 📦 Building & Deployment
+
+### Production Build
+
+```bash
+npm run build
+```
+
+Generates optimized production build in `dist/` directory with:
+
+- Code splitting and minification
+- Asset optimization
+- Source map generation
+- Tree shaking
+
+### Preview Production Build
+
+```bash
+npm run preview
+```
+
+Locally preview the production build before deployment.
+
+### Deployment Checklist
+
+- [ ] Environment variables configured
+- [ ] API endpoints pointing to production
+- [ ] Build completes without errors
+- [ ] No console errors or warnings
+- [ ] Responsive design tested on multiple devices
+- [ ] Authentication flow working
+- [ ] API integration tested
+- [ ] Performance optimized
+- [ ] Security headers configured
+- [ ] Error pages configured
+
+### Deployment Platforms
+
+The application can be deployed to:
+
+- **Vercel** - Recommended for Vite + React
+- **Netlify** - Auto-deployment from Git
+- **AWS S3 + CloudFront**
+- **Docker + Kubernetes**
+- **Traditional web servers**
+
+---
+
+## 📚 Additional Resources
+
+### Useful Links
+
+- [React Documentation](https://react.dev)
+- [Redux Toolkit Docs](https://redux-toolkit.js.org)
+- [Material UI Docs](https://mui.com)
+- [React Router Docs](https://reactrouter.com)
+- [Tailwind CSS Docs](https://tailwindcss.com)
+- [Vite Documentation](https://vitejs.dev)
+
+### Component Catalog
+
+Refer to [component-catalog.md](./component-catalog.md) for detailed component documentation and usage examples.
+
+---
+
+## 👥 Contributing Guidelines
+
+### Before You Start
+
+1. Understand the project structure
+2. Follow existing code patterns
+3. Check existing components before creating new ones
+4. Write meaningful commit messages
+
+### Creating New Features
+
+1. Create feature branch: `git checkout -b feature/feature-name`
+2. Follow the feature module structure
+3. Create necessary components, services, and store
+4. Add proper error handling
+5. Test thoroughly
+6. Create pull request with clear description
+
+### Code Quality Standards
+
+- ✅ All code must pass ESLint
+- ✅ Components should be reusable
+- ✅ Proper error handling required
+- ✅ API calls should use service layer
+- ✅ State managed through Redux
+- ✅ Responsive design mandatory
+- ✅ Accessibility considerations
+
+### Commit Message Format
+
+```
+feat: add user dashboard page
+fix: resolve sidebar collapse issue
+docs: update API documentation
+refactor: simplify auth logic
+style: format code
+test: add user component tests
+```
+
+---
+
+## 📝 License
+
+This project is proprietary and confidential.
+
+---
+
+## 📞 Support & Contact
+
+For questions, issues, or support:
+
+- Create an issue in the repository
+- Contact the development team
+- Check existing documentation
+
+---
+
+**Happy Coding! 🚀**
+
+Built with ❤️ for enterprise excellence.
+"@tailwindcss/vite": "^4.2.4",
+"react-icons": "^5.6.0"
+}
+
+````
 
 ### Development Tools
 
@@ -288,7 +1018,7 @@ erp-frontend/
 ├── package.json                  # Dependencies
 ├── package-lock.json             # Dependency lock file
 └── README.md                     # This file
-```
+````
 
 ---
 
