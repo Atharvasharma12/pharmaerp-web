@@ -11,7 +11,6 @@ import {
   scheduleDowngrade,
   changeSeatQuantity,
   cancelSubscription,
-  getSubscriptions,
   getSubscriptionById,
   getWorkspaceCurrentSubscription,
   getWorkspaceSubscriptions,
@@ -20,7 +19,6 @@ import {
 } from "./subscriptionThunk";
 
 const initialState = {
-  subscriptions: [],
   workspaceSubscriptions: [],
 
   currentSubscription: null,
@@ -65,10 +63,6 @@ const subscriptionSlice = createSlice({
       state.currentSubscription = null;
     },
 
-    clearSubscriptions(state) {
-      state.subscriptions = [];
-    },
-
     clearWorkspaceSubscriptions(state) {
       state.workspaceSubscriptions = [];
     },
@@ -80,7 +74,6 @@ const subscriptionSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-
       // PURCHASE SUBSCRIPTION
       .addCase(purchaseSubscription.pending, (state) => {
         state.purchaseSubscriptionStatus = API_STATUS.LOADING;
@@ -91,11 +84,9 @@ const subscriptionSlice = createSlice({
         state.purchaseSubscriptionStatus = API_STATUS.SUCCESS;
 
         if (action.payload) {
-          state.subscriptions.unshift(action.payload);
-
           state.currentSubscription = action.payload;
-
           state.currentWorkspaceSubscription = action.payload;
+          state.workspaceSubscriptions.unshift(action.payload);
         }
 
         state.message = "Subscription purchased successfully";
@@ -109,13 +100,22 @@ const subscriptionSlice = createSlice({
       .addCase(renewSubscription.pending, (state) => {
         state.renewSubscriptionStatus = API_STATUS.LOADING;
         state.error = null;
+        state.message = null;
       })
       .addCase(renewSubscription.fulfilled, (state, action) => {
         state.renewSubscriptionStatus = API_STATUS.SUCCESS;
 
-        state.currentSubscription = action.payload;
+        if (action.payload) {
+          state.currentSubscription = action.payload;
+          state.currentWorkspaceSubscription = action.payload;
 
-        state.currentWorkspaceSubscription = action.payload;
+          state.workspaceSubscriptions = state.workspaceSubscriptions.map(
+            (subscription) =>
+              subscription._id === action.payload._id
+                ? action.payload
+                : subscription,
+          );
+        }
 
         state.message = "Subscription renewed successfully";
       })
@@ -128,13 +128,22 @@ const subscriptionSlice = createSlice({
       .addCase(upgradeSubscription.pending, (state) => {
         state.upgradeSubscriptionStatus = API_STATUS.LOADING;
         state.error = null;
+        state.message = null;
       })
       .addCase(upgradeSubscription.fulfilled, (state, action) => {
         state.upgradeSubscriptionStatus = API_STATUS.SUCCESS;
 
-        state.currentSubscription = action.payload;
+        if (action.payload) {
+          state.currentSubscription = action.payload;
+          state.currentWorkspaceSubscription = action.payload;
 
-        state.currentWorkspaceSubscription = action.payload;
+          state.workspaceSubscriptions = state.workspaceSubscriptions.map(
+            (subscription) =>
+              subscription._id === action.payload._id
+                ? action.payload
+                : subscription,
+          );
+        }
 
         state.message = "Subscription upgraded successfully";
       })
@@ -147,15 +156,24 @@ const subscriptionSlice = createSlice({
       .addCase(scheduleDowngrade.pending, (state) => {
         state.scheduleDowngradeStatus = API_STATUS.LOADING;
         state.error = null;
+        state.message = null;
       })
       .addCase(scheduleDowngrade.fulfilled, (state, action) => {
         state.scheduleDowngradeStatus = API_STATUS.SUCCESS;
 
-        state.currentSubscription = action.payload;
+        if (action.payload) {
+          state.currentSubscription = action.payload;
+          state.currentWorkspaceSubscription = action.payload;
 
-        state.currentWorkspaceSubscription = action.payload;
+          state.workspaceSubscriptions = state.workspaceSubscriptions.map(
+            (subscription) =>
+              subscription._id === action.payload._id
+                ? action.payload
+                : subscription,
+          );
+        }
 
-        state.message = "Subscription downgrade scheduled";
+        state.message = "Subscription downgrade scheduled successfully";
       })
       .addCase(scheduleDowngrade.rejected, (state, action) => {
         state.scheduleDowngradeStatus = API_STATUS.ERROR;
@@ -166,15 +184,24 @@ const subscriptionSlice = createSlice({
       .addCase(changeSeatQuantity.pending, (state) => {
         state.changeSeatQuantityStatus = API_STATUS.LOADING;
         state.error = null;
+        state.message = null;
       })
       .addCase(changeSeatQuantity.fulfilled, (state, action) => {
         state.changeSeatQuantityStatus = API_STATUS.SUCCESS;
 
-        state.currentSubscription = action.payload;
+        if (action.payload) {
+          state.currentSubscription = action.payload;
+          state.currentWorkspaceSubscription = action.payload;
 
-        state.currentWorkspaceSubscription = action.payload;
+          state.workspaceSubscriptions = state.workspaceSubscriptions.map(
+            (subscription) =>
+              subscription._id === action.payload._id
+                ? action.payload
+                : subscription,
+          );
+        }
 
-        state.message = "Seat quantity updated successfully";
+        state.message = "Subscription seats updated successfully";
       })
       .addCase(changeSeatQuantity.rejected, (state, action) => {
         state.changeSeatQuantityStatus = API_STATUS.ERROR;
@@ -185,33 +212,28 @@ const subscriptionSlice = createSlice({
       .addCase(cancelSubscription.pending, (state) => {
         state.cancelSubscriptionStatus = API_STATUS.LOADING;
         state.error = null;
+        state.message = null;
       })
       .addCase(cancelSubscription.fulfilled, (state, action) => {
         state.cancelSubscriptionStatus = API_STATUS.SUCCESS;
 
-        state.currentSubscription = action.payload;
+        if (action.payload) {
+          state.currentSubscription = action.payload;
+          state.currentWorkspaceSubscription = action.payload;
 
-        state.currentWorkspaceSubscription = action.payload;
+          state.workspaceSubscriptions = state.workspaceSubscriptions.map(
+            (subscription) =>
+              subscription._id === action.payload._id
+                ? action.payload
+                : subscription,
+          );
+        }
 
         state.message = "Subscription cancelled successfully";
       })
       .addCase(cancelSubscription.rejected, (state, action) => {
         state.cancelSubscriptionStatus = API_STATUS.ERROR;
         state.error = action.payload || "Failed to cancel subscription";
-      })
-
-      // GET SUBSCRIPTIONS
-      .addCase(getSubscriptions.pending, (state) => {
-        state.status = API_STATUS.LOADING;
-        state.error = null;
-      })
-      .addCase(getSubscriptions.fulfilled, (state, action) => {
-        state.status = API_STATUS.SUCCESS;
-        state.subscriptions = action.payload || [];
-      })
-      .addCase(getSubscriptions.rejected, (state, action) => {
-        state.status = API_STATUS.ERROR;
-        state.error = action.payload || "Failed to fetch subscriptions";
       })
 
       // GET SUBSCRIPTION BY ID
@@ -235,7 +257,6 @@ const subscriptionSlice = createSlice({
       })
       .addCase(getWorkspaceCurrentSubscription.fulfilled, (state, action) => {
         state.status = API_STATUS.SUCCESS;
-
         state.currentWorkspaceSubscription = action.payload || null;
       })
       .addCase(getWorkspaceCurrentSubscription.rejected, (state, action) => {
@@ -251,7 +272,6 @@ const subscriptionSlice = createSlice({
       })
       .addCase(getWorkspaceSubscriptions.fulfilled, (state, action) => {
         state.status = API_STATUS.SUCCESS;
-
         state.workspaceSubscriptions = action.payload || [];
       })
       .addCase(getWorkspaceSubscriptions.rejected, (state, action) => {
@@ -264,13 +284,22 @@ const subscriptionSlice = createSlice({
       .addCase(syncActiveSeatCount.pending, (state) => {
         state.syncActiveSeatCountStatus = API_STATUS.LOADING;
         state.error = null;
+        state.message = null;
       })
       .addCase(syncActiveSeatCount.fulfilled, (state, action) => {
         state.syncActiveSeatCountStatus = API_STATUS.SUCCESS;
 
-        state.currentSubscription = action.payload;
+        if (action.payload) {
+          state.currentSubscription = action.payload;
+          state.currentWorkspaceSubscription = action.payload;
 
-        state.currentWorkspaceSubscription = action.payload;
+          state.workspaceSubscriptions = state.workspaceSubscriptions.map(
+            (subscription) =>
+              subscription._id === action.payload._id
+                ? action.payload
+                : subscription,
+          );
+        }
 
         state.message = "Active seat count synced successfully";
       })
@@ -282,17 +311,14 @@ const subscriptionSlice = createSlice({
       // VALIDATE SEAT AVAILABILITY
       .addCase(validateSeatAvailability.pending, (state) => {
         state.validateSeatAvailabilityStatus = API_STATUS.LOADING;
-
         state.error = null;
       })
       .addCase(validateSeatAvailability.fulfilled, (state, action) => {
         state.validateSeatAvailabilityStatus = API_STATUS.SUCCESS;
-
         state.seatAvailability = action.payload || null;
       })
       .addCase(validateSeatAvailability.rejected, (state, action) => {
         state.validateSeatAvailabilityStatus = API_STATUS.ERROR;
-
         state.error = action.payload || "Failed to validate seat availability";
       });
   },
@@ -303,7 +329,6 @@ export const {
   clearSubscriptionMessage,
   setCurrentSubscription,
   clearCurrentSubscription,
-  clearSubscriptions,
   clearWorkspaceSubscriptions,
   clearSeatAvailability,
 } = subscriptionSlice.actions;

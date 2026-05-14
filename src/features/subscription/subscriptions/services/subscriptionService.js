@@ -25,12 +25,6 @@ const subscriptionService = {
     return apiClient.post(ENDPOINTS.SUBSCRIPTION.CANCEL, payload);
   },
 
-  getSubscriptions(params = {}) {
-    return apiClient.get(ENDPOINTS.SUBSCRIPTION.LIST, {
-      params,
-    });
-  },
-
   getSubscriptionById(subscriptionId) {
     return apiClient.get(ENDPOINTS.SUBSCRIPTION.BY_ID(subscriptionId));
   },

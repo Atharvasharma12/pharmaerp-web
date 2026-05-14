@@ -2,8 +2,6 @@
 
 export const selectSubscription = (state) => state.subscription;
 
-export const selectSubscriptions = (state) => state.subscription.subscriptions;
-
 export const selectWorkspaceSubscriptions = (state) =>
   state.subscription.workspaceSubscriptions;
 

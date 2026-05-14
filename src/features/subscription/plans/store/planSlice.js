@@ -2,14 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 import { API_STATUS } from "@/constants";
 
-import {
-  createPlan,
-  getPlans,
-  getActivePlans,
-  getPlanById,
-  updatePlan,
-  deletePlan,
-} from "./planThunk";
+import { getPlans, getActivePlans, getPlanById } from "./planThunk";
 
 const initialState = {
   plans: [],
@@ -20,10 +13,7 @@ const initialState = {
   error: null,
   message: null,
 
-  createPlanStatus: API_STATUS.IDLE,
   getActivePlansStatus: API_STATUS.IDLE,
-  updatePlanStatus: API_STATUS.IDLE,
-  deletePlanStatus: API_STATUS.IDLE,
 };
 
 const planSlice = createSlice({
@@ -59,30 +49,6 @@ const planSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-      // CREATE PLAN
-      .addCase(createPlan.pending, (state) => {
-        state.createPlanStatus = API_STATUS.LOADING;
-        state.error = null;
-        state.message = null;
-      })
-      .addCase(createPlan.fulfilled, (state, action) => {
-        state.createPlanStatus = API_STATUS.SUCCESS;
-
-        if (action.payload) {
-          state.plans.unshift(action.payload);
-
-          if (action.payload.status === "active") {
-            state.activePlans.unshift(action.payload);
-          }
-        }
-
-        state.message = "Plan created successfully";
-      })
-      .addCase(createPlan.rejected, (state, action) => {
-        state.createPlanStatus = API_STATUS.ERROR;
-        state.error = action.payload || "Failed to create plan";
-      })
-
       // GET PLANS
       .addCase(getPlans.pending, (state) => {
         state.status = API_STATUS.LOADING;
@@ -123,72 +89,6 @@ const planSlice = createSlice({
       .addCase(getPlanById.rejected, (state, action) => {
         state.status = API_STATUS.ERROR;
         state.error = action.payload || "Failed to fetch plan";
-      })
-
-      // UPDATE PLAN
-      .addCase(updatePlan.pending, (state) => {
-        state.updatePlanStatus = API_STATUS.LOADING;
-        state.error = null;
-        state.message = null;
-      })
-      .addCase(updatePlan.fulfilled, (state, action) => {
-        state.updatePlanStatus = API_STATUS.SUCCESS;
-
-        const updatedPlan = action.payload;
-
-        state.plans = state.plans.map((plan) =>
-          plan._id === updatedPlan._id ? updatedPlan : plan,
-        );
-
-        state.activePlans = state.activePlans
-          .map((plan) => (plan._id === updatedPlan._id ? updatedPlan : plan))
-          .filter((plan) => plan.status === "active");
-
-        if (updatedPlan.status === "active") {
-          const existsInActivePlans = state.activePlans.some(
-            (plan) => plan._id === updatedPlan._id,
-          );
-
-          if (!existsInActivePlans) {
-            state.activePlans.unshift(updatedPlan);
-          }
-        }
-
-        if (state.currentPlan?._id === updatedPlan._id) {
-          state.currentPlan = updatedPlan;
-        }
-
-        state.message = "Plan updated successfully";
-      })
-      .addCase(updatePlan.rejected, (state, action) => {
-        state.updatePlanStatus = API_STATUS.ERROR;
-        state.error = action.payload || "Failed to update plan";
-      })
-
-      // DELETE PLAN
-      .addCase(deletePlan.pending, (state) => {
-        state.deletePlanStatus = API_STATUS.LOADING;
-        state.error = null;
-        state.message = null;
-      })
-      .addCase(deletePlan.fulfilled, (state, action) => {
-        state.deletePlanStatus = API_STATUS.SUCCESS;
-
-        state.plans = state.plans.filter((plan) => plan._id !== action.payload);
-
-        state.activePlans = state.activePlans.filter(
-          (plan) => plan._id !== action.payload,
-        );
-
-        if (state.currentPlan?._id === action.payload) {
-          state.currentPlan = null;
-        }
-
-        state.message = "Plan deleted successfully";
-      })
-      .addCase(deletePlan.rejected, (state, action) => {
-        state.deletePlanStatus = API_STATUS.ERROR;
-        state.error = action.payload || "Failed to delete plan";
       });
   },
 });

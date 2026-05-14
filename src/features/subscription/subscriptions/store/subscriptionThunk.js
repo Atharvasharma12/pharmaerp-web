@@ -10,7 +10,7 @@ export const purchaseSubscription = createAsyncThunk(
     try {
       const response = await subscriptionService.purchaseSubscription(payload);
 
-      return response.data?.data;
+      return response.data?.data || null;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -23,7 +23,7 @@ export const renewSubscription = createAsyncThunk(
     try {
       const response = await subscriptionService.renewSubscription(payload);
 
-      return response.data?.data;
+      return response.data?.data || null;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -36,7 +36,7 @@ export const upgradeSubscription = createAsyncThunk(
     try {
       const response = await subscriptionService.upgradeSubscription(payload);
 
-      return response.data?.data;
+      return response.data?.data || null;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -49,7 +49,7 @@ export const scheduleDowngrade = createAsyncThunk(
     try {
       const response = await subscriptionService.scheduleDowngrade(payload);
 
-      return response.data?.data;
+      return response.data?.data || null;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -62,7 +62,7 @@ export const changeSeatQuantity = createAsyncThunk(
     try {
       const response = await subscriptionService.changeSeatQuantity(payload);
 
-      return response.data?.data;
+      return response.data?.data || null;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -75,20 +75,7 @@ export const cancelSubscription = createAsyncThunk(
     try {
       const response = await subscriptionService.cancelSubscription(payload);
 
-      return response.data?.data;
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error));
-    }
-  },
-);
-
-export const getSubscriptions = createAsyncThunk(
-  "subscription/getSubscriptions",
-  async (params = {}, { rejectWithValue }) => {
-    try {
-      const response = await subscriptionService.getSubscriptions(params);
-
-      return response.data?.data;
+      return response.data?.data || null;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -102,7 +89,7 @@ export const getSubscriptionById = createAsyncThunk(
       const response =
         await subscriptionService.getSubscriptionById(subscriptionId);
 
-      return response.data?.data;
+      return response.data?.data || null;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -116,7 +103,7 @@ export const getWorkspaceCurrentSubscription = createAsyncThunk(
       const response =
         await subscriptionService.getWorkspaceCurrentSubscription(workspaceId);
 
-      return response.data?.data;
+      return response.data?.data || null;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -130,7 +117,7 @@ export const getWorkspaceSubscriptions = createAsyncThunk(
       const response =
         await subscriptionService.getWorkspaceSubscriptions(workspaceId);
 
-      return response.data?.data;
+      return response.data?.data || [];
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -144,7 +131,7 @@ export const syncActiveSeatCount = createAsyncThunk(
       const response =
         await subscriptionService.syncActiveSeatCount(workspaceId);
 
-      return response.data?.data;
+      return response.data?.data || null;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -160,7 +147,7 @@ export const validateSeatAvailability = createAsyncThunk(
         params,
       );
 
-      return response.data?.data;
+      return response.data?.data || null;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }

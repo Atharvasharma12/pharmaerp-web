@@ -9,7 +9,6 @@ import {
   scheduleDowngrade,
   changeSeatQuantity,
   cancelSubscription,
-  getSubscriptions,
   getSubscriptionById,
   getWorkspaceCurrentSubscription,
   getWorkspaceSubscriptions,
@@ -22,13 +21,11 @@ import {
   clearSubscriptionMessage,
   setCurrentSubscription,
   clearCurrentSubscription,
-  clearSubscriptions,
   clearWorkspaceSubscriptions,
   clearSeatAvailability,
 } from "../store/subscriptionSlice";
 
 import {
-  selectSubscriptions,
   selectWorkspaceSubscriptions,
   selectCurrentSubscription,
   selectCurrentWorkspaceSubscription,
@@ -48,8 +45,6 @@ import {
 
 const useSubscription = () => {
   const dispatch = useDispatch();
-
-  const subscriptions = useSelector(selectSubscriptions);
 
   const workspaceSubscriptions = useSelector(selectWorkspaceSubscriptions);
 
@@ -115,10 +110,6 @@ const useSubscription = () => {
     return dispatch(cancelSubscription(payload)).unwrap();
   };
 
-  const fetchSubscriptions = (params = {}) => {
-    return dispatch(getSubscriptions(params)).unwrap();
-  };
-
   const fetchSubscriptionById = (subscriptionId) => {
     return dispatch(getSubscriptionById(subscriptionId)).unwrap();
   };
@@ -160,10 +151,6 @@ const useSubscription = () => {
     dispatch(clearCurrentSubscription());
   };
 
-  const removeSubscriptions = () => {
-    dispatch(clearSubscriptions());
-  };
-
   const removeWorkspaceSubscriptions = () => {
     dispatch(clearWorkspaceSubscriptions());
   };
@@ -173,7 +160,6 @@ const useSubscription = () => {
   };
 
   return {
-    subscriptions,
     workspaceSubscriptions,
 
     currentSubscription,
@@ -207,8 +193,6 @@ const useSubscription = () => {
 
     cancelSubscription: submitCancelSubscription,
 
-    getSubscriptions: fetchSubscriptions,
-
     getSubscriptionById: fetchSubscriptionById,
 
     getWorkspaceCurrentSubscription: fetchWorkspaceCurrentSubscription,
@@ -225,8 +209,6 @@ const useSubscription = () => {
     setCurrentSubscription: saveCurrentSubscription,
 
     clearCurrentSubscription: removeCurrentSubscription,
-
-    clearSubscriptions: removeSubscriptions,
 
     clearWorkspaceSubscriptions: removeWorkspaceSubscriptions,
 

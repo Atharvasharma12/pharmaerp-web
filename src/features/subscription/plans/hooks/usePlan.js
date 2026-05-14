@@ -1,13 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 
-import {
-  createPlan,
-  getPlans,
-  getActivePlans,
-  getPlanById,
-  updatePlan,
-  deletePlan,
-} from "../store/planThunk";
+import { getPlans, getActivePlans, getPlanById } from "../store/planThunk";
 
 import {
   clearPlanError,
@@ -25,10 +18,7 @@ import {
   selectPlanStatus,
   selectPlanError,
   selectPlanMessage,
-  selectCreatePlanStatus,
   selectGetActivePlansStatus,
-  selectUpdatePlanStatus,
-  selectDeletePlanStatus,
 } from "../store/planSelector";
 
 const usePlan = () => {
@@ -42,14 +32,7 @@ const usePlan = () => {
   const error = useSelector(selectPlanError);
   const message = useSelector(selectPlanMessage);
 
-  const createPlanStatus = useSelector(selectCreatePlanStatus);
   const getActivePlansStatus = useSelector(selectGetActivePlansStatus);
-  const updatePlanStatus = useSelector(selectUpdatePlanStatus);
-  const deletePlanStatus = useSelector(selectDeletePlanStatus);
-
-  const createNewPlan = (payload) => {
-    return dispatch(createPlan(payload)).unwrap();
-  };
 
   const fetchPlans = (params = {}) => {
     return dispatch(getPlans(params)).unwrap();
@@ -61,19 +44,6 @@ const usePlan = () => {
 
   const fetchPlanById = (planId) => {
     return dispatch(getPlanById(planId)).unwrap();
-  };
-
-  const submitUpdatePlan = (planId, payload) => {
-    return dispatch(
-      updatePlan({
-        planId,
-        payload,
-      }),
-    ).unwrap();
-  };
-
-  const submitDeletePlan = (planId) => {
-    return dispatch(deletePlan(planId)).unwrap();
   };
 
   const clearError = () => {
@@ -109,17 +79,11 @@ const usePlan = () => {
     error,
     message,
 
-    createPlanStatus,
     getActivePlansStatus,
-    updatePlanStatus,
-    deletePlanStatus,
 
-    createPlan: createNewPlan,
     getPlans: fetchPlans,
     getActivePlans: fetchActivePlans,
     getPlanById: fetchPlanById,
-    updatePlan: submitUpdatePlan,
-    deletePlan: submitDeletePlan,
 
     clearError,
     clearMessage,

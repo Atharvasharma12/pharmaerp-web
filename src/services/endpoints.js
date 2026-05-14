@@ -42,8 +42,6 @@ export const ENDPOINTS = {
   },
 
   PLAN: {
-    CREATE: "/subscription/plans",
-
     LIST: "/subscription/plans",
 
     ACTIVE: "/subscription/plans/active",
@@ -63,8 +61,6 @@ export const ENDPOINTS = {
     CHANGE_SEATS: "/subscription/subscriptions/change-seats",
 
     CANCEL: "/subscription/subscriptions/cancel",
-
-    LIST: "/subscription/subscriptions",
 
     BY_ID: (subscriptionId) => `/subscription/subscriptions/${subscriptionId}`,
 
