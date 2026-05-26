@@ -23,13 +23,9 @@ const AuthMobileBottomBar = () => {
           active={isLoginPage || isRegisterPage}
         />
 
-        <BottomBarLink
-          label="Help"
-          path="/help-center"
-          icon={<FiHelpCircle />}
-        />
+        <BottomBarLink label="Help" path="/" icon={<FiHelpCircle />} />
 
-        <BottomBarLink label="Support" path="/contact" icon={<FiMail />} />
+        <BottomBarLink label="Support" path="/" icon={<FiMail />} />
       </div>
     </nav>
   );

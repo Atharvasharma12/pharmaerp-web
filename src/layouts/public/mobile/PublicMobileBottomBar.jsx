@@ -3,13 +3,7 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 
-import {
-  FiHome,
-  FiGrid,
-  FiDollarSign,
-  FiBookOpen,
-  FiPhone,
-} from "react-icons/fi";
+import { FiHome, FiGrid, FiLock, FiDollarSign, FiPhone } from "react-icons/fi";
 
 const PublicMobileBottomBar = () => {
   const navItems = [
@@ -20,22 +14,22 @@ const PublicMobileBottomBar = () => {
     },
     {
       label: "Features",
-      path: "/features",
+      path: "/",
       icon: <FiGrid />,
     },
     {
+      label: "Login",
+      path: "/login",
+      icon: <FiLock />,
+    },
+    {
       label: "Pricing",
-      path: "/pricing",
+      path: "/",
       icon: <FiDollarSign />,
     },
     {
-      label: "Resources",
-      path: "/blog",
-      icon: <FiBookOpen />,
-    },
-    {
       label: "Contact",
-      path: "/contact",
+      path: "/",
       icon: <FiPhone />,
     },
   ];
