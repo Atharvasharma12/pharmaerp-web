@@ -1,6 +1,6 @@
 // src/layouts/public/desktop/PublicDesktopNavbar.jsx
 
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
 import {
@@ -23,8 +23,11 @@ import {
 
 import { AppButton } from "@/components";
 import ThemeSwitcher from "@/components/shared/theme/ThemeSwitcher";
+import LanguageSelector from "@/components/shared/language/LanguageSelector";
 
 const PublicDesktopNavbar = () => {
+  const [language, setLanguage] = useState("en");
+
   const loginUrl = "/login";
 
   const navItems = [
@@ -33,27 +36,27 @@ const PublicDesktopNavbar = () => {
       dropdown: true,
       items: [
         {
-          label: "Inventory Management",
+          label: "Inventory",
           icon: <FiPackage />,
           path: "/features/inventory-management",
         },
         {
-          label: "Billing & Invoicing",
+          label: "Billing",
           icon: <FiFileText />,
           path: "/features/billing-invoicing",
         },
         {
-          label: "GST & Compliance",
+          label: "GST",
           icon: <FiShoppingCart />,
           path: "/features/gst-compliance",
         },
         {
-          label: "Reports & Analytics",
+          label: "Analytics",
           icon: <FiBarChart2 />,
           path: "/features/reports-analytics",
         },
         {
-          label: "Customer Management",
+          label: "Customers",
           icon: <FiUsers />,
           path: "/features/customer-management",
         },
@@ -64,12 +67,12 @@ const PublicDesktopNavbar = () => {
       dropdown: true,
       items: [
         {
-          label: "Independent Pharmacy",
+          label: "Pharmacy",
           icon: <FiHome />,
           path: "/solutions/independent-pharmacy",
         },
         {
-          label: "Chain Pharmacy",
+          label: "Chain",
           icon: <FiUsers />,
           path: "/solutions/chain-pharmacy",
         },
@@ -79,7 +82,7 @@ const PublicDesktopNavbar = () => {
           path: "/solutions/distributors",
         },
         {
-          label: "Medical Stores",
+          label: "Stores",
           icon: <FiShoppingCart />,
           path: "/solutions/medical-stores",
         },
@@ -100,7 +103,7 @@ const PublicDesktopNavbar = () => {
           path: "/blog",
         },
         {
-          label: "Help Center",
+          label: "Help",
           icon: <FiHelpCircle />,
           path: "/help-center",
         },
@@ -110,7 +113,7 @@ const PublicDesktopNavbar = () => {
           path: "/guides",
         },
         {
-          label: "API Documentation",
+          label: "API Docs",
           icon: <FiBarChart2 />,
           path: "/api-docs",
         },
@@ -121,7 +124,7 @@ const PublicDesktopNavbar = () => {
       dropdown: true,
       items: [
         {
-          label: "About Us",
+          label: "About",
           icon: <FiInfo />,
           path: "/about",
         },
@@ -131,12 +134,12 @@ const PublicDesktopNavbar = () => {
           path: "/pricing",
         },
         {
-          label: "Testimonials",
+          label: "Reviews",
           icon: <FiMessageSquare />,
           path: "/testimonials",
         },
         {
-          label: "Contact Us",
+          label: "Contact",
           icon: <FiPhone />,
           path: "/contact",
         },
@@ -146,56 +149,53 @@ const PublicDesktopNavbar = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-surface/95 backdrop-blur-md">
-      <nav className="mx-auto flex h-[76px] w-full max-w-7xl items-center justify-between px-6 lg:px-8">
-        <div className="flex items-center gap-12">
+      <nav className="mx-auto flex h-[64px] w-full max-w-7xl items-center justify-between px-4 lg:px-6">
+        <div className="flex items-center gap-8">
           <Link
             to="/"
-            className="flex shrink-0 items-center gap-3 transition-opacity hover:opacity-90"
+            className="flex shrink-0 items-center gap-2 transition-opacity hover:opacity-90"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface shadow-sm">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface shadow-sm">
               <img
                 src="/erp-mini-logo.png"
                 alt="PharmaERP Logo"
-                className="h-7 w-7 object-contain"
+                className="h-6 w-6 object-contain"
               />
             </div>
 
-            <span className="text-[24px] font-bold tracking-tight text-text">
+            <span className="text-[21px] font-bold tracking-tight text-text">
               Pharma<span className="text-primary">ERP</span>
             </span>
           </Link>
 
-          <div className="hidden items-center gap-7 xl:flex">
+          <div className="hidden items-center gap-5 xl:flex">
             {navItems.map((item) => (
               <div key={item.label} className="group relative">
                 {item.dropdown ? (
                   <>
                     <button
                       type="button"
-                      className="flex items-center gap-1 text-[15px] font-medium text-text-muted transition hover:text-primary"
+                      className="flex items-center gap-1 text-[14px] font-medium text-text-muted transition hover:text-primary"
                     >
                       {item.label}
-
-                      <FiChevronDown className="text-[16px] transition duration-200 group-hover:rotate-180" />
+                      <FiChevronDown className="text-[15px] transition duration-200 group-hover:rotate-180" />
                     </button>
 
-                    <div className="invisible absolute left-1/2 top-full z-50 mt-5 w-[280px] -translate-x-1/2 rounded-2xl border border-border bg-surface p-2 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:mt-3 group-hover:opacity-100">
-                      <div className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-l border-t border-border bg-surface" />
+                    <div className="invisible absolute left-1/2 top-full z-50 mt-4 w-[220px] -translate-x-1/2 rounded-xl border border-border bg-surface p-1.5 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:mt-2 group-hover:opacity-100">
+                      <div className="absolute -top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t border-border bg-surface" />
 
-                      <div className="relative z-10 space-y-1">
+                      <div className="relative z-10 space-y-0.5">
                         {item.items.map((subItem) => (
                           <Link
                             key={subItem.label}
                             to={subItem.path}
-                            className="flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-text-muted transition-all duration-200 hover:bg-primary-soft hover:text-primary"
+                            className="flex items-center gap-2 rounded-lg px-2 py-2 text-[13px] font-medium text-text-muted transition-all duration-200 hover:bg-primary-soft hover:text-primary"
                           >
-                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-[18px] text-primary">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-soft text-[15px] text-primary">
                               {subItem.icon}
                             </span>
 
-                            <div className="flex flex-col">
-                              <span>{subItem.label}</span>
-                            </div>
+                            <span>{subItem.label}</span>
                           </Link>
                         ))}
                       </div>
@@ -204,7 +204,7 @@ const PublicDesktopNavbar = () => {
                 ) : (
                   <Link
                     to={item.path}
-                    className="text-[15px] font-medium text-text-muted transition hover:text-primary"
+                    className="text-[14px] font-medium text-text-muted transition hover:text-primary"
                   >
                     {item.label}
                   </Link>
@@ -214,8 +214,15 @@ const PublicDesktopNavbar = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <ThemeSwitcher />
+        <div className="flex items-center gap-2">
+          <LanguageSelector
+            value={language}
+            onChange={setLanguage}
+            size="small"
+            align="right"
+          />
+
+          <ThemeSwitcher size="small" />
 
           <AppButton
             component={Link}
@@ -224,9 +231,9 @@ const PublicDesktopNavbar = () => {
             colorVariant="primary"
             rounded="lg"
             sx={{
-              px: "22px",
-              py: "10px",
-              fontSize: "14px",
+              px: "16px",
+              py: "8px",
+              fontSize: "13px",
               fontWeight: 600,
               textTransform: "none",
             }}
@@ -240,16 +247,16 @@ const PublicDesktopNavbar = () => {
             variant="contained"
             colorVariant="primary"
             rounded="lg"
-            endIcon={<FiArrowRight className="text-[17px]" />}
+            endIcon={<FiArrowRight className="text-[15px]" />}
             sx={{
-              px: "22px",
-              py: "10px",
-              fontSize: "14px",
+              px: "16px",
+              py: "8px",
+              fontSize: "13px",
               fontWeight: 700,
               textTransform: "none",
             }}
           >
-            Start Free Trial
+            Start Trial
           </AppButton>
         </div>
       </nav>

@@ -25,6 +25,7 @@ import {
 
 import { AppButton, AppIconButton } from "@/components";
 import ThemeSwitcher from "@/components/shared/theme/ThemeSwitcher";
+import LanguageSelector from "@/components/shared/language/LanguageSelector";
 
 const PublicMobileTopBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -176,6 +177,8 @@ const PublicMobileTopBar = () => {
           </Link>
 
           <div className="flex items-center gap-2">
+            <LanguageSelector size="small" align="right" />
+
             <ThemeSwitcher compact size="small" />
 
             <AppIconButton
