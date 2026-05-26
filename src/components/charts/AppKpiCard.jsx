@@ -26,9 +26,11 @@ const AppKpiCard = ({
   contentSx = {},
   ...props
 }) => {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-  const t = getThemeTokens(theme);
+  const { mode, theme, colorTheme } = useTheme();
+
+  const activeMode = mode || theme;
+  const isDark = activeMode === "dark";
+  const t = getThemeTokens(activeMode, colorTheme);
 
   const colorMap = {
     primary: {

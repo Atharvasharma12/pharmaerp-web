@@ -10,6 +10,8 @@ import {
   FiCheckCircle,
 } from "react-icons/fi";
 
+import { AppBadge, AppBox, AppCard, AppHeading, AppText } from "@/components";
+
 const WorkflowSection = () => {
   const steps = [
     {
@@ -17,69 +19,95 @@ const WorkflowSection = () => {
       icon: <FiShoppingCart />,
       title: "Purchase",
       desc: "Create purchase orders, manage suppliers and get the best prices.",
-      color: "green",
+      colorVariant: "success",
     },
     {
       number: "2",
       icon: <FiPackage />,
       title: "Stock In",
       desc: "Receive stock, scan items and update inventory in real-time.",
-      color: "green",
+      colorVariant: "success",
     },
     {
       number: "3",
       icon: <FiGrid />,
       title: "Inventory Management",
       desc: "Track stock, batches, expiry dates and get low stock alerts.",
-      color: "blue",
+      colorVariant: "info",
     },
     {
       number: "4",
       icon: <FiFileText />,
       title: "Sales & Billing",
       desc: "Fast billing with GST, discounts, schemes and multiple payments.",
-      color: "purple",
+      colorVariant: "primary",
     },
     {
       number: "5",
       icon: <FiBarChart2 />,
       title: "Reports & Analytics",
       desc: "Get real-time reports on sales, profit, stock and business performance.",
-      color: "orange",
+      colorVariant: "warning",
     },
     {
       number: "6",
       icon: <FiUsers />,
       title: "Customers & Growth",
       desc: "Improve customer loyalty, manage credit and grow your pharmacy business.",
-      color: "green",
+      colorVariant: "success",
     },
   ];
 
   return (
-    <section className="w-full bg-[#fbfcfd] py-10">
+    <section className="w-full bg-bg py-10">
       <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
-        {/* HEADING */}
         <div className="mx-auto max-w-4xl text-center">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-semibold text-[#08a84f]">
-            <FiMonitor className="text-[13px]" />
-            Smart Workflow
-          </div>
+          <AppBadge
+            variant="soft"
+            colorVariant="success"
+            rounded="full"
+            startIcon={<FiMonitor />}
+            label="Smart Workflow"
+            sx={{
+              mb: 1.5,
+              px: 1.5,
+              py: 0.5,
+              fontSize: "12px",
+              fontWeight: 700,
+            }}
+          />
 
-          <h2 className="text-[28px] font-extrabold leading-[1.08] tracking-[-0.8px] text-slate-900 sm:text-[34px] lg:text-[40px]">
+          <AppHeading
+            level={2}
+            weight={800}
+            sx={{
+              m: 0,
+              fontSize: { xs: "28px", sm: "34px", lg: "40px" },
+              lineHeight: 1.08,
+              letterSpacing: "-0.8px",
+              color: "var(--app-color-text)",
+            }}
+          >
             A Complete System That Simplifies
-            <span className="block text-[#08a84f]">
-              Your Pharmacy Operations
-            </span>
-          </h2>
+            <span className="block text-primary">Your Pharmacy Operations</span>
+          </AppHeading>
 
-          <p className="mx-auto mt-3 max-w-3xl text-[14px] leading-6 text-slate-600">
+          <AppText
+            variant="body2"
+            sx={{
+              mx: "auto",
+              mt: 1.5,
+              maxWidth: "48rem",
+              fontSize: "14px",
+              lineHeight: "24px",
+              color: "var(--app-color-text-muted)",
+            }}
+          >
             From purchase to profit, PharmaERP streamlines every step of your
             pharmacy workflow so you can save time and focus on your customers.
-          </p>
+          </AppText>
         </div>
 
-        {/* WORKFLOW CARDS */}
         <div className="mt-14 grid gap-x-5 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {steps.map((step, index) => (
             <WorkflowCard
@@ -90,23 +118,67 @@ const WorkflowSection = () => {
           ))}
         </div>
 
-        {/* DASHBOARD BOX */}
-        <div className="mt-7 rounded-2xl border border-emerald-100 bg-emerald-50/35 px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+        <AppCard
+          variant="default"
+          rounded="xl"
+          bordered
+          shadow="sm"
+          padding="none"
+          sx={{
+            mt: 3.5,
+            px: 2.5,
+            py: 2,
+            borderColor: "var(--app-color-success-soft)",
+            bgcolor: "var(--app-color-readonly-bg)",
+          }}
+        >
           <div className="grid items-center gap-6 lg:grid-cols-[0.34fr_0.66fr]">
             <div className="flex gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[26px] text-[#08a84f]">
+              <AppBox
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                sx={{
+                  width: 56,
+                  height: 56,
+                  minWidth: 56,
+                  flexShrink: 0,
+                  borderRadius: "999px",
+                  bgcolor: "var(--app-color-success-soft)",
+                  color: "var(--app-color-success)",
+                  fontSize: "26px",
+                  lineHeight: 0,
+                }}
+              >
                 <FiMonitor />
-              </div>
+              </AppBox>
 
               <div>
-                <h3 className="text-[18px] font-extrabold text-[#08a84f]">
+                <AppHeading
+                  level={3}
+                  weight={800}
+                  sx={{
+                    m: 0,
+                    fontSize: "18px",
+                    color: "var(--app-color-success)",
+                  }}
+                >
                   One System. Complete Control.
-                </h3>
+                </AppHeading>
 
-                <p className="mt-2 max-w-[340px] text-[14px] leading-6 text-slate-800">
+                <AppText
+                  variant="body2"
+                  sx={{
+                    mt: 1,
+                    maxWidth: 340,
+                    fontSize: "14px",
+                    lineHeight: "24px",
+                    color: "var(--app-color-text)",
+                  }}
+                >
                   PharmaERP connects every operation of your pharmacy in one
                   place.
-                </p>
+                </AppText>
 
                 <div className="mt-5 space-y-3">
                   {[
@@ -116,10 +188,18 @@ const WorkflowSection = () => {
                     "Happy customers, growing business",
                   ].map((item) => (
                     <div key={item} className="flex items-center gap-2.5">
-                      <FiCheckCircle className="shrink-0 text-[17px] text-[#08a84f]" />
-                      <span className="text-[13.5px] text-slate-800">
+                      <FiCheckCircle className="shrink-0 text-[17px] text-primary" />
+
+                      <AppText
+                        variant="body2"
+                        sx={{
+                          fontSize: "13.5px",
+                          lineHeight: 1,
+                          color: "var(--app-color-text)",
+                        }}
+                      >
                         {item}
-                      </span>
+                      </AppText>
                     </div>
                   ))}
                 </div>
@@ -130,80 +210,129 @@ const WorkflowSection = () => {
               <img
                 src="/src/assets/dashboard-showcase/overview-dashboard.png"
                 alt="Dashboard Overview"
-                className="w-full max-w-[700px] rounded-xl object-contain shadow-[0_12px_28px_rgba(15,23,42,0.06)]"
+                className="w-full max-w-[700px] rounded-xl object-contain"
+                style={{
+                  boxShadow: "var(--app-shadow-md)",
+                }}
               />
             </div>
           </div>
-        </div>
+        </AppCard>
       </div>
     </section>
   );
 };
 
-const WorkflowCard = ({ number, icon, title, desc, color, isLast }) => {
-  const colors = {
-    green: {
-      iconBg: "bg-emerald-50",
-      iconText: "text-[#08a84f]",
-      numberBg: "bg-[#08a84f]",
-      title: "text-[#08a84f]",
-    },
-    blue: {
-      iconBg: "bg-blue-50",
-      iconText: "text-blue-600",
-      numberBg: "bg-blue-600",
-      title: "text-blue-600",
-    },
-    purple: {
-      iconBg: "bg-purple-50",
-      iconText: "text-purple-600",
-      numberBg: "bg-purple-600",
-      title: "text-purple-600",
-    },
-    orange: {
-      iconBg: "bg-orange-50",
-      iconText: "text-orange-500",
-      numberBg: "bg-orange-500",
-      title: "text-orange-500",
-    },
-  };
-
-  const c = colors[color] || colors.green;
+const WorkflowCard = ({
+  number,
+  icon,
+  title,
+  desc,
+  colorVariant = "success",
+  isLast,
+}) => {
+  const color = `var(--app-color-${colorVariant})`;
+  const softColor = `var(--app-color-${colorVariant}-soft)`;
 
   return (
-    <div className="relative">
+    <div className="relative pt-[35px]">
       {!isLast && (
-        <div className="absolute left-[calc(100%-3px)] top-[44px] z-20 hidden w-7 items-center xl:flex">
-          <div className="h-[2px] flex-1 border-t-2 border-dotted border-[#08a84f]" />
-          <div className="h-0 w-0 border-y-[5px] border-l-[7px] border-y-transparent border-l-[#08a84f]" />
+        <div className="absolute left-[calc(100%-3px)] top-[79px] z-20 hidden w-7 items-center xl:flex">
+          <div className="h-[2px] flex-1 border-t-2 border-dotted border-primary" />
+          <div className="h-0 w-0 border-y-[5px] border-l-[7px] border-y-transparent border-l-[var(--app-color-primary)]" />
         </div>
       )}
 
-      <div className="relative min-h-[188px] rounded-xl border border-slate-200 bg-white px-4 pb-5 pt-11 text-center shadow-[0_8px_20px_rgba(15,23,42,0.035)]">
-        <div
-          className={`absolute left-1/2 top-0 flex h-[70px] w-[70px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full ${c.iconBg} ${c.iconText}`}
+      <AppCard
+        variant="default"
+        bordered
+        rounded="lg"
+        shadow="sm"
+        padding="none"
+        sx={{
+          position: "relative",
+          minHeight: 188,
+          px: 2,
+          pb: 2.5,
+          pt: 5.5,
+          textAlign: "center",
+          bgcolor: "var(--app-color-surface)",
+          overflow: "visible",
+        }}
+      >
+        <AppBox
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          sx={{
+            position: "absolute",
+            left: "50%",
+            top: 0,
+            width: 70,
+            height: 70,
+            transform: "translate(-50%, -50%)",
+            borderRadius: "999px",
+            bgcolor: softColor,
+            color,
+            fontSize: "34px",
+            lineHeight: 0,
+            zIndex: 5,
+          }}
         >
-          <span className="text-[34px]">{icon}</span>
-        </div>
+          {icon}
+        </AppBox>
 
-        <div className="flex items-start justify-center gap-2">
-          <span
-            className={`mt-[1px] flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${c.numberBg} text-[12px] font-extrabold leading-none text-white`}
+        <div className="flex min-h-[34px] items-center justify-center gap-2">
+          <AppBox
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            sx={{
+              width: 24,
+              height: 24,
+              minWidth: 24,
+              flexShrink: 0,
+              borderRadius: "999px",
+              bgcolor: color,
+              color: "var(--app-color-text-inverse)",
+              fontSize: "12px",
+              fontWeight: 800,
+              lineHeight: 1,
+            }}
           >
             {number}
-          </span>
+          </AppBox>
 
-          <h3
-            className={`max-w-[125px] text-left text-[14.5px] font-extrabold leading-[1.25] ${c.title}`}
+          <AppHeading
+            level={3}
+            weight={800}
+            sx={{
+              m: 0,
+              maxWidth: 125,
+              textAlign: "left",
+              fontSize: "14.5px",
+              lineHeight: 1.25,
+              color,
+            }}
           >
             {title}
-          </h3>
+          </AppHeading>
         </div>
 
-        <p className="mx-auto mt-4 max-w-[145px] text-[12.5px] leading-5 text-slate-600">
+        <AppText
+          variant="body2"
+          sx={{
+            mx: "auto",
+            mt: 2,
+            maxWidth: 145,
+            fontSize: "12.5px",
+            lineHeight: "20px",
+            color: "var(--app-color-text-muted)",
+          }}
+        >
           {desc}
-        </p>
-      </div>
+        </AppText>
+      </AppCard>
     </div>
   );
 };

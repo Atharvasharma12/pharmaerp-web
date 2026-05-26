@@ -64,9 +64,11 @@ const AppInput = forwardRef(function AppInput(
   },
   ref,
 ) {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-  const t = getThemeTokens(theme);
+  const { mode, theme, colorTheme } = useTheme();
+
+  const activeMode = mode || theme;
+  const isDark = activeMode === "dark";
+  const t = getThemeTokens(activeMode, colorTheme);
 
   const [internalType, setInternalType] = useState(type);
   const isPasswordType = type === "password";

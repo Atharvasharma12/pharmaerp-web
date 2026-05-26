@@ -119,8 +119,10 @@ const AppSearchCommand = ({
   contentSx = {},
   inputProps = {},
 }) => {
-  const { theme } = useTheme();
-  const t = getThemeTokens(theme);
+  const { mode, theme, colorTheme } = useTheme();
+
+  const activeMode = mode || theme;
+  const t = getThemeTokens(activeMode, colorTheme);
 
   const isControlled = typeof controlledOpen === "boolean";
   const [internalOpen, setInternalOpen] = useState(defaultOpen);

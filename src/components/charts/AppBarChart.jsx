@@ -20,8 +20,10 @@ const AppBarChart = ({
   valueFormatter,
   sx = {},
 }) => {
-  const { theme } = useTheme();
-  const t = getThemeTokens(theme);
+  const { mode, theme, colorTheme } = useTheme();
+
+  const activeMode = mode || theme;
+  const t = getThemeTokens(activeMode, colorTheme);
 
   const hasData = Array.isArray(data) && data.length > 0;
 
@@ -34,7 +36,7 @@ const AppBarChart = ({
       warning: t.warning,
       info: t.info,
       neutral: t.textMuted,
-      dark: theme === "dark" ? "#fff" : "#000",
+      dark: activeMode === "dark" ? "#fff" : "#000",
     };
     return map[variant] || t.primary;
   };

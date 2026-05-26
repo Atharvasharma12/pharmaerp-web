@@ -26,8 +26,10 @@ const AppAccordion = ({
   summarySx = {},
   detailsSx = {},
 }) => {
-  const { theme } = useTheme();
-  const t = getThemeTokens(theme);
+  const { mode, theme, colorTheme } = useTheme();
+
+  const activeMode = mode || theme;
+  const t = getThemeTokens(activeMode, colorTheme);
 
   const [internalExpanded, setInternalExpanded] = React.useState(() => {
     if (allowMultiple) return [];

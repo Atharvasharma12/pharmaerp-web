@@ -12,66 +12,153 @@ import {
   FiSend,
 } from "react-icons/fi";
 
+import {
+  AppButton,
+  AppBadge,
+  AppText,
+  AppHeading,
+  AppBox,
+  AppStack,
+  AppGrid,
+} from "@/components";
+
 const HeroSection = () => {
   return (
-    <section className="w-full overflow-hidden bg-[#fbfcfd] pt-8 pb-6">
+    <section className="w-full overflow-hidden bg-bg pt-8 pb-6">
       <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-10">
         {/* HERO CONTENT */}
         <div className="grid items-center gap-8 lg:grid-cols-[0.95fr_1.05fr]">
           {/* LEFT SIDE */}
-          <div className="max-w-[590px]">
+          <AppBox sx={{ maxWidth: 590 }}>
             {/* Badge */}
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-[#08a84f]">
-              <FiCheckCircle className="text-[12px]" />
-              All-in-One Pharmacy Management Software
-            </div>
+            <AppBadge
+              variant="soft"
+              colorVariant="success"
+              rounded="full"
+              startIcon={<FiCheckCircle />}
+              label="All-in-One Pharmacy Management Software"
+              sx={{
+                mb: 1.5,
+                px: 1.5,
+                py: 0.5,
+                fontSize: "11px",
+                fontWeight: 700,
+              }}
+            />
 
             {/* Heading */}
-            <h1 className="text-[34px] font-extrabold leading-[1.05] tracking-[-1.1px] text-slate-900 sm:text-[40px] lg:text-[44px] xl:text-[46px]">
+            <AppHeading
+              level={1}
+              weight={800}
+              sx={{
+                fontSize: {
+                  xs: "34px",
+                  sm: "40px",
+                  lg: "44px",
+                  xl: "46px",
+                },
+                lineHeight: 1.05,
+                letterSpacing: "-1.1px",
+                color: "var(--app-color-text)",
+                m: 0,
+              }}
+            >
               <span className="block whitespace-nowrap">
                 Simplify Your Pharmacy.
               </span>
-
-              <span className="block whitespace-nowrap text-[#08a84f]">
+              <span className="block whitespace-nowrap text-primary">
                 Grow Your Business.
               </span>
-            </h1>
+            </AppHeading>
 
             {/* Description */}
-            <p className="mt-3 max-w-[520px] text-[14px] leading-6 text-slate-600">
+            <AppText
+              variant="body2"
+              sx={{
+                mt: 1.5,
+                maxWidth: 520,
+                fontSize: "14px",
+                lineHeight: "24px",
+                color: "var(--app-color-text-muted)",
+              }}
+            >
               PharmaERP helps pharmacies automate billing, manage inventory,
               track expiry, handle GST and grow smarter with real-time insights.
-            </p>
+            </AppText>
 
             {/* Features */}
-            <div className="mt-4 grid max-w-[500px] grid-cols-2 gap-x-6 gap-y-2.5">
+            <AppGrid
+              xs={2}
+              gap={0}
+              sx={{
+                mt: 2,
+                maxWidth: 500,
+                columnGap: 3,
+                rowGap: 1.25,
+              }}
+            >
               <Feature icon={<FiShield />} text="GST Compliant" />
               <Feature icon={<FiSmile />} text="Easy to Use" />
               <Feature icon={<FiLock />} text="Secure & Reliable" />
               <Feature icon={<FiCloud />} text="Cloud Based" />
-            </div>
+            </AppGrid>
 
             {/* Buttons */}
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <button className="flex items-center justify-center gap-2 rounded-lg bg-[#08a84f] px-5 py-2.5 text-[14px] font-semibold text-white shadow-sm transition hover:bg-[#079447]">
-                <FiSend className="text-[16px]" />
+            <AppStack
+              direction={{ xs: "column", sm: "row" }}
+              gap={1.5}
+              sx={{ mt: 2.5 }}
+            >
+              <AppButton
+                variant="contained"
+                colorVariant="success"
+                rounded="md"
+                startIcon={<FiSend />}
+                sx={{
+                  px: 2.5,
+                  py: 1.25,
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  boxShadow: "var(--app-shadow-sm)",
+                }}
+              >
                 Start Free Trial
-              </button>
+              </AppButton>
 
-              <button className="flex items-center justify-center gap-2 rounded-lg border border-[#08a84f] bg-white px-5 py-2.5 text-[14px] font-semibold text-[#08a84f] transition hover:bg-emerald-50">
-                <FiCalendar className="text-[16px]" />
+              <AppButton
+                variant="outlined"
+                colorVariant="success"
+                rounded="md"
+                startIcon={<FiCalendar />}
+                sx={{
+                  px: 2.5,
+                  py: 1.25,
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  bgcolor: "var(--app-color-surface)",
+                }}
+              >
                 Book a Demo
-              </button>
-            </div>
+              </AppButton>
+            </AppStack>
 
             {/* Bottom Text */}
-            <div className="mt-3 flex items-center gap-2 text-[12px] text-slate-600">
-              <FiCheckCircle className="text-[#08a84f]" />
+            <AppStack
+              direction="row"
+              align="center"
+              gap={1}
+              sx={{
+                mt: 1.5,
+                fontSize: "12px",
+                color: "var(--app-color-text-muted)",
+              }}
+            >
+              <FiCheckCircle className="text-primary" />
               <span>No credit card required</span>
               <span>•</span>
               <span>Setup in minutes</span>
-            </div>
-          </div>
+            </AppStack>
+          </AppBox>
 
           {/* RIGHT IMAGE */}
           <div className="hidden items-center justify-center lg:flex">
@@ -84,13 +171,37 @@ const HeroSection = () => {
         </div>
 
         {/* TRUST SECTION */}
-        <div className="mx-auto mt-6 max-w-6xl border-t border-slate-200 pt-5">
-          <p className="text-center text-[15px] font-medium text-slate-700">
-            Trusted by <span className="font-bold text-[#08a84f]">5,000+</span>{" "}
+        <AppBox
+          sx={{
+            mx: "auto",
+            mt: 3,
+            maxWidth: "72rem",
+            borderTop: "1px solid var(--app-color-border)",
+            pt: 2.5,
+          }}
+        >
+          <AppText
+            variant="body1"
+            align="center"
+            weight={500}
+            sx={{
+              fontSize: "15px",
+              color: "var(--app-color-text)",
+            }}
+          >
+            Trusted by <span className="font-bold text-primary">5,000+</span>{" "}
             Pharmacies Across India
-          </p>
+          </AppText>
 
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <AppGrid
+            xs={1}
+            sm={2}
+            lg={4}
+            gap={3}
+            sx={{
+              mt: 3,
+            }}
+          >
             <TrustItem
               icon={<FiShield />}
               title="100% Secure"
@@ -115,8 +226,8 @@ const HeroSection = () => {
               text="We're here to help you succeed"
               noBorder
             />
-          </div>
-        </div>
+          </AppGrid>
+        </AppBox>
       </div>
     </section>
   );
@@ -124,35 +235,108 @@ const HeroSection = () => {
 
 const Feature = ({ icon, text }) => {
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-[14px] text-[#08a84f]">
+    <AppStack
+      direction="row"
+      align="center"
+      gap={1.2}
+      sx={{
+        minHeight: 32,
+      }}
+    >
+      <AppBox
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        sx={{
+          width: 28,
+          height: 28,
+          minWidth: 28,
+          borderRadius: "999px",
+          bgcolor:
+            "var(--app-color-success-soft, var(--app-color-surface-alt))",
+          color: "var(--app-color-success, var(--app-color-primary))",
+          fontSize: "14px",
+          lineHeight: 0,
+          flexShrink: 0,
+        }}
+      >
         {icon}
-      </div>
+      </AppBox>
 
-      <span className="text-[12.5px] font-medium text-slate-700">{text}</span>
-    </div>
+      <AppText
+        variant="body2"
+        weight={500}
+        sx={{
+          fontSize: "12.5px",
+          lineHeight: 1,
+          display: "flex",
+          alignItems: "center",
+          color: "var(--app-color-text)",
+        }}
+      >
+        {text}
+      </AppText>
+    </AppStack>
   );
 };
 
 const TrustItem = ({ icon, title, text, noBorder }) => {
   return (
-    <div
-      className={`flex items-start gap-4 ${
-        !noBorder ? "lg:border-r lg:border-slate-200 lg:pr-6" : ""
-      }`}
+    <AppStack
+      direction="row"
+      align="flex-start"
+      gap={2}
+      sx={{
+        pr: { lg: noBorder ? 0 : 3 },
+        borderRight: {
+          xs: "none",
+          lg: noBorder ? "none" : "1px solid var(--app-color-border)",
+        },
+      }}
     >
       {/* Icon */}
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center text-[32px] text-[#08a84f]">
+      <AppBox
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        sx={{
+          width: 44,
+          height: 44,
+          flexShrink: 0,
+          color: "var(--app-color-success, var(--app-color-primary))",
+          fontSize: "32px",
+        }}
+      >
         {icon}
-      </div>
+      </AppBox>
 
       {/* Content */}
-      <div>
-        <h4 className="text-[13px] font-bold text-slate-900">{title}</h4>
+      <AppBox>
+        <AppHeading
+          level={4}
+          weight={700}
+          sx={{
+            m: 0,
+            fontSize: "13px",
+            color: "var(--app-color-text)",
+          }}
+        >
+          {title}
+        </AppHeading>
 
-        <p className="mt-1 text-[12px] leading-5 text-slate-600">{text}</p>
-      </div>
-    </div>
+        <AppText
+          variant="body2"
+          sx={{
+            mt: 0.5,
+            fontSize: "12px",
+            lineHeight: "20px",
+            color: "var(--app-color-text-muted)",
+          }}
+        >
+          {text}
+        </AppText>
+      </AppBox>
+    </AppStack>
   );
 };
 

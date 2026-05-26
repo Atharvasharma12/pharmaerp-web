@@ -24,8 +24,10 @@ const AppAreaChart = ({
   sx = {},
   chartSx = {},
 }) => {
-  const { theme } = useTheme();
-  const t = getThemeTokens(theme);
+  const { mode, theme, colorTheme } = useTheme();
+
+  const activeMode = mode || theme;
+  const t = getThemeTokens(activeMode, colorTheme);
 
   const hasData = Array.isArray(data) && data.length > 0;
 
@@ -36,8 +38,8 @@ const AppAreaChart = ({
       error: t.error,
       warning: t.warning,
       info: t.info,
-      neutral: theme === "dark" ? t.neutral[500] : t.neutral[600],
-      dark: theme === "dark" ? t.neutral[100] : t.neutral[900],
+      neutral: activeMode === "dark" ? t.neutral[500] : t.neutral[600],
+      dark: activeMode === "dark" ? t.neutral[100] : t.neutral[900],
     };
 
     return map[variant] || t.primary;
@@ -224,7 +226,7 @@ const AppAreaChart = ({
               strokeWidth: 2,
             },
             "& .MuiAreaElement-root": {
-              fillOpacity: theme === "dark" ? 0.24 : 0.16,
+              fillOpacity: activeMode === "dark" ? 0.24 : 0.16,
             },
             "& .MuiLineElement-root": {
               strokeWidth: 2.5,

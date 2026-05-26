@@ -17,8 +17,10 @@ const AppImageUpload = ({
   helperText,
   ...props
 }) => {
-  const { theme } = useTheme();
-  const t = getThemeTokens(theme);
+  const { mode, theme, colorTheme } = useTheme();
+
+  const activeMode = mode || theme;
+  const t = getThemeTokens(activeMode, colorTheme);
 
   const imageUrl = useMemo(() => {
     if (!value) return null;

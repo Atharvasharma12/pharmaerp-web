@@ -14,8 +14,10 @@ const AppAvatarGroup = ({
   onClick,
   sx = {},
 }) => {
-  const { theme } = useTheme();
-  const t = getThemeTokens(theme);
+  const { mode, theme, colorTheme } = useTheme();
+
+  const activeMode = mode || theme;
+  const t = getThemeTokens(activeMode, colorTheme);
 
   const visibleItems = items.slice(0, max);
   const remaining = items.length - max;

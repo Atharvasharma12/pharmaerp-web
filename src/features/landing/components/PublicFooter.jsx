@@ -16,6 +16,17 @@ import {
 } from "react-icons/fa6";
 import { HiCurrencyRupee } from "react-icons/hi2";
 
+import {
+  AppBox,
+  AppButton,
+  AppGrid,
+  AppHeading,
+  AppInput,
+  AppLink,
+  AppStack,
+  AppText,
+} from "@/components";
+
 const PublicFooter = () => {
   const productLinks = [
     "Features",
@@ -60,37 +71,85 @@ const PublicFooter = () => {
   ];
 
   return (
-    <footer className="w-full bg-[#f8fafc] pt-10 pb-5">
+    <footer className="w-full bg-surface-alt pt-10 pb-5">
       <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
         {/* TOP SECTION */}
-        <div className="grid gap-8 border-b border-slate-200 pb-8 md:grid-cols-2 lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr_0.8fr_1.2fr]">
+        <AppGrid
+          xs={1}
+          md={2}
+          gap={4}
+          sx={{
+            pb: 4,
+            borderBottom: "1px solid var(--app-color-border)",
+            "@media (min-width: 1024px)": {
+              gridTemplateColumns: "1.3fr 0.8fr 0.8fr 0.8fr 0.8fr 1.2fr",
+            },
+          }}
+        >
           {/* BRAND */}
-          <div>
-            <a href="/" className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-[#08a84f]">
-                <FaPlus className="text-[22px]" />
-              </div>
+          <AppBox>
+            <AppLink
+              href="/"
+              underline="none"
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 1.25,
+              }}
+            >
+              <AppBox
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "8px",
+                  bgcolor:
+                    "var(--app-color-success-soft, var(--app-color-surface))",
+                  color: "var(--app-color-success)",
+                  fontSize: "22px",
+                  lineHeight: 0,
+                }}
+              >
+                <FaPlus />
+              </AppBox>
 
-              <span className="text-[24px] font-bold tracking-tight text-slate-900">
-                Pharma<span className="text-[#08a84f]">ERP</span>
-              </span>
-            </a>
+              <AppText
+                variant="h5"
+                weight={700}
+                sx={{
+                  fontSize: "24px",
+                  letterSpacing: "-0.4px",
+                  color: "var(--app-color-text)",
+                }}
+              >
+                Pharma
+                <span className="text-primary">ERP</span>
+              </AppText>
+            </AppLink>
 
-            <p className="mt-4 max-w-[240px] text-[13px] leading-6 text-slate-600">
+            <AppText
+              variant="body2"
+              sx={{
+                mt: 2,
+                maxWidth: 240,
+                fontSize: "13px",
+                lineHeight: "24px",
+                color: "var(--app-color-text-muted)",
+              }}
+            >
               All-in-one pharmacy management software to simplify operations and
               grow your pharmacy business.
-            </p>
+            </AppText>
 
-            <div className="mt-5 space-y-3">
+            <AppStack direction="column" gap={1.5} sx={{ mt: 2.5 }}>
               <FooterInfo icon={<FiShield />} text="100% Secure & Reliable" />
-
               <FooterInfo icon={<FiCloud />} text="Cloud Based" />
-
               <FooterInfo icon={<HiCurrencyRupee />} text="GST Compliant" />
-
               <FooterInfo icon={<FiHeadphones />} text="Dedicated Support" />
-            </div>
-          </div>
+            </AppStack>
+          </AppBox>
 
           {/* COLUMNS */}
           <FooterColumn title="Product" links={productLinks} />
@@ -99,103 +158,194 @@ const PublicFooter = () => {
           <FooterColumn title="Resources" links={resourceLinks} />
 
           {/* NEWSLETTER */}
-          <div>
-            <h3 className="text-[15px] font-bold text-slate-900">
+          <AppBox>
+            <AppHeading
+              level={3}
+              weight={700}
+              sx={{
+                m: 0,
+                fontSize: "15px",
+                color: "var(--app-color-text)",
+              }}
+            >
               Stay Updated
-            </h3>
+            </AppHeading>
 
-            <p className="mt-4 text-[13px] leading-6 text-slate-600">
+            <AppText
+              variant="body2"
+              sx={{
+                mt: 2,
+                fontSize: "13px",
+                lineHeight: "24px",
+                color: "var(--app-color-text-muted)",
+              }}
+            >
               Get latest updates, features and pharmacy tips.
-            </p>
+            </AppText>
 
-            <form className="mt-4 flex overflow-hidden rounded-lg border border-slate-200 bg-white">
-              <input
+            <AppBox
+              component="form"
+              sx={{
+                mt: 2,
+                display: "flex",
+                overflow: "hidden",
+                borderRadius: "8px",
+                border: "1px solid var(--app-color-border)",
+                bgcolor: "var(--app-color-surface)",
+              }}
+            >
+              <AppInput
                 type="email"
                 placeholder="Enter your email"
-                className="min-w-0 flex-1 px-3 py-2.5 text-[13px] outline-none placeholder:text-slate-400"
+                variant="surface"
+                fullWidth
+                inputSx={{
+                  border: 0,
+                  boxShadow: "none",
+                  fontSize: "13px",
+                  "& fieldset": {
+                    border: "none",
+                  },
+                }}
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                }}
               />
 
-              <button
+              <AppButton
                 type="submit"
-                className="flex w-11 items-center justify-center bg-[#08a84f] text-white"
+                variant="contained"
+                colorVariant="success"
+                rounded="sm"
+                sx={{
+                  minWidth: 44,
+                  width: 44,
+                  px: 0,
+                  borderRadius: 0,
+                }}
               >
-                <FiSend className="text-[16px]" />
-              </button>
-            </form>
+                <FiSend style={{ fontSize: 16 }} />
+              </AppButton>
+            </AppBox>
 
-            <h3 className="mt-6 text-[15px] font-bold text-slate-900">
+            <AppHeading
+              level={3}
+              weight={700}
+              sx={{
+                mt: 3,
+                mb: 0,
+                fontSize: "15px",
+                color: "var(--app-color-text)",
+              }}
+            >
               Follow Us
-            </h3>
+            </AppHeading>
 
-            <div className="mt-4 flex items-center gap-3">
+            <AppStack direction="row" align="center" gap={1.5} sx={{ mt: 2 }}>
               <SocialIcon icon={<FaFacebookF />} />
               <SocialIcon icon={<FaInstagram />} />
               <SocialIcon icon={<FaLinkedinIn />} />
               <SocialIcon icon={<FaYoutube />} />
-            </div>
-          </div>
-        </div>
+            </AppStack>
+          </AppBox>
+        </AppGrid>
 
         {/* TRUST BAR */}
-        <div className="grid gap-5 border-b border-slate-200 py-5 md:grid-cols-2 lg:grid-cols-5">
-          {/* TRUSTED */}
-          <div className="flex items-center gap-3">
-            <FiShield className="text-[34px] text-[#08a84f]" />
+        <AppGrid
+          xs={1}
+          md={2}
+          lg={5}
+          gap={2.5}
+          sx={{
+            py: 2.5,
+            borderBottom: "1px solid var(--app-color-border)",
+          }}
+        >
+          <AppStack direction="row" align="center" gap={1.5}>
+            <FiShield
+              style={{
+                fontSize: 34,
+                color: "var(--app-color-success)",
+                flexShrink: 0,
+              }}
+            />
 
-            <div>
-              <p className="text-[13px] font-semibold text-slate-700">
+            <AppBox>
+              <AppText
+                variant="body2"
+                weight={600}
+                sx={{ fontSize: "13px", color: "var(--app-color-text)" }}
+              >
                 Trusted by{" "}
-                <span className="font-bold text-[#08a84f]">5,000+</span>{" "}
+                <span className="font-bold text-primary">5,000+</span>{" "}
                 Pharmacies
-              </p>
+              </AppText>
 
-              <p className="text-[13px] text-slate-600">Across India</p>
-            </div>
-          </div>
+              <AppText
+                variant="body2"
+                sx={{
+                  fontSize: "13px",
+                  color: "var(--app-color-text-muted)",
+                }}
+              >
+                Across India
+              </AppText>
+            </AppBox>
+          </AppStack>
 
-          {/* TRUST ITEMS */}
           {trustItems.map((item) => (
-            <div
-              key={item.title}
-              className="flex items-center gap-3 border-slate-200 lg:border-l lg:pl-5"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-[20px] text-[#08a84f]">
-                {item.icon}
-              </div>
-
-              <div>
-                <p className="text-[13px] font-semibold text-slate-900">
-                  {item.title}
-                </p>
-
-                <p className="mt-0.5 text-[12px] text-slate-600">{item.text}</p>
-              </div>
-            </div>
+            <TrustItem key={item.title} {...item} />
           ))}
-        </div>
+        </AppGrid>
 
         {/* BOTTOM */}
-        <div className="flex flex-col gap-3 pt-5 text-[12px] text-slate-600 md:flex-row md:items-center md:justify-between">
-          <p>© 2024 PharmaERP. All rights reserved.</p>
+        <AppStack
+          direction={{ xs: "column", md: "row" }}
+          align={{ xs: "flex-start", md: "center" }}
+          justify="space-between"
+          gap={1.5}
+          sx={{
+            pt: 2.5,
+            fontSize: "12px",
+            color: "var(--app-color-text-muted)",
+          }}
+        >
+          <AppText
+            variant="caption"
+            sx={{
+              fontSize: "12px",
+              color: "var(--app-color-text-muted)",
+            }}
+          >
+            © 2024 PharmaERP. All rights reserved.
+          </AppText>
 
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <a href="/" className="hover:text-[#08a84f]">
-              Privacy Policy
-            </a>
-
-            <a href="/" className="hover:text-[#08a84f]">
-              Terms of Service
-            </a>
-
-            <a href="/" className="hover:text-[#08a84f]">
-              Refund Policy
-            </a>
-
-            <a href="/" className="hover:text-[#08a84f]">
-              Security
-            </a>
-          </div>
-        </div>
+          <AppStack direction="row" align="center" wrap="wrap" gap={2.5}>
+            {[
+              "Privacy Policy",
+              "Terms of Service",
+              "Refund Policy",
+              "Security",
+            ].map((item) => (
+              <AppLink
+                key={item}
+                href="/"
+                underline="none"
+                sx={{
+                  fontSize: "12px",
+                  color: "var(--app-color-text-muted)",
+                  transition: "0.2s ease",
+                  "&:hover": {
+                    color: "var(--app-color-success)",
+                  },
+                }}
+              >
+                {item}
+              </AppLink>
+            ))}
+          </AppStack>
+        </AppStack>
       </div>
     </footer>
   );
@@ -203,45 +353,165 @@ const PublicFooter = () => {
 
 const FooterColumn = ({ title, links }) => {
   return (
-    <div>
-      <h3 className="text-[15px] font-bold text-slate-900">{title}</h3>
+    <AppBox>
+      <AppHeading
+        level={3}
+        weight={700}
+        sx={{
+          m: 0,
+          fontSize: "15px",
+          color: "var(--app-color-text)",
+        }}
+      >
+        {title}
+      </AppHeading>
 
-      <ul className="mt-4 space-y-3">
+      <AppStack component="ul" direction="column" gap={1.5} sx={{ mt: 2 }}>
         {links.map((link) => (
-          <li key={link}>
-            <a
+          <AppBox component="li" key={link} sx={{ listStyle: "none" }}>
+            <AppLink
               href="/"
-              className="text-[13px] text-slate-600 transition hover:text-[#08a84f]"
+              underline="none"
+              sx={{
+                fontSize: "13px",
+                color: "var(--app-color-text-muted)",
+                transition: "0.2s ease",
+                "&:hover": {
+                  color: "var(--app-color-success)",
+                },
+              }}
             >
               {link}
-            </a>
-          </li>
+            </AppLink>
+          </AppBox>
         ))}
-      </ul>
-    </div>
+      </AppStack>
+    </AppBox>
   );
 };
 
 const FooterInfo = ({ icon, text }) => {
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-[16px] text-[#08a84f]">
+    <AppStack direction="row" align="center" gap={1.5}>
+      <AppBox
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        sx={{
+          width: 32,
+          height: 32,
+          borderRadius: "8px",
+          bgcolor: "var(--app-color-success-soft, var(--app-color-surface))",
+          color: "var(--app-color-success)",
+          fontSize: "16px",
+          lineHeight: 0,
+          flexShrink: 0,
+        }}
+      >
         {icon}
-      </div>
+      </AppBox>
 
-      <span className="text-[13px] font-medium text-slate-700">{text}</span>
-    </div>
+      <AppText
+        variant="body2"
+        weight={500}
+        sx={{
+          fontSize: "13px",
+          color: "var(--app-color-text)",
+        }}
+      >
+        {text}
+      </AppText>
+    </AppStack>
+  );
+};
+
+const TrustItem = ({ icon, title, text }) => {
+  return (
+    <AppStack
+      direction="row"
+      align="center"
+      gap={1.5}
+      sx={{
+        borderLeft: {
+          xs: "none",
+          lg: "1px solid var(--app-color-border)",
+        },
+        pl: {
+          xs: 0,
+          lg: 2.5,
+        },
+      }}
+    >
+      <AppBox
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        sx={{
+          width: 40,
+          height: 40,
+          borderRadius: "999px",
+          bgcolor: "var(--app-color-success-soft, var(--app-color-surface))",
+          color: "var(--app-color-success)",
+          fontSize: "20px",
+          lineHeight: 0,
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </AppBox>
+
+      <AppBox>
+        <AppText
+          variant="body2"
+          weight={600}
+          sx={{
+            fontSize: "13px",
+            color: "var(--app-color-text)",
+          }}
+        >
+          {title}
+        </AppText>
+
+        <AppText
+          variant="body2"
+          sx={{
+            mt: 0.25,
+            fontSize: "12px",
+            color: "var(--app-color-text-muted)",
+          }}
+        >
+          {text}
+        </AppText>
+      </AppBox>
+    </AppStack>
   );
 };
 
 const SocialIcon = ({ icon }) => {
   return (
-    <a
+    <AppLink
       href="/"
-      className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-[15px] text-slate-700"
+      underline="none"
+      sx={{
+        width: 36,
+        height: 36,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: "999px",
+        border: "1px solid var(--app-color-border)",
+        bgcolor: "var(--app-color-surface)",
+        color: "var(--app-color-text)",
+        fontSize: "15px",
+        transition: "0.2s ease",
+        "&:hover": {
+          color: "var(--app-color-success)",
+          borderColor: "var(--app-color-success)",
+        },
+      }}
     >
       {icon}
-    </a>
+    </AppLink>
   );
 };
 

@@ -26,8 +26,10 @@ const AppStickyBar = ({
   sx = {},
   ...props
 }) => {
-  const { theme } = useTheme();
-  const t = getThemeTokens(theme);
+  const { mode, theme, colorTheme } = useTheme();
+
+  const activeMode = mode || theme;
+  const t = getThemeTokens(activeMode, colorTheme);
 
   const radiusMap = {
     none: "0px",
@@ -118,7 +120,7 @@ const AppStickyBar = ({
           ...(blur && {
             backgroundColor:
               variant === "transparent"
-                ? theme === "dark"
+                ? activeMode === "dark"
                   ? "rgba(31,41,55,0.72)"
                   : "rgba(255,255,255,0.72)"
                 : appliedVariant.backgroundColor,

@@ -1,8 +1,12 @@
 import { createTheme } from "@mui/material/styles";
-import { getThemeTokens } from "./getThemeTokens";
+import { DEFAULT_COLOR_THEME } from "./tokens";
+import { DEFAULT_THEME_MODE, getThemeTokens } from "./getThemeTokens";
 
-export const createAppTheme = (mode = "light") => {
-  const t = getThemeTokens(mode);
+export const createAppTheme = (
+  mode = DEFAULT_THEME_MODE,
+  colorTheme = DEFAULT_COLOR_THEME,
+) => {
+  const t = getThemeTokens(mode, colorTheme);
 
   return createTheme({
     palette: {

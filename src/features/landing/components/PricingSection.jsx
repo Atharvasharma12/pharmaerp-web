@@ -12,6 +12,17 @@ import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import { BsDiamond } from "react-icons/bs";
 import { FaStar } from "react-icons/fa";
 
+import {
+  AppBadge,
+  AppBox,
+  AppButton,
+  AppCard,
+  AppGrid,
+  AppHeading,
+  AppStack,
+  AppText,
+} from "@/components";
+
 const PricingSection = () => {
   const [yearly, setYearly] = useState(true);
 
@@ -22,7 +33,7 @@ const PricingSection = () => {
       price: "₹999",
       yearlyText: "Billed annually at ₹11,988 (Save ₹2,388)",
       icon: <FiHome />,
-      color: "green",
+      colorVariant: "success",
       popular: false,
       features: [
         "Sales & Billing (GST Ready)",
@@ -41,7 +52,7 @@ const PricingSection = () => {
       price: "₹1,999",
       yearlyText: "Billed annually at ₹23,988 (Save ₹4,000)",
       icon: <BsDiamond />,
-      color: "green",
+      colorVariant: "success",
       popular: true,
       features: [
         "Customer Management (CRM)",
@@ -64,7 +75,7 @@ const PricingSection = () => {
       price: "₹3,999",
       yearlyText: "Billed annually at ₹47,988 (Save ₹8,000)",
       icon: <HiOutlineOfficeBuilding />,
-      color: "purple",
+      colorVariant: "primary",
       popular: false,
       features: [
         "Unlimited Users",
@@ -106,65 +117,165 @@ const PricingSection = () => {
   ];
 
   return (
-    <section className="w-full bg-[#fbfcfd] py-9">
+    <section className="w-full bg-bg py-9">
       <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
-        {/* HEADING */}
-        <div className="mx-auto max-w-5xl text-center">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-semibold text-[#08a84f]">
-            <FiTag className="text-[13px]" />
-            Simple Pricing, Powerful Software
-          </div>
+        <AppBox sx={{ mx: "auto", maxWidth: "64rem", textAlign: "center" }}>
+          <AppBadge
+            variant="soft"
+            colorVariant="success"
+            rounded="full"
+            startIcon={<FiTag />}
+            label="Simple Pricing, Powerful Software"
+            sx={{
+              mb: 1.5,
+              px: 1.5,
+              py: 0.5,
+              fontSize: "12px",
+              fontWeight: 700,
+            }}
+          />
 
-          <h2 className="text-[28px] font-extrabold leading-[1.08] tracking-[-0.8px] text-slate-900 sm:text-[34px] lg:text-[38px]">
+          <AppHeading
+            level={2}
+            weight={800}
+            sx={{
+              m: 0,
+              fontSize: {
+                xs: "28px",
+                sm: "34px",
+                lg: "38px",
+              },
+              lineHeight: 1.08,
+              letterSpacing: "-0.8px",
+              color: "var(--app-color-text)",
+            }}
+          >
             Choose the Perfect Plan for
-            <span className="block text-[#08a84f]">Your Pharmacy Business</span>
-          </h2>
+            <span className="block text-primary">Your Pharmacy Business</span>
+          </AppHeading>
 
-          <p className="mx-auto mt-3 max-w-4xl text-[13.5px] leading-6 text-slate-600">
+          <AppText
+            variant="body2"
+            sx={{
+              mx: "auto",
+              mt: 1.5,
+              maxWidth: "56rem",
+              fontSize: "13.5px",
+              lineHeight: "24px",
+              color: "var(--app-color-text-muted)",
+            }}
+          >
             Flexible plans for every pharmacy size and need. All plans include
             core features to run your pharmacy smoothly. Upgrade, downgrade or
             cancel anytime as your business grows.
-          </p>
+          </AppText>
 
-          {/* TOGGLE */}
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-            <span className="text-[13px] font-semibold text-slate-800">
-              Monthly Billing
-            </span>
-
-            <button
-              onClick={() => setYearly(!yearly)}
-              className={`relative h-6 w-11 rounded-full transition ${
-                yearly ? "bg-[#08a84f]" : "bg-slate-300"
-              }`}
+          {/* Toggle */}
+          <AppBox
+            sx={{
+              mt: 2.5,
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <AppStack
+              direction="row"
+              align="center"
+              justify="center"
+              wrap="wrap"
+              gap={1.5}
+              sx={{
+                width: "fit-content",
+                mx: "auto",
+                textAlign: "center",
+              }}
             >
-              <span
-                className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${
-                  yearly ? "left-[23px]" : "left-1"
-                }`}
+              <AppText
+                variant="body2"
+                weight={700}
+                sx={{ fontSize: "13px", color: "var(--app-color-text)" }}
+              >
+                Monthly Billing
+              </AppText>
+
+              <AppBox
+                component="button"
+                onClick={() => setYearly(!yearly)}
+                sx={{
+                  position: "relative",
+                  width: 44,
+                  height: 24,
+                  border: 0,
+                  cursor: "pointer",
+                  borderRadius: "999px",
+                  bgcolor: yearly
+                    ? "var(--app-color-success)"
+                    : "var(--app-color-border-strong)",
+                  transition: "0.2s ease",
+                }}
+              >
+                <AppBox
+                  sx={{
+                    position: "absolute",
+                    top: 4,
+                    left: yearly ? 23 : 4,
+                    width: 16,
+                    height: 16,
+                    borderRadius: "999px",
+                    bgcolor: "var(--app-color-text-inverse)",
+                    transition: "0.2s ease",
+                  }}
+                />
+              </AppBox>
+
+              <AppText
+                variant="body2"
+                weight={700}
+                sx={{ fontSize: "13px", color: "var(--app-color-success)" }}
+              >
+                Yearly Billing
+              </AppText>
+
+              <AppBadge
+                variant="soft"
+                colorVariant="success"
+                rounded="full"
+                label="Save up to 20%"
+                sx={{
+                  px: 1.5,
+                  py: 0.5,
+                  fontSize: "11px",
+                  fontWeight: 800,
+                }}
               />
-            </button>
+            </AppStack>
+          </AppBox>
+        </AppBox>
 
-            <span className="text-[13px] font-semibold text-[#08a84f]">
-              Yearly Billing
-            </span>
-
-            <div className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-[#08a84f]">
-              Save up to 20%
-            </div>
-          </div>
-        </div>
-
-        {/* PRICING CARDS */}
-        <div className="mt-7 grid gap-5 lg:grid-cols-3">
+        {/* Pricing Cards */}
+        <AppGrid xs={1} lg={3} gap={2.5} sx={{ mt: 3.5 }}>
           {plans.map((plan) => (
             <PricingCard key={plan.name} {...plan} />
           ))}
-        </div>
+        </AppGrid>
 
-        {/* FEATURES STRIP */}
-        <div className="mt-5 rounded-2xl border border-emerald-100 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        {/* Features Strip */}
+        <AppCard
+          variant="default"
+          rounded="xl"
+          bordered
+          shadow="sm"
+          padding="none"
+          sx={{
+            mt: 2.5,
+            px: 2.5,
+            py: 2,
+            bgcolor: "var(--app-color-surface)",
+            borderColor: "var(--app-color-border)",
+          }}
+        >
+          <AppGrid xs={1} md={2} lg={4} gap={2.5}>
             {bottomFeatures.map((item, index) => (
               <BottomFeature
                 key={item.title}
@@ -172,26 +283,67 @@ const PricingSection = () => {
                 noBorder={index === bottomFeatures.length - 1}
               />
             ))}
-          </div>
-        </div>
+          </AppGrid>
+        </AppCard>
 
-        {/* BOTTOM TAGS */}
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 rounded-2xl bg-emerald-50 px-5 py-3">
-          {[
-            "All plans are GST compliant",
-            "No hidden charges",
-            "Cancel anytime",
-            "Upgrade or downgrade anytime",
-          ].map((item) => (
-            <div
-              key={item}
-              className="flex items-center gap-2 text-[13px] font-semibold text-[#08a84f]"
-            >
-              <FiShield className="text-[15px]" />
-              {item}
-            </div>
-          ))}
-        </div>
+        {/* Bottom Tags */}
+        <AppBox
+          sx={{
+            mt: 2.5,
+            px: 2.5,
+            py: 1.5,
+            width: "100%",
+            borderRadius: "16px",
+            bgcolor:
+              "var(--app-color-success-soft, var(--app-color-surface-alt))",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <AppStack
+            direction="row"
+            align="center"
+            justify="center"
+            wrap="wrap"
+            gap={3}
+            sx={{
+              width: "fit-content",
+              mx: "auto",
+              textAlign: "center",
+            }}
+          >
+            {[
+              "All plans are GST compliant",
+              "No hidden charges",
+              "Cancel anytime",
+              "Upgrade or downgrade anytime",
+            ].map((item) => (
+              <AppStack
+                key={item}
+                direction="row"
+                align="center"
+                justify="center"
+                gap={1}
+              >
+                <FiShield
+                  style={{
+                    fontSize: 15,
+                    flexShrink: 0,
+                    color: "var(--app-color-success)",
+                  }}
+                />
+
+                <AppText
+                  variant="body2"
+                  weight={700}
+                  sx={{ fontSize: "13px", color: "var(--app-color-success)" }}
+                >
+                  {item}
+                </AppText>
+              </AppStack>
+            ))}
+          </AppStack>
+        </AppBox>
       </div>
     </section>
   );
@@ -203,144 +355,293 @@ const PricingCard = ({
   price,
   yearlyText,
   icon,
-  color,
+  colorVariant = "success",
   popular,
   features,
 }) => {
-  const colors = {
-    green: {
-      iconBg: "bg-emerald-50",
-      iconText: "text-[#08a84f]",
-      border: "border-[#08a84f]",
-      text: "text-[#08a84f]",
-      button: "bg-[#08a84f] text-white hover:bg-[#079447] border-[#08a84f]",
-      outline: "border-[#08a84f] text-[#08a84f] hover:bg-emerald-50",
-      badge: "bg-[#08a84f]",
-    },
-    purple: {
-      iconBg: "bg-purple-50",
-      iconText: "text-purple-600",
-      border: "border-purple-500",
-      text: "text-purple-600",
-      button: "bg-purple-600 text-white hover:bg-purple-700 border-purple-600",
-      outline: "border-purple-500 text-purple-600 hover:bg-purple-50",
-      badge: "bg-purple-600",
-    },
-  };
-
-  const c = colors[color] || colors.green;
-
   return (
-    <div
-      className={`relative rounded-2xl border bg-white px-5 py-5 shadow-[0_8px_22px_rgba(15,23,42,0.045)] ${
-        popular ? `${c.border} border-2` : "border-slate-200"
-      }`}
+    <AppCard
+      variant="default"
+      rounded="xl"
+      bordered
+      shadow="sm"
+      padding="none"
+      sx={{
+        position: "relative",
+        height: "100%",
+        px: 2.5,
+        py: 2.5,
+        bgcolor: "var(--app-color-surface)",
+        borderWidth: popular ? 2 : 1,
+        borderColor: popular
+          ? `var(--app-color-${colorVariant})`
+          : "var(--app-color-border)",
+        overflow: "visible",
+      }}
     >
       {popular && (
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
-          <div
-            className={`flex items-center gap-2 rounded-full ${c.badge} px-4 py-1 text-[11px] font-bold text-white`}
-          >
-            <FaStar className="text-[10px]" />
-            MOST POPULAR
-          </div>
-        </div>
+        <AppBox
+          sx={{
+            position: "absolute",
+            left: "50%",
+            top: 0,
+            transform: "translate(-50%, -50%)",
+            zIndex: 2,
+          }}
+        >
+          <AppBadge
+            variant="contained"
+            colorVariant={colorVariant}
+            rounded="full"
+            startIcon={<FaStar />}
+            label="MOST POPULAR"
+            sx={{
+              px: 2,
+              py: 0.5,
+              fontSize: "11px",
+              fontWeight: 800,
+              color: "var(--app-color-text-inverse)",
+              whiteSpace: "nowrap",
+              boxShadow: "var(--app-shadow-sm)",
+            }}
+          />
+        </AppBox>
       )}
 
-      <div className="flex items-start gap-4">
-        <div
-          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${c.iconBg} ${c.iconText}`}
+      <AppStack direction="row" align="flex-start" gap={2}>
+        <AppBox
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          sx={{
+            width: 56,
+            height: 56,
+            flexShrink: 0,
+            borderRadius: "16px",
+            fontSize: "28px",
+            lineHeight: 0,
+            bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-surface-alt))`,
+            color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
+          }}
         >
-          <span className="text-[28px]">{icon}</span>
-        </div>
+          {icon}
+        </AppBox>
 
-        <div>
-          <h3 className="text-[18px] font-extrabold text-slate-900">{name}</h3>
-          <p className="mt-1 text-[13px] text-slate-600">{subtitle}</p>
-        </div>
-      </div>
+        <AppBox>
+          <AppHeading
+            level={3}
+            weight={800}
+            sx={{
+              m: 0,
+              fontSize: "18px",
+              color: "var(--app-color-text)",
+            }}
+          >
+            {name}
+          </AppHeading>
 
-      <div className="mt-4">
-        <div className="flex items-end gap-2">
-          <h2 className={`text-[38px] font-extrabold leading-none ${c.text}`}>
+          <AppText
+            variant="body2"
+            sx={{
+              mt: 0.5,
+              fontSize: "13px",
+              color: "var(--app-color-text-muted)",
+            }}
+          >
+            {subtitle}
+          </AppText>
+        </AppBox>
+      </AppStack>
+
+      <AppBox sx={{ mt: 2 }}>
+        <AppStack direction="row" align="flex-end" gap={1}>
+          <AppHeading
+            level={2}
+            weight={800}
+            sx={{
+              m: 0,
+              fontSize: "38px",
+              lineHeight: 1,
+              color: `var(--app-color-${colorVariant})`,
+            }}
+          >
             {price}
-          </h2>
-          <span className="mb-1 text-[13px] text-slate-700">/ month</span>
-        </div>
+          </AppHeading>
 
-        <div
-          className={`mt-3 inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${
-            color === "purple"
-              ? "bg-purple-100 text-purple-700"
-              : "bg-emerald-100 text-[#08a84f]"
-          }`}
-        >
-          {yearlyText}
-        </div>
-      </div>
+          <AppText
+            variant="body2"
+            sx={{
+              mb: 0.5,
+              fontSize: "13px",
+              color: "var(--app-color-text)",
+            }}
+          >
+            / month
+          </AppText>
+        </AppStack>
 
-      <div className="my-4 border-t border-slate-200" />
+        <AppBadge
+          variant="soft"
+          colorVariant={colorVariant}
+          rounded="full"
+          label={yearlyText}
+          sx={{
+            mt: 1.5,
+            px: 1.5,
+            py: 0.5,
+            fontSize: "11px",
+            fontWeight: 800,
+          }}
+        />
+      </AppBox>
 
-      <h4 className={`text-[14px] font-bold ${c.text}`}>
+      <AppBox
+        sx={{
+          my: 2,
+          borderTop: "1px solid var(--app-color-border)",
+        }}
+      />
+
+      <AppHeading
+        level={4}
+        weight={700}
+        sx={{
+          m: 0,
+          fontSize: "14px",
+          color: `var(--app-color-${colorVariant})`,
+        }}
+      >
         {name === "Basic"
           ? "Everything in Basic:"
           : name === "Professional"
             ? "Everything in Basic, plus:"
             : "Everything in Professional, plus:"}
-      </h4>
+      </AppHeading>
 
-      <div
-        className={`mt-3 grid gap-y-2.5 ${
-          name === "Professional" || name === "Enterprise"
-            ? "md:grid-cols-2 md:gap-x-4"
-            : ""
-        }`}
+      <AppGrid
+        xs={1}
+        md={name === "Professional" || name === "Enterprise" ? 2 : 1}
+        columnGap={2}
+        rowGap={1.25}
+        sx={{ mt: 1.5 }}
       >
         {features.map((feature) => (
-          <div key={feature} className="flex items-start gap-2">
+          <AppStack key={feature} direction="row" align="flex-start" gap={1}>
             <FiCheckCircle
-              className={`mt-0.5 shrink-0 text-[15px] ${c.text}`}
+              style={{
+                marginTop: 3,
+                flexShrink: 0,
+                fontSize: 15,
+                color: `var(--app-color-${colorVariant})`,
+              }}
             />
-            <span className="text-[12.5px] leading-5 text-slate-800">
-              {feature}
-            </span>
-          </div>
-        ))}
-      </div>
 
-      <div className="mt-5">
-        <button
-          className={`w-full rounded-lg border px-4 py-2.5 text-[14px] font-bold transition ${
-            popular ? c.button : c.outline
-          }`}
+            <AppText
+              variant="body2"
+              sx={{
+                fontSize: "12.5px",
+                lineHeight: "20px",
+                color: "var(--app-color-text)",
+              }}
+            >
+              {feature}
+            </AppText>
+          </AppStack>
+        ))}
+      </AppGrid>
+
+      <AppBox sx={{ mt: 2.5 }}>
+        <AppButton
+          fullWidth
+          variant={popular ? "contained" : "outlined"}
+          colorVariant={colorVariant}
+          rounded="md"
+          sx={{
+            py: 1.25,
+            fontSize: "14px",
+            fontWeight: 800,
+          }}
         >
           Start 7 Days Free Trial
-        </button>
+        </AppButton>
 
-        <p className="mt-2 text-center text-[11.5px] text-slate-500">
+        <AppText
+          variant="caption"
+          align="center"
+          sx={{
+            display: "block",
+            mt: 1,
+            fontSize: "11.5px",
+            color: "var(--app-color-text-muted)",
+          }}
+        >
           No Credit Card Required
-        </p>
-      </div>
-    </div>
+        </AppText>
+      </AppBox>
+    </AppCard>
   );
 };
 
 const BottomFeature = ({ icon, title, desc, noBorder }) => {
   return (
-    <div
-      className={`flex items-center gap-3 ${
-        !noBorder ? "lg:border-r lg:border-slate-200 lg:pr-5" : ""
-      }`}
+    <AppStack
+      direction="row"
+      align="center"
+      gap={1.5}
+      sx={{
+        pr: { lg: noBorder ? 0 : 2.5 },
+        borderRight: {
+          xs: "none",
+          lg: noBorder ? "none" : "1px solid var(--app-color-border)",
+        },
+      }}
     >
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[22px] text-[#08a84f]">
+      <AppBox
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        sx={{
+          width: 44,
+          height: 44,
+          minWidth: 44,
+          flexShrink: 0,
+          borderRadius: "999px",
+          bgcolor:
+            "var(--app-color-success-soft, var(--app-color-surface-alt))",
+          color: "var(--app-color-success, var(--app-color-primary))",
+          fontSize: "22px",
+          lineHeight: 0,
+        }}
+      >
         {icon}
-      </div>
+      </AppBox>
 
-      <div>
-        <h4 className="text-[13px] font-bold text-slate-900">{title}</h4>
-        <p className="mt-1 text-[12px] leading-5 text-slate-600">{desc}</p>
-      </div>
-    </div>
+      <AppBox>
+        <AppHeading
+          level={4}
+          weight={700}
+          sx={{
+            m: 0,
+            fontSize: "13px",
+            color: "var(--app-color-text)",
+          }}
+        >
+          {title}
+        </AppHeading>
+
+        <AppText
+          variant="body2"
+          sx={{
+            mt: 0.5,
+            fontSize: "12px",
+            lineHeight: "20px",
+            color: "var(--app-color-text-muted)",
+          }}
+        >
+          {desc}
+        </AppText>
+      </AppBox>
+    </AppStack>
   );
 };
 

@@ -35,10 +35,12 @@ const AppSparkline = ({
   sx = {},
   chartSx = {},
 }) => {
-  const { theme } = useTheme();
-  const t = getThemeTokens(theme);
+  const { mode, theme, colorTheme } = useTheme();
 
-  const isDark = theme === "dark";
+  const activeMode = mode || theme;
+  const t = getThemeTokens(activeMode, colorTheme);
+
+  const isDark = activeMode === "dark";
   const hasData = Array.isArray(data) && data.length > 0;
 
   const getColor = (variantName) => {

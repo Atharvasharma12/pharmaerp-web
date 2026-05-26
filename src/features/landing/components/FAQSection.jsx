@@ -11,6 +11,16 @@ import {
   FiMinus,
 } from "react-icons/fi";
 
+import {
+  AppBadge,
+  AppBox,
+  AppButton,
+  AppCard,
+  AppHeading,
+  AppStack,
+  AppText,
+} from "@/components";
+
 const FAQSection = () => {
   const [openIndex, setOpenIndex] = useState(0);
 
@@ -86,132 +96,294 @@ const FAQSection = () => {
   ];
 
   return (
-    <section className="w-full bg-[#fbfcfd] py-10">
+    <section className="w-full bg-bg py-10">
       <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
-        {/* HEADING */}
         <div className="mx-auto max-w-4xl text-center">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-semibold text-[#08a84f]">
-            <FiHelpCircle className="text-[13px]" />
-            FAQ
-          </div>
+          <AppBadge
+            variant="soft"
+            colorVariant="success"
+            rounded="full"
+            startIcon={<FiHelpCircle />}
+            label="FAQ"
+            sx={{
+              mb: 1.5,
+              px: 1.5,
+              py: 0.5,
+              fontSize: "12px",
+              fontWeight: 700,
+            }}
+          />
 
-          <h2 className="text-[30px] font-extrabold leading-[1.08] tracking-[-0.8px] text-slate-900 sm:text-[36px] lg:text-[44px]">
+          <AppHeading
+            level={2}
+            weight={800}
+            sx={{
+              m: 0,
+              fontSize: { xs: "30px", sm: "36px", lg: "44px" },
+              lineHeight: 1.08,
+              letterSpacing: "-0.8px",
+              color: "var(--app-color-text)",
+            }}
+          >
             Frequently Asked Questions
-          </h2>
+          </AppHeading>
 
-          <p className="mx-auto mt-3 text-[15px] leading-6 text-slate-600">
+          <AppText
+            variant="body2"
+            sx={{
+              mx: "auto",
+              mt: 1.5,
+              fontSize: "15px",
+              lineHeight: "24px",
+              color: "var(--app-color-text-muted)",
+            }}
+          >
             Find answers to common questions about{" "}
-            <span className="font-bold text-[#08a84f]">PharmaERP</span>
-          </p>
+            <span className="font-bold text-primary">PharmaERP</span>
+          </AppText>
         </div>
 
-        {/* MAIN FAQ AREA */}
         <div className="mt-8 grid gap-6 lg:grid-cols-[0.33fr_0.67fr]">
-          {/* LEFT CARD */}
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/20 p-6 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <div className="text-center">
-              <div className="mx-auto flex h-[100px] w-[100px] items-center justify-center rounded-full bg-emerald-100 text-[58px] font-extrabold text-[#08a84f]">
+          <AppCard
+            variant="default"
+            rounded="xl"
+            bordered
+            shadow="sm"
+            padding="none"
+            sx={{
+              p: 3,
+              borderColor: "var(--app-color-success-soft)",
+              bgcolor: "var(--app-color-readonly-bg)",
+            }}
+          >
+            <AppBox sx={{ textAlign: "center" }}>
+              <AppBox
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                sx={{
+                  mx: "auto",
+                  width: 100,
+                  height: 100,
+                  borderRadius: "999px",
+                  bgcolor: "var(--app-color-success-soft)",
+                  color: "var(--app-color-success)",
+                  fontSize: "58px",
+                  fontWeight: 800,
+                  lineHeight: 1,
+                }}
+              >
                 ?
-              </div>
+              </AppBox>
 
-              <h3 className="mt-5 text-[20px] font-extrabold leading-snug text-slate-900">
+              <AppHeading
+                level={3}
+                weight={800}
+                sx={{
+                  mt: 2.5,
+                  mb: 0,
+                  fontSize: "20px",
+                  lineHeight: 1.35,
+                  color: "var(--app-color-text)",
+                }}
+              >
                 Everything You Need to Know
                 <span className="block">
-                  About <span className="text-[#08a84f]">PharmaERP</span>
+                  About <span className="text-primary">PharmaERP</span>
                 </span>
-              </h3>
+              </AppHeading>
 
-              <span className="mx-auto mt-3 block h-[2px] w-11 rounded-full bg-[#08a84f]" />
-            </div>
+              <AppBox
+                component="span"
+                sx={{
+                  mx: "auto",
+                  mt: 1.5,
+                  display: "block",
+                  width: 44,
+                  height: 2,
+                  borderRadius: "999px",
+                  bgcolor: "var(--app-color-primary)",
+                }}
+              />
+            </AppBox>
 
-            <p className="mt-5 text-[14px] leading-6 text-slate-600">
+            <AppText
+              variant="body2"
+              sx={{
+                mt: 2.5,
+                fontSize: "14px",
+                lineHeight: "24px",
+                color: "var(--app-color-text-muted)",
+              }}
+            >
               PharmaERP is designed to simplify pharmacy operations and help you
               grow your business with confidence.
-            </p>
+            </AppText>
 
-            <div className="mt-5 divide-y divide-slate-200">
+            <AppBox
+              sx={{
+                mt: 2.5,
+                "& > * + *": {
+                  borderTop: "1px solid var(--app-color-border)",
+                },
+              }}
+            >
               {infoItems.map((item) => (
-                <div key={item.title} className="flex gap-3 py-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-emerald-100 bg-white text-[20px] text-[#08a84f]">
-                    {item.icon}
-                  </div>
-
-                  <div>
-                    <h4 className="text-[13px] font-bold text-slate-900">
-                      {item.title}
-                    </h4>
-                    <p className="mt-1 text-[12.5px] leading-5 text-slate-600">
-                      {item.desc}
-                    </p>
-                  </div>
-                </div>
+                <InfoItem key={item.title} {...item} />
               ))}
-            </div>
-          </div>
+            </AppBox>
+          </AppCard>
 
-          {/* FAQ LIST */}
-          <div className="space-y-2.5">
+          <AppStack direction="column" gap={1.25}>
             {faqs.map((faq, index) => {
               const isOpen = openIndex === index;
 
               return (
-                <div
+                <AppCard
                   key={faq.question}
-                  className={`rounded-xl border bg-white shadow-[0_8px_20px_rgba(15,23,42,0.035)] ${
-                    isOpen
-                      ? "border-emerald-100 bg-emerald-50/25"
-                      : "border-slate-200"
-                  }`}
+                  variant="default"
+                  rounded="lg"
+                  bordered
+                  shadow="sm"
+                  padding="none"
+                  sx={{
+                    overflow: "hidden",
+                    borderColor: isOpen
+                      ? "var(--app-color-success-soft)"
+                      : "var(--app-color-border)",
+                    bgcolor: isOpen
+                      ? "var(--app-color-readonly-bg)"
+                      : "var(--app-color-surface)",
+                  }}
                 >
                   <button
+                    type="button"
                     onClick={() => setOpenIndex(isOpen ? -1 : index)}
                     className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
                   >
-                    <span
-                      className={`text-[15px] font-extrabold leading-6 ${
-                        isOpen ? "text-[#08a84f]" : "text-slate-900"
-                      }`}
+                    <AppText
+                      variant="body2"
+                      weight={800}
+                      sx={{
+                        fontSize: "15px",
+                        lineHeight: "24px",
+                        color: isOpen
+                          ? "var(--app-color-success)"
+                          : "var(--app-color-text)",
+                      }}
                     >
                       {index + 1}. {faq.question}
-                    </span>
+                    </AppText>
 
-                    <span
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[16px] ${
-                        isOpen
-                          ? "border-[#08a84f] bg-[#08a84f] text-white"
-                          : "border-slate-300 bg-white text-slate-900"
-                      }`}
+                    <AppBox
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        minWidth: 24,
+                        flexShrink: 0,
+                        borderRadius: "999px",
+                        border: "1px solid",
+                        borderColor: isOpen
+                          ? "var(--app-color-success)"
+                          : "var(--app-color-border-strong)",
+                        bgcolor: isOpen
+                          ? "var(--app-color-success)"
+                          : "var(--app-color-surface)",
+                        color: isOpen
+                          ? "var(--app-color-success-contrast)"
+                          : "var(--app-color-text)",
+                        fontSize: "16px",
+                        lineHeight: 0,
+                      }}
                     >
                       {isOpen ? <FiMinus /> : <FiPlus />}
-                    </span>
+                    </AppBox>
                   </button>
 
                   {isOpen && (
-                    <p className="px-5 pb-5 pr-14 text-[14px] leading-6 text-slate-700">
+                    <AppText
+                      variant="body2"
+                      sx={{
+                        px: 2.5,
+                        pb: 2.5,
+                        pr: 7,
+                        fontSize: "14px",
+                        lineHeight: "24px",
+                        color: "var(--app-color-text-muted)",
+                      }}
+                    >
                       {faq.answer}
-                    </p>
+                    </AppText>
                   )}
-                </div>
+                </AppCard>
               );
             })}
-          </div>
+          </AppStack>
         </div>
 
-        {/* CONTACT STRIP */}
-        <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50/25 px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+        <AppCard
+          variant="default"
+          rounded="xl"
+          bordered
+          shadow="sm"
+          padding="none"
+          sx={{
+            mt: 3,
+            px: 2.5,
+            py: 2,
+            borderColor: "var(--app-color-success-soft)",
+            bgcolor: "var(--app-color-readonly-bg)",
+          }}
+        >
           <div className="grid items-center gap-5 md:grid-cols-2 lg:grid-cols-4">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[28px] text-[#08a84f]">
+              <AppBox
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                sx={{
+                  width: 56,
+                  height: 56,
+                  minWidth: 56,
+                  flexShrink: 0,
+                  borderRadius: "999px",
+                  bgcolor: "var(--app-color-success-soft)",
+                  color: "var(--app-color-success)",
+                  fontSize: "28px",
+                  lineHeight: 0,
+                }}
+              >
                 <FiHeadphones />
-              </div>
-              <div>
-                <h4 className="text-[16px] font-extrabold text-slate-900">
+              </AppBox>
+
+              <AppBox>
+                <AppHeading
+                  level={4}
+                  weight={800}
+                  sx={{
+                    m: 0,
+                    fontSize: "16px",
+                    color: "var(--app-color-text)",
+                  }}
+                >
                   Still have questions?
-                </h4>
-                <p className="mt-1 text-[12.5px] leading-5 text-slate-600">
+                </AppHeading>
+
+                <AppText
+                  variant="body2"
+                  sx={{
+                    mt: 0.5,
+                    fontSize: "12.5px",
+                    lineHeight: "20px",
+                    color: "var(--app-color-text-muted)",
+                  }}
+                >
                   Our team is here to help you with anything you need.
-                </p>
-              </div>
+                </AppText>
+              </AppBox>
             </div>
 
             <ContactItem
@@ -227,36 +399,166 @@ const FAQSection = () => {
               subDesc="Mon - Sat, 9 AM - 7 PM"
             />
 
-            <div className="text-center lg:text-left">
-              <button className="w-full rounded-lg bg-[#08a84f] px-5 py-3 text-[14px] font-bold text-white shadow-sm transition hover:bg-[#079447]">
+            <AppBox sx={{ textAlign: { xs: "center", lg: "left" } }}>
+              <AppButton
+                variant="contained"
+                colorVariant="success"
+                rounded="md"
+                fullWidth
+                sx={{
+                  px: 2.5,
+                  py: 1.5,
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  boxShadow: "var(--app-shadow-sm)",
+                }}
+              >
                 Request a Free Demo
-              </button>
-              <p className="mt-2 text-center text-[12px] text-slate-600">
+              </AppButton>
+
+              <AppText
+                variant="caption"
+                align="center"
+                sx={{
+                  mt: 1,
+                  fontSize: "12px",
+                  color: "var(--app-color-text-muted)",
+                }}
+              >
                 No commitment. No credit card required.
-              </p>
-            </div>
+              </AppText>
+            </AppBox>
           </div>
-        </div>
+        </AppCard>
       </div>
     </section>
   );
 };
 
+const InfoItem = ({ icon, title, desc }) => {
+  return (
+    <AppStack direction="row" gap={1.5} sx={{ py: 1.5 }}>
+      <AppBox
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        sx={{
+          width: 40,
+          height: 40,
+          minWidth: 40,
+          flexShrink: 0,
+          borderRadius: "8px",
+          border: "1px solid var(--app-color-success-soft)",
+          bgcolor: "var(--app-color-surface)",
+          color: "var(--app-color-success)",
+          fontSize: "20px",
+          lineHeight: 0,
+        }}
+      >
+        {icon}
+      </AppBox>
+
+      <AppBox>
+        <AppHeading
+          level={4}
+          weight={700}
+          sx={{
+            m: 0,
+            fontSize: "13px",
+            color: "var(--app-color-text)",
+          }}
+        >
+          {title}
+        </AppHeading>
+
+        <AppText
+          variant="body2"
+          sx={{
+            mt: 0.5,
+            fontSize: "12.5px",
+            lineHeight: "20px",
+            color: "var(--app-color-text-muted)",
+          }}
+        >
+          {desc}
+        </AppText>
+      </AppBox>
+    </AppStack>
+  );
+};
+
 const ContactItem = ({ icon, title, desc, subDesc }) => {
   return (
-    <div className="flex items-center gap-4 lg:border-l lg:border-slate-200 lg:pl-8">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[24px] text-[#08a84f]">
+    <AppStack
+      direction="row"
+      align="center"
+      gap={2}
+      sx={{
+        pl: { lg: 4 },
+        borderLeft: {
+          xs: "none",
+          lg: "1px solid var(--app-color-border)",
+        },
+      }}
+    >
+      <AppBox
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        sx={{
+          width: 48,
+          height: 48,
+          minWidth: 48,
+          flexShrink: 0,
+          borderRadius: "999px",
+          bgcolor: "var(--app-color-success-soft)",
+          color: "var(--app-color-success)",
+          fontSize: "24px",
+          lineHeight: 0,
+        }}
+      >
         {icon}
-      </div>
+      </AppBox>
 
-      <div>
-        <h4 className="text-[14px] font-bold text-slate-900">{title}</h4>
-        <p className="mt-1 text-[12px] leading-5 text-slate-600">{desc}</p>
+      <AppBox>
+        <AppHeading
+          level={4}
+          weight={700}
+          sx={{
+            m: 0,
+            fontSize: "14px",
+            color: "var(--app-color-text)",
+          }}
+        >
+          {title}
+        </AppHeading>
+
+        <AppText
+          variant="body2"
+          sx={{
+            mt: 0.5,
+            fontSize: "12px",
+            lineHeight: "20px",
+            color: "var(--app-color-text-muted)",
+          }}
+        >
+          {desc}
+        </AppText>
+
         {subDesc && (
-          <p className="text-[12px] leading-5 text-slate-600">{subDesc}</p>
+          <AppText
+            variant="body2"
+            sx={{
+              fontSize: "12px",
+              lineHeight: "20px",
+              color: "var(--app-color-text-muted)",
+            }}
+          >
+            {subDesc}
+          </AppText>
         )}
-      </div>
-    </div>
+      </AppBox>
+    </AppStack>
   );
 };
 

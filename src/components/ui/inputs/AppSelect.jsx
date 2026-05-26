@@ -71,9 +71,11 @@ const AppSelect = forwardRef(function AppSelect(
   },
   ref,
 ) {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-  const t = getThemeTokens(theme);
+  const { mode, theme, colorTheme } = useTheme();
+
+  const activeMode = mode || theme;
+  const isDark = activeMode === "dark";
+  const t = getThemeTokens(activeMode, colorTheme);
 
   const resolvedId = id || name || label?.toLowerCase?.().replace(/\s+/g, "-");
   const showError = Boolean(error || errorText);

@@ -565,3 +565,194 @@ src/
     │   └── index.js ✅
     │
     └── index.js ✅
+
+    src/
+├── modules/
+│
+│   ├── auth/
+│   │   ├── components/
+│   │   │
+│   │   │   ├── shared/
+│   │   │   │   ├── LoginForm.jsx
+│   │   │   │   ├── OTPInput.jsx
+│   │   │   │   ├── PasswordField.jsx
+│   │   │   │   ├── AuthHeader.jsx
+│   │   │   │   └── index.js
+│   │   │   │
+│   │   │   ├── desktop/
+│   │   │   │   ├── LoginDesktopCard.jsx
+│   │   │   │   ├── RegisterDesktopCard.jsx
+│   │   │   │   └── index.js
+│   │   │   │
+│   │   │   └── mobile/
+│   │   │       ├── LoginMobileCard.jsx
+│   │   │       ├── RegisterMobileCard.jsx
+│   │   │       └── index.js
+│   │   │
+│   │   ├── pages/
+│   │   │
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── RegisterPage.jsx
+│   │   │   ├── ForgotPasswordPage.jsx
+│   │   │   ├── VerifyOTPPage.jsx
+│   │   │   ├── ResetPasswordPage.jsx
+│   │   │   │
+│   │   │   ├── desktop/
+│   │   │   │   ├── LoginDesktopPage.jsx
+│   │   │   │   ├── RegisterDesktopPage.jsx
+│   │   │   │   ├── ForgotPasswordDesktopPage.jsx
+│   │   │   │   ├── VerifyOTPDesktopPage.jsx
+│   │   │   │   ├── ResetPasswordDesktopPage.jsx
+│   │   │   │   └── index.js
+│   │   │   │
+│   │   │   ├── mobile/
+│   │   │   │   ├── LoginMobilePage.jsx
+│   │   │   │   ├── RegisterMobilePage.jsx
+│   │   │   │   ├── ForgotPasswordMobilePage.jsx
+│   │   │   │   ├── VerifyOTPMobilePage.jsx
+│   │   │   │   ├── ResetPasswordMobilePage.jsx
+│   │   │   │   └── index.js
+│   │   │   │
+│   │   │   └── index.js
+├── layouts/
+│   ├── desktop/
+│   │   ├── DesktopLayout.jsx
+│   │   ├── DesktopSidebar.jsx
+│   │   ├── DesktopHeader.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── MobileLayout.jsx
+│       ├── MobileBottomNav.jsx
+│       ├── MobileHeader.jsx
+│       └── index.js
+│
+├── hooks/
+│   ├── useIsMobile.js
+│   ├── useBreakpoint.js
+│   └── index.js
+
+
+src/layouts/
+├── public/
+│   ├── PublicLayout.jsx
+│   │
+│   ├── desktop/
+│   │   ├── PublicDesktopLayout.jsx
+│   │   ├── PublicDesktopNavbar.jsx
+│   │   ├── PublicDesktopFooter.jsx
+│   │   └── index.js
+│   │
+│   ├── mobile/
+│   │   ├── PublicMobileLayout.jsx
+│   │   ├── PublicMobileTopBar.jsx
+│   │   ├── PublicMobileBottomBar.jsx
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── auth/
+│   ├── AuthLayout.jsx
+│   │
+│   ├── desktop/
+│   │   ├── AuthDesktopLayout.jsx
+│   │   ├── AuthDesktopTopBar.jsx
+│   │   ├── AuthDesktopFooter.jsx
+│   │   └── index.js
+│   │
+│   ├── mobile/
+│   │   ├── AuthMobileLayout.jsx
+│   │   ├── AuthMobileTopBar.jsx
+│   │   ├── AuthMobileBottomBar.jsx
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── app/
+│   ├── AppLayout.jsx
+│   │
+│   ├── desktop/
+│   │   ├── AppDesktopLayout.jsx
+│   │   ├── AppDesktopSidebar.jsx
+│   │   ├── AppDesktopHeader.jsx
+│   │   ├── AppDesktopFooter.jsx
+│   │   └── index.js
+│   │
+│   ├── mobile/
+│   │   ├── AppMobileLayout.jsx
+│   │   ├── AppMobileHeader.jsx
+│   │   ├── AppMobileBottomNav.jsx
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+└── index.js
+
+
+        ├── pages/
+        │   ├── LoginPage.jsx
+        │   ├── RegisterPage.jsx
+        │   ├── ForgotPasswordPage.jsx
+        │   ├── VerifyOTPPage.jsx
+        │   ├── ResetPasswordPage.jsx
+        │   ├── index.js
+        │   │
+        │   ├── desktop/
+        │   │   ├── LoginDesktopPage.jsx
+        │   │   ├── RegisterDesktopPage.jsx
+        │   │   ├── ForgotPasswordDesktopPage.jsx
+        │   │   ├── VerifyOTPDesktopPage.jsx
+        │   │   ├── ResetPasswordDesktopPage.jsx
+        │   │   └── index.js
+        │   │
+        │   └── mobile/
+        │       ├── LoginMobilePage.jsx
+        │       ├── RegisterMobilePage.jsx
+        │       ├── ForgotPasswordMobilePage.jsx
+        │       ├── VerifyOTPMobilePage.jsx
+        │       ├── ResetPasswordMobilePage.jsx
+        │       └── index.js
+
+
+src/
+└── features/
+    └── landing/
+        ├── pages/
+        │   ├── LandingPage.jsx
+        │   │
+        │   ├── desktop/
+        │   │   ├── LandingDesktopPage.jsx
+        │   │   └── index.js
+        │   │
+        │   ├── mobile/
+        │   │   ├── LandingMobilePage.jsx
+        │   │   └── index.js
+        │   │
+        │   └── index.js
+        │
+        ├── components/
+        │   ├── desktop/
+        │   │   ├── DesktopHeroSection.jsx
+        │   │   ├── DesktopFeaturesSection.jsx
+        │   │   ├── DesktopDashboardShowcaseSection.jsx
+        │   │   ├── DesktopWorkflowSection.jsx
+        │   │   ├── DesktopBenefitsSection.jsx
+        │   │   ├── DesktopTestimonialsSection.jsx
+        │   │   ├── DesktopPricingSection.jsx
+        │   │   ├── DesktopFAQSection.jsx
+        │   │   ├── DesktopCTASection.jsx
+        │   │   └── index.js
+        │   │
+        │   └── mobile/
+        │       ├── MobileHeroSection.jsx
+        │       ├── MobileFeaturesSection.jsx
+        │       ├── MobileDashboardShowcaseSection.jsx
+        │       ├── MobileWorkflowSection.jsx
+        │       ├── MobileBenefitsSection.jsx
+        │       ├── MobileTestimonialsSection.jsx
+        │       ├── MobilePricingSection.jsx
+        │       ├── MobileFAQSection.jsx
+        │       ├── MobileCTASection.jsx
+        │       └── index.js
+        │       
+        └── index.js

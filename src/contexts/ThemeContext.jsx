@@ -1,24 +1,51 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { ThemeProvider as MuiThemeProvider, CssBaseline } from "@mui/material";
-import { getThemeTokens, createAppTheme } from "@/theme";
+import { createAppTheme, getThemeTokens } from "@/theme";
+import { DEFAULT_COLOR_THEME, THEME_NAMES } from "@/theme/tokens";
+import { DEFAULT_THEME_MODE, THEME_MODES } from "@/theme/getThemeTokens";
 
 const ThemeContext = createContext(null);
 
+const STORAGE_KEYS = {
+  MODE: "themeMode",
+  COLOR_THEME: "colorTheme",
+};
+
+const getSafeMode = (mode) => {
+  return mode === THEME_MODES.DARK ? THEME_MODES.DARK : THEME_MODES.LIGHT;
+};
+
+const getSafeColorTheme = (colorTheme) => {
+  return Object.values(THEME_NAMES).includes(colorTheme)
+    ? colorTheme
+    : DEFAULT_COLOR_THEME;
+};
+
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem("theme");
-    return savedTheme === "dark" ? "dark" : "light";
+  const [mode, setMode] = useState(() => {
+    const savedMode = localStorage.getItem(STORAGE_KEYS.MODE);
+    return getSafeMode(savedMode || DEFAULT_THEME_MODE);
+  });
+
+  const [colorTheme, setColorTheme] = useState(() => {
+    const savedColorTheme = localStorage.getItem(STORAGE_KEYS.COLOR_THEME);
+    return getSafeColorTheme(savedColorTheme || DEFAULT_COLOR_THEME);
   });
 
   useEffect(() => {
     const root = document.documentElement;
-    const t = getThemeTokens(theme);
+    const safeMode = getSafeMode(mode);
+    const safeColorTheme = getSafeColorTheme(colorTheme);
+    const t = getThemeTokens(safeMode, safeColorTheme);
 
     root.classList.remove("dark");
 
-    if (theme === "dark") {
+    if (safeMode === THEME_MODES.DARK) {
       root.classList.add("dark");
     }
+
+    root.dataset.theme = safeColorTheme;
+    root.dataset.mode = safeMode;
 
     root.style.setProperty("--app-color-bg", t.bg);
     root.style.setProperty("--app-color-surface", t.surface);
@@ -89,23 +116,45 @@ export const ThemeProvider = ({ children }) => {
     root.style.setProperty("--app-shadow-lg", t.shadowLg);
     root.style.setProperty("--app-shadow-xl", t.shadowXl);
 
-    localStorage.setItem("theme", theme);
-  }, [theme]);
+    localStorage.setItem(STORAGE_KEYS.MODE, safeMode);
+    localStorage.setItem(STORAGE_KEYS.COLOR_THEME, safeColorTheme);
+  }, [mode, colorTheme]);
 
-  const muiTheme = useMemo(() => createAppTheme(theme), [theme]);
+  const muiTheme = useMemo(
+    () => createAppTheme(mode, colorTheme),
+    [mode, colorTheme],
+  );
+
+  const isDark = mode === THEME_MODES.DARK;
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+    setMode((prev) =>
+      prev === THEME_MODES.LIGHT ? THEME_MODES.DARK : THEME_MODES.LIGHT,
+    );
   };
+
+  const toggleMode = toggleTheme;
 
   const value = useMemo(
     () => ({
-      theme,
-      isDark: theme === "dark",
-      setTheme,
+      mode,
+      theme: mode,
+      colorTheme,
+
+      isDark,
+      isLight: mode === THEME_MODES.LIGHT,
+
+      setMode,
+      setTheme: setMode,
+      setColorTheme,
+
+      toggleMode,
       toggleTheme,
+
+      availableModes: Object.values(THEME_MODES),
+      availableColorThemes: Object.values(THEME_NAMES),
     }),
-    [theme],
+    [mode, colorTheme, isDark],
   );
 
   return (

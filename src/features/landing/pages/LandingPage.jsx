@@ -1,39 +1,13 @@
 // src/features/landing/pages/LandingPage.jsx
 
-import {
-  BenefitsSection,
-  CTASection,
-  DashboardShowcaseSection,
-  FAQSection,
-  FeaturesSection,
-  HeroSection,
-  PricingSection,
-  TestimonialsSection,
-  WorkflowSection,
-} from "../components";
+import { useIsMobile } from "@/hooks";
+import { LandingDesktopPage } from "./desktop";
+import { LandingMobilePage } from "./mobile";
 
 const LandingPage = () => {
-  return (
-    <>
-      <HeroSection />
+  const isMobile = useIsMobile();
 
-      <FeaturesSection />
-
-      <DashboardShowcaseSection />
-
-      <WorkflowSection />
-
-      <BenefitsSection />
-
-      <TestimonialsSection />
-
-      <PricingSection />
-
-      <FAQSection />
-
-      <CTASection />
-    </>
-  );
+  return isMobile ? <LandingMobilePage /> : <LandingDesktopPage />;
 };
 
 export default LandingPage;

@@ -16,8 +16,10 @@ const AppTimeline = ({
   sx = {},
   itemSx = {},
 }) => {
-  const { theme } = useTheme();
-  const t = getThemeTokens(theme);
+  const { mode, theme, colorTheme } = useTheme();
+
+  const activeMode = mode || theme;
+  const t = getThemeTokens(activeMode, colorTheme);
 
   const colorMap = {
     primary: t.primary,

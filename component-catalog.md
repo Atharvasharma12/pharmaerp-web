@@ -13,61 +13,345 @@
 
 ## Theme System
 
+### Theme Model
+
+```txt
+colorTheme = emerald | classicBlue | slate | warm | indigo
+mode = light | dark
+```
+
+Theme access:
+
+```js
+colorTokens[colorTheme][mode];
+```
+
+Examples:
+
+```js
+colorTokens.emerald.light;
+colorTokens.emerald.dark;
+colorTokens.classicBlue.light;
+colorTokens.classicBlue.dark;
+```
+
+Defaults:
+
+```txt
+colorTheme = emerald
+mode = light
+```
+
+---
+
 ### colorTokens
 
-Path: `src/theme/tokens.js`  
-Use for: Central light/dark design tokens.  
-Contains: `bg`, `surface`, `surfaceAlt`, `surfaceHover`, `surfaceActive`, `border`, `borderStrong`, `divider`, `text`, `textMuted`, `textDisabled`, `textInverse`, `primary`, `success`, `error`, `warning`, `info`, `neutral`, `disabledBg`, `disabledText`, `disabledBorder`, `readOnlyBg`, `hoverOverlay`, `activeOverlay`, `focusRing`, `overlay`, `shadowXs`, `shadowSm`, `shadowMd`, `shadowLg`, `shadowXl`.  
-Modes: `light | dark`
+**Path:** `src/theme/tokens.js`
+
+Use for: Central design tokens for all themes and modes.
+
+Exports:
+
+```js
+THEME_NAMES;
+DEFAULT_COLOR_THEME;
+colorThemeOptions;
+colorTokens;
+```
+
+### Themes
+
+| Key         | Name         | Purpose                 |
+| ----------- | ------------ | ----------------------- |
+| emerald     | Emerald Care | Default pharmacy theme  |
+| classicBlue | Classic Blue | Traditional medical ERP |
+| slate       | Slate Office | Neutral admin/reporting |
+| warm        | Warm Care    | Low eye-strain POS      |
+| indigo      | Indigo Pro   | Premium analytics/SaaS  |
+
+Modes:
+
+```txt
+light | dark
+```
+
+### Token Keys
+
+`bg`, `surface`, `surfaceAlt`, `surfaceHover`, `surfaceActive`, `border`, `borderStrong`, `divider`, `text`, `textMuted`, `textDisabled`, `textInverse`, `primary`, `primaryHover`, `primarySoft`, `primaryContrast`, `success`, `successHover`, `successSoft`, `successContrast`, `error`, `errorHover`, `errorSoft`, `errorContrast`, `warning`, `warningHover`, `warningSoft`, `warningContrast`, `info`, `infoHover`, `infoSoft`, `infoContrast`, `neutral`, `disabledBg`, `disabledText`, `disabledBorder`, `readOnlyBg`, `hoverOverlay`, `activeOverlay`, `focusRing`, `overlay`, `shadowXs`, `shadowSm`, `shadowMd`, `shadowLg`, `shadowXl`
+
+### Rules
+
+- Every theme must support both `light` and `dark`.
+- Every theme must contain the same token keys.
+- `tokens.js` is the single source of truth.
+- Do not duplicate theme palettes elsewhere.
+
+---
 
 ### getThemeTokens
 
-Path: `src/theme/getThemeTokens.js`  
-Use for: Reading tokens for current theme mode.  
-API: `getThemeTokens(mode)`  
-Returns: `colorTokens[mode] || colorTokens.light`  
-Example: `const t = getThemeTokens(theme)`
+**Path:** `src/theme/getThemeTokens.js`
+
+Use for: Reading tokens for active mode and color theme.
+
+Exports:
+
+```js
+THEME_MODES;
+DEFAULT_THEME_MODE;
+getThemeTokens;
+```
+
+API:
+
+```js
+getThemeTokens(mode, colorTheme);
+```
+
+Example:
+
+```js
+const t = getThemeTokens(mode, colorTheme);
+```
+
+Fallbacks:
+
+```txt
+invalid mode -> light
+invalid colorTheme -> emerald
+```
+
+Do not use old API:
+
+```js
+getThemeTokens(activeMode, colorTheme);
+```
+
+Use:
+
+```js
+getThemeTokens(mode, colorTheme);
+```
+
+---
 
 ### createAppTheme
 
-Path: `src/theme/createAppTheme.js`  
-Use for: Creating MUI theme from app tokens.  
-API: `createAppTheme(mode)`  
-Includes: MUI palette, typography, shape, CssBaseline, Paper, Card, Button, OutlinedInput, InputLabel, HelperText, Divider, Dialog, Drawer, TableCell, Chip, Tooltip, Menu overrides.  
-Rule: Do not create another MUI theme inside pages/components.
+**Path:** `src/theme/createAppTheme.js`
+
+Use for: Creating MUI theme from app tokens.
+
+API:
+
+```js
+createAppTheme(mode, colorTheme);
+```
+
+Example:
+
+```js
+const muiTheme = createAppTheme("dark", "classicBlue");
+```
+
+Includes: `palette`, `typography`, `shape`, `CssBaseline`, `Paper`, `Card`, `Button`, `OutlinedInput`, `InputLabel`, `FormHelperText`, `Divider`, `Dialog`, `Drawer`, `TableCell`, `Chip`, `Tooltip`, `Menu`
+
+### Rules
+
+- Do not create another MUI theme inside pages/components.
+- Do not wrap pages/components with another `MuiThemeProvider`.
+
+---
 
 ### ThemeProvider / useTheme
 
-Path: `src/providers/ThemeProvider.jsx` or `src/contexts/ThemeContext.jsx`  
-Use for: App-wide light/dark mode state and token sync.  
-Provides: `theme`, `isDark`, `setTheme`, `toggleTheme`  
-Persists: `localStorage.theme`  
-Also sets CSS variables: `--app-color-*`, `--app-focus-ring`, `--app-shadow-*`  
-Example: `const { theme, isDark, toggleTheme } = useTheme()`
+**Path:** `src/providers/ThemeProvider.jsx`
+
+Use for: App-wide theme state, mode switching, color theme switching, CSS variable sync, MUI sync, persistence.
+
+### useTheme()
+
+```js
+const {
+  mode,
+  theme,
+  colorTheme,
+
+  isDark,
+  isLight,
+
+  setMode,
+  setTheme,
+  setColorTheme,
+
+  toggleMode,
+  toggleTheme,
+
+  availableModes,
+  availableColorThemes,
+} = useTheme();
+```
+
+Backward compatibility:
+
+```txt
+theme = mode
+setTheme = setMode
+```
+
+Preferred API:
+
+```js
+const { mode, colorTheme, setMode, setColorTheme } = useTheme();
+```
+
+Persists:
+
+```txt
+localStorage.themeMode
+localStorage.colorTheme
+```
+
+Also syncs:
+
+```txt
+document.documentElement.classList.dark
+document.documentElement.dataset.theme
+document.documentElement.dataset.mode
+```
+
+CSS variables:
+
+```txt
+--app-color-*
+--app-focus-ring
+--app-shadow-*
+```
+
+---
+
+### ThemeSwitcher
+
+**Path:** `src/components/shared/theme/ThemeSwitcher.jsx`
+
+Use for: Shared theme + appearance selector.
+
+Examples:
+
+```jsx
+<ThemeSwitcher />
+```
+
+```jsx
+<ThemeSwitcher compact size="small" />
+```
+
+```jsx
+<ThemeSwitcher showLabel />
+```
+
+```jsx
+<ThemeSwitcher align="left" />
+<ThemeSwitcher align="right" />
+```
+
+### Rules
+
+- Navbar, auth bars, settings pages, and profile pages should reuse `ThemeSwitcher`.
+- Do not recreate manual theme toggle buttons.
+
+Do not do this anymore:
+
+```jsx
+<AppIconButton
+  icon={activeMode === "dark" ? <FiSun /> : <FiMoon />}
+  onClick={toggleTheme}
+/>
+```
+
+---
 
 ### AppProvider
 
-Path: `src/providers/AppProvider.jsx`  
-Use for: Root provider wrapper.  
-Wraps: `ThemeProvider`, `ReduxProvider`, `ToastProvider`  
-Rule: App entry must stay wrapped in `<AppProvider>`.
+**Path:** `src/providers/AppProvider.jsx`
+
+Use for: Root provider wrapper.
+
+Wraps:
+
+```txt
+ThemeProvider
+ReduxProvider
+ToastProvider
+```
+
+### Rules
+
+- App root must stay wrapped in `<AppProvider>`.
+
+---
 
 ### index.css
 
-Path: `src/index.css`  
-Use for: Tailwind v4 theme bridge and global base styles.  
-Includes: `@theme` color mapping, custom dark variant, fallback CSS variables, body styles, focus ring, scrollbar, selection.  
-Tailwind colors: `bg-bg`, `bg-surface`, `bg-surface-alt`, `text-text`, `text-text-muted`, `border-border`, `bg-primary`, `text-primary`, `bg-success`, `bg-error`, `bg-warning`, `bg-info`.
+**Path:** `src/index.css`
+
+Use for: Tailwind v4 theme bridge, fallback CSS variables, base styles, scrollbar, selection, forms, typography.
+
+Includes: `@theme`, custom dark variant, fallback CSS variables, body styles, focus ring, scrollbar, selection.
+
+### Tailwind Theme Classes
+
+`bg-bg`, `bg-surface`, `bg-surface-alt`, `bg-surface-hover`, `bg-surface-active`, `text-text`, `text-text-muted`, `text-text-disabled`, `text-text-inverse`, `border-border`, `border-border-strong`, `border-divider`, `bg-primary`, `text-primary`, `bg-primary-soft`, `text-primary-contrast`, `bg-success`, `text-success`, `bg-success-soft`, `bg-error`, `text-error`, `bg-error-soft`, `bg-warning`, `text-warning`, `bg-warning-soft`, `bg-info`, `text-info`, `bg-info-soft`, `bg-neutral-50`, `bg-neutral-100`, `bg-neutral-200`, `bg-neutral-300`, `bg-neutral-400`, `bg-neutral-500`, `bg-neutral-600`, `bg-neutral-700`, `bg-neutral-800`, `bg-neutral-900`
+
+### Rules
+
+- `index.css` must not contain duplicated light/dark palettes.
+- Theme source of truth is `src/theme/tokens.js`.
+
+---
 
 ### Theme AI Rules
 
-- Use component props like `colorVariant` before custom color styling.
-- Use `getThemeTokens(theme)` only inside reusable components that need direct token access.
-- Use `useTheme()` when a component needs `theme`, `isDark`, `setTheme`, or `toggleTheme`.
-- Use CSS variables or Tailwind theme colors instead of hex values.
-- Do not hardcode light/dark colors in pages.
-- Do not create a separate theme system.
-- Do not wrap pages with another `MuiThemeProvider`.
+- Use component props like `colorVariant`, `variant`, `severity`, `status` before custom styling.
+- Use `ThemeSwitcher` for theme selection UI.
+- Use `getThemeTokens(mode, colorTheme)` only inside reusable components that need direct token access.
+- Use `useTheme()` only when a component needs theme state/actions.
+- Use CSS variables or Tailwind theme classes instead of hex values.
+- Do not hardcode colors in pages/components.
+- Do not create another theme system.
+- Do not duplicate CSS variables or palettes.
+- Do not wrap components/pages with another `MuiThemeProvider`.
+
+---
+
+### Theme Color Usage Rule
+
+Do not hardcode:
+
+```txt
+hex, rgb, rgba, hsl, named colors
+```
+
+Prefer component props:
+
+```txt
+colorVariant, variant, severity, status
+```
+
+### Use CSS Variables
+
+`var(--app-color-bg)`, `var(--app-color-surface)`, `var(--app-color-surface-alt)`, `var(--app-color-border)`, `var(--app-color-border-strong)`, `var(--app-color-text)`, `var(--app-color-text-muted)`, `var(--app-color-primary)`, `var(--app-color-primary-soft)`, `var(--app-color-success)`, `var(--app-color-error)`, `var(--app-color-warning)`, `var(--app-color-info)`, `var(--app-focus-ring)`, `var(--app-shadow-xs)`, `var(--app-shadow-sm)`, `var(--app-shadow-md)`, `var(--app-shadow-lg)`, `var(--app-shadow-xl)`
+
+### Use Tailwind Theme Classes
+
+`bg-bg`, `bg-surface`, `bg-surface-alt`, `text-text`, `text-text-muted`, `border-border`, `border-border-strong`, `bg-primary`, `text-primary`, `bg-primary-soft`, `bg-success`, `text-success`, `bg-error`, `text-error`, `bg-warning`, `text-warning`, `bg-info`, `text-info`
+
+### Final Rules
+
+- `tokens.js` is the single source of truth.
+- Do not create duplicate theme systems.
+- Do not create duplicate CSS variables.
+- Do not create duplicate palettes.
+- Do not wrap pages/components with another `MuiThemeProvider`.
 
 ---
 

@@ -8,6 +8,8 @@ import {
 } from "react-icons/fi";
 import { FaQuoteLeft, FaStar } from "react-icons/fa";
 
+import { AppBadge, AppBox, AppCard, AppHeading, AppText } from "@/components";
+
 const TestimonialsSection = () => {
   const stats = [
     {
@@ -69,58 +71,119 @@ const TestimonialsSection = () => {
     "LIFECARE",
   ];
 
+  const logoColorVariants = [
+    "success",
+    "error",
+    "primary",
+    "info",
+    "textMuted",
+    "text",
+  ];
+
   return (
-    <section className="relative w-full overflow-hidden bg-[#fbfcfd] py-10">
+    <section className="relative w-full overflow-hidden bg-bg py-10">
       <DecorDots className="left-0 top-[300px]" />
       <DecorDots className="right-0 bottom-[115px]" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
-        {/* HEADING */}
         <div className="mx-auto max-w-4xl text-center">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-semibold text-[#08a84f]">
-            <FiUsers className="text-[13px]" />
-            Trusted by Pharmacy Owners
-          </div>
+          <AppBadge
+            variant="soft"
+            colorVariant="success"
+            rounded="full"
+            startIcon={<FiUsers />}
+            label="Trusted by Pharmacy Owners"
+            sx={{
+              mb: 1.5,
+              px: 1.5,
+              py: 0.5,
+              fontSize: "12px",
+              fontWeight: 700,
+            }}
+          />
 
-          <h2 className="text-[28px] font-extrabold leading-[1.08] tracking-[-0.8px] text-slate-900 sm:text-[34px] lg:text-[40px]">
+          <AppHeading
+            level={2}
+            weight={800}
+            sx={{
+              m: 0,
+              fontSize: { xs: "28px", sm: "34px", lg: "40px" },
+              lineHeight: 1.08,
+              letterSpacing: "-0.8px",
+              color: "var(--app-color-text)",
+            }}
+          >
             Loved by Thousands of
-            <span className="block text-[#08a84f]">
+            <span className="block text-primary">
               Pharmacy Owners Across India
             </span>
-          </h2>
+          </AppHeading>
 
-          <p className="mx-auto mt-3 max-w-3xl text-[14px] leading-6 text-slate-600">
+          <AppText
+            variant="body2"
+            sx={{
+              mx: "auto",
+              mt: 1.5,
+              maxWidth: "48rem",
+              fontSize: "14px",
+              lineHeight: "24px",
+              color: "var(--app-color-text-muted)",
+            }}
+          >
             PharmaERP is trusted by retail pharmacy stores of all sizes to
             simplify operations, improve efficiency and grow their business.
-          </p>
+          </AppText>
         </div>
 
-        {/* STATS */}
         <div className="mx-auto mt-8 grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((item) => (
             <StatCard key={item.title} {...item} />
           ))}
         </div>
 
-        {/* TESTIMONIALS */}
         <div className="mt-6 grid gap-5 lg:grid-cols-3">
           {testimonials.map((item) => (
             <TestimonialCard key={item.name} {...item} />
           ))}
         </div>
 
-        {/* LOGOS */}
-        <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50/30 px-5 py-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-          <h3 className="text-center text-[18px] font-bold text-slate-900">
+        <AppCard
+          variant="default"
+          rounded="xl"
+          bordered
+          shadow="sm"
+          padding="none"
+          sx={{
+            mt: 3,
+            px: 2.5,
+            py: 2.5,
+            borderColor: "var(--app-color-success-soft)",
+            bgcolor: "var(--app-color-readonly-bg)",
+          }}
+        >
+          <AppHeading
+            level={3}
+            weight={700}
+            sx={{
+              m: 0,
+              textAlign: "center",
+              fontSize: "18px",
+              color: "var(--app-color-text)",
+            }}
+          >
             Trusted by Leading Pharmacy Stores
-          </h3>
+          </AppHeading>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
             {logos.map((logo, index) => (
-              <LogoCard key={logo} logo={logo} index={index} />
+              <LogoCard
+                key={logo}
+                logo={logo}
+                colorVariant={logoColorVariants[index]}
+              />
             ))}
           </div>
-        </div>
+        </AppCard>
       </div>
     </section>
   );
@@ -128,36 +191,119 @@ const TestimonialsSection = () => {
 
 const StatCard = ({ icon, value, title, desc }) => {
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.035)]">
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-[27px] text-[#08a84f]">
+    <AppCard
+      variant="default"
+      bordered
+      rounded="lg"
+      shadow="sm"
+      padding="none"
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 2,
+        px: 2.5,
+        py: 2,
+        bgcolor: "var(--app-color-surface)",
+      }}
+    >
+      <AppBox
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        sx={{
+          width: 56,
+          height: 56,
+          minWidth: 56,
+          flexShrink: 0,
+          borderRadius: "999px",
+          bgcolor: "var(--app-color-success-soft)",
+          color: "var(--app-color-success)",
+          fontSize: "27px",
+          lineHeight: 0,
+        }}
+      >
         {icon}
-      </div>
+      </AppBox>
 
-      <div>
-        <h3 className="text-[26px] font-extrabold leading-none text-slate-900">
+      <AppBox>
+        <AppHeading
+          level={3}
+          weight={800}
+          sx={{
+            m: 0,
+            fontSize: "26px",
+            lineHeight: 1,
+            color: "var(--app-color-text)",
+          }}
+        >
           {value}
-        </h3>
+        </AppHeading>
 
-        <p className="mt-1 text-[15px] font-bold leading-none text-slate-900">
+        <AppText
+          variant="body2"
+          weight={700}
+          sx={{
+            mt: 0.5,
+            fontSize: "15px",
+            lineHeight: 1,
+            color: "var(--app-color-text)",
+          }}
+        >
           {title}
-        </p>
+        </AppText>
 
-        <p className="mt-2 text-[12.5px] leading-5 text-slate-600">{desc}</p>
-      </div>
-    </div>
+        <AppText
+          variant="body2"
+          sx={{
+            mt: 1,
+            fontSize: "12.5px",
+            lineHeight: "20px",
+            color: "var(--app-color-text-muted)",
+          }}
+        >
+          {desc}
+        </AppText>
+      </AppBox>
+    </AppCard>
   );
 };
 
 const TestimonialCard = ({ text, name, store, city, image }) => {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-[0_8px_20px_rgba(15,23,42,0.035)]">
-      <FaQuoteLeft className="text-[24px] text-[#08a84f]" />
+    <AppCard
+      variant="default"
+      bordered
+      rounded="lg"
+      shadow="sm"
+      padding="none"
+      sx={{
+        px: 2.5,
+        py: 2.5,
+        bgcolor: "var(--app-color-surface)",
+      }}
+    >
+      <FaQuoteLeft className="text-[24px] text-primary" />
 
-      <p className="mt-4 min-h-[108px] text-[14px] leading-6 text-slate-800">
+      <AppText
+        variant="body2"
+        sx={{
+          mt: 2,
+          minHeight: 108,
+          fontSize: "14px",
+          lineHeight: "24px",
+          color: "var(--app-color-text)",
+        }}
+      >
         {text}
-      </p>
+      </AppText>
 
-      <div className="mt-4 border-t border-slate-200 pt-4">
+      <AppBox
+        sx={{
+          mt: 2,
+          pt: 2,
+          borderTop: "1px solid var(--app-color-border)",
+        }}
+      >
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <img
@@ -167,50 +313,85 @@ const TestimonialCard = ({ text, name, store, city, image }) => {
             />
 
             <div className="min-w-0">
-              <h4 className="text-[14px] font-bold text-slate-900">{name}</h4>
+              <AppHeading
+                level={4}
+                weight={700}
+                sx={{
+                  m: 0,
+                  fontSize: "14px",
+                  color: "var(--app-color-text)",
+                }}
+              >
+                {name}
+              </AppHeading>
 
-              <p className="mt-1 text-[12px] font-semibold text-slate-900">
+              <AppText
+                variant="body2"
+                weight={600}
+                sx={{
+                  mt: 0.5,
+                  fontSize: "12px",
+                  color: "var(--app-color-text)",
+                }}
+              >
                 {store}
-              </p>
+              </AppText>
 
-              <p className="mt-1 flex items-center gap-1 text-[11.5px] text-slate-700">
-                <FiMapPin className="shrink-0 text-[#08a84f]" />
+              <p className="mt-1 flex items-center gap-1 text-[11.5px] text-text-muted">
+                <FiMapPin className="shrink-0 text-primary" />
                 {city}
               </p>
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-0.5 text-amber-400">
+          <div className="flex shrink-0 items-center gap-0.5 text-warning">
             {[...Array(5)].map((_, i) => (
               <FaStar key={i} className="text-[13px]" />
             ))}
           </div>
         </div>
-      </div>
-    </div>
+      </AppBox>
+    </AppCard>
   );
 };
 
-const LogoCard = ({ logo, index }) => {
-  const styles = [
-    "text-teal-700",
-    "text-red-600",
-    "text-green-700",
-    "text-cyan-600",
-    "text-slate-700",
-    "text-slate-800",
-  ];
+const LogoCard = ({ logo, colorVariant = "text" }) => {
+  const colorMap = {
+    primary: "var(--app-color-primary)",
+    success: "var(--app-color-success)",
+    error: "var(--app-color-error)",
+    warning: "var(--app-color-warning)",
+    info: "var(--app-color-info)",
+    text: "var(--app-color-text)",
+    textMuted: "var(--app-color-text-muted)",
+  };
 
   return (
-    <div className="flex h-[64px] items-center justify-center rounded-lg bg-white px-3 shadow-[0_8px_18px_rgba(15,23,42,0.035)]">
-      <span
-        className={`text-center text-[15px] font-extrabold leading-tight ${
-          styles[index] || "text-slate-800"
-        }`}
+    <AppBox
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      sx={{
+        height: 64,
+        px: 1.5,
+        borderRadius: "8px",
+        bgcolor: "var(--app-color-surface)",
+        boxShadow: "var(--app-shadow-sm)",
+      }}
+    >
+      <AppText
+        variant="body2"
+        weight={800}
+        align="center"
+        sx={{
+          fontSize: "15px",
+          lineHeight: 1.25,
+          color: colorMap[colorVariant] || "var(--app-color-text)",
+        }}
       >
         {logo}
-      </span>
-    </div>
+      </AppText>
+    </AppBox>
   );
 };
 
@@ -220,7 +401,7 @@ const DecorDots = ({ className = "" }) => {
       className={`pointer-events-none absolute hidden h-[120px] w-[90px] opacity-35 lg:block ${className}`}
       style={{
         backgroundImage:
-          "radial-gradient(circle, rgba(8,168,79,0.35) 1.2px, transparent 1.2px)",
+          "radial-gradient(circle, var(--app-color-primary) 1.2px, transparent 1.2px)",
         backgroundSize: "12px 12px",
       }}
     />

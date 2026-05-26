@@ -1,3 +1,4 @@
+import { Link as RouterLink } from "react-router-dom";
 import { Link as MuiLink } from "@mui/material";
 
 const AppLink = ({
@@ -9,7 +10,8 @@ const AppLink = ({
 }) => {
   return (
     <MuiLink
-      href={href}
+      component={RouterLink}
+      to={href}
       underline={underline}
       sx={{
         color: "var(--color-primary)",
