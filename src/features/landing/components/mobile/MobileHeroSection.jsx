@@ -93,7 +93,7 @@ const MobileHeroSection = () => {
             </AppBox>
 
             <img
-              src="/src/assets/dashboard-showcase/mobile-app-preview.png"
+              src="/mobile-app-preview.png"
               alt="PharmaERP Mobile Dashboard"
               className="relative z-[4] w-[112px] object-contain drop-shadow-xl sm:w-[124px]"
             />

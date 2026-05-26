@@ -36,35 +36,35 @@ const DesktopDashboardShowcaseSection = () => {
       id: "overview",
       label: "Overview Dashboard",
       icon: <FiMonitor />,
-      image: "/src/assets/dashboard-showcase/overview-dashboard.png",
+      image: "/overview-dashboard.png",
       alt: "Overview Dashboard",
     },
     {
       id: "pos",
       label: "POS / Billing Screen",
       icon: <FiCreditCard />,
-      image: "/src/assets/dashboard-showcase/pos-billing-screen.png",
+      image: "/pos-billing-screen.png",
       alt: "POS Billing Screen",
     },
     {
       id: "inventory",
       label: "Inventory Management",
       icon: <FiBox />,
-      image: "/src/assets/dashboard-showcase/inventory-management.png",
+      image: "/inventory-management.png",
       alt: "Inventory Management",
     },
     {
       id: "reports",
       label: "Reports & Analytics",
       icon: <FiBarChart2 />,
-      image: "/src/assets/dashboard-showcase/reports-analytics.png",
+      image: "/reports-analytics.png",
       alt: "Reports Analytics",
     },
     {
       id: "mobile",
       label: "Mobile App",
       icon: <FiSmartphone />,
-      image: "/src/assets/dashboard-showcase/mobile-app-preview.png",
+      image: "/mobile-app-preview.png",
       alt: "Mobile App Preview",
     },
   ];
@@ -227,7 +227,7 @@ const DesktopDashboardShowcaseSection = () => {
           {activeTab === "all" ? (
             <div className="grid items-start gap-4 lg:grid-cols-[1.05fr_0.95fr]">
               <ImageCard
-                src="/src/assets/dashboard-showcase/overview-dashboard.png"
+                src="/overview-dashboard.png"
                 alt="Overview Dashboard"
                 large
               />
@@ -235,24 +235,24 @@ const DesktopDashboardShowcaseSection = () => {
               <div className="grid items-start gap-4">
                 <div className="grid items-start gap-4 md:grid-cols-2">
                   <ImageCard
-                    src="/src/assets/dashboard-showcase/pos-billing-screen.png"
+                    src="/pos-billing-screen.png"
                     alt="POS Billing Screen"
                   />
 
                   <ImageCard
-                    src="/src/assets/dashboard-showcase/inventory-management.png"
+                    src="/inventory-management.png"
                     alt="Inventory Management"
                   />
                 </div>
 
                 <div className="grid items-start gap-4 md:grid-cols-[0.95fr_1.05fr]">
                   <ImageCard
-                    src="/src/assets/dashboard-showcase/reports-analytics.png"
+                    src="/reports-analytics.png"
                     alt="Reports Analytics"
                   />
 
                   <ImageCard
-                    src="/src/assets/dashboard-showcase/mobile-app-preview.png"
+                    src="/mobile-app-preview.png"
                     alt="Mobile App Preview"
                   />
                 </div>

@@ -149,7 +149,7 @@ const DesktopHeroSection = () => {
 
           <div className="flex items-center justify-center">
             <img
-              src="/src/assets/dashboard-showcase/overview-dashboard.png"
+              src="/overview-dashboard.png"
               alt="ERP Dashboard"
               className="w-full max-w-[470px] rounded-xl object-contain drop-shadow-[0_14px_26px_rgba(15,23,42,0.12)]"
             />
