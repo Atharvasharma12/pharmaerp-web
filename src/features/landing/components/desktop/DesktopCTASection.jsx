@@ -36,7 +36,7 @@ const DesktopCTASection = () => {
           <div className="mx-auto max-w-4xl text-center">
             <AppBadge
               variant="soft"
-              colorVariant="success"
+              colorVariant="primary"
               rounded="full"
               startIcon={<FiUsers />}
               label="Trusted by 5,000+ Pharmacies"
@@ -92,7 +92,7 @@ const DesktopCTASection = () => {
             <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <AppButton
                 variant="contained"
-                colorVariant="success"
+                colorVariant="primary"
                 rounded="md"
                 endIcon={<FiArrowRight />}
                 sx={{
@@ -108,7 +108,7 @@ const DesktopCTASection = () => {
 
               <AppButton
                 variant="outlined"
-                colorVariant="success"
+                colorVariant="primary"
                 rounded="md"
                 startIcon={<FiCalendar />}
                 sx={{
@@ -157,7 +157,7 @@ const MiniPoint = ({ text }) => {
       <FiCheckCircle
         style={{
           fontSize: 15,
-          color: "var(--app-color-success, var(--app-color-primary))",
+          color: "var(--app-color-primary)",
           flexShrink: 0,
         }}
       />

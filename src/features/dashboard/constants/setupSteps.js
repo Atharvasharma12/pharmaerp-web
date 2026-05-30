@@ -1,0 +1,66 @@
+// src/features/dashboard/constants/setupSteps.js
+
+export const setupSteps = [
+  {
+    id: "company",
+    title: "Create Company",
+    description: "Add your first company to get started",
+    actionText: "Create Company",
+    route: "/companies/create",
+    completed: false,
+    disabled: false,
+    colorVariant: "primary",
+  },
+  {
+    id: "branch",
+    title: "Create Branch",
+    description: "Add your first branch or store",
+    actionText: "Create Branch",
+    route: "/branches/create",
+    completed: false,
+    disabled: false,
+    colorVariant: "info",
+  },
+  {
+    id: "staff",
+    title: "Add Staff",
+    description: "Invite your team members and assign roles",
+    actionText: "Add Staff",
+    route: "/users",
+    completed: false,
+    disabled: false,
+    colorVariant: "info",
+  },
+  {
+    id: "medicines",
+    title: "Add Medicines",
+    description: "Add medicines to your inventory",
+    actionText: "Add Medicines",
+    route: "/inventory",
+    completed: false,
+    disabled: false,
+    colorVariant: "warning",
+  },
+  {
+    id: "supplier",
+    title: "Add Supplier",
+    description: "Add your suppliers",
+    actionText: "Add Supplier",
+    route: "/purchases",
+    completed: false,
+    disabled: false,
+    colorVariant: "error",
+  },
+  {
+    id: "sale",
+    title: "Make First Sale",
+    description: "Create your first invoice (POS)",
+    actionText: "Coming Soon",
+    route: "/sales",
+    completed: false,
+    disabled: true,
+    colorVariant: "primary",
+  },
+];
+
+export default setupSteps;

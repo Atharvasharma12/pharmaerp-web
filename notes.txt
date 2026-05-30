@@ -633,7 +633,9 @@ src/
 │   └── index.js
 
 
-src/layouts/
+src/
+├── layouts/
+│
 ├── public/
 │   ├── PublicLayout.jsx
 │   │
@@ -664,6 +666,23 @@ src/layouts/
 │   │   ├── AuthMobileLayout.jsx
 │   │   ├── AuthMobileTopBar.jsx
 │   │   ├── AuthMobileBottomBar.jsx
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── onboarding/
+│   ├── OnboardingLayout.jsx
+│   │
+│   ├── desktop/
+│   │   ├── OnboardingDesktopLayout.jsx
+│   │   ├── OnboardingDesktopHeader.jsx
+│   │   ├── OnboardingDesktopProgress.jsx
+│   │   └── index.js
+│   │
+│   ├── mobile/
+│   │   ├── OnboardingMobileLayout.jsx
+│   │   ├── OnboardingMobileHeader.jsx
+│   │   ├── OnboardingMobileProgress.jsx
 │   │   └── index.js
 │   │
 │   └── index.js
@@ -756,3 +775,156 @@ src/
         │       └── index.js
         │       
         └── index.js
+
+
+        src/features/workspace/
+├── hooks/
+│   ├── useWorkspace.js
+│   └── index.js
+│
+├── pages/
+│   ├── CreateWorkspacePage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── CreateWorkspaceDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── CreateWorkspaceMobilePage.jsx
+│       └── index.js
+│
+└── index.js
+
+
+
+Folder Structure Workspace Setup
+
+src/features/workspace/
+├── pages/
+│   ├── CreateWorkspacePage.jsx
+│   ├── BusinessSetupPage.jsx
+│   ├── TeamStaffSetupPage.jsx
+│   ├── StartFreeTrialPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── CreateWorkspaceDesktopPage.jsx
+│   │   ├── BusinessSetupDesktopPage.jsx
+│   │   ├── TeamStaffSetupDesktopPage.jsx
+│   │   ├── StartFreeTrialDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── CreateWorkspaceMobilePage.jsx
+│       ├── BusinessSetupMobilePage.jsx
+│       ├── TeamStaffSetupMobilePage.jsx
+│       ├── StartFreeTrialMobilePage.jsx
+│       └── index.js
+│
+├── components/
+│   ├── shared/
+│   │   ├── WorkspaceProgressSidebar.jsx
+│   │   ├── WorkspaceProgressMobile.jsx
+│   │   ├── WorkspaceHeader.jsx
+│   │   ├── WorkspaceHelpCard.jsx
+│   │   ├── WorkspaceStepItem.jsx
+│   │   └── index.js
+│
+├── hooks/
+│   ├── useWorkspace.js
+│   └── index.js
+│
+└── index.js
+
+WorkspaceProgressSidebar
+WorkspaceStepItem
+WorkspaceHelpCard
+WorkspaceHeader
+BusinessSetupDesktopPage
+
+
+Create Account
+↓
+Verify Email
+↓
+Create Workspace
+↓
+Choose Plan / Start Trial
+↓
+Subscription Success
+↓
+Welcome Dashboard
+
+
+src/features/onboarding/
+│
+├── pages/
+│   ├── CreateWorkspacePage.jsx
+│   ├── ChoosePlanPage.jsx
+│   ├── TrialActivatedPage.jsx
+│   ├── SubscriptionSuccessPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── CreateWorkspaceDesktopPage.jsx
+│   │   ├── ChoosePlanDesktopPage.jsx
+│   │   ├── TrialActivatedDesktopPage.jsx
+│   │   ├── SubscriptionSuccessDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── CreateWorkspaceMobilePage.jsx
+│       ├── ChoosePlanMobilePage.jsx
+│       ├── TrialActivatedMobilePage.jsx
+│       ├── SubscriptionSuccessMobilePage.jsx
+│       └── index.js
+│
+├── components/
+│   ├── OnboardingHelpCard.jsx
+│   ├── OnboardingStepItem.jsx
+│   └── index.js
+│
+├── hooks/
+│   ├── useOnboarding.js
+│   └── index.js
+│
+└── index.js
+
+
+src/features/dashboard/
+│
+├── pages/
+│   ├── DashboardPage.jsx
+│   ├── WelcomeDashboardPage.jsx
+│   ├── MainDashboardPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── DashboardDesktopPage.jsx
+│   │   ├── WelcomeDashboardDesktopPage.jsx
+│   │   ├── MainDashboardDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── DashboardMobilePage.jsx
+│       ├── WelcomeDashboardMobilePage.jsx
+│       ├── MainDashboardMobilePage.jsx
+│       └── index.js
+│
+├── constants/
+│   ├── dashboardStats.js
+│   ├── setupSteps.js
+│   ├── quickGuides.js
+│   └── index.js
+│
+├── hooks/
+│   ├── useDashboard.js
+│   ├── useSetupProgress.js
+│   └── index.js
+│
+├── services/
+│   ├── dashboardService.js
+│   └── index.js
+│
+└── index.js

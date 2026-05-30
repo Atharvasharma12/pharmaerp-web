@@ -4,9 +4,16 @@ import { createBrowserRouter } from "react-router-dom";
 
 import { ROUTES } from "@/constants";
 
-import { PublicLayout, AuthLayout } from "@/layouts";
+import {
+  PublicLayout,
+  AuthLayout,
+  AppLayout,
+  OnboardingLayout,
+} from "@/layouts";
 
 import authRoutes from "@/features/auth/routes/authRoutes";
+import onboardingRoutes from "@/features/onboarding/routes/onboardingRoutes";
+import dashboardRoutes from "@/features/dashboard/routes/dashboardRoutes";
 
 import { LandingPage } from "@/features/landing";
 
@@ -41,45 +48,34 @@ export const router = createBrowserRouter([
         path: ROUTES.HOME,
         element: <LandingPage />,
       },
-
-      /**
-       * PUBLIC PAGES
-       */
       {
         path: "/features",
         element: <HomePage />,
       },
-
       {
         path: "/pricing",
         element: <HomePage />,
       },
-
       {
         path: "/blog",
         element: <HomePage />,
       },
-
       {
         path: "/contact",
         element: <HomePage />,
       },
-
       {
         path: "/about",
         element: <HomePage />,
       },
-
       {
         path: "/help-center",
         element: <HomePage />,
       },
-
       {
         path: "/privacy-policy",
         element: <HomePage />,
       },
-
       {
         path: "/terms-of-service",
         element: <HomePage />,
@@ -95,6 +91,26 @@ export const router = createBrowserRouter([
   {
     element: <AuthLayout />,
     children: authRoutes,
+  },
+
+  /**
+   * ------------------------------------------------
+   * ONBOARDING ROUTES
+   * ------------------------------------------------
+   */
+  {
+    element: <OnboardingLayout />,
+    children: onboardingRoutes,
+  },
+
+  /**
+   * ------------------------------------------------
+   * APP ROUTES
+   * ------------------------------------------------
+   */
+  {
+    element: <AppLayout />,
+    children: dashboardRoutes,
   },
 
   /**
