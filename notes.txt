@@ -928,3 +928,144 @@ src/features/dashboard/
 │   └── index.js
 │
 └── index.js
+
+
+I will share some already-built React pages/components first. Treat those as the CSS/styling reference only.
+
+Study their:
+- font sizes
+- font weights
+- spacing
+- padding
+- card radius
+- borders
+- shadows
+- icon sizes
+- button sizes
+- input styles
+- AppBox/AppCard/AppHeading/AppText/AppButton usage
+- theme variables like bg, surface, border, primary, text, text-muted
+
+After that, I will share an image of a new page. Build the new React page to match the UI layout/content structure of the image, but follow the styling system from the reference components I shared.
+
+Important rules:
+- Do not use raw MUI components if app components exist.
+- Use imports from "@/components".
+- Use AppBox, AppCard, AppHeading, AppText, AppButton, AppStack, AppInput, AppSelect, etc.
+- Use CSS variables and Tailwind theme classes only.
+- Do not hardcode hex/rgb colors.
+- Keep the page compact.
+- Keep padding tight, usually px around 0.35 to 1.6 depending on the screen.
+- Match the image layout, but match existing project styling.
+- Return full code only for the requested component.
+- Do not explain unless I ask.
+- If I say “until I ask do nothing”, just acknowledge and wait.
+
+First I will send the reference components. Do nothing until I send the image and ask for the new page.
+
+src/features/company/
+│
+├── pages/
+│   ├── CompaniesPage.jsx
+│   ├── CreateCompanyPage.jsx
+│   ├── EditCompanyPage.jsx
+│   ├── CompanyDetailsPage.jsx
+│   ├── CompanySettingsPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── CompaniesDesktopPage.jsx
+│   │   ├── CreateCompanyDesktopPage.jsx
+│   │   ├── EditCompanyDesktopPage.jsx
+│   │   ├── CompanyDetailsDesktopPage.jsx
+│   │   ├── CompanySettingsDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── CompaniesMobilePage.jsx
+│       ├── CreateCompanyMobilePage.jsx
+│       ├── EditCompanyMobilePage.jsx
+│       ├── CompanyDetailsMobilePage.jsx
+│       ├── CompanySettingsMobilePage.jsx
+│       └── index.js
+│
+├── hooks/
+│   ├── useCompanies.js
+│   ├── useCompany.js
+│   ├── useCreateCompany.js
+│   ├── useUpdateCompany.js
+│   └── index.js
+│
+├── services/
+│   ├── companyService.js
+│   └── index.js
+│
+├── constants/
+│   ├── companyTypes.js
+│   ├── companyStatuses.js
+│   ├── companyPermissions.js
+│   └── index.js
+│
+├── schemas/
+│   ├── companySchema.js
+│   └── index.js
+│
+├── routes/
+│   ├── companyRoutes.js
+│   └── index.js
+│
+└── index.js
+
+
+src/features/branch/
+│
+├── pages/
+│   ├── BranchesPage.jsx              // Branch listing
+│   ├── CreateBranchPage.jsx          // Add branch
+│   ├── EditBranchPage.jsx            // Edit branch
+│   ├── BranchDetailsPage.jsx         // Branch profile/details
+│   ├── BranchSettingsPage.jsx        // Branch settings
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── BranchesDesktopPage.jsx
+│   │   ├── CreateBranchDesktopPage.jsx
+│   │   ├── EditBranchDesktopPage.jsx
+│   │   ├── BranchDetailsDesktopPage.jsx
+│   │   ├── BranchSettingsDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── BranchesMobilePage.jsx
+│       ├── CreateBranchMobilePage.jsx
+│       ├── EditBranchMobilePage.jsx
+│       ├── BranchDetailsMobilePage.jsx
+│       ├── BranchSettingsMobilePage.jsx
+│       └── index.js
+│
+├── hooks/
+│   ├── useBranches.js
+│   ├── useBranch.js
+│   ├── useCreateBranch.js
+│   ├── useUpdateBranch.js
+│   ├── useDeleteBranch.js
+│   └── index.js
+│
+├── services/
+│   ├── branchService.js
+│   └── index.js
+│
+├── schemas/
+│   ├── branchSchema.js
+│   └── index.js
+│
+├── constants/
+│   ├── branchTypes.js
+│   ├── branchStatuses.js
+│   └── index.js
+│
+├── routes/
+│   ├── branchRoutes.js
+│   └── index.js
+│
+└── index.js
