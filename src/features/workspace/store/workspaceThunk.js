@@ -60,8 +60,8 @@ export const deleteWorkspace = createAsyncThunk(
   "workspace/deleteWorkspace",
   async (workspaceId, { rejectWithValue }) => {
     try {
-      await workspaceService.deleteWorkspace(workspaceId);
-      return workspaceId;
+      const response = await workspaceService.deleteWorkspace(workspaceId);
+      return response.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -98,12 +98,12 @@ export const addWorkspaceMember = createAsyncThunk(
 
 export const updateWorkspaceMemberStatus = createAsyncThunk(
   "workspace/updateWorkspaceMemberStatus",
-  async ({ workspaceId, memberUserId, payload }, { rejectWithValue }) => {
+  async ({ workspaceId, memberUserId, status }, { rejectWithValue }) => {
     try {
       const response = await workspaceService.updateWorkspaceMemberStatus(
         workspaceId,
         memberUserId,
-        payload,
+        { status },
       );
 
       return response.data?.data;

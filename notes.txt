@@ -1069,3 +1069,48 @@ src/features/branch/
 │   └── index.js
 │
 └── index.js
+
+src/features/workspace/
+│
+├── hooks/
+│   └── useWorkspace.js
+│
+├── services/
+│   └── workspaceService.js
+│
+├── store/
+│   ├── workspaceSlice.js
+│   ├── workspaceThunk.js
+│   └── workspaceSelector.js
+│
+└── index.js
+
+src/features/company/
+│
+├── hooks/
+│   └── useCompany.js
+│
+├── services/
+│   └── companyService.js
+│
+├── store/
+│   ├── companySlice.js
+│   ├── companyThunk.js
+│   └── companySelector.js
+│
+└── index.js
+
+src/features/branch/
+│
+├── hooks/
+│   └── useBranch.js
+│
+├── services/
+│   └── branchService.js
+│
+├── store/
+│   ├── branchSlice.js
+│   ├── branchThunk.js
+│   └── branchSelector.js
+│
+└── index.js

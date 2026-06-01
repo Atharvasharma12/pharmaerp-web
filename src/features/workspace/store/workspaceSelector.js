@@ -16,6 +16,12 @@ export const selectWorkspaceMessage = (state) => state.workspace.message;
 export const selectCreateWorkspaceStatus = (state) =>
   state.workspace.createWorkspaceStatus;
 
+export const selectGetMyWorkspacesStatus = (state) =>
+  state.workspace.getMyWorkspacesStatus;
+
+export const selectGetWorkspaceStatus = (state) =>
+  state.workspace.getWorkspaceStatus;
+
 export const selectUpdateWorkspaceStatus = (state) =>
   state.workspace.updateWorkspaceStatus;
 
@@ -29,7 +35,7 @@ export const selectAddWorkspaceMemberStatus = (state) =>
   state.workspace.addWorkspaceMemberStatus;
 
 export const selectUpdateWorkspaceMemberStatus = (state) =>
-  state.workspace.updateWorkspaceMemberStatusStatus;
+  state.workspace.updateWorkspaceMemberStatus;
 
 export const selectRemoveWorkspaceMemberStatus = (state) =>
   state.workspace.removeWorkspaceMemberStatus;

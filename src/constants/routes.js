@@ -15,6 +15,20 @@ export const ROUTES = {
   TRIAL_ACTIVATED: "/onboarding/trial-activated",
   SUBSCRIPTION_SUCCESS: "/onboarding/subscription-success",
 
+  // Company
+  COMPANIES: "/companies",
+  CREATE_COMPANY: "/companies/create",
+  EDIT_COMPANY: "/companies/:companyId/edit",
+  COMPANY_DETAILS: "/companies/:companyId",
+  COMPANY_SETTINGS: "/companies/:companyId/settings",
+
+  // Branch
+  BRANCHES: "/branches",
+  CREATE_BRANCH: "/branches/create",
+  EDIT_BRANCH: "/branches/:branchId/edit",
+  BRANCH_DETAILS: "/branches/:branchId",
+  BRANCH_SETTINGS: "/branches/:branchId/settings",
+
   // Dashboard
   DASHBOARD: "/dashboard",
 

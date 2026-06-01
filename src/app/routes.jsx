@@ -14,10 +14,12 @@ import {
 import authRoutes from "@/features/auth/routes/authRoutes";
 import onboardingRoutes from "@/features/onboarding/routes/onboardingRoutes";
 import dashboardRoutes from "@/features/dashboard/routes/dashboardRoutes";
-
-import { LandingPage } from "@/features/landing";
+// import companyRoutes from "@/features/company/routes/companyRoutes";
+// import branchRoutes from "@/features/branch/routes/branchRoutes";
 
 import HomePage from "@/pages/HomePage";
+import companyRoutes from "@/features/company/routes/companyRoutes";
+import branchRoutes from "@/features/branch/routes/branchRoutes";
 
 const NotFoundPage = () => {
   return (
@@ -46,7 +48,7 @@ export const router = createBrowserRouter([
     children: [
       {
         path: ROUTES.HOME,
-        element: <LandingPage />,
+        element: <HomePage />,
       },
       {
         path: "/features",
@@ -110,7 +112,7 @@ export const router = createBrowserRouter([
    */
   {
     element: <AppLayout />,
-    children: dashboardRoutes,
+    children: [...dashboardRoutes, ...companyRoutes, ...branchRoutes],
   },
 
   /**

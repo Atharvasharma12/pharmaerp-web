@@ -6,7 +6,7 @@ const workspaceService = {
   },
 
   getMyWorkspaces() {
-    return apiClient.get(ENDPOINTS.WORKSPACE.MY_WORKSPACES);
+    return apiClient.get(ENDPOINTS.WORKSPACE.LIST);
   },
 
   getWorkspaceById(workspaceId) {
@@ -38,7 +38,7 @@ const workspaceService = {
 
   removeWorkspaceMember(workspaceId, memberUserId) {
     return apiClient.delete(
-      ENDPOINTS.WORKSPACE.MEMBER_BY_ID(workspaceId, memberUserId),
+      ENDPOINTS.WORKSPACE.MEMBER_BY_USER_ID(workspaceId, memberUserId),
     );
   },
 };

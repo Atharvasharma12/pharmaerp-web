@@ -28,7 +28,7 @@ export const ENDPOINTS = {
   WORKSPACE: {
     CREATE: "/organization/workspaces",
 
-    MY_WORKSPACES: "/organization/workspaces",
+    LIST: "/organization/workspaces",
 
     BY_ID: (workspaceId) => `/organization/workspaces/${workspaceId}`,
 
@@ -37,8 +37,24 @@ export const ENDPOINTS = {
     MEMBER_STATUS: (workspaceId, memberUserId) =>
       `/organization/workspaces/${workspaceId}/members/${memberUserId}/status`,
 
-    MEMBER_BY_ID: (workspaceId, memberUserId) =>
+    MEMBER_BY_USER_ID: (workspaceId, memberUserId) =>
       `/organization/workspaces/${workspaceId}/members/${memberUserId}`,
+  },
+
+  COMPANY: {
+    CREATE: "/organization/companies",
+
+    LIST: "/organization/companies",
+
+    BY_ID: (companyId) => `/organization/companies/${companyId}`,
+  },
+
+  BRANCH: {
+    CREATE: "/organization/branches",
+
+    LIST: "/organization/branches",
+
+    BY_ID: (branchId) => `/organization/branches/${branchId}`,
   },
 
   PLAN: {

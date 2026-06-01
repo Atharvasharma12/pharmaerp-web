@@ -7,13 +7,13 @@ import PublicDesktopFooter from "./PublicDesktopFooter";
 const PublicDesktopLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <PublicDesktopNavbar />
+      {/* <PublicDesktopNavbar /> */}
 
       <main className="flex-1">
         <Outlet />
       </main>
 
-      <PublicDesktopFooter />
+      {/* <PublicDesktopFooter /> */}
     </div>
   );
 };

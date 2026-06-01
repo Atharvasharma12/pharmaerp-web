@@ -8,6 +8,10 @@ import userReducer from "@/features/user/store/userSlice";
 
 import workspaceReducer from "@/features/workspace/store/workspaceSlice";
 
+import companyReducer from "@/features/company/store/companySlice";
+
+import branchReducer from "@/features/branch/store/branchSlice";
+
 import planReducer from "@/features/subscription/plans/store/planSlice";
 
 import subscriptionReducer from "@/features/subscription/subscriptions/store/subscriptionSlice";
@@ -18,6 +22,10 @@ const rootReducer = combineReducers({
   user: userReducer,
 
   workspace: workspaceReducer,
+
+  company: companyReducer,
+
+  branch: branchReducer,
 
   plan: planReducer,
 
