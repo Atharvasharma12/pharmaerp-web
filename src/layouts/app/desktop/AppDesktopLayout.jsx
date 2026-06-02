@@ -10,23 +10,26 @@ const AppDesktopLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className="min-h-screen bg-bg text-text">
-      <div className="flex min-h-screen">
-        <AppDesktopSidebar
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
+    <div className="h-screen overflow-hidden bg-bg text-text">
+      <AppDesktopSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      <div
+        className={[
+          "flex h-screen min-w-0 flex-col transition-all duration-300 ease-in-out",
+          sidebarOpen ? "ml-[230px]" : "ml-0",
+        ].join(" ")}
+      >
+        <AppDesktopHeader
+          sidebarOpen={sidebarOpen}
+          onMenuClick={() => setSidebarOpen(true)}
         />
 
-        <div className="flex min-h-screen flex-1 flex-col">
-          <AppDesktopHeader
-            sidebarOpen={sidebarOpen}
-            onMenuClick={() => setSidebarOpen(true)}
-          />
-
-          <main className="flex-1">
-            <Outlet />
-          </main>
-        </div>
+        <main className="mt-[58px] h-[calc(100vh-58px)] min-w-0 flex-1 overflow-auto">
+          <Outlet />
+        </main>
       </div>
     </div>
   );

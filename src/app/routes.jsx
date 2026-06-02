@@ -20,6 +20,7 @@ import companyRoutes from "@/features/company/routes/companyRoutes";
 import branchRoutes from "@/features/branch/routes/branchRoutes";
 
 import HomePage from "@/pages/HomePage";
+import { LandingPage } from "@/features/landing";
 
 const NotFoundPage = () => {
   return (

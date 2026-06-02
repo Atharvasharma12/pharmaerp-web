@@ -10,10 +10,11 @@ import {
   FiFileText,
   FiMail,
   FiMapPin,
+  FiPackage,
   FiPhone,
   FiSave,
   FiSettings,
-  FiShoppingBag,
+  FiStar,
   FiUser,
 } from "react-icons/fi";
 
@@ -38,13 +39,14 @@ const CreateBranchDesktopPage = ({
   formData,
   formErrors,
   isLoading,
-  companyOptions,
   branchTypeOptions,
-  stateOptions,
-  countryOptions,
-  inventoryTrackingOptions,
-  posEnabledOptions,
-  allowNegativeStockOptions,
+  statusOptions,
+  billingTypeOptions,
+  inventoryModeOptions,
+  priceModeOptions,
+  currencyOptions,
+  timeFormatOptions,
+  booleanOptions,
   handleChange,
   handleSubmit,
   handleBack,
@@ -54,7 +56,7 @@ const CreateBranchDesktopPage = ({
       <div className="mx-auto w-full max-w-[1500px]">
         <div className="mb-3 flex w-full items-center justify-between">
           <AppStack direction="row" align="center" gap={1}>
-            <IconBox icon={<FiMapPin />} large />
+            <IconBox icon={<FiBriefcase />} large />
 
             <AppBox>
               <AppHeading level={1} weight={700} sx={pageTitleSx}>
@@ -83,6 +85,7 @@ const CreateBranchDesktopPage = ({
             size="small"
             startIcon={<FiArrowLeft />}
             onClick={handleBack}
+            disabled={isLoading}
             sx={backButtonSx}
           >
             Back to Branches
@@ -101,27 +104,10 @@ const CreateBranchDesktopPage = ({
                 sx={mainCardSx}
               >
                 <FormSection
-                  icon={<FiMapPin />}
-                  title="Branch Information"
+                  icon={<FiBriefcase />}
+                  title="Basic Information"
                   columns={3}
                 >
-                  <AppSelect
-                    label="Company"
-                    name="companyId"
-                    value={formData.companyId}
-                    onChange={handleChange}
-                    options={companyOptions}
-                    required
-                    fullWidth
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    error={Boolean(formErrors.companyId)}
-                    helperText={formErrors.companyId}
-                    labelSx={labelSx}
-                    inputSx={inputSx}
-                  />
-
                   <AppInput
                     label="Branch Name"
                     name="branchName"
@@ -133,27 +119,9 @@ const CreateBranchDesktopPage = ({
                     size="small"
                     variant="bordered"
                     rounded="md"
-                    startIcon={<FiShoppingBag />}
+                    startIcon={<FiBriefcase />}
                     error={Boolean(formErrors.branchName)}
                     helperText={formErrors.branchName}
-                    labelSx={labelSx}
-                    inputSx={inputSx}
-                  />
-
-                  <AppInput
-                    label="Branch Code"
-                    name="branchCode"
-                    value={formData.branchCode}
-                    onChange={handleChange}
-                    placeholder="BR-001"
-                    required
-                    fullWidth
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    startIcon={<FiFileText />}
-                    error={Boolean(formErrors.branchCode)}
-                    helperText={formErrors.branchCode}
                     labelSx={labelSx}
                     inputSx={inputSx}
                   />
@@ -168,6 +136,69 @@ const CreateBranchDesktopPage = ({
                     size="small"
                     variant="bordered"
                     rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppSelect
+                    label="Primary Branch"
+                    name="isPrimary"
+                    value={formData.isPrimary}
+                    onChange={handleChange}
+                    options={booleanOptions}
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  {/* Keep this hidden/commented for create if backend defaults active */}
+                  {/* <AppSelect
+                    label="Branch Status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    options={statusOptions}
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  /> */}
+
+                  <AppInput
+                    label="GSTIN"
+                    name="gstNumber"
+                    value={formData.gstNumber}
+                    onChange={handleChange}
+                    placeholder="Enter GSTIN"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    startIcon={<FiCreditCard />}
+                    error={Boolean(formErrors.gstNumber)}
+                    helperText={formErrors.gstNumber}
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Drug License Number"
+                    name="drugLicenseNumber"
+                    value={formData.drugLicenseNumber}
+                    onChange={handleChange}
+                    placeholder="Enter drug license number"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    startIcon={<FiFileText />}
+                    error={Boolean(formErrors.drugLicenseNumber)}
+                    helperText={formErrors.drugLicenseNumber}
                     labelSx={labelSx}
                     inputSx={inputSx}
                   />
@@ -208,37 +239,91 @@ const CreateBranchDesktopPage = ({
                 </FormSection>
 
                 <FormSection
-                  icon={<FiUser />}
-                  title="Manager Details"
-                  columns={2}
+                  icon={<FiMapPin />}
+                  title="Address"
+                  columns={3}
                   divided
                   green
                 >
                   <AppInput
-                    label="Manager Name"
-                    name="managerName"
-                    value={formData.managerName}
+                    label="Address Line 1"
+                    name="addressLine1"
+                    value={formData.addressLine1}
                     onChange={handleChange}
-                    placeholder="Enter manager name"
-                    required
+                    placeholder="Enter address line 1"
                     fullWidth
                     size="small"
                     variant="bordered"
                     rounded="md"
-                    startIcon={<FiUser />}
-                    error={Boolean(formErrors.managerName)}
-                    helperText={formErrors.managerName}
+                    endIcon={<FiMapPin />}
+                    error={Boolean(formErrors.addressLine1)}
+                    helperText={formErrors.addressLine1}
                     labelSx={labelSx}
                     inputSx={inputSx}
                   />
 
-                  <AppPhoneInput
-                    label="Manager Phone Number"
-                    name="managerPhone"
-                    value={formData.managerPhone}
+                  <AppInput
+                    label="Address Line 2"
+                    name="addressLine2"
+                    value={formData.addressLine2}
                     onChange={handleChange}
-                    countryCode={formData.phoneCountryCode || "+91"}
-                    showCountryCode
+                    placeholder="Enter address line 2"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="City"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder="Enter city"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="State"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    placeholder="Enter state"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Country"
+                    name="country"
+                    value={formData.country}
+                    onChange={handleChange}
+                    placeholder="Enter country"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Pincode"
+                    name="pincode"
+                    value={formData.pincode}
+                    onChange={handleChange}
+                    placeholder="Enter pincode"
                     fullWidth
                     size="small"
                     variant="bordered"
@@ -249,105 +334,69 @@ const CreateBranchDesktopPage = ({
                 </FormSection>
 
                 <FormSection
-                  icon={<FiMapPin />}
-                  title="Branch Address"
-                  columns={3}
+                  icon={<FiUser />}
+                  title="Contact Person"
+                  columns={4}
                   divided
                   green
                 >
-                  <AppBox sx={{ gridColumn: "span 2" }}>
-                    <AppInput
-                      label="Address Line 1"
-                      name="addressLine1"
-                      value={formData.addressLine1}
-                      onChange={handleChange}
-                      placeholder="Enter address line 1"
-                      required
-                      fullWidth
-                      size="small"
-                      variant="bordered"
-                      rounded="md"
-                      startIcon={<FiMapPin />}
-                      error={Boolean(formErrors.addressLine1)}
-                      helperText={formErrors.addressLine1}
-                      labelSx={labelSx}
-                      inputSx={inputSx}
-                    />
-                  </AppBox>
+                  <AppInput
+                    label="Contact Name"
+                    name="contactPersonName"
+                    value={formData.contactPersonName}
+                    onChange={handleChange}
+                    placeholder="Enter contact person name"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    startIcon={<FiUser />}
+                    error={Boolean(formErrors.contactPersonName)}
+                    helperText={formErrors.contactPersonName}
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppPhoneInput
+                    label="Contact Phone"
+                    name="contactPersonPhone"
+                    value={formData.contactPersonPhone}
+                    onChange={handleChange}
+                    countryCode={formData.phoneCountryCode || "+91"}
+                    showCountryCode
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    error={Boolean(formErrors.contactPersonPhone)}
+                    helperText={formErrors.contactPersonPhone}
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
 
                   <AppInput
-                    label="Pincode"
-                    name="pincode"
-                    value={formData.pincode}
+                    label="Contact Email"
+                    name="contactPersonEmail"
+                    value={formData.contactPersonEmail}
                     onChange={handleChange}
-                    placeholder="400069"
-                    required
+                    placeholder="Enter contact email"
                     fullWidth
                     size="small"
                     variant="bordered"
                     rounded="md"
-                    error={Boolean(formErrors.pincode)}
-                    helperText={formErrors.pincode}
+                    startIcon={<FiMail />}
+                    error={Boolean(formErrors.contactPersonEmail)}
+                    helperText={formErrors.contactPersonEmail}
                     labelSx={labelSx}
                     inputSx={inputSx}
                   />
-
-                  <AppBox sx={{ gridColumn: "span 2" }}>
-                    <AppInput
-                      label="Address Line 2 (Optional)"
-                      name="addressLine2"
-                      value={formData.addressLine2}
-                      onChange={handleChange}
-                      placeholder="Nearby landmark or area"
-                      fullWidth
-                      size="small"
-                      variant="bordered"
-                      rounded="md"
-                      labelSx={labelSx}
-                      inputSx={inputSx}
-                    />
-                  </AppBox>
 
                   <AppInput
-                    label="City"
-                    name="city"
-                    value={formData.city}
+                    label="Designation"
+                    name="contactPersonDesignation"
+                    value={formData.contactPersonDesignation}
                     onChange={handleChange}
-                    placeholder="Enter city"
-                    required
-                    fullWidth
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    error={Boolean(formErrors.city)}
-                    helperText={formErrors.city}
-                    labelSx={labelSx}
-                    inputSx={inputSx}
-                  />
-
-                  <AppSelect
-                    label="State"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleChange}
-                    options={stateOptions}
-                    required
-                    fullWidth
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    error={Boolean(formErrors.state)}
-                    helperText={formErrors.state}
-                    labelSx={labelSx}
-                    inputSx={inputSx}
-                  />
-
-                  <AppSelect
-                    label="Country"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    options={countryOptions}
+                    placeholder="Enter designation"
                     fullWidth
                     size="small"
                     variant="bordered"
@@ -359,106 +408,157 @@ const CreateBranchDesktopPage = ({
 
                 <FormSection
                   icon={<FiCreditCard />}
-                  title="Compliance Details"
-                  columns={3}
+                  title="Billing Settings"
+                  columns={4}
                   divided
                   green
                 >
-                  <AppInput
-                    label="GST Number (Optional)"
-                    name="gstNumber"
-                    value={formData.gstNumber}
+                  <AppSelect
+                    label="Billing Type"
+                    name="billingType"
+                    value={formData.billingType}
                     onChange={handleChange}
-                    placeholder="Enter GST number"
+                    options={billingTypeOptions}
                     fullWidth
                     size="small"
                     variant="bordered"
                     rounded="md"
-                    startIcon={<FiCreditCard />}
                     labelSx={labelSx}
                     inputSx={inputSx}
                   />
 
                   <AppInput
-                    label="Drug License Number (Optional)"
-                    name="drugLicenseNumber"
-                    value={formData.drugLicenseNumber}
+                    label="Invoice Prefix"
+                    name="invoicePrefix"
+                    value={formData.invoicePrefix}
                     onChange={handleChange}
-                    placeholder="Enter drug license"
+                    placeholder="INV"
                     fullWidth
                     size="small"
                     variant="bordered"
                     rounded="md"
-                    startIcon={<FiFileText />}
                     labelSx={labelSx}
                     inputSx={inputSx}
                   />
 
                   <AppInput
-                    label="FSSAI Number (Optional)"
-                    name="fssaiNumber"
-                    value={formData.fssaiNumber}
+                    label="Invoice Start Number"
+                    name="invoiceStartNumber"
+                    value={formData.invoiceStartNumber}
                     onChange={handleChange}
-                    placeholder="Enter FSSAI number"
+                    placeholder="1"
                     fullWidth
                     size="small"
                     variant="bordered"
                     rounded="md"
-                    startIcon={<FiFileText />}
+                    error={Boolean(formErrors.invoiceStartNumber)}
+                    helperText={formErrors.invoiceStartNumber}
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Bill Prefix"
+                    name="billPrefix"
+                    value={formData.billPrefix}
+                    onChange={handleChange}
+                    placeholder="BILL"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Bill Start Number"
+                    name="billStartNumber"
+                    value={formData.billStartNumber}
+                    onChange={handleChange}
+                    placeholder="1"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    error={Boolean(formErrors.billStartNumber)}
+                    helperText={formErrors.billStartNumber}
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Purchase Prefix"
+                    name="purchasePrefix"
+                    value={formData.purchasePrefix}
+                    onChange={handleChange}
+                    placeholder="PUR"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Purchase Start Number"
+                    name="purchaseStartNumber"
+                    value={formData.purchaseStartNumber}
+                    onChange={handleChange}
+                    placeholder="1"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    error={Boolean(formErrors.purchaseStartNumber)}
+                    helperText={formErrors.purchaseStartNumber}
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Sales Return Prefix"
+                    name="salesReturnPrefix"
+                    value={formData.salesReturnPrefix}
+                    onChange={handleChange}
+                    placeholder="SR"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Purchase Return Prefix"
+                    name="purchaseReturnPrefix"
+                    value={formData.purchaseReturnPrefix}
+                    onChange={handleChange}
+                    placeholder="PR"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
                     labelSx={labelSx}
                     inputSx={inputSx}
                   />
                 </FormSection>
 
                 <FormSection
-                  icon={<FiClock />}
-                  title="Operations Settings"
+                  icon={<FiPackage />}
+                  title="Inventory Settings"
                   columns={4}
                   divided
                   green
                 >
-                  <AppInput
-                    label="Opening Time"
-                    name="openingTime"
-                    value={formData.openingTime}
-                    onChange={handleChange}
-                    placeholder="09:00"
-                    required
-                    fullWidth
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    startIcon={<FiClock />}
-                    error={Boolean(formErrors.openingTime)}
-                    helperText={formErrors.openingTime}
-                    labelSx={labelSx}
-                    inputSx={inputSx}
-                  />
-
-                  <AppInput
-                    label="Closing Time"
-                    name="closingTime"
-                    value={formData.closingTime}
-                    onChange={handleChange}
-                    placeholder="22:00"
-                    required
-                    fullWidth
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    startIcon={<FiCalendar />}
-                    error={Boolean(formErrors.closingTime)}
-                    helperText={formErrors.closingTime}
-                    labelSx={labelSx}
-                    inputSx={inputSx}
-                  />
-
                   <AppSelect
-                    label="Inventory Tracking"
-                    name="inventoryTracking"
-                    value={formData.inventoryTracking}
+                    label="Inventory Mode"
+                    name="inventoryMode"
+                    value={formData.inventoryMode}
                     onChange={handleChange}
-                    options={inventoryTrackingOptions}
+                    options={inventoryModeOptions}
                     fullWidth
                     size="small"
                     variant="bordered"
@@ -468,11 +568,11 @@ const CreateBranchDesktopPage = ({
                   />
 
                   <AppSelect
-                    label="POS Enabled"
-                    name="posEnabled"
-                    value={formData.posEnabled}
+                    label="Price Mode"
+                    name="priceMode"
+                    value={formData.priceMode}
                     onChange={handleChange}
-                    options={posEnabledOptions}
+                    options={priceModeOptions}
                     fullWidth
                     size="small"
                     variant="bordered"
@@ -486,7 +586,63 @@ const CreateBranchDesktopPage = ({
                     name="allowNegativeStock"
                     value={formData.allowNegativeStock}
                     onChange={handleChange}
-                    options={allowNegativeStockOptions}
+                    options={booleanOptions}
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppSelect
+                    label="Allow Backdated Entries"
+                    name="allowBackdatedEntries"
+                    value={formData.allowBackdatedEntries}
+                    onChange={handleChange}
+                    options={booleanOptions}
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppSelect
+                    label="Enable Batch Tracking"
+                    name="enableBatchTracking"
+                    value={formData.enableBatchTracking}
+                    onChange={handleChange}
+                    options={booleanOptions}
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppSelect
+                    label="Enable Expiry Tracking"
+                    name="enableExpiryTracking"
+                    value={formData.enableExpiryTracking}
+                    onChange={handleChange}
+                    options={booleanOptions}
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppSelect
+                    label="Enable Rack Tracking"
+                    name="enableRackTracking"
+                    value={formData.enableRackTracking}
+                    onChange={handleChange}
+                    options={booleanOptions}
                     fullWidth
                     size="small"
                     variant="bordered"
@@ -503,12 +659,138 @@ const CreateBranchDesktopPage = ({
                     items={[
                       {
                         id: "additional-settings",
-                        title: "Additional Settings (Optional)",
+                        title: "Additional Settings",
                         icon: <FiSettings />,
                         content: (
-                          <AppText variant="body2" sx={mutedTextSx}>
-                            More branch settings can be added here later.
-                          </AppText>
+                          <AppGrid columns={4} gap={1.25} columnGap={2}>
+                            <AppInput
+                              label="Timezone"
+                              name="timezone"
+                              value={formData.timezone}
+                              onChange={handleChange}
+                              placeholder="Asia/Kolkata"
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Currency"
+                              name="currency"
+                              value={formData.currency}
+                              onChange={handleChange}
+                              options={currencyOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppInput
+                              label="Date Format"
+                              name="dateFormat"
+                              value={formData.dateFormat}
+                              onChange={handleChange}
+                              placeholder="DD/MM/YYYY"
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Time Format"
+                              name="timeFormat"
+                              value={formData.timeFormat}
+                              onChange={handleChange}
+                              options={timeFormatOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Enable Purchase Module"
+                              name="enablePurchaseModule"
+                              value={formData.enablePurchaseModule}
+                              onChange={handleChange}
+                              options={booleanOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Enable Sales Module"
+                              name="enableSalesModule"
+                              value={formData.enableSalesModule}
+                              onChange={handleChange}
+                              options={booleanOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Enable Inventory Module"
+                              name="enableInventoryModule"
+                              value={formData.enableInventoryModule}
+                              onChange={handleChange}
+                              options={booleanOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Enable POS Billing"
+                              name="enablePosBilling"
+                              value={formData.enablePosBilling}
+                              onChange={handleChange}
+                              options={booleanOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppInput
+                              label="Default GST Rate"
+                              name="defaultGstRate"
+                              value={formData.defaultGstRate}
+                              onChange={handleChange}
+                              placeholder="0"
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              error={Boolean(formErrors.defaultGstRate)}
+                              helperText={formErrors.defaultGstRate}
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+                          </AppGrid>
                         ),
                       },
                     ]}
@@ -518,6 +800,12 @@ const CreateBranchDesktopPage = ({
                   />
                 </div>
               </AppCard>
+
+              {formErrors.submit ? (
+                <AppText variant="body2" sx={submitErrorSx}>
+                  {formErrors.submit}
+                </AppText>
+              ) : null}
 
               <div className="mt-2 flex w-full justify-end">
                 <AppStack
@@ -533,6 +821,7 @@ const CreateBranchDesktopPage = ({
                     rounded="md"
                     size="small"
                     onClick={handleBack}
+                    disabled={isLoading}
                     sx={cancelButtonSx}
                   >
                     Cancel
@@ -546,6 +835,7 @@ const CreateBranchDesktopPage = ({
                     size="small"
                     startIcon={<FiSave />}
                     loading={isLoading}
+                    disabled={isLoading}
                     sx={saveButtonSx}
                   >
                     Save Branch
@@ -554,10 +844,7 @@ const CreateBranchDesktopPage = ({
               </div>
             </div>
 
-            <BranchPreview
-              formData={formData}
-              companyOptions={companyOptions}
-            />
+            <BranchPreview formData={formData} />
           </div>
         </AppBox>
       </div>
@@ -588,134 +875,123 @@ const FormSection = ({ icon, title, columns, children, divided, green }) => (
   </AppBox>
 );
 
-const BranchPreview = ({ formData, companyOptions }) => {
-  const companyName =
-    companyOptions.find((company) => company.value === formData.companyId)
-      ?.label || "-";
+const BranchPreview = ({ formData }) => (
+  <AppCard
+    variant="default"
+    rounded="lg"
+    bordered
+    shadow="sm"
+    padding="none"
+    sx={previewCardSx}
+  >
+    <AppStack direction="row" align="center" gap={0.8}>
+      <FiEye className="text-[15px] text-primary" />
 
-  return (
-    <AppCard
-      variant="default"
-      rounded="lg"
-      bordered
-      shadow="sm"
-      padding="none"
-      sx={previewCardSx}
-    >
-      <AppStack direction="row" align="center" gap={0.8}>
-        <FiEye className="text-[15px] text-primary" />
+      <AppHeading level={2} weight={650} sx={sectionTitleSx}>
+        Branch Preview
+      </AppHeading>
+    </AppStack>
 
-        <AppHeading level={2} weight={650} sx={sectionTitleSx}>
-          Branch Preview
-        </AppHeading>
-      </AppStack>
+    <div className="mt-3 h-px bg-border" />
 
-      <div className="mt-3 h-px bg-border" />
+    <div className="flex w-full flex-col items-center justify-center py-2">
+      <div className="mx-auto flex h-[70px] w-[70px] items-center justify-center rounded-full bg-primary-soft text-primary">
+        <FiBriefcase className="text-[31px]" />
+      </div>
 
-      <AppBox sx={previewHeaderSx}>
-        <div className="mx-auto flex h-[70px] w-[70px] items-center justify-center rounded-full bg-primary-soft text-primary">
-          <FiMapPin className="text-[31px]" />
-        </div>
+      <AppHeading level={3} weight={700} sx={previewTitleSx}>
+        {formData.branchName || "Branch Name"}
+      </AppHeading>
 
-        <AppHeading level={3} weight={700} sx={previewTitleSx}>
-          {formData.branchName || "Branch Name"}
-        </AppHeading>
+      <div className="mt-0.8 flex w-full justify-center gap-1">
+        <AppStatusBadge
+          status={formData.status || "active"}
+          size="small"
+          variant="soft"
+          rounded="full"
+          sx={statusBadgeSx}
+        />
 
-        <div className="flex w-full justify-center" style={{ marginTop: 8 }}>
+        {formData.isPrimary === "true" ? (
           <AppStatusBadge
-            status={formData.status || "active"}
+            status="primary"
+            label="Primary"
             size="small"
             variant="soft"
             rounded="full"
             sx={statusBadgeSx}
           />
-        </div>
-      </AppBox>
+        ) : null}
+      </div>
+    </div>
 
-      <div className="h-px bg-border" />
+    <div className="h-px bg-border" />
 
-      <AppStack direction="column" gap={1.25} sx={{ py: 1.8 }}>
-        <PreviewRow
-          icon={<FiBriefcase />}
-          label="Company"
-          value={companyName}
-        />
-        <PreviewRow
-          icon={<FiFileText />}
-          label="Code"
-          value={formData.branchCode}
-        />
-        <PreviewRow
-          icon={<FiShoppingBag />}
-          label="Type"
-          value={formatValue(formData.branchType)}
-        />
-        <PreviewRow
-          icon={<FiMail />}
-          label="Email"
-          value={formData.branchEmail}
-        />
-        <PreviewRow
-          icon={<FiPhone />}
-          label="Phone"
-          value={`${formData.phoneCountryCode || "+91"} ${
-            formData.branchPhone || ""
-          }`}
-        />
-        <PreviewRow
-          icon={<FiMapPin />}
-          label="Address"
-          value={[
-            formData.addressLine1,
-            formData.addressLine2,
-            formData.city,
-            formData.pincode,
-          ]
-            .filter(Boolean)
-            .join(", ")}
-        />
-      </AppStack>
+    <AppStack direction="column" gap={1.25} sx={{ py: 1.8 }}>
+      <PreviewRow
+        icon={<FiBriefcase />}
+        label="Type"
+        value={formData.branchType}
+      />
+      <PreviewRow
+        icon={<FiStar />}
+        label="Primary"
+        value={formData.isPrimary === "true" ? "Yes" : "No"}
+      />
+      <PreviewRow
+        icon={<FiFileText />}
+        label="GSTIN"
+        value={formData.gstNumber}
+      />
+      <PreviewRow
+        icon={<FiFileText />}
+        label="Drug License"
+        value={formData.drugLicenseNumber}
+      />
+      <PreviewRow
+        icon={<FiMail />}
+        label="Email"
+        value={formData.branchEmail}
+      />
+      <PreviewRow
+        icon={<FiPhone />}
+        label="Phone"
+        value={`${formData.phoneCountryCode || "+91"} ${
+          formData.branchPhone || ""
+        }`}
+      />
+      <PreviewRow
+        icon={<FiMapPin />}
+        label="Address"
+        value={[
+          formData.addressLine1,
+          formData.addressLine2,
+          formData.city,
+          formData.state,
+          formData.pincode,
+        ]
+          .filter(Boolean)
+          .join(", ")}
+      />
+      <PreviewRow
+        icon={<FiUser />}
+        label="Contact"
+        value={formData.contactPersonName}
+      />
+    </AppStack>
 
-      <div className="h-px bg-border" />
+    <div className="h-px bg-border" />
 
-      <AppStack direction="column" gap={1.25} sx={{ py: 1.8 }}>
-        <PreviewRow
-          icon={<FiUser />}
-          label="Manager"
-          value={formData.managerName}
-        />
-        <PreviewRow
-          icon={<FiClock />}
-          label="Timing"
-          value={`${formData.openingTime || "-"} - ${
-            formData.closingTime || "-"
-          }`}
-        />
-        <PreviewRow
-          icon={<FiCreditCard />}
-          label="Inventory"
-          value={formatValue(formData.inventoryTracking)}
-        />
-        <PreviewRow
-          icon={<FiShoppingBag />}
-          label="POS"
-          value={formatValue(formData.posEnabled)}
-        />
-      </AppStack>
-
-      <div className="h-px bg-border" />
-
-      <AppStack direction="column" gap={1.25} sx={{ pt: 1.8 }}>
-        <PreviewRow icon={<FiUser />} label="Created By" value="Admin" />
-        <PreviewRow
-          icon={<FiClock />}
-          label="Created On"
-          value="21 May 2024, 10:45 AM"
-        />
-      </AppStack>
-    </AppCard>
-  );
-};
+    <AppStack direction="column" gap={1.25} sx={{ pt: 1.8 }}>
+      <PreviewRow icon={<FiUser />} label="Created By" value="-" />
+      <PreviewRow
+        icon={<FiClock />}
+        label="Created On"
+        value="Not created yet"
+      />
+    </AppStack>
+  </AppCard>
+);
 
 const PreviewRow = ({ icon, label, value }) => (
   <AppStack direction="row" align="flex-start" gap={1}>
@@ -755,15 +1031,6 @@ const IconBox = ({ icon, large = false }) => (
     {icon}
   </AppBox>
 );
-
-const formatValue = (value) => {
-  if (!value) return "-";
-
-  return value
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
 
 const pageTitleSx = {
   m: 0,
@@ -808,15 +1075,6 @@ const previewCardSx = {
   px: 1.8,
   py: 1.45,
   bgcolor: "var(--app-color-surface)",
-};
-
-const previewHeaderSx = {
-  width: "100%",
-  py: 1.8,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
 };
 
 const sectionSx = {
@@ -866,7 +1124,7 @@ const statusBadgeSx = {
 };
 
 const previewLabelSx = {
-  minWidth: 74,
+  minWidth: 78,
   fontSize: "11.3px",
   fontWeight: 600,
   color: "var(--app-color-text)",
@@ -880,9 +1138,12 @@ const previewValueSx = {
   color: "var(--app-color-text)",
 };
 
-const mutedTextSx = {
-  fontSize: "11.3px",
-  color: "var(--app-color-text-muted)",
+const submitErrorSx = {
+  mt: 1,
+  textAlign: "right",
+  fontSize: "12px",
+  fontWeight: 600,
+  color: "var(--app-color-danger)",
 };
 
 const accordionSx = {

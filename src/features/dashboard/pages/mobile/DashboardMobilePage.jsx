@@ -1,7 +1,10 @@
 // src/features/dashboard/pages/mobile/DashboardMobilePage.jsx
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+
+import useCompany from "@/features/company/hooks/useCompany";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 import { dashboardStats, quickGuides, setupSteps } from "../../constants";
 
@@ -11,31 +14,48 @@ import MainDashboardMobilePage from "./MainDashboardMobilePage";
 const DashboardMobilePage = () => {
   const navigate = useNavigate();
 
-  const completedStepsCount = useMemo(
-    () => setupSteps.filter((step) => step.completed).length,
-    [],
-  );
+  const { companies, getWorkspaceCompanies } = useCompany();
+  const { branches, getCompanyBranches } = useBranch();
 
-  const progress = useMemo(() => {
-    if (!setupSteps.length) return 0;
+  const hasCompany = companies.length > 0;
+  const hasBranch = branches.length > 0;
 
-    return Math.round((completedStepsCount / setupSteps.length) * 100);
-  }, [completedStepsCount]);
-
-  const isSetupCompleted = progress >= 100;
+  useEffect(() => {
+    getWorkspaceCompanies().catch(() => {});
+    getCompanyBranches().catch(() => {});
+  }, []);
 
   const mappedSetupSteps = useMemo(
     () =>
       setupSteps.map((step) => ({
         ...step,
+        completed:
+          step.id === "company"
+            ? hasCompany
+            : step.id === "branch"
+              ? hasBranch
+              : step.completed,
         onClick: () => {
           if (!step.disabled && step.route) {
             navigate(step.route);
           }
         },
       })),
-    [navigate],
+    [hasCompany, hasBranch, navigate],
   );
+
+  const completedStepsCount = useMemo(
+    () => mappedSetupSteps.filter((step) => step.completed).length,
+    [mappedSetupSteps],
+  );
+
+  const progress = useMemo(() => {
+    if (!mappedSetupSteps.length) return 0;
+
+    return Math.round((completedStepsCount / mappedSetupSteps.length) * 100);
+  }, [completedStepsCount, mappedSetupSteps.length]);
+
+  const isSetupCompleted = progress >= 100;
 
   const mappedQuickGuides = useMemo(
     () =>
@@ -56,7 +76,7 @@ const DashboardMobilePage = () => {
     quickGuides: mappedQuickGuides,
     progress,
     completedStepsCount,
-    totalStepsCount: setupSteps.length,
+    totalStepsCount: mappedSetupSteps.length,
     handleExploreFeatures: () => navigate("/help-center"),
     handleContactSupport: () => navigate("/help-center"),
   };

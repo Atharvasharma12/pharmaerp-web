@@ -1,141 +1,319 @@
 // src/features/branch/pages/CreateBranchPage.jsx
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
+
+import useBranch from "../hooks/useBranch";
 
 import CreateBranchDesktopPage from "./desktop/CreateBranchDesktopPage";
 import CreateBranchMobilePage from "./mobile/CreateBranchMobilePage";
+
+const INITIAL_FORM_DATA = {
+  branchName: "",
+  branchType: "retail",
+  status: "active",
+  isPrimary: "false",
+
+  gstNumber: "",
+  drugLicenseNumber: "",
+
+  branchEmail: "",
+  phoneCountryCode: "+91",
+  branchPhone: "",
+
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  state: "",
+  country: "India",
+  pincode: "",
+
+  contactPersonName: "",
+  contactPersonPhone: "",
+  contactPersonEmail: "",
+  contactPersonDesignation: "",
+
+  billingType: "gst",
+  invoicePrefix: "INV",
+  invoiceStartNumber: "1",
+  billPrefix: "BILL",
+  billStartNumber: "1",
+  purchasePrefix: "PUR",
+  purchaseStartNumber: "1",
+  salesReturnPrefix: "SR",
+  purchaseReturnPrefix: "PR",
+
+  inventoryMode: "independent",
+  priceMode: "company_default",
+  allowNegativeStock: "false",
+  allowBackdatedEntries: "false",
+  enableBatchTracking: "true",
+  enableExpiryTracking: "true",
+  enableRackTracking: "true",
+
+  timezone: "Asia/Kolkata",
+  currency: "INR",
+  dateFormat: "DD/MM/YYYY",
+  timeFormat: "12h",
+  enablePurchaseModule: "true",
+  enableSalesModule: "true",
+  enableInventoryModule: "true",
+  enablePosBilling: "true",
+  defaultGstRate: "0",
+};
+
+const branchTypeOptions = [
+  { label: "Retail", value: "retail" },
+  { label: "Wholesale", value: "wholesale" },
+  { label: "Warehouse", value: "warehouse" },
+  { label: "Clinic Pharmacy", value: "clinic_pharmacy" },
+  { label: "Hospital Pharmacy", value: "hospital_pharmacy" },
+  { label: "Online", value: "online" },
+  { label: "Other", value: "other" },
+];
+
+const statusOptions = [
+  { label: "Active", value: "active" },
+  { label: "Inactive", value: "inactive" },
+  { label: "Suspended", value: "suspended" },
+];
+
+const billingTypeOptions = [
+  { label: "GST", value: "gst" },
+  { label: "Non GST", value: "non_gst" },
+];
+
+const inventoryModeOptions = [
+  { label: "Independent", value: "independent" },
+  { label: "Shared", value: "shared" },
+];
+
+const priceModeOptions = [
+  { label: "Company Default", value: "company_default" },
+  { label: "Branch Specific", value: "branch_specific" },
+];
+
+const currencyOptions = [
+  { label: "INR - Indian Rupee (₹)", value: "INR" },
+  { label: "USD - US Dollar ($)", value: "USD" },
+];
+
+const timeFormatOptions = [
+  { label: "12 Hour", value: "12h" },
+  { label: "24 Hour", value: "24h" },
+];
+
+const booleanOptions = [
+  { label: "Yes", value: "true" },
+  { label: "No", value: "false" },
+];
+
+const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+
+const PHONE_REGEX = /^[6-9][0-9]{9}$/;
+
+const normalizeText = (value) => String(value || "").trim();
+
+const normalizeUpperText = (value) => normalizeText(value).toUpperCase();
+
+const normalizeLowerText = (value) => normalizeText(value).toLowerCase();
+
+const normalizePhone = (value) => normalizeText(value).replace(/\D/g, "");
+
+const toBoolean = (value) => value === true || value === "true";
+
+const toNumber = (value, fallback = 0) => {
+  const numberValue = Number(value);
+
+  if (Number.isNaN(numberValue)) {
+    return fallback;
+  }
+
+  return numberValue;
+};
+
+const hasAddress = (formData) => {
+  return Boolean(
+    normalizeText(formData.addressLine1) ||
+    normalizeText(formData.addressLine2) ||
+    normalizeText(formData.city) ||
+    normalizeText(formData.state) ||
+    normalizeText(formData.country) ||
+    normalizeText(formData.pincode),
+  );
+};
+
+const buildAddressPayload = (formData) => {
+  if (!hasAddress(formData)) {
+    return null;
+  }
+
+  return {
+    addressLine1: normalizeText(formData.addressLine1) || null,
+    addressLine2: normalizeText(formData.addressLine2) || null,
+    city: normalizeText(formData.city) || null,
+    state: normalizeText(formData.state) || null,
+    country: normalizeText(formData.country) || "India",
+    pincode: normalizeText(formData.pincode) || null,
+  };
+};
+
+const hasContactPerson = (formData) => {
+  return Boolean(
+    normalizeText(formData.contactPersonName) ||
+    normalizeText(formData.contactPersonPhone) ||
+    normalizeText(formData.contactPersonEmail) ||
+    normalizeText(formData.contactPersonDesignation),
+  );
+};
+
+const buildContactPersonPayload = (formData) => {
+  if (!hasContactPerson(formData)) {
+    return null;
+  }
+
+  return {
+    name: normalizeText(formData.contactPersonName) || null,
+    phone: normalizePhone(formData.contactPersonPhone) || null,
+    email: normalizeLowerText(formData.contactPersonEmail) || null,
+    designation: normalizeText(formData.contactPersonDesignation) || null,
+  };
+};
+
+const buildBranchPayload = (formData) => {
+  const phone = normalizePhone(formData.branchPhone);
+
+  return {
+    name: normalizeText(formData.branchName),
+    type: formData.branchType || "retail",
+
+    email: normalizeLowerText(formData.branchEmail) || null,
+    phone: phone || null,
+
+    address: buildAddressPayload(formData),
+
+    contactPerson: buildContactPersonPayload(formData),
+
+    gstin: normalizeUpperText(formData.gstNumber) || null,
+    drugLicenseNumber: normalizeUpperText(formData.drugLicenseNumber) || null,
+
+    billingSettings: {
+      billingType: formData.billingType || "gst",
+      invoicePrefix: normalizeUpperText(formData.invoicePrefix) || "INV",
+      invoiceStartNumber: toNumber(formData.invoiceStartNumber, 1),
+      billPrefix: normalizeUpperText(formData.billPrefix) || "BILL",
+      billStartNumber: toNumber(formData.billStartNumber, 1),
+      purchasePrefix: normalizeUpperText(formData.purchasePrefix) || "PUR",
+      purchaseStartNumber: toNumber(formData.purchaseStartNumber, 1),
+      salesReturnPrefix: normalizeUpperText(formData.salesReturnPrefix) || "SR",
+      purchaseReturnPrefix:
+        normalizeUpperText(formData.purchaseReturnPrefix) || "PR",
+    },
+
+    inventorySettings: {
+      inventoryMode: formData.inventoryMode || "independent",
+      priceMode: formData.priceMode || "company_default",
+      allowNegativeStock: toBoolean(formData.allowNegativeStock),
+      allowBackdatedEntries: toBoolean(formData.allowBackdatedEntries),
+      enableBatchTracking: toBoolean(formData.enableBatchTracking),
+      enableExpiryTracking: toBoolean(formData.enableExpiryTracking),
+      enableRackTracking: toBoolean(formData.enableRackTracking),
+    },
+
+    settings: {
+      timezone: normalizeText(formData.timezone) || "Asia/Kolkata",
+      currency: normalizeUpperText(formData.currency) || "INR",
+      dateFormat: normalizeText(formData.dateFormat) || "DD/MM/YYYY",
+      timeFormat: formData.timeFormat || "12h",
+      enablePurchaseModule: toBoolean(formData.enablePurchaseModule),
+      enableSalesModule: toBoolean(formData.enableSalesModule),
+      enableInventoryModule: toBoolean(formData.enableInventoryModule),
+      enablePosBilling: toBoolean(formData.enablePosBilling),
+      defaultGstRate: toNumber(formData.defaultGstRate, 0),
+    },
+
+    isPrimary: toBoolean(formData.isPrimary),
+  };
+};
 
 const CreateBranchPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  const [formData, setFormData] = useState({
-    companyId: "medplus-pharmacy",
-    branchName: "MedPlus Andheri East",
-    branchCode: "BR-001",
-    branchType: "retail",
-    branchEmail: "andheri@medpluspharmacy.com",
-    phoneCountryCode: "+91",
-    branchPhone: "98765 43210",
-    managerName: "Rahul Sharma",
-    managerPhone: "98765 12345",
-    addressLine1: "Shop No. 12, MG Road",
-    addressLine2: "Near Metro Station, Andheri East",
-    city: "Mumbai",
-    state: "maharashtra",
-    pincode: "400069",
-    country: "india",
-    gstNumber: "27AABCM1234C1Z5",
-    drugLicenseNumber: "MH/25B/123456",
-    fssaiNumber: "",
-    openingTime: "09:00",
-    closingTime: "22:00",
-    inventoryTracking: "enabled",
-    posEnabled: "enabled",
-    allowNegativeStock: "disabled",
-    status: "active",
-  });
+  const {
+    createBranch,
+    createBranchStatus,
+    error: branchError,
+    clearError,
+  } = useBranch();
 
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
 
-  const companyOptions = [
-    { label: "MedPlus Pharmacy Pvt. Ltd.", value: "medplus-pharmacy" },
-    { label: "Apollo Pharmacy Pvt. Ltd.", value: "apollo-pharmacy" },
-  ];
-
-  const branchTypeOptions = [
-    { label: "Retail Pharmacy", value: "retail" },
-    { label: "Wholesale Pharmacy", value: "wholesale" },
-    { label: "Warehouse", value: "warehouse" },
-    { label: "Franchise", value: "franchise" },
-  ];
-
-  const stateOptions = [
-    { label: "Maharashtra", value: "maharashtra" },
-    { label: "Gujarat", value: "gujarat" },
-    { label: "Rajasthan", value: "rajasthan" },
-    { label: "Karnataka", value: "karnataka" },
-  ];
-
-  const countryOptions = [{ label: "India", value: "india" }];
-
-  const inventoryTrackingOptions = [
-    { label: "Enabled", value: "enabled" },
-    { label: "Disabled", value: "disabled" },
-  ];
-
-  const posEnabledOptions = [
-    { label: "Enabled", value: "enabled" },
-    { label: "Disabled", value: "disabled" },
-  ];
-
-  const allowNegativeStockOptions = [
-    { label: "Disabled", value: "disabled" },
-    { label: "Enabled", value: "enabled" },
-  ];
-
-  const statusOptions = [
-    { label: "Active", value: "active" },
-    { label: "Inactive", value: "inactive" },
-  ];
+  const isLoading = createBranchStatus === API_STATUS.LOADING;
 
   const validateForm = () => {
     const errors = {};
 
-    if (!formData.companyId) {
-      errors.companyId = "Please select company";
-    }
+    const branchName = normalizeText(formData.branchName);
+    const gstNumber = normalizeUpperText(formData.gstNumber);
+    const branchEmail = normalizeLowerText(formData.branchEmail);
+    const branchPhone = normalizePhone(formData.branchPhone);
+    const contactPersonPhone = normalizePhone(formData.contactPersonPhone);
+    const contactPersonEmail = normalizeLowerText(formData.contactPersonEmail);
+    const defaultGstRate = toNumber(formData.defaultGstRate, 0);
+    const invoiceStartNumber = toNumber(formData.invoiceStartNumber, 1);
+    const billStartNumber = toNumber(formData.billStartNumber, 1);
+    const purchaseStartNumber = toNumber(formData.purchaseStartNumber, 1);
 
-    if (!formData.branchName.trim()) {
+    if (!branchName) {
       errors.branchName = "Branch name is required";
+    } else if (branchName.length < 2) {
+      errors.branchName = "Branch name must be at least 2 characters";
+    } else if (branchName.length > 160) {
+      errors.branchName = "Branch name cannot exceed 160 characters";
     }
 
-    if (!formData.branchCode.trim()) {
-      errors.branchCode = "Branch code is required";
+    if (gstNumber && !GSTIN_REGEX.test(gstNumber)) {
+      errors.gstNumber = "Invalid GSTIN";
     }
 
-    if (!formData.branchEmail.trim()) {
-      errors.branchEmail = "Branch email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.branchEmail)) {
+    if (branchEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(branchEmail)) {
       errors.branchEmail = "Enter a valid email address";
     }
 
-    if (!formData.branchPhone.trim()) {
-      errors.branchPhone = "Branch phone number is required";
+    if (branchPhone && !PHONE_REGEX.test(branchPhone)) {
+      errors.branchPhone = "Invalid phone number";
     }
 
-    if (!formData.managerName.trim()) {
-      errors.managerName = "Manager name is required";
+    if (contactPersonPhone && !PHONE_REGEX.test(contactPersonPhone)) {
+      errors.contactPersonPhone = "Invalid contact person phone number";
     }
 
-    if (!formData.addressLine1.trim()) {
-      errors.addressLine1 = "Address line 1 is required";
+    if (
+      contactPersonEmail &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactPersonEmail)
+    ) {
+      errors.contactPersonEmail = "Enter a valid contact person email";
     }
 
-    if (!formData.city.trim()) {
-      errors.city = "City is required";
+    if (defaultGstRate < 0 || defaultGstRate > 100) {
+      errors.defaultGstRate = "GST rate must be between 0 and 100";
     }
 
-    if (!formData.state) {
-      errors.state = "Please select state";
+    if (invoiceStartNumber < 1) {
+      errors.invoiceStartNumber = "Invoice start number must be at least 1";
     }
 
-    if (!formData.pincode.trim()) {
-      errors.pincode = "Pincode is required";
-    } else if (!/^\d{6}$/.test(formData.pincode.trim())) {
-      errors.pincode = "Enter a valid 6-digit pincode";
+    if (billStartNumber < 1) {
+      errors.billStartNumber = "Bill start number must be at least 1";
     }
 
-    if (!formData.openingTime.trim()) {
-      errors.openingTime = "Opening time is required";
-    }
-
-    if (!formData.closingTime.trim()) {
-      errors.closingTime = "Closing time is required";
+    if (purchaseStartNumber < 1) {
+      errors.purchaseStartNumber = "Purchase start number must be at least 1";
     }
 
     return errors;
@@ -144,11 +322,16 @@ const CreateBranchPage = () => {
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    if (formErrors[name]) {
+    if (formErrors[name] || formErrors.submit) {
       setFormErrors((prev) => ({
         ...prev,
         [name]: "",
+        submit: "",
       }));
+    }
+
+    if (branchError) {
+      clearError();
     }
 
     setFormData((prev) => ({
@@ -167,55 +350,43 @@ const CreateBranchPage = () => {
       return;
     }
 
-    const payload = {
-      ...formData,
-      branchName: formData.branchName.trim(),
-      branchCode: formData.branchCode.trim().toUpperCase(),
-      branchEmail: formData.branchEmail.trim().toLowerCase(),
-      branchPhone: formData.branchPhone.trim(),
-      managerName: formData.managerName.trim(),
-      managerPhone: formData.managerPhone.trim(),
-      addressLine1: formData.addressLine1.trim(),
-      addressLine2: formData.addressLine2.trim(),
-      city: formData.city.trim(),
-      pincode: formData.pincode.trim(),
-      gstNumber: formData.gstNumber.trim().toUpperCase(),
-      drugLicenseNumber: formData.drugLicenseNumber.trim(),
-      fssaiNumber: formData.fssaiNumber.trim(),
-    };
-
     try {
-      setIsLoading(true);
+      const payload = buildBranchPayload(formData);
 
-      // TODO: Replace with create branch API call
-      // await createBranch(payload);
+      await createBranch(payload);
 
       navigate("/branches", { replace: true });
-    } catch {
+    } catch (error) {
       setFormErrors({
-        submit: "Unable to create branch. Please try again.",
+        submit:
+          typeof error === "string"
+            ? error
+            : "Unable to create branch. Please try again.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const pageProps = {
-    formData,
-    formErrors,
-    isLoading,
-    companyOptions,
-    branchTypeOptions,
-    stateOptions,
-    countryOptions,
-    inventoryTrackingOptions,
-    posEnabledOptions,
-    allowNegativeStockOptions,
-    statusOptions,
-    handleChange,
-    handleSubmit,
-    handleBack: () => navigate("/branches"),
-  };
+  const pageProps = useMemo(
+    () => ({
+      formData,
+      formErrors,
+      isLoading,
+
+      branchTypeOptions,
+      statusOptions,
+      billingTypeOptions,
+      inventoryModeOptions,
+      priceModeOptions,
+      currencyOptions,
+      timeFormatOptions,
+      booleanOptions,
+
+      handleChange,
+      handleSubmit,
+      handleBack: () => navigate("/branches"),
+    }),
+    [formData, formErrors, isLoading, navigate],
+  );
 
   return isMobile ? (
     <CreateBranchMobilePage {...pageProps} />

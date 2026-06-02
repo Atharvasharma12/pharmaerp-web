@@ -4,12 +4,16 @@ import { TOKEN_KEY } from "../constants";
 import { storage, getErrorMessage } from "../utils";
 
 const WORKSPACE_KEY = "workspaceId";
+const COMPANY_KEY = "companyId";
 
 export const setupInterceptors = (apiClient) => {
   apiClient.interceptors.request.use(
     (config) => {
       const token = storage.get(TOKEN_KEY);
       const workspaceId = storage.get(WORKSPACE_KEY);
+      const companyId = storage.get(COMPANY_KEY);
+
+      config.headers = config.headers || {};
 
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -19,11 +23,13 @@ export const setupInterceptors = (apiClient) => {
         config.headers["x-workspace-id"] = workspaceId;
       }
 
+      if (companyId) {
+        config.headers["x-company-id"] = companyId;
+      }
+
       return config;
     },
-    (error) => {
-      return Promise.reject(error);
-    },
+    (error) => Promise.reject(error),
   );
 
   apiClient.interceptors.response.use(
