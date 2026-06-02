@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 import {
   purchaseSubscription,
+  startTrialSubscription,
   renewSubscription,
   upgradeSubscription,
   scheduleDowngrade,
@@ -34,6 +35,7 @@ import {
   selectSubscriptionError,
   selectSubscriptionMessage,
   selectPurchaseSubscriptionStatus,
+  selectStartTrialSubscriptionStatus,
   selectRenewSubscriptionStatus,
   selectUpgradeSubscriptionStatus,
   selectScheduleDowngradeStatus,
@@ -66,6 +68,10 @@ const useSubscription = () => {
     selectPurchaseSubscriptionStatus,
   );
 
+  const startTrialSubscriptionStatus = useSelector(
+    selectStartTrialSubscriptionStatus,
+  );
+
   const renewSubscriptionStatus = useSelector(selectRenewSubscriptionStatus);
 
   const upgradeSubscriptionStatus = useSelector(
@@ -88,6 +94,10 @@ const useSubscription = () => {
 
   const submitPurchaseSubscription = (payload) => {
     return dispatch(purchaseSubscription(payload)).unwrap();
+  };
+
+  const submitStartTrialSubscription = (payload) => {
+    return dispatch(startTrialSubscription(payload)).unwrap();
   };
 
   const submitRenewSubscription = (payload) => {
@@ -172,6 +182,7 @@ const useSubscription = () => {
     message,
 
     purchaseSubscriptionStatus,
+    startTrialSubscriptionStatus,
     renewSubscriptionStatus,
     upgradeSubscriptionStatus,
     scheduleDowngradeStatus,
@@ -182,6 +193,8 @@ const useSubscription = () => {
     validateSeatAvailabilityStatus,
 
     purchaseSubscription: submitPurchaseSubscription,
+
+    startTrialSubscription: submitStartTrialSubscription,
 
     renewSubscription: submitRenewSubscription,
 

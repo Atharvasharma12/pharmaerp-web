@@ -17,6 +17,20 @@ export const purchaseSubscription = createAsyncThunk(
   },
 );
 
+export const startTrialSubscription = createAsyncThunk(
+  "subscription/startTrialSubscription",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response =
+        await subscriptionService.startTrialSubscription(payload);
+
+      return response.data?.data || null;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
 export const renewSubscription = createAsyncThunk(
   "subscription/renewSubscription",
   async (payload, { rejectWithValue }) => {

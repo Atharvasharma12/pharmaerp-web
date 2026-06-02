@@ -1,10 +1,11 @@
 // src/features/onboarding/pages/CreateWorkspacePage.jsx
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { ROUTES } from "@/constants";
+import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
+import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 
 import CreateWorkspaceDesktopPage from "./desktop/CreateWorkspaceDesktopPage";
 import CreateWorkspaceMobilePage from "./mobile/CreateWorkspaceMobilePage";
@@ -13,8 +14,25 @@ const CreateWorkspacePage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
+  const {
+    workspaces,
+    currentWorkspace,
+
+    createWorkspaceStatus,
+    getMyWorkspacesStatus,
+
+    error,
+
+    createWorkspace,
+    getMyWorkspaces,
+
+    clearError,
+    clearMessage,
+  } = useWorkspace();
+
   const [formData, setFormData] = useState({
     workspaceName: "",
+    workspaceSlug: "",
     pharmacyName: "",
     ownerName: "",
     phone: "",
@@ -25,23 +43,73 @@ const CreateWorkspacePage = () => {
   });
 
   const [formErrors, setFormErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
 
-  const states = [
-    { label: "Select state", value: "" },
-    { label: "Gujarat", value: "gujarat" },
-    { label: "Maharashtra", value: "maharashtra" },
-    { label: "Rajasthan", value: "rajasthan" },
-  ];
+  const isCreatingWorkspace = createWorkspaceStatus === API_STATUS.LOADING;
+  const isCheckingWorkspaces = getMyWorkspacesStatus === API_STATUS.LOADING;
 
-  const cities = [
-    { label: "Select city", value: "" },
-    { label: "Ahmedabad", value: "ahmedabad" },
-    { label: "Surat", value: "surat" },
-    { label: "Mumbai", value: "mumbai" },
-    { label: "Pune", value: "pune" },
-    { label: "Jaipur", value: "jaipur" },
-  ];
+  const hasFetchedWorkspaces = getMyWorkspacesStatus === API_STATUS.SUCCESS;
+
+  const hasWorkspace =
+    Boolean(currentWorkspace) || Boolean(workspaces && workspaces.length > 0);
+
+  const shouldHideCreatePage =
+    isCheckingWorkspaces || (hasFetchedWorkspaces && hasWorkspace);
+
+  const states = useMemo(
+    () => [
+      { label: "Select state", value: "" },
+      { label: "Gujarat", value: "gujarat" },
+      { label: "Maharashtra", value: "maharashtra" },
+      { label: "Rajasthan", value: "rajasthan" },
+    ],
+    [],
+  );
+
+  const cities = useMemo(
+    () => [
+      { label: "Select city", value: "" },
+      { label: "Ahmedabad", value: "ahmedabad" },
+      { label: "Surat", value: "surat" },
+      { label: "Mumbai", value: "mumbai" },
+      { label: "Pune", value: "pune" },
+      { label: "Jaipur", value: "jaipur" },
+    ],
+    [],
+  );
+
+  useEffect(() => {
+    clearError();
+    clearMessage();
+
+    return () => {
+      clearError();
+      clearMessage();
+    };
+  }, [clearError, clearMessage]);
+
+  useEffect(() => {
+    if (
+      getMyWorkspacesStatus === API_STATUS.IDLE ||
+      getMyWorkspacesStatus === API_STATUS.ERROR
+    ) {
+      getMyWorkspaces();
+    }
+  }, [getMyWorkspacesStatus, getMyWorkspaces]);
+
+  useEffect(() => {
+    if (hasFetchedWorkspaces && hasWorkspace) {
+      navigate(ROUTES.CHOOSE_PLAN, { replace: true });
+    }
+  }, [hasFetchedWorkspaces, hasWorkspace, navigate]);
+
+  useEffect(() => {
+    if (error) {
+      setFormErrors((prev) => ({
+        ...prev,
+        submit: error,
+      }));
+    }
+  }, [error]);
 
   const validateForm = () => {
     const errors = {};
@@ -50,17 +118,14 @@ const CreateWorkspacePage = () => {
       errors.workspaceName = "Workspace name is required";
     }
 
-    if (!formData.pharmacyName.trim()) {
-      errors.pharmacyName = "Pharmacy name is required";
+    if (
+      formData.workspaceSlug &&
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(formData.workspaceSlug)
+    ) {
+      errors.workspaceSlug = "Use lowercase letters, numbers and hyphens only";
     }
 
-    if (!formData.ownerName.trim()) {
-      errors.ownerName = "Owner name is required";
-    }
-
-    if (!formData.phone.trim()) {
-      errors.phone = "Phone number is required";
-    } else if (!/^[6-9]\d{9}$/.test(formData.phone.trim())) {
+    if (formData.phone.trim() && !/^[6-9]\d{9}$/.test(formData.phone.trim())) {
       errors.phone = "Enter a valid 10-digit Indian mobile number";
     }
 
@@ -72,39 +137,68 @@ const CreateWorkspacePage = () => {
       }
     }
 
-    if (!formData.state) {
-      errors.state = "Please select state";
-    }
-
-    if (!formData.city) {
-      errors.city = "Please select city";
-    }
-
-    if (!formData.address.trim()) {
-      errors.address = "Address is required";
-    }
-
     return errors;
   };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    if (formErrors[name]) {
+    if (formErrors[name] || formErrors.submit) {
       setFormErrors((prev) => ({
         ...prev,
         [name]: "",
+        submit: "",
       }));
     }
 
+    const nextValue =
+      name === "workspaceSlug"
+        ? value
+            .toLowerCase()
+            .replace(/[^a-z0-9-]/g, "")
+            .replace(/-{2,}/g, "-")
+        : value;
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: nextValue,
     }));
+  };
+
+  const buildPayload = () => {
+    const payload = {
+      name: formData.workspaceName.trim(),
+      type: "pharmacy",
+    };
+
+    const email = formData.email.trim().toLowerCase();
+    const phone = formData.phone.trim();
+
+    if (email) {
+      payload.email = email;
+    }
+
+    if (phone) {
+      payload.phone = phone;
+    }
+
+    if (formData.address.trim() || formData.city || formData.state) {
+      payload.address = {
+        addressLine1: formData.address.trim() || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        country: "India",
+      };
+    }
+
+    return payload;
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    clearError();
+    clearMessage();
 
     const validationErrors = validateForm();
 
@@ -113,43 +207,40 @@ const CreateWorkspacePage = () => {
       return;
     }
 
-    const payload = {
-      workspaceName: formData.workspaceName.trim(),
-      pharmacyName: formData.pharmacyName.trim(),
-      ownerName: formData.ownerName.trim(),
-      phone: formData.phone.trim(),
-      email: formData.email.trim().toLowerCase(),
-      state: formData.state,
-      city: formData.city,
-      address: formData.address.trim(),
-    };
-
-    if (!payload.email) {
-      delete payload.email;
-    }
-
     try {
-      setIsLoading(true);
+      const workspace = await createWorkspace(buildPayload());
 
-      // TODO: Replace with create workspace API call
-      // await createWorkspace(payload);
-
-      navigate(ROUTES.CHOOSE_PLAN, { replace: true });
-    } catch {
-      setFormErrors({
-        submit: "Unable to create workspace. Please try again.",
+      navigate(ROUTES.CHOOSE_PLAN, {
+        replace: true,
+        state: {
+          workspaceId: workspace?._id,
+          workspace,
+        },
       });
-    } finally {
-      setIsLoading(false);
+    } catch (submitError) {
+      setFormErrors((prev) => ({
+        ...prev,
+        submit: submitError || "Unable to create workspace. Please try again.",
+      }));
     }
   };
+
+  if (shouldHideCreatePage) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg">
+        <div className="text-sm font-medium text-text-muted">
+          Loading workspace...
+        </div>
+      </div>
+    );
+  }
 
   const pageProps = {
     formData,
     formErrors,
     states,
     cities,
-    isLoading,
+    isLoading: isCreatingWorkspace,
     handleChange,
     handleSubmit,
   };

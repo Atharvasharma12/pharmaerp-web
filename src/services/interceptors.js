@@ -3,13 +3,20 @@
 import { TOKEN_KEY } from "../constants";
 import { storage, getErrorMessage } from "../utils";
 
+const WORKSPACE_KEY = "workspaceId";
+
 export const setupInterceptors = (apiClient) => {
   apiClient.interceptors.request.use(
     (config) => {
       const token = storage.get(TOKEN_KEY);
+      const workspaceId = storage.get(WORKSPACE_KEY);
 
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      }
+
+      if (workspaceId) {
+        config.headers["x-workspace-id"] = workspaceId;
       }
 
       return config;

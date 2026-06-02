@@ -1,6 +1,9 @@
+// src/features/workspace/store/workspaceSlice.js
+
 import { createSlice } from "@reduxjs/toolkit";
 
 import { API_STATUS } from "@/constants";
+import { storage } from "@/utils";
 
 import {
   createWorkspace,
@@ -13,6 +16,22 @@ import {
   updateWorkspaceMemberStatus,
   removeWorkspaceMember,
 } from "./workspaceThunk";
+
+const WORKSPACE_STORAGE_KEY = "workspaceId";
+
+const getWorkspaceFromItem = (item) => {
+  return item?.workspace || item || null;
+};
+
+const persistCurrentWorkspace = (workspace) => {
+  if (workspace?._id) {
+    storage.set(WORKSPACE_STORAGE_KEY, workspace._id);
+  }
+};
+
+const removePersistedWorkspace = () => {
+  storage.remove(WORKSPACE_STORAGE_KEY);
+};
 
 const initialState = {
   workspaces: [],
@@ -61,11 +80,18 @@ const workspaceSlice = createSlice({
     },
 
     setCurrentWorkspace(state, action) {
-      state.currentWorkspace = action.payload || null;
+      state.currentWorkspace = getWorkspaceFromItem(action.payload);
+
+      if (state.currentWorkspace?._id) {
+        persistCurrentWorkspace(state.currentWorkspace);
+      } else {
+        removePersistedWorkspace();
+      }
     },
 
     clearCurrentWorkspace(state) {
       state.currentWorkspace = null;
+      removePersistedWorkspace();
     },
 
     clearWorkspaceMembers(state) {
@@ -89,6 +115,8 @@ const workspaceSlice = createSlice({
           state.workspaces.unshift({
             workspace: action.payload,
           });
+
+          persistCurrentWorkspace(action.payload);
         }
 
         state.message = "Workspace created successfully";
@@ -106,6 +134,19 @@ const workspaceSlice = createSlice({
       .addCase(getMyWorkspaces.fulfilled, (state, action) => {
         state.getMyWorkspacesStatus = API_STATUS.SUCCESS;
         state.workspaces = action.payload || [];
+
+        const firstWorkspaceItem = state.workspaces[0];
+        const firstWorkspace = getWorkspaceFromItem(firstWorkspaceItem);
+
+        state.currentWorkspace =
+          state.currentWorkspace || firstWorkspace || null;
+
+        if (state.currentWorkspace?._id) {
+          persistCurrentWorkspace(state.currentWorkspace);
+        } else {
+          removePersistedWorkspace();
+        }
+
         state.message = "Workspaces fetched successfully";
       })
       .addCase(getMyWorkspaces.rejected, (state, action) => {
@@ -119,6 +160,11 @@ const workspaceSlice = createSlice({
         state.status = API_STATUS.SUCCESS;
         state.getWorkspaceStatus = API_STATUS.SUCCESS;
         state.currentWorkspace = action.payload || null;
+
+        if (action.payload?._id) {
+          persistCurrentWorkspace(action.payload);
+        }
+
         state.message = "Workspace fetched successfully";
       })
       .addCase(getWorkspaceById.rejected, (state, action) => {
@@ -137,7 +183,7 @@ const workspaceSlice = createSlice({
         state.currentWorkspace = action.payload || state.currentWorkspace;
 
         state.workspaces = state.workspaces.map((item) => {
-          const workspace = item.workspace || item;
+          const workspace = getWorkspaceFromItem(item);
 
           if (workspace?._id === action.payload?._id) {
             return item.workspace
@@ -150,6 +196,10 @@ const workspaceSlice = createSlice({
 
           return item;
         });
+
+        if (state.currentWorkspace?._id) {
+          persistCurrentWorkspace(state.currentWorkspace);
+        }
 
         state.message = "Workspace updated successfully";
       })
@@ -168,13 +218,14 @@ const workspaceSlice = createSlice({
         state.deleteWorkspaceStatus = API_STATUS.SUCCESS;
 
         state.workspaces = state.workspaces.filter((item) => {
-          const workspace = item.workspace || item;
+          const workspace = getWorkspaceFromItem(item);
 
           return workspace?._id !== action.meta.arg;
         });
 
         if (state.currentWorkspace?._id === action.meta.arg) {
           state.currentWorkspace = null;
+          removePersistedWorkspace();
         }
 
         state.message = "Workspace deleted successfully";

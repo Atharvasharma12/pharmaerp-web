@@ -68,6 +68,8 @@ export const ENDPOINTS = {
   SUBSCRIPTION: {
     PURCHASE: "/subscription/subscriptions/purchase",
 
+    TRIAL: "/subscription/subscriptions/trial",
+
     RENEW: "/subscription/subscriptions/renew",
 
     UPGRADE: "/subscription/subscriptions/upgrade",

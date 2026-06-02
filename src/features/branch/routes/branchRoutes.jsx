@@ -1,7 +1,6 @@
 // src/features/branch/routes/branchRoutes.js
 
 import { ROUTES } from "@/constants";
-import { ProtectedRoute } from "@/guards";
 
 import {
   BranchesPage,
@@ -14,43 +13,23 @@ import {
 const branchRoutes = [
   {
     path: ROUTES.BRANCHES,
-    element: (
-      <ProtectedRoute>
-        <BranchesPage />
-      </ProtectedRoute>
-    ),
+    element: <BranchesPage />,
   },
   {
     path: ROUTES.CREATE_BRANCH,
-    element: (
-      <ProtectedRoute>
-        <CreateBranchPage />
-      </ProtectedRoute>
-    ),
+    element: <CreateBranchPage />,
   },
   {
     path: ROUTES.EDIT_BRANCH,
-    element: (
-      <ProtectedRoute>
-        <EditBranchPage />
-      </ProtectedRoute>
-    ),
+    element: <EditBranchPage />,
   },
   {
     path: ROUTES.BRANCH_DETAILS,
-    element: (
-      <ProtectedRoute>
-        <BranchDetailsPage />
-      </ProtectedRoute>
-    ),
+    element: <BranchDetailsPage />,
   },
   {
     path: ROUTES.BRANCH_SETTINGS,
-    element: (
-      <ProtectedRoute>
-        <BranchSettingsPage />
-      </ProtectedRoute>
-    ),
+    element: <BranchSettingsPage />,
   },
 ];
 

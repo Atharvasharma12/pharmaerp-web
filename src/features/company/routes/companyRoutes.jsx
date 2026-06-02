@@ -1,7 +1,6 @@
 // src/features/company/routes/companyRoutes.js
 
 import { ROUTES } from "@/constants";
-import { ProtectedRoute } from "@/guards";
 
 import {
   CompaniesPage,
@@ -14,43 +13,23 @@ import {
 const companyRoutes = [
   {
     path: ROUTES.COMPANIES,
-    element: (
-      <ProtectedRoute>
-        <CompaniesPage />
-      </ProtectedRoute>
-    ),
+    element: <CompaniesPage />,
   },
   {
     path: ROUTES.CREATE_COMPANY,
-    element: (
-      <ProtectedRoute>
-        <CreateCompanyPage />
-      </ProtectedRoute>
-    ),
+    element: <CreateCompanyPage />,
   },
   {
     path: ROUTES.EDIT_COMPANY,
-    element: (
-      <ProtectedRoute>
-        <EditCompanyPage />
-      </ProtectedRoute>
-    ),
+    element: <EditCompanyPage />,
   },
   {
     path: ROUTES.COMPANY_DETAILS,
-    element: (
-      <ProtectedRoute>
-        <CompanyDetailsPage />
-      </ProtectedRoute>
-    ),
+    element: <CompanyDetailsPage />,
   },
   {
     path: ROUTES.COMPANY_SETTINGS,
-    element: (
-      <ProtectedRoute>
-        <CompanySettingsPage />
-      </ProtectedRoute>
-    ),
+    element: <CompanySettingsPage />,
   },
 ];
 

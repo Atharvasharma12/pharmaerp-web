@@ -6,6 +6,7 @@ import { API_STATUS } from "@/constants";
 
 import {
   purchaseSubscription,
+  startTrialSubscription,
   renewSubscription,
   upgradeSubscription,
   scheduleDowngrade,
@@ -31,6 +32,7 @@ const initialState = {
   message: null,
 
   purchaseSubscriptionStatus: API_STATUS.IDLE,
+  startTrialSubscriptionStatus: API_STATUS.IDLE,
   renewSubscriptionStatus: API_STATUS.IDLE,
   upgradeSubscriptionStatus: API_STATUS.IDLE,
   scheduleDowngradeStatus: API_STATUS.IDLE,
@@ -94,6 +96,28 @@ const subscriptionSlice = createSlice({
       .addCase(purchaseSubscription.rejected, (state, action) => {
         state.purchaseSubscriptionStatus = API_STATUS.ERROR;
         state.error = action.payload || "Failed to purchase subscription";
+      })
+
+      // START TRIAL SUBSCRIPTION
+      .addCase(startTrialSubscription.pending, (state) => {
+        state.startTrialSubscriptionStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(startTrialSubscription.fulfilled, (state, action) => {
+        state.startTrialSubscriptionStatus = API_STATUS.SUCCESS;
+
+        if (action.payload) {
+          state.currentSubscription = action.payload;
+          state.currentWorkspaceSubscription = action.payload;
+          state.workspaceSubscriptions.unshift(action.payload);
+        }
+
+        state.message = "Trial subscription started successfully";
+      })
+      .addCase(startTrialSubscription.rejected, (state, action) => {
+        state.startTrialSubscriptionStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to start trial subscription";
       })
 
       // RENEW SUBSCRIPTION

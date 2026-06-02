@@ -11,15 +11,15 @@ import {
   OnboardingLayout,
 } from "@/layouts";
 
+import { GuestRoute, ProtectedRoute, WorkspaceRequiredRoute } from "@/guards";
+
 import authRoutes from "@/features/auth/routes/authRoutes";
 import onboardingRoutes from "@/features/onboarding/routes/onboardingRoutes";
 import dashboardRoutes from "@/features/dashboard/routes/dashboardRoutes";
-// import companyRoutes from "@/features/company/routes/companyRoutes";
-// import branchRoutes from "@/features/branch/routes/branchRoutes";
-
-import HomePage from "@/pages/HomePage";
 import companyRoutes from "@/features/company/routes/companyRoutes";
 import branchRoutes from "@/features/branch/routes/branchRoutes";
+
+import HomePage from "@/pages/HomePage";
 
 const NotFoundPage = () => {
   return (
@@ -38,11 +38,6 @@ const NotFoundPage = () => {
 };
 
 export const router = createBrowserRouter([
-  /**
-   * ------------------------------------------------
-   * PUBLIC ROUTES
-   * ------------------------------------------------
-   */
   {
     element: <PublicLayout />,
     children: [
@@ -85,41 +80,35 @@ export const router = createBrowserRouter([
     ],
   },
 
-  /**
-   * ------------------------------------------------
-   * AUTH ROUTES
-   * ------------------------------------------------
-   */
   {
-    element: <AuthLayout />,
+    element: (
+      <GuestRoute>
+        <AuthLayout />
+      </GuestRoute>
+    ),
     children: authRoutes,
   },
 
-  /**
-   * ------------------------------------------------
-   * ONBOARDING ROUTES
-   * ------------------------------------------------
-   */
   {
-    element: <OnboardingLayout />,
+    element: (
+      <ProtectedRoute>
+        <OnboardingLayout />
+      </ProtectedRoute>
+    ),
     children: onboardingRoutes,
   },
 
-  /**
-   * ------------------------------------------------
-   * APP ROUTES
-   * ------------------------------------------------
-   */
   {
-    element: <AppLayout />,
+    element: (
+      <ProtectedRoute>
+        <WorkspaceRequiredRoute>
+          <AppLayout />
+        </WorkspaceRequiredRoute>
+      </ProtectedRoute>
+    ),
     children: [...dashboardRoutes, ...companyRoutes, ...branchRoutes],
   },
 
-  /**
-   * ------------------------------------------------
-   * 404 ROUTE
-   * ------------------------------------------------
-   */
   {
     path: ROUTES.NOT_FOUND,
     element: <NotFoundPage />,

@@ -1,7 +1,5 @@
 // src/features/onboarding/pages/mobile/CreateWorkspaceMobilePage.jsx
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   FiArrowRight,
   FiBriefcase,
@@ -13,7 +11,6 @@ import {
   FiUsers,
 } from "react-icons/fi";
 
-import { ROUTES } from "@/constants";
 import {
   AppBox,
   AppButton,
@@ -27,65 +24,10 @@ import {
 const CreateWorkspaceMobilePage = ({
   formData,
   formErrors = {},
-  isLoading,
+  isLoading = false,
   handleChange,
+  handleSubmit,
 }) => {
-  const navigate = useNavigate();
-  const [localErrors, setLocalErrors] = useState({});
-
-  const errors = { ...formErrors, ...localErrors };
-
-  const handleSlugChange = (event) => {
-    const cleanedValue = event.target.value
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "")
-      .replace(/-{2,}/g, "-");
-
-    if (localErrors.workspaceSlug) {
-      setLocalErrors((prev) => ({ ...prev, workspaceSlug: "" }));
-    }
-
-    handleChange({
-      target: {
-        name: "workspaceSlug",
-        value: cleanedValue,
-      },
-    });
-  };
-
-  const handleNameChange = (event) => {
-    if (localErrors.workspaceName) {
-      setLocalErrors((prev) => ({ ...prev, workspaceName: "" }));
-    }
-
-    handleChange(event);
-  };
-
-  const handleMobileSubmit = (event) => {
-    event.preventDefault();
-
-    const nextErrors = {};
-
-    if (!formData.workspaceName?.trim()) {
-      nextErrors.workspaceName = "Workspace name is required";
-    }
-
-    if (
-      formData.workspaceSlug &&
-      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(formData.workspaceSlug)
-    ) {
-      nextErrors.workspaceSlug =
-        "Use lowercase letters, numbers and hyphens only";
-    }
-
-    if (Object.keys(nextErrors).length > 0) {
-      setLocalErrors(nextErrors);
-      return;
-    }
-
-    navigate(ROUTES.CHOOSE_PLAN);
-  };
-
   return (
     <section className="relative w-full overflow-hidden bg-bg">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,color-mix(in_srgb,var(--app-color-primary)_7%,transparent),transparent_34%)]" />
@@ -95,13 +37,13 @@ const CreateWorkspaceMobilePage = ({
           Create Your Workspace
         </AppHeading>
 
-        <AppBox component="form" onSubmit={handleMobileSubmit} sx={{ mt: 2.4 }}>
+        <AppBox component="form" onSubmit={handleSubmit} sx={{ mt: 2.4 }}>
           <AppStack direction="column" gap={1.65}>
             <AppInput
               label="Workspace Name"
               name="workspaceName"
               value={formData.workspaceName || ""}
-              onChange={handleNameChange}
+              onChange={handleChange}
               disabled={isLoading}
               placeholder="Enter workspace name"
               fullWidth
@@ -110,9 +52,9 @@ const CreateWorkspaceMobilePage = ({
               variant="bordered"
               rounded="md"
               startIcon={<FiBriefcase />}
-              error={Boolean(errors.workspaceName)}
+              error={Boolean(formErrors.workspaceName)}
               helperText={
-                errors.workspaceName ||
+                formErrors.workspaceName ||
                 "You can use any name for your workspace. You can change it later."
               }
               labelSx={labelSx}
@@ -131,7 +73,7 @@ const CreateWorkspaceMobilePage = ({
               }
               name="workspaceSlug"
               value={formData.workspaceSlug || ""}
-              onChange={handleSlugChange}
+              onChange={handleChange}
               disabled={isLoading}
               placeholder="your-workspace-slug"
               fullWidth
@@ -139,15 +81,21 @@ const CreateWorkspaceMobilePage = ({
               variant="bordered"
               rounded="md"
               prefix="pharmaerp.com/ws/"
-              error={Boolean(errors.workspaceSlug)}
+              error={Boolean(formErrors.workspaceSlug)}
               helperText={
-                errors.workspaceSlug ||
-                "This will be used in your workspace URL."
+                formErrors.workspaceSlug ||
+                "This is only for display now. Backend will generate slug from workspace name."
               }
               labelSx={labelSx}
               inputSx={slugInputSx}
               helperTextSx={helperTextSx}
             />
+
+            {formErrors.submit ? (
+              <AppText variant="body2" sx={submitErrorSx}>
+                {formErrors.submit}
+              </AppText>
+            ) : null}
 
             <AppCard
               variant="default"
@@ -317,6 +265,14 @@ const helperTextSx = {
   fontWeight: 500,
   lineHeight: "16px",
   color: "var(--app-color-text-muted)",
+};
+
+const submitErrorSx = {
+  mt: -0.45,
+  fontSize: "11.3px",
+  fontWeight: 650,
+  lineHeight: "17px",
+  color: "var(--app-color-error)",
 };
 
 const infoCardSx = {

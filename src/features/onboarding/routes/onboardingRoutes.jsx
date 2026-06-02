@@ -1,5 +1,4 @@
 import { ROUTES } from "@/constants";
-import { ProtectedRoute } from "@/guards";
 
 import {
   CreateWorkspacePage,
@@ -11,35 +10,19 @@ import {
 const onboardingRoutes = [
   {
     path: ROUTES.CREATE_WORKSPACE,
-    element: (
-      <ProtectedRoute>
-        <CreateWorkspacePage />
-      </ProtectedRoute>
-    ),
+    element: <CreateWorkspacePage />,
   },
   {
     path: ROUTES.CHOOSE_PLAN,
-    element: (
-      <ProtectedRoute>
-        <ChoosePlanPage />
-      </ProtectedRoute>
-    ),
+    element: <ChoosePlanPage />,
   },
   {
     path: ROUTES.TRIAL_ACTIVATED,
-    element: (
-      <ProtectedRoute>
-        <TrialActivatedPage />
-      </ProtectedRoute>
-    ),
+    element: <TrialActivatedPage />,
   },
   {
     path: ROUTES.SUBSCRIPTION_SUCCESS,
-    element: (
-      <ProtectedRoute>
-        <SubscriptionSuccessPage />
-      </ProtectedRoute>
-    ),
+    element: <SubscriptionSuccessPage />,
   },
 ];
 

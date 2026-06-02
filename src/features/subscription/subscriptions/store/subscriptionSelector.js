@@ -23,6 +23,9 @@ export const selectSubscriptionMessage = (state) => state.subscription.message;
 export const selectPurchaseSubscriptionStatus = (state) =>
   state.subscription.purchaseSubscriptionStatus;
 
+export const selectStartTrialSubscriptionStatus = (state) =>
+  state.subscription.startTrialSubscriptionStatus;
+
 export const selectRenewSubscriptionStatus = (state) =>
   state.subscription.renewSubscriptionStatus;
 

@@ -1,6 +1,5 @@
 // src/features/onboarding/pages/desktop/CreateWorkspaceDesktopPage.jsx
 
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiArrowLeft,
@@ -12,7 +11,6 @@ import {
   FiUsers,
 } from "react-icons/fi";
 
-import { ROUTES } from "@/constants";
 import {
   AppBox,
   AppButton,
@@ -23,57 +21,14 @@ import {
   AppText,
 } from "@/components";
 
-const CreateWorkspaceDesktopPage = () => {
+const CreateWorkspaceDesktopPage = ({
+  formData,
+  formErrors = {},
+  isLoading = false,
+  handleChange,
+  handleSubmit,
+}) => {
   const navigate = useNavigate();
-
-  const [formData, setFormData] = useState({
-    workspaceName: "",
-    workspaceSlug: "",
-  });
-  const [formErrors, setFormErrors] = useState({});
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-
-    if (formErrors[name]) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name === "workspaceSlug"
-          ? value.toLowerCase().replace(/[^a-z0-9-]/g, "")
-          : value,
-    }));
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-
-    const errors = {};
-
-    if (!formData.workspaceName.trim()) {
-      errors.workspaceName = "Workspace name is required";
-    }
-
-    if (
-      formData.workspaceSlug &&
-      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(formData.workspaceSlug)
-    ) {
-      errors.workspaceSlug = "Use lowercase letters, numbers and hyphens only";
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-
-    navigate(ROUTES.CHOOSE_PLAN);
-  };
 
   return (
     <section className="relative -mx-6 -my-8 overflow-hidden lg:-mx-6">
@@ -144,8 +99,9 @@ const CreateWorkspaceDesktopPage = () => {
                 <AppInput
                   label="Workspace Name"
                   name="workspaceName"
-                  value={formData.workspaceName}
+                  value={formData.workspaceName || ""}
                   onChange={handleChange}
+                  disabled={isLoading}
                   placeholder="Enter workspace name"
                   fullWidth
                   required
@@ -188,8 +144,9 @@ const CreateWorkspaceDesktopPage = () => {
                 <AppInput
                   label="Workspace Slug"
                   name="workspaceSlug"
-                  value={formData.workspaceSlug}
+                  value={formData.workspaceSlug || ""}
                   onChange={handleChange}
+                  disabled={isLoading}
                   placeholder="your-workspace-slug"
                   fullWidth
                   size="medium"
@@ -204,6 +161,12 @@ const CreateWorkspaceDesktopPage = () => {
                   labelSx={labelSx}
                   inputSx={inputSx}
                 />
+
+                {formErrors.submit ? (
+                  <AppText variant="body2" sx={submitErrorSx}>
+                    {formErrors.submit}
+                  </AppText>
+                ) : null}
               </AppStack>
 
               <AppBox sx={dividerSx} />
@@ -215,6 +178,7 @@ const CreateWorkspaceDesktopPage = () => {
                   colorVariant="neutral"
                   rounded="md"
                   startIcon={<FiArrowLeft />}
+                  disabled={isLoading}
                   onClick={() => navigate(-1)}
                   sx={backButtonSx}
                 >
@@ -226,6 +190,8 @@ const CreateWorkspaceDesktopPage = () => {
                   variant="contained"
                   colorVariant="primary"
                   rounded="md"
+                  loading={isLoading}
+                  disabled={isLoading}
                   endIcon={<FiArrowRight />}
                   sx={continueButtonSx}
                 >
@@ -374,6 +340,14 @@ const helpTextSx = {
   fontSize: "12.8px",
   lineHeight: "21px",
   color: "var(--app-color-text-muted)",
+};
+
+const submitErrorSx = {
+  mt: -0.4,
+  fontSize: "12.5px",
+  fontWeight: 600,
+  lineHeight: "20px",
+  color: "var(--app-color-error)",
 };
 
 const dividerSx = {

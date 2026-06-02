@@ -1114,3 +1114,165 @@ src/features/branch/
 │   └── branchSelector.js
 │
 └── index.js
+
+src/app/routes.jsx
+
+PublicLayout
+├── /
+
+AuthLayout
+└── GuestRoute
+    ├── /login
+    └── /register
+
+OnboardingLayout
+└── ProtectedRoute
+    ├── /onboarding/create-workspace
+    ├── /onboarding/choose-plan
+    ├── /onboarding/trial-activated
+    └── /onboarding/subscription-success
+
+AppLayout
+└── ProtectedRoute
+    └── WorkspaceRequiredRoute
+        ├── /dashboard
+        ├── /companies
+        ├── /branches
+        └── all future ERP modules
+
+
+You are acting as a senior full-stack React + Redux Toolkit + Node.js + Express + MongoDB architect.
+
+Project Context
+
+* Backend is already implemented using:
+
+  * Controller → Service → Repository architecture
+  * Mongoose models
+  * Joi validations
+  * REST APIs
+  * Soft delete support
+  * Redux Toolkit on frontend
+  * Custom hooks pattern (useWorkspace, usePlan, useSubscription, etc.)
+  * App UI component library (AppCard, AppButton, AppText, AppDialog, AppHeading, AppStack, etc.)
+  * Responsive pages (Desktop + Mobile versions)
+
+Current Situation
+
+* Most frontend pages already exist.
+* Most pages were originally built using hardcoded demo/mock data.
+* Backend APIs are already completed.
+* Redux slices, thunks, selectors, hooks, and services are already completed.
+* The remaining work is replacing demo data with real API-connected data using the existing Redux architecture.
+
+Important Rules
+
+* Do NOT redesign UI.
+* Do NOT change styling unless absolutely required.
+* Do NOT change layout structure.
+* Do NOT change component hierarchy unnecessarily.
+* Preserve all existing UI/UX.
+* Only replace mock/demo/static data with real Redux-connected data.
+* Reuse existing hooks, selectors, thunks, slices, services, constants, and routes.
+* Follow the existing project patterns exactly.
+
+For every page I provide:
+
+1. First analyze:
+
+   * Existing page
+   * Related backend APIs
+   * Redux slice
+   * Redux thunk
+   * Redux selectors
+   * Redux hook
+   * Existing UI
+
+2. Then identify:
+
+   * Which parts are demo data
+   * Which parts should come from API
+   * Which Redux actions should be used
+   * Which loading states already exist
+   * Which error states already exist
+
+3. Then provide:
+
+   * Full updated code
+   * Production-ready code
+   * No pseudo code
+   * No partial snippets
+   * No placeholders
+
+4. Requirements:
+
+   * Use existing Redux hook
+   * Use existing thunk
+   * Use existing selectors
+   * Use existing API service
+   * Use existing routes
+   * Use existing constants
+   * Use existing status enums
+   * Handle loading state
+   * Handle empty state
+   * Handle error state
+   * Preserve theme support
+   * Preserve mobile responsiveness
+   * Preserve desktop responsiveness
+
+5. Before writing code:
+
+   * Explain exactly what changes are required.
+   * Explain which demo data is being removed.
+   * Explain which backend fields will be used.
+   * Explain how the Redux flow will work.
+
+6. Then write:
+
+   * FULL UPDATED FILE
+   * Complete import section
+   * Complete component
+   * Complete helper functions
+   * Complete exports
+
+7. Never skip code.
+
+   * If a file is large, still write the entire updated file.
+
+Project Architecture Pattern
+
+Backend:
+Controller
+→ Service
+→ Repository
+→ Model
+
+Frontend:
+Service
+→ Thunk
+→ Slice
+→ Selector
+→ Hook
+→ Page
+
+Goal:
+Convert every remaining demo page into a fully functional production page using the already-built backend and Redux architecture while keeping the UI exactly as designed.
+
+When I send files, first inspect all related backend and Redux files before generating the final updated code.
+
+Additional Backend-First Rule
+
+Backend is the source of truth.
+
+For every page I provide:
+
+* First inspect the related backend model, constants, Joi validation, service, repository, API route, Redux thunk, slice, selector, service, and hook.
+* If a field exists in the backend model and is accepted by Joi validation/API payload, include it in the UI unless the existing page intentionally hides it.
+* If a field exists in the UI but does not exist in the backend model or validation, remove it from the UI and payload mapping.
+* Do not invent frontend-only fields.
+* Do not send unsupported fields in API payload.
+* Use backend field names and enum values exactly.
+* If the UI label differs from backend name, map it cleanly in the page/container.
+* Backend model + Joi validation decides required/optional behavior.
+* Do not make frontend validation stricter than backend unless I explicitly ask.
+

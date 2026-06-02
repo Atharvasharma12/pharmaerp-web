@@ -37,9 +37,14 @@ const CreateCompanyDesktopPage = ({
   formData,
   formErrors,
   isLoading,
+  companyTypeOptions,
   currencyOptions,
-  taxPreferenceOptions,
-  financialYearOptions,
+  gstTypeOptions,
+  billingTypeOptions,
+  licenseStatusOptions,
+  statusOptions,
+  timeFormatOptions,
+  booleanOptions,
   handleChange,
   handleSubmit,
   handleBack,
@@ -78,6 +83,7 @@ const CreateCompanyDesktopPage = ({
             size="small"
             startIcon={<FiArrowLeft />}
             onClick={handleBack}
+            disabled={isLoading}
             sx={backButtonSx}
           >
             Back to Companies
@@ -98,7 +104,7 @@ const CreateCompanyDesktopPage = ({
                 <FormSection
                   icon={<FiBriefcase />}
                   title="Basic Information"
-                  columns={2}
+                  columns={3}
                 >
                   <AppInput
                     label="Company Name"
@@ -118,28 +124,40 @@ const CreateCompanyDesktopPage = ({
                     inputSx={inputSx}
                   />
 
-                  <AppInput
-                    label="Legal Company Name (Optional)"
-                    name="legalCompanyName"
-                    value={formData.legalCompanyName}
+                  <AppSelect
+                    label="Company Type"
+                    name="companyType"
+                    value={formData.companyType}
                     onChange={handleChange}
-                    placeholder="Enter legal company name"
+                    options={companyTypeOptions}
                     fullWidth
                     size="small"
                     variant="bordered"
                     rounded="md"
-                    startIcon={<FiBriefcase />}
                     labelSx={labelSx}
                     inputSx={inputSx}
                   />
 
+                  {/* <AppSelect
+                    label="Company Status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    options={statusOptions}
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  /> */}
+
                   <AppInput
-                    label="GST Number"
+                    label="GSTIN"
                     name="gstNumber"
                     value={formData.gstNumber}
                     onChange={handleChange}
-                    placeholder="Enter GST number"
-                    required
+                    placeholder="Enter GSTIN"
                     fullWidth
                     size="small"
                     variant="bordered"
@@ -152,7 +170,7 @@ const CreateCompanyDesktopPage = ({
                   />
 
                   <AppInput
-                    label="PAN Number (Optional)"
+                    label="PAN Number"
                     name="panNumber"
                     value={formData.panNumber}
                     onChange={handleChange}
@@ -162,6 +180,8 @@ const CreateCompanyDesktopPage = ({
                     variant="bordered"
                     rounded="md"
                     startIcon={<FiCreditCard />}
+                    error={Boolean(formErrors.panNumber)}
+                    helperText={formErrors.panNumber}
                     labelSx={labelSx}
                     inputSx={inputSx}
                   />
@@ -202,19 +222,113 @@ const CreateCompanyDesktopPage = ({
                 </FormSection>
 
                 <FormSection
-                  icon={<FiFileText />}
-                  title="Licenses & Compliance"
+                  icon={<FiMapPin />}
+                  title="Address"
                   columns={3}
                   divided
                   green
                 >
                   <AppInput
-                    label="Drug License Number"
+                    label="Address Line 1"
+                    name="addressLine1"
+                    value={formData.addressLine1}
+                    onChange={handleChange}
+                    placeholder="Enter address line 1"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    endIcon={<FiMapPin />}
+                    error={Boolean(formErrors.addressLine1)}
+                    helperText={formErrors.addressLine1}
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Address Line 2"
+                    name="addressLine2"
+                    value={formData.addressLine2}
+                    onChange={handleChange}
+                    placeholder="Enter address line 2"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="City"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder="Enter city"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="State"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    placeholder="Enter state"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Country"
+                    name="country"
+                    value={formData.country}
+                    onChange={handleChange}
+                    placeholder="Enter country"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Pincode"
+                    name="pincode"
+                    value={formData.pincode}
+                    onChange={handleChange}
+                    placeholder="Enter pincode"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+                </FormSection>
+
+                <FormSection
+                  icon={<FiFileText />}
+                  title="Drug License"
+                  columns={4}
+                  divided
+                  green
+                >
+                  <AppInput
+                    label="License Number"
                     name="drugLicenseNumber"
                     value={formData.drugLicenseNumber}
                     onChange={handleChange}
                     placeholder="Enter license number"
-                    required
                     fullWidth
                     size="small"
                     variant="bordered"
@@ -226,29 +340,129 @@ const CreateCompanyDesktopPage = ({
                   />
 
                   <AppInput
-                    label="Drug License Expiry"
-                    name="drugLicenseExpiry"
-                    value={formData.drugLicenseExpiry}
+                    label="Issued At"
+                    name="drugLicenseIssuedAt"
+                    value={formData.drugLicenseIssuedAt}
                     onChange={handleChange}
-                    placeholder="Select expiry date"
-                    required
+                    placeholder="Select issued date"
                     fullWidth
                     size="small"
                     variant="bordered"
                     rounded="md"
                     startIcon={<FiCalendar />}
-                    error={Boolean(formErrors.drugLicenseExpiry)}
-                    helperText={formErrors.drugLicenseExpiry}
                     labelSx={labelSx}
                     inputSx={inputSx}
                   />
 
                   <AppInput
-                    label="Trade License Number (Optional)"
+                    label="Expires At"
+                    name="drugLicenseExpiry"
+                    value={formData.drugLicenseExpiry}
+                    onChange={handleChange}
+                    placeholder="Select expiry date"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    startIcon={<FiCalendar />}
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppSelect
+                    label="License Status"
+                    name="drugLicenseStatus"
+                    value={formData.drugLicenseStatus}
+                    onChange={handleChange}
+                    options={licenseStatusOptions}
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+                </FormSection>
+
+                <FormSection
+                  icon={<FiFileText />}
+                  title="Food License"
+                  columns={4}
+                  divided
+                  green
+                >
+                  <AppInput
+                    label="License Number"
+                    name="foodLicenseNumber"
+                    value={formData.foodLicenseNumber}
+                    onChange={handleChange}
+                    placeholder="Enter license number"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Issued At"
+                    name="foodLicenseIssuedAt"
+                    value={formData.foodLicenseIssuedAt}
+                    onChange={handleChange}
+                    placeholder="Select issued date"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    startIcon={<FiCalendar />}
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Expires At"
+                    name="foodLicenseExpiry"
+                    value={formData.foodLicenseExpiry}
+                    onChange={handleChange}
+                    placeholder="Select expiry date"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    startIcon={<FiCalendar />}
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppSelect
+                    label="License Status"
+                    name="foodLicenseStatus"
+                    value={formData.foodLicenseStatus}
+                    onChange={handleChange}
+                    options={licenseStatusOptions}
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+                </FormSection>
+
+                <FormSection
+                  icon={<FiFileText />}
+                  title="Trade License"
+                  columns={4}
+                  divided
+                  green
+                >
+                  <AppInput
+                    label="License Number"
                     name="tradeLicenseNumber"
                     value={formData.tradeLicenseNumber}
                     onChange={handleChange}
-                    placeholder="Enter trade license"
+                    placeholder="Enter license number"
                     fullWidth
                     size="small"
                     variant="bordered"
@@ -259,7 +473,22 @@ const CreateCompanyDesktopPage = ({
                   />
 
                   <AppInput
-                    label="Trade License Expiry (Optional)"
+                    label="Issued At"
+                    name="tradeLicenseIssuedAt"
+                    value={formData.tradeLicenseIssuedAt}
+                    onChange={handleChange}
+                    placeholder="Select issued date"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    startIcon={<FiCalendar />}
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Expires At"
                     name="tradeLicenseExpiry"
                     value={formData.tradeLicenseExpiry}
                     onChange={handleChange}
@@ -273,40 +502,34 @@ const CreateCompanyDesktopPage = ({
                     inputSx={inputSx}
                   />
 
-                  <AppBox sx={{ gridColumn: "span 2" }}>
-                    <AppInput
-                      label="Legal Address"
-                      name="legalAddress"
-                      value={formData.legalAddress}
-                      onChange={handleChange}
-                      placeholder="Enter legal address"
-                      required
-                      fullWidth
-                      size="small"
-                      variant="bordered"
-                      rounded="md"
-                      endIcon={<FiMapPin />}
-                      error={Boolean(formErrors.legalAddress)}
-                      helperText={formErrors.legalAddress}
-                      labelSx={labelSx}
-                      inputSx={inputSx}
-                    />
-                  </AppBox>
+                  <AppSelect
+                    label="License Status"
+                    name="tradeLicenseStatus"
+                    value={formData.tradeLicenseStatus}
+                    onChange={handleChange}
+                    options={licenseStatusOptions}
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
                 </FormSection>
 
                 <FormSection
                   icon={<FiCreditCard />}
-                  title="Tax & Billing Settings"
+                  title="Tax Settings"
                   columns={4}
                   divided
                   green
                 >
                   <AppSelect
-                    label="Currency"
-                    name="currency"
-                    value={formData.currency}
+                    label="GST Type"
+                    name="gstType"
+                    value={formData.gstType}
                     onChange={handleChange}
-                    options={currencyOptions}
+                    options={gstTypeOptions}
                     fullWidth
                     size="small"
                     variant="bordered"
@@ -316,11 +539,11 @@ const CreateCompanyDesktopPage = ({
                   />
 
                   <AppSelect
-                    label="Tax Preference"
-                    name="taxPreference"
-                    value={formData.taxPreference}
+                    label="Billing Type"
+                    name="billingType"
+                    value={formData.billingType}
                     onChange={handleChange}
-                    options={taxPreferenceOptions}
+                    options={billingTypeOptions}
                     fullWidth
                     size="small"
                     variant="bordered"
@@ -330,11 +553,11 @@ const CreateCompanyDesktopPage = ({
                   />
 
                   <AppInput
-                    label="Default Billing Prefix"
-                    name="defaultBillingPrefix"
-                    value={formData.defaultBillingPrefix}
+                    label="Default GST Rate"
+                    name="defaultGstRate"
+                    value={formData.defaultGstRate}
                     onChange={handleChange}
-                    placeholder="INV-"
+                    placeholder="0"
                     fullWidth
                     size="small"
                     variant="bordered"
@@ -344,11 +567,103 @@ const CreateCompanyDesktopPage = ({
                   />
 
                   <AppSelect
-                    label="Financial Year Start"
-                    name="financialYearStart"
-                    value={formData.financialYearStart}
+                    label="GST Inclusive"
+                    name="isGstInclusive"
+                    value={formData.isGstInclusive}
                     onChange={handleChange}
-                    options={financialYearOptions}
+                    options={booleanOptions}
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+                </FormSection>
+
+                <FormSection
+                  icon={<FiCreditCard />}
+                  title="Billing Settings"
+                  columns={4}
+                  divided
+                  green
+                >
+                  <AppInput
+                    label="Invoice Prefix"
+                    name="invoicePrefix"
+                    value={formData.invoicePrefix}
+                    onChange={handleChange}
+                    placeholder="INV"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Invoice Start Number"
+                    name="invoiceStartNumber"
+                    value={formData.invoiceStartNumber}
+                    onChange={handleChange}
+                    placeholder="1"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Purchase Prefix"
+                    name="purchasePrefix"
+                    value={formData.purchasePrefix}
+                    onChange={handleChange}
+                    placeholder="PUR"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Purchase Start Number"
+                    name="purchaseStartNumber"
+                    value={formData.purchaseStartNumber}
+                    onChange={handleChange}
+                    placeholder="1"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Sales Return Prefix"
+                    name="salesReturnPrefix"
+                    value={formData.salesReturnPrefix}
+                    onChange={handleChange}
+                    placeholder="SR"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
+
+                  <AppInput
+                    label="Purchase Return Prefix"
+                    name="purchaseReturnPrefix"
+                    value={formData.purchaseReturnPrefix}
+                    onChange={handleChange}
+                    placeholder="PR"
                     fullWidth
                     size="small"
                     variant="bordered"
@@ -365,12 +680,164 @@ const CreateCompanyDesktopPage = ({
                     items={[
                       {
                         id: "additional-settings",
-                        title: "Additional Settings (Optional)",
+                        title: "Additional Settings",
                         icon: <FiSettings />,
                         content: (
-                          <AppText variant="body2" sx={mutedTextSx}>
-                            More company settings can be added here later.
-                          </AppText>
+                          <AppGrid columns={4} gap={1.25} columnGap={2}>
+                            <AppInput
+                              label="Timezone"
+                              name="timezone"
+                              value={formData.timezone}
+                              onChange={handleChange}
+                              placeholder="Asia/Kolkata"
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Currency"
+                              name="currency"
+                              value={formData.currency}
+                              onChange={handleChange}
+                              options={currencyOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppInput
+                              label="Date Format"
+                              name="dateFormat"
+                              value={formData.dateFormat}
+                              onChange={handleChange}
+                              placeholder="DD/MM/YYYY"
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Time Format"
+                              name="timeFormat"
+                              value={formData.timeFormat}
+                              onChange={handleChange}
+                              options={timeFormatOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Allow Negative Stock"
+                              name="allowNegativeStock"
+                              value={formData.allowNegativeStock}
+                              onChange={handleChange}
+                              options={booleanOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Allow Backdated Entries"
+                              name="allowBackdatedEntries"
+                              value={formData.allowBackdatedEntries}
+                              onChange={handleChange}
+                              options={booleanOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Enable Batch Tracking"
+                              name="enableBatchTracking"
+                              value={formData.enableBatchTracking}
+                              onChange={handleChange}
+                              options={booleanOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Enable Expiry Tracking"
+                              name="enableExpiryTracking"
+                              value={formData.enableExpiryTracking}
+                              onChange={handleChange}
+                              options={booleanOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Enable Purchase Module"
+                              name="enablePurchaseModule"
+                              value={formData.enablePurchaseModule}
+                              onChange={handleChange}
+                              options={booleanOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Enable Sales Module"
+                              name="enableSalesModule"
+                              value={formData.enableSalesModule}
+                              onChange={handleChange}
+                              options={booleanOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+
+                            <AppSelect
+                              label="Enable Inventory Module"
+                              name="enableInventoryModule"
+                              value={formData.enableInventoryModule}
+                              onChange={handleChange}
+                              options={booleanOptions}
+                              fullWidth
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              labelSx={labelSx}
+                              inputSx={inputSx}
+                            />
+                          </AppGrid>
                         ),
                       },
                     ]}
@@ -380,6 +847,12 @@ const CreateCompanyDesktopPage = ({
                   />
                 </div>
               </AppCard>
+
+              {formErrors.submit ? (
+                <AppText variant="body2" sx={submitErrorSx}>
+                  {formErrors.submit}
+                </AppText>
+              ) : null}
 
               <div className="mt-2 flex w-full justify-end">
                 <AppStack
@@ -395,6 +868,7 @@ const CreateCompanyDesktopPage = ({
                     rounded="md"
                     size="small"
                     onClick={handleBack}
+                    disabled={isLoading}
                     sx={cancelButtonSx}
                   >
                     Cancel
@@ -408,6 +882,7 @@ const CreateCompanyDesktopPage = ({
                     size="small"
                     startIcon={<FiSave />}
                     loading={isLoading}
+                    disabled={isLoading}
                     sx={saveButtonSx}
                   >
                     Save Company
@@ -477,7 +952,7 @@ const CompanyPreview = ({ formData }) => (
 
       <div className="mt-0.8 flex w-full justify-center">
         <AppStatusBadge
-          status="active"
+          status={formData.status || "active"}
           size="small"
           variant="soft"
           rounded="full"
@@ -490,13 +965,18 @@ const CompanyPreview = ({ formData }) => (
 
     <AppStack direction="column" gap={1.25} sx={{ py: 1.8 }}>
       <PreviewRow
+        icon={<FiBriefcase />}
+        label="Type"
+        value={formData.companyType}
+      />
+      <PreviewRow
         icon={<FiFileText />}
-        label="GST Number"
+        label="GSTIN"
         value={formData.gstNumber}
       />
       <PreviewRow
         icon={<FiCreditCard />}
-        label="PAN Number"
+        label="PAN"
         value={formData.panNumber}
       />
       <PreviewRow
@@ -514,18 +994,26 @@ const CompanyPreview = ({ formData }) => (
       <PreviewRow
         icon={<FiMapPin />}
         label="Address"
-        value={formData.legalAddress}
+        value={[
+          formData.addressLine1,
+          formData.addressLine2,
+          formData.city,
+          formData.state,
+          formData.pincode,
+        ]
+          .filter(Boolean)
+          .join(", ")}
       />
     </AppStack>
 
     <div className="h-px bg-border" />
 
     <AppStack direction="column" gap={1.25} sx={{ pt: 1.8 }}>
-      <PreviewRow icon={<FiUser />} label="Created By" value="Admin" />
+      <PreviewRow icon={<FiUser />} label="Created By" value="-" />
       <PreviewRow
         icon={<FiClock />}
         label="Created On"
-        value="21 May 2024, 10:45 AM"
+        value="Not created yet"
       />
     </AppStack>
   </AppCard>
@@ -676,9 +1164,12 @@ const previewValueSx = {
   color: "var(--app-color-text)",
 };
 
-const mutedTextSx = {
-  fontSize: "11.3px",
-  color: "var(--app-color-text-muted)",
+const submitErrorSx = {
+  mt: 1,
+  textAlign: "right",
+  fontSize: "12px",
+  fontWeight: 600,
+  color: "var(--app-color-danger)",
 };
 
 const accordionSx = {
