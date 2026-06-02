@@ -44,7 +44,7 @@ export const router = createBrowserRouter([
     children: [
       {
         path: ROUTES.HOME,
-        element: <HomePage />,
+        element: <LandingPage />,
       },
       {
         path: "/features",
