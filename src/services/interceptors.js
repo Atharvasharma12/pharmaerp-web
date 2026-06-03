@@ -1,17 +1,22 @@
 // src/services/interceptors.js
 
-import { TOKEN_KEY } from "../constants";
-import { storage, getErrorMessage } from "../utils";
+import {
+  TOKEN_KEY,
+  WORKSPACE_STORAGE_KEY,
+  COMPANY_STORAGE_KEY,
+  BRANCH_STORAGE_KEY,
+} from "../constants";
 
-const WORKSPACE_KEY = "workspaceId";
-const COMPANY_KEY = "companyId";
+import { storage, getErrorMessage } from "../utils";
 
 export const setupInterceptors = (apiClient) => {
   apiClient.interceptors.request.use(
     (config) => {
       const token = storage.get(TOKEN_KEY);
-      const workspaceId = storage.get(WORKSPACE_KEY);
-      const companyId = storage.get(COMPANY_KEY);
+
+      const workspaceId = storage.get(WORKSPACE_STORAGE_KEY);
+      const companyId = storage.get(COMPANY_STORAGE_KEY);
+      const branchId = storage.get(BRANCH_STORAGE_KEY);
 
       config.headers = config.headers || {};
 
@@ -25,6 +30,10 @@ export const setupInterceptors = (apiClient) => {
 
       if (companyId) {
         config.headers["x-company-id"] = companyId;
+      }
+
+      if (branchId) {
+        config.headers["x-branch-id"] = branchId;
       }
 
       return config;

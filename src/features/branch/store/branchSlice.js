@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-import { API_STATUS } from "@/constants";
+import { API_STATUS, BRANCH_STORAGE_KEY } from "@/constants";
+import { storage } from "@/utils";
 
 import {
   createBranch,
@@ -9,6 +10,16 @@ import {
   updateBranch,
   deleteBranch,
 } from "./branchThunk";
+
+const persistCurrentBranch = (branch) => {
+  if (branch?._id) {
+    storage.set(BRANCH_STORAGE_KEY, branch._id);
+  }
+};
+
+const removePersistedBranch = () => {
+  storage.remove(BRANCH_STORAGE_KEY);
+};
 
 const initialState = {
   branches: [],
@@ -42,10 +53,17 @@ const branchSlice = createSlice({
 
     setCurrentBranch(state, action) {
       state.currentBranch = action.payload || null;
+
+      if (state.currentBranch?._id) {
+        persistCurrentBranch(state.currentBranch);
+      } else {
+        removePersistedBranch();
+      }
     },
 
     clearCurrentBranch(state) {
       state.currentBranch = null;
+      removePersistedBranch();
     },
 
     clearBranches(state) {
@@ -59,6 +77,7 @@ const branchSlice = createSlice({
       .addCase(createBranch.pending, (state) => {
         state.createBranchStatus = API_STATUS.LOADING;
         state.error = null;
+        state.message = null;
       })
       .addCase(createBranch.fulfilled, (state, action) => {
         state.createBranchStatus = API_STATUS.SUCCESS;
@@ -66,6 +85,7 @@ const branchSlice = createSlice({
         if (action.payload) {
           state.branches.unshift(action.payload);
           state.currentBranch = action.payload;
+          persistCurrentBranch(action.payload);
         }
 
         state.message = "Branch created successfully";
@@ -85,6 +105,23 @@ const branchSlice = createSlice({
 
         state.branches = Array.isArray(action.payload) ? action.payload : [];
 
+        const persistedBranchId = storage.get(BRANCH_STORAGE_KEY);
+
+        const matchedBranch =
+          state.branches.find((branch) => branch?._id === persistedBranchId) ||
+          null;
+
+        const firstBranch = state.branches[0] || null;
+
+        state.currentBranch =
+          state.currentBranch || matchedBranch || firstBranch;
+
+        if (state.currentBranch?._id) {
+          persistCurrentBranch(state.currentBranch);
+        } else {
+          removePersistedBranch();
+        }
+
         state.message = "Branches fetched successfully";
       })
       .addCase(getCompanyBranches.rejected, (state, action) => {
@@ -101,6 +138,12 @@ const branchSlice = createSlice({
         state.getBranchStatus = API_STATUS.SUCCESS;
 
         state.currentBranch = action.payload || null;
+
+        if (action.payload?._id) {
+          persistCurrentBranch(action.payload);
+        } else {
+          removePersistedBranch();
+        }
 
         state.message = "Branch fetched successfully";
       })
@@ -125,6 +168,12 @@ const branchSlice = createSlice({
           branch._id === updatedBranch?._id ? updatedBranch : branch,
         );
 
+        if (state.currentBranch?._id) {
+          persistCurrentBranch(state.currentBranch);
+        } else {
+          removePersistedBranch();
+        }
+
         state.message = "Branch updated successfully";
       })
       .addCase(updateBranch.rejected, (state, action) => {
@@ -139,6 +188,15 @@ const branchSlice = createSlice({
       })
       .addCase(deleteBranch.fulfilled, (state, action) => {
         state.deleteBranchStatus = API_STATUS.SUCCESS;
+
+        state.branches = state.branches.filter(
+          (branch) => branch?._id !== action.meta.arg,
+        );
+
+        if (state.currentBranch?._id === action.meta.arg) {
+          state.currentBranch = null;
+          removePersistedBranch();
+        }
 
         state.message =
           action.payload?.message || "Branch deleted successfully";

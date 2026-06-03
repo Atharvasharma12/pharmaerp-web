@@ -1,8 +1,11 @@
-// src/features/workspace/store/workspaceSlice.js
-
 import { createSlice } from "@reduxjs/toolkit";
 
-import { API_STATUS } from "@/constants";
+import {
+  API_STATUS,
+  WORKSPACE_STORAGE_KEY,
+  COMPANY_STORAGE_KEY,
+  BRANCH_STORAGE_KEY,
+} from "@/constants";
 import { storage } from "@/utils";
 
 import {
@@ -12,12 +15,13 @@ import {
   updateWorkspace,
   deleteWorkspace,
   getWorkspaceMembers,
-  addWorkspaceMember,
   updateWorkspaceMemberStatus,
   removeWorkspaceMember,
+  inviteWorkspaceMember,
+  getWorkspaceInvitations,
+  cancelWorkspaceInvitation,
+  acceptWorkspaceInvitation,
 } from "./workspaceThunk";
-
-const WORKSPACE_STORAGE_KEY = "workspaceId";
 
 const getWorkspaceFromItem = (item) => {
   return item?.workspace || item || null;
@@ -31,12 +35,15 @@ const persistCurrentWorkspace = (workspace) => {
 
 const removePersistedWorkspace = () => {
   storage.remove(WORKSPACE_STORAGE_KEY);
+  storage.remove(COMPANY_STORAGE_KEY);
+  storage.remove(BRANCH_STORAGE_KEY);
 };
 
 const initialState = {
   workspaces: [],
   currentWorkspace: null,
   members: [],
+  invitations: [],
 
   status: API_STATUS.IDLE,
   error: null,
@@ -49,9 +56,13 @@ const initialState = {
   deleteWorkspaceStatus: API_STATUS.IDLE,
 
   getWorkspaceMembersStatus: API_STATUS.IDLE,
-  addWorkspaceMemberStatus: API_STATUS.IDLE,
   updateWorkspaceMemberStatus: API_STATUS.IDLE,
   removeWorkspaceMemberStatus: API_STATUS.IDLE,
+
+  inviteWorkspaceMemberStatus: API_STATUS.IDLE,
+  getWorkspaceInvitationsStatus: API_STATUS.IDLE,
+  cancelWorkspaceInvitationStatus: API_STATUS.IDLE,
+  acceptWorkspaceInvitationStatus: API_STATUS.IDLE,
 };
 
 const setPending = (state) => {
@@ -84,6 +95,9 @@ const workspaceSlice = createSlice({
 
       if (state.currentWorkspace?._id) {
         persistCurrentWorkspace(state.currentWorkspace);
+
+        storage.remove(COMPANY_STORAGE_KEY);
+        storage.remove(BRANCH_STORAGE_KEY);
       } else {
         removePersistedWorkspace();
       }
@@ -96,6 +110,10 @@ const workspaceSlice = createSlice({
 
     clearWorkspaceMembers(state) {
       state.members = [];
+    },
+
+    clearWorkspaceInvitations(state) {
+      state.invitations = [];
     },
   },
 
@@ -117,6 +135,9 @@ const workspaceSlice = createSlice({
           });
 
           persistCurrentWorkspace(action.payload);
+
+          storage.remove(COMPANY_STORAGE_KEY);
+          storage.remove(BRANCH_STORAGE_KEY);
         }
 
         state.message = "Workspace created successfully";
@@ -135,11 +156,21 @@ const workspaceSlice = createSlice({
         state.getMyWorkspacesStatus = API_STATUS.SUCCESS;
         state.workspaces = action.payload || [];
 
+        const persistedWorkspaceId = storage.get(WORKSPACE_STORAGE_KEY);
+
+        const matchedWorkspaceItem = state.workspaces.find((item) => {
+          const workspace = getWorkspaceFromItem(item);
+
+          return workspace?._id === persistedWorkspaceId;
+        });
+
+        const matchedWorkspace = getWorkspaceFromItem(matchedWorkspaceItem);
+
         const firstWorkspaceItem = state.workspaces[0];
         const firstWorkspace = getWorkspaceFromItem(firstWorkspaceItem);
 
         state.currentWorkspace =
-          state.currentWorkspace || firstWorkspace || null;
+          state.currentWorkspace || matchedWorkspace || firstWorkspace || null;
 
         if (state.currentWorkspace?._id) {
           persistCurrentWorkspace(state.currentWorkspace);
@@ -228,6 +259,9 @@ const workspaceSlice = createSlice({
           removePersistedWorkspace();
         }
 
+        state.members = [];
+        state.invitations = [];
+
         state.message = "Workspace deleted successfully";
       })
       .addCase(deleteWorkspace.rejected, (state, action) => {
@@ -248,26 +282,6 @@ const workspaceSlice = createSlice({
       .addCase(getWorkspaceMembers.rejected, (state, action) => {
         state.getWorkspaceMembersStatus = API_STATUS.ERROR;
         state.error = action.payload || "Failed to fetch workspace members";
-      })
-
-      // ADD WORKSPACE MEMBER
-      .addCase(addWorkspaceMember.pending, (state) => {
-        state.addWorkspaceMemberStatus = API_STATUS.LOADING;
-        state.error = null;
-        state.message = null;
-      })
-      .addCase(addWorkspaceMember.fulfilled, (state, action) => {
-        state.addWorkspaceMemberStatus = API_STATUS.SUCCESS;
-
-        if (action.payload) {
-          state.members.unshift(action.payload);
-        }
-
-        state.message = "Workspace member added successfully";
-      })
-      .addCase(addWorkspaceMember.rejected, (state, action) => {
-        state.addWorkspaceMemberStatus = API_STATUS.ERROR;
-        state.error = action.payload || "Workspace member add failed";
       })
 
       // UPDATE WORKSPACE MEMBER STATUS
@@ -308,6 +322,76 @@ const workspaceSlice = createSlice({
       .addCase(removeWorkspaceMember.rejected, (state, action) => {
         state.removeWorkspaceMemberStatus = API_STATUS.ERROR;
         state.error = action.payload || "Workspace member remove failed";
+      })
+
+      // INVITE WORKSPACE MEMBER
+      .addCase(inviteWorkspaceMember.pending, (state) => {
+        state.inviteWorkspaceMemberStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(inviteWorkspaceMember.fulfilled, (state, action) => {
+        state.inviteWorkspaceMemberStatus = API_STATUS.SUCCESS;
+
+        if (action.payload) {
+          state.invitations.unshift(action.payload);
+        }
+
+        state.message = "Workspace invitation created successfully";
+      })
+      .addCase(inviteWorkspaceMember.rejected, (state, action) => {
+        state.inviteWorkspaceMemberStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Workspace invitation failed";
+      })
+
+      // GET WORKSPACE INVITATIONS
+      .addCase(getWorkspaceInvitations.pending, (state) => {
+        state.getWorkspaceInvitationsStatus = API_STATUS.LOADING;
+        state.error = null;
+      })
+      .addCase(getWorkspaceInvitations.fulfilled, (state, action) => {
+        state.getWorkspaceInvitationsStatus = API_STATUS.SUCCESS;
+        state.invitations = action.payload || [];
+        state.message = "Workspace invitations fetched successfully";
+      })
+      .addCase(getWorkspaceInvitations.rejected, (state, action) => {
+        state.getWorkspaceInvitationsStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to fetch workspace invitations";
+      })
+
+      // CANCEL WORKSPACE INVITATION
+      .addCase(cancelWorkspaceInvitation.pending, (state) => {
+        state.cancelWorkspaceInvitationStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(cancelWorkspaceInvitation.fulfilled, (state, action) => {
+        state.cancelWorkspaceInvitationStatus = API_STATUS.SUCCESS;
+
+        state.invitations = state.invitations.map((invitation) =>
+          invitation?._id === action.payload?._id ? action.payload : invitation,
+        );
+
+        state.message = "Workspace invitation cancelled successfully";
+      })
+      .addCase(cancelWorkspaceInvitation.rejected, (state, action) => {
+        state.cancelWorkspaceInvitationStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Workspace invitation cancel failed";
+      })
+
+      // ACCEPT WORKSPACE INVITATION
+      .addCase(acceptWorkspaceInvitation.pending, (state) => {
+        state.acceptWorkspaceInvitationStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(acceptWorkspaceInvitation.fulfilled, (state) => {
+        state.acceptWorkspaceInvitationStatus = API_STATUS.SUCCESS;
+        state.message = "Workspace invitation accepted successfully";
+      })
+      .addCase(acceptWorkspaceInvitation.rejected, (state, action) => {
+        state.acceptWorkspaceInvitationStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Workspace invitation accept failed";
       });
   },
 });
@@ -318,6 +402,7 @@ export const {
   setCurrentWorkspace,
   clearCurrentWorkspace,
   clearWorkspaceMembers,
+  clearWorkspaceInvitations,
 } = workspaceSlice.actions;
 
 export default workspaceSlice.reducer;

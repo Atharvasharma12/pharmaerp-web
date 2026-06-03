@@ -1,132 +1,3 @@
-Main flow (recommended)
-
-Lead Created (CRM)
-
-Source: website form / referral / call / LinkedIn
-
-Qualification (CRM)
-
-Decide: fit or not fit
-
-If not fit → Lost/Closed
-
-Discovery Call / Requirement Gathering (CRM)
-
-Proposal / Quotation (CRM)
-
-Scope + timeline + cost + payment terms
-
-Negotiation / Revision (CRM)
-
-Deal Won (CRM)
-
-Client confirms (email/PO/approval)
-
-NDA + Contract/SOW Signed (Contracts module)
-
-NDA (if needed)
-
-MSA/SOW (usually required)
-
-Client Onboarding (Projects/Operations)
-
-Kickoff meeting
-
-Access setup
-
-Communication channels
-
-Assign team
-
-Project Execution (Projects)
-
-Tasks, milestones, delivery
-
-Invoicing (Invoicing module)
-Depending on your billing model:
-
-Advance invoice (before work starts), OR
-
-Milestone-based invoice, OR
-
-Monthly retainer invoice
-
-Payment Received (Invoicing/Finance)
-
-Delivery + Closure (Projects)
-
-Offboarding / Support / AMC (Support module)
-
-Handover docs
-
-Support tickets / maintenance contract
-
-
-
-
-
-Lead Created
-   ↓
-Qualification (Lead.status)
-   ↓
-Discovery Call (DiscoveryCall model)
-   ↓
-Deal Pipeline (Deal.stage)
-   ↓
-Proposal (Proposal model)
-   ↓
-Negotiation (Deal.stage)
-   ↓
-Deal Won
-   ↓
-Create Client (Client model)
-   ↓
-Contract (Contract model)
-   ↓
-Onboarding (Onboarding model)
-   ↓
-Project (Project model)
-   ↓
-Invoice
-   ↓
-Payment
-
-
-Employee flow models
-
-JobOpening
-↓
-Candidate
-↓
-Interview
-↓
-Assessment
-↓
-Offer
-↓
-Employee
-↓
-EmployeeDocument
-↓
-EmployeeOnboarding
-
-
-Project
- ├── Project Members
- ├── Tickets
- │     ├── Comments
- │     ├── Attachments
- │     ├── History
- │     └── Relations
- ├── Sprints
- ├── Milestones
- ├── Docs
- │     └── Doc Comments
- ├── Labels
- ├── Activity Logs
- └── Notifications
-
-
 
 Folders and Pages Structure
 
@@ -1114,6 +985,110 @@ src/features/branch/
 │   └── branchSelector.js
 │
 └── index.js
+
+src/features/access-control/
+│
+├── hooks/
+│   └── useAccessControl.js
+│
+├── services/
+│   └── accessControlService.js
+│
+├── store/
+│   ├── accessControlSlice.js
+│   ├── accessControlThunk.js
+│   └── accessControlSelector.js
+│
+└── index.js
+
+src/features/access-control/
+│
+├── pages/
+│   ├── AccessControlPage.jsx
+│   ├── RolesPage.jsx
+│   ├── CreateRolePage.jsx
+│   ├── EditRolePage.jsx
+│   ├── RoleDetailsPage.jsx
+│   ├── MemberAccessPage.jsx
+│   ├── AssignAccessPage.jsx
+│   ├── EditAccessPage.jsx
+│   ├── PermissionPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── AccessControlDesktopPage.jsx
+│   │   ├── RolesDesktopPage.jsx
+│   │   ├── CreateRoleDesktopPage.jsx
+│   │   ├── EditRoleDesktopPage.jsx
+│   │   ├── RoleDetailsDesktopPage.jsx
+│   │   ├── MemberAccessDesktopPage.jsx
+│   │   ├── AssignAccessDesktopPage.jsx
+│   │   ├── EditAccessDesktopPage.jsx
+│   │   ├── PermissionDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── AccessControlMobilePage.jsx
+│       ├── RolesMobilePage.jsx
+│       ├── CreateRoleMobilePage.jsx
+│       ├── EditRoleMobilePage.jsx
+│       ├── RoleDetailsMobilePage.jsx
+│       ├── MemberAccessMobilePage.jsx
+│       ├── AssignAccessMobilePage.jsx
+│       ├── EditAccessMobilePage.jsx
+│       ├── PermissionMobilePage.jsx
+│       └── index.js
+│
+├── routes/
+│   └── accessControlRoutes.js
+│
+└── index.js
+
+src/features/workspace/
+│
+├── hooks/
+│   └── useWorkspace.js
+│
+├── services/
+│   └── workspaceService.js
+│
+├── store/
+│   ├── workspaceSlice.js
+│   ├── workspaceThunk.js
+│   └── workspaceSelector.js
+│
+├── pages/
+│   ├── WorkspacePage.jsx
+│   ├── EditWorkspacePage.jsx
+│   ├── WorkspaceDetailsPage.jsx
+│   ├── WorkspaceMembersPage.jsx
+│   ├── WorkspaceInvitationsPage.jsx
+│   ├── InviteWorkspaceMemberPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── WorkspaceDesktopPage.jsx
+│   │   ├── EditWorkspaceDesktopPage.jsx
+│   │   ├── WorkspaceDetailsDesktopPage.jsx
+│   │   ├── WorkspaceMembersDesktopPage.jsx
+│   │   ├── WorkspaceInvitationsDesktopPage.jsx
+│   │   ├── InviteWorkspaceMemberDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── WorkspaceMobilePage.jsx
+│       ├── EditWorkspaceMobilePage.jsx
+│       ├── WorkspaceDetailsMobilePage.jsx
+│       ├── WorkspaceMembersMobilePage.jsx
+│       ├── WorkspaceInvitationsMobilePage.jsx
+│       ├── InviteWorkspaceMemberMobilePage.jsx
+│       └── index.js
+│
+├── routes/
+│   └── workspaceRoutes.js
+│
+└── index.js
+
 
 src/app/routes.jsx
 

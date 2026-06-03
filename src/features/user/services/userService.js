@@ -21,8 +21,16 @@ const userService = {
     return apiClient.delete(ENDPOINTS.USER.DELETE_AVATAR);
   },
 
+  getActiveContext() {
+    return apiClient.get(ENDPOINTS.USER.ACTIVE_CONTEXT);
+  },
+
+  updateActiveContext(payload) {
+    return apiClient.patch(ENDPOINTS.USER.ACTIVE_CONTEXT, payload);
+  },
+
   deactivateAccount() {
-    return apiClient.patch(ENDPOINTS.USER.DEACTIVATE_ACCOUNT);
+    return apiClient.delete(ENDPOINTS.USER.DEACTIVATE_ACCOUNT);
   },
 };
 

@@ -18,6 +18,7 @@ import onboardingRoutes from "@/features/onboarding/routes/onboardingRoutes";
 import dashboardRoutes from "@/features/dashboard/routes/dashboardRoutes";
 import companyRoutes from "@/features/company/routes/companyRoutes";
 import branchRoutes from "@/features/branch/routes/branchRoutes";
+import accessControlRoutes from "@/features/access-control/routes/accessControlRoutes";
 
 import HomePage from "@/pages/HomePage";
 import { LandingPage } from "@/features/landing";
@@ -107,7 +108,12 @@ export const router = createBrowserRouter([
         </WorkspaceRequiredRoute>
       </ProtectedRoute>
     ),
-    children: [...dashboardRoutes, ...companyRoutes, ...branchRoutes],
+    children: [
+      ...dashboardRoutes,
+      ...companyRoutes,
+      ...branchRoutes,
+      ...accessControlRoutes,
+    ],
   },
 
   {

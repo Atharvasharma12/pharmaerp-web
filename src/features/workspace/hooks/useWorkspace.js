@@ -7,9 +7,12 @@ import {
   updateWorkspace,
   deleteWorkspace,
   getWorkspaceMembers,
-  addWorkspaceMember,
   updateWorkspaceMemberStatus,
   removeWorkspaceMember,
+  inviteWorkspaceMember,
+  getWorkspaceInvitations,
+  cancelWorkspaceInvitation,
+  acceptWorkspaceInvitation,
 } from "../store/workspaceThunk";
 
 import {
@@ -18,12 +21,14 @@ import {
   setCurrentWorkspace,
   clearCurrentWorkspace,
   clearWorkspaceMembers,
+  clearWorkspaceInvitations,
 } from "../store/workspaceSlice";
 
 import {
   selectWorkspaces,
   selectCurrentWorkspace,
   selectWorkspaceMembers,
+  selectWorkspaceInvitations,
   selectWorkspaceStatus,
   selectWorkspaceError,
   selectWorkspaceMessage,
@@ -33,9 +38,12 @@ import {
   selectUpdateWorkspaceStatus,
   selectDeleteWorkspaceStatus,
   selectGetWorkspaceMembersStatus,
-  selectAddWorkspaceMemberStatus,
   selectUpdateWorkspaceMemberStatus,
   selectRemoveWorkspaceMemberStatus,
+  selectInviteWorkspaceMemberStatus,
+  selectGetWorkspaceInvitationsStatus,
+  selectCancelWorkspaceInvitationStatus,
+  selectAcceptWorkspaceInvitationStatus,
 } from "../store/workspaceSelector";
 
 const useWorkspace = () => {
@@ -44,6 +52,7 @@ const useWorkspace = () => {
   const workspaces = useSelector(selectWorkspaces);
   const currentWorkspace = useSelector(selectCurrentWorkspace);
   const members = useSelector(selectWorkspaceMembers);
+  const invitations = useSelector(selectWorkspaceInvitations);
 
   const status = useSelector(selectWorkspaceStatus);
   const error = useSelector(selectWorkspaceError);
@@ -54,15 +63,33 @@ const useWorkspace = () => {
   const getWorkspaceStatus = useSelector(selectGetWorkspaceStatus);
   const updateWorkspaceStatus = useSelector(selectUpdateWorkspaceStatus);
   const deleteWorkspaceStatus = useSelector(selectDeleteWorkspaceStatus);
+
   const getWorkspaceMembersStatus = useSelector(
     selectGetWorkspaceMembersStatus,
   );
-  const addWorkspaceMemberStatus = useSelector(selectAddWorkspaceMemberStatus);
+
   const updateWorkspaceMemberStatusValue = useSelector(
     selectUpdateWorkspaceMemberStatus,
   );
+
   const removeWorkspaceMemberStatus = useSelector(
     selectRemoveWorkspaceMemberStatus,
+  );
+
+  const inviteWorkspaceMemberStatus = useSelector(
+    selectInviteWorkspaceMemberStatus,
+  );
+
+  const getWorkspaceInvitationsStatus = useSelector(
+    selectGetWorkspaceInvitationsStatus,
+  );
+
+  const cancelWorkspaceInvitationStatus = useSelector(
+    selectCancelWorkspaceInvitationStatus,
+  );
+
+  const acceptWorkspaceInvitationStatus = useSelector(
+    selectAcceptWorkspaceInvitationStatus,
   );
 
   const submitCreateWorkspace = (payload) => {
@@ -89,10 +116,6 @@ const useWorkspace = () => {
     return dispatch(getWorkspaceMembers(workspaceId)).unwrap();
   };
 
-  const submitAddWorkspaceMember = (workspaceId, payload) => {
-    return dispatch(addWorkspaceMember({ workspaceId, payload })).unwrap();
-  };
-
   const submitUpdateWorkspaceMemberStatus = (
     workspaceId,
     memberUserId,
@@ -116,6 +139,32 @@ const useWorkspace = () => {
     ).unwrap();
   };
 
+  const submitInviteWorkspaceMember = (workspaceId, payload) => {
+    return dispatch(
+      inviteWorkspaceMember({
+        workspaceId,
+        payload,
+      }),
+    ).unwrap();
+  };
+
+  const fetchWorkspaceInvitations = (workspaceId) => {
+    return dispatch(getWorkspaceInvitations(workspaceId)).unwrap();
+  };
+
+  const submitCancelWorkspaceInvitation = (workspaceId, invitationId) => {
+    return dispatch(
+      cancelWorkspaceInvitation({
+        workspaceId,
+        invitationId,
+      }),
+    ).unwrap();
+  };
+
+  const submitAcceptWorkspaceInvitation = (token) => {
+    return dispatch(acceptWorkspaceInvitation(token)).unwrap();
+  };
+
   const clearError = () => {
     dispatch(clearWorkspaceError());
   };
@@ -136,10 +185,15 @@ const useWorkspace = () => {
     dispatch(clearWorkspaceMembers());
   };
 
+  const removeWorkspaceInvitations = () => {
+    dispatch(clearWorkspaceInvitations());
+  };
+
   return {
     workspaces,
     currentWorkspace,
     members,
+    invitations,
 
     status,
     error,
@@ -150,10 +204,15 @@ const useWorkspace = () => {
     getWorkspaceStatus,
     updateWorkspaceStatus,
     deleteWorkspaceStatus,
+
     getWorkspaceMembersStatus,
-    addWorkspaceMemberStatus,
     updateWorkspaceMemberStatus: updateWorkspaceMemberStatusValue,
     removeWorkspaceMemberStatus,
+
+    inviteWorkspaceMemberStatus,
+    getWorkspaceInvitationsStatus,
+    cancelWorkspaceInvitationStatus,
+    acceptWorkspaceInvitationStatus,
 
     createWorkspace: submitCreateWorkspace,
     getMyWorkspaces: fetchMyWorkspaces,
@@ -162,9 +221,13 @@ const useWorkspace = () => {
     deleteWorkspace: submitDeleteWorkspace,
 
     getWorkspaceMembers: fetchWorkspaceMembers,
-    addWorkspaceMember: submitAddWorkspaceMember,
     updateWorkspaceMemberStatus: submitUpdateWorkspaceMemberStatus,
     removeWorkspaceMember: submitRemoveWorkspaceMember,
+
+    inviteWorkspaceMember: submitInviteWorkspaceMember,
+    getWorkspaceInvitations: fetchWorkspaceInvitations,
+    cancelWorkspaceInvitation: submitCancelWorkspaceInvitation,
+    acceptWorkspaceInvitation: submitAcceptWorkspaceInvitation,
 
     clearError,
     clearMessage,
@@ -172,6 +235,7 @@ const useWorkspace = () => {
     setCurrentWorkspace: saveCurrentWorkspace,
     clearCurrentWorkspace: removeCurrentWorkspace,
     clearWorkspaceMembers: removeWorkspaceMembers,
+    clearWorkspaceInvitations: removeWorkspaceInvitations,
   };
 };
 

@@ -29,6 +29,17 @@ export const ROUTES = {
   BRANCH_DETAILS: "/branches/:branchId",
   BRANCH_SETTINGS: "/branches/:branchId/settings",
 
+  // Access Control
+  ACCESS_CONTROL: "/access-control",
+  ROLES: "/access-control/roles",
+  CREATE_ROLE: "/access-control/roles/create",
+  EDIT_ROLE: "/access-control/roles/:roleId/edit",
+  ROLE_DETAILS: "/access-control/roles/:roleId",
+  MEMBER_ACCESS: "/access-control/member-access",
+  ASSIGN_ACCESS: "/access-control/member-access/assign",
+  EDIT_ACCESS: "/access-control/member-access/:memberId/edit",
+  PERMISSIONS: "/access-control/permissions",
+
   // Dashboard
   DASHBOARD: "/dashboard",
 

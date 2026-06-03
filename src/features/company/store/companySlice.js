@@ -1,6 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-import { API_STATUS } from "@/constants";
+import {
+  API_STATUS,
+  COMPANY_STORAGE_KEY,
+  BRANCH_STORAGE_KEY,
+} from "@/constants";
 import { storage } from "@/utils";
 
 import {
@@ -11,8 +15,6 @@ import {
   deleteCompany,
 } from "./companyThunk";
 
-const COMPANY_STORAGE_KEY = "companyId";
-
 const persistCurrentCompany = (company) => {
   if (company?._id) {
     storage.set(COMPANY_STORAGE_KEY, company._id);
@@ -21,6 +23,7 @@ const persistCurrentCompany = (company) => {
 
 const removePersistedCompany = () => {
   storage.remove(COMPANY_STORAGE_KEY);
+  storage.remove(BRANCH_STORAGE_KEY);
 };
 
 const initialState = {
@@ -68,6 +71,8 @@ const companySlice = createSlice({
 
       if (state.currentCompany?._id) {
         persistCurrentCompany(state.currentCompany);
+
+        storage.remove(BRANCH_STORAGE_KEY);
       } else {
         removePersistedCompany();
       }
@@ -98,6 +103,8 @@ const companySlice = createSlice({
         if (action.payload) {
           state.companies.unshift(action.payload);
           persistCurrentCompany(action.payload);
+
+          storage.remove(BRANCH_STORAGE_KEY);
         }
 
         state.message = "Company created successfully";
@@ -116,9 +123,17 @@ const companySlice = createSlice({
         state.getWorkspaceCompaniesStatus = API_STATUS.SUCCESS;
         state.companies = action.payload || [];
 
+        const persistedCompanyId = storage.get(COMPANY_STORAGE_KEY);
+
+        const matchedCompany =
+          state.companies.find(
+            (company) => company?._id === persistedCompanyId,
+          ) || null;
+
         const firstCompany = state.companies[0] || null;
 
-        state.currentCompany = state.currentCompany || firstCompany;
+        state.currentCompany =
+          state.currentCompany || matchedCompany || firstCompany;
 
         if (state.currentCompany?._id) {
           persistCurrentCompany(state.currentCompany);

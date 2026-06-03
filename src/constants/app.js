@@ -17,3 +17,9 @@ export const TOKEN_KEY = "access_token";
 export const REFRESH_TOKEN_KEY = "refresh_token";
 
 export const USER_STORAGE_KEY = "erp_user";
+
+export const WORKSPACE_STORAGE_KEY = "workspaceId";
+
+export const COMPANY_STORAGE_KEY = "companyId";
+
+export const BRANCH_STORAGE_KEY = "branchId";

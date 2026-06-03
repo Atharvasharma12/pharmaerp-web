@@ -8,8 +8,10 @@ import {
   FiBriefcase,
   FiCheck,
   FiChevronDown,
+  FiGitBranch,
   FiHelpCircle,
   FiLogOut,
+  FiMapPin,
   FiMenu,
   FiPlus,
   FiSearch,
@@ -25,6 +27,8 @@ import { ROUTES } from "@/constants";
 import useAuth from "@/features/auth/hooks/useAuth";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useCompany from "@/features/company/hooks/useCompany";
+import useBranch from "@/features/branch/hooks/useBranch";
+import useUser from "@/features/user/hooks/useUser";
 
 const SIDEBAR_WIDTH = 230;
 
@@ -37,18 +41,25 @@ const AppDesktopHeader = ({ sidebarOpen, onMenuClick }) => {
 
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [companyOpen, setCompanyOpen] = useState(false);
+  const [branchOpen, setBranchOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
   const workspaceRef = useRef(null);
   const companyRef = useRef(null);
+  const branchRef = useRef(null);
   const profileRef = useRef(null);
 
   const { user, logout, clearCredentials } = useAuth();
+
+  const { updateActiveContext } = useUser();
 
   const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
 
   const { companies, currentCompany, setCurrentCompany, clearCurrentCompany } =
     useCompany();
+
+  const { branches, currentBranch, setCurrentBranch, clearCurrentBranch } =
+    useBranch();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -60,6 +71,10 @@ const AppDesktopHeader = ({ sidebarOpen, onMenuClick }) => {
 
       if (!companyRef.current?.contains(target)) {
         setCompanyOpen(false);
+      }
+
+      if (!branchRef.current?.contains(target)) {
+        setBranchOpen(false);
       }
 
       if (!profileRef.current?.contains(target)) {
@@ -74,23 +89,66 @@ const AppDesktopHeader = ({ sidebarOpen, onMenuClick }) => {
     };
   }, []);
 
-  const handleWorkspaceSelect = (workspaceItem) => {
+  const handleWorkspaceSelect = async (workspaceItem) => {
     const workspace = getWorkspaceFromItem(workspaceItem);
 
     if (!workspace?._id) return;
 
     setCurrentWorkspace(workspace);
     clearCurrentCompany();
+    clearCurrentBranch();
+
+    try {
+      await updateActiveContext({
+        workspaceId: workspace._id,
+        companyId: null,
+        branchId: null,
+      });
+    } catch (error) {
+      console.error("Failed to update active workspace context:", error);
+    }
 
     setWorkspaceOpen(false);
     setCompanyOpen(false);
+    setBranchOpen(false);
   };
 
-  const handleCompanySelect = (company) => {
-    if (!company?._id) return;
+  const handleCompanySelect = async (company) => {
+    if (!company?._id || !currentWorkspace?._id) return;
 
     setCurrentCompany(company);
+    clearCurrentBranch();
+
+    try {
+      await updateActiveContext({
+        workspaceId: currentWorkspace._id,
+        companyId: company._id,
+        branchId: null,
+      });
+    } catch (error) {
+      console.error("Failed to update active company context:", error);
+    }
+
     setCompanyOpen(false);
+    setBranchOpen(false);
+  };
+
+  const handleBranchSelect = async (branch) => {
+    if (!branch?._id || !currentWorkspace?._id || !currentCompany?._id) return;
+
+    setCurrentBranch(branch);
+
+    try {
+      await updateActiveContext({
+        workspaceId: currentWorkspace._id,
+        companyId: currentCompany._id,
+        branchId: branch._id,
+      });
+    } catch (error) {
+      console.error("Failed to update active branch context:", error);
+    }
+
+    setBranchOpen(false);
   };
 
   const handleLogout = async () => {
@@ -107,6 +165,7 @@ const AppDesktopHeader = ({ sidebarOpen, onMenuClick }) => {
 
   const currentWorkspaceName = currentWorkspace?.name || "Select Workspace";
   const currentCompanyName = currentCompany?.name || "Select Company";
+  const currentBranchName = currentBranch?.name || "Select Branch";
 
   const userName = user?.name || user?.fullName || "Admin";
   const userRole = user?.role || "Owner";
@@ -145,6 +204,7 @@ const AppDesktopHeader = ({ sidebarOpen, onMenuClick }) => {
               onClick={() => {
                 setWorkspaceOpen((prev) => !prev);
                 setCompanyOpen(false);
+                setBranchOpen(false);
                 setProfileOpen(false);
               }}
               className="flex min-w-[190px] items-center justify-between gap-3 rounded-xl bg-primary-soft/70 px-3 py-2 transition hover:bg-primary-soft"
@@ -253,6 +313,7 @@ const AppDesktopHeader = ({ sidebarOpen, onMenuClick }) => {
               onClick={() => {
                 setCompanyOpen((prev) => !prev);
                 setWorkspaceOpen(false);
+                setBranchOpen(false);
                 setProfileOpen(false);
               }}
               className="flex min-w-[180px] items-center justify-between gap-3 rounded-xl border border-divider bg-bg px-3 py-2 transition hover:bg-surface-hover"
@@ -345,6 +406,104 @@ const AppDesktopHeader = ({ sidebarOpen, onMenuClick }) => {
               </div>
             )}
           </div>
+
+          <div ref={branchRef} className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setBranchOpen((prev) => !prev);
+                setWorkspaceOpen(false);
+                setCompanyOpen(false);
+                setProfileOpen(false);
+              }}
+              className="flex min-w-[170px] items-center justify-between gap-3 rounded-xl border border-divider bg-bg px-3 py-2 transition hover:bg-surface-hover"
+            >
+              <span className="flex min-w-0 items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface text-[17px] text-primary shadow-sm">
+                  <FiMapPin />
+                </span>
+
+                <span className="min-w-0 text-left">
+                  <span className="block truncate text-[13px] font-semibold leading-none text-text">
+                    {currentBranchName}
+                  </span>
+
+                  <span className="mt-1 block text-[11px] font-normal leading-none text-text-muted">
+                    Branch
+                  </span>
+                </span>
+              </span>
+
+              <FiChevronDown
+                className={[
+                  "shrink-0 text-[15px] text-text-muted transition-transform duration-200",
+                  branchOpen ? "rotate-180" : "rotate-0",
+                ].join(" ")}
+              />
+            </button>
+
+            {branchOpen && (
+              <div className="absolute left-0 top-[46px] z-50 w-[280px] rounded-xl border border-divider bg-surface p-2 shadow-lg">
+                <div className="max-h-[260px] overflow-y-auto">
+                  {branches?.length ? (
+                    branches.map((branch) => {
+                      const isActive =
+                        branch?._id && branch._id === currentBranch?._id;
+
+                      return (
+                        <button
+                          key={branch?._id}
+                          type="button"
+                          onClick={() => handleBranchSelect(branch)}
+                          className={[
+                            "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition",
+                            isActive
+                              ? "bg-primary-soft text-primary"
+                              : "hover:bg-surface-hover",
+                          ].join(" ")}
+                        >
+                          <span className="flex min-w-0 items-center gap-3">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+                              <FiGitBranch />
+                            </span>
+
+                            <span className="min-w-0">
+                              <span className="block truncate text-[13px] font-semibold text-text">
+                                {branch?.name || "Untitled Branch"}
+                              </span>
+
+                              <span className="mt-0.5 block truncate text-[11px] text-text-muted">
+                                {isActive
+                                  ? "Current branch"
+                                  : branch?.type || branch?.city || "Branch"}
+                              </span>
+                            </span>
+                          </span>
+
+                          {isActive && <FiCheck className="shrink-0" />}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="px-3 py-3 text-[12px] text-text-muted">
+                      No branches found
+                    </div>
+                  )}
+                </div>
+
+                <div className="my-2 h-px bg-divider" />
+
+                <Link
+                  to={ROUTES.CREATE_BRANCH}
+                  onClick={() => setBranchOpen(false)}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-primary transition hover:bg-primary-soft"
+                >
+                  <FiPlus className="text-[16px]" />
+                  Create Branch
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mx-6 flex flex-1 justify-center">
@@ -395,6 +554,7 @@ const AppDesktopHeader = ({ sidebarOpen, onMenuClick }) => {
                 setProfileOpen((prev) => !prev);
                 setWorkspaceOpen(false);
                 setCompanyOpen(false);
+                setBranchOpen(false);
               }}
               className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-surface-hover"
             >

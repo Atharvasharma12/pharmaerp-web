@@ -15,14 +15,16 @@ export const ENDPOINTS = {
   },
 
   USER: {
-    PROFILE: "/core/users/profile",
+    PROFILE: "/core/users/me",
 
-    UPDATE_PROFILE: "/core/users/profile",
+    UPDATE_PROFILE: "/core/users/me",
 
-    UPDATE_AVATAR: "/core/users/avatar",
-    DELETE_AVATAR: "/core/users/avatar",
+    UPDATE_AVATAR: "/core/users/me/avatar",
+    DELETE_AVATAR: "/core/users/me/avatar",
 
-    DEACTIVATE_ACCOUNT: "/core/users/deactivate",
+    ACTIVE_CONTEXT: "/core/users/me/active-context",
+
+    DEACTIVATE_ACCOUNT: "/core/users/me",
   },
 
   WORKSPACE: {
@@ -32,6 +34,7 @@ export const ENDPOINTS = {
 
     BY_ID: (workspaceId) => `/organization/workspaces/${workspaceId}`,
 
+    // Members
     MEMBERS: (workspaceId) => `/organization/workspaces/${workspaceId}/members`,
 
     MEMBER_STATUS: (workspaceId, memberUserId) =>
@@ -39,6 +42,16 @@ export const ENDPOINTS = {
 
     MEMBER_BY_USER_ID: (workspaceId, memberUserId) =>
       `/organization/workspaces/${workspaceId}/members/${memberUserId}`,
+
+    // Invitations
+    INVITATIONS: (workspaceId) =>
+      `/organization/workspaces/${workspaceId}/invitations`,
+
+    CANCEL_INVITATION: (workspaceId, invitationId) =>
+      `/organization/workspaces/${workspaceId}/invitations/${invitationId}/cancel`,
+
+    ACCEPT_INVITATION: (token) =>
+      `/organization/workspaces/invitations/${token}/accept`,
   },
 
   COMPANY: {
@@ -55,6 +68,30 @@ export const ENDPOINTS = {
     LIST: "/organization/branches",
 
     BY_ID: (branchId) => `/organization/branches/${branchId}`,
+  },
+
+  ACCESS_CONTROL: {
+    // Permissions
+    PERMISSIONS: "/core/access-control/permissions",
+
+    // Roles
+    ROLES: "/core/access-control/roles",
+
+    ROLE_BY_ID: (roleId) => `/core/access-control/roles/${roleId}`,
+
+    ASSIGN_ROLE_TO_MEMBER: "/core/access-control/roles/assign-member",
+
+    // Member Access
+    MEMBER_ACCESS: "/core/access-control/member-access",
+
+    MEMBER_ACCESS_BY_USER_ID: (memberUserId) =>
+      `/core/access-control/member-access/${memberUserId}`,
+
+    // Access Checks
+    CHECK_COMPANY: (companyId) =>
+      `/core/access-control/check/company/${companyId}`,
+
+    CHECK_BRANCH: (branchId) => `/core/access-control/check/branch/${branchId}`,
   },
 
   PLAN: {

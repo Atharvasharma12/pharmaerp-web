@@ -12,6 +12,8 @@ import companyReducer from "@/features/company/store/companySlice";
 
 import branchReducer from "@/features/branch/store/branchSlice";
 
+import accessControlReducer from "@/features/access-control/store/accessControlSlice";
+
 import planReducer from "@/features/subscription/plans/store/planSlice";
 
 import subscriptionReducer from "@/features/subscription/subscriptions/store/subscriptionSlice";
@@ -26,6 +28,8 @@ const rootReducer = combineReducers({
   company: companyReducer,
 
   branch: branchReducer,
+
+  accessControl: accessControlReducer,
 
   plan: planReducer,
 

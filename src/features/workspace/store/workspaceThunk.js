@@ -9,6 +9,7 @@ export const createWorkspace = createAsyncThunk(
   async (payload, { rejectWithValue }) => {
     try {
       const response = await workspaceService.createWorkspace(payload);
+
       return response.data?.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -21,6 +22,7 @@ export const getMyWorkspaces = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await workspaceService.getMyWorkspaces();
+
       return response.data?.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -33,6 +35,7 @@ export const getWorkspaceById = createAsyncThunk(
   async (workspaceId, { rejectWithValue }) => {
     try {
       const response = await workspaceService.getWorkspaceById(workspaceId);
+
       return response.data?.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -61,6 +64,7 @@ export const deleteWorkspace = createAsyncThunk(
   async (workspaceId, { rejectWithValue }) => {
     try {
       const response = await workspaceService.deleteWorkspace(workspaceId);
+
       return response.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -73,21 +77,6 @@ export const getWorkspaceMembers = createAsyncThunk(
   async (workspaceId, { rejectWithValue }) => {
     try {
       const response = await workspaceService.getWorkspaceMembers(workspaceId);
-      return response.data?.data;
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error));
-    }
-  },
-);
-
-export const addWorkspaceMember = createAsyncThunk(
-  "workspace/addWorkspaceMember",
-  async ({ workspaceId, payload }, { rejectWithValue }) => {
-    try {
-      const response = await workspaceService.addWorkspaceMember(
-        workspaceId,
-        payload,
-      );
 
       return response.data?.data;
     } catch (error) {
@@ -121,6 +110,65 @@ export const removeWorkspaceMember = createAsyncThunk(
         workspaceId,
         memberUserId,
       );
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const inviteWorkspaceMember = createAsyncThunk(
+  "workspace/inviteWorkspaceMember",
+  async ({ workspaceId, payload }, { rejectWithValue }) => {
+    try {
+      const response = await workspaceService.inviteWorkspaceMember(
+        workspaceId,
+        payload,
+      );
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const getWorkspaceInvitations = createAsyncThunk(
+  "workspace/getWorkspaceInvitations",
+  async (workspaceId, { rejectWithValue }) => {
+    try {
+      const response =
+        await workspaceService.getWorkspaceInvitations(workspaceId);
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const cancelWorkspaceInvitation = createAsyncThunk(
+  "workspace/cancelWorkspaceInvitation",
+  async ({ workspaceId, invitationId }, { rejectWithValue }) => {
+    try {
+      const response = await workspaceService.cancelWorkspaceInvitation(
+        workspaceId,
+        invitationId,
+      );
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const acceptWorkspaceInvitation = createAsyncThunk(
+  "workspace/acceptWorkspaceInvitation",
+  async (token, { rejectWithValue }) => {
+    try {
+      const response = await workspaceService.acceptWorkspaceInvitation(token);
 
       return response.data?.data;
     } catch (error) {

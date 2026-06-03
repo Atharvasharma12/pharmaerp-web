@@ -25,10 +25,6 @@ const workspaceService = {
     return apiClient.get(ENDPOINTS.WORKSPACE.MEMBERS(workspaceId));
   },
 
-  addWorkspaceMember(workspaceId, payload) {
-    return apiClient.post(ENDPOINTS.WORKSPACE.MEMBERS(workspaceId), payload);
-  },
-
   updateWorkspaceMemberStatus(workspaceId, memberUserId, payload) {
     return apiClient.patch(
       ENDPOINTS.WORKSPACE.MEMBER_STATUS(workspaceId, memberUserId),
@@ -40,6 +36,27 @@ const workspaceService = {
     return apiClient.delete(
       ENDPOINTS.WORKSPACE.MEMBER_BY_USER_ID(workspaceId, memberUserId),
     );
+  },
+
+  inviteWorkspaceMember(workspaceId, payload) {
+    return apiClient.post(
+      ENDPOINTS.WORKSPACE.INVITATIONS(workspaceId),
+      payload,
+    );
+  },
+
+  getWorkspaceInvitations(workspaceId) {
+    return apiClient.get(ENDPOINTS.WORKSPACE.INVITATIONS(workspaceId));
+  },
+
+  cancelWorkspaceInvitation(workspaceId, invitationId) {
+    return apiClient.patch(
+      ENDPOINTS.WORKSPACE.CANCEL_INVITATION(workspaceId, invitationId),
+    );
+  },
+
+  acceptWorkspaceInvitation(token) {
+    return apiClient.post(ENDPOINTS.WORKSPACE.ACCEPT_INVITATION(token));
   },
 };
 

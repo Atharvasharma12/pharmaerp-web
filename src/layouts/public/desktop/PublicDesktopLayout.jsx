@@ -13,7 +13,7 @@ const PublicDesktopLayout = () => {
         <Outlet />
       </main>
 
-  <PublicDesktopFooter />
+      <PublicDesktopFooter />
     </div>
   );
 };
