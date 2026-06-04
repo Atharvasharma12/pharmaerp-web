@@ -24,6 +24,7 @@ import {
 const CreateWorkspaceDesktopPage = ({
   formData,
   formErrors = {},
+  workspaceTypes = [],
   isLoading = false,
   handleChange,
   handleSubmit,
@@ -40,8 +41,8 @@ const CreateWorkspaceDesktopPage = ({
                 <FiBriefcase className="text-[42px] text-primary" />
               </div>
 
-              <div className="mx-auto mt-2 w-24 rounded bg-primary px-3 py-1 text-[11px] font-bold text-primary-contrast">
-                PHARMACY
+              <div className="mx-auto mt-2 rounded bg-primary px-3 py-1 text-[11px] font-bold uppercase text-primary-contrast">
+                {formData.type || "workspace"}
               </div>
             </div>
           </div>
@@ -90,7 +91,7 @@ const CreateWorkspaceDesktopPage = ({
                   </AppHeading>
 
                   <AppText variant="body2" sx={subtitleSx}>
-                    Set up your pharmacy business workspace.
+                    Set up your business workspace.
                   </AppText>
                 </AppBox>
               </AppStack>
@@ -117,6 +118,32 @@ const CreateWorkspaceDesktopPage = ({
                   inputSx={inputSx}
                 />
 
+                <AppInput
+                  label="Workspace Type"
+                  name="type"
+                  value={formData.type || ""}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  fullWidth
+                  required
+                  select
+                  size="medium"
+                  variant="bordered"
+                  rounded="md"
+                  error={Boolean(formErrors.type)}
+                  helperText={
+                    formErrors.type || "Select the type of business workspace."
+                  }
+                  labelSx={labelSx}
+                  inputSx={inputSx}
+                >
+                  {workspaceTypes.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </AppInput>
+
                 <AppCard
                   variant="soft"
                   rounded="lg"
@@ -140,27 +167,6 @@ const CreateWorkspaceDesktopPage = ({
                     </AppBox>
                   </AppStack>
                 </AppCard>
-
-                <AppInput
-                  label="Workspace Slug"
-                  name="workspaceSlug"
-                  value={formData.workspaceSlug || ""}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  placeholder="your-workspace-slug"
-                  fullWidth
-                  size="medium"
-                  variant="bordered"
-                  rounded="md"
-                  prefix="pharmaerp.com/ws/"
-                  error={Boolean(formErrors.workspaceSlug)}
-                  helperText={
-                    formErrors.workspaceSlug ||
-                    "Optional. Only letters, numbers and hyphens allowed."
-                  }
-                  labelSx={labelSx}
-                  inputSx={inputSx}
-                />
 
                 {formErrors.submit ? (
                   <AppText variant="body2" sx={submitErrorSx}>

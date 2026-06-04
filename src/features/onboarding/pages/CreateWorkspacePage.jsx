@@ -10,6 +10,14 @@ import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import CreateWorkspaceDesktopPage from "./desktop/CreateWorkspaceDesktopPage";
 import CreateWorkspaceMobilePage from "./mobile/CreateWorkspaceMobilePage";
 
+const WORKSPACE_TYPE = {
+  PHARMACY: "pharmacy",
+  CLINIC: "clinic",
+  HOSPITAL: "hospital",
+  DISTRIBUTOR: "distributor",
+  OTHER: "other",
+};
+
 const CreateWorkspacePage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -32,9 +40,7 @@ const CreateWorkspacePage = () => {
 
   const [formData, setFormData] = useState({
     workspaceName: "",
-    workspaceSlug: "",
-    pharmacyName: "",
-    ownerName: "",
+    type: WORKSPACE_TYPE.PHARMACY,
     phone: "",
     email: "",
     state: "",
@@ -54,6 +60,17 @@ const CreateWorkspacePage = () => {
 
   const shouldHideCreatePage =
     isCheckingWorkspaces || (hasFetchedWorkspaces && hasWorkspace);
+
+  const workspaceTypes = useMemo(
+    () => [
+      { label: "Pharmacy", value: WORKSPACE_TYPE.PHARMACY },
+      { label: "Clinic", value: WORKSPACE_TYPE.CLINIC },
+      { label: "Hospital", value: WORKSPACE_TYPE.HOSPITAL },
+      { label: "Distributor", value: WORKSPACE_TYPE.DISTRIBUTOR },
+      { label: "Other", value: WORKSPACE_TYPE.OTHER },
+    ],
+    [],
+  );
 
   const states = useMemo(
     () => [
@@ -118,11 +135,8 @@ const CreateWorkspacePage = () => {
       errors.workspaceName = "Workspace name is required";
     }
 
-    if (
-      formData.workspaceSlug &&
-      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(formData.workspaceSlug)
-    ) {
-      errors.workspaceSlug = "Use lowercase letters, numbers and hyphens only";
+    if (!Object.values(WORKSPACE_TYPE).includes(formData.type)) {
+      errors.type = "Select a valid workspace type";
     }
 
     if (formData.phone.trim() && !/^[6-9]\d{9}$/.test(formData.phone.trim())) {
@@ -151,24 +165,16 @@ const CreateWorkspacePage = () => {
       }));
     }
 
-    const nextValue =
-      name === "workspaceSlug"
-        ? value
-            .toLowerCase()
-            .replace(/[^a-z0-9-]/g, "")
-            .replace(/-{2,}/g, "-")
-        : value;
-
     setFormData((prev) => ({
       ...prev,
-      [name]: nextValue,
+      [name]: value,
     }));
   };
 
   const buildPayload = () => {
     const payload = {
       name: formData.workspaceName.trim(),
-      type: "pharmacy",
+      type: formData.type,
     };
 
     const email = formData.email.trim().toLowerCase();
@@ -238,6 +244,7 @@ const CreateWorkspacePage = () => {
   const pageProps = {
     formData,
     formErrors,
+    workspaceTypes,
     states,
     cities,
     isLoading: isCreatingWorkspace,

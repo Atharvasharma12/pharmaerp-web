@@ -17,9 +17,6 @@ const INITIAL_FORM_DATA = {
   status: "active",
   isPrimary: "false",
 
-  gstNumber: "",
-  drugLicenseNumber: "",
-
   branchEmail: "",
   phoneCountryCode: "+91",
   branchPhone: "",
@@ -27,24 +24,34 @@ const INITIAL_FORM_DATA = {
   addressLine1: "",
   addressLine2: "",
   city: "",
+  district: "",
   state: "",
   country: "India",
   pincode: "",
+  googleMapLocation: "",
 
-  contactPersonName: "",
-  contactPersonPhone: "",
-  contactPersonEmail: "",
-  contactPersonDesignation: "",
+  drugLicenseNumber: "",
+  drugLicenseType: "",
+  fssaiNumber: "",
+  licenseExpiresAt: "",
 
-  billingType: "gst",
+  pharmacistName: "",
+  pharmacistRegistrationNumber: "",
+  pharmacistMobile: "",
+  pharmacistEmail: "",
+
+  emergencyContactName: "",
+  emergencyContactMobile: "",
+  emergencyContactRelationship: "",
+
   invoicePrefix: "INV",
-  invoiceStartNumber: "1",
-  billPrefix: "BILL",
-  billStartNumber: "1",
   purchasePrefix: "PUR",
-  purchaseStartNumber: "1",
   salesReturnPrefix: "SR",
   purchaseReturnPrefix: "PR",
+  creditNotePrefix: "CN",
+  debitNotePrefix: "DBN",
+  startingInvoiceNumber: "1",
+  startingPurchaseNumber: "1",
 
   inventoryMode: "independent",
   priceMode: "company_default",
@@ -53,16 +60,23 @@ const INITIAL_FORM_DATA = {
   enableBatchTracking: "true",
   enableExpiryTracking: "true",
   enableRackTracking: "true",
+  enableStockTracking: "true",
+
+  openingTime: "",
+  closingTime: "",
+  weeklyOff: "",
+  workingDays: "",
+
+  homeDelivery: "false",
+  whatsappOrders: "false",
+  onlineOrders: "false",
+  coldStorageAvailable: "false",
+  twentyFourSevenService: "false",
 
   timezone: "Asia/Kolkata",
   currency: "INR",
   dateFormat: "DD/MM/YYYY",
   timeFormat: "12h",
-  enablePurchaseModule: "true",
-  enableSalesModule: "true",
-  enableInventoryModule: "true",
-  enablePosBilling: "true",
-  defaultGstRate: "0",
 };
 
 const branchTypeOptions = [
@@ -79,11 +93,6 @@ const statusOptions = [
   { label: "Active", value: "active" },
   { label: "Inactive", value: "inactive" },
   { label: "Suspended", value: "suspended" },
-];
-
-const billingTypeOptions = [
-  { label: "GST", value: "gst" },
-  { label: "Non GST", value: "non_gst" },
 ];
 
 const inventoryModeOptions = [
@@ -111,9 +120,9 @@ const booleanOptions = [
   { label: "No", value: "false" },
 ];
 
-const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
-
 const PHONE_REGEX = /^[6-9][0-9]{9}$/;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const normalizeText = (value) => String(value || "").trim();
 
@@ -140,47 +149,101 @@ const hasAddress = (formData) => {
     normalizeText(formData.addressLine1) ||
     normalizeText(formData.addressLine2) ||
     normalizeText(formData.city) ||
+    normalizeText(formData.district) ||
     normalizeText(formData.state) ||
     normalizeText(formData.country) ||
-    normalizeText(formData.pincode),
+    normalizeText(formData.pincode) ||
+    normalizeText(formData.googleMapLocation),
   );
 };
 
 const buildAddressPayload = (formData) => {
   if (!hasAddress(formData)) {
-    return null;
+    return undefined;
   }
 
   return {
     addressLine1: normalizeText(formData.addressLine1) || null,
     addressLine2: normalizeText(formData.addressLine2) || null,
     city: normalizeText(formData.city) || null,
+    district: normalizeText(formData.district) || null,
     state: normalizeText(formData.state) || null,
     country: normalizeText(formData.country) || "India",
     pincode: normalizeText(formData.pincode) || null,
+    googleMapLocation: normalizeText(formData.googleMapLocation) || null,
   };
 };
 
-const hasContactPerson = (formData) => {
+const hasLicense = (formData) => {
   return Boolean(
-    normalizeText(formData.contactPersonName) ||
-    normalizeText(formData.contactPersonPhone) ||
-    normalizeText(formData.contactPersonEmail) ||
-    normalizeText(formData.contactPersonDesignation),
+    normalizeText(formData.drugLicenseNumber) ||
+    normalizeText(formData.drugLicenseType) ||
+    normalizeText(formData.fssaiNumber) ||
+    normalizeText(formData.licenseExpiresAt),
   );
 };
 
-const buildContactPersonPayload = (formData) => {
-  if (!hasContactPerson(formData)) {
-    return null;
+const buildLicensePayload = (formData) => {
+  if (!hasLicense(formData)) {
+    return undefined;
   }
 
   return {
-    name: normalizeText(formData.contactPersonName) || null,
-    phone: normalizePhone(formData.contactPersonPhone) || null,
-    email: normalizeLowerText(formData.contactPersonEmail) || null,
-    designation: normalizeText(formData.contactPersonDesignation) || null,
+    drugLicenseNumber: normalizeUpperText(formData.drugLicenseNumber) || null,
+    drugLicenseType: normalizeText(formData.drugLicenseType) || null,
+    fssaiNumber: normalizeText(formData.fssaiNumber) || null,
+    expiresAt: normalizeText(formData.licenseExpiresAt) || null,
   };
+};
+
+const hasPharmacist = (formData) => {
+  return Boolean(
+    normalizeText(formData.pharmacistName) ||
+    normalizeText(formData.pharmacistRegistrationNumber) ||
+    normalizeText(formData.pharmacistMobile) ||
+    normalizeText(formData.pharmacistEmail),
+  );
+};
+
+const buildPharmacistPayload = (formData) => {
+  if (!hasPharmacist(formData)) {
+    return undefined;
+  }
+
+  return {
+    name: normalizeText(formData.pharmacistName) || null,
+    registrationNumber:
+      normalizeUpperText(formData.pharmacistRegistrationNumber) || null,
+    mobile: normalizePhone(formData.pharmacistMobile) || null,
+    email: normalizeLowerText(formData.pharmacistEmail) || null,
+  };
+};
+
+const hasEmergencyContact = (formData) => {
+  return Boolean(
+    normalizeText(formData.emergencyContactName) ||
+    normalizeText(formData.emergencyContactMobile) ||
+    normalizeText(formData.emergencyContactRelationship),
+  );
+};
+
+const buildEmergencyContactPayload = (formData) => {
+  if (!hasEmergencyContact(formData)) {
+    return undefined;
+  }
+
+  return {
+    name: normalizeText(formData.emergencyContactName) || null,
+    mobile: normalizePhone(formData.emergencyContactMobile) || null,
+    relationship: normalizeText(formData.emergencyContactRelationship) || null,
+  };
+};
+
+const buildWorkingDays = (value) => {
+  return normalizeText(value)
+    .split(",")
+    .map((day) => normalizeText(day))
+    .filter(Boolean);
 };
 
 const buildBranchPayload = (formData) => {
@@ -195,22 +258,20 @@ const buildBranchPayload = (formData) => {
 
     address: buildAddressPayload(formData),
 
-    contactPerson: buildContactPersonPayload(formData),
-
-    gstin: normalizeUpperText(formData.gstNumber) || null,
-    drugLicenseNumber: normalizeUpperText(formData.drugLicenseNumber) || null,
+    license: buildLicensePayload(formData),
+    pharmacist: buildPharmacistPayload(formData),
+    emergencyContact: buildEmergencyContactPayload(formData),
 
     billingSettings: {
-      billingType: formData.billingType || "gst",
       invoicePrefix: normalizeUpperText(formData.invoicePrefix) || "INV",
-      invoiceStartNumber: toNumber(formData.invoiceStartNumber, 1),
-      billPrefix: normalizeUpperText(formData.billPrefix) || "BILL",
-      billStartNumber: toNumber(formData.billStartNumber, 1),
       purchasePrefix: normalizeUpperText(formData.purchasePrefix) || "PUR",
-      purchaseStartNumber: toNumber(formData.purchaseStartNumber, 1),
       salesReturnPrefix: normalizeUpperText(formData.salesReturnPrefix) || "SR",
       purchaseReturnPrefix:
         normalizeUpperText(formData.purchaseReturnPrefix) || "PR",
+      creditNotePrefix: normalizeUpperText(formData.creditNotePrefix) || "CN",
+      debitNotePrefix: normalizeUpperText(formData.debitNotePrefix) || "DBN",
+      startingInvoiceNumber: toNumber(formData.startingInvoiceNumber, 1),
+      startingPurchaseNumber: toNumber(formData.startingPurchaseNumber, 1),
     },
 
     inventorySettings: {
@@ -221,6 +282,22 @@ const buildBranchPayload = (formData) => {
       enableBatchTracking: toBoolean(formData.enableBatchTracking),
       enableExpiryTracking: toBoolean(formData.enableExpiryTracking),
       enableRackTracking: toBoolean(formData.enableRackTracking),
+      enableStockTracking: toBoolean(formData.enableStockTracking),
+    },
+
+    workingHours: {
+      openingTime: normalizeText(formData.openingTime) || null,
+      closingTime: normalizeText(formData.closingTime) || null,
+      weeklyOff: normalizeText(formData.weeklyOff) || null,
+      workingDays: buildWorkingDays(formData.workingDays),
+    },
+
+    facilities: {
+      homeDelivery: toBoolean(formData.homeDelivery),
+      whatsappOrders: toBoolean(formData.whatsappOrders),
+      onlineOrders: toBoolean(formData.onlineOrders),
+      coldStorageAvailable: toBoolean(formData.coldStorageAvailable),
+      twentyFourSevenService: toBoolean(formData.twentyFourSevenService),
     },
 
     settings: {
@@ -228,11 +305,6 @@ const buildBranchPayload = (formData) => {
       currency: normalizeUpperText(formData.currency) || "INR",
       dateFormat: normalizeText(formData.dateFormat) || "DD/MM/YYYY",
       timeFormat: formData.timeFormat || "12h",
-      enablePurchaseModule: toBoolean(formData.enablePurchaseModule),
-      enableSalesModule: toBoolean(formData.enableSalesModule),
-      enableInventoryModule: toBoolean(formData.enableInventoryModule),
-      enablePosBilling: toBoolean(formData.enablePosBilling),
-      defaultGstRate: toNumber(formData.defaultGstRate, 0),
     },
 
     isPrimary: toBoolean(formData.isPrimary),
@@ -259,15 +331,18 @@ const CreateBranchPage = () => {
     const errors = {};
 
     const branchName = normalizeText(formData.branchName);
-    const gstNumber = normalizeUpperText(formData.gstNumber);
     const branchEmail = normalizeLowerText(formData.branchEmail);
     const branchPhone = normalizePhone(formData.branchPhone);
-    const contactPersonPhone = normalizePhone(formData.contactPersonPhone);
-    const contactPersonEmail = normalizeLowerText(formData.contactPersonEmail);
-    const defaultGstRate = toNumber(formData.defaultGstRate, 0);
-    const invoiceStartNumber = toNumber(formData.invoiceStartNumber, 1);
-    const billStartNumber = toNumber(formData.billStartNumber, 1);
-    const purchaseStartNumber = toNumber(formData.purchaseStartNumber, 1);
+
+    const pharmacistMobile = normalizePhone(formData.pharmacistMobile);
+    const pharmacistEmail = normalizeLowerText(formData.pharmacistEmail);
+
+    const emergencyContactMobile = normalizePhone(
+      formData.emergencyContactMobile,
+    );
+
+    const startingInvoiceNumber = toNumber(formData.startingInvoiceNumber, 1);
+    const startingPurchaseNumber = toNumber(formData.startingPurchaseNumber, 1);
 
     if (!branchName) {
       errors.branchName = "Branch name is required";
@@ -277,11 +352,7 @@ const CreateBranchPage = () => {
       errors.branchName = "Branch name cannot exceed 160 characters";
     }
 
-    if (gstNumber && !GSTIN_REGEX.test(gstNumber)) {
-      errors.gstNumber = "Invalid GSTIN";
-    }
-
-    if (branchEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(branchEmail)) {
+    if (branchEmail && !EMAIL_REGEX.test(branchEmail)) {
       errors.branchEmail = "Enter a valid email address";
     }
 
@@ -289,31 +360,26 @@ const CreateBranchPage = () => {
       errors.branchPhone = "Invalid phone number";
     }
 
-    if (contactPersonPhone && !PHONE_REGEX.test(contactPersonPhone)) {
-      errors.contactPersonPhone = "Invalid contact person phone number";
+    if (pharmacistMobile && !PHONE_REGEX.test(pharmacistMobile)) {
+      errors.pharmacistMobile = "Invalid pharmacist mobile number";
     }
 
-    if (
-      contactPersonEmail &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactPersonEmail)
-    ) {
-      errors.contactPersonEmail = "Enter a valid contact person email";
+    if (pharmacistEmail && !EMAIL_REGEX.test(pharmacistEmail)) {
+      errors.pharmacistEmail = "Enter a valid pharmacist email";
     }
 
-    if (defaultGstRate < 0 || defaultGstRate > 100) {
-      errors.defaultGstRate = "GST rate must be between 0 and 100";
+    if (emergencyContactMobile && !PHONE_REGEX.test(emergencyContactMobile)) {
+      errors.emergencyContactMobile = "Invalid emergency contact mobile number";
     }
 
-    if (invoiceStartNumber < 1) {
-      errors.invoiceStartNumber = "Invoice start number must be at least 1";
+    if (startingInvoiceNumber < 1) {
+      errors.startingInvoiceNumber =
+        "Starting invoice number must be at least 1";
     }
 
-    if (billStartNumber < 1) {
-      errors.billStartNumber = "Bill start number must be at least 1";
-    }
-
-    if (purchaseStartNumber < 1) {
-      errors.purchaseStartNumber = "Purchase start number must be at least 1";
+    if (startingPurchaseNumber < 1) {
+      errors.startingPurchaseNumber =
+        "Starting purchase number must be at least 1";
     }
 
     return errors;
@@ -374,7 +440,6 @@ const CreateBranchPage = () => {
 
       branchTypeOptions,
       statusOptions,
-      billingTypeOptions,
       inventoryModeOptions,
       priceModeOptions,
       currencyOptions,

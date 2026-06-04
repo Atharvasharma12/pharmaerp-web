@@ -86,9 +86,12 @@ export const deleteRole = createAsyncThunk(
 
 export const assignRoleToMember = createAsyncThunk(
   "accessControl/assignRoleToMember",
-  async (payload, { rejectWithValue }) => {
+  async ({ memberUserId, payload }, { rejectWithValue }) => {
     try {
-      const response = await accessControlService.assignRoleToMember(payload);
+      const response = await accessControlService.assignRoleToMember(
+        memberUserId,
+        payload,
+      );
 
       return response.data?.data;
     } catch (error) {

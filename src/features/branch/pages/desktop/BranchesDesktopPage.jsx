@@ -4,6 +4,7 @@ import {
   FiGitBranch,
   FiEdit2,
   FiEye,
+  FiFileText,
   FiMail,
   FiMapPin,
   FiPhone,
@@ -12,6 +13,7 @@ import {
   FiSearch,
   FiSettings,
   FiTrash2,
+  FiUser,
   FiX,
 } from "react-icons/fi";
 
@@ -90,15 +92,22 @@ const BranchesDesktopPage = ({
       id: "contact",
       key: "contact",
       label: "Contact",
-      minWidth: 220,
+      minWidth: 240,
       render: (_, branch) => <ContactCell branch={branch} />,
     },
     {
       id: "license",
       key: "license",
-      label: "License / GST",
-      minWidth: 210,
+      label: "License",
+      minWidth: 220,
       render: (_, branch) => <LicenseCell branch={branch} />,
+    },
+    {
+      id: "pharmacist",
+      key: "pharmacist",
+      label: "Pharmacist",
+      minWidth: 220,
+      render: (_, branch) => <PharmacistCell branch={branch} />,
     },
     {
       id: "type",
@@ -270,7 +279,7 @@ const BranchesDesktopPage = ({
               sx={stateSx}
             />
           ) : showInitialSkeleton ? (
-            <AppTableSkeleton rows={6} columns={8} showHeader={false} />
+            <AppTableSkeleton rows={6} columns={9} showHeader={false} />
           ) : !hasBranches ? (
             <AppEmptyState
               title="No branches yet"
@@ -318,7 +327,7 @@ const BranchesDesktopPage = ({
               rounded={false}
               hover
               stickyHeader
-              minWidth={1280}
+              minWidth={1450}
               maxHeight="calc(100vh - 315px)"
               sx={tableSx}
               headSx={tableHeadSx}
@@ -469,7 +478,7 @@ const TableHeader = ({
           name="search"
           value={filters.search}
           onChange={handleSearchChange}
-          placeholder="Search branch, GSTIN, license..."
+          placeholder="Search branch, license, pharmacist..."
           clearable
           onClear={() => handleSearchChange("")}
           size="small"
@@ -580,19 +589,8 @@ const ContactCell = ({ branch = {} }) => (
   </AppStack>
 );
 
-const LicenseCell = ({ branch }) => (
+const LicenseCell = ({ branch = {} }) => (
   <AppStack direction="column" gap={0.5}>
-    <AppKeyValue
-      label="GSTIN"
-      value={branch.displayGstin}
-      direction="row"
-      align="space-between"
-      size="small"
-      sx={keyValueSx}
-      labelSx={keyLabelSx}
-      valueSx={keyValueTextSx}
-    />
-
     <AppKeyValue
       label="Drug Lic."
       value={branch.displayDrugLicenseNumber}
@@ -605,8 +603,8 @@ const LicenseCell = ({ branch }) => (
     />
 
     <AppKeyValue
-      label="Billing"
-      value={branch.displayBillingType}
+      label="Type"
+      value={branch.displayDrugLicenseType}
       direction="row"
       align="space-between"
       size="small"
@@ -614,6 +612,25 @@ const LicenseCell = ({ branch }) => (
       labelSx={keyLabelSx}
       valueSx={keyValueTextSx}
     />
+
+    <AppKeyValue
+      label="FSSAI"
+      value={branch.displayFssaiNumber}
+      direction="row"
+      align="space-between"
+      size="small"
+      sx={keyValueSx}
+      labelSx={keyLabelSx}
+      valueSx={keyValueTextSx}
+    />
+  </AppStack>
+);
+
+const PharmacistCell = ({ branch = {} }) => (
+  <AppStack direction="column" gap={0.5}>
+    <MiniInfo icon={<FiUser />} value={branch.displayPharmacistName} />
+    <MiniInfo icon={<FiPhone />} value={branch.displayPharmacistMobile} />
+    <MiniInfo icon={<FiMail />} value={branch.displayPharmacistEmail} />
   </AppStack>
 );
 
@@ -833,7 +850,7 @@ const keyValueSx = {
 };
 
 const keyLabelSx = {
-  minWidth: 55,
+  minWidth: 62,
   fontSize: "10.7px",
   fontWeight: 600,
   color: "var(--app-color-text-muted)",

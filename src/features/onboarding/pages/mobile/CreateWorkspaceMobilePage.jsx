@@ -24,6 +24,7 @@ import {
 const CreateWorkspaceMobilePage = ({
   formData,
   formErrors = {},
+  workspaceTypes = [],
   isLoading = false,
   handleChange,
   handleSubmit,
@@ -63,33 +64,31 @@ const CreateWorkspaceMobilePage = ({
             />
 
             <AppInput
-              label={
-                <>
-                  Workspace Slug{" "}
-                  <span className="font-medium text-text-muted">
-                    (Optional)
-                  </span>
-                </>
-              }
-              name="workspaceSlug"
-              value={formData.workspaceSlug || ""}
+              label="Workspace Type"
+              name="type"
+              value={formData.type || ""}
               onChange={handleChange}
               disabled={isLoading}
-              placeholder="your-workspace-slug"
               fullWidth
+              required
+              select
               size="small"
               variant="bordered"
               rounded="md"
-              prefix="pharmaerp.com/ws/"
-              error={Boolean(formErrors.workspaceSlug)}
+              error={Boolean(formErrors.type)}
               helperText={
-                formErrors.workspaceSlug ||
-                "This is only for display now. Backend will generate slug from workspace name."
+                formErrors.type || "Select the type of business workspace."
               }
               labelSx={labelSx}
-              inputSx={slugInputSx}
+              inputSx={inputSx}
               helperTextSx={helperTextSx}
-            />
+            >
+              {workspaceTypes.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </AppInput>
 
             {formErrors.submit ? (
               <AppText variant="body2" sx={submitErrorSx}>
@@ -248,13 +247,6 @@ const labelSx = {
 const inputSx = {
   height: 43,
   fontSize: "12.5px",
-  bgcolor: "var(--app-color-surface)",
-  color: "var(--app-color-text)",
-};
-
-const slugInputSx = {
-  height: 43,
-  fontSize: "12px",
   bgcolor: "var(--app-color-surface)",
   color: "var(--app-color-text)",
 };

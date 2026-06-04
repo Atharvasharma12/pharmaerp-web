@@ -59,6 +59,7 @@ const formatAddress = (address) => {
     address.addressLine1,
     address.addressLine2,
     address.city,
+    address.district,
     address.state,
     address.pincode,
     address.country,
@@ -81,6 +82,14 @@ const formatDate = (value) => {
   });
 };
 
+const formatPhone = (phones) => {
+  if (phones?.mobile) return `+91 ${phones.mobile}`;
+  if (phones?.whatsapp) return `+91 ${phones.whatsapp}`;
+  if (phones?.landline) return phones.landline;
+
+  return "-";
+};
+
 const getCompanyDisplayName = (company) => company?.name || "Company";
 
 const mapCompanyForView = (company) => ({
@@ -90,10 +99,14 @@ const mapCompanyForView = (company) => ({
   displayAddress: formatAddress(company?.address),
   displayCreatedAt: formatDate(company?.createdAt),
   displayUpdatedAt: formatDate(company?.updatedAt),
-  displayPhone: company?.phone ? `+91 ${company.phone}` : "-",
+  displayPhone: formatPhone(company?.phones),
   displayEmail: company?.email || "-",
+  displayWebsite: company?.website || "-",
   displayGstin: company?.gstin || "-",
   displayPan: company?.pan || "-",
+  displayOwnerName: company?.owner?.name || "-",
+  displayPharmacistName: company?.pharmacist?.name || "-",
+  displayGstType: company?.taxSettings?.gstType || "-",
 });
 
 const CompaniesPage = () => {
@@ -162,10 +175,23 @@ const CompaniesPage = () => {
         normalizeText(company.name).includes(search) ||
         normalizeText(company.companyCode).includes(search) ||
         normalizeText(company.email).includes(search) ||
-        normalizeText(company.phone).includes(search) ||
+        normalizeText(company.website).includes(search) ||
+        normalizeText(company.phones?.mobile).includes(search) ||
+        normalizeText(company.phones?.whatsapp).includes(search) ||
+        normalizeText(company.phones?.landline).includes(search) ||
         normalizeText(company.gstin).includes(search) ||
         normalizeText(company.pan).includes(search) ||
+        normalizeText(company.owner?.name).includes(search) ||
+        normalizeText(company.owner?.mobile).includes(search) ||
+        normalizeText(company.pharmacist?.name).includes(search) ||
+        normalizeText(company.license?.drugLicenseNumber).includes(search) ||
+        normalizeText(company.license?.retailLicenseNumber).includes(search) ||
+        normalizeText(company.license?.wholesaleLicenseNumber).includes(
+          search,
+        ) ||
+        normalizeText(company.license?.fssaiNumber).includes(search) ||
         normalizeText(company.address?.city).includes(search) ||
+        normalizeText(company.address?.district).includes(search) ||
         normalizeText(company.address?.state).includes(search);
 
       const matchesStatus =

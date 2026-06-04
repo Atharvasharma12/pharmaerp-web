@@ -22,27 +22,10 @@ const RegisterPage = () => {
     phone: "",
     password: "",
     confirmPassword: "",
-    businessName: "",
-    state: "",
-    city: "",
   });
   const [formErrors, setFormErrors] = useState({});
 
   const isLoading = status === API_STATUS.LOADING;
-
-  const states = [
-    { label: "Select state", value: "" },
-    { label: "Gujarat", value: "gujarat" },
-    { label: "Maharashtra", value: "maharashtra" },
-    { label: "Rajasthan", value: "rajasthan" },
-  ];
-
-  const cities = [
-    { label: "Select city", value: "" },
-    { label: "Ahmedabad", value: "ahmedabad" },
-    { label: "Surat", value: "surat" },
-    { label: "Jaipur", value: "jaipur" },
-  ];
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -114,8 +97,6 @@ const RegisterPage = () => {
     formData,
     formErrors,
     agree,
-    states,
-    cities,
     isLoading,
     error,
     handleChange,

@@ -4,6 +4,7 @@ import {
   FiBriefcase,
   FiEdit2,
   FiEye,
+  FiGlobe,
   FiMail,
   FiMapPin,
   FiPhone,
@@ -12,6 +13,7 @@ import {
   FiSearch,
   FiSettings,
   FiTrash2,
+  FiUser,
   FiX,
 } from "react-icons/fi";
 
@@ -83,14 +85,14 @@ const CompaniesDesktopPage = ({
       id: "company",
       key: "name",
       label: "Company",
-      minWidth: 240,
+      minWidth: 250,
       render: (_, company) => <CompanyCell company={company} />,
     },
     {
       id: "contact",
       key: "contact",
       label: "Contact",
-      minWidth: 220,
+      minWidth: 235,
       render: (_, company) => <ContactCell company={company} />,
     },
     {
@@ -99,6 +101,13 @@ const CompaniesDesktopPage = ({
       label: "Tax Details",
       minWidth: 205,
       render: (_, company) => <TaxCell company={company} />,
+    },
+    {
+      id: "people",
+      key: "people",
+      label: "People",
+      minWidth: 185,
+      render: (_, company) => <PeopleCell company={company} />,
     },
     {
       id: "type",
@@ -249,7 +258,7 @@ const CompaniesDesktopPage = ({
               sx={stateSx}
             />
           ) : showInitialSkeleton ? (
-            <AppTableSkeleton rows={6} columns={7} showHeader={false} />
+            <AppTableSkeleton rows={6} columns={8} showHeader={false} />
           ) : !hasCompanies ? (
             <AppEmptyState
               title="No companies yet"
@@ -297,7 +306,7 @@ const CompaniesDesktopPage = ({
               rounded={false}
               hover
               stickyHeader
-              minWidth={1160}
+              minWidth={1320}
               maxHeight="calc(100vh - 315px)"
               sx={tableSx}
               headSx={tableHeadSx}
@@ -448,7 +457,7 @@ const TableHeader = ({
           name="search"
           value={filters.search}
           onChange={handleSearchChange}
-          placeholder="Search company, GSTIN, PAN..."
+          placeholder="Search company, GSTIN, PAN, phone..."
           clearable
           onClear={() => handleSearchChange("")}
           size="small"
@@ -555,6 +564,7 @@ const ContactCell = ({ company = {} }) => (
   <AppStack direction="column" gap={0.5}>
     <MiniInfo icon={<FiMail />} value={company.displayEmail} />
     <MiniInfo icon={<FiPhone />} value={company.displayPhone} />
+    <MiniInfo icon={<FiGlobe />} value={company.displayWebsite} ellipsis />
     <MiniInfo icon={<FiMapPin />} value={company.displayAddress} ellipsis />
   </AppStack>
 );
@@ -584,8 +594,8 @@ const TaxCell = ({ company }) => (
     />
 
     <AppKeyValue
-      label="Billing"
-      value={company.taxSettings?.billingType || "-"}
+      label="GST Type"
+      value={company.displayGstType}
       direction="row"
       align="space-between"
       size="small"
@@ -593,6 +603,13 @@ const TaxCell = ({ company }) => (
       labelSx={keyLabelSx}
       valueSx={keyValueTextSx}
     />
+  </AppStack>
+);
+
+const PeopleCell = ({ company }) => (
+  <AppStack direction="column" gap={0.5}>
+    <MiniInfo icon={<FiUser />} value={company.displayOwnerName} />
+    <MiniInfo icon={<FiUser />} value={company.displayPharmacistName} />
   </AppStack>
 );
 
@@ -812,7 +829,7 @@ const keyValueSx = {
 };
 
 const keyLabelSx = {
-  minWidth: 45,
+  minWidth: 52,
   fontSize: "10.7px",
   fontWeight: 600,
   color: "var(--app-color-text-muted)",

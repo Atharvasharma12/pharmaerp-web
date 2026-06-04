@@ -57,6 +57,7 @@ const formatAddress = (address) => {
     address.addressLine1,
     address.addressLine2,
     address.city,
+    address.district,
     address.state,
     address.pincode,
     address.country,
@@ -79,22 +80,60 @@ const formatDate = (value) => {
   });
 };
 
+const formatTime = (openingTime, closingTime) => {
+  if (!openingTime && !closingTime) return "-";
+
+  return [openingTime, closingTime].filter(Boolean).join(" - ");
+};
+
 const getBranchDisplayName = (branch) => branch?.name || "Branch";
 
 const mapBranchForView = (branch) => ({
   ...branch,
+
   displayName: branch?.name || "-",
   displayType: formatBranchType(branch?.type),
   displayAddress: formatAddress(branch?.address),
+
   displayCreatedAt: formatDate(branch?.createdAt),
   displayUpdatedAt: formatDate(branch?.updatedAt),
+
   displayPhone: branch?.phone ? `+91 ${branch.phone}` : "-",
   displayEmail: branch?.email || "-",
-  displayGstin: branch?.gstin || "-",
-  displayDrugLicenseNumber: branch?.drugLicenseNumber || "-",
-  displayBillingType: branch?.billingSettings?.billingType || "-",
+
+  displayDrugLicenseNumber: branch?.license?.drugLicenseNumber || "-",
+  displayDrugLicenseType: branch?.license?.drugLicenseType || "-",
+  displayFssaiNumber: branch?.license?.fssaiNumber || "-",
+  displayLicenseExpiry: formatDate(branch?.license?.expiresAt),
+
+  displayPharmacistName: branch?.pharmacist?.name || "-",
+  displayPharmacistMobile: branch?.pharmacist?.mobile
+    ? `+91 ${branch.pharmacist.mobile}`
+    : "-",
+  displayPharmacistEmail: branch?.pharmacist?.email || "-",
+
+  displayEmergencyContactName: branch?.emergencyContact?.name || "-",
+  displayEmergencyContactMobile: branch?.emergencyContact?.mobile
+    ? `+91 ${branch.emergencyContact.mobile}`
+    : "-",
+
   displayInventoryMode: branch?.inventorySettings?.inventoryMode || "-",
   displayPriceMode: branch?.inventorySettings?.priceMode || "-",
+
+  displayWorkingHours: formatTime(
+    branch?.workingHours?.openingTime,
+    branch?.workingHours?.closingTime,
+  ),
+
+  displayFacilities: [
+    branch?.facilities?.homeDelivery ? "Home Delivery" : null,
+    branch?.facilities?.whatsappOrders ? "WhatsApp Orders" : null,
+    branch?.facilities?.onlineOrders ? "Online Orders" : null,
+    branch?.facilities?.coldStorageAvailable ? "Cold Storage" : null,
+    branch?.facilities?.twentyFourSevenService ? "24x7" : null,
+  ]
+    .filter(Boolean)
+    .join(", "),
 });
 
 const BranchesPage = () => {
@@ -164,13 +203,18 @@ const BranchesPage = () => {
         normalizeText(branch.branchCode).includes(search) ||
         normalizeText(branch.email).includes(search) ||
         normalizeText(branch.phone).includes(search) ||
-        normalizeText(branch.gstin).includes(search) ||
-        normalizeText(branch.drugLicenseNumber).includes(search) ||
+        normalizeText(branch.license?.drugLicenseNumber).includes(search) ||
+        normalizeText(branch.license?.drugLicenseType).includes(search) ||
+        normalizeText(branch.license?.fssaiNumber).includes(search) ||
         normalizeText(branch.address?.city).includes(search) ||
+        normalizeText(branch.address?.district).includes(search) ||
         normalizeText(branch.address?.state).includes(search) ||
-        normalizeText(branch.contactPerson?.name).includes(search) ||
-        normalizeText(branch.contactPerson?.phone).includes(search) ||
-        normalizeText(branch.contactPerson?.email).includes(search);
+        normalizeText(branch.address?.pincode).includes(search) ||
+        normalizeText(branch.pharmacist?.name).includes(search) ||
+        normalizeText(branch.pharmacist?.mobile).includes(search) ||
+        normalizeText(branch.pharmacist?.email).includes(search) ||
+        normalizeText(branch.emergencyContact?.name).includes(search) ||
+        normalizeText(branch.emergencyContact?.mobile).includes(search);
 
       const matchesStatus =
         filters.status === "all" || branch.status === filters.status;

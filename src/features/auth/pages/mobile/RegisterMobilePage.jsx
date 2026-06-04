@@ -1,12 +1,4 @@
-import {
-  FiChevronDown,
-  FiHome,
-  FiLock,
-  FiMail,
-  FiMapPin,
-  FiPhone,
-  FiUser,
-} from "react-icons/fi";
+import { FiLock, FiMail, FiPhone, FiUser } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 
 import { ROUTES } from "@/constants";
@@ -20,7 +12,6 @@ import {
   AppInput,
   AppLink,
   AppPasswordInput,
-  AppSelect,
   AppStack,
   AppText,
 } from "@/components";
@@ -31,8 +22,6 @@ const RegisterMobilePage = ({
   agree,
   isLoading,
   error,
-  states,
-  cities,
   handleChange,
   handleAgreeChange,
   handleSubmit,
@@ -127,16 +116,6 @@ const RegisterMobilePage = ({
                 inputProps={{ maxLength: 10 }}
               />
 
-              <MobileInput
-                label="Business / Pharmacy Name"
-                name="businessName"
-                value={formData.businessName}
-                onChange={handleChange}
-                disabled={isLoading}
-                placeholder="Enter pharmacy name"
-                startIcon={<FiHome />}
-              />
-
               <MobilePassword
                 label="Password"
                 name="password"
@@ -157,26 +136,6 @@ const RegisterMobilePage = ({
                 error={Boolean(formErrors.confirmPassword)}
                 helperText={formErrors.confirmPassword}
                 placeholder="Confirm your password"
-              />
-
-              <MobileSelect
-                label="State"
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-                disabled={isLoading}
-                options={states}
-                startIcon={<FiMapPin />}
-              />
-
-              <MobileSelect
-                label="City"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                disabled={isLoading}
-                options={cities}
-                startIcon={<FiHome />}
               />
 
               <AppStack
@@ -472,33 +431,6 @@ const MobilePassword = ({
     startIcon={<FiLock />}
     error={error}
     helperText={helperText}
-    labelSx={labelSx}
-    inputSx={inputSx}
-  />
-);
-
-const MobileSelect = ({
-  label,
-  options,
-  startIcon,
-  name,
-  value,
-  onChange,
-  disabled,
-}) => (
-  <AppSelect
-    label={label}
-    name={name}
-    value={value}
-    onChange={onChange}
-    disabled={disabled}
-    options={options}
-    fullWidth
-    size="small"
-    variant="bordered"
-    rounded="md"
-    startIcon={startIcon}
-    endIcon={<FiChevronDown />}
     labelSx={labelSx}
     inputSx={inputSx}
   />

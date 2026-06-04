@@ -30,9 +30,9 @@ const accessControlService = {
     return apiClient.delete(ENDPOINTS.ACCESS_CONTROL.ROLE_BY_ID(roleId));
   },
 
-  assignRoleToMember(payload) {
-    return apiClient.post(
-      ENDPOINTS.ACCESS_CONTROL.ASSIGN_ROLE_TO_MEMBER,
+  assignRoleToMember(memberUserId, payload) {
+    return apiClient.patch(
+      ENDPOINTS.ACCESS_CONTROL.ASSIGN_ROLE_TO_MEMBER(memberUserId),
       payload,
     );
   },

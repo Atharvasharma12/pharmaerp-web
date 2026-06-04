@@ -79,7 +79,8 @@ export const ENDPOINTS = {
 
     ROLE_BY_ID: (roleId) => `/core/access-control/roles/${roleId}`,
 
-    ASSIGN_ROLE_TO_MEMBER: "/core/access-control/roles/assign-member",
+    ASSIGN_ROLE_TO_MEMBER: (memberUserId) =>
+      `/core/access-control/members/${memberUserId}/role`,
 
     // Member Access
     MEMBER_ACCESS: "/core/access-control/member-access",

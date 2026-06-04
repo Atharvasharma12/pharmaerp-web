@@ -104,8 +104,8 @@ const useAccessControl = () => {
     return dispatch(deleteRole(roleId)).unwrap();
   };
 
-  const submitAssignRoleToMember = (payload) => {
-    return dispatch(assignRoleToMember(payload)).unwrap();
+  const submitAssignRoleToMember = (memberUserId, payload) => {
+    return dispatch(assignRoleToMember({ memberUserId, payload })).unwrap();
   };
 
   const fetchAvailablePermissions = () => {

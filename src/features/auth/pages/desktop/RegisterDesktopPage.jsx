@@ -1,12 +1,9 @@
 import {
   FiBarChart2,
-  FiChevronDown,
   FiCloud,
   FiHeadphones,
-  FiHome,
   FiLock,
   FiMail,
-  FiMapPin,
   FiPhone,
   FiShield,
   FiUser,
@@ -24,7 +21,6 @@ import {
   AppInput,
   AppLink,
   AppPasswordInput,
-  AppSelect,
   AppStack,
   AppText,
 } from "@/components";
@@ -35,8 +31,6 @@ const RegisterDesktopPage = ({
   agree,
   isLoading,
   error,
-  states,
-  cities,
   handleChange,
   handleAgreeChange,
   handleSubmit,
@@ -164,16 +158,6 @@ const RegisterDesktopPage = ({
                   inputProps={{ maxLength: 10 }}
                 />
 
-                <CompactInput
-                  label="Business / Pharmacy Name"
-                  name="businessName"
-                  value={formData.businessName}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  placeholder="Enter pharmacy name"
-                  startIcon={<FiHome />}
-                />
-
                 <CompactPassword
                   label="Password"
                   name="password"
@@ -194,26 +178,6 @@ const RegisterDesktopPage = ({
                   error={Boolean(formErrors.confirmPassword)}
                   helperText={formErrors.confirmPassword}
                   placeholder="Confirm your password"
-                />
-
-                <CompactSelect
-                  label="State"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  options={states}
-                  startIcon={<FiMapPin />}
-                />
-
-                <CompactSelect
-                  label="City"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  options={cities}
-                  startIcon={<FiHome />}
                 />
               </div>
 
@@ -514,33 +478,6 @@ const CompactPassword = ({
     startIcon={<FiLock />}
     error={error}
     helperText={helperText}
-    labelSx={labelSx}
-    inputSx={inputSx}
-  />
-);
-
-const CompactSelect = ({
-  label,
-  options,
-  startIcon,
-  name,
-  value,
-  onChange,
-  disabled,
-}) => (
-  <AppSelect
-    label={label}
-    name={name}
-    value={value}
-    onChange={onChange}
-    disabled={disabled}
-    options={options}
-    fullWidth
-    size="medium"
-    variant="bordered"
-    rounded="md"
-    startIcon={startIcon}
-    endIcon={<FiChevronDown />}
     labelSx={labelSx}
     inputSx={inputSx}
   />
