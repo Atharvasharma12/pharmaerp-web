@@ -13,15 +13,15 @@ import { AppIconButton } from "@/components";
 const AppAlert = ({
   title,
   children,
-  severity = "info", // success | error | warning | info
-  variant = "soft", // soft | outlined | filled
+  severity = "info",
+  variant = "soft",
   showIcon = true,
   closable = false,
   onClose,
   icon,
   actions,
   fullWidth = true,
-  rounded = "md", // sm | md | lg
+  rounded = "md",
   dense = false,
   visible = true,
   sx = {},
@@ -38,25 +38,25 @@ const AppAlert = ({
       main: t.success,
       soft: t.successSoft,
       contrast: t.successContrast,
-      icon: <CheckCircleOutlineRoundedIcon />,
+      icon: <CheckCircleOutlineRoundedIcon fontSize="small" />,
     },
     error: {
       main: t.error,
       soft: t.errorSoft,
       contrast: t.errorContrast,
-      icon: <ErrorOutlineRoundedIcon />,
+      icon: <ErrorOutlineRoundedIcon fontSize="small" />,
     },
     warning: {
       main: t.warning,
       soft: t.warningSoft,
       contrast: t.warningContrast,
-      icon: <WarningAmberRoundedIcon />,
+      icon: <WarningAmberRoundedIcon fontSize="small" />,
     },
     info: {
       main: t.info,
       soft: t.infoSoft,
       contrast: t.infoContrast,
-      icon: <InfoOutlinedIcon />,
+      icon: <InfoOutlinedIcon fontSize="small" />,
     },
   };
 
@@ -68,8 +68,8 @@ const AppAlert = ({
     lg: "16px",
   };
 
-  const paddingY = dense ? 1 : 1.5;
-  const paddingX = dense ? 1.5 : 2;
+  const paddingY = dense ? 0.75 : 1;
+  const paddingX = dense ? 1.25 : 1.5;
 
   const variantStyles = {
     soft: {
@@ -101,9 +101,10 @@ const AppAlert = ({
           px: paddingX,
           py: paddingY,
           display: "flex",
-          alignItems: "flex-start",
-          gap: 1.5,
+          alignItems: "center",
+          gap: 1.25,
           position: "relative",
+          minHeight: dense ? 36 : 42,
           ...appliedVariant,
           ...sx,
         }}
@@ -115,8 +116,9 @@ const AppAlert = ({
             sx={{
               display: "flex",
               alignItems: "center",
-              mt: "2px",
+              justifyContent: "center",
               color: variant === "filled" ? active.contrast : active.main,
+              flexShrink: 0,
             }}
           >
             {icon || active.icon}
@@ -129,15 +131,18 @@ const AppAlert = ({
             flex: 1,
             display: "flex",
             flexDirection: "column",
-            gap: 0.4,
+            justifyContent: "center",
+            gap: title && children ? 0.25 : 0,
+            minWidth: 0,
             ...contentSx,
           }}
         >
           {title && (
             <Typography
               sx={{
-                fontSize: "0.9rem",
-                fontWeight: 800,
+                fontSize: dense ? "0.78rem" : "0.82rem",
+                fontWeight: 700,
+                lineHeight: 1.25,
                 color: variant === "filled" ? active.contrast : active.main,
               }}
             >
@@ -148,8 +153,8 @@ const AppAlert = ({
           {children && (
             <Typography
               sx={{
-                fontSize: "0.82rem",
-                lineHeight: 1.5,
+                fontSize: dense ? "0.74rem" : "0.78rem",
+                lineHeight: 1.35,
                 color: variant === "filled" ? active.contrast : t.textMuted,
               }}
             >
@@ -175,12 +180,13 @@ const AppAlert = ({
         {/* CLOSE BUTTON */}
         {closable && (
           <AppIconButton
-            icon={<CloseRoundedIcon />}
+            icon={<CloseRoundedIcon fontSize="small" />}
             size="small"
             variant="text"
             onClick={onClose}
             sx={{
               color: variant === "filled" ? active.contrast : t.textMuted,
+              flexShrink: 0,
             }}
           />
         )}
