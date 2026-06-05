@@ -10,7 +10,6 @@ import {
   FiPlus,
   FiRefreshCcw,
   FiSend,
-  FiSettings,
   FiShield,
   FiTrash2,
   FiUsers,
@@ -22,16 +21,11 @@ import {
   AppBreadcrumb,
   AppButton,
   AppCard,
-  AppDescriptionList,
   AppEmptyState,
-  AppGrid,
   AppHeading,
-  AppIconButton,
   AppKeyValue,
   AppStack,
-  AppStatCard,
   AppStatusBadge,
-  AppTable,
   AppText,
 } from "@/components";
 
@@ -39,7 +33,6 @@ const WorkspaceDesktopPage = memo(
   ({
     workspaces = [],
     currentWorkspace = null,
-    stats = [],
 
     isLoading = false,
     isDeleting = false,
@@ -68,164 +61,6 @@ const WorkspaceDesktopPage = memo(
         },
       ],
       [],
-    );
-
-    const columns = useMemo(
-      () => [
-        {
-          id: "workspace",
-          key: "name",
-          label: "Workspace",
-          minWidth: 240,
-          render: (_, row) => (
-            <WorkspaceIdentity
-              workspace={row}
-              onClick={() => handleViewWorkspace(row)}
-            />
-          ),
-        },
-        {
-          id: "type",
-          key: "displayType",
-          label: "Type",
-          width: 130,
-          render: (_, row) => (
-            <AppBadge
-              label={row.displayType || "-"}
-              variant="soft"
-              colorVariant="primary"
-              rounded="full"
-              size="small"
-            />
-          ),
-        },
-        {
-          id: "status",
-          key: "status",
-          label: "Status",
-          width: 120,
-          render: (_, row) => (
-            <AppStatusBadge
-              status={row.status || "active"}
-              variant="soft"
-              rounded="full"
-              size="small"
-            />
-          ),
-        },
-        {
-          id: "role",
-          key: "roleName",
-          label: "Role",
-          width: 130,
-          render: (_, row) => (
-            <AppText variant="body2" weight={650} sx={tableValueSx}>
-              {row.isOwner ? "Owner" : row.roleName || "-"}
-            </AppText>
-          ),
-        },
-        {
-          id: "contact",
-          key: "email",
-          label: "Contact",
-          minWidth: 190,
-          render: (_, row) => (
-            <AppBox sx={{ minWidth: 0 }}>
-              <AppText variant="body2" weight={600} sx={tableValueSx}>
-                {row.email || "-"}
-              </AppText>
-              <AppText variant="caption" sx={tableMutedSx}>
-                {row.phone || "No phone added"}
-              </AppText>
-            </AppBox>
-          ),
-        },
-        {
-          id: "createdAt",
-          key: "displayCreatedAt",
-          label: "Created",
-          width: 120,
-        },
-        {
-          id: "actions",
-          key: "actions",
-          label: "Actions",
-          align: "right",
-          width: 190,
-          render: (_, row) => (
-            <AppStack
-              direction="row"
-              align="center"
-              justify="flex-end"
-              gap={0.5}
-            >
-              <AppIconButton
-                icon={<FiEye />}
-                tooltip="View details"
-                size="small"
-                rounded="md"
-                variant="soft"
-                colorVariant="info"
-                onClick={() => handleViewWorkspace(row)}
-              />
-
-              <AppIconButton
-                icon={<FiUsers />}
-                tooltip="Members"
-                size="small"
-                rounded="md"
-                variant="soft"
-                colorVariant="primary"
-                onClick={() => handleManageMembers(row)}
-              />
-
-              <AppIconButton
-                icon={<FiSend />}
-                tooltip="Invitations"
-                size="small"
-                rounded="md"
-                variant="soft"
-                colorVariant="warning"
-                onClick={() => handleManageInvitations(row)}
-              />
-
-              {row.isOwner ? (
-                <>
-                  <AppIconButton
-                    icon={<FiEdit2 />}
-                    tooltip="Edit workspace"
-                    size="small"
-                    rounded="md"
-                    variant="soft"
-                    colorVariant="success"
-                    onClick={() => handleEditWorkspace(row)}
-                  />
-
-                  <AppIconButton
-                    icon={<FiTrash2 />}
-                    tooltip="Delete workspace"
-                    size="small"
-                    rounded="md"
-                    variant="soft"
-                    colorVariant="error"
-                    loading={isDeleting}
-                    disabled={isDeleting}
-                    onClick={() => handleDeleteWorkspace(row)}
-                  />
-                </>
-              ) : null}
-            </AppStack>
-          ),
-        },
-      ],
-      [
-        handleDeleteWorkspace,
-        handleEditWorkspace,
-        handleManageInvitations,
-        handleManageMembers,
-        handleViewWorkspace,
-        isDeleting,
-      ],
     );
 
     return (
@@ -309,88 +144,90 @@ const WorkspaceDesktopPage = memo(
             </AppCard>
           ) : null}
 
-          <AppGrid columns={4} gap={1.5}>
-            {stats.map((stat) => (
-              <AppStatCard
-                key={stat.id}
-                title={stat.title}
-                value={stat.value}
-                subtitle={stat.description}
-                colorVariant={stat.colorVariant}
-                icon={statIcons[stat.id] || <FiBriefcase />}
-                variant="default"
-                sx={statCardSx}
-                iconSx={statIconSx}
-              />
-            ))}
-          </AppGrid>
-
-          <div className="mt-3 grid grid-cols-[minmax(0,1fr)_360px] gap-3.5">
-            <AppCard
-              variant="default"
-              rounded="lg"
-              bordered
-              shadow="sm"
-              padding="none"
-              sx={tableCardSx}
+          <AppCard
+            variant="default"
+            rounded="lg"
+            bordered
+            shadow="sm"
+            padding="none"
+            sx={workspaceSectionSx}
+          >
+            <AppStack
+              direction="row"
+              align="center"
+              justify="space-between"
+              sx={sectionHeaderSx}
             >
-              <AppStack
-                direction="row"
-                align="center"
-                justify="space-between"
-                sx={tableHeaderSx}
-              >
-                <AppBox>
-                  <AppHeading level={2} weight={700} sx={sectionTitleSx}>
-                    My Workspaces
-                  </AppHeading>
+              <AppBox>
+                <AppHeading level={2} weight={700} sx={sectionTitleSx}>
+                  My Workspaces
+                </AppHeading>
 
-                  <AppText variant="body2" sx={sectionSubtitleSx}>
-                    View and manage workspaces linked to your account.
-                  </AppText>
-                </AppBox>
+                <AppText variant="body2" sx={sectionSubtitleSx}>
+                  View workspace details and manage members, invites, and
+                  settings.
+                </AppText>
+              </AppBox>
 
-                <AppBadge
-                  label={`${workspaces.length} total`}
-                  variant="soft"
-                  colorVariant="primary"
-                  rounded="full"
+              <AppBadge
+                label={`${workspaces.length} total`}
+                variant="soft"
+                colorVariant="primary"
+                rounded="full"
+                size="small"
+              />
+            </AppStack>
+
+            {isLoading ? (
+              <AppBox sx={loadingBoxSx}>
+                <AppText variant="body2" sx={sectionSubtitleSx}>
+                  Loading workspaces...
+                </AppText>
+              </AppBox>
+            ) : workspaces.length ? (
+              <div className="grid grid-cols-1 gap-3 p-3 lg:grid-cols-2 2xl:grid-cols-3">
+                {workspaces.map((workspace) => (
+                  <WorkspaceCard
+                    key={workspace._id}
+                    workspace={workspace}
+                    selected={workspace?._id === currentWorkspace?._id}
+                    isDeleting={isDeleting}
+                    onSelect={handleSelectWorkspace}
+                    onView={handleViewWorkspace}
+                    onEdit={handleEditWorkspace}
+                    onMembers={handleManageMembers}
+                    onInvitations={handleManageInvitations}
+                    onInvite={handleInviteMember}
+                    onDelete={handleDeleteWorkspace}
+                  />
+                ))}
+              </div>
+            ) : (
+              <AppBox sx={emptyBoxSx}>
+                <AppEmptyState
+                  title="No workspaces found"
+                  description="Create a workspace to start managing your business."
+                  icon={<FiBriefcase />}
                   size="small"
                 />
-              </AppStack>
 
-              <AppTable
-                columns={columns}
-                rows={workspaces}
-                getRowId={(row) => row._id}
-                loading={isLoading}
-                bordered={false}
-                rounded={false}
-                hover
-                dense
-                emptyTitle="No workspaces found"
-                emptyDescription="Create a workspace to start managing your business."
-                emptyActionLabel="Create Workspace"
-                onEmptyAction={handleCreateWorkspace}
-                sx={workspaceTableSx}
-                rowSx={(row) =>
-                  row?._id === currentWorkspace?._id ? selectedRowSx : undefined
-                }
-                onRowClick={handleSelectWorkspace}
-              />
-            </AppCard>
-
-            <WorkspaceSidebar
-              workspace={currentWorkspace}
-              isDeleting={isDeleting}
-              onView={handleViewWorkspace}
-              onEdit={handleEditWorkspace}
-              onMembers={handleManageMembers}
-              onInvitations={handleManageInvitations}
-              onInvite={handleInviteMember}
-              onDelete={handleDeleteWorkspace}
-            />
-          </div>
+                <AppStack direction="row" justify="center" sx={{ mt: 1.5 }}>
+                  <AppButton
+                    type="button"
+                    variant="contained"
+                    colorVariant="primary"
+                    rounded="md"
+                    size="small"
+                    startIcon={<FiPlus />}
+                    onClick={handleCreateWorkspace}
+                    sx={primaryButtonSx}
+                  >
+                    Create Workspace
+                  </AppButton>
+                </AppStack>
+              </AppBox>
+            )}
+          </AppCard>
         </div>
       </section>
     );
@@ -399,32 +236,12 @@ const WorkspaceDesktopPage = memo(
 
 WorkspaceDesktopPage.displayName = "WorkspaceDesktopPage";
 
-const WorkspaceIdentity = memo(({ workspace, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="flex max-w-full items-center gap-2.5 text-left"
-  >
-    <IconBox icon={<FiBriefcase />} />
-
-    <span className="min-w-0">
-      <span className="block truncate text-[12.5px] font-bold text-text">
-        {workspace.name || "-"}
-      </span>
-
-      <span className="mt-0.5 block truncate text-[10.8px] font-medium text-text-muted">
-        {workspace.workspaceCode || workspace.slug || "-"}
-      </span>
-    </span>
-  </button>
-));
-
-WorkspaceIdentity.displayName = "WorkspaceIdentity";
-
-const WorkspaceSidebar = memo(
+const WorkspaceCard = memo(
   ({
     workspace,
+    selected,
     isDeleting,
+    onSelect,
     onView,
     onEdit,
     onMembers,
@@ -432,105 +249,103 @@ const WorkspaceSidebar = memo(
     onInvite,
     onDelete,
   }) => {
-    const detailItems = useMemo(
-      () =>
-        workspace
-          ? [
-              {
-                key: "code",
-                label: "Workspace Code",
-                value: workspace.workspaceCode || "-",
-              },
-              {
-                key: "type",
-                label: "Type",
-                value: workspace.displayType || "-",
-              },
-              {
-                key: "status",
-                label: "Status",
-                value: (
-                  <AppStatusBadge
-                    status={workspace.status || "active"}
-                    size="small"
-                    variant="soft"
-                    rounded="full"
-                  />
-                ),
-              },
-              {
-                key: "email",
-                label: "Email",
-                value: workspace.email || "-",
-              },
-              {
-                key: "phone",
-                label: "Phone",
-                value: workspace.phone || "-",
-              },
-              {
-                key: "created",
-                label: "Created",
-                value: workspace.displayCreatedAt || "-",
-              },
-            ]
-          : [],
-      [workspace],
-    );
-
-    if (!workspace) {
-      return (
-        <AppCard
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="sm"
-          padding="none"
-          sx={sidebarCardSx}
-        >
-          <AppEmptyState
-            title="No workspace selected"
-            description="Select a workspace from the list to view details."
-            icon={<FiBriefcase />}
-            size="small"
-          />
-        </AppCard>
-      );
-    }
+    const stopAndRun = (event, callback) => {
+      event.stopPropagation();
+      callback?.(workspace);
+    };
 
     return (
-      <aside className="self-start">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onSelect?.(workspace)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onSelect?.(workspace);
+          }
+        }}
+        className="h-full cursor-pointer text-left"
+      >
         <AppCard
           variant="default"
           rounded="lg"
           bordered
           shadow="sm"
           padding="none"
-          sx={sidebarCardSx}
+          sx={{
+            ...workspaceCardSx,
+            ...(selected ? selectedWorkspaceCardSx : null),
+          }}
         >
-          <AppStack direction="row" align="center" gap={1}>
-            <IconBox icon={<FiShield />} large />
+          <AppStack
+            direction="row"
+            align="flex-start"
+            justify="space-between"
+            gap={1.2}
+          >
+            <AppStack
+              direction="row"
+              align="center"
+              gap={1.1}
+              sx={{ minWidth: 0 }}
+            >
+              <IconBox icon={<FiBriefcase />} large />
 
-            <AppBox sx={{ minWidth: 0 }}>
-              <AppHeading level={2} weight={700} sx={sidebarTitleSx}>
-                {workspace.name}
-              </AppHeading>
+              <AppBox sx={{ minWidth: 0 }}>
+                <AppHeading level={3} weight={700} sx={workspaceNameSx}>
+                  {workspace.name || "-"}
+                </AppHeading>
 
-              <AppText variant="body2" sx={sidebarSubtitleSx}>
-                {workspace.isOwner ? "Owner workspace" : "Member workspace"}
-              </AppText>
-            </AppBox>
+                <AppText variant="body2" sx={workspaceCodeSx}>
+                  {workspace.workspaceCode || workspace.slug || "-"}
+                </AppText>
+              </AppBox>
+            </AppStack>
+
+            <AppStatusBadge
+              status={workspace.status || "active"}
+              variant="soft"
+              rounded="full"
+              size="small"
+            />
           </AppStack>
 
-          <div className="my-3 h-px bg-border" />
+          <AppStack direction="row" align="center" gap={0.7} sx={badgeRowSx}>
+            <AppBadge
+              label={workspace.displayType || "Workspace"}
+              variant="soft"
+              colorVariant="primary"
+              rounded="full"
+              size="small"
+            />
 
-          <AppDescriptionList
-            items={detailItems}
-            columns={1}
-            size="small"
-            dense
-            sx={descriptionListSx}
-          />
+            <AppBadge
+              label={
+                workspace.isOwner ? "Owner" : workspace.roleName || "Member"
+              }
+              variant="soft"
+              colorVariant={workspace.isOwner ? "success" : "neutral"}
+              rounded="full"
+              size="small"
+            />
+          </AppStack>
+
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <InfoItem label="Email" value={workspace.email || "-"} />
+            <InfoItem
+              label="Phone"
+              value={workspace.phone || "No phone added"}
+            />
+            <InfoItem
+              label="Created"
+              value={workspace.displayCreatedAt || "-"}
+            />
+            <InfoItem
+              label="Code"
+              value={workspace.workspaceCode || workspace.slug || "-"}
+            />
+          </div>
 
           <AppBox sx={addressBoxSx}>
             <AppStack direction="row" align="flex-start" gap={0.9}>
@@ -549,38 +364,38 @@ const WorkspaceSidebar = memo(
             </AppStack>
           </AppBox>
 
-          <AppGrid columns={2} gap={0.8} sx={{ mt: 1.25 }}>
-            <SidebarAction
+          <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-4">
+            <CardActionButton
               icon={<FiEye />}
-              title="Details"
-              text="View profile"
-              onClick={() => onView(workspace)}
+              label="Details"
+              colorVariant="info"
+              onClick={(event) => stopAndRun(event, onView)}
             />
 
-            <SidebarAction
+            <CardActionButton
               icon={<FiUsers />}
-              title="Members"
-              text="Manage team"
-              onClick={() => onMembers(workspace)}
+              label="Members"
+              colorVariant="primary"
+              onClick={(event) => stopAndRun(event, onMembers)}
             />
 
-            <SidebarAction
+            <CardActionButton
               icon={<FiSend />}
-              title="Invites"
-              text="Pending invites"
-              onClick={() => onInvitations(workspace)}
+              label="Invites"
+              colorVariant="warning"
+              onClick={(event) => stopAndRun(event, onInvitations)}
             />
 
-            <SidebarAction
+            <CardActionButton
               icon={<FiMail />}
-              title="Invite"
-              text="Add member"
-              onClick={() => onInvite(workspace)}
+              label="Invite"
+              colorVariant="primary"
+              onClick={(event) => stopAndRun(event, onInvite)}
             />
-          </AppGrid>
+          </div>
 
           {workspace.isOwner ? (
-            <AppStack direction="column" gap={0.8} sx={{ mt: 1.25 }}>
+            <AppStack direction="row" align="center" gap={0.8} sx={{ mt: 2 }}>
               <AppButton
                 type="button"
                 variant="outlined"
@@ -589,10 +404,10 @@ const WorkspaceSidebar = memo(
                 size="small"
                 fullWidth
                 startIcon={<FiEdit2 />}
-                onClick={() => onEdit(workspace)}
-                sx={sidebarButtonSx}
+                onClick={(event) => stopAndRun(event, onEdit)}
+                sx={cardButtonSx}
               >
-                Edit Workspace
+                Edit
               </AppButton>
 
               <AppButton
@@ -605,10 +420,10 @@ const WorkspaceSidebar = memo(
                 startIcon={<FiTrash2 />}
                 loading={isDeleting}
                 disabled={isDeleting}
-                onClick={() => onDelete(workspace)}
-                sx={sidebarButtonSx}
+                onClick={(event) => stopAndRun(event, onDelete)}
+                sx={cardButtonSx}
               >
-                Delete Workspace
+                Delete
               </AppButton>
             </AppStack>
           ) : (
@@ -624,37 +439,43 @@ const WorkspaceSidebar = memo(
             </AppBox>
           )}
         </AppCard>
-      </aside>
+      </div>
     );
   },
 );
 
-WorkspaceSidebar.displayName = "WorkspaceSidebar";
+WorkspaceCard.displayName = "WorkspaceCard";
 
-const SidebarAction = memo(({ icon, title, text, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="rounded-lg border border-border bg-surface-alt px-2.5 py-2 text-left transition hover:bg-surface-hover"
-  >
-    <span className="flex items-center gap-2">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-[14px] text-primary">
-        {icon}
-      </span>
-
-      <span className="min-w-0">
-        <span className="block text-[11.5px] font-bold leading-[14px] text-text">
-          {title}
-        </span>
-        <span className="mt-0.5 block text-[10.4px] font-medium leading-[13px] text-text-muted">
-          {text}
-        </span>
-      </span>
-    </span>
-  </button>
+const InfoItem = memo(({ label, value }) => (
+  <AppBox sx={infoItemSx}>
+    <AppText variant="caption" sx={infoLabelSx}>
+      {label}
+    </AppText>
+    <AppText variant="body2" weight={650} sx={infoValueSx}>
+      {value}
+    </AppText>
+  </AppBox>
 ));
 
-SidebarAction.displayName = "SidebarAction";
+InfoItem.displayName = "InfoItem";
+
+const CardActionButton = memo(({ icon, label, colorVariant, onClick }) => (
+  <AppButton
+    type="button"
+    variant="soft"
+    colorVariant={colorVariant}
+    rounded="md"
+    size="small"
+    fullWidth
+    startIcon={icon}
+    onClick={onClick}
+    sx={actionButtonSx}
+  >
+    {label}
+  </AppButton>
+));
+
+CardActionButton.displayName = "CardActionButton";
 
 const IconBox = memo(({ icon, large = false }) => (
   <AppBox
@@ -677,13 +498,6 @@ const IconBox = memo(({ icon, large = false }) => (
 ));
 
 IconBox.displayName = "IconBox";
-
-const statIcons = {
-  total: <FiBriefcase />,
-  active: <FiShield />,
-  owner: <FiSettings />,
-  member: <FiUsers />,
-};
 
 const pageTitleSx = {
   m: 0,
@@ -736,22 +550,12 @@ const errorTextSx = {
   fontSize: "12px",
 };
 
-const statCardSx = {
-  minHeight: 94,
-  bgcolor: "var(--app-color-surface)",
-};
-
-const statIconSx = {
-  width: 36,
-  height: 36,
-};
-
-const tableCardSx = {
+const workspaceSectionSx = {
   overflow: "hidden",
   bgcolor: "var(--app-color-surface)",
 };
 
-const tableHeaderSx = {
+const sectionHeaderSx = {
   px: 1.7,
   py: 1.35,
   borderBottom: "1px solid var(--app-color-border)",
@@ -769,36 +573,38 @@ const sectionSubtitleSx = {
   color: "var(--app-color-text-muted)",
 };
 
-const workspaceTableSx = {
-  borderRadius: 0,
+const loadingBoxSx = {
+  px: 1.7,
+  py: 3,
 };
 
-const selectedRowSx = {
+const emptyBoxSx = {
+  px: 1.7,
+  py: 4,
+};
+
+const workspaceCardSx = {
+  height: "100%",
+  px: 1.55,
+  py: 1.45,
+  bgcolor: "var(--app-color-surface)",
+  transition:
+    "border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease",
+  "&:hover": {
+    borderColor: "var(--app-color-primary)",
+    boxShadow: "var(--app-shadow-md)",
+    transform: "translateY(-1px)",
+  },
+};
+
+const selectedWorkspaceCardSx = {
+  borderColor: "var(--app-color-primary)",
   bgcolor: "var(--app-color-primary-soft)",
 };
 
-const tableValueSx = {
-  fontSize: "11.8px",
-  lineHeight: "16px",
-  color: "var(--app-color-text)",
-};
-
-const tableMutedSx = {
-  display: "block",
-  mt: 0.2,
-  fontSize: "10.6px",
-  color: "var(--app-color-text-muted)",
-};
-
-const sidebarCardSx = {
-  px: 1.45,
-  py: 1.35,
-  bgcolor: "var(--app-color-surface)",
-};
-
-const sidebarTitleSx = {
+const workspaceNameSx = {
   m: 0,
-  maxWidth: 260,
+  maxWidth: 320,
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -807,16 +613,43 @@ const sidebarTitleSx = {
   color: "var(--app-color-text)",
 };
 
-const sidebarSubtitleSx = {
+const workspaceCodeSx = {
   mt: 0.25,
+  maxWidth: 320,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
   fontSize: "10.8px",
   color: "var(--app-color-text-muted)",
 };
 
-const descriptionListSx = {
-  "& .MuiBox-root": {
-    minHeight: 25,
-  },
+const badgeRowSx = {
+  mt: 1.2,
+  flexWrap: "wrap",
+};
+
+const infoItemSx = {
+  minWidth: 0,
+  p: 1,
+  borderRadius: "10px",
+  border: "1px solid var(--app-color-border)",
+  bgcolor: "var(--app-color-surface-alt)",
+};
+
+const infoLabelSx = {
+  display: "block",
+  fontSize: "10.4px",
+  fontWeight: 700,
+  color: "var(--app-color-text-muted)",
+};
+
+const infoValueSx = {
+  mt: 0.35,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  fontSize: "11.5px",
+  color: "var(--app-color-text)",
 };
 
 const addressBoxSx = {
@@ -842,9 +675,16 @@ const addressTextSx = {
   color: "var(--app-color-text-muted)",
 };
 
-const sidebarButtonSx = {
-  height: 34,
-  fontSize: "11.8px",
+const actionButtonSx = {
+  height: 32,
+  px: 0.8,
+  fontSize: "11px",
+  fontWeight: 700,
+};
+
+const cardButtonSx = {
+  height: 33,
+  fontSize: "11.6px",
   fontWeight: 700,
 };
 

@@ -1,6 +1,4 @@
-// src/features/workspace/pages/EditWorkspacePage.jsx
-
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
@@ -210,6 +208,7 @@ const timeFormatOptions = [
 const EditWorkspacePage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const fetchedWorkspaceIdRef = useRef(null);
 
   const {
     workspaces,
@@ -268,7 +267,7 @@ const EditWorkspacePage = () => {
     if (editableWorkspace?._id) {
       setFormData(mapWorkspaceToFormData(editableWorkspace));
     }
-  }, [editableWorkspace]);
+  }, [editableWorkspace?._id]);
 
   useEffect(() => {
     if (editableWorkspace?._id && !currentWorkspace?._id) {
@@ -277,10 +276,22 @@ const EditWorkspacePage = () => {
   }, [currentWorkspace?._id, editableWorkspace, setCurrentWorkspace]);
 
   useEffect(() => {
-    if (currentWorkspace?._id) {
-      getWorkspaceById(currentWorkspace._id).catch(() => {});
-    }
-  }, [currentWorkspace?._id, getWorkspaceById]);
+    const workspaceId = currentWorkspace?._id;
+
+    if (!workspaceId) return;
+    if (fetchedWorkspaceIdRef.current === workspaceId) return;
+    if (getWorkspaceStatus === API_STATUS.LOADING) return;
+
+    fetchedWorkspaceIdRef.current = workspaceId;
+
+    getWorkspaceById(workspaceId).catch(() => {
+      fetchedWorkspaceIdRef.current = null;
+    });
+
+    // Intentionally excluding getWorkspaceById to prevent repeated fetches
+    // when the hook returns a new function reference after Redux updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWorkspace?._id, getWorkspaceStatus]);
 
   useEffect(() => {
     if (error) {

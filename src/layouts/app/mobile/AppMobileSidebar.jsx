@@ -23,17 +23,66 @@ import { AppButton } from "@/components";
 import { ROUTES } from "@/constants";
 
 const sidebarItems = [
-  { label: "Dashboard", path: ROUTES.DASHBOARD, icon: <FiHome /> },
-  { label: "Companies", path: "/companies", icon: <FiBriefcase /> },
-  { label: "Branches", path: "/branches", icon: <FiMapPin /> },
-  { label: "Staff", path: ROUTES.USERS, icon: <FiUsers /> },
-  { label: "Inventory", path: "/inventory", icon: <FiBox /> },
-  { label: "Purchases", path: "/purchases", icon: <FiTruck /> },
-  { label: "Sales (POS)", path: "/sales", icon: <FiShoppingCart /> },
-  { label: "Billing & Invoicing", path: "/billing", icon: <FiFileText /> },
-  { label: "Reports", path: "/reports", icon: <FiBarChart2 /> },
-  { label: "Expenses", path: "/expenses", icon: <FiCreditCard /> },
-  { label: "Settings", path: ROUTES.SETTINGS, icon: <FiSettings /> },
+  {
+    label: "Dashboard",
+    path: ROUTES.DASHBOARD,
+    icon: <FiHome />,
+  },
+  {
+    label: "Companies",
+    path: ROUTES.COMPANIES,
+    icon: <FiBriefcase />,
+  },
+  {
+    label: "Branches",
+    path: ROUTES.BRANCHES,
+    icon: <FiMapPin />,
+  },
+  {
+    label: "Staff",
+    path: ROUTES.WORKSPACE_MEMBERS,
+    icon: <FiUsers />,
+  },
+  {
+    label: "Access Control",
+    path: ROUTES.ACCESS_CONTROL,
+    icon: <FiUsers />,
+  },
+  {
+    label: "Inventory",
+    path: "/inventory",
+    icon: <FiBox />,
+  },
+  {
+    label: "Purchases",
+    path: "/purchases",
+    icon: <FiTruck />,
+  },
+  {
+    label: "Sales (POS)",
+    path: "/sales",
+    icon: <FiShoppingCart />,
+  },
+  {
+    label: "Billing & Invoicing",
+    path: "/billing",
+    icon: <FiFileText />,
+  },
+  {
+    label: "Reports",
+    path: "/reports",
+    icon: <FiBarChart2 />,
+  },
+  {
+    label: "Expenses",
+    path: "/expenses",
+    icon: <FiCreditCard />,
+  },
+  {
+    label: "Settings",
+    path: ROUTES.SETTINGS,
+    icon: <FiSettings />,
+  },
 ];
 
 const AppMobileSidebar = ({ open, onClose }) => {

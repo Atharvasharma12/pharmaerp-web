@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
@@ -29,6 +29,7 @@ const getSystemRoleCount = (roles = []) =>
 const AccessControlPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const hasFetchedAccessControlData = useRef(false);
 
   const {
     roles,
@@ -83,18 +84,23 @@ const AccessControlPage = () => {
   ]);
 
   useEffect(() => {
-    clearError();
+    if (hasFetchedAccessControlData.current) return undefined;
 
+    hasFetchedAccessControlData.current = true;
+    clearError();
     fetchAccessControlData();
 
     return () => {
       clearError();
       clearMessage();
     };
-  }, [clearError, clearMessage, fetchAccessControlData]);
+    // This should run only once on page mount.
+    // The ref guard prevents repeated API calls if hook callbacks are recreated.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    if (!message) return;
+    if (!message) return undefined;
 
     const timer = window.setTimeout(() => {
       clearMessage();

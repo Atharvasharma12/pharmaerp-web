@@ -296,7 +296,7 @@ const AppDesktopHeader = ({ sidebarOpen, onMenuClick }) => {
                 </Link>
 
                 <Link
-                  to={ROUTES.BRANCHES}
+                  to={ROUTES.WORKSPACE}
                   onClick={() => setWorkspaceOpen(false)}
                   className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-text-muted transition hover:bg-surface-hover hover:text-text"
                 >

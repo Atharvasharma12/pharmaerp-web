@@ -30,17 +30,22 @@ const sidebarItems = [
   },
   {
     label: "Companies",
-    path: "/companies",
+    path: ROUTES.COMPANIES,
     icon: <FiBriefcase />,
   },
   {
     label: "Branches",
-    path: "/branches",
+    path: ROUTES.BRANCHES,
     icon: <FiMapPin />,
   },
   {
     label: "Staff",
-    path: ROUTES.USERS,
+    path: ROUTES.WORKSPACE_MEMBERS,
+    icon: <FiUsers />,
+  },
+  {
+    label: "Access Control",
+    path: ROUTES.ACCESS_CONTROL,
     icon: <FiUsers />,
   },
   {

@@ -31,9 +31,11 @@ const InviteWorkspaceMemberDesktopPage = ({
   formData,
   formErrors = {},
   workspaceSummary,
+  roles = [],
 
   isLoading = false,
   isCheckingWorkspace = false,
+  isFetchingRoles = false,
   isInviting = false,
   error,
   message,
@@ -95,9 +97,9 @@ const InviteWorkspaceMemberDesktopPage = ({
                   </AppHeading>
 
                   <AppText variant="body2" sx={sectionSubtitleSx}>
-                    Send an invitation to add a user to this workspace. If no
-                    role id is provided, the backend assigns the default staff
-                    role when available.
+                    Send an invitation to add a user to this workspace. Select a
+                    role for the member, or leave it blank to let the backend
+                    use the default staff role when available.
                   </AppText>
                 </AppBox>
               </AppStack>
@@ -127,26 +129,13 @@ const InviteWorkspaceMemberDesktopPage = ({
                   helperTextSx={helperTextSx}
                 />
 
-                <AppInput
-                  label="Role ID"
-                  name="roleId"
+                <RoleSelect
                   value={formData.roleId || ""}
+                  roles={roles}
+                  disabled={isLoading || isFetchingRoles}
+                  isFetchingRoles={isFetchingRoles}
+                  error={formErrors.roleId}
                   onChange={handleChange}
-                  disabled={isLoading}
-                  placeholder="Optional Mongo role id"
-                  fullWidth
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  startIcon={<FiShield />}
-                  error={Boolean(formErrors.roleId)}
-                  helperText={
-                    formErrors.roleId ||
-                    "Optional. Leave blank to invite as default staff."
-                  }
-                  labelSx={labelSx}
-                  inputSx={inputSx}
-                  helperTextSx={helperTextSx}
                 />
               </div>
 
@@ -242,6 +231,56 @@ const InviteWorkspaceMemberDesktopPage = ({
         </div>
       </div>
     </section>
+  );
+};
+
+const RoleSelect = ({
+  value,
+  roles = [],
+  disabled = false,
+  isFetchingRoles = false,
+  error,
+  onChange,
+}) => {
+  const helperText = error
+    ? error
+    : isFetchingRoles
+      ? "Loading workspace roles..."
+      : roles.length > 0
+        ? "Optional. Leave blank to invite as default staff."
+        : "No roles found. Leave blank to invite as default staff.";
+
+  return (
+    <AppBox>
+      <AppStack direction="row" align="center" gap={0.7} sx={labelRowSx}>
+        <FiShield />
+        <AppText component="label" htmlFor="invite-role-id" sx={labelSx}>
+          Role
+        </AppText>
+      </AppStack>
+
+      <select
+        id="invite-role-id"
+        name="roleId"
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className="w-full rounded-md border px-3 outline-none transition disabled:cursor-not-allowed disabled:opacity-70"
+        style={selectStyle}
+      >
+        <option value="">Default Staff Role</option>
+
+        {roles.map((role) => (
+          <option key={role._id} value={role._id}>
+            {role.name || role.code || "Unnamed Role"}
+          </option>
+        ))}
+      </select>
+
+      <AppText variant="body2" sx={error ? helperErrorTextSx : helperTextSx}>
+        {helperText}
+      </AppText>
+    </AppBox>
   );
 };
 
@@ -477,6 +516,12 @@ const sectionSubtitleSx = {
   color: "var(--app-color-text-muted)",
 };
 
+const labelRowSx = {
+  mb: 0.45,
+  color: "var(--app-color-text)",
+  fontSize: "13px",
+};
+
 const labelSx = {
   mb: 0.45,
   fontSize: "12.3px",
@@ -490,6 +535,14 @@ const inputSx = {
   bgcolor: "var(--app-color-surface-alt)",
 };
 
+const selectStyle = {
+  height: 43,
+  fontSize: "12.8px",
+  backgroundColor: "var(--app-color-surface-alt)",
+  borderColor: "var(--app-color-border)",
+  color: "var(--app-color-text)",
+};
+
 const textareaSx = {
   fontSize: "12.8px",
   bgcolor: "var(--app-color-surface-alt)",
@@ -501,6 +554,11 @@ const helperTextSx = {
   fontWeight: 500,
   lineHeight: "16px",
   color: "var(--app-color-text-muted)",
+};
+
+const helperErrorTextSx = {
+  ...helperTextSx,
+  color: "var(--app-color-error)",
 };
 
 const submitAlertSx = {

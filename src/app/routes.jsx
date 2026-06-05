@@ -1,5 +1,3 @@
-// src/app/routes.jsx
-
 import { createBrowserRouter } from "react-router-dom";
 
 import { ROUTES } from "@/constants";
@@ -42,7 +40,11 @@ const NotFoundPage = () => {
 
 export const router = createBrowserRouter([
   {
-    element: <PublicLayout />,
+    element: (
+      <GuestRoute>
+        <PublicLayout />
+      </GuestRoute>
+    ),
     children: [
       {
         path: ROUTES.HOME,
