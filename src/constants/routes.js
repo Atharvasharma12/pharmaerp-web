@@ -15,6 +15,14 @@ export const ROUTES = {
   TRIAL_ACTIVATED: "/onboarding/trial-activated",
   SUBSCRIPTION_SUCCESS: "/onboarding/subscription-success",
 
+  // Workspace
+  WORKSPACE: "/workspace",
+  EDIT_WORKSPACE: "/workspace/edit",
+  WORKSPACE_DETAILS: "/workspace/details",
+  WORKSPACE_MEMBERS: "/workspace/members",
+  WORKSPACE_INVITATIONS: "/workspace/invitations",
+  INVITE_WORKSPACE_MEMBER: "/workspace/members/invite",
+
   // Company
   COMPANIES: "/companies",
   CREATE_COMPANY: "/companies/create",

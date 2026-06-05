@@ -1,6 +1,6 @@
 // src/features/branch/pages/CreateBranchPage.jsx
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { API_STATUS } from "@/constants";
@@ -121,31 +121,21 @@ const booleanOptions = [
 ];
 
 const PHONE_REGEX = /^[6-9][0-9]{9}$/;
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const normalizeText = (value) => String(value || "").trim();
-
 const normalizeUpperText = (value) => normalizeText(value).toUpperCase();
-
 const normalizeLowerText = (value) => normalizeText(value).toLowerCase();
-
 const normalizePhone = (value) => normalizeText(value).replace(/\D/g, "");
-
 const toBoolean = (value) => value === true || value === "true";
 
 const toNumber = (value, fallback = 0) => {
   const numberValue = Number(value);
-
-  if (Number.isNaN(numberValue)) {
-    return fallback;
-  }
-
-  return numberValue;
+  return Number.isNaN(numberValue) ? fallback : numberValue;
 };
 
-const hasAddress = (formData) => {
-  return Boolean(
+const hasAddress = (formData) =>
+  Boolean(
     normalizeText(formData.addressLine1) ||
     normalizeText(formData.addressLine2) ||
     normalizeText(formData.city) ||
@@ -155,12 +145,9 @@ const hasAddress = (formData) => {
     normalizeText(formData.pincode) ||
     normalizeText(formData.googleMapLocation),
   );
-};
 
 const buildAddressPayload = (formData) => {
-  if (!hasAddress(formData)) {
-    return undefined;
-  }
+  if (!hasAddress(formData)) return undefined;
 
   return {
     addressLine1: normalizeText(formData.addressLine1) || null,
@@ -174,19 +161,16 @@ const buildAddressPayload = (formData) => {
   };
 };
 
-const hasLicense = (formData) => {
-  return Boolean(
+const hasLicense = (formData) =>
+  Boolean(
     normalizeText(formData.drugLicenseNumber) ||
     normalizeText(formData.drugLicenseType) ||
     normalizeText(formData.fssaiNumber) ||
     normalizeText(formData.licenseExpiresAt),
   );
-};
 
 const buildLicensePayload = (formData) => {
-  if (!hasLicense(formData)) {
-    return undefined;
-  }
+  if (!hasLicense(formData)) return undefined;
 
   return {
     drugLicenseNumber: normalizeUpperText(formData.drugLicenseNumber) || null,
@@ -196,19 +180,16 @@ const buildLicensePayload = (formData) => {
   };
 };
 
-const hasPharmacist = (formData) => {
-  return Boolean(
+const hasPharmacist = (formData) =>
+  Boolean(
     normalizeText(formData.pharmacistName) ||
     normalizeText(formData.pharmacistRegistrationNumber) ||
     normalizeText(formData.pharmacistMobile) ||
     normalizeText(formData.pharmacistEmail),
   );
-};
 
 const buildPharmacistPayload = (formData) => {
-  if (!hasPharmacist(formData)) {
-    return undefined;
-  }
+  if (!hasPharmacist(formData)) return undefined;
 
   return {
     name: normalizeText(formData.pharmacistName) || null,
@@ -219,18 +200,15 @@ const buildPharmacistPayload = (formData) => {
   };
 };
 
-const hasEmergencyContact = (formData) => {
-  return Boolean(
+const hasEmergencyContact = (formData) =>
+  Boolean(
     normalizeText(formData.emergencyContactName) ||
     normalizeText(formData.emergencyContactMobile) ||
     normalizeText(formData.emergencyContactRelationship),
   );
-};
 
 const buildEmergencyContactPayload = (formData) => {
-  if (!hasEmergencyContact(formData)) {
-    return undefined;
-  }
+  if (!hasEmergencyContact(formData)) return undefined;
 
   return {
     name: normalizeText(formData.emergencyContactName) || null,
@@ -239,12 +217,11 @@ const buildEmergencyContactPayload = (formData) => {
   };
 };
 
-const buildWorkingDays = (value) => {
-  return normalizeText(value)
+const buildWorkingDays = (value) =>
+  normalizeText(value)
     .split(",")
     .map((day) => normalizeText(day))
     .filter(Boolean);
-};
 
 const buildBranchPayload = (formData) => {
   const phone = normalizePhone(formData.branchPhone);
@@ -257,7 +234,6 @@ const buildBranchPayload = (formData) => {
     phone: phone || null,
 
     address: buildAddressPayload(formData),
-
     license: buildLicensePayload(formData),
     pharmacist: buildPharmacistPayload(formData),
     emergencyContact: buildEmergencyContactPayload(formData),
@@ -311,6 +287,60 @@ const buildBranchPayload = (formData) => {
   };
 };
 
+const validateForm = (formData) => {
+  const errors = {};
+
+  const branchName = normalizeText(formData.branchName);
+  const branchEmail = normalizeLowerText(formData.branchEmail);
+  const branchPhone = normalizePhone(formData.branchPhone);
+  const pharmacistMobile = normalizePhone(formData.pharmacistMobile);
+  const pharmacistEmail = normalizeLowerText(formData.pharmacistEmail);
+  const emergencyContactMobile = normalizePhone(
+    formData.emergencyContactMobile,
+  );
+  const startingInvoiceNumber = toNumber(formData.startingInvoiceNumber, 1);
+  const startingPurchaseNumber = toNumber(formData.startingPurchaseNumber, 1);
+
+  if (!branchName) {
+    errors.branchName = "Branch name is required";
+  } else if (branchName.length < 2) {
+    errors.branchName = "Branch name must be at least 2 characters";
+  } else if (branchName.length > 160) {
+    errors.branchName = "Branch name cannot exceed 160 characters";
+  }
+
+  if (branchEmail && !EMAIL_REGEX.test(branchEmail)) {
+    errors.branchEmail = "Enter a valid email address";
+  }
+
+  if (branchPhone && !PHONE_REGEX.test(branchPhone)) {
+    errors.branchPhone = "Invalid phone number";
+  }
+
+  if (pharmacistMobile && !PHONE_REGEX.test(pharmacistMobile)) {
+    errors.pharmacistMobile = "Invalid pharmacist mobile number";
+  }
+
+  if (pharmacistEmail && !EMAIL_REGEX.test(pharmacistEmail)) {
+    errors.pharmacistEmail = "Enter a valid pharmacist email";
+  }
+
+  if (emergencyContactMobile && !PHONE_REGEX.test(emergencyContactMobile)) {
+    errors.emergencyContactMobile = "Invalid emergency contact mobile number";
+  }
+
+  if (startingInvoiceNumber < 1) {
+    errors.startingInvoiceNumber = "Starting invoice number must be at least 1";
+  }
+
+  if (startingPurchaseNumber < 1) {
+    errors.startingPurchaseNumber =
+      "Starting purchase number must be at least 1";
+  }
+
+  return errors;
+};
+
 const CreateBranchPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -322,107 +352,80 @@ const CreateBranchPage = () => {
     clearError,
   } = useBranch();
 
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const formDataRef = useRef({ ...INITIAL_FORM_DATA });
+  const [mobileFormData, setMobileFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
 
   const isLoading = createBranchStatus === API_STATUS.LOADING;
 
-  const validateForm = () => {
-    const errors = {};
+  const handleFieldChange = useCallback(
+    (nameOrEvent, maybeValue) => {
+      const isEvent = Boolean(nameOrEvent?.target);
+      const name = isEvent ? nameOrEvent.target.name : nameOrEvent;
+      const value = isEvent ? nameOrEvent.target.value : maybeValue;
 
-    const branchName = normalizeText(formData.branchName);
-    const branchEmail = normalizeLowerText(formData.branchEmail);
-    const branchPhone = normalizePhone(formData.branchPhone);
+      formDataRef.current[name] = value;
 
-    const pharmacistMobile = normalizePhone(formData.pharmacistMobile);
-    const pharmacistEmail = normalizeLowerText(formData.pharmacistEmail);
+      if (isMobile) {
+        setMobileFormData((prev) => {
+          if (prev[name] === value) return prev;
+          return { ...prev, [name]: value };
+        });
+      }
 
-    const emergencyContactMobile = normalizePhone(
-      formData.emergencyContactMobile,
-    );
+      if (formErrors[name] || formErrors.submit) {
+        setFormErrors((prev) => ({
+          ...prev,
+          [name]: "",
+          submit: "",
+        }));
+      }
 
-    const startingInvoiceNumber = toNumber(formData.startingInvoiceNumber, 1);
-    const startingPurchaseNumber = toNumber(formData.startingPurchaseNumber, 1);
+      if (branchError) {
+        clearError();
+      }
+    },
+    [branchError, clearError, formErrors, isMobile],
+  );
 
-    if (!branchName) {
-      errors.branchName = "Branch name is required";
-    } else if (branchName.length < 2) {
-      errors.branchName = "Branch name must be at least 2 characters";
-    } else if (branchName.length > 160) {
-      errors.branchName = "Branch name cannot exceed 160 characters";
+  const handleBack = useCallback(() => {
+    navigate("/branches");
+  }, [navigate]);
+
+  const closeConfirm = useCallback(() => {
+    if (!isLoading) {
+      setIsConfirmOpen(false);
     }
+  }, [isLoading]);
 
-    if (branchEmail && !EMAIL_REGEX.test(branchEmail)) {
-      errors.branchEmail = "Enter a valid email address";
-    }
-
-    if (branchPhone && !PHONE_REGEX.test(branchPhone)) {
-      errors.branchPhone = "Invalid phone number";
-    }
-
-    if (pharmacistMobile && !PHONE_REGEX.test(pharmacistMobile)) {
-      errors.pharmacistMobile = "Invalid pharmacist mobile number";
-    }
-
-    if (pharmacistEmail && !EMAIL_REGEX.test(pharmacistEmail)) {
-      errors.pharmacistEmail = "Enter a valid pharmacist email";
-    }
-
-    if (emergencyContactMobile && !PHONE_REGEX.test(emergencyContactMobile)) {
-      errors.emergencyContactMobile = "Invalid emergency contact mobile number";
-    }
-
-    if (startingInvoiceNumber < 1) {
-      errors.startingInvoiceNumber =
-        "Starting invoice number must be at least 1";
-    }
-
-    if (startingPurchaseNumber < 1) {
-      errors.startingPurchaseNumber =
-        "Starting purchase number must be at least 1";
-    }
-
-    return errors;
-  };
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-
-    if (formErrors[name] || formErrors.submit) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: "",
-        submit: "",
-      }));
-    }
-
-    if (branchError) {
-      clearError();
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (event) => {
+  const handleSubmit = useCallback((event) => {
     event.preventDefault();
 
-    const validationErrors = validateForm();
+    const snapshot = { ...formDataRef.current };
+    const validationErrors = validateForm(snapshot);
 
     if (Object.keys(validationErrors).length > 0) {
       setFormErrors(validationErrors);
+      setIsConfirmOpen(false);
       return;
     }
 
+    setFormErrors({});
+    setPreviewData(snapshot);
+    setIsConfirmOpen(true);
+  }, []);
+
+  const handleConfirmCreate = useCallback(async () => {
     try {
-      const payload = buildBranchPayload(formData);
+      const snapshot = previewData || { ...formDataRef.current };
+      const payload = buildBranchPayload(snapshot);
 
       await createBranch(payload);
-
       navigate("/branches", { replace: true });
     } catch (error) {
+      setIsConfirmOpen(false);
       setFormErrors({
         submit:
           typeof error === "string"
@@ -430,11 +433,46 @@ const CreateBranchPage = () => {
             : "Unable to create branch. Please try again.",
       });
     }
-  };
+  }, [createBranch, navigate, previewData]);
 
-  const pageProps = useMemo(
+  const desktopProps = useMemo(
     () => ({
-      formData,
+      initialFormData: INITIAL_FORM_DATA,
+      formErrors,
+      isLoading,
+      isConfirmOpen,
+      previewData,
+
+      branchTypeOptions,
+      statusOptions,
+      inventoryModeOptions,
+      priceModeOptions,
+      currencyOptions,
+      timeFormatOptions,
+      booleanOptions,
+
+      handleChange: handleFieldChange,
+      handleSubmit,
+      handleBack,
+      closeConfirm,
+      handleConfirmCreate,
+    }),
+    [
+      closeConfirm,
+      formErrors,
+      handleBack,
+      handleConfirmCreate,
+      handleFieldChange,
+      handleSubmit,
+      isConfirmOpen,
+      isLoading,
+      previewData,
+    ],
+  );
+
+  const mobileProps = useMemo(
+    () => ({
+      formData: mobileFormData,
       formErrors,
       isLoading,
 
@@ -446,17 +484,24 @@ const CreateBranchPage = () => {
       timeFormatOptions,
       booleanOptions,
 
-      handleChange,
+      handleChange: handleFieldChange,
       handleSubmit,
-      handleBack: () => navigate("/branches"),
+      handleBack,
     }),
-    [formData, formErrors, isLoading, navigate],
+    [
+      formErrors,
+      handleBack,
+      handleFieldChange,
+      handleSubmit,
+      isLoading,
+      mobileFormData,
+    ],
   );
 
   return isMobile ? (
-    <CreateBranchMobilePage {...pageProps} />
+    <CreateBranchMobilePage {...mobileProps} />
   ) : (
-    <CreateBranchDesktopPage {...pageProps} />
+    <CreateBranchDesktopPage {...desktopProps} />
   );
 };
 

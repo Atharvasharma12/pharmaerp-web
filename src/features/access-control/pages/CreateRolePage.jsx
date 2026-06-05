@@ -1,7 +1,414 @@
-import React from "react";
+// src/features/access-control/pages/CreateRolePage.jsx
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { API_STATUS, ROUTES } from "@/constants";
+import { useIsMobile } from "@/hooks";
+
+import useAccessControl from "../hooks/useAccessControl";
+
+import CreateRoleDesktopPage from "./desktop/CreateRoleDesktopPage";
+import CreateRoleMobilePage from "./mobile/CreateRoleMobilePage";
+
+const INITIAL_FORM_DATA = {
+  name: "",
+  code: "",
+  description: "",
+  permissions: [],
+};
+
+const CODE_REGEX = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
+
+const normalizeText = (value) => String(value || "").trim();
+const normalizeLowerText = (value) => normalizeText(value).toLowerCase();
+
+const createCodeFromName = (name) =>
+  normalizeLowerText(name)
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+const formatPermissionLabel = (permission) => {
+  if (!permission) return "Permission";
+
+  return String(permission)
+    .replace(/[.:_-]+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
+
+const getPermissionGroup = (permission) => {
+  const value = String(permission || "");
+
+  if (!value) return "General";
+
+  const [firstPart] = value.split(/[.:_-]/);
+
+  return formatPermissionLabel(firstPart || "General");
+};
+
+const buildCreateRolePayload = (formData) => {
+  const payload = {
+    name: normalizeText(formData.name),
+    permissions: Array.isArray(formData.permissions)
+      ? formData.permissions
+      : [],
+  };
+
+  const code = normalizeLowerText(formData.code);
+  const description = normalizeText(formData.description);
+
+  if (code) {
+    payload.code = code;
+  }
+
+  if (description) {
+    payload.description = description;
+  }
+
+  return payload;
+};
 
 const CreateRolePage = () => {
-  return <div>CreateRolePage</div>;
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+
+  const {
+    permissions,
+
+    createRole,
+    getAvailablePermissions,
+
+    createRoleStatus,
+    getAvailablePermissionsStatus,
+
+    error,
+    message,
+
+    clearError,
+    clearMessage,
+    clearCurrentRole,
+  } = useAccessControl();
+
+  const hasFetchedPermissionsRef = useRef(false);
+
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [formErrors, setFormErrors] = useState({});
+  const [autoCodeEnabled, setAutoCodeEnabled] = useState(true);
+
+  const isCreating = createRoleStatus === API_STATUS.LOADING;
+  const isLoadingPermissions =
+    getAvailablePermissionsStatus === API_STATUS.LOADING;
+  const isLoading = isCreating || isLoadingPermissions;
+  const hasPermissionError = getAvailablePermissionsStatus === API_STATUS.ERROR;
+
+  const permissionOptions = useMemo(
+    () =>
+      (Array.isArray(permissions) ? permissions : []).map((permission) => ({
+        label: formatPermissionLabel(permission),
+        value: permission,
+        group: getPermissionGroup(permission),
+      })),
+    [permissions],
+  );
+
+  const selectedPermissionOptions = useMemo(
+    () =>
+      permissionOptions.filter((option) =>
+        formData.permissions.includes(option.value),
+      ),
+    [formData.permissions, permissionOptions],
+  );
+
+  const permissionSummary = useMemo(() => {
+    const total = permissionOptions.length;
+    const selected = formData.permissions.length;
+    const groups = new Set(permissionOptions.map((option) => option.group))
+      .size;
+
+    return {
+      total,
+      selected,
+      groups,
+      remaining: Math.max(total - selected, 0),
+    };
+  }, [formData.permissions.length, permissionOptions]);
+
+  const previewRole = useMemo(() => {
+    const name = normalizeText(formData.name) || "New Role";
+    const code = normalizeLowerText(formData.code) || createCodeFromName(name);
+    const description =
+      normalizeText(formData.description) ||
+      "Custom workspace role with selected permissions.";
+
+    return {
+      name,
+      code: code || "new_role",
+      description,
+      permissionsCount: formData.permissions.length,
+      status: "active",
+      isSystem: false,
+      isEditable: true,
+    };
+  }, [formData]);
+
+  const fetchPermissions = useCallback(async () => {
+    try {
+      await getAvailablePermissions();
+    } catch {
+      // Error is already stored in access-control slice.
+    }
+  }, [getAvailablePermissions]);
+
+  useEffect(() => {
+    clearError();
+    clearMessage();
+    clearCurrentRole();
+
+    return () => {
+      clearError();
+      clearMessage();
+      clearCurrentRole();
+    };
+  }, [clearCurrentRole, clearError, clearMessage]);
+
+  useEffect(() => {
+    if (hasFetchedPermissionsRef.current) return;
+
+    hasFetchedPermissionsRef.current = true;
+    fetchPermissions();
+  }, [fetchPermissions]);
+
+  useEffect(() => {
+    if (!error) return;
+
+    setFormErrors((prev) => ({
+      ...prev,
+      submit: error,
+    }));
+  }, [error]);
+
+  const validateForm = useCallback(() => {
+    const errors = {};
+    const name = normalizeText(formData.name);
+    const code = normalizeLowerText(formData.code);
+    const description = normalizeText(formData.description);
+    const selectedPermissions = Array.isArray(formData.permissions)
+      ? formData.permissions
+      : [];
+
+    if (!name) {
+      errors.name = "Role name is required";
+    } else if (name.length < 2) {
+      errors.name = "Role name must be at least 2 characters";
+    } else if (name.length > 80) {
+      errors.name = "Role name cannot exceed 80 characters";
+    }
+
+    if (code && !CODE_REGEX.test(code)) {
+      errors.code =
+        "Role code can only contain lowercase letters, numbers and underscores";
+    } else if (code.length > 100) {
+      errors.code = "Role code cannot exceed 100 characters";
+    }
+
+    if (description.length > 500) {
+      errors.description = "Description cannot exceed 500 characters";
+    }
+
+    const availablePermissionValues = new Set(
+      permissionOptions.map((option) => option.value),
+    );
+
+    const hasInvalidPermission = selectedPermissions.some(
+      (permission) => !availablePermissionValues.has(permission),
+    );
+
+    if (hasInvalidPermission) {
+      errors.permissions = "One or more selected permissions are invalid";
+    }
+
+    return errors;
+  }, [formData, permissionOptions]);
+
+  const handleChange = useCallback(
+    (eventOrValue) => {
+      if (error) {
+        clearError();
+      }
+
+      if (eventOrValue?.target) {
+        const { name, value } = eventOrValue.target;
+
+        setFormErrors((prev) => ({
+          ...prev,
+          [name]: "",
+          submit: "",
+        }));
+
+        setFormData((prev) => {
+          const next = {
+            ...prev,
+            [name]: value,
+          };
+
+          if (name === "name" && autoCodeEnabled) {
+            next.code = createCodeFromName(value);
+          }
+
+          if (name === "code") {
+            next.code = normalizeLowerText(value);
+          }
+
+          return next;
+        });
+
+        if (name === "code") {
+          setAutoCodeEnabled(false);
+        }
+
+        return;
+      }
+
+      setFormErrors((prev) => ({
+        ...prev,
+        submit: "",
+      }));
+
+      setFormData((prev) => ({
+        ...prev,
+        ...eventOrValue,
+      }));
+    },
+    [autoCodeEnabled, clearError, error],
+  );
+
+  const handlePermissionsChange = useCallback(
+    (eventOrValue) => {
+      if (error) {
+        clearError();
+      }
+
+      const value = eventOrValue?.target?.value ?? eventOrValue ?? [];
+
+      setFormErrors((prev) => ({
+        ...prev,
+        permissions: "",
+        submit: "",
+      }));
+
+      setFormData((prev) => ({
+        ...prev,
+        permissions: Array.isArray(value) ? value : [],
+      }));
+    },
+    [clearError, error],
+  );
+
+  const handleSelectAllPermissions = useCallback(() => {
+    setFormErrors((prev) => ({
+      ...prev,
+      permissions: "",
+      submit: "",
+    }));
+
+    setFormData((prev) => ({
+      ...prev,
+      permissions: permissionOptions.map((option) => option.value),
+    }));
+  }, [permissionOptions]);
+
+  const handleClearPermissions = useCallback(() => {
+    setFormErrors((prev) => ({
+      ...prev,
+      permissions: "",
+      submit: "",
+    }));
+
+    setFormData((prev) => ({
+      ...prev,
+      permissions: [],
+    }));
+  }, []);
+
+  const handleReset = useCallback(() => {
+    if (isLoading) return;
+
+    clearError();
+    clearMessage();
+    setFormData(INITIAL_FORM_DATA);
+    setFormErrors({});
+    setAutoCodeEnabled(true);
+  }, [clearError, clearMessage, isLoading]);
+
+  const handleBack = useCallback(() => {
+    navigate(ROUTES.ROLES);
+  }, [navigate]);
+
+  const handleViewPermissions = useCallback(() => {
+    navigate(ROUTES.PERMISSIONS);
+  }, [navigate]);
+
+  const handleSubmit = useCallback(
+    async (event) => {
+      event.preventDefault();
+
+      clearError();
+      clearMessage();
+
+      const validationErrors = validateForm();
+
+      if (Object.keys(validationErrors).length > 0) {
+        setFormErrors(validationErrors);
+        return;
+      }
+
+      try {
+        await createRole(buildCreateRolePayload(formData));
+        navigate(ROUTES.ROLES, { replace: true });
+      } catch (submitError) {
+        setFormErrors((prev) => ({
+          ...prev,
+          submit: submitError || "Unable to create role. Please try again.",
+        }));
+      }
+    },
+    [clearError, clearMessage, createRole, formData, navigate, validateForm],
+  );
+
+  const pageProps = {
+    formData,
+    formErrors,
+    permissionOptions,
+    selectedPermissionOptions,
+    permissionSummary,
+    previewRole,
+
+    isLoading,
+    isCreating,
+    isLoadingPermissions,
+    hasPermissionError,
+    error,
+    message,
+
+    handleChange,
+    handlePermissionsChange,
+    handleSelectAllPermissions,
+    handleClearPermissions,
+    handleSubmit,
+    handleReset,
+    handleBack,
+    handleViewPermissions,
+    handleRefreshPermissions: fetchPermissions,
+  };
+
+  return isMobile ? (
+    <CreateRoleMobilePage {...pageProps} />
+  ) : (
+    <CreateRoleDesktopPage {...pageProps} />
+  );
 };
 
 export default CreateRolePage;

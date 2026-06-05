@@ -2,7 +2,6 @@ import React from "react";
 import {
   Box,
   Breadcrumbs,
-  Link,
   Typography,
   IconButton,
   Menu,
@@ -13,6 +12,7 @@ import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getThemeTokens } from "@/theme/getThemeTokens";
+import { Link } from "react-router-dom";
 
 const AppBreadcrumb = ({
   items = [],
@@ -359,8 +359,8 @@ const AppBreadcrumb = ({
 
     return (
       <Link
-        key={item.key || `${item.label}-${index}`}
-        href={item.href}
+        component={Link}
+        to={item.href}
         underline="none"
         color="inherit"
         onClick={item.onClick}
