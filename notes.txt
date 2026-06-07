@@ -763,23 +763,36 @@ src/features/onboarding/
 └── index.js
 
 
+src/features/setup/
+├── pages/
+│   ├── SetupCenterPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── SetupCenterDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── SetupCenterMobilePage.jsx
+│       └── index.js
+│├── constants/
+│   ├── dashboardStats.js
+│   ├── setupSteps.js
+│   ├── quickGuides.js
+│   └── index.js
+
+
 src/features/dashboard/
 │
 ├── pages/
-│   ├── DashboardPage.jsx
-│   ├── WelcomeDashboardPage.jsx
 │   ├── MainDashboardPage.jsx
 │   ├── index.js
 │   │
 │   ├── desktop/
-│   │   ├── DashboardDesktopPage.jsx
-│   │   ├── WelcomeDashboardDesktopPage.jsx
 │   │   ├── MainDashboardDesktopPage.jsx
 │   │   └── index.js
 │   │
 │   └── mobile/
-│       ├── DashboardMobilePage.jsx
-│       ├── WelcomeDashboardMobilePage.jsx
 │       ├── MainDashboardMobilePage.jsx
 │       └── index.js
 │
@@ -799,6 +812,22 @@ src/features/dashboard/
 │   └── index.js
 │
 └── index.js
+
+Login
+ ↓
+Dashboard (Setup Center Mode)
+ ↓
+Click Create Workspace
+ ↓
+/onboarding/create-workspace
+ ↓
+Back to Dashboard
+ ↓
+Click Choose Plan
+ ↓
+/onboarding/choose-plan
+ ↓
+Back to Dashboard
 
 
 I will share some already-built React pages/components first. Treat those as the CSS/styling reference only.

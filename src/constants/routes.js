@@ -48,6 +48,9 @@ export const ROUTES = {
   EDIT_ACCESS: "/access-control/member-access/:memberId/edit",
   PERMISSIONS: "/access-control/permissions",
 
+  // Setup
+  SETUP_CENTER: "/setup",
+
   // Dashboard
   DASHBOARD: "/dashboard",
 

@@ -14,6 +14,7 @@ import { GuestRoute, ProtectedRoute, WorkspaceRequiredRoute } from "@/guards";
 import authRoutes from "@/features/auth/routes/authRoutes";
 import onboardingRoutes from "@/features/onboarding/routes/onboardingRoutes";
 import workspaceRoutes from "@/features/workspace/routes/workspaceRoutes";
+import setupRoutes from "@/features/setup/routes/setupRoutes";
 import dashboardRoutes from "@/features/dashboard/routes/dashboardRoutes";
 import companyRoutes from "@/features/company/routes/companyRoutes";
 import branchRoutes from "@/features/branch/routes/branchRoutes";
@@ -101,6 +102,15 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: onboardingRoutes,
+  },
+
+  {
+    element: (
+      <ProtectedRoute>
+        <AppLayout />
+      </ProtectedRoute>
+    ),
+    children: [...setupRoutes],
   },
 
   {

@@ -26,9 +26,9 @@ const getWorkspaceFromItem = (item) => {
 const AppLayout = () => {
   const isMobile = useIsMobile();
 
-  const didInitWorkspaceRef = useRef(false);
-  const didInitCompanyRef = useRef(false);
-  const didInitBranchRef = useRef(false);
+  const initializedWorkspaceRef = useRef(false);
+  const initializedCompanyWorkspaceRef = useRef(null);
+  const initializedBranchCompanyRef = useRef(null);
 
   const { user, getActiveContext } = useUser();
 
@@ -52,9 +52,9 @@ const AppLayout = () => {
   } = useBranch();
 
   useEffect(() => {
-    if (didInitWorkspaceRef.current) return;
+    if (initializedWorkspaceRef.current) return;
 
-    didInitWorkspaceRef.current = true;
+    initializedWorkspaceRef.current = true;
 
     const initWorkspaces = async () => {
       try {
@@ -77,6 +77,8 @@ const AppLayout = () => {
 
         if (activeWorkspaceId) {
           storage.set(WORKSPACE_STORAGE_KEY, activeWorkspaceId);
+        } else {
+          storage.remove(WORKSPACE_STORAGE_KEY);
         }
 
         if (activeCompanyId) {
@@ -125,8 +127,10 @@ const AppLayout = () => {
 
     if (!workspaceId) return;
 
-    didInitCompanyRef.current = false;
-    didInitBranchRef.current = false;
+    if (initializedCompanyWorkspaceRef.current === workspaceId) return;
+
+    initializedCompanyWorkspaceRef.current = workspaceId;
+    initializedBranchCompanyRef.current = null;
 
     const initCompanies = async () => {
       try {
@@ -142,8 +146,14 @@ const AppLayout = () => {
           null;
 
         if (!selectedCompany?._id) {
-          clearCurrentCompany();
-          clearCurrentBranch();
+          if (currentCompany?._id) {
+            clearCurrentCompany();
+          }
+
+          if (currentBranch?._id) {
+            clearCurrentBranch();
+          }
+
           return;
         }
 
@@ -155,11 +165,7 @@ const AppLayout = () => {
       }
     };
 
-    if (!didInitCompanyRef.current) {
-      didInitCompanyRef.current = true;
-      initCompanies();
-    }
-
+    initCompanies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWorkspace?._id]);
 
@@ -167,6 +173,10 @@ const AppLayout = () => {
     const companyId = currentCompany?._id;
 
     if (!companyId) return;
+
+    if (initializedBranchCompanyRef.current === companyId) return;
+
+    initializedBranchCompanyRef.current = companyId;
 
     const initBranches = async () => {
       try {
@@ -182,7 +192,10 @@ const AppLayout = () => {
           null;
 
         if (!selectedBranch?._id) {
-          clearCurrentBranch();
+          if (currentBranch?._id) {
+            clearCurrentBranch();
+          }
+
           return;
         }
 
@@ -194,11 +207,7 @@ const AppLayout = () => {
       }
     };
 
-    if (!didInitBranchRef.current) {
-      didInitBranchRef.current = true;
-      initBranches();
-    }
-
+    initBranches();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCompany?._id]);
 

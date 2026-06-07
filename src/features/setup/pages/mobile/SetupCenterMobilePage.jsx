@@ -1,5 +1,7 @@
-// src/features/dashboard/pages/mobile/WelcomeDashboardMobilePage.jsx
+// src/features/setup/pages/mobile/SetupCenterMobilePage.jsx
 
+import { useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiBarChart2,
   FiBox,
@@ -23,6 +25,9 @@ import {
   AppStack,
   AppText,
 } from "@/components";
+import useCompany from "@/features/company/hooks/useCompany";
+import useBranch from "@/features/branch/hooks/useBranch";
+import { dashboardStats, setupSteps } from "@/features/setup/constants";
 
 const statIcons = {
   sales: <FiShoppingCart />,
@@ -41,9 +46,52 @@ const setupIcons = {
   sale: <FiShoppingCart />,
 };
 
-const WelcomeDashboardMobilePage = ({ stats, setupSteps, progress = 0 }) => {
+const SetupCenterMobilePage = () => {
+  const navigate = useNavigate();
+
+  const { companies, getWorkspaceCompanies } = useCompany();
+  const { branches, getCompanyBranches } = useBranch();
+
+  const hasCompany = companies.length > 0;
+  const hasBranch = branches.length > 0;
+
+  useEffect(() => {
+    getWorkspaceCompanies().catch(() => {});
+    getCompanyBranches().catch(() => {});
+  }, []);
+
+  const mappedSetupSteps = useMemo(
+    () =>
+      setupSteps.map((step) => ({
+        ...step,
+        completed:
+          step.id === "company"
+            ? hasCompany
+            : step.id === "branch"
+              ? hasBranch
+              : step.completed,
+        onClick: () => {
+          if (!step.disabled && step.route) {
+            navigate(step.route);
+          }
+        },
+      })),
+    [hasCompany, hasBranch, navigate],
+  );
+
+  const completedStepsCount = useMemo(
+    () => mappedSetupSteps.filter((step) => step.completed).length,
+    [mappedSetupSteps],
+  );
+
+  const progress = useMemo(() => {
+    if (!mappedSetupSteps.length) return 0;
+
+    return Math.round((completedStepsCount / mappedSetupSteps.length) * 100);
+  }, [completedStepsCount, mappedSetupSteps.length]);
+
   const compactStats = [
-    ...stats,
+    ...dashboardStats,
     {
       id: "setup",
       title: "Setup",
@@ -57,11 +105,11 @@ const WelcomeDashboardMobilePage = ({ stats, setupSteps, progress = 0 }) => {
     <section className="w-full bg-bg">
       <AppBox sx={sectionSx}>
         <AppHeading level={1} weight={750} sx={pageTitleSx}>
-          Welcome back, Admin! 👋
+          Setup Center
         </AppHeading>
 
         <AppText variant="body2" weight={500} sx={pageSubtitleSx}>
-          Here&apos;s what&apos;s happening with your business today.
+          Complete the setup steps below to start using your pharmacy ERP.
         </AppText>
 
         <div className="mt-3 grid grid-cols-3 gap-1.5">
@@ -72,7 +120,7 @@ const WelcomeDashboardMobilePage = ({ stats, setupSteps, progress = 0 }) => {
 
         <ProgressCard progress={progress} />
 
-        <SetupCard setupSteps={setupSteps} />
+        <SetupCard setupSteps={mappedSetupSteps} />
       </AppBox>
     </section>
   );
@@ -389,4 +437,4 @@ const hintTextSx = {
   color: "var(--app-color-text-muted)",
 };
 
-export default WelcomeDashboardMobilePage;
+export default SetupCenterMobilePage;
