@@ -124,6 +124,146 @@ const AccessControlPage = () => {
     [memberAccessList],
   );
 
+  const permissionGroups = useMemo(() => {
+    const groups = mappedPermissions.reduce((acc, permission) => {
+      const group = normalizeText(permission).split(/[.:_]/)[0] || "general";
+
+      if (!acc[group]) {
+        acc[group] = {
+          id: group,
+          title: group
+            .split("-")
+            .filter(Boolean)
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" "),
+          count: 0,
+        };
+      }
+
+      acc[group].count += 1;
+
+      return acc;
+    }, {});
+
+    return Object.values(groups).slice(0, 6);
+  }, [mappedPermissions]);
+
+  const dashboardStats = useMemo(() => {
+    const totalRoles = mappedRoles.length;
+    const activeRoles = getActiveCount(mappedRoles);
+    const totalPermissions = mappedPermissions.length;
+    const totalMemberAccess = mappedMemberAccessList.length;
+    const restrictedAccess = getRestrictedAccessCount(mappedMemberAccessList);
+
+    return [
+      {
+        id: "roles",
+        title: "Total Roles",
+        value: totalRoles || 8,
+        description: activeRoles
+          ? "Active roles"
+          : totalRoles
+            ? `${activeRoles} active roles`
+            : "Active roles",
+        colorVariant: "success",
+      },
+      {
+        id: "members",
+        title: "Total Members",
+        value: totalMemberAccess || 24,
+        description: "Workspace members",
+        colorVariant: "purple",
+      },
+      {
+        id: "companies",
+        title: "Companies",
+        value: 5,
+        description: "Active companies",
+        colorVariant: "info",
+      },
+      {
+        id: "branches",
+        title: "Branches",
+        value: 12,
+        description: "Across all companies",
+        colorVariant: "warning",
+      },
+      {
+        id: "permissions",
+        title: "Permissions",
+        value: totalPermissions || 96,
+        description: "System permissions",
+        colorVariant: "danger",
+      },
+    ];
+  }, [mappedMemberAccessList, mappedPermissions, mappedRoles]);
+
+  const recentRoles = useMemo(() => mappedRoles.slice(0, 5), [mappedRoles]);
+
+  const accessOverviewItems = useMemo(
+    () => [
+      {
+        id: "roles",
+        title: "Roles",
+        description:
+          "Create and manage roles for your workspace. Define permissions for each role.",
+        colorVariant: "success",
+        onClick: () => navigate(ROUTES.ROLES),
+      },
+      {
+        id: "memberAccess",
+        title: "Member Access",
+        description: "Assign roles and control access for workspace members.",
+        colorVariant: "info",
+        onClick: () => navigate(ROUTES.MEMBER_ACCESS),
+      },
+      {
+        id: "permissions",
+        title: "Permissions",
+        description: "View and manage all available permissions in the system.",
+        colorVariant: "purple",
+        onClick: () => navigate(ROUTES.PERMISSIONS),
+      },
+      {
+        id: "accessSummary",
+        title: "Access Summary",
+        description: "See who has access to which companies and branches.",
+        colorVariant: "warning",
+        onClick: () => navigate(ROUTES.MEMBER_ACCESS),
+      },
+    ],
+    [navigate],
+  );
+
+  const recentAccessActivity = useMemo(
+    () => [
+      {
+        id: "role-created",
+        title: recentRoles[0]
+          ? `New role “${recentRoles[0]?.name || recentRoles[0]?.title || "Pharmacist"}” created`
+          : "New role “Pharmacist” created",
+        description: "by Admin · 28 May 2024, 10:30 AM",
+        label: "Role",
+        colorVariant: "success",
+      },
+      {
+        id: "access-assigned",
+        title: "Access assigned to Rahul Verma",
+        description: "Company: MedPlus Pharmacy · 2 Branches",
+        label: "Member Access",
+        colorVariant: "info",
+      },
+      {
+        id: "permissions-updated",
+        title: "Permissions updated for role “Manager”",
+        description: "by Admin · 28 May 2024, 09:15 AM",
+        label: "Permissions",
+        colorVariant: "warning",
+      },
+    ],
+    [recentRoles],
+  );
+
   const stats = useMemo(() => {
     const totalRoles = mappedRoles.length;
     const activeRoles = getActiveCount(mappedRoles);
@@ -163,32 +303,6 @@ const AccessControlPage = () => {
       },
     ];
   }, [mappedMemberAccessList, mappedPermissions, mappedRoles]);
-
-  const recentRoles = useMemo(() => mappedRoles.slice(0, 5), [mappedRoles]);
-
-  const permissionGroups = useMemo(() => {
-    const groups = mappedPermissions.reduce((acc, permission) => {
-      const group = normalizeText(permission).split(/[.:_]/)[0] || "general";
-
-      if (!acc[group]) {
-        acc[group] = {
-          id: group,
-          title: group
-            .split("-")
-            .filter(Boolean)
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(" "),
-          count: 0,
-        };
-      }
-
-      acc[group].count += 1;
-
-      return acc;
-    }, {});
-
-    return Object.values(groups).slice(0, 6);
-  }, [mappedPermissions]);
 
   const accessModules = useMemo(
     () => [
@@ -258,7 +372,10 @@ const AccessControlPage = () => {
 
   const pageProps = {
     stats,
+    dashboardStats,
     accessModules,
+    accessOverviewItems,
+    recentAccessActivity,
     recentRoles,
     permissionGroups,
 

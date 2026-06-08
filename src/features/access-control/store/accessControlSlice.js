@@ -144,7 +144,12 @@ const accessControlSlice = createSlice({
       })
 
       // GET ROLE BY ID
-      .addCase(getRoleById.pending, setPending)
+      .addCase(getRoleById.pending, (state) => {
+        state.status = API_STATUS.LOADING;
+        state.getRoleStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
       .addCase(getRoleById.fulfilled, (state, action) => {
         state.status = API_STATUS.SUCCESS;
         state.getRoleStatus = API_STATUS.SUCCESS;

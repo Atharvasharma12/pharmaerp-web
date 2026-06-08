@@ -145,6 +145,8 @@ const ChoosePlanDesktopPage = ({
   }, [trialPlan]);
 
   const openTrialDialog = (plan) => {
+    if (!plan || isLoading) return;
+
     handleSelectPlan?.(plan.id);
     setTrialPlan(plan);
   };
@@ -154,10 +156,10 @@ const ChoosePlanDesktopPage = ({
     setTrialPlan(null);
   };
 
-  const confirmTrial = () => {
-    if (!trialPlan) return;
-    handleStartTrial?.(trialPlan.id);
-    setTrialPlan(null);
+  const confirmTrial = async () => {
+    if (!trialPlan || isLoading) return;
+
+    await handleStartTrial?.(trialPlan.id);
   };
 
   return (
@@ -290,6 +292,7 @@ const ChoosePlanDesktopPage = ({
         workspaceName={workspaceName}
         trialEndsOn={trialEndsOn}
         isLoading={isLoading}
+        error={error}
         onClose={closeTrialDialog}
         onConfirm={confirmTrial}
       />
@@ -335,6 +338,7 @@ const PlanCard = ({
           <AppHeading level={2} weight={720} sx={planNameSx}>
             {plan.name}
           </AppHeading>
+
           <AppText variant="body2" sx={planSubtitleSx}>
             {plan.subtitle}
           </AppText>
@@ -346,6 +350,7 @@ const PlanCard = ({
           <AppHeading level={3} weight={760} sx={priceSx}>
             ₹{Number(monthlyAmount || 0).toLocaleString("en-IN")}
           </AppHeading>
+
           <AppText variant="body2" sx={perMonthSx}>
             /month
           </AppText>
@@ -384,6 +389,7 @@ const TrialDialog = ({
   workspaceName,
   trialEndsOn,
   isLoading,
+  error,
   onClose,
   onConfirm,
 }) => {
@@ -408,9 +414,11 @@ const TrialDialog = ({
                 <div className="mb-5 flex justify-center">
                   <div className="relative flex h-[94px] w-[94px] items-center justify-center rounded-2xl bg-primary-soft text-primary">
                     <FiCalendar className="text-[52px]" />
+
                     <span className="absolute text-[30px] font-bold leading-none text-primary">
                       {trialDays}
                     </span>
+
                     <span className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full border-2 border-surface bg-primary-soft text-primary">
                       <FiClock className="text-[19px]" />
                     </span>
@@ -438,6 +446,7 @@ const TrialDialog = ({
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success-soft text-[11px] text-success">
                         <FiCheck />
                       </span>
+
                       <AppText variant="body2" sx={dialogBenefitTextSx}>
                         {item}
                       </AppText>
@@ -458,10 +467,12 @@ const TrialDialog = ({
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft text-primary">
                     <FiShield />
                   </span>
+
                   <AppBox>
                     <AppText variant="body2" weight={700} sx={safeTitleSx}>
                       Your data is safe with us
                     </AppText>
+
                     <AppText variant="body2" sx={safeTextSx}>
                       We never share your information with anyone.
                     </AppText>
@@ -505,6 +516,7 @@ const TrialDialog = ({
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-info text-[12px] text-text-inverse">
                   <FiInfo />
                 </span>
+
                 <AppText variant="body2" sx={bannerTextSx}>
                   Your trial includes all features of the {plan.name} plan for{" "}
                   {trialDays} days.
@@ -518,17 +530,20 @@ const TrialDialog = ({
                 label="Workspace"
                 value={workspaceName}
               />
+
               <TrialInfoRow
                 icon={<FiAward />}
                 label="Plan"
                 value={plan.name}
                 badge={`${trialDays} Days Free Trial`}
               />
+
               <TrialInfoRow
                 icon={<FiCalendar />}
                 label="Trial Duration"
                 value={`${trialDays} Days`}
               />
+
               <TrialInfoRow
                 icon={<FiCalendar />}
                 label="Trial Ends On"
@@ -547,12 +562,27 @@ const TrialDialog = ({
                 <span className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-warning text-[11px] text-text-inverse">
                   <FiAlertCircle />
                 </span>
+
                 <AppText variant="body2" sx={warningTextSx}>
                   After your trial ends, you can upgrade to continue using the
                   features or downgrade to a lower plan.
                 </AppText>
               </AppStack>
             </AppCard>
+
+            {error ? (
+              <AppCard
+                variant="soft"
+                rounded="lg"
+                bordered
+                padding="none"
+                sx={dialogErrorSx}
+              >
+                <AppText variant="body2" weight={650} sx={dialogErrorTextSx}>
+                  {error}
+                </AppText>
+              </AppCard>
+            ) : null}
 
             <AppButton
               type="button"
@@ -561,7 +591,7 @@ const TrialDialog = ({
               rounded="md"
               fullWidth
               loading={isLoading}
-              disabled={isLoading}
+              disabled={isLoading || !Number(plan.trialDays || 0)}
               onClick={onConfirm}
               sx={dialogStartButtonSx}
             >
@@ -570,6 +600,7 @@ const TrialDialog = ({
 
             <AppStack direction="row" align="center" justify="center" gap={0.8}>
               <FiShield className="text-[14px] text-text-muted" />
+
               <AppText variant="body2" sx={noCardTextSx}>
                 No credit card required
               </AppText>
@@ -637,10 +668,12 @@ const RightHelpPanel = () => (
 const SideBlock = ({ icon, title, children }) => (
   <AppStack direction="row" align="flex-start" gap={0.9}>
     <AppBox sx={sideIconSx}>{icon}</AppBox>
+
     <AppBox>
       <AppHeading level={3} weight={650} sx={sideTitleSx}>
         {title}
       </AppHeading>
+
       <AppText variant="body2" sx={sideTextSx}>
         {children}
       </AppText>
@@ -668,6 +701,7 @@ const ComparisonTable = () => (
       >
         <div className="flex items-center gap-2 border-r border-divider px-4 py-2">
           <span className="text-[14px] text-text-muted">{row.icon}</span>
+
           <AppText variant="body2" sx={tableLabelSx}>
             {row.label}
           </AppText>
@@ -679,6 +713,7 @@ const ComparisonTable = () => (
             className="flex items-center gap-2 border-r border-divider px-5 py-2 last:border-r-0"
           >
             <FiCheck className="text-[13px] text-primary" />
+
             <AppText variant="body2" sx={tableValueSx}>
               {value}
             </AppText>
@@ -714,6 +749,7 @@ const FeatureItem = ({ text }) => (
     <AppBox sx={checkIconSx}>
       <FiCheck />
     </AppBox>
+
     <AppText variant="body2" sx={featureTextSx}>
       {text}
     </AppText>
@@ -1030,6 +1066,19 @@ const warningTextSx = {
   fontSize: "12px",
   lineHeight: 1.5,
   color: "var(--app-color-text)",
+};
+
+const dialogErrorSx = {
+  mt: 1.2,
+  px: 1.2,
+  py: 0.95,
+  bgcolor: "var(--app-color-error-soft)",
+  borderColor: "var(--app-color-error)",
+};
+
+const dialogErrorTextSx = {
+  fontSize: "12px",
+  color: "var(--app-color-error)",
 };
 
 const dialogStartButtonSx = {

@@ -51,13 +51,12 @@ export const getRoleById = createAsyncThunk(
     try {
       const response = await accessControlService.getRoleById(roleId);
 
-      return response.data?.data;
+      return response?.data?.data || response?.data || response;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
   },
 );
-
 export const updateRole = createAsyncThunk(
   "accessControl/updateRole",
   async ({ roleId, payload }, { rejectWithValue }) => {

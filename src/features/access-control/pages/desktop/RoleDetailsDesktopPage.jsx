@@ -1,22 +1,12 @@
-// src/features/access-control/pages/desktop/RoleDetailsDesktopPage.jsx
-
 import {
-  FiAlertTriangle,
   FiArrowLeft,
   FiCalendar,
-  FiCheckCircle,
-  FiCopy,
-  FiEdit3,
+  FiCode,
+  FiEdit2,
   FiHash,
-  FiInfo,
-  FiKey,
-  FiLayers,
-  FiLock,
-  FiPlus,
   FiRefreshCw,
   FiShield,
-  FiTrash2,
-  FiUnlock,
+  FiToggleLeft,
   FiUser,
 } from "react-icons/fi";
 
@@ -28,61 +18,49 @@ import {
   AppCard,
   AppEmptyState,
   AppErrorState,
-  AppFormSkeleton,
   AppHeading,
-  AppKeyValue,
   AppStack,
   AppStatusBadge,
   AppTag,
   AppText,
 } from "@/components";
 
-const statIcons = {
-  total: <FiKey />,
-  groups: <FiLayers />,
-  type: <FiShield />,
-  status: <FiCheckCircle />,
-};
-
 const statusColorMap = {
   active: "success",
-  inactive: "warning",
+  inactive: "neutral",
+};
+
+const typeColorMap = {
+  System: "info",
+  Custom: "purple",
 };
 
 const RoleDetailsDesktopPage = ({
   role,
-  permissionStats = [],
 
-  isLoading = false,
-  isFetchingRole = false,
-  isDeletingRole = false,
-  hasError = false,
+  isLoading,
+  hasError,
   error,
   message,
 
   handleRefresh,
-  handleBack,
+  handleBackToRoles,
+  handleBackToAccessControl,
   handleEditRole,
-  handleViewPermissions,
-  handleCreateRole,
-  handleDeleteRole,
 
   clearMessage,
 }) => {
-  const showInitialSkeleton = isFetchingRole && !role;
-
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
       {message ? <TopToast message={message} onClose={clearMessage} /> : null}
 
-      <div className="mx-auto w-full max-w-[1380px]">
+      <div className="mx-auto w-full max-w-[1240px]">
         <PageHeader
           role={role}
-          isLoading={isLoading}
-          onBack={handleBack}
-          onRefresh={handleRefresh}
+          onBackToAccessControl={handleBackToAccessControl}
+          onBackToRoles={handleBackToRoles}
           onEdit={handleEditRole}
-          onViewPermissions={handleViewPermissions}
+          onRefresh={handleRefresh}
         />
 
         {error && !hasError ? (
@@ -90,7 +68,6 @@ const RoleDetailsDesktopPage = ({
             severity="error"
             variant="soft"
             title="Something went wrong"
-            rounded="md"
             closable
             onClose={handleRefresh}
             sx={alertSx}
@@ -99,86 +76,49 @@ const RoleDetailsDesktopPage = ({
           </AppAlert>
         ) : null}
 
-        {showInitialSkeleton ? (
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={loadingCardSx}
-          >
-            <AppFormSkeleton rows={8} />
-          </AppCard>
-        ) : hasError ? (
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={stateCardSx}
-          >
+        <AppCard
+          variant="default"
+          rounded="lg"
+          bordered
+          shadow="sm"
+          padding="none"
+          sx={detailsCardSx}
+        >
+          {hasError ? (
             <AppErrorState
               title="Unable to load role"
               description={error || "Please refresh and try again."}
               actionText="Refresh"
               onRetry={handleRefresh}
               size="page"
+              sx={stateSx}
             />
-          </AppCard>
-        ) : !role ? (
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={stateCardSx}
-          >
+          ) : isLoading && !role ? (
+            <DetailsSkeleton />
+          ) : !role ? (
             <AppEmptyState
               title="Role not found"
-              description="The selected role could not be loaded."
+              description="This role may have been deleted or you may not have access to it."
               icon={<FiShield />}
               action={
                 <AppButton
+                  type="button"
                   variant="outlined"
                   colorVariant="neutral"
                   rounded="md"
                   startIcon={<FiArrowLeft />}
-                  onClick={handleBack}
+                  onClick={handleBackToRoles}
                 >
                   Back to Roles
                 </AppButton>
               }
               size="page"
+              sx={stateSx}
             />
-          </AppCard>
-        ) : (
-          <>
-            <HeroCard
-              role={role}
-              isDeletingRole={isDeletingRole}
-              onEdit={handleEditRole}
-              onDelete={handleDeleteRole}
-              onCreate={handleCreateRole}
-            />
-
-            <StatsGrid stats={permissionStats} />
-
-            <div className="mt-3 grid grid-cols-[minmax(0,1fr)_390px] gap-4">
-              <PermissionCard
-                role={role}
-                onViewPermissions={handleViewPermissions}
-              />
-
-              <AppStack direction="column" gap={1.5}>
-                <RoleMetaCard role={role} />
-                <AccessRulesCard role={role} />
-              </AppStack>
-            </div>
-          </>
-        )}
+          ) : (
+            <RoleDetailsContent role={role} />
+          )}
+        </AppCard>
       </div>
     </section>
   );
@@ -199,570 +139,328 @@ const TopToast = ({ message, onClose }) => (
 
 const PageHeader = ({
   role,
-  isLoading,
-  onBack,
-  onRefresh,
+  onBackToAccessControl,
+  onBackToRoles,
   onEdit,
-  onViewPermissions,
+  onRefresh,
 }) => (
-  <AppStack direction="row" align="flex-start" justify="space-between">
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox icon={<FiShield />} large />
+  <div className="w-full">
+    <AppBreadcrumb
+      size="small"
+      variant="text"
+      items={[
+        { label: "Access Control", onClick: onBackToAccessControl },
+        { label: "Roles", onClick: onBackToRoles },
+        { label: role?.displayName || "Role Details", current: true },
+      ]}
+      sx={breadcrumbSx}
+      itemSx={breadcrumbItemSx}
+      currentItemSx={breadcrumbCurrentSx}
+    />
 
-      <AppBox>
-        <AppHeading level={1} weight={650} sx={pageTitleSx}>
-          Role Details
-        </AppHeading>
-
-        <AppBreadcrumb
-          size="small"
-          variant="text"
-          items={[
-            { label: "Access Control", href: "/access-control" },
-            { label: "Roles", onClick: onBack },
-            { label: role?.displayName || "Details", current: true },
-          ]}
-          sx={breadcrumbSx}
-          itemSx={breadcrumbItemSx}
-          currentItemSx={breadcrumbCurrentSx}
-        />
-      </AppBox>
-    </AppStack>
-
-    <AppStack direction="row" align="center" gap={0.8}>
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiArrowLeft />}
-        onClick={onBack}
-        sx={secondaryButtonSx}
-      >
-        Roles
-      </AppButton>
-
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiRefreshCw />}
-        onClick={onRefresh}
-        loading={isLoading}
-        disabled={isLoading}
-        sx={secondaryButtonSx}
-      >
-        Refresh
-      </AppButton>
-
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="primary"
-        rounded="md"
-        size="small"
-        startIcon={<FiKey />}
-        onClick={onViewPermissions}
-        sx={secondaryButtonSx}
-      >
-        Permissions
-      </AppButton>
-
-      <AppButton
-        type="button"
-        variant="contained"
-        colorVariant="primary"
-        rounded="md"
-        size="small"
-        startIcon={<FiEdit3 />}
-        onClick={onEdit}
-        disabled={!role?.canEdit || isLoading}
-        sx={primaryButtonSx}
-      >
-        Edit Role
-      </AppButton>
-    </AppStack>
-  </AppStack>
-);
-
-const HeroCard = ({ role, isDeletingRole, onEdit, onDelete, onCreate }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={heroCardSx}
-  >
-    <AppStack
-      direction="row"
-      align="flex-start"
-      justify="space-between"
-      gap={2}
-    >
+    <div className="flex w-full items-center justify-between gap-5">
       <AppStack
         direction="row"
         align="flex-start"
-        gap={1.3}
+        gap={1.4}
         sx={{ minWidth: 0 }}
       >
-        <IconBox
-          icon={role?.isSystem ? <FiLock /> : <FiUnlock />}
-          large
-          colorVariant={role?.isSystem ? "info" : "primary"}
-        />
+        <button
+          type="button"
+          onClick={onBackToRoles}
+          className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
+          aria-label="Back to roles"
+        >
+          <FiArrowLeft className="text-[17px]" />
+        </button>
 
         <AppBox sx={{ minWidth: 0 }}>
-          <AppStack
-            direction="row"
-            align="center"
-            gap={0.7}
-            sx={{ flexWrap: "wrap" }}
-          >
-            <AppHeading level={2} weight={700} sx={heroTitleSx}>
-              {role?.displayName || "Role"}
-            </AppHeading>
+          <AppHeading level={1} weight={800} sx={pageTitleSx}>
+            {role?.displayName || "Role Details"}
+          </AppHeading>
 
-            <AppStatusBadge
-              status={role?.displayStatus || "inactive"}
-              label={role?.displayStatus || "inactive"}
-              variant="soft"
-              size="small"
-              rounded="full"
-              colorVariant={statusColorMap[role?.displayStatus] || "neutral"}
-            />
-
-            <AppTag
-              label={role?.displayType || "Custom"}
-              variant="soft"
-              colorVariant={role?.isSystem ? "info" : "primary"}
-              size="small"
-              rounded="full"
-              icon={role?.isSystem ? <FiLock /> : <FiUnlock />}
-            />
-
-            <AppTag
-              label={role?.displayEditable || "Locked"}
-              variant="soft"
-              colorVariant={role?.isEditable ? "success" : "neutral"}
-              size="small"
-              rounded="full"
-            />
-          </AppStack>
-
-          <AppKeyValue
-            label="Code"
-            value={role?.displayCode || "-"}
-            dense
-            sx={codeKeyValueSx}
-            labelSx={codeLabelSx}
-            valueSx={codeValueSx}
-          />
-
-          <AppText variant="body2" sx={heroDescriptionSx}>
-            {role?.displayDescription || "No description added."}
+          <AppText variant="body2" sx={pageSubtitleSx}>
+            View backend role fields including code, status, permissions and
+            audit details.
           </AppText>
         </AppBox>
       </AppStack>
 
-      <AppStack direction="row" align="center" gap={0.8} sx={{ flexShrink: 0 }}>
+      <AppStack
+        direction="row"
+        align="center"
+        justify="flex-end"
+        gap={1.1}
+        sx={{ flexShrink: 0 }}
+      >
         <AppButton
           type="button"
           variant="outlined"
           colorVariant="neutral"
           rounded="md"
           size="small"
-          startIcon={<FiPlus />}
-          onClick={onCreate}
+          startIcon={<FiRefreshCw />}
+          onClick={onRefresh}
           sx={secondaryButtonSx}
         >
-          New Role
+          Refresh
         </AppButton>
 
         <AppButton
           type="button"
-          variant="outlined"
+          variant="contained"
           colorVariant="primary"
           rounded="md"
           size="small"
-          startIcon={<FiEdit3 />}
+          startIcon={<FiEdit2 />}
           onClick={onEdit}
           disabled={!role?.canEdit}
-          sx={secondaryButtonSx}
+          sx={primaryButtonSx}
         >
-          Edit
-        </AppButton>
-
-        <AppButton
-          type="button"
-          variant="outlined"
-          colorVariant="error"
-          rounded="md"
-          size="small"
-          startIcon={<FiTrash2 />}
-          onClick={onDelete}
-          loading={isDeletingRole}
-          disabled={!role?.canDelete || isDeletingRole}
-          sx={secondaryButtonSx}
-        >
-          Delete
+          Edit Role
         </AppButton>
       </AppStack>
-    </AppStack>
-
-    {role?.isSystem ? (
-      <AppAlert
-        severity="info"
-        variant="soft"
-        rounded="md"
-        title="System role"
-        sx={heroAlertSx}
-      >
-        This role is created by the backend as a default workspace role. System
-        roles cannot be deleted.
-      </AppAlert>
-    ) : null}
-
-    {!role?.isEditable ? (
-      <AppAlert
-        severity="warning"
-        variant="soft"
-        rounded="md"
-        title="Role is locked"
-        sx={heroAlertSx}
-      >
-        The backend marks this role as non-editable, so updates are disabled.
-      </AppAlert>
-    ) : null}
-  </AppCard>
-);
-
-const StatsGrid = ({ stats }) => (
-  <div className="mt-3 grid grid-cols-4 gap-3">
-    {stats.map((stat) => (
-      <StatCard key={stat.id} stat={stat} />
-    ))}
+    </div>
   </div>
 );
 
-const StatCard = ({ stat }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={statCardSx}
-  >
-    <AppStack direction="row" align="flex-start" gap={1.1}>
-      <IconBox
-        icon={statIcons[stat.id] || <FiShield />}
-        colorVariant={stat.colorVariant}
-      />
+const RoleDetailsContent = ({ role }) => (
+  <div>
+    <div className="border-b border-border px-5 py-4">
+      <AppStack direction="row" align="center" justify="space-between" gap={2}>
+        <AppStack direction="row" align="center" gap={1.3} sx={{ minWidth: 0 }}>
+          <IconBox icon={<FiShield />} colorVariant="primary" large />
 
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppText variant="body2" sx={statTitleSx}>
-          {stat.title}
-        </AppText>
-
-        <AppHeading level={2} weight={650} sx={statValueSx}>
-          {stat.value}
-        </AppHeading>
-
-        <AppText variant="body2" sx={statDescriptionSx}>
-          {stat.description}
-        </AppText>
-      </AppBox>
-    </AppStack>
-  </AppCard>
-);
-
-const PermissionCard = ({ role, onViewPermissions }) => {
-  const groups = Object.entries(role?.groupedPermissions || {});
-
-  return (
-    <AppCard
-      variant="default"
-      rounded="lg"
-      bordered
-      shadow="sm"
-      padding="none"
-      sx={mainCardSx}
-    >
-      <AppStack
-        direction="row"
-        align="flex-start"
-        justify="space-between"
-        gap={1.5}
-      >
-        <AppStack direction="row" align="center" gap={1}>
-          <IconBox icon={<FiKey />} />
-
-          <AppBox>
-            <AppHeading level={2} weight={650} sx={sectionTitleSx}>
-              Assigned Permissions
+          <AppBox sx={{ minWidth: 0 }}>
+            <AppHeading level={2} weight={750} sx={sectionTitleSx}>
+              {role.displayName}
             </AppHeading>
 
             <AppText variant="body2" sx={sectionSubtitleSx}>
-              {role?.permissionCount || 0} permissions across{" "}
-              {role?.permissionGroupCount || 0} groups.
+              {role.displayDescription}
             </AppText>
           </AppBox>
         </AppStack>
 
-        <AppButton
-          type="button"
-          variant="outlined"
-          colorVariant="primary"
-          rounded="md"
-          size="small"
-          startIcon={<FiKey />}
-          onClick={onViewPermissions}
-          sx={secondaryButtonSx}
+        <AppStack
+          direction="row"
+          align="center"
+          gap={0.8}
+          sx={{ flexShrink: 0 }}
         >
-          Permission Catalog
-        </AppButton>
-      </AppStack>
+          <AppTag
+            label={role.displayType}
+            variant="soft"
+            colorVariant={typeColorMap[role.displayType] || "primary"}
+            rounded="md"
+            sx={tagSx}
+          />
 
-      {!role?.permissionCount ? (
-        <div className="mt-5">
-          <AppEmptyState
-            title="No permissions assigned"
-            description="This role currently has no permissions. Edit the role to assign permissions."
-            icon={<FiKey />}
-            size="content"
-            sx={emptyPermissionSx}
+          <AppStatusBadge
+            status={role.displayStatus}
+            label={role.displayStatus}
+            variant="soft"
+            size="small"
+            rounded="md"
+            colorVariant={statusColorMap[role.displayStatus] || "neutral"}
+            sx={statusBadgeSx}
+          />
+        </AppStack>
+      </AppStack>
+    </div>
+
+    <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-0">
+      <div className="min-w-0 border-r border-border p-5">
+        <AppHeading level={3} weight={700} sx={blockTitleSx}>
+          Role Information
+        </AppHeading>
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <DetailItem icon={<FiHash />} label="Role ID" value={role._id} />
+          <DetailItem
+            icon={<FiCode />}
+            label="Role Code"
+            value={role.displayCode}
+          />
+          <DetailItem
+            icon={<FiShield />}
+            label="Role Name"
+            value={role.displayName}
+          />
+          <DetailItem
+            icon={<FiShield />}
+            label="Workspace ID"
+            value={role.workspaceId}
+          />
+          <DetailItem
+            icon={<FiToggleLeft />}
+            label="Type"
+            value={role.displayType}
+          />
+          <DetailItem
+            icon={<FiToggleLeft />}
+            label="Editable"
+            value={role.displayEditable}
+          />
+          <DetailItem
+            icon={<FiToggleLeft />}
+            label="Status"
+            value={role.displayStatus}
+          />
+          <DetailItem
+            icon={<FiShield />}
+            label="Permissions Count"
+            value={role.permissionCount}
           />
         </div>
-      ) : (
-        <div className="mt-4 space-y-3">
-          {groups.map(([group, permissions]) => (
-            <PermissionGroup
-              key={group}
-              group={group}
-              permissions={permissions}
-            />
-          ))}
+
+        <div className="mt-5">
+          <AppHeading level={3} weight={700} sx={blockTitleSx}>
+            Description
+          </AppHeading>
+
+          <AppText variant="body2" sx={descriptionSx}>
+            {role.displayDescription}
+          </AppText>
         </div>
-      )}
-    </AppCard>
-  );
-};
 
-const PermissionGroup = ({ group, permissions = [] }) => (
-  <div className="rounded-xl border border-border bg-surface-alt/70 p-3">
-    <AppStack direction="row" align="center" justify="space-between" gap={1}>
-      <AppHeading level={3} weight={650} sx={groupTitleSx}>
-        {group}
-      </AppHeading>
+        <div className="mt-5">
+          <AppHeading level={3} weight={700} sx={blockTitleSx}>
+            Permissions
+          </AppHeading>
 
-      <AppTag
-        label={`${permissions.length} permission${permissions.length === 1 ? "" : "s"}`}
-        variant="soft"
-        colorVariant="neutral"
-        size="small"
-        rounded="full"
-      />
+          {role.permissions.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {role.permissions.map((permission) => (
+                <AppTag
+                  key={permission}
+                  label={permission}
+                  variant="soft"
+                  colorVariant="neutral"
+                  rounded="md"
+                  sx={permissionTagSx}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-3 rounded-lg border border-dashed border-border bg-surface-alt px-4 py-6 text-center">
+              <AppText variant="body2" sx={emptyPermissionSx}>
+                No permissions assigned to this role.
+              </AppText>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="min-w-0 p-5">
+        <AppHeading level={3} weight={700} sx={blockTitleSx}>
+          Audit Details
+        </AppHeading>
+
+        <div className="mt-4 space-y-3">
+          <DetailItem
+            icon={<FiUser />}
+            label="Created By"
+            value={role.displayCreatedBy}
+            full
+          />
+          <DetailItem
+            icon={<FiCalendar />}
+            label="Created At"
+            value={role.displayCreatedAt}
+            full
+          />
+          <DetailItem
+            icon={<FiCalendar />}
+            label="Updated At"
+            value={role.displayUpdatedAt}
+            full
+          />
+          <DetailItem
+            icon={<FiCalendar />}
+            label="Deleted At"
+            value={role.displayDeletedAt}
+            full
+          />
+          <DetailItem
+            icon={<FiUser />}
+            label="Deleted By"
+            value={role.displayDeletedBy}
+            full
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const DetailItem = ({ icon, label, value, full = false }) => (
+  <div
+    className={`rounded-lg border border-border bg-surface-alt px-3.5 py-3 ${
+      full ? "w-full" : "min-w-0"
+    }`}
+  >
+    <AppStack direction="row" align="flex-start" gap={1.1} sx={{ minWidth: 0 }}>
+      <IconBox icon={icon} colorVariant="neutral" small />
+
+      <AppBox sx={{ minWidth: 0 }}>
+        <AppText variant="body2" sx={detailLabelSx}>
+          {label}
+        </AppText>
+
+        <AppText variant="body2" sx={detailValueSx}>
+          {value || "-"}
+        </AppText>
+      </AppBox>
     </AppStack>
+  </div>
+);
 
-    <AppStack direction="row" align="center" gap={0.65} sx={permissionTagsSx}>
-      {permissions.map((permission) => (
-        <AppTag
-          key={permission.value}
-          label={permission.label}
-          variant="soft"
-          colorVariant="primary"
-          size="small"
-          rounded="full"
+const DetailsSkeleton = () => (
+  <div className="p-5">
+    <div className="h-7 w-64 animate-pulse rounded bg-surface-alt" />
+    <div className="mt-3 h-4 w-[420px] animate-pulse rounded bg-surface-alt" />
+
+    <div className="mt-6 grid grid-cols-2 gap-3">
+      {Array.from({ length: 8 }).map((_, index) => (
+        <div
+          key={index}
+          className="h-[74px] animate-pulse rounded-lg border border-border bg-surface-alt"
         />
       ))}
-    </AppStack>
+    </div>
+
+    <div className="mt-6 h-28 animate-pulse rounded-lg border border-border bg-surface-alt" />
   </div>
 );
 
-const RoleMetaCard = ({ role }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox icon={<FiInfo />} colorVariant="info" />
-
-      <AppBox>
-        <AppHeading level={2} weight={650} sx={sideTitleSx}>
-          Role Metadata
-        </AppHeading>
-
-        <AppText variant="body2" sx={sideSubtitleSx}>
-          Backend role fields and audit details.
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <div className="mt-3 space-y-2">
-      <AppKeyValue label="Role ID" value={role?._id || "-"} icon={<FiCopy />} />
-      <AppKeyValue
-        label="Name"
-        value={role?.displayName || "-"}
-        icon={<FiShield />}
-      />
-      <AppKeyValue
-        label="Code"
-        value={role?.displayCode || "-"}
-        icon={<FiHash />}
-      />
-      <AppKeyValue
-        label="Status"
-        value={role?.displayStatus || "-"}
-        icon={<FiCheckCircle />}
-      />
-      <AppKeyValue
-        label="Type"
-        value={role?.displayType || "-"}
-        icon={<FiLock />}
-      />
-      <AppKeyValue
-        label="Editable"
-        value={role?.displayEditable || "-"}
-        icon={<FiUnlock />}
-      />
-      <AppKeyValue
-        label="Created By"
-        value={role?.displayCreatedBy || "-"}
-        icon={<FiUser />}
-      />
-      <AppKeyValue
-        label="Created At"
-        value={role?.displayCreatedAtTime || "-"}
-        icon={<FiCalendar />}
-      />
-      <AppKeyValue
-        label="Updated At"
-        value={role?.displayUpdatedAt || "-"}
-        icon={<FiRefreshCw />}
-      />
-    </div>
-  </AppCard>
-);
-
-const AccessRulesCard = ({ role }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox icon={<FiAlertTriangle />} colorVariant="warning" />
-
-      <AppBox>
-        <AppHeading level={2} weight={650} sx={sideTitleSx}>
-          Backend Rules
-        </AppHeading>
-
-        <AppText variant="body2" sx={sideSubtitleSx}>
-          Role actions follow server-side constraints.
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <div className="mt-3 space-y-2">
-      <RuleItem
-        icon={role?.canEdit ? <FiCheckCircle /> : <FiLock />}
-        title={role?.canEdit ? "Editable" : "Editing disabled"}
-        description={
-          role?.canEdit
-            ? "This role can be updated by the workspace owner."
-            : "System non-editable roles cannot be updated."
-        }
-        colorVariant={role?.canEdit ? "success" : "warning"}
-      />
-
-      <RuleItem
-        icon={role?.canDelete ? <FiTrash2 /> : <FiLock />}
-        title={role?.canDelete ? "Deletable" : "Delete disabled"}
-        description={
-          role?.canDelete
-            ? "This custom role can be soft deleted."
-            : "System roles cannot be deleted."
-        }
-        colorVariant={role?.canDelete ? "error" : "warning"}
-      />
-
-      <RuleItem
-        icon={<FiKey />}
-        title="Permissions are validated"
-        description="Only permissions returned from the backend catalog are allowed."
-        colorVariant="info"
-      />
-    </div>
-  </AppCard>
-);
-
-const RuleItem = ({ icon, title, description, colorVariant = "primary" }) => (
-  <div className="rounded-xl border border-border bg-surface-alt/70 px-3 py-2.5">
-    <AppStack direction="row" align="flex-start" gap={1}>
-      <span
-        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[14px]"
-        style={{
-          background: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
-          color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
-        }}
-      >
-        {icon}
-      </span>
-
-      <AppBox>
-        <AppHeading level={3} weight={650} sx={ruleTitleSx}>
-          {title}
-        </AppHeading>
-
-        <AppText variant="body2" sx={ruleDescriptionSx}>
-          {description}
-        </AppText>
-      </AppBox>
-    </AppStack>
-  </div>
-);
-
-const IconBox = ({ icon, colorVariant = "primary", large = false }) => (
+const IconBox = ({
+  icon,
+  colorVariant = "primary",
+  small = false,
+  large = false,
+}) => (
   <AppBox
     display="flex"
     alignItems="center"
     justifyContent="center"
     sx={{
-      width: large ? 42 : 38,
-      height: large ? 42 : 38,
-      minWidth: large ? 42 : 38,
-      borderRadius: "12px",
+      width: large ? 44 : small ? 32 : 38,
+      height: large ? 44 : small ? 32 : 38,
+      minWidth: large ? 44 : small ? 32 : 38,
+      borderRadius: large ? "12px" : small ? "9px" : "11px",
       bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
       color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
-      fontSize: large ? "22px" : "19px",
+      fontSize: large ? "22px" : small ? "15px" : "18px",
+      lineHeight: 0,
     }}
   >
     {icon}
   </AppBox>
 );
 
-const pageTitleSx = {
-  m: 0,
-  fontSize: "25px",
-  lineHeight: 1.18,
-  letterSpacing: "-0.45px",
-  color: "var(--app-color-text)",
-};
-
 const breadcrumbSx = {
-  mt: 0.4,
+  mb: 1.1,
 };
 
 const breadcrumbItemSx = {
@@ -776,195 +474,121 @@ const breadcrumbCurrentSx = {
   color: "var(--app-color-text)",
 };
 
+const pageTitleSx = {
+  m: 0,
+  fontSize: "25px",
+  lineHeight: 1.15,
+  letterSpacing: "-0.45px",
+  color: "var(--app-color-text)",
+};
+
+const pageSubtitleSx = {
+  mt: 0.55,
+  fontSize: "13px",
+  lineHeight: "21px",
+  color: "var(--app-color-text-muted)",
+};
+
 const primaryButtonSx = {
-  height: 34,
-  px: 1.5,
+  height: 36,
+  px: 1.6,
   fontSize: "12px",
   fontWeight: 700,
 };
 
 const secondaryButtonSx = {
-  height: 34,
-  px: 1.35,
+  height: 36,
+  minWidth: 92,
+  px: 1.4,
   fontSize: "12px",
   fontWeight: 650,
 };
 
-const alertSx = {
-  mt: 3,
-};
+const alertSx = { mt: 3 };
 
-const loadingCardSx = {
+const detailsCardSx = {
   mt: 4,
-  p: 2.5,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const stateCardSx = {
-  mt: 4,
-  minHeight: 430,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const heroCardSx = {
-  mt: 4,
-  px: 1.7,
-  py: 1.55,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const heroTitleSx = {
-  m: 0,
-  maxWidth: 520,
   overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "23px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.35px",
-  color: "var(--app-color-text)",
-};
-
-const codeKeyValueSx = {
-  mt: 0.6,
-  mb: 0,
-  alignItems: "center",
-  gap: 0.6,
-};
-
-const codeLabelSx = {
-  minWidth: 34,
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-};
-
-const codeValueSx = {
-  maxWidth: 460,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "11.8px",
-  fontWeight: 700,
-  color: "var(--app-color-text)",
-};
-
-const heroDescriptionSx = {
-  mt: 0.8,
-  maxWidth: 720,
-  fontSize: "12.2px",
-  lineHeight: 1.55,
-  color: "var(--app-color-text-muted)",
-};
-
-const heroAlertSx = {
-  mt: 1.35,
-};
-
-const statCardSx = {
-  px: 1.45,
-  py: 1.35,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const statTitleSx = {
-  fontSize: "11.5px",
-  fontWeight: 650,
-  color: "var(--app-color-text-muted)",
-};
-
-const statValueSx = {
-  mt: 0.25,
-  mb: 0,
-  maxWidth: 150,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "25px",
-  lineHeight: 1.05,
-  color: "var(--app-color-text)",
-};
-
-const statDescriptionSx = {
-  mt: 0.25,
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-};
-
-const mainCardSx = {
-  minHeight: 480,
-  px: 1.7,
-  py: 1.55,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
 
 const sectionTitleSx = {
   m: 0,
-  fontSize: "16px",
-  lineHeight: 1.2,
+  fontSize: "18px",
+  lineHeight: 1.25,
   color: "var(--app-color-text)",
 };
 
 const sectionSubtitleSx = {
-  mt: 0.35,
-  fontSize: "11.5px",
+  mt: 0.45,
+  maxWidth: 720,
+  fontSize: "12.5px",
+  lineHeight: "20px",
   color: "var(--app-color-text-muted)",
+};
+
+const blockTitleSx = {
+  m: 0,
+  fontSize: "14px",
+  lineHeight: 1.25,
+  color: "var(--app-color-text)",
+};
+
+const tagSx = {
+  width: "fit-content",
+  height: 24,
+  px: 0.9,
+  fontSize: "11px",
+  fontWeight: 700,
+};
+
+const statusBadgeSx = {
+  width: "fit-content",
+  height: 24,
+  px: 1,
+  fontSize: "11px",
+  fontWeight: 700,
+  textTransform: "capitalize",
+};
+
+const detailLabelSx = {
+  fontSize: "11.5px",
+  fontWeight: 650,
+  color: "var(--app-color-text-muted)",
+};
+
+const detailValueSx = {
+  mt: 0.45,
+  maxWidth: "100%",
+  overflowWrap: "anywhere",
+  fontSize: "12.5px",
+  lineHeight: "19px",
+  fontWeight: 650,
+  color: "var(--app-color-text)",
+};
+
+const descriptionSx = {
+  mt: 3,
+  rounded: "md",
+  fontSize: "12.5px",
+  lineHeight: "22px",
+  color: "var(--app-color-text-muted)",
+};
+
+const permissionTagSx = {
+  minHeight: 25,
+  px: 0.9,
+  fontSize: "11px",
+  fontWeight: 650,
 };
 
 const emptyPermissionSx = {
-  minHeight: 300,
-};
-
-const groupTitleSx = {
-  m: 0,
-  fontSize: "13px",
-  color: "var(--app-color-text)",
-};
-
-const permissionTagsSx = {
-  mt: 1.1,
-  flexWrap: "wrap",
-};
-
-const sideCardSx = {
-  px: 1.45,
-  py: 1.4,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const sideTitleSx = {
-  m: 0,
-  fontSize: "15px",
-  lineHeight: 1.2,
-  color: "var(--app-color-text)",
-};
-
-const sideSubtitleSx = {
-  mt: 0.25,
-  fontSize: "11.5px",
+  fontSize: "12px",
   color: "var(--app-color-text-muted)",
 };
 
-const ruleTitleSx = {
-  m: 0,
-  fontSize: "12.5px",
-  color: "var(--app-color-text)",
-};
-
-const ruleDescriptionSx = {
-  mt: 0.3,
-  fontSize: "11.2px",
-  lineHeight: 1.45,
-  color: "var(--app-color-text-muted)",
-};
+const stateSx = { minHeight: 430 };
 
 const toastSx = {
   boxShadow: "var(--app-shadow-lg)",

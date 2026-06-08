@@ -1,20 +1,16 @@
 import {
-  FiArrowLeft,
   FiCheckCircle,
-  FiEdit3,
-  FiEye,
-  FiKey,
-  FiLock,
-  FiMoreVertical,
+  FiChevronLeft,
+  FiChevronRight,
+  FiDownload,
+  FiFilter,
+  FiHeadphones,
+  FiMoreHorizontal,
   FiPlus,
-  FiRefreshCw,
   FiSearch,
   FiShield,
   FiSliders,
-  FiTrash2,
-  FiUnlock,
   FiUsers,
-  FiX,
 } from "react-icons/fi";
 
 import {
@@ -23,37 +19,41 @@ import {
   AppBreadcrumb,
   AppButton,
   AppCard,
+  AppEmptyState,
+  AppErrorState,
   AppHeading,
   AppIconButton,
-  AppKeyValue,
   AppMenu,
   AppSearchInput,
   AppSelect,
   AppStack,
   AppStatusBadge,
-  AppTable,
   AppTableSkeleton,
   AppTag,
   AppText,
-  AppEmptyState,
-  AppErrorState,
 } from "@/components";
 
 const statIcons = {
-  total: <FiShield />,
-  active: <FiCheckCircle />,
-  system: <FiLock />,
-  custom: <FiUnlock />,
+  total: <FiUsers />,
+  system: <FiShield />,
+  custom: <FiUsers />,
+  inactive: <FiSliders />,
 };
 
 const statusColorMap = {
   active: "success",
-  inactive: "warning",
+  inactive: "neutral",
+};
+
+const typeColorMap = {
+  System: "info",
+  Custom: "purple",
 };
 
 const RolesDesktopPage = ({
   roles = [],
   stats = [],
+  roleHelp,
 
   filters,
   activeFilterChips = [],
@@ -78,7 +78,7 @@ const RolesDesktopPage = ({
   handleRefresh,
   handleBackToAccessControl,
   handleCreateRole,
-  handleViewPermissions,
+  handleExportRoles,
   handleViewRole,
   handleEditRole,
   handleDeleteRole,
@@ -87,121 +87,16 @@ const RolesDesktopPage = ({
 }) => {
   const showInitialSkeleton = isLoading && !hasRoles;
 
-  const columns = [
-    {
-      id: "role",
-      key: "displayName",
-      label: "Role",
-      minWidth: 285,
-      render: (_, role) => <RoleCell role={role} />,
-    },
-    {
-      id: "permissions",
-      key: "permissions",
-      label: "Permissions",
-      minWidth: 300,
-      render: (_, role) => <PermissionCell role={role} />,
-    },
-    {
-      id: "type",
-      key: "isSystem",
-      label: "Type",
-      width: 135,
-      render: (_, role) => (
-        <AppTag
-          label={role?.displayType || "Custom"}
-          variant="soft"
-          colorVariant={role?.isSystem ? "info" : "primary"}
-          size="small"
-          rounded="full"
-          icon={role?.isSystem ? <FiLock /> : <FiUnlock />}
-        />
-      ),
-    },
-    {
-      id: "editable",
-      key: "isEditable",
-      label: "Editable",
-      width: 130,
-      render: (_, role) => (
-        <AppTag
-          label={role?.displayEditable || "Locked"}
-          variant="soft"
-          colorVariant={role?.isEditable ? "success" : "neutral"}
-          size="small"
-          rounded="full"
-        />
-      ),
-    },
-    {
-      id: "status",
-      key: "status",
-      label: "Status",
-      width: 120,
-      render: (_, role) => (
-        <AppStatusBadge
-          status={role?.displayStatus || "inactive"}
-          label={role?.displayStatus || "inactive"}
-          variant="soft"
-          size="small"
-          rounded="full"
-          colorVariant={statusColorMap[role?.displayStatus] || "neutral"}
-        />
-      ),
-    },
-    {
-      id: "createdAt",
-      key: "createdAt",
-      label: "Created",
-      width: 125,
-      render: (_, role) => (
-        <AppText variant="body2" sx={tableValueSx}>
-          {role?.displayCreatedAt || "-"}
-        </AppText>
-      ),
-    },
-    {
-      id: "updatedAt",
-      key: "updatedAt",
-      label: "Updated",
-      width: 165,
-      render: (_, role) => (
-        <AppText variant="body2" sx={tableValueSx}>
-          {role?.displayUpdatedAt || "-"}
-        </AppText>
-      ),
-    },
-    {
-      id: "actions",
-      key: "actions",
-      label: "Actions",
-      align: "right",
-      width: 105,
-      render: (_, role) => (
-        <RoleActions
-          role={role}
-          onView={handleViewRole}
-          onEdit={handleEditRole}
-          onDelete={handleDeleteRole}
-        />
-      ),
-    },
-  ];
-
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
       {message ? <TopToast message={message} onClose={clearMessage} /> : null}
 
       <div className="mx-auto w-full max-w-[1500px]">
         <PageHeader
-          isLoading={isLoading}
           onBack={handleBackToAccessControl}
-          onRefresh={handleRefresh}
           onCreate={handleCreateRole}
-          onViewPermissions={handleViewPermissions}
+          onExport={handleExportRoles}
         />
-
-        <StatsGrid stats={stats} />
 
         {error && !hasError ? (
           <AppAlert
@@ -216,93 +111,97 @@ const RolesDesktopPage = ({
           </AppAlert>
         ) : null}
 
-        <AppCard
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="sm"
-          padding="none"
-          sx={tableCardSx}
-        >
-          <TableHeader
-            filters={filters}
-            activeFilterChips={activeFilterChips}
-            statusOptions={statusOptions}
-            typeOptions={typeOptions}
-            totalRoles={totalRoles}
-            filteredRolesCount={filteredRolesCount}
-            handleFilterChange={handleFilterChange}
-            handleSearchChange={handleSearchChange}
-            handleRemoveFilter={handleRemoveFilter}
-            handleClearFilters={handleClearFilters}
-          />
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_290px] gap-5">
+          <div className="min-w-0">
+            <StatsGrid stats={stats} />
 
-          {hasError ? (
-            <AppErrorState
-              title="Unable to load roles"
-              description={error || "Please refresh and try again."}
-              actionText="Refresh"
-              onRetry={handleRefresh}
-              size="page"
-              sx={stateSx}
-            />
-          ) : showInitialSkeleton ? (
-            <AppTableSkeleton rows={7} columns={8} showHeader={false} />
-          ) : !hasRoles ? (
-            <AppEmptyState
-              title="No roles yet"
-              description="Create custom roles or refresh to load default workspace roles."
-              icon={<FiShield />}
-              action={
-                <AppButton
-                  variant="contained"
-                  colorVariant="primary"
-                  rounded="md"
-                  startIcon={<FiPlus />}
-                  onClick={handleCreateRole}
-                >
-                  Create Role
-                </AppButton>
-              }
-              size="page"
-              sx={stateSx}
-            />
-          ) : !hasFilteredRoles ? (
-            <AppEmptyState
-              title="No roles found"
-              description="Try changing your search or filters."
-              icon={<FiSearch />}
-              action={
-                <AppButton
-                  variant="outlined"
-                  colorVariant="neutral"
-                  rounded="md"
-                  onClick={handleClearFilters}
-                >
-                  Clear Filters
-                </AppButton>
-              }
-              size="page"
-              sx={stateSx}
-            />
-          ) : (
-            <AppTable
-              columns={columns}
-              rows={roles}
-              getRowId={(row) => row._id}
-              dense
-              bordered={false}
-              rounded={false}
-              hover
-              stickyHeader
-              minWidth={1280}
-              maxHeight="calc(100vh - 315px)"
-              sx={tableSx}
-              headSx={tableHeadSx}
-              cellSx={tableCellSx}
-            />
-          )}
-        </AppCard>
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              shadow="sm"
+              padding="none"
+              sx={tableCardSx}
+            >
+              <TableToolbar
+                filters={filters}
+                activeFilterChips={activeFilterChips}
+                statusOptions={statusOptions}
+                typeOptions={typeOptions}
+                handleFilterChange={handleFilterChange}
+                handleSearchChange={handleSearchChange}
+                handleRemoveFilter={handleRemoveFilter}
+                handleClearFilters={handleClearFilters}
+              />
+
+              {hasError ? (
+                <AppErrorState
+                  title="Unable to load roles"
+                  description={error || "Please refresh and try again."}
+                  actionText="Refresh"
+                  onRetry={handleRefresh}
+                  size="page"
+                  sx={stateSx}
+                />
+              ) : showInitialSkeleton ? (
+                <AppTableSkeleton rows={8} columns={6} showHeader={false} />
+              ) : !hasRoles ? (
+                <AppEmptyState
+                  title="No roles yet"
+                  description="Create custom roles or refresh to load default workspace roles."
+                  icon={<FiShield />}
+                  action={
+                    <AppButton
+                      variant="contained"
+                      colorVariant="primary"
+                      rounded="md"
+                      startIcon={<FiPlus />}
+                      onClick={handleCreateRole}
+                    >
+                      Create Role
+                    </AppButton>
+                  }
+                  size="page"
+                  sx={stateSx}
+                />
+              ) : !hasFilteredRoles ? (
+                <AppEmptyState
+                  title="No roles found"
+                  description="Try changing your search or filters."
+                  icon={<FiSearch />}
+                  action={
+                    <AppButton
+                      variant="outlined"
+                      colorVariant="neutral"
+                      rounded="md"
+                      onClick={handleClearFilters}
+                    >
+                      Clear Filters
+                    </AppButton>
+                  }
+                  size="page"
+                  sx={stateSx}
+                />
+              ) : (
+                <RoleTable
+                  roles={roles}
+                  onView={handleViewRole}
+                  onEdit={handleEditRole}
+                  onDelete={handleDeleteRole}
+                />
+              )}
+
+              {hasRoles ? (
+                <TableFooter
+                  totalRoles={totalRoles}
+                  filteredRolesCount={filteredRolesCount}
+                />
+              ) : null}
+            </AppCard>
+          </div>
+
+          <RightSidebar roleHelp={roleHelp} />
+        </div>
       </div>
     </section>
   );
@@ -321,96 +220,71 @@ const TopToast = ({ message, onClose }) => (
   </div>
 );
 
-const PageHeader = ({
-  isLoading,
-  onBack,
-  onRefresh,
-  onCreate,
-  onViewPermissions,
-}) => (
-  <AppStack direction="row" align="flex-start" justify="space-between">
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox icon={<FiShield />} large />
+const PageHeader = ({ onBack, onCreate, onExport }) => (
+  <div className="w-full">
+    <AppBreadcrumb
+      size="small"
+      variant="text"
+      items={[
+        { label: "Access Control", onClick: onBack },
+        { label: "Roles", current: true },
+      ]}
+      sx={breadcrumbSx}
+      itemSx={breadcrumbItemSx}
+      currentItemSx={breadcrumbCurrentSx}
+    />
 
-      <AppBox>
-        <AppHeading level={1} weight={650} sx={pageTitleSx}>
+    <div className="flex w-full items-center justify-between gap-5">
+      <AppBox sx={{ minWidth: 0 }}>
+        <AppHeading level={1} weight={800} sx={pageTitleSx}>
           Roles
         </AppHeading>
 
-        <AppBreadcrumb
-          size="small"
-          variant="text"
-          items={[
-            { label: "Access Control", onClick: onBack },
-            { label: "Roles", current: true },
-          ]}
-          sx={breadcrumbSx}
-          itemSx={breadcrumbItemSx}
-          currentItemSx={breadcrumbCurrentSx}
-        />
+        <AppText variant="body2" sx={pageSubtitleSx}>
+          Create and manage roles for your workspace. Define permissions for
+          each role.
+        </AppText>
       </AppBox>
-    </AppStack>
 
-    <AppStack direction="row" align="center" gap={0.8}>
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiArrowLeft />}
-        onClick={onBack}
-        sx={secondaryButtonSx}
+      <AppStack
+        direction="row"
+        align="center"
+        justify="flex-end"
+        gap={1.1}
+        sx={{ flexShrink: 0 }}
       >
-        Access Control
-      </AppButton>
+        <AppButton
+          type="button"
+          variant="outlined"
+          colorVariant="neutral"
+          rounded="md"
+          size="small"
+          startIcon={<FiDownload />}
+          onClick={onExport}
+          sx={secondaryButtonSx}
+        >
+          Export
+        </AppButton>
 
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiRefreshCw />}
-        onClick={onRefresh}
-        loading={isLoading}
-        disabled={isLoading}
-        sx={secondaryButtonSx}
-      >
-        Refresh
-      </AppButton>
-
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="primary"
-        rounded="md"
-        size="small"
-        startIcon={<FiKey />}
-        onClick={onViewPermissions}
-        sx={secondaryButtonSx}
-      >
-        Permissions
-      </AppButton>
-
-      <AppButton
-        type="button"
-        variant="contained"
-        colorVariant="primary"
-        rounded="md"
-        size="small"
-        startIcon={<FiPlus />}
-        onClick={onCreate}
-        sx={primaryButtonSx}
-      >
-        Create Role
-      </AppButton>
-    </AppStack>
-  </AppStack>
+        <AppButton
+          type="button"
+          variant="contained"
+          colorVariant="primary"
+          rounded="md"
+          size="small"
+          startIcon={<FiPlus />}
+          onClick={onCreate}
+          sx={primaryButtonSx}
+        >
+          Create Role
+        </AppButton>
+      </AppStack>
+    </div>
+  </div>
 );
 
 const StatsGrid = ({ stats }) => (
-  <div className="mt-4 grid grid-cols-4 gap-3">
+  <div className="grid grid-cols-4 gap-4">
     {stats.map((stat) => (
       <StatCard key={stat.id} stat={stat} />
     ))}
@@ -426,10 +300,11 @@ const StatCard = ({ stat }) => (
     padding="none"
     sx={statCardSx}
   >
-    <AppStack direction="row" align="flex-start" gap={1.1}>
+    <AppStack direction="row" align="flex-start" gap={1.3}>
       <IconBox
         icon={statIcons[stat.id] || <FiShield />}
         colorVariant={stat.colorVariant}
+        stat
       />
 
       <AppBox sx={{ minWidth: 0 }}>
@@ -437,7 +312,7 @@ const StatCard = ({ stat }) => (
           {stat.title}
         </AppText>
 
-        <AppHeading level={2} weight={650} sx={statValueSx}>
+        <AppHeading level={2} weight={700} sx={statValueSx}>
           {stat.value}
         </AppHeading>
 
@@ -449,69 +324,67 @@ const StatCard = ({ stat }) => (
   </AppCard>
 );
 
-const TableHeader = ({
+const TableToolbar = ({
   filters,
   activeFilterChips,
   statusOptions,
   typeOptions,
-  totalRoles,
-  filteredRolesCount,
   handleFilterChange,
   handleSearchChange,
   handleRemoveFilter,
   handleClearFilters,
 }) => (
-  <div className="border-b border-border px-3 py-2.5">
-    <div className="grid grid-cols-[minmax(220px,1fr)_minmax(600px,auto)] items-center gap-5">
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppHeading level={2} weight={650} sx={sectionTitleSx}>
-          Role Directory
-        </AppHeading>
+  <div className="border-b border-border px-3.5 py-3">
+    <div className="grid grid-cols-[minmax(0,1fr)_128px_128px_104px] items-center gap-3">
+      <AppSearchInput
+        name="search"
+        value={filters.search}
+        onChange={handleSearchChange}
+        placeholder="Search roles by name or description..."
+        clearable
+        onClear={() => handleSearchChange("")}
+        size="small"
+        variant="bordered"
+        rounded="md"
+        sx={searchSx}
+        inputSx={filterInputSx}
+      />
 
-        <AppText variant="body2" sx={sectionSubtitleSx}>
-          Showing {filteredRolesCount} of {totalRoles} roles
-        </AppText>
-      </AppBox>
+      <AppSelect
+        name="status"
+        value={filters.status}
+        onChange={handleFilterChange}
+        options={statusOptions}
+        size="small"
+        variant="bordered"
+        rounded="md"
+        sx={selectSx}
+        inputSx={filterInputSx}
+      />
 
-      <div className="grid min-w-[600px] grid-cols-[minmax(280px,1fr)_145px_145px] items-center gap-3 justify-self-end">
-        <AppSearchInput
-          name="search"
-          value={filters.search}
-          onChange={handleSearchChange}
-          placeholder="Search role, code, permission..."
-          clearable
-          onClear={() => handleSearchChange("")}
-          size="small"
-          variant="bordered"
-          rounded="md"
-          sx={searchSx}
-          inputSx={filterInputSx}
-        />
+      <AppSelect
+        name="type"
+        value={filters.type}
+        onChange={handleFilterChange}
+        options={typeOptions}
+        size="small"
+        variant="bordered"
+        rounded="md"
+        sx={selectSx}
+        inputSx={filterInputSx}
+      />
 
-        <AppSelect
-          name="status"
-          value={filters.status}
-          onChange={handleFilterChange}
-          options={statusOptions}
-          size="small"
-          variant="bordered"
-          rounded="md"
-          sx={selectSx}
-          inputSx={filterInputSx}
-        />
-
-        <AppSelect
-          name="type"
-          value={filters.type}
-          onChange={handleFilterChange}
-          options={typeOptions}
-          size="small"
-          variant="bordered"
-          rounded="md"
-          sx={selectSx}
-          inputSx={filterInputSx}
-        />
-      </div>
+      <AppButton
+        type="button"
+        variant="outlined"
+        colorVariant="neutral"
+        rounded="md"
+        size="small"
+        startIcon={<FiFilter />}
+        sx={filterButtonSx}
+      >
+        Filters
+      </AppButton>
     </div>
 
     {activeFilterChips.length ? (
@@ -524,7 +397,6 @@ const TableHeader = ({
             className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-alt px-2 py-1 text-[11px] font-semibold text-text-muted transition hover:bg-surface-hover"
           >
             {chip.label}
-            <FiX className="text-[12px]" />
           </button>
         ))}
 
@@ -540,105 +412,109 @@ const TableHeader = ({
   </div>
 );
 
-const RoleCell = ({ role }) => (
-  <AppStack direction="row" align="center" gap={1.1}>
-    <IconAvatar isSystem={role?.isSystem} />
+const RoleTable = ({ roles, onView, onEdit, onDelete }) => (
+  <div className="w-full overflow-x-auto">
+    <div className="min-w-[920px]">
+      <div className="grid grid-cols-[minmax(250px,1.25fr)_95px_95px_minmax(190px,1fr)_100px_70px] border-b border-border bg-surface-alt px-3.5 py-2.5">
+        <HeaderCell>Role Name</HeaderCell>
+        <HeaderCell>Type</HeaderCell>
+        <HeaderCell>Members</HeaderCell>
+        <HeaderCell>Description</HeaderCell>
+        <HeaderCell>Status</HeaderCell>
+        <HeaderCell align="right">Actions</HeaderCell>
+      </div>
 
-    <AppBox sx={{ minWidth: 0 }}>
-      <AppStack direction="row" align="center" gap={0.7}>
-        <AppHeading level={3} weight={650} sx={roleNameSx}>
-          {role?.displayName || "-"}
-        </AppHeading>
-
-        {role?.isSystem ? (
-          <AppTag
-            label="System"
-            variant="soft"
-            colorVariant="info"
-            size="small"
-            rounded="full"
-          />
-        ) : null}
-      </AppStack>
-
-      <AppKeyValue
-        label="Code"
-        value={role?.displayCode || "-"}
-        dense
-        sx={codeKeyValueSx}
-        labelSx={codeLabelSx}
-        valueSx={codeValueSx}
-      />
-
-      <AppText variant="body2" sx={descriptionSx}>
-        {role?.displayDescription || "No description added."}
-      </AppText>
-    </AppBox>
-  </AppStack>
-);
-
-const PermissionCell = ({ role }) => {
-  if (!role?.permissionCount) {
-    return (
-      <AppTag
-        label="No permissions"
-        variant="soft"
-        colorVariant="neutral"
-        size="small"
-        rounded="full"
-      />
-    );
-  }
-
-  const remainingCount = Math.max(
-    0,
-    role.permissionCount - role.permissionPreview.length,
-  );
-
-  return (
-    <AppBox sx={{ minWidth: 0 }}>
-      <AppText variant="body2" sx={permissionCountSx}>
-        {role.permissionCount} permission{role.permissionCount === 1 ? "" : "s"}
-      </AppText>
-
-      <AppStack direction="row" align="center" gap={0.55} sx={permissionTagsSx}>
-        {role.permissionPreview.map((permission) => (
-          <AppTag
-            key={permission}
-            label={permission}
-            variant="soft"
-            colorVariant="primary"
-            size="small"
-            rounded="full"
+      <div className="divide-y divide-border">
+        {roles.map((role) => (
+          <RoleRow
+            key={role._id}
+            role={role}
+            onView={onView}
+            onEdit={onEdit}
+            onDelete={onDelete}
           />
         ))}
+      </div>
+    </div>
+  </div>
+);
 
-        {remainingCount ? (
-          <AppTag
-            label={`+${remainingCount}`}
-            variant="soft"
-            colorVariant="neutral"
-            size="small"
-            rounded="full"
-          />
-        ) : null}
-      </AppStack>
-    </AppBox>
-  );
-};
+const HeaderCell = ({ children, align = "left" }) => (
+  <div
+    className={`text-[11.2px] font-bold leading-5 text-text-muted ${
+      align === "right" ? "text-right" : "text-left"
+    }`}
+  >
+    {children}
+  </div>
+);
+
+const RoleRow = ({ role, onView, onEdit, onDelete }) => (
+  <div className="grid min-h-[58px] grid-cols-[minmax(250px,1.25fr)_95px_95px_minmax(190px,1fr)_100px_70px] items-center px-3.5 py-2.5 transition hover:bg-surface-hover/60">
+    <AppStack direction="row" align="center" gap={1.1} sx={{ minWidth: 0 }}>
+      <IconBox icon={<FiUsers />} colorVariant="success" small />
+
+      <AppBox sx={{ minWidth: 0 }}>
+        <AppHeading level={3} weight={700} sx={roleNameSx}>
+          {role.displayName}
+        </AppHeading>
+
+        <AppText variant="body2" sx={roleSubtitleSx}>
+          {role.displaySubtitle}
+        </AppText>
+      </AppBox>
+    </AppStack>
+
+    <AppTag
+      label={role.displayType}
+      variant="soft"
+      colorVariant={typeColorMap[role.displayType] || "primary"}
+      rounded="md"
+      sx={typeTagSx}
+    />
+
+    <AppStack direction="row" align="center" gap={0.75}>
+      <FiUsers className="text-[13px] text-text-muted" />
+      <AppText variant="body2" sx={memberTextSx}>
+        {role.membersCount}
+      </AppText>
+    </AppStack>
+
+    <AppText variant="body2" sx={descriptionSx}>
+      {role.displayDescription}
+    </AppText>
+
+    <AppStatusBadge
+      status={role.displayStatus}
+      label={role.displayStatus}
+      variant="soft"
+      size="small"
+      rounded="md"
+      colorVariant={statusColorMap[role.displayStatus] || "neutral"}
+      sx={statusBadgeSx}
+    />
+
+    <div className="flex justify-end">
+      <RoleActions
+        role={role}
+        onView={onView}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
+    </div>
+  </div>
+);
 
 const RoleActions = ({ role, onView, onEdit, onDelete }) => {
   const items = [
     {
       id: "view",
       label: "View Details",
-      icon: <FiEye />,
       onClick: () => onView(role),
     },
     {
       id: "edit",
       label: "Edit Role",
-      icon: <FiEdit3 />,
       disabled: !role?.canEdit,
       onClick: () => onEdit(role),
     },
@@ -646,7 +522,6 @@ const RoleActions = ({ role, onView, onEdit, onDelete }) => {
     {
       id: "delete",
       label: "Delete Role",
-      icon: <FiTrash2 />,
       danger: true,
       disabled: !role?.canDelete,
       onClick: () => onDelete(role),
@@ -654,61 +529,206 @@ const RoleActions = ({ role, onView, onEdit, onDelete }) => {
   ];
 
   return (
-    <AppStack direction="row" align="center" justify="flex-end" gap={0.45}>
-      <AppMenu
-        trigger={
-          <AppIconButton
-            icon={<FiMoreVertical />}
-            tooltip="Role actions"
-            variant="soft"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-          />
-        }
-        items={items}
-        dense
-        minWidth={180}
-      />
-    </AppStack>
+    <AppMenu
+      trigger={
+        <button
+          type="button"
+          aria-label="Role actions"
+          className="inline-flex h-auto w-auto items-center justify-center border-0 bg-transparent p-0 text-text-muted shadow-none outline-none transition hover:bg-transparent hover:text-text focus:bg-transparent active:bg-transparent"
+        >
+          <FiMoreHorizontal className="text-[18px]" />
+        </button>
+      }
+      items={items}
+      dense
+      minWidth={170}
+    />
   );
 };
 
-const IconAvatar = ({ isSystem }) => (
-  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[15px] font-bold text-primary">
-    {isSystem ? <FiLock /> : <FiUsers />}
-  </span>
+const TableFooter = ({ totalRoles, filteredRolesCount }) => (
+  <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
+    <AppText variant="body2" sx={footerTextSx}>
+      Showing 1 to {filteredRolesCount} of {totalRoles} roles
+    </AppText>
+
+    <AppStack direction="row" align="center" gap={1}>
+      <AppButton
+        type="button"
+        variant="outlined"
+        colorVariant="neutral"
+        rounded="md"
+        size="small"
+        endIcon={<FiChevronRight className="rotate-90" />}
+        sx={pageSizeButtonSx}
+      >
+        10 per page
+      </AppButton>
+
+      <AppIconButton
+        icon={<FiChevronLeft />}
+        variant="outlined"
+        colorVariant="neutral"
+        size="small"
+        rounded="md"
+        disabled
+      />
+
+      <span className="flex h-[31px] min-w-[31px] items-center justify-center rounded-md bg-primary px-2 text-[12px] font-bold text-text-inverse">
+        1
+      </span>
+
+      <AppIconButton
+        icon={<FiChevronRight />}
+        variant="outlined"
+        colorVariant="neutral"
+        size="small"
+        rounded="md"
+        disabled
+      />
+    </AppStack>
+  </div>
 );
 
-const IconBox = ({ icon, colorVariant = "primary", large = false }) => (
+const RightSidebar = ({ roleHelp }) => (
+  <div className="space-y-4">
+    <AppCard
+      variant="default"
+      rounded="lg"
+      bordered
+      shadow="sm"
+      padding="none"
+      sx={sideCardSx}
+    >
+      <AppStack direction="row" align="center" gap={1.2}>
+        <IconBox icon={<FiUsers />} colorVariant="success" largeRound />
+        <AppHeading level={3} weight={700} sx={sideTitleSx}>
+          About Roles
+        </AppHeading>
+      </AppStack>
+
+      <AppText variant="body2" sx={sideTextSx}>
+        Roles help you to group permissions and assign them to members. Create
+        custom roles based on responsibilities.
+      </AppText>
+
+      <div className="mt-4 space-y-3">
+        {(roleHelp?.aboutPoints || []).map((point) => (
+          <AppStack key={point} direction="row" align="center" gap={1}>
+            <FiCheckCircle className="shrink-0 text-[15px] text-success" />
+            <AppText variant="body2" sx={pointTextSx}>
+              {point}
+            </AppText>
+          </AppStack>
+        ))}
+      </div>
+    </AppCard>
+
+    <AppCard
+      variant="default"
+      rounded="lg"
+      bordered
+      shadow="sm"
+      padding="none"
+      sx={sideCardSx}
+    >
+      <AppHeading level={3} weight={700} sx={sideTitleSx}>
+        Role Types
+      </AppHeading>
+
+      <div className="mt-4 space-y-4">
+        <RoleTypeInfo
+          label="System"
+          colorVariant="info"
+          description={roleHelp?.systemDescription}
+        />
+        <RoleTypeInfo
+          label="Custom"
+          colorVariant="purple"
+          description={roleHelp?.customDescription}
+        />
+      </div>
+    </AppCard>
+
+    <AppCard
+      variant="default"
+      rounded="lg"
+      bordered
+      shadow="sm"
+      padding="none"
+      sx={sideCardSx}
+    >
+      <AppStack direction="row" align="center" gap={1.2}>
+        <FiHeadphones className="text-[24px] text-text-muted" />
+        <AppHeading level={3} weight={700} sx={sideTitleSx}>
+          Need Help?
+        </AppHeading>
+      </AppStack>
+
+      <AppText variant="body2" sx={sideTextSx}>
+        Learn more about roles and permissions management in PharmaERP.
+      </AppText>
+
+      <button
+        type="button"
+        className="mt-4 inline-flex items-center gap-2 text-[12px] font-bold text-primary"
+      >
+        View User Guide <FiChevronRight />
+      </button>
+    </AppCard>
+  </div>
+);
+
+const RoleTypeInfo = ({ label, colorVariant, description }) => (
+  <div>
+    <AppTag
+      label={label}
+      variant="soft"
+      colorVariant={colorVariant}
+      rounded="md"
+      sx={typeTagSx}
+    />
+
+    <AppText variant="body2" sx={roleTypeTextSx}>
+      {description}
+    </AppText>
+  </div>
+);
+
+const IconBox = ({
+  icon,
+  colorVariant = "primary",
+  small = false,
+  stat = false,
+  largeRound = false,
+}) => (
   <AppBox
     display="flex"
     alignItems="center"
     justifyContent="center"
     sx={{
-      width: large ? 42 : 38,
-      height: large ? 42 : 38,
-      minWidth: large ? 42 : 38,
-      borderRadius: "12px",
+      width: largeRound ? 44 : small ? 32 : stat ? 44 : 38,
+      height: largeRound ? 44 : small ? 32 : stat ? 44 : 38,
+      minWidth: largeRound ? 44 : small ? 32 : stat ? 44 : 38,
+      borderRadius: largeRound
+        ? "999px"
+        : small
+          ? "9px"
+          : stat
+            ? "12px"
+            : "11px",
       bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
       color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
-      fontSize: large ? "22px" : "19px",
+      fontSize: largeRound ? "22px" : small ? "16px" : stat ? "22px" : "19px",
+      lineHeight: 0,
     }}
   >
     {icon}
   </AppBox>
 );
 
-const pageTitleSx = {
-  m: 0,
-  fontSize: "25px",
-  lineHeight: 1.18,
-  letterSpacing: "-0.45px",
-  color: "var(--app-color-text)",
-};
-
 const breadcrumbSx = {
-  mt: 0.4,
+  mb: 1.1,
 };
 
 const breadcrumbItemSx = {
@@ -722,49 +742,65 @@ const breadcrumbCurrentSx = {
   color: "var(--app-color-text)",
 };
 
+const pageTitleSx = {
+  m: 0,
+  fontSize: "25px",
+  lineHeight: 1.15,
+  letterSpacing: "-0.45px",
+  color: "var(--app-color-text)",
+};
+
+const pageSubtitleSx = {
+  mt: 0.55,
+  fontSize: "13px",
+  lineHeight: "21px",
+  color: "var(--app-color-text-muted)",
+};
+
 const primaryButtonSx = {
-  height: 34,
-  px: 1.5,
+  height: 36,
+  px: 1.6,
   fontSize: "12px",
   fontWeight: 700,
 };
 
 const secondaryButtonSx = {
-  height: 34,
-  px: 1.35,
+  height: 36,
+  minWidth: 92,
+  px: 1.4,
   fontSize: "12px",
   fontWeight: 650,
 };
 
+const alertSx = { mt: 3 };
+
 const statCardSx = {
-  px: 1.45,
-  py: 1.35,
+  px: 1.55,
+  py: 1.45,
+  minHeight: 112,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
 
 const statTitleSx = {
-  fontSize: "11.5px",
+  fontSize: "12px",
   fontWeight: 650,
   color: "var(--app-color-text-muted)",
 };
 
 const statValueSx = {
-  mt: 0.25,
+  mt: 0.45,
   mb: 0,
-  fontSize: "25px",
+  fontSize: "24px",
   lineHeight: 1.05,
   color: "var(--app-color-text)",
 };
 
 const statDescriptionSx = {
-  mt: 0.25,
-  fontSize: "11px",
+  mt: 0.75,
+  fontSize: "11.5px",
+  lineHeight: "18px",
   color: "var(--app-color-text-muted)",
-};
-
-const alertSx = {
-  mt: 3,
 };
 
 const tableCardSx = {
@@ -772,33 +808,26 @@ const tableCardSx = {
   overflow: "hidden",
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
+
+  "& > div": {
+    minWidth: 0,
+  },
 };
 
-const sectionTitleSx = {
-  m: 0,
-  fontSize: "16px",
-  lineHeight: 1.2,
-  color: "var(--app-color-text)",
-};
-
-const sectionSubtitleSx = {
-  mt: 0.35,
-  fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const searchSx = {
-  width: "100%",
-};
-
-const selectSx = {
-  width: "100%",
-};
+const searchSx = { width: "100%" };
+const selectSx = { width: "100%" };
 
 const filterInputSx = {
-  height: 35,
+  height: 36,
   fontSize: "12px",
   bgcolor: "var(--app-color-surface)",
+};
+
+const filterButtonSx = {
+  height: 36,
+  px: 1.25,
+  fontSize: "12px",
+  fontWeight: 650,
 };
 
 const chipsRowSx = {
@@ -806,94 +835,106 @@ const chipsRowSx = {
   flexWrap: "wrap",
 };
 
-const tableSx = {
-  "& .MuiTableContainer-root": {
-    borderRadius: 0,
-  },
-};
-
-const tableHeadSx = {
-  bgcolor: "var(--app-color-surface-alt)",
-  "& .MuiTableCell-root": {
-    fontSize: "11px",
-    fontWeight: 750,
-    color: "var(--app-color-text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-  },
-};
-
-const tableCellSx = {
-  py: 1,
-  fontSize: "12px",
-  borderColor: "var(--app-color-border)",
-};
-
-const tableValueSx = {
-  fontSize: "12px",
-  fontWeight: 550,
-  color: "var(--app-color-text)",
-};
-
 const roleNameSx = {
   m: 0,
-  maxWidth: 180,
+  maxWidth: 210,
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   fontSize: "12.5px",
-  lineHeight: 1.2,
+  lineHeight: 1.25,
   color: "var(--app-color-text)",
 };
 
-const codeKeyValueSx = {
-  mt: 0.35,
-  mb: 0,
-  alignItems: "center",
-  gap: 0.6,
-};
-
-const codeLabelSx = {
-  minWidth: 32,
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const codeValueSx = {
-  maxWidth: 160,
+const roleSubtitleSx = {
+  mt: 0.3,
+  maxWidth: 250,
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   fontSize: "11px",
+  lineHeight: "18px",
+  color: "var(--app-color-text-muted)",
+};
+
+const typeTagSx = {
+  width: "fit-content",
+  height: 22,
+  px: 0.8,
+  fontSize: "10.5px",
+  fontWeight: 700,
+};
+
+const memberTextSx = {
+  fontSize: "12px",
   fontWeight: 650,
   color: "var(--app-color-text)",
 };
 
 const descriptionSx = {
-  mt: 0.35,
-  maxWidth: 245,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "10.8px",
-  color: "var(--app-color-text-muted)",
-};
-
-const permissionCountSx = {
-  fontSize: "11.8px",
-  fontWeight: 650,
+  maxWidth: 230,
+  fontSize: "11.5px",
+  lineHeight: "18px",
   color: "var(--app-color-text)",
 };
 
-const permissionTagsSx = {
-  mt: 0.6,
-  maxWidth: 270,
-  flexWrap: "wrap",
+const statusBadgeSx = {
+  width: "fit-content",
+  height: 22,
+  px: 1,
+  fontSize: "10.5px",
+  fontWeight: 700,
+  textTransform: "capitalize",
 };
 
-const stateSx = {
-  minHeight: 340,
+const footerTextSx = {
+  fontSize: "12px",
+  color: "var(--app-color-text-muted)",
 };
+
+const pageSizeButtonSx = {
+  height: 34,
+  minWidth: 122,
+  px: 1.2,
+  fontSize: "12px",
+  fontWeight: 600,
+};
+
+const sideCardSx = {
+  px: 2,
+  py: 1.8,
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+};
+
+const sideTitleSx = {
+  m: 0,
+  fontSize: "15px",
+  lineHeight: 1.25,
+  color: "var(--app-color-text)",
+};
+
+const sideTextSx = {
+  mt: 1.5,
+  fontSize: "12px",
+  lineHeight: "21px",
+  color: "var(--app-color-text-muted)",
+};
+
+const pointTextSx = {
+  fontSize: "12px",
+  lineHeight: "18px",
+  color: "var(--app-color-text-muted)",
+};
+
+const roleTypeTextSx = {
+  mt: 0.9,
+  fontSize: "12px",
+  lineHeight: "21px",
+  color: "var(--app-color-text-muted)",
+};
+
+const stateSx = { minHeight: 430 };
 
 const toastSx = {
   boxShadow: "var(--app-shadow-lg)",

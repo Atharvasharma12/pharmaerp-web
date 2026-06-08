@@ -2,22 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiCheckCircle, FiCreditCard, FiX } from "react-icons/fi";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import usePlan from "@/features/subscription/plans/hooks/usePlan";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useSubscription from "@/features/subscription/subscriptions/hooks/useSubscription";
-
-import {
-  AppBox,
-  AppButton,
-  AppCard,
-  AppHeading,
-  AppStack,
-  AppText,
-} from "@/components";
 
 import ChoosePlanDesktopPage from "./desktop/ChoosePlanDesktopPage";
 import ChoosePlanMobilePage from "./mobile/ChoosePlanMobilePage";
@@ -173,8 +163,6 @@ const ChoosePlanPage = () => {
 
   const [billingCycle, setBillingCycle] = useState("yearly");
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [dialogType, setDialogType] = useState(null);
-  const [dialogPlanId, setDialogPlanId] = useState(null);
   const [submitError, setSubmitError] = useState(null);
 
   const isYearly = billingCycle === "yearly";
@@ -233,23 +221,6 @@ const ChoosePlanPage = () => {
     [plans, selectedPlan],
   );
 
-  const dialogPlanData = useMemo(
-    () => plans.find((plan) => plan.id === dialogPlanId) || selectedPlanData,
-    [plans, dialogPlanId, selectedPlanData],
-  );
-
-  const selectedBillingPlan = useMemo(() => {
-    if (!dialogPlanData) return null;
-
-    return isYearly ? dialogPlanData.yearlyPlan : dialogPlanData.monthlyPlan;
-  }, [dialogPlanData, isYearly]);
-
-  const selectedPriceText = useMemo(() => {
-    if (!dialogPlanData) return "";
-
-    return isYearly ? dialogPlanData.yearlyText : dialogPlanData.monthlyText;
-  }, [dialogPlanData, isYearly]);
-
   const isFetchingPlans = getActivePlansStatus === API_STATUS.LOADING;
 
   const isSubmitting =
@@ -273,64 +244,33 @@ const ChoosePlanPage = () => {
 
   const handleSelectPlan = (planId) => {
     setSelectedPlan(planId);
+    setSubmitError(null);
+    clearSubscriptionError?.();
   };
 
   const handleBack = () => {
-    navigate(ROUTES.DASHBOARD, { replace: true });
+    navigate(ROUTES.CREATE_WORKSPACE);
   };
 
-  const closeDialog = () => {
-    if (isSubmitting) return;
-
-    setDialogType(null);
-    setDialogPlanId(null);
-    setSubmitError(null);
-  };
-
-  const openTrialDialog = (planId = selectedPlan) => {
+  const handleStartTrial = async (planId = selectedPlan) => {
     const plan = plans.find((item) => item.id === planId);
 
     if (!plan || !workspaceId) return;
 
-    setSelectedPlan(plan.id);
-    setDialogPlanId(plan.id);
-    setDialogType("trial");
-    setSubmitError(null);
-    clearSubscriptionError?.();
-  };
-
-  const openPurchaseDialog = (planId = selectedPlan) => {
-    const plan = plans.find((item) => item.id === planId);
-
-    if (!plan || !workspaceId) return;
-
-    setSelectedPlan(plan.id);
-    setDialogPlanId(plan.id);
-    setDialogType("purchase");
-    setSubmitError(null);
-    clearSubscriptionError?.();
-  };
-
-  const handleSubmit = () => {
-    openTrialDialog(selectedPlan);
-  };
-
-  const handleConfirmTrial = async () => {
-    if (!dialogPlanData || !workspaceId) return;
-
-    if (!dialogPlanData.trialDays || dialogPlanData.trialDays <= 0) {
+    if (!plan.trialDays || plan.trialDays <= 0) {
       setSubmitError("This plan does not have free trial days.");
       return;
     }
 
     const payload = {
       workspaceId,
-      planId: dialogPlanData.planId,
+      planId: plan.planId,
       seatQuantity: DEFAULT_SEAT_QUANTITY,
     };
 
     try {
       setSubmitError(null);
+      clearSubscriptionError?.();
 
       const subscription = await startTrialSubscription(payload);
 
@@ -339,10 +279,10 @@ const ChoosePlanPage = () => {
         state: {
           workspaceId,
           workspaceName,
-          planId: dialogPlanData.planId,
-          planCode: dialogPlanData.planCode,
-          planName: dialogPlanData.name,
-          trialDays: dialogPlanData.trialDays,
+          planId: plan.planId,
+          planCode: plan.planCode,
+          planName: plan.name,
+          trialDays: plan.trialDays,
           subscription,
         },
       });
@@ -353,12 +293,16 @@ const ChoosePlanPage = () => {
     }
   };
 
-  const handleConfirmPurchase = async () => {
-    if (!dialogPlanData || !workspaceId) return;
+  const handlePurchaseSubscription = async (planId = selectedPlan) => {
+    const plan = plans.find((item) => item.id === planId);
+
+    if (!plan || !workspaceId) return;
+
+    const billingPlan = isYearly ? plan.yearlyPlan : plan.monthlyPlan;
 
     const payload = {
       workspaceId,
-      planId: selectedBillingPlan?._id || dialogPlanData.planId,
+      planId: billingPlan?._id || plan.planId,
       billingCycle,
       seatQuantity: DEFAULT_SEAT_QUANTITY,
       currency: DEFAULT_CURRENCY,
@@ -366,6 +310,7 @@ const ChoosePlanPage = () => {
 
     try {
       setSubmitError(null);
+      clearSubscriptionError?.();
 
       const subscription = await purchaseSubscription(payload);
 
@@ -376,7 +321,7 @@ const ChoosePlanPage = () => {
           workspaceId,
           workspaceName,
           planId: payload.planId,
-          planName: dialogPlanData.name,
+          planName: plan.name,
           billingCycle,
           subscription,
         },
@@ -388,15 +333,8 @@ const ChoosePlanPage = () => {
     }
   };
 
-  const handleConfirmDialog = () => {
-    if (dialogType === "trial") {
-      handleConfirmTrial();
-      return;
-    }
-
-    if (dialogType === "purchase") {
-      handleConfirmPurchase();
-    }
+  const handleSubmit = () => {
+    handleStartTrial(selectedPlan);
   };
 
   if (shouldHideChoosePlanPage) {
@@ -431,288 +369,15 @@ const ChoosePlanPage = () => {
     handleSelectPlan,
     handleBack,
     handleSubmit,
-
-    // Use these two props in desktop/mobile cards for per-plan buttons.
-    handleStartTrial: openTrialDialog,
-    handlePurchaseSubscription: openPurchaseDialog,
+    handleStartTrial,
+    handlePurchaseSubscription,
   };
 
-  return (
-    <>
-      {isMobile ? (
-        <ChoosePlanMobilePage {...pageProps} />
-      ) : (
-        <ChoosePlanDesktopPage {...pageProps} />
-      )}
-
-      <SubscriptionConfirmDialog
-        open={Boolean(dialogType)}
-        type={dialogType}
-        plan={dialogPlanData}
-        workspaceName={workspaceName}
-        billingCycle={billingCycle}
-        priceText={selectedPriceText}
-        isSubmitting={isSubmitting}
-        error={submitError || subscriptionError}
-        onClose={closeDialog}
-        onConfirm={handleConfirmDialog}
-      />
-    </>
+  return isMobile ? (
+    <ChoosePlanMobilePage {...pageProps} />
+  ) : (
+    <ChoosePlanDesktopPage {...pageProps} />
   );
-};
-
-const SubscriptionConfirmDialog = ({
-  open,
-  type,
-  plan,
-  workspaceName,
-  billingCycle,
-  priceText,
-  isSubmitting,
-  error,
-  onClose,
-  onConfirm,
-}) => {
-  if (!open || !plan) return null;
-
-  const isTrial = type === "trial";
-
-  const title = isTrial ? "Start Free Trial" : "Purchase Subscription";
-
-  const description = isTrial
-    ? `Start ${plan.trialDays || 0} days free trial for ${workspaceName}.`
-    : `Activate ${plan.name} subscription for ${workspaceName}.`;
-
-  const confirmLabel = isTrial ? "Continue & Start Free Trial" : "Continue";
-
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/45 px-4">
-      <AppCard
-        variant="default"
-        rounded="xl"
-        bordered
-        shadow="lg"
-        padding="none"
-        sx={dialogCardSx}
-      >
-        <AppStack direction="row" align="flex-start" justify="space-between">
-          <AppStack direction="row" align="center" gap={1}>
-            <AppBox sx={dialogIconSx}>
-              {isTrial ? <FiCheckCircle /> : <FiCreditCard />}
-            </AppBox>
-
-            <AppBox>
-              <AppHeading level={2} weight={740} sx={dialogTitleSx}>
-                {title}
-              </AppHeading>
-
-              <AppText variant="body2" sx={dialogSubtitleSx}>
-                {description}
-              </AppText>
-            </AppBox>
-          </AppStack>
-
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={onClose}
-            className="rounded-full p-1.5 text-text-muted transition hover:bg-surface-alt hover:text-text disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <FiX />
-          </button>
-        </AppStack>
-
-        <AppCard
-          variant="soft"
-          rounded="lg"
-          bordered
-          padding="none"
-          sx={dialogInfoCardSx}
-        >
-          <DialogInfoRow label="Workspace" value={workspaceName} />
-          <DialogInfoRow label="Plan" value={plan.name} />
-
-          {isTrial ? (
-            <DialogInfoRow
-              label="Trial"
-              value={`${plan.trialDays || 0} days free`}
-            />
-          ) : (
-            <>
-              <DialogInfoRow label="Billing" value={titleCase(billingCycle)} />
-              <DialogInfoRow label="Amount" value={priceText} />
-            </>
-          )}
-
-          <DialogInfoRow label="Seats" value="1 user" />
-        </AppCard>
-
-        <AppBox sx={dialogNoteSx}>
-          {isTrial
-            ? "Your workspace trial will start immediately. You can purchase or upgrade later."
-            : "Payment gateway will be connected with Razorpay later. For now, this will create a paid subscription directly."}
-        </AppBox>
-
-        {error ? (
-          <AppCard
-            variant="soft"
-            rounded="md"
-            bordered
-            padding="none"
-            sx={dialogErrorSx}
-          >
-            <AppText variant="body2" weight={650} sx={dialogErrorTextSx}>
-              {error}
-            </AppText>
-          </AppCard>
-        ) : null}
-
-        <AppStack direction="row" align="center" justify="flex-end" gap={1}>
-          <AppButton
-            type="button"
-            variant="outlined"
-            colorVariant="neutral"
-            rounded="md"
-            disabled={isSubmitting}
-            onClick={onClose}
-            sx={dialogCancelButtonSx}
-          >
-            Cancel
-          </AppButton>
-
-          <AppButton
-            type="button"
-            variant="contained"
-            colorVariant="primary"
-            rounded="md"
-            loading={isSubmitting}
-            disabled={
-              isSubmitting ||
-              (isTrial && (!plan.trialDays || plan.trialDays <= 0))
-            }
-            onClick={onConfirm}
-            sx={dialogConfirmButtonSx}
-          >
-            {confirmLabel}
-          </AppButton>
-        </AppStack>
-      </AppCard>
-    </div>
-  );
-};
-
-const DialogInfoRow = ({ label, value }) => (
-  <AppStack direction="row" align="center" justify="space-between" gap={2}>
-    <AppText variant="body2" sx={dialogInfoLabelSx}>
-      {label}
-    </AppText>
-
-    <AppText variant="body2" weight={700} sx={dialogInfoValueSx}>
-      {value}
-    </AppText>
-  </AppStack>
-);
-
-const dialogCardSx = {
-  width: "100%",
-  maxWidth: 470,
-  px: 1.6,
-  py: 1.5,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const dialogIconSx = {
-  width: 42,
-  height: 42,
-  minWidth: 42,
-  borderRadius: "14px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  bgcolor: "var(--app-color-primary-soft)",
-  color: "var(--app-color-primary)",
-  fontSize: "21px",
-  lineHeight: 0,
-};
-
-const dialogTitleSx = {
-  m: 0,
-  fontSize: "20px",
-  lineHeight: 1.2,
-  color: "var(--app-color-text)",
-};
-
-const dialogSubtitleSx = {
-  mt: 0.3,
-  fontSize: "12.5px",
-  lineHeight: "19px",
-  color: "var(--app-color-text-muted)",
-};
-
-const dialogInfoCardSx = {
-  mt: 1.4,
-  display: "flex",
-  flexDirection: "column",
-  gap: 0.85,
-  px: 1.2,
-  py: 1.05,
-  bgcolor: "var(--app-color-surface-alt)",
-  borderColor: "var(--app-color-border)",
-};
-
-const dialogInfoLabelSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-
-const dialogInfoValueSx = {
-  maxWidth: 250,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  textAlign: "right",
-  fontSize: "12.5px",
-  color: "var(--app-color-text)",
-};
-
-const dialogNoteSx = {
-  mt: 1,
-  mb: 1.2,
-  px: 1,
-  py: 0.85,
-  borderRadius: "10px",
-  bgcolor: "var(--app-color-primary-soft)",
-  color: "var(--app-color-primary)",
-  fontSize: "12px",
-  lineHeight: "18px",
-};
-
-const dialogErrorSx = {
-  mb: 1.2,
-  px: 1,
-  py: 0.8,
-  bgcolor: "var(--app-color-error-soft)",
-  borderColor: "var(--app-color-error)",
-};
-
-const dialogErrorTextSx = {
-  fontSize: "12px",
-  color: "var(--app-color-error)",
-};
-
-const dialogCancelButtonSx = {
-  height: 38,
-  px: 1.6,
-  fontSize: "12.5px",
-  fontWeight: 650,
-};
-
-const dialogConfirmButtonSx = {
-  height: 38,
-  px: 1.8,
-  fontSize: "12.5px",
-  fontWeight: 700,
 };
 
 export default ChoosePlanPage;

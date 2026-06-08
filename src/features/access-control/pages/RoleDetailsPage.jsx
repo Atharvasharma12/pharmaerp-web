@@ -1,37 +1,15 @@
-// src/features/access-control/pages/RoleDetailsPage.jsx
-
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import { AppConfirmModal } from "@/components";
 
 import useAccessControl from "../hooks/useAccessControl";
 
 import RoleDetailsDesktopPage from "./desktop/RoleDetailsDesktopPage";
 import RoleDetailsMobilePage from "./mobile/RoleDetailsMobilePage";
 
-const normalizeText = (value) =>
-  String(value || "")
-    .trim()
-    .toLowerCase();
-
 const formatDate = (value) => {
-  if (!value) return "-";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
-
-const formatDateTime = (value) => {
   if (!value) return "-";
 
   const date = new Date(value);
@@ -47,72 +25,69 @@ const formatDateTime = (value) => {
   });
 };
 
-const formatLabel = (value) => {
-  if (!value) return "-";
+const formatUser = (user) => {
+  if (!user) return "-";
 
-  return String(value)
-    .replace(/[.:_-]+/g, " ")
-    .split(" ")
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
+  if (typeof user === "string") return user;
+
+  return (
+    user.fullName ||
+    user.name ||
+    user.email ||
+    user.profile?.fullName ||
+    user._id ||
+    "-"
+  );
 };
 
-const getPermissionGroup = (permission) => {
-  const [firstPart] = String(permission || "").split(/[.:_-]/);
+const normalizeRoleResponse = (response) => {
+  if (!response) return null;
 
-  return formatLabel(firstPart || "General");
+  if (response?._id) return response;
+
+  if (response?.data?._id) return response.data;
+
+  if (response?.data?.data?._id) return response.data.data;
+
+  return null;
 };
-
-const getUserName = (user) =>
-  user?.fullName || user?.name || user?.profile?.fullName || user?.email || "-";
 
 const mapRoleForView = (role) => {
-  const permissions = Array.isArray(role?.permissions) ? role.permissions : [];
-  const createdBy = role?.createdBy || null;
+  if (!role?._id) return null;
 
-  const groupedPermissions = permissions.reduce((acc, permission) => {
-    const group = getPermissionGroup(permission);
-
-    if (!acc[group]) {
-      acc[group] = [];
-    }
-
-    acc[group].push({
-      label: formatLabel(permission),
-      value: permission,
-    });
-
-    return acc;
-  }, {});
+  const permissions = Array.isArray(role.permissions) ? role.permissions : [];
 
   return {
-    ...role,
+    _id: role._id,
+    workspaceId: role.workspaceId || "-",
+
+    name: role.name || "-",
+    code: role.code || "-",
+    description: role.description || "No description added.",
+
     permissions,
-    createdBy,
-    groupedPermissions,
-
-    displayName: role?.name || formatLabel(role?.code) || "Role",
-    displayCode: role?.code || "-",
-    displayDescription: role?.description || "No description added.",
-    displayStatus: role?.status || "inactive",
-    displayType: role?.isSystem ? "System" : "Custom",
-    displayEditable: role?.isEditable ? "Editable" : "Locked",
-    displayCreatedBy: getUserName(createdBy),
-    displayCreatedAt: formatDate(role?.createdAt),
-    displayCreatedAtTime: formatDateTime(role?.createdAt),
-    displayUpdatedAt: formatDateTime(role?.updatedAt),
-    displayDeletedAt: formatDateTime(role?.deletedAt),
-
     permissionCount: permissions.length,
-    permissionGroupCount: Object.keys(groupedPermissions).length,
-    permissionPreview: permissions.slice(0, 6).map((permission) => ({
-      label: formatLabel(permission),
-      value: permission,
-    })),
 
-    canEdit: Boolean(role?.isEditable),
-    canDelete: !role?.isSystem,
+    isSystem: Boolean(role.isSystem),
+    isEditable: Boolean(role.isEditable),
+
+    status: role.status || "-",
+
+    createdBy: role.createdBy || null,
+    createdByText: formatUser(role.createdBy),
+
+    createdAt: role.createdAt || null,
+    updatedAt: role.updatedAt || null,
+    deletedAt: role.deletedAt || null,
+    deletedBy: role.deletedBy || null,
+
+    createdAtText: formatDate(role.createdAt),
+    updatedAtText: formatDate(role.updatedAt),
+    deletedAtText: formatDate(role.deletedAt),
+    deletedByText: formatUser(role.deletedBy),
+
+    typeText: role.isSystem ? "System" : "Custom",
+    editableText: role.isEditable ? "Editable" : "Locked",
   };
 };
 
@@ -123,12 +98,9 @@ const RoleDetailsPage = () => {
 
   const {
     currentRole,
-
     getRoleById,
-    deleteRole,
 
     getRoleStatus,
-    deleteRoleStatus,
 
     error,
     message,
@@ -140,83 +112,46 @@ const RoleDetailsPage = () => {
 
   const hasFetchedRoleRef = useRef(false);
 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
-  const isFetchingRole = getRoleStatus === API_STATUS.LOADING;
-  const isDeletingRole = deleteRoleStatus === API_STATUS.LOADING;
-  const isLoading = isFetchingRole || isDeletingRole;
+  const isLoading = getRoleStatus === API_STATUS.LOADING;
   const hasError = getRoleStatus === API_STATUS.ERROR;
-
-  const role = useMemo(
-    () => (currentRole ? mapRoleForView(currentRole) : null),
-    [currentRole],
-  );
-
-  const permissionStats = useMemo(
-    () => [
-      {
-        id: "total",
-        title: "Permissions",
-        value: role?.permissionCount || 0,
-        description: "Assigned to this role",
-        colorVariant: "primary",
-      },
-      {
-        id: "groups",
-        title: "Groups",
-        value: role?.permissionGroupCount || 0,
-        description: "Permission modules",
-        colorVariant: "info",
-      },
-      {
-        id: "type",
-        title: "Type",
-        value: role?.displayType || "-",
-        description: role?.isSystem ? "Default workspace role" : "Custom role",
-        colorVariant: role?.isSystem ? "info" : "warning",
-      },
-      {
-        id: "status",
-        title: "Status",
-        value: formatLabel(role?.displayStatus || "inactive"),
-        description: role?.displayEditable || "Locked",
-        colorVariant: role?.displayStatus === "active" ? "success" : "warning",
-      },
-    ],
-    [role],
-  );
 
   const fetchRole = useCallback(async () => {
     if (!roleId) return;
 
     try {
-      await getRoleById(roleId);
+      const response = await getRoleById(roleId);
+
+      const normalizedRole = normalizeRoleResponse(response);
+
+      if (!normalizedRole?._id) {
+        // Redux should still receive the thunk payload.
+        // This only prevents page-level crash when unwrap returns unexpected shape.
+      }
     } catch {
-      // Error is already stored in access-control slice.
+      // Error is already stored in access control slice.
     }
   }, [getRoleById, roleId]);
 
   useEffect(() => {
     clearError();
-    clearMessage();
     clearCurrentRole();
 
     return () => {
       clearError();
-      clearMessage();
       clearCurrentRole();
     };
-  }, [clearCurrentRole, clearError, clearMessage]);
+  }, [clearCurrentRole, clearError]);
 
   useEffect(() => {
+    if (!roleId) return;
     if (hasFetchedRoleRef.current) return;
 
     hasFetchedRoleRef.current = true;
     fetchRole();
-  }, [fetchRole]);
+  }, [fetchRole, roleId]);
 
   useEffect(() => {
-    if (!message) return;
+    if (!message) return undefined;
 
     const timer = window.setTimeout(() => {
       clearMessage();
@@ -225,17 +160,29 @@ const RoleDetailsPage = () => {
     return () => window.clearTimeout(timer);
   }, [clearMessage, message]);
 
+  const role = useMemo(() => {
+    const normalizedRole = normalizeRoleResponse(currentRole);
+
+    return mapRoleForView(normalizedRole);
+  }, [currentRole]);
+
+  const hasRole = Boolean(role?._id);
+
   const handleRefresh = useCallback(() => {
     hasFetchedRoleRef.current = false;
     fetchRole();
   }, [fetchRole]);
 
-  const handleBack = useCallback(() => {
+  const handleBackToRoles = useCallback(() => {
     navigate(ROUTES.ROLES);
   }, [navigate]);
 
+  const handleBackToAccessControl = useCallback(() => {
+    navigate(ROUTES.ACCESS_CONTROL);
+  }, [navigate]);
+
   const handleEditRole = useCallback(() => {
-    if (!role?._id || !role.canEdit) return;
+    if (!role?._id || !role?.isEditable) return;
 
     navigate(ROUTES.EDIT_ROLE.replace(":roleId", role._id));
   }, [navigate, role]);
@@ -244,79 +191,29 @@ const RoleDetailsPage = () => {
     navigate(ROUTES.PERMISSIONS);
   }, [navigate]);
 
-  const handleCreateRole = useCallback(() => {
-    navigate(ROUTES.CREATE_ROLE);
-  }, [navigate]);
-
-  const handleOpenDeleteModal = useCallback(() => {
-    if (!role?._id || !role.canDelete) return;
-
-    setIsDeleteModalOpen(true);
-  }, [role]);
-
-  const handleCloseDeleteModal = useCallback(() => {
-    if (isDeletingRole) return;
-
-    setIsDeleteModalOpen(false);
-  }, [isDeletingRole]);
-
-  const handleConfirmDeleteRole = useCallback(async () => {
-    if (!role?._id) return;
-
-    try {
-      await deleteRole(role._id);
-      setIsDeleteModalOpen(false);
-      navigate(ROUTES.ROLES, { replace: true });
-    } catch {
-      // Error is already stored in access-control slice.
-    }
-  }, [deleteRole, navigate, role]);
-
   const pageProps = {
     role,
-    permissionStats,
+    roleId,
 
     isLoading,
-    isFetchingRole,
-    isDeletingRole,
     hasError,
+    hasRole,
     error,
     message,
 
     handleRefresh,
-    handleBack,
+    handleBackToRoles,
+    handleBackToAccessControl,
     handleEditRole,
     handleViewPermissions,
-    handleCreateRole,
-    handleDeleteRole: handleOpenDeleteModal,
 
     clearMessage,
   };
 
-  return (
-    <>
-      {isMobile ? (
-        <RoleDetailsMobilePage {...pageProps} />
-      ) : (
-        <RoleDetailsDesktopPage {...pageProps} />
-      )}
-
-      <AppConfirmModal
-        open={isDeleteModalOpen}
-        onClose={handleCloseDeleteModal}
-        onConfirm={handleConfirmDeleteRole}
-        title="Delete Role"
-        message={`Delete ${role?.displayName || "this role"}?`}
-        description="This role will be soft deleted and can no longer be assigned to workspace members. System roles cannot be deleted."
-        variant="error"
-        confirmLabel="Delete Role"
-        cancelLabel="Keep Role"
-        loading={isDeletingRole}
-        confirmDisabled={isDeletingRole}
-        cancelDisabled={isDeletingRole}
-        closeOnBackdrop={!isDeletingRole}
-      />
-    </>
+  return isMobile ? (
+    <RoleDetailsMobilePage {...pageProps} />
+  ) : (
+    <RoleDetailsDesktopPage {...pageProps} />
   );
 };
 
