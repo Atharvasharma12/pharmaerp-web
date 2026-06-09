@@ -12,7 +12,7 @@ import useSubscription from "@/features/subscription/subscriptions/hooks/useSubs
 import ChoosePlanDesktopPage from "./desktop/ChoosePlanDesktopPage";
 import ChoosePlanMobilePage from "./mobile/ChoosePlanMobilePage";
 
-const DEFAULT_SEAT_QUANTITY = 1;
+const DEFAULT_SEAT_QUANTITY = 5;
 const DEFAULT_CURRENCY = "INR";
 
 const formatCurrency = (amount = 0) =>
@@ -136,6 +136,7 @@ const ChoosePlanPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const hasFetchedPlansRef = useRef(false);
+  const hasFetchedSubscriptionRef = useRef(false);
 
   const {
     activePlans,
@@ -155,6 +156,10 @@ const ChoosePlanPage = () => {
   const {
     startTrialSubscription,
     purchaseSubscription,
+
+    getWorkspaceCurrentSubscription,
+    currentWorkspaceSubscription,
+
     startTrialSubscriptionStatus,
     purchaseSubscriptionStatus,
     error: subscriptionError,
@@ -179,6 +184,7 @@ const ChoosePlanPage = () => {
   const workspaceId = workspace?._id;
 
   const hasWorkspace = Boolean(workspaceId);
+  const hasExistingSubscription = Boolean(currentWorkspaceSubscription?._id);
 
   const hasFetchedWorkspaces = getMyWorkspacesStatus === API_STATUS.SUCCESS;
   const isFetchingWorkspaces = getMyWorkspacesStatus === API_STATUS.LOADING;
@@ -199,13 +205,38 @@ const ChoosePlanPage = () => {
   }, [hasFetchedWorkspaces, hasWorkspace, navigate]);
 
   useEffect(() => {
-    if (!hasWorkspace || hasFetchedPlansRef.current) return;
+    if (!workspaceId || hasFetchedSubscriptionRef.current) return;
+
+    hasFetchedSubscriptionRef.current = true;
+    getWorkspaceCurrentSubscription(workspaceId).catch(() => {});
+  }, [workspaceId, getWorkspaceCurrentSubscription]);
+
+  useEffect(() => {
+    if (!hasExistingSubscription) return;
+
+    navigate(ROUTES.SETUP_CENTER, { replace: true });
+  }, [hasExistingSubscription, navigate]);
+
+  useEffect(() => {
+    if (
+      !hasWorkspace ||
+      hasExistingSubscription ||
+      hasFetchedPlansRef.current
+    ) {
+      return;
+    }
 
     hasFetchedPlansRef.current = true;
     clearError();
     clearSubscriptionError?.();
     getActivePlans().catch(() => {});
-  }, [hasWorkspace, clearError, clearSubscriptionError, getActivePlans]);
+  }, [
+    hasWorkspace,
+    hasExistingSubscription,
+    clearError,
+    clearSubscriptionError,
+    getActivePlans,
+  ]);
 
   const plans = useMemo(() => normalizePlans(activePlans), [activePlans]);
 
@@ -232,7 +263,9 @@ const ChoosePlanPage = () => {
   const error = submitError || subscriptionError || planError;
 
   const shouldHideChoosePlanPage =
-    isFetchingWorkspaces || (hasFetchedWorkspaces && !hasWorkspace);
+    isFetchingWorkspaces ||
+    (hasFetchedWorkspaces && !hasWorkspace) ||
+    hasExistingSubscription;
 
   const handleBillingCycleChange = (cycle) => {
     setBillingCycle(cycle);
@@ -255,7 +288,7 @@ const ChoosePlanPage = () => {
   const handleStartTrial = async (planId = selectedPlan) => {
     const plan = plans.find((item) => item.id === planId);
 
-    if (!plan || !workspaceId) return;
+    if (!plan || !workspaceId || hasExistingSubscription) return;
 
     if (!plan.trialDays || plan.trialDays <= 0) {
       setSubmitError("This plan does not have free trial days.");
@@ -296,7 +329,7 @@ const ChoosePlanPage = () => {
   const handlePurchaseSubscription = async (planId = selectedPlan) => {
     const plan = plans.find((item) => item.id === planId);
 
-    if (!plan || !workspaceId) return;
+    if (!plan || !workspaceId || hasExistingSubscription) return;
 
     const billingPlan = isYearly ? plan.yearlyPlan : plan.monthlyPlan;
 
@@ -314,7 +347,7 @@ const ChoosePlanPage = () => {
 
       const subscription = await purchaseSubscription(payload);
 
-      navigate(ROUTES.DASHBOARD, {
+      navigate(ROUTES.SETUP_CENTER, {
         replace: true,
         state: {
           subscriptionPurchased: true,

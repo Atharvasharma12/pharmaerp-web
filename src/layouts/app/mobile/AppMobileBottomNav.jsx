@@ -16,7 +16,7 @@ import { ROUTES } from "@/constants";
 const navItems = [
   {
     label: "Dashboard",
-    path: ROUTES.DASHBOARD,
+    path: ROUTES.SETUP_CENTER,
     icon: <FiHome />,
     end: true,
   },

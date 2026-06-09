@@ -47,21 +47,21 @@ const TrialActivatedPage = () => {
         description: "Start managing your pharmacy workspace.",
         actionText: "Open Dashboard",
         primary: true,
-        onClick: () => navigate(ROUTES.DASHBOARD, { replace: true }),
+        onClick: () => navigate(ROUTES.SETUP_CENTER, { replace: true }),
       },
       {
         id: "billing",
         title: "Create First Bill",
         description: "Try quick GST-ready sales billing.",
         actionText: "Start Billing",
-        onClick: () => navigate(ROUTES.DASHBOARD, { replace: true }),
+        onClick: () => navigate(ROUTES.SETUP_CENTER, { replace: true }),
       },
       {
         id: "inventory",
         title: "Add Inventory",
         description: "Add medicines, batches, stock and expiry dates.",
         actionText: "Add Stock",
-        onClick: () => navigate(ROUTES.DASHBOARD, { replace: true }),
+        onClick: () => navigate(ROUTES.SETUP_CENTER, { replace: true }),
       },
     ],
     [navigate],
@@ -94,7 +94,7 @@ const TrialActivatedPage = () => {
   );
 
   const handleGoToDashboard = () => {
-    navigate(ROUTES.DASHBOARD, { replace: true });
+    navigate(ROUTES.SETUP_CENTER, { replace: true });
   };
 
   const handleBackToPlans = () => {

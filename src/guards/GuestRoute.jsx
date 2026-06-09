@@ -9,7 +9,7 @@ const GuestRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
 
   if (isAuthenticated) {
-    return <Navigate to={ROUTES.DASHBOARD} replace />;
+    return <Navigate to={ROUTES.SETUP_CENTER} replace />;
   }
 
   return children || <Outlet />;

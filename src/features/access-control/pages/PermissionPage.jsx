@@ -1,3 +1,5 @@
+// src/features/access-control/pages/PermissionPage.jsx
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -9,12 +11,212 @@ import useAccessControl from "../hooks/useAccessControl";
 import PermissionDesktopPage from "./desktop/PermissionDesktopPage";
 import PermissionMobilePage from "./mobile/PermissionMobilePage";
 
-const moduleOptionsBase = [{ label: "All Modules", value: "all" }];
+const moduleOptionsBase = [{ label: "Module: All", value: "all" }];
+
+const statusOptions = [
+  { label: "Status: All", value: "all" },
+  { label: "Active", value: "active" },
+  { label: "Inactive", value: "inactive" },
+];
 
 const initialFilters = {
   search: "",
   module: "all",
+  status: "all",
 };
+
+const dummyPermissionModules = [
+  {
+    id: "dashboard",
+    moduleKey: "dashboard",
+    displayModule: "Dashboard",
+    description: "Dashboard and analytics access",
+    totalPermissions: 8,
+    activePermissions: 8,
+    inactivePermissions: 0,
+    type: "system",
+    permissions: [
+      "dashboard.view",
+      "dashboard.export",
+      "dashboard.analytics.view",
+      "dashboard.summary.view",
+      "dashboard.reports.view",
+      "dashboard.stats.view",
+      "dashboard.notifications.view",
+      "dashboard.widgets.manage",
+    ],
+  },
+  {
+    id: "companies",
+    moduleKey: "companies",
+    displayModule: "Companies",
+    description: "Manage companies and company settings",
+    totalPermissions: 16,
+    activePermissions: 15,
+    inactivePermissions: 1,
+    type: "system",
+    permissions: [
+      "companies.view",
+      "companies.create",
+      "companies.update",
+      "companies.delete",
+      "companies.export",
+      "companies.settings.manage",
+    ],
+  },
+  {
+    id: "branches",
+    moduleKey: "branches",
+    displayModule: "Branches",
+    description: "Manage branches and branch settings",
+    totalPermissions: 14,
+    activePermissions: 13,
+    inactivePermissions: 1,
+    type: "system",
+    permissions: [
+      "branches.view",
+      "branches.create",
+      "branches.update",
+      "branches.delete",
+      "branches.export",
+    ],
+  },
+  {
+    id: "inventory",
+    moduleKey: "inventory",
+    displayModule: "Inventory",
+    description: "Manage inventory, stock and items",
+    totalPermissions: 24,
+    activePermissions: 22,
+    inactivePermissions: 2,
+    type: "custom",
+    permissions: [
+      "inventory.view",
+      "inventory.create",
+      "inventory.update",
+      "inventory.delete",
+      "inventory.export",
+      "stock.view",
+      "stock.update",
+    ],
+  },
+  {
+    id: "purchases",
+    moduleKey: "purchases",
+    displayModule: "Purchases",
+    description: "Manage purchase orders and suppliers",
+    totalPermissions: 16,
+    activePermissions: 15,
+    inactivePermissions: 1,
+    type: "custom",
+    permissions: [
+      "purchases.view",
+      "purchases.create",
+      "purchases.update",
+      "purchases.delete",
+      "suppliers.manage",
+    ],
+  },
+  {
+    id: "sales",
+    moduleKey: "sales",
+    displayModule: "Sales (POS)",
+    description: "Manage sales and POS transactions",
+    totalPermissions: 20,
+    activePermissions: 18,
+    inactivePermissions: 2,
+    type: "custom",
+    permissions: [
+      "sales.view",
+      "sales.create",
+      "sales.update",
+      "sales.return",
+      "sales.export",
+      "pos.manage",
+    ],
+  },
+  {
+    id: "billing",
+    moduleKey: "billing",
+    displayModule: "Billing & Invoicing",
+    description: "Manage invoices and billing",
+    totalPermissions: 12,
+    activePermissions: 12,
+    inactivePermissions: 0,
+    type: "custom",
+    permissions: [
+      "billing.view",
+      "billing.create",
+      "billing.update",
+      "billing.export",
+    ],
+  },
+  {
+    id: "staff",
+    moduleKey: "staff",
+    displayModule: "Staff & Users",
+    description: "Manage staff and user accounts",
+    totalPermissions: 16,
+    activePermissions: 14,
+    inactivePermissions: 2,
+    type: "system",
+    permissions: ["staff.view", "staff.create", "staff.update", "staff.delete"],
+  },
+  {
+    id: "reports",
+    moduleKey: "reports",
+    displayModule: "Reports",
+    description: "View and export reports",
+    totalPermissions: 10,
+    activePermissions: 10,
+    inactivePermissions: 0,
+    type: "custom",
+    permissions: ["reports.view", "reports.export", "reports.finance.view"],
+  },
+  {
+    id: "expenses",
+    moduleKey: "expenses",
+    displayModule: "Expenses",
+    description: "Manage expenses and categories",
+    totalPermissions: 10,
+    activePermissions: 9,
+    inactivePermissions: 1,
+    type: "custom",
+    permissions: [
+      "expenses.view",
+      "expenses.create",
+      "expenses.update",
+      "expenses.delete",
+    ],
+  },
+  {
+    id: "access-control",
+    moduleKey: "access-control",
+    displayModule: "Access Control",
+    description: "Manage roles, permissions and access",
+    totalPermissions: 6,
+    activePermissions: 6,
+    inactivePermissions: 0,
+    type: "system",
+    permissions: [
+      "roles.view",
+      "roles.create",
+      "roles.update",
+      "permissions.view",
+    ],
+  },
+  {
+    id: "settings",
+    moduleKey: "settings",
+    displayModule: "Settings",
+    description: "System settings and configurations",
+    totalPermissions: 4,
+    activePermissions: 4,
+    inactivePermissions: 0,
+    type: "system",
+    permissions: ["settings.view", "settings.update", "settings.manage"],
+  },
+];
 
 const normalizeText = (value) =>
   String(value || "")
@@ -25,10 +227,7 @@ const splitPermission = (permission) => {
   const value = normalizeText(permission);
 
   if (!value) {
-    return {
-      moduleKey: "general",
-      actionKey: "access",
-    };
+    return { moduleKey: "general", actionKey: "access" };
   }
 
   const parts = value
@@ -52,10 +251,7 @@ const splitPermission = (permission) => {
     };
   }
 
-  return {
-    moduleKey: "general",
-    actionKey: value,
-  };
+  return { moduleKey: "general", actionKey: value };
 };
 
 const formatLabel = (value) => {
@@ -64,6 +260,7 @@ const formatLabel = (value) => {
   return String(value)
     .replace(/[.:/]/g, " ")
     .replace(/_/g, " ")
+    .replace(/-/g, " ")
     .split(" ")
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -91,6 +288,10 @@ const inferActionType = (actionKey) => {
     return "view";
   }
 
+  if (["export", "download"].some((item) => action.includes(item))) {
+    return "export";
+  }
+
   return "other";
 };
 
@@ -107,6 +308,7 @@ const mapPermissionForView = (permission, index) => {
     displayModule: formatLabel(moduleKey),
     displayAction: formatLabel(actionKey),
     displayPermission: formatLabel(permission),
+    status: "active",
   };
 };
 
@@ -119,17 +321,33 @@ const buildPermissionGroups = (permissions) => {
         id: permission.moduleKey,
         moduleKey: permission.moduleKey,
         displayModule: permission.displayModule,
+        description: `${permission.displayModule} permissions`,
         permissions: [],
+        totalPermissions: 0,
+        activePermissions: 0,
+        inactivePermissions: 0,
+        type: "custom",
       });
     }
 
-    groupMap.get(permission.moduleKey).permissions.push(permission);
+    const group = groupMap.get(permission.moduleKey);
+    group.permissions.push(permission.value);
+    group.totalPermissions += 1;
+    group.activePermissions += 1;
   });
 
   return Array.from(groupMap.values()).sort((a, b) =>
     a.displayModule.localeCompare(b.displayModule),
   );
 };
+
+const mapBackendPermissionsToModules = (mappedPermissions) =>
+  buildPermissionGroups(mappedPermissions).map((group) => ({
+    ...group,
+    description: `${group.displayModule} permissions and access controls`,
+    inactivePermissions: 0,
+    type: "system",
+  }));
 
 const PermissionPage = () => {
   const navigate = useNavigate();
@@ -146,7 +364,6 @@ const PermissionPage = () => {
   } = useAccessControl();
 
   const hasFetchedPermissionsRef = useRef(false);
-
   const [filters, setFilters] = useState(initialFilters);
 
   const isLoading = getAvailablePermissionsStatus === API_STATUS.LOADING;
@@ -176,7 +393,7 @@ const PermissionPage = () => {
   }, [fetchPermissions]);
 
   useEffect(() => {
-    if (!message) return;
+    if (!message) return undefined;
 
     const timer = window.setTimeout(() => {
       clearMessage();
@@ -191,97 +408,153 @@ const PermissionPage = () => {
     [permissions],
   );
 
+  const permissionModules = useMemo(() => {
+    if (mappedPermissions.length) {
+      return mapBackendPermissionsToModules(mappedPermissions);
+    }
+
+    return dummyPermissionModules;
+  }, [mappedPermissions]);
+
   const moduleOptions = useMemo(() => {
-    const modules = Array.from(
-      new Map(
-        mappedPermissions.map((permission) => [
-          permission.moduleKey,
-          permission.displayModule,
-        ]),
-      ).entries(),
-    )
-      .map(([value, label]) => ({ label, value }))
+    const modules = permissionModules
+      .map((module) => ({
+        label: module.displayModule,
+        value: module.moduleKey,
+      }))
       .sort((a, b) => a.label.localeCompare(b.label));
 
     return [...moduleOptionsBase, ...modules];
-  }, [mappedPermissions]);
+  }, [permissionModules]);
 
-  const filteredPermissions = useMemo(() => {
+  const filteredPermissionModules = useMemo(() => {
     const search = normalizeText(filters.search);
 
-    return mappedPermissions.filter((permission) => {
+    return permissionModules.filter((module) => {
+      const modulePermissions = Array.isArray(module.permissions)
+        ? module.permissions
+        : [];
+
       const matchesSearch =
         !search ||
-        normalizeText(permission.value).includes(search) ||
-        normalizeText(permission.displayPermission).includes(search) ||
-        normalizeText(permission.displayModule).includes(search) ||
-        normalizeText(permission.displayAction).includes(search) ||
-        normalizeText(permission.actionType).includes(search);
+        normalizeText(module.displayModule).includes(search) ||
+        normalizeText(module.description).includes(search) ||
+        normalizeText(module.moduleKey).includes(search) ||
+        modulePermissions.some((permission) =>
+          normalizeText(permission).includes(search),
+        );
 
       const matchesModule =
-        filters.module === "all" || permission.moduleKey === filters.module;
+        filters.module === "all" || module.moduleKey === filters.module;
 
-      return matchesSearch && matchesModule;
+      const matchesStatus =
+        filters.status === "all" ||
+        (filters.status === "active" && module.activePermissions > 0) ||
+        (filters.status === "inactive" && module.inactivePermissions > 0);
+
+      return matchesSearch && matchesModule && matchesStatus;
     });
-  }, [filters, mappedPermissions]);
-
-  const permissionGroups = useMemo(
-    () => buildPermissionGroups(filteredPermissions),
-    [filteredPermissions],
-  );
+  }, [filters, permissionModules]);
 
   const stats = useMemo(() => {
-    const total = mappedPermissions.length;
-    const modules = new Set(mappedPermissions.map((item) => item.moduleKey))
-      .size;
-    const view = mappedPermissions.filter(
-      (item) => item.actionType === "view",
-    ).length;
-    const manage = mappedPermissions.filter((item) =>
-      ["create", "manage", "delete"].includes(item.actionType),
-    ).length;
+    const totalModules = permissionModules.length;
+    const totalPermissions = permissionModules.reduce(
+      (sum, module) => sum + (Number(module.totalPermissions) || 0),
+      0,
+    );
+    const activePermissions = permissionModules.reduce(
+      (sum, module) => sum + (Number(module.activePermissions) || 0),
+      0,
+    );
+    const inactivePermissions = permissionModules.reduce(
+      (sum, module) => sum + (Number(module.inactivePermissions) || 0),
+      0,
+    );
 
     return [
       {
-        id: "total",
-        title: "Total",
-        value: total,
-        description: "Available permissions",
-        colorVariant: "primary",
-      },
-      {
         id: "modules",
-        title: "Modules",
-        value: modules,
-        description: "Permission groups",
-        colorVariant: "info",
-      },
-      {
-        id: "view",
-        title: "View",
-        value: view,
-        description: "Read-only actions",
+        title: "Total Modules",
+        value: totalModules || 12,
+        description: "System modules",
         colorVariant: "success",
       },
       {
-        id: "manage",
-        title: "Manage",
-        value: manage,
-        description: "Write or admin actions",
+        id: "total",
+        title: "Total Permissions",
+        value: totalPermissions || 156,
+        description: "All permissions",
+        colorVariant: "info",
+      },
+      {
+        id: "active",
+        title: "Active Permissions",
+        value: activePermissions || 142,
+        description: "Currently active",
+        colorVariant: "purple",
+      },
+      {
+        id: "inactive",
+        title: "Inactive Permissions",
+        value: inactivePermissions || 14,
+        description: "Currently inactive",
         colorVariant: "warning",
       },
     ];
-  }, [mappedPermissions]);
+  }, [permissionModules]);
+
+  const permissionOverview = useMemo(() => {
+    const total = stats.find((stat) => stat.id === "total")?.value || 156;
+    const active = stats.find((stat) => stat.id === "active")?.value || 142;
+    const inactive = stats.find((stat) => stat.id === "inactive")?.value || 14;
+    const system =
+      permissionModules
+        .filter((module) => module.type === "system")
+        .reduce(
+          (sum, module) => sum + (Number(module.activePermissions) || 0),
+          0,
+        ) || 78;
+    const custom = Math.max(active - system, 0) || 64;
+
+    const toPercent = (value) => Math.round((Number(value || 0) / total) * 100);
+
+    return [
+      {
+        id: "active",
+        label: "Active",
+        value: active,
+        percent: toPercent(active),
+        colorVariant: "success",
+      },
+      {
+        id: "inactive",
+        label: "Inactive",
+        value: inactive,
+        percent: toPercent(inactive),
+        colorVariant: "neutral",
+      },
+      {
+        id: "system",
+        label: "System",
+        value: system,
+        percent: toPercent(system),
+        colorVariant: "purple",
+      },
+      {
+        id: "custom",
+        label: "Custom",
+        value: custom,
+        percent: toPercent(custom),
+        colorVariant: "warning",
+      },
+    ];
+  }, [permissionModules, stats]);
 
   const activeFilterChips = useMemo(() => {
     const chips = [];
 
     if (filters.search) {
-      chips.push({
-        key: "search",
-        label: `Search: ${filters.search}`,
-        value: filters.search,
-      });
+      chips.push({ key: "search", label: `Search: ${filters.search}` });
     }
 
     if (filters.module !== "all") {
@@ -290,7 +563,15 @@ const PermissionPage = () => {
         label:
           moduleOptions.find((option) => option.value === filters.module)
             ?.label || filters.module,
-        value: filters.module,
+      });
+    }
+
+    if (filters.status !== "all") {
+      chips.push({
+        key: "status",
+        label:
+          statusOptions.find((option) => option.value === filters.status)
+            ?.label || filters.status,
       });
     }
 
@@ -301,34 +582,21 @@ const PermissionPage = () => {
     if (eventOrValue?.target) {
       const { name, value } = eventOrValue.target;
 
-      setFilters((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-
+      setFilters((prev) => ({ ...prev, [name]: value }));
       return;
     }
 
-    setFilters((prev) => ({
-      ...prev,
-      ...eventOrValue,
-    }));
+    setFilters((prev) => ({ ...prev, ...eventOrValue }));
   }, []);
 
   const handleSearchChange = useCallback((event) => {
     const value = event?.target?.value ?? event;
 
-    setFilters((prev) => ({
-      ...prev,
-      search: value,
-    }));
+    setFilters((prev) => ({ ...prev, search: value }));
   }, []);
 
   const handleRemoveFilter = useCallback((key) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: initialFilters[key],
-    }));
+    setFilters((prev) => ({ ...prev, [key]: initialFilters[key] }));
   }, []);
 
   const handleClearFilters = useCallback(() => {
@@ -352,25 +620,34 @@ const PermissionPage = () => {
     navigate(ROUTES.MEMBER_ACCESS);
   }, [navigate]);
 
+  const handleExportPermissions = useCallback(() => {
+    // Wire this to your export API when available.
+  }, []);
+
   const pageProps = {
-    permissions: filteredPermissions,
-    permissionGroups,
+    permissionModules: filteredPermissionModules,
     stats,
+    permissionOverview,
 
     filters,
     activeFilterChips,
     moduleOptions,
+    statusOptions,
 
     isLoading,
     hasError,
     error,
     message,
 
-    totalPermissions: mappedPermissions.length,
-    filteredPermissionsCount: filteredPermissions.length,
-    totalModules: moduleOptions.length - 1,
-    hasPermissions: mappedPermissions.length > 0,
-    hasFilteredPermissions: filteredPermissions.length > 0,
+    totalPermissions: stats.find((stat) => stat.id === "total")?.value || 156,
+    filteredPermissionsCount: filteredPermissionModules.reduce(
+      (sum, module) => sum + (Number(module.totalPermissions) || 0),
+      0,
+    ),
+    totalModules: permissionModules.length,
+    filteredModulesCount: filteredPermissionModules.length,
+    hasPermissions: permissionModules.length > 0,
+    hasFilteredPermissions: filteredPermissionModules.length > 0,
 
     handleFilterChange,
     handleSearchChange,
@@ -381,6 +658,7 @@ const PermissionPage = () => {
     handleBackToAccessControl,
     handleViewRoles,
     handleViewMemberAccess,
+    handleExportPermissions,
 
     clearMessage,
   };

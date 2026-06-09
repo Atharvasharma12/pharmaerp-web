@@ -1,21 +1,25 @@
 // src/features/access-control/pages/desktop/EditRoleDesktopPage.jsx
 
 import {
-  FiAlertTriangle,
   FiArrowLeft,
+  FiArrowRight,
+  FiBookOpen,
+  FiCheck,
   FiCheckCircle,
-  FiEye,
-  FiHash,
-  FiInfo,
-  FiKey,
-  FiList,
-  FiLock,
-  FiRefreshCcw,
+  FiChevronRight,
+  FiFilter,
+  FiGrid,
+  FiHelpCircle,
   FiRefreshCw,
   FiSave,
+  FiSearch,
   FiShield,
   FiSliders,
+  FiUsers,
+  FiX,
 } from "react-icons/fi";
+import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
+import { LuStore } from "react-icons/lu";
 
 import {
   AppAlert,
@@ -23,527 +27,650 @@ import {
   AppBreadcrumb,
   AppButton,
   AppCard,
-  AppEmptyState,
-  AppErrorState,
-  AppFormSkeleton,
+  AppCheckbox,
   AppHeading,
   AppInput,
-  AppKeyValue,
-  AppMultiSelect,
   AppSelect,
   AppStack,
-  AppStatusBadge,
   AppTag,
   AppTextarea,
   AppText,
+  PageHeader,
+  PageRightSidebar,
 } from "@/components";
 
+const actionKeys = ["view", "create", "update", "delete"];
+
+const actionLabels = {
+  view: "View",
+  create: "Create",
+  update: "Update",
+  delete: "Delete",
+};
+
+const moduleIcons = {
+  dashboard: <FiGrid />,
+  workspace: <FiUsers />,
+  "workspace-member": <FiUsers />,
+  company: <HiOutlineBuildingOffice2 />,
+  branch: <LuStore />,
+  role: <FiShield />,
+  product: <FiGrid />,
+  category: <FiGrid />,
+  inventory: <FiGrid />,
+  stock: <FiGrid />,
+  purchase: <FiGrid />,
+  "purchase-return": <FiGrid />,
+  sale: <FiGrid />,
+  "sales-return": <FiGrid />,
+  customer: <FiUsers />,
+  supplier: <FiUsers />,
+  bill: <FiGrid />,
+  pos: <FiGrid />,
+  payment: <FiGrid />,
+  expense: <FiGrid />,
+  report: <FiGrid />,
+  settings: <FiGrid />,
+  subscription: <FiGrid />,
+};
+
+const statusOptions = [
+  { label: "Active", value: "active" },
+  { label: "Inactive", value: "inactive" },
+];
+
 const EditRoleDesktopPage = ({
-  role,
   formData,
   formErrors = {},
-  statusOptions = [],
-  permissionOptions = [],
-  selectedPermissionOptions = [],
+
+  permissionModules = [],
+  moduleOptions = [],
+  moduleFilter = "all",
+  permissionSearch = "",
   permissionSummary,
   previewRole,
+  currentStep = 1,
 
   isLoading = false,
-  isFetchingRole = false,
   isUpdating = false,
+  isLoadingRole = false,
   isLoadingPermissions = false,
   hasRoleError = false,
   hasPermissionError = false,
-  isRoleLocked = false,
   error,
   message,
 
   handleChange,
-  handlePermissionsChange,
+  handleTogglePermission,
+  handleToggleModule,
   handleSelectAllPermissions,
   handleClearPermissions,
   handleSubmit,
   handleReset,
   handleBack,
-  handleViewDetails,
-  handleViewPermissions,
-  handleRefreshRole,
+  handleCancel,
+  handleContinue,
+  handleStepChange,
   handleRefreshPermissions,
+  handleRefreshRole,
+
+  setPermissionSearch,
+  setModuleFilter,
 }) => {
-  const showInitialSkeleton = isFetchingRole && !role;
-  const isFormDisabled = isLoading || isRoleLocked || hasRoleError;
-
-  return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
-      <div className="mx-auto w-full max-w-[1380px]">
-        <PageHeader
-          isLoading={isLoading}
-          onBack={handleBack}
-          onViewDetails={handleViewDetails}
-          onRefresh={handleRefreshRole}
-        />
-
-        {message ? (
-          <AppAlert
-            severity="success"
-            variant="soft"
-            title={message}
-            rounded="md"
-            sx={alertSx}
+  if (isLoadingRole) {
+    return (
+      <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
+        <div className="mx-auto w-full max-w-[1500px]">
+          <PageHeader
+            title="Edit Role"
+            subtitle="Loading role details..."
+            extra={
+              <AppBreadcrumb
+                size="small"
+                variant="text"
+                items={[
+                  { label: "Access Control", href: "/access-control" },
+                  { label: "Roles", href: "/access-control/roles" },
+                  { label: "Edit Role", current: true },
+                ]}
+                sx={breadcrumbSx}
+                itemSx={breadcrumbItemSx}
+                currentItemSx={breadcrumbCurrentSx}
+              />
+            }
+            align="flex-start"
+            justify="space-between"
+            sx={pageHeaderSx}
+            contentSx={pageHeaderContentSx}
           />
-        ) : null}
 
-        {error && !formErrors.submit && !hasRoleError ? (
+          <AppCard
+            variant="default"
+            rounded="lg"
+            bordered
+            shadow="sm"
+            padding="none"
+            sx={mainCardSx}
+          >
+            <AppStack direction="row" align="center" gap={1.2}>
+              <FiRefreshCw className="animate-spin text-primary" />
+
+              <AppText variant="body2" sx={sectionSubtitleSx}>
+                Fetching role information. Please wait...
+              </AppText>
+            </AppStack>
+          </AppCard>
+        </div>
+      </section>
+    );
+  }
+
+  if (hasRoleError) {
+    return (
+      <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
+        <div className="mx-auto w-full max-w-[1500px]">
+          <PageHeader
+            title="Edit Role"
+            subtitle="Unable to load role details."
+            extra={
+              <AppBreadcrumb
+                size="small"
+                variant="text"
+                items={[
+                  { label: "Access Control", href: "/access-control" },
+                  { label: "Roles", href: "/access-control/roles" },
+                  { label: "Edit Role", current: true },
+                ]}
+                sx={breadcrumbSx}
+                itemSx={breadcrumbItemSx}
+                currentItemSx={breadcrumbCurrentSx}
+              />
+            }
+            actions={
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiArrowLeft />}
+                onClick={handleCancel}
+                sx={secondaryButtonSx}
+              >
+                Back
+              </AppButton>
+            }
+            align="flex-start"
+            justify="space-between"
+            sx={pageHeaderSx}
+            contentSx={pageHeaderContentSx}
+          />
+
           <AppAlert
             severity="error"
             variant="soft"
-            title="Something went wrong"
+            title="Role not found"
             rounded="md"
             sx={alertSx}
           >
-            {error}
+            {error || "Unable to fetch role details. Please try again."}
           </AppAlert>
-        ) : null}
 
-        {showInitialSkeleton ? (
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={loadingCardSx}
-          >
-            <AppFormSkeleton rows={8} />
-          </AppCard>
-        ) : hasRoleError ? (
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={stateCardSx}
-          >
-            <AppErrorState
-              title="Unable to load role"
-              description={error || "Please refresh and try again."}
-              actionText="Refresh"
-              onRetry={handleRefreshRole}
-              size="page"
-            />
-          </AppCard>
-        ) : !role ? (
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={stateCardSx}
-          >
-            <AppEmptyState
-              title="Role not found"
-              description="The selected role could not be loaded."
-              icon={<FiShield />}
-              action={
-                <AppButton
-                  variant="outlined"
-                  colorVariant="neutral"
-                  rounded="md"
-                  startIcon={<FiArrowLeft />}
-                  onClick={handleBack}
-                >
-                  Back to Roles
-                </AppButton>
-              }
-              size="page"
-            />
-          </AppCard>
-        ) : (
-          <div className="mt-4 grid grid-cols-[minmax(0,1fr)_390px] gap-4">
-            <AppCard
-              variant="default"
-              rounded="lg"
-              bordered
-              shadow="sm"
-              padding="none"
-              sx={formCardSx}
+          <AppStack direction="row" align="center" gap={1} sx={{ mt: 3 }}>
+            <AppButton
+              type="button"
+              variant="contained"
+              colorVariant="primary"
+              rounded="md"
+              startIcon={<FiRefreshCw />}
+              onClick={handleRefreshRole}
+              sx={primaryButtonSx}
             >
-              <AppBox component="form" onSubmit={handleSubmit}>
-                <AppStack direction="row" align="flex-start" gap={1.2}>
-                  <IconBox icon={<FiShield />} large />
+              Retry
+            </AppButton>
 
-                  <AppBox sx={{ minWidth: 0, flex: 1 }}>
-                    <AppHeading level={2} weight={650} sx={sectionTitleSx}>
-                      Edit Workspace Role
-                    </AppHeading>
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              onClick={handleCancel}
+              sx={secondaryButtonSx}
+            >
+              Back to Roles
+            </AppButton>
+          </AppStack>
+        </div>
+      </section>
+    );
+  }
 
-                    <AppText variant="body2" sx={sectionSubtitleSx}>
-                      Update role details, status and permissions. Role code is
-                      backend-controlled and cannot be changed from this form.
-                    </AppText>
-                  </AppBox>
-                </AppStack>
+  return (
+    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
+      <div className="mx-auto w-full max-w-[1500px]">
+        <PageHeader
+          title="Edit Role"
+          subtitle="Update role details, modify permissions and review access scope."
+          extra={
+            <AppBreadcrumb
+              size="small"
+              variant="text"
+              items={[
+                { label: "Access Control", href: "/access-control" },
+                { label: "Roles", href: "/access-control/roles" },
+                { label: "Edit Role", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
+            />
+          }
+          actions={
+            <AppStack
+              direction="row"
+              align="center"
+              justify="flex-end"
+              gap={1}
+              sx={{ flexShrink: 0 }}
+            >
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiArrowLeft />}
+                onClick={handleCancel}
+                sx={secondaryButtonSx}
+              >
+                Back
+              </AppButton>
 
-                {isRoleLocked ? (
-                  <AppAlert
-                    severity="warning"
-                    variant="soft"
-                    title="System role is locked"
-                    rounded="md"
-                    sx={lockedAlertSx}
-                  >
-                    This system role is marked as non-editable by the backend.
-                  </AppAlert>
-                ) : null}
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiRefreshCw />}
+                onClick={handleRefreshPermissions}
+                loading={isLoadingPermissions}
+                disabled={isLoadingPermissions}
+                sx={secondaryButtonSx}
+              >
+                Refresh
+              </AppButton>
+            </AppStack>
+          }
+          align="flex-start"
+          justify="space-between"
+          sx={pageHeaderSx}
+          contentSx={pageHeaderContentSx}
+        />
 
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <AppInput
-                    label="Role Name"
-                    name="name"
-                    value={formData.name || ""}
-                    onChange={handleChange}
-                    disabled={isFormDisabled}
-                    placeholder="Example: Store Manager"
-                    fullWidth
-                    required
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    startIcon={<FiShield />}
-                    error={Boolean(formErrors.name)}
-                    helperText={
-                      formErrors.name ||
-                      "Use 2 to 80 characters for the role name."
-                    }
-                    labelSx={labelSx}
-                    inputSx={inputSx}
-                    helperTextSx={helperTextSx}
-                  />
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_330px] items-start gap-5">
+          <AppBox sx={{ minWidth: 0 }}>
+            <Stepper
+              currentStep={currentStep}
+              onStepChange={handleStepChange}
+            />
 
-                  <AppInput
-                    label="Role Code"
-                    name="code"
-                    value={formData.code || ""}
-                    disabled
-                    readOnly
-                    placeholder="Role code"
-                    fullWidth
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    startIcon={<FiHash />}
-                    helperText="Code cannot be edited after role creation."
-                    labelSx={labelSx}
-                    inputSx={inputSx}
-                    helperTextSx={helperTextSx}
-                  />
-                </div>
+            {message ? (
+              <AppAlert
+                severity="success"
+                variant="soft"
+                title={message}
+                rounded="md"
+                sx={alertSx}
+              />
+            ) : null}
 
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <AppSelect
-                    label="Status"
-                    name="status"
-                    value={formData.status || "active"}
-                    onChange={handleChange}
-                    options={statusOptions}
-                    disabled={isFormDisabled}
-                    fullWidth
-                    required
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    startIcon={<FiCheckCircle />}
-                    error={Boolean(formErrors.status)}
-                    helperText={
-                      formErrors.status ||
-                      "Inactive roles cannot be assigned to members."
-                    }
-                    labelSx={labelSx}
-                    inputSx={inputSx}
-                    helperTextSx={helperTextSx}
-                  />
+            {error && !formErrors.submit ? (
+              <AppAlert
+                severity="error"
+                variant="soft"
+                title="Something went wrong"
+                rounded="md"
+                sx={alertSx}
+              >
+                {error}
+              </AppAlert>
+            ) : null}
 
-                  <RoleFlags role={role} />
-                </div>
-
-                <AppTextarea
-                  label="Description"
-                  name="description"
-                  value={formData.description || ""}
-                  onChange={handleChange}
-                  disabled={isFormDisabled}
-                  placeholder="Describe what this role is allowed to do"
-                  fullWidth
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  minRows={4}
-                  maxRows={6}
-                  showCount
-                  maxLength={500}
-                  error={Boolean(formErrors.description)}
-                  helperText={
-                    formErrors.description ||
-                    "Optional. Maximum 500 characters."
-                  }
-                  sx={{ mt: 3 }}
-                  labelSx={labelSx}
-                  inputSx={textareaSx}
-                  helperTextSx={helperTextSx}
-                />
-
-                <PermissionsSection
+            <AppBox component="form" onSubmit={handleSubmit}>
+              {currentStep === 1 ? (
+                <RoleDetailsStep
                   formData={formData}
                   formErrors={formErrors}
-                  permissionOptions={permissionOptions}
-                  selectedPermissionOptions={selectedPermissionOptions}
-                  isLoading={isFormDisabled}
+                  isLoading={isLoading}
+                  onChange={handleChange}
+                  onCancel={handleCancel}
+                  onContinue={handleContinue}
+                />
+              ) : null}
+
+              {currentStep === 2 ? (
+                <PermissionsStep
+                  formData={formData}
+                  formErrors={formErrors}
+                  permissionModules={permissionModules}
+                  moduleOptions={moduleOptions}
+                  moduleFilter={moduleFilter}
+                  permissionSearch={permissionSearch}
+                  isLoading={isLoading}
                   isLoadingPermissions={isLoadingPermissions}
                   hasPermissionError={hasPermissionError}
-                  onPermissionsChange={handlePermissionsChange}
+                  onSearchChange={setPermissionSearch}
+                  onModuleChange={setModuleFilter}
+                  onTogglePermission={handleTogglePermission}
+                  onToggleModule={handleToggleModule}
                   onSelectAll={handleSelectAllPermissions}
                   onClear={handleClearPermissions}
                   onRefresh={handleRefreshPermissions}
+                  onBack={handleBack}
+                  onContinue={handleContinue}
                 />
+              ) : null}
 
-                {formErrors.submit ? (
-                  <AppAlert
-                    severity="error"
-                    variant="soft"
-                    rounded="md"
-                    sx={submitAlertSx}
-                  >
-                    {formErrors.submit}
-                  </AppAlert>
-                ) : null}
+              {currentStep === 3 ? (
+                <ReviewStep
+                  formData={formData}
+                  formErrors={formErrors}
+                  previewRole={previewRole}
+                  permissionModules={permissionModules}
+                  permissionSummary={permissionSummary}
+                  isUpdating={isUpdating}
+                  onBack={handleBack}
+                  onEditDetails={() => handleStepChange?.(1)}
+                />
+              ) : null}
 
-                <AppStack
-                  direction="row"
-                  align="center"
-                  justify="space-between"
-                  gap={1.2}
-                  sx={actionsSx}
+              {formErrors.submit ? (
+                <AppAlert
+                  severity="error"
+                  variant="soft"
+                  rounded="md"
+                  sx={submitAlertSx}
                 >
-                  <AppButton
-                    type="button"
-                    variant="outlined"
-                    colorVariant="neutral"
-                    rounded="md"
-                    startIcon={<FiRefreshCcw />}
-                    onClick={handleReset}
-                    disabled={isLoading}
-                    sx={secondaryButtonSx}
-                  >
-                    Reset
-                  </AppButton>
+                  {formErrors.submit}
+                </AppAlert>
+              ) : null}
+            </AppBox>
+          </AppBox>
 
-                  <AppStack direction="row" align="center" gap={1}>
-                    <AppButton
-                      type="button"
-                      variant="outlined"
-                      colorVariant="neutral"
-                      rounded="md"
-                      startIcon={<FiArrowLeft />}
-                      onClick={handleBack}
-                      disabled={isUpdating}
-                      sx={secondaryButtonSx}
-                    >
-                      Back
-                    </AppButton>
-
-                    <AppButton
-                      type="submit"
-                      variant="contained"
-                      colorVariant="primary"
-                      rounded="md"
-                      startIcon={<FiSave />}
-                      loading={isUpdating}
-                      disabled={isFormDisabled || isUpdating}
-                      sx={primaryButtonSx}
-                    >
-                      Update Role
-                    </AppButton>
-                  </AppStack>
-                </AppStack>
-              </AppBox>
-            </AppCard>
-
-            <AppStack direction="column" gap={1.5}>
-              <RolePreviewCard previewRole={previewRole} />
-              <PermissionSummaryCard summary={permissionSummary} />
-              <RoleInfoCard
-                isRoleLocked={isRoleLocked}
-                onViewDetails={handleViewDetails}
-                onViewPermissions={handleViewPermissions}
-              />
-            </AppStack>
-          </div>
-        )}
+          <RightSidebar
+            currentStep={currentStep}
+            previewRole={previewRole}
+            permissionSummary={permissionSummary}
+            onReset={handleReset}
+          />
+        </div>
       </div>
     </section>
   );
 };
 
-const PageHeader = ({ isLoading, onBack, onViewDetails, onRefresh }) => (
-  <AppStack direction="row" align="flex-start" justify="space-between">
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox icon={<FiShield />} large />
+const Stepper = ({ currentStep, onStepChange }) => {
+  const steps = [
+    {
+      id: 1,
+      title: "Role Details",
+      subtitle: "Basic information",
+    },
+    {
+      id: 2,
+      title: "Set Permissions",
+      subtitle: "Configure permissions",
+    },
+    {
+      id: 3,
+      title: "Review & Update",
+      subtitle: "Review and update role",
+    },
+  ];
 
-      <AppBox>
-        <AppHeading level={1} weight={650} sx={pageTitleSx}>
-          Edit Role
-        </AppHeading>
+  return (
+    <div className="grid grid-cols-[1fr_120px_1fr_120px_1fr] items-center">
+      {steps.map((step, index) => {
+        const active = currentStep === step.id;
+        const completed = currentStep > step.id;
 
-        <AppBreadcrumb
-          size="small"
-          variant="text"
-          items={[
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Access Control", href: "/access-control" },
-            { label: "Roles", href: "/access-control/roles" },
-            { label: "Edit", current: true },
-          ]}
-          sx={breadcrumbSx}
-          itemSx={breadcrumbItemSx}
-          currentItemSx={breadcrumbCurrentSx}
-        />
-      </AppBox>
-    </AppStack>
+        return (
+          <>
+            <button
+              key={step.id}
+              type="button"
+              onClick={() => onStepChange?.(step.id)}
+              className="flex items-center gap-3 text-left"
+            >
+              <span
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${
+                  completed || active
+                    ? "bg-primary text-text-inverse"
+                    : "border border-border bg-surface-alt text-text"
+                }`}
+              >
+                {completed ? <FiCheck /> : step.id}
+              </span>
 
-    <AppStack direction="row" align="center" gap={0.8}>
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiArrowLeft />}
-        onClick={onBack}
-        disabled={isLoading}
-        sx={secondaryButtonSx}
-      >
-        Back to Roles
-      </AppButton>
+              <span className="min-w-0">
+                <span className="block text-[13px] font-bold text-text">
+                  {step.title}
+                </span>
+                <span className="mt-0.5 block text-[12px] text-text-muted">
+                  {step.subtitle}
+                </span>
+              </span>
+            </button>
 
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiRefreshCw />}
-        onClick={onRefresh}
-        loading={isLoading}
-        disabled={isLoading}
-        sx={secondaryButtonSx}
-      >
-        Refresh
-      </AppButton>
+            {index < steps.length - 1 ? (
+              <div key={`${step.id}-line`} className="mx-5 h-px bg-border" />
+            ) : null}
+          </>
+        );
+      })}
+    </div>
+  );
+};
 
-      <AppButton
-        type="button"
-        variant="contained"
-        colorVariant="primary"
-        rounded="md"
-        size="small"
-        startIcon={<FiEye />}
-        onClick={onViewDetails}
-        disabled={isLoading}
-        sx={primaryButtonSx}
-      >
-        View Details
-      </AppButton>
-    </AppStack>
-  </AppStack>
-);
-
-const RoleFlags = ({ role }) => (
+const RoleDetailsStep = ({
+  formData,
+  formErrors,
+  isLoading,
+  onChange,
+  onCancel,
+  onContinue,
+}) => (
   <AppCard
-    variant="soft"
-    rounded="md"
+    variant="default"
+    rounded="lg"
     bordered
-    shadow="none"
+    shadow="sm"
     padding="none"
-    sx={flagCardSx}
+    sx={mainCardSx}
   >
-    <AppStack direction="row" align="center" justify="space-between" gap={1}>
-      <AppBox>
-        <AppText variant="body2" sx={flagLabelSx}>
-          Role Flags
-        </AppText>
+    <SectionHeader
+      title="Role Information"
+      subtitle="Update basic details for this role."
+    />
 
-        <AppStack direction="row" align="center" gap={0.8} sx={{ mt: 1 }}>
-          <AppTag
-            label={role?.isSystem ? "System" : "Custom"}
-            variant="soft"
-            colorVariant={role?.isSystem ? "warning" : "primary"}
-            size="small"
-            rounded="full"
-          />
-
-          <AppTag
-            label={role?.isEditable === false ? "Locked" : "Editable"}
-            variant="soft"
-            colorVariant={role?.isEditable === false ? "error" : "success"}
-            size="small"
-            rounded="full"
-          />
-        </AppStack>
-      </AppBox>
-
-      <IconBox
-        icon={role?.isEditable === false ? <FiLock /> : <FiCheckCircle />}
-        colorVariant={role?.isEditable === false ? "error" : "success"}
+    <div className="mt-5 grid grid-cols-2 gap-4">
+      <AppInput
+        label="Role Name"
+        name="name"
+        value={formData.name || ""}
+        onChange={onChange}
+        disabled={isLoading}
+        placeholder="Enter role name"
+        fullWidth
+        required
+        size="small"
+        variant="bordered"
+        rounded="md"
+        error={Boolean(formErrors.name)}
+        helperText={
+          formErrors.name || "Use a clear name that describes the role"
+        }
+        labelSx={labelSx}
+        inputSx={inputSx}
+        helperTextSx={helperTextSx}
       />
-    </AppStack>
+
+      <AppInput
+        label="Role Code"
+        name="code"
+        value={formData.code || ""}
+        disabled
+        placeholder="Role code"
+        fullWidth
+        size="small"
+        variant="bordered"
+        rounded="md"
+        error={Boolean(formErrors.code)}
+        helperText={formErrors.code || "Role code cannot be changed"}
+        labelSx={labelSx}
+        inputSx={inputSx}
+        helperTextSx={helperTextSx}
+      />
+    </div>
+
+    <AppTextarea
+      label="Description"
+      name="description"
+      value={formData.description || ""}
+      onChange={onChange}
+      disabled={isLoading}
+      placeholder="Enter role description (optional)"
+      fullWidth
+      size="small"
+      variant="bordered"
+      rounded="md"
+      minRows={2}
+      maxRows={3}
+      showCount
+      maxLength={500}
+      error={Boolean(formErrors.description)}
+      helperText={
+        formErrors.description ||
+        "Describe the purpose and responsibilities of this role"
+      }
+      sx={{ mt: 3 }}
+      labelSx={labelSx}
+      inputSx={textareaSx}
+      helperTextSx={helperTextSx}
+    />
+
+    <div className="mt-3 max-w-[280px]">
+      <AppSelect
+        label="Status"
+        name="status"
+        value={formData.status || "active"}
+        onChange={onChange}
+        options={statusOptions}
+        disabled={isLoading}
+        fullWidth
+        size="small"
+        variant="bordered"
+        rounded="md"
+        error={Boolean(formErrors.status)}
+        helperText={
+          formErrors.status ||
+          "Inactive roles will not be available for assignment"
+        }
+        labelSx={labelSx}
+        inputSx={inputSx}
+        helperTextSx={helperTextSx}
+      />
+    </div>
+
+    <FormActions
+      left={
+        <AppButton
+          type="button"
+          variant="outlined"
+          colorVariant="neutral"
+          rounded="md"
+          onClick={onCancel}
+          sx={secondaryButtonSx}
+        >
+          Cancel
+        </AppButton>
+      }
+      right={
+        <AppButton
+          type="button"
+          variant="contained"
+          colorVariant="primary"
+          rounded="md"
+          endIcon={<FiArrowRight />}
+          onClick={onContinue}
+          sx={primaryButtonSx}
+        >
+          Save & Continue
+        </AppButton>
+      }
+    />
   </AppCard>
 );
 
-const PermissionsSection = ({
+const PermissionsStep = ({
   formData,
   formErrors,
-  permissionOptions,
-  selectedPermissionOptions,
+  permissionModules,
+  moduleOptions,
+  moduleFilter,
+  permissionSearch,
   isLoading,
   isLoadingPermissions,
   hasPermissionError,
-  onPermissionsChange,
+  onSearchChange,
+  onModuleChange,
+  onTogglePermission,
+  onToggleModule,
   onSelectAll,
   onClear,
   onRefresh,
+  onBack,
+  onContinue,
 }) => (
   <AppCard
-    variant="soft"
+    variant="default"
     rounded="lg"
     bordered
-    shadow="none"
+    shadow="sm"
     padding="none"
-    sx={permissionCardSx}
+    sx={mainCardSx}
   >
-    <AppStack
-      direction="row"
-      align="flex-start"
-      justify="space-between"
-      gap={1.5}
+    <AppBox
+      display="flex"
+      alignItems="center"
+      justifyContent="space-between"
+      sx={{ width: "100%" }}
     >
-      <AppStack direction="row" align="center" gap={1}>
-        <IconBox icon={<FiSliders />} colorVariant="info" />
+      <AppBox sx={{ minWidth: 0 }}>
+        <AppHeading level={2} weight={700} sx={sectionTitleSx}>
+          Set Permissions
+        </AppHeading>
 
-        <AppBox>
-          <AppHeading level={3} weight={650} sx={innerTitleSx}>
-            Permissions
-          </AppHeading>
+        <AppText variant="body2" sx={sectionSubtitleSx}>
+          Choose the permissions this role should have.
+        </AppText>
+      </AppBox>
 
-          <AppText variant="body2" sx={innerSubtitleSx}>
-            Keep the selected permissions aligned with the backend permission
-            registry.
-          </AppText>
-        </AppBox>
-      </AppStack>
+      <AppStack direction="row" align="center" gap={0.8}>
+        <AppButton
+          type="button"
+          variant="outlined"
+          colorVariant="neutral"
+          rounded="md"
+          size="small"
+          onClick={onSelectAll}
+          disabled={isLoading}
+          sx={topActionButtonSx}
+        >
+          Select All
+        </AppButton>
 
-      <AppStack direction="row" align="center" gap={0.7}>
         <AppButton
           type="button"
           variant="outlined"
@@ -552,7 +679,7 @@ const PermissionsSection = ({
           size="small"
           onClick={onClear}
           disabled={isLoading || !formData.permissions?.length}
-          sx={miniButtonSx}
+          sx={topActionButtonSx}
         >
           Clear
         </AppButton>
@@ -560,32 +687,55 @@ const PermissionsSection = ({
         <AppButton
           type="button"
           variant="outlined"
-          colorVariant="primary"
-          rounded="md"
-          size="small"
-          onClick={onSelectAll}
-          disabled={isLoading || !permissionOptions.length}
-          sx={miniButtonSx}
-        >
-          Select All
-        </AppButton>
-
-        <AppButton
-          type="button"
-          variant="soft"
-          colorVariant="primary"
+          colorVariant="neutral"
           rounded="md"
           size="small"
           startIcon={<FiRefreshCw />}
           onClick={onRefresh}
           loading={isLoadingPermissions}
           disabled={isLoadingPermissions}
-          sx={miniButtonSx}
+          sx={topActionButtonSx}
         >
           Refresh
         </AppButton>
       </AppStack>
-    </AppStack>
+    </AppBox>
+
+    <div className="mt-4 grid grid-cols-[minmax(0,1fr)_180px_106px] gap-3">
+      <AppInput
+        value={permissionSearch}
+        onChange={(event) => onSearchChange?.(event.target.value)}
+        placeholder="Search permissions..."
+        fullWidth
+        size="small"
+        variant="bordered"
+        rounded="md"
+        startIcon={<FiSearch />}
+        inputSx={inputSx}
+      />
+
+      <AppSelect
+        value={moduleFilter}
+        onChange={(event) => onModuleChange?.(event.target.value)}
+        options={moduleOptions}
+        fullWidth
+        size="small"
+        variant="bordered"
+        rounded="md"
+        inputSx={inputSx}
+      />
+
+      <AppButton
+        type="button"
+        variant="outlined"
+        colorVariant="neutral"
+        rounded="md"
+        startIcon={<FiFilter />}
+        sx={filterButtonSx}
+      >
+        Filters
+      </AppButton>
+    </div>
 
     {hasPermissionError ? (
       <AppAlert
@@ -595,442 +745,957 @@ const PermissionsSection = ({
         rounded="md"
         sx={permissionAlertSx}
       >
-        Refresh permissions before updating this role.
+        Refresh permissions and try again before updating this role.
       </AppAlert>
     ) : null}
 
-    <AppMultiSelect
-      label="Role Permissions"
-      name="permissions"
-      value={formData.permissions || []}
-      onChange={onPermissionsChange}
-      options={permissionOptions}
-      placeholder="Select permissions"
-      fullWidth
-      size="small"
-      variant="bordered"
-      rounded="md"
-      showCheckbox
-      showChips
-      showSelectAll
-      showCloseAction
-      loading={isLoadingPermissions}
-      disabled={isLoading || hasPermissionError}
-      error={Boolean(formErrors.permissions)}
-      helperText={
-        formErrors.permissions ||
-        `${selectedPermissionOptions.length} permission${
-          selectedPermissionOptions.length === 1 ? "" : "s"
-        } selected.`
-      }
-      sx={{ mt: 3 }}
-      labelSx={labelSx}
-      inputSx={inputSx}
-      helperTextSx={helperTextSx}
-    />
+    <div className="mt-4 overflow-hidden rounded-lg border border-border">
+      <div className="grid grid-cols-[minmax(260px,1fr)_82px_82px_82px_82px_44px] border-b border-border bg-surface-alt px-4 py-3">
+        <AppText variant="body2" sx={tableHeadSx}>
+          Module / Permission
+        </AppText>
 
-    {selectedPermissionOptions.length ? (
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {selectedPermissionOptions.slice(0, 18).map((permission) => (
-          <AppTag
-            key={permission.value}
-            label={permission.label}
-            variant="soft"
-            colorVariant="primary"
-            size="small"
-            rounded="full"
-          />
+        {actionKeys.map((action) => (
+          <AppText key={action} variant="body2" sx={tableHeadCenterSx}>
+            {actionLabels[action]}
+          </AppText>
         ))}
 
-        {selectedPermissionOptions.length > 18 ? (
-          <AppTag
-            label={`+${selectedPermissionOptions.length - 18} more`}
-            variant="soft"
-            colorVariant="neutral"
-            size="small"
-            rounded="full"
-          />
-        ) : null}
+        <span />
       </div>
-    ) : null}
-  </AppCard>
-);
 
-const RolePreviewCard = ({ previewRole }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox icon={<FiEye />} />
-
-      <AppBox>
-        <AppHeading level={2} weight={650} sx={sideTitleSx}>
-          Role Preview
-        </AppHeading>
-
-        <AppText variant="body2" sx={sideSubtitleSx}>
-          Live preview of the updated role.
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <div className="mt-3 space-y-2">
-      <AppKeyValue label="Name" value={previewRole?.name || "-"} />
-      <AppKeyValue label="Code" value={previewRole?.code || "-"} />
-      <AppKeyValue
-        label="Status"
-        value={
-          <AppStatusBadge
-            status={previewRole?.status || "active"}
-            variant="soft"
-            size="small"
-            rounded="full"
+      <div>
+        {permissionModules.map((module) => (
+          <PermissionModuleRow
+            key={module.id}
+            module={module}
+            selectedPermissions={formData.permissions || []}
+            onTogglePermission={onTogglePermission}
+            onToggleModule={onToggleModule}
           />
-        }
-      />
-      <AppKeyValue
-        label="Permissions"
-        value={previewRole?.permissionsCount ?? 0}
-      />
-      <AppKeyValue
-        label="System Role"
-        value={previewRole?.isSystem ? "Yes" : "No"}
-      />
-      <AppKeyValue
-        label="Editable"
-        value={previewRole?.isEditable ? "Yes" : "No"}
-      />
+        ))}
+      </div>
     </div>
 
-    <AppCard
-      variant="soft"
-      rounded="lg"
-      bordered
-      shadow="none"
-      padding="none"
-      sx={previewDescriptionSx}
-    >
-      <AppText variant="body2" sx={descriptionTextSx}>
-        {previewRole?.description || "-"}
+    {formErrors.permissions ? (
+      <AppText variant="body2" sx={errorTextSx}>
+        {formErrors.permissions}
       </AppText>
-    </AppCard>
+    ) : null}
+
+    <FormActions
+      left={
+        <AppButton
+          type="button"
+          variant="outlined"
+          colorVariant="neutral"
+          rounded="md"
+          startIcon={<FiArrowLeft />}
+          onClick={onBack}
+          sx={secondaryButtonSx}
+        >
+          Back
+        </AppButton>
+      }
+      right={
+        <AppButton
+          type="button"
+          variant="contained"
+          colorVariant="primary"
+          rounded="md"
+          endIcon={<FiArrowRight />}
+          onClick={onContinue}
+          sx={primaryButtonSx}
+        >
+          Continue to Review
+        </AppButton>
+      }
+    />
   </AppCard>
 );
 
-const PermissionSummaryCard = ({ summary }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox icon={<FiList />} colorVariant="success" />
+const PermissionModuleRow = ({
+  module,
+  selectedPermissions,
+  onTogglePermission,
+  onToggleModule,
+}) => {
+  const selectedCount = module.permissions.filter((permission) =>
+    selectedPermissions.includes(permission.value),
+  ).length;
 
-      <AppBox>
-        <AppHeading level={2} weight={650} sx={sideTitleSx}>
-          Permission Summary
-        </AppHeading>
+  const actionText = module.permissions
+    .filter((permission) => selectedPermissions.includes(permission.value))
+    .map((permission) => permission.actionLabel)
+    .filter((label, index, arr) => arr.indexOf(label) === index)
+    .join(", ");
 
-        <AppText variant="body2" sx={sideSubtitleSx}>
-          Live count from selected permissions.
-        </AppText>
-      </AppBox>
-    </AppStack>
+  return (
+    <div className="grid grid-cols-[minmax(260px,1fr)_82px_82px_82px_82px_44px] items-center border-b border-border px-4 py-3 last:border-b-0">
+      <AppStack direction="row" align="center" gap={1.2} sx={{ minWidth: 0 }}>
+        <IconBox icon={moduleIcons[module.id] || <FiShield />} />
 
-    <div className="mt-3 grid grid-cols-2 gap-2">
-      <SummaryTile label="Available" value={summary?.total || 0} />
-      <SummaryTile label="Selected" value={summary?.selected || 0} />
-      <SummaryTile label="Groups" value={summary?.groups || 0} />
-      <SummaryTile label="Remaining" value={summary?.remaining || 0} />
-    </div>
-  </AppCard>
-);
+        <AppBox sx={{ minWidth: 0 }}>
+          <AppHeading level={3} weight={700} sx={moduleTitleSx}>
+            {module.title}
+          </AppHeading>
 
-const SummaryTile = ({ label, value }) => (
-  <div className="rounded-lg border border-border bg-surface px-3 py-2">
-    <AppText variant="body2" sx={summaryLabelSx}>
-      {label}
-    </AppText>
+          <AppText variant="body2" sx={moduleSubtitleSx}>
+            {actionText || "No permissions selected"}
+          </AppText>
+        </AppBox>
+      </AppStack>
 
-    <AppHeading level={3} weight={650} sx={summaryValueSx}>
-      {value}
-    </AppHeading>
-  </div>
-);
+      {actionKeys.map((action) => {
+        const permission = module.actions?.[action];
 
-const RoleInfoCard = ({ isRoleLocked, onViewDetails, onViewPermissions }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox
-        icon={isRoleLocked ? <FiAlertTriangle /> : <FiInfo />}
-        colorVariant={isRoleLocked ? "warning" : "info"}
-      />
+        return (
+          <div key={action} className="flex justify-center">
+            {permission ? (
+              <AppCheckbox
+                checked={selectedPermissions.includes(permission.value)}
+                onChange={() => onTogglePermission?.(permission.value)}
+                size="small"
+                colorVariant="primary"
+                checkboxSx={checkboxSx}
+              />
+            ) : (
+              <span className="h-5 w-5" />
+            )}
+          </div>
+        );
+      })}
 
-      <AppBox>
-        <AppHeading level={2} weight={650} sx={sideTitleSx}>
-          Update Rules
-        </AppHeading>
-
-        <AppText variant="body2" sx={sideSubtitleSx}>
-          Role updates follow the backend access-control model.
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <div className="mt-3 space-y-2.5">
-      <RuleItem text="Only workspace owners can update roles." />
-      <RuleItem text="Role code is not editable after role creation." />
-      <RuleItem text="System roles marked non-editable cannot be updated." />
-      <RuleItem text="Only name, description, permissions and status are submitted." />
-    </div>
-
-    <AppStack direction="column" gap={1} sx={{ mt: 3 }}>
-      <AppButton
+      <button
         type="button"
-        variant="outlined"
-        colorVariant="primary"
-        rounded="md"
-        fullWidth
-        startIcon={<FiEye />}
-        onClick={onViewDetails}
+        onClick={() => onToggleModule?.(module)}
+        className="flex justify-end text-text-muted hover:text-primary"
+        title={`${selectedCount} of ${module.permissions.length} selected`}
       >
-        View Role Details
-      </AppButton>
+        <FiChevronRight className="text-[17px]" />
+      </button>
+    </div>
+  );
+};
+
+const ReviewStep = ({
+  formData,
+  formErrors,
+  previewRole,
+  permissionModules,
+  permissionSummary,
+  isUpdating,
+  onBack,
+  onEditDetails,
+}) => (
+  <AppCard
+    variant="default"
+    rounded="lg"
+    bordered
+    shadow="sm"
+    padding="none"
+    sx={mainCardSx}
+  >
+    <AppBox
+      display="flex"
+      alignItems="center"
+      justifyContent="space-between"
+      sx={{ width: "100%" }}
+    >
+      <SectionHeader
+        title="Review Role Details"
+        subtitle="Review all information before updating this role."
+      />
 
       <AppButton
         type="button"
         variant="outlined"
         colorVariant="neutral"
         rounded="md"
-        fullWidth
-        startIcon={<FiKey />}
-        onClick={onViewPermissions}
+        size="small"
+        onClick={onEditDetails}
+        sx={topActionButtonSx}
       >
-        Open Permission Registry
+        Update Details
       </AppButton>
-    </AppStack>
+    </AppBox>
+
+    <div className="mt-5 grid grid-cols-4 gap-4">
+      <ReviewItem title="Role Name" value={previewRole?.name || "-"} />
+      <ReviewItem title="Role Code" value={previewRole?.code || "-"} />
+      <ReviewItem
+        title="Status"
+        value={
+          <AppTag
+            label={previewRole?.status === "inactive" ? "Inactive" : "Active"}
+            variant="soft"
+            colorVariant={
+              previewRole?.status === "inactive" ? "warning" : "success"
+            }
+            rounded="md"
+            sx={smallTagSx}
+          />
+        }
+      />
+      <ReviewItem
+        title="Description"
+        value={formData.description || previewRole?.description || "-"}
+      />
+    </div>
+
+    <div className="mt-5 border-t border-border pt-5">
+      <SectionHeader
+        title="Permissions Summary"
+        subtitle="This role will have access to the following modules and permissions."
+      />
+
+      <div className="mt-4 grid grid-cols-4 gap-3">
+        {permissionModules.map((module) => (
+          <ReviewPermissionCard
+            key={module.id}
+            module={module}
+            selectedPermissions={formData.permissions || []}
+          />
+        ))}
+      </div>
+    </div>
+
+    <div className="mt-5 border-t border-border pt-5">
+      <SectionHeader
+        title="Access Scope"
+        subtitle="This role can be assigned and will have access within the following scope."
+      />
+
+      <div className="mt-4 grid grid-cols-3 gap-4">
+        <ScopeItem
+          icon={<FiGrid />}
+          title="Workspace Scope"
+          description="Entire Workspace"
+        />
+        <ScopeItem
+          icon={<HiOutlineBuildingOffice2 />}
+          title="Companies"
+          description="All Companies"
+        />
+        <ScopeItem
+          icon={<LuStore />}
+          title="Branches"
+          description="All Branches"
+        />
+      </div>
+    </div>
+
+    {formErrors.submit ? (
+      <AppAlert severity="error" variant="soft" rounded="md" sx={submitAlertSx}>
+        {formErrors.submit}
+      </AppAlert>
+    ) : null}
+
+    <FormActions
+      left={
+        <AppButton
+          type="button"
+          variant="outlined"
+          colorVariant="neutral"
+          rounded="md"
+          startIcon={<FiArrowLeft />}
+          onClick={onBack}
+          disabled={isUpdating}
+          sx={secondaryButtonSx}
+        >
+          Back
+        </AppButton>
+      }
+      right={
+        <AppButton
+          type="submit"
+          variant="contained"
+          colorVariant="primary"
+          rounded="md"
+          startIcon={<FiCheckCircle />}
+          loading={isUpdating}
+          disabled={isUpdating}
+          sx={primaryButtonSx}
+        >
+          Update Role
+        </AppButton>
+      }
+    />
   </AppCard>
 );
 
-const RuleItem = ({ text }) => (
-  <AppStack direction="row" align="flex-start" gap={0.8}>
-    <FiCheckCircle className="mt-[2px] shrink-0 text-[14px] text-primary" />
-
-    <AppText variant="body2" sx={ruleTextSx}>
-      {text}
+const ReviewItem = ({ title, value }) => (
+  <AppBox>
+    <AppText variant="body2" sx={reviewLabelSx}>
+      {title}
     </AppText>
+
+    <AppBox sx={reviewValueSx}>{value}</AppBox>
+  </AppBox>
+);
+
+const ReviewPermissionCard = ({ module, selectedPermissions }) => {
+  const selected = module.permissions.filter((permission) =>
+    selectedPermissions.includes(permission.value),
+  );
+
+  const selectedLabels = selected
+    .map((permission) => permission.actionLabel)
+    .filter((label, index, arr) => arr.indexOf(label) === index);
+
+  return (
+    <AppCard
+      variant="default"
+      rounded="lg"
+      bordered
+      shadow="none"
+      padding="none"
+      sx={permissionSummaryCardSx}
+    >
+      <AppStack direction="row" align="flex-start" gap={1}>
+        <IconBox icon={moduleIcons[module.id] || <FiShield />} />
+
+        <AppBox sx={{ minWidth: 0, flex: 1 }}>
+          <AppHeading level={3} weight={700} sx={moduleTitleSx}>
+            {module.title}
+          </AppHeading>
+
+          <AppText variant="body2" sx={moduleSubtitleSx}>
+            {selectedLabels.join(", ") || "No permissions"}
+          </AppText>
+
+          <AppText variant="body2" sx={permissionCountSx}>
+            {selected.length} of {module.permissions.length} permissions
+          </AppText>
+
+          <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-border">
+            <div
+              className="h-full rounded-full bg-primary"
+              style={{
+                width: module.permissions.length
+                  ? `${(selected.length / module.permissions.length) * 100}%`
+                  : "0%",
+              }}
+            />
+          </div>
+        </AppBox>
+      </AppStack>
+    </AppCard>
+  );
+};
+
+const ScopeItem = ({ icon, title, description }) => (
+  <AppStack direction="row" align="center" gap={1}>
+    <IconBox icon={icon} />
+
+    <AppBox>
+      <AppHeading level={3} weight={700} sx={scopeTitleSx}>
+        {title}
+      </AppHeading>
+
+      <AppText variant="body2" sx={scopeTextSx}>
+        {description}
+      </AppText>
+    </AppBox>
   </AppStack>
 );
 
-const IconBox = ({ icon, colorVariant = "primary", large = false }) => (
-  <span
-    className={`inline-flex shrink-0 items-center justify-center rounded-xl border border-border ${
-      large ? "h-10 w-10 text-[20px]" : "h-9 w-9 text-[17px]"
-    }`}
-    style={{
-      backgroundColor: `var(--app-color-${colorVariant}-soft)`,
-      color: `var(--app-color-${colorVariant})`,
+const RightSidebar = ({
+  currentStep,
+  previewRole,
+  permissionSummary,
+  onReset,
+}) => {
+  if (currentStep === 1) {
+    return (
+      <PageRightSidebar
+        spacing={4}
+        cards={[
+          {
+            title: "Role Update Guide",
+            icon: <FiBookOpen />,
+            colorVariant: "primary",
+            variant: "default",
+            description: "Follow these steps to safely update this role.",
+            custom: (
+              <div className="mt-4 space-y-4">
+                <GuideStep
+                  number="1"
+                  title="Update Role Details"
+                  text="Change the role name, description or active status."
+                />
+                <GuideStep
+                  number="2"
+                  title="Set Permissions"
+                  text="Modify the permissions this role should have."
+                />
+                <GuideStep
+                  number="3"
+                  title="Review & Update"
+                  text="Review all settings and update the role."
+                />
+              </div>
+            ),
+          },
+          {
+            title: "Role Types",
+            icon: <FiShield />,
+            colorVariant: "info",
+            variant: "default",
+            custom: (
+              <div className="space-y-4">
+                <RoleType
+                  icon={<FiShield />}
+                  title="System Role"
+                  text="Default roles created by the system. Some system roles may have limited editing."
+                  colorVariant="primary"
+                />
+                <RoleType
+                  icon={<FiUsers />}
+                  title="Custom Role"
+                  text="Custom roles created for your workspace. You can update or delete these roles."
+                />
+              </div>
+            ),
+          },
+          {
+            title: "Need Help?",
+            icon: <FiBookOpen />,
+            colorVariant: "neutral",
+            variant: "default",
+            description:
+              "Learn more about roles and permissions management in PharmaERP.",
+            actionLabel: "View User Guide",
+            actionIcon: <FiArrowRight />,
+          },
+        ]}
+      />
+    );
+  }
+
+  if (currentStep === 2) {
+    return (
+      <PageRightSidebar
+        spacing={4}
+        cards={[
+          {
+            title: "Permission Guide",
+            icon: <FiBookOpen />,
+            colorVariant: "primary",
+            variant: "default",
+            description:
+              "Set appropriate permissions to control what members can access and do.",
+            custom: (
+              <div className="mt-4 space-y-3">
+                {[
+                  ["View", "Allow viewing of data"],
+                  ["Create", "Allow creating new data"],
+                  ["Update", "Allow modifying existing data"],
+                  ["Delete", "Allow deleting data"],
+                ].map(([title, text]) => (
+                  <AppStack key={title} direction="row" align="center" gap={1}>
+                    <FiCheckCircle className="shrink-0 text-[15px] text-primary" />
+                    <AppText variant="body2" sx={sideTextSx}>
+                      <strong>{title}:</strong> {text}
+                    </AppText>
+                  </AppStack>
+                ))}
+              </div>
+            ),
+          },
+          {
+            title: "Role Summary",
+            icon: <FiUsers />,
+            colorVariant: "success",
+            variant: "default",
+            custom: (
+              <RoleSummaryContent
+                previewRole={previewRole}
+                permissionSummary={permissionSummary}
+                compact
+              />
+            ),
+          },
+          {
+            title: "Need Help?",
+            icon: <FiBookOpen />,
+            colorVariant: "neutral",
+            variant: "default",
+            description:
+              "Learn more about roles and permissions management in PharmaERP.",
+            actionLabel: "View User Guide",
+            actionIcon: <FiArrowRight />,
+          },
+        ]}
+      />
+    );
+  }
+
+  return (
+    <PageRightSidebar
+      spacing={4}
+      cards={[
+        {
+          title: "Role Summary",
+          icon: <FiUsers />,
+          colorVariant: "success",
+          variant: "default",
+          custom: (
+            <RoleSummaryContent
+              previewRole={previewRole}
+              permissionSummary={permissionSummary}
+            />
+          ),
+        },
+        {
+          title: "What happens next?",
+          icon: <FiCheckCircle />,
+          colorVariant: "primary",
+          variant: "default",
+          description:
+            "Once you update this role, the changes will apply to members assigned to this role.",
+          points: [
+            "Assigned members receive updated permissions",
+            "You can update permissions anytime",
+            "Inactive roles cannot be assigned",
+          ],
+          pointIcon: <FiCheckCircle />,
+          pointIconVariant: "check",
+        },
+        {
+          title: "Need Help?",
+          icon: <FiBookOpen />,
+          colorVariant: "neutral",
+          variant: "default",
+          description:
+            "Learn more about roles and permissions management in PharmaERP.",
+          actionLabel: "View User Guide",
+          actionIcon: <FiArrowRight />,
+          custom: onReset ? (
+            <button
+              type="button"
+              onClick={onReset}
+              className="mt-3 flex items-center gap-2 text-[12px] font-bold text-text-muted"
+            >
+              <FiRefreshCw /> Reset Changes
+            </button>
+          ) : null,
+        },
+      ]}
+    />
+  );
+};
+
+const RoleSummaryContent = ({
+  previewRole,
+  permissionSummary,
+  compact = false,
+}) => (
+  <div className="space-y-3">
+    <SummaryItem label="Role Name" value={previewRole?.name || "-"} />
+
+    {!compact ? (
+      <SummaryItem label="Role Code" value={previewRole?.code || "-"} />
+    ) : null}
+
+    <SummaryItem
+      label="Role Type"
+      value={
+        <AppTag
+          label={previewRole?.isSystem ? "System Role" : "Custom Role"}
+          variant="soft"
+          colorVariant={previewRole?.isSystem ? "info" : "primary"}
+          rounded="md"
+          sx={smallTagSx}
+        />
+      }
+    />
+
+    <SummaryItem
+      label="Status"
+      value={
+        <AppTag
+          label={previewRole?.status === "inactive" ? "Inactive" : "Active"}
+          variant="soft"
+          colorVariant={
+            previewRole?.status === "inactive" ? "warning" : "success"
+          }
+          rounded="md"
+          sx={smallTagSx}
+        />
+      }
+    />
+
+    <SummaryItem
+      label="Description"
+      value={previewRole?.description || "Custom workspace role."}
+    />
+
+    <div className="border-t border-border pt-4">
+      <AppText variant="body2" sx={summaryLabelSx}>
+        Permissions
+      </AppText>
+
+      <AppHeading level={3} weight={700} sx={permissionTotalSx}>
+        {permissionSummary?.selected || 0} / {permissionSummary?.total || 0}
+      </AppHeading>
+
+      <AppText variant="body2" sx={sideTextSx}>
+        Permissions selected
+      </AppText>
+    </div>
+
+    {!compact ? (
+      <div className="border-t border-border pt-4">
+        <AppText variant="body2" sx={summaryLabelSx}>
+          Access Scope
+        </AppText>
+
+        <div className="mt-3 space-y-3">
+          <ScopeItem
+            icon={<FiGrid />}
+            title="Workspace"
+            description="Entire Workspace"
+          />
+          <ScopeItem
+            icon={<HiOutlineBuildingOffice2 />}
+            title="Companies"
+            description="All Companies"
+          />
+          <ScopeItem
+            icon={<LuStore />}
+            title="Branches"
+            description="All Branches"
+          />
+        </div>
+      </div>
+    ) : null}
+  </div>
+);
+
+const GuideStep = ({ number, title, text }) => (
+  <AppStack direction="row" align="flex-start" gap={1.2}>
+    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-primary text-[10px] font-bold text-primary">
+      {number}
+    </span>
+
+    <AppBox>
+      <AppHeading level={4} weight={700} sx={sidePointTitleSx}>
+        {title}
+      </AppHeading>
+
+      <AppText variant="body2" sx={sideTextSx}>
+        {text}
+      </AppText>
+    </AppBox>
+  </AppStack>
+);
+
+const RoleType = ({ icon, title, text, colorVariant = "success" }) => (
+  <AppStack direction="row" align="flex-start" gap={1.3}>
+    <IconBox icon={icon} colorVariant={colorVariant} />
+
+    <AppBox>
+      <AppHeading level={4} weight={700} sx={sidePointTitleSx}>
+        {title}
+      </AppHeading>
+
+      <AppText variant="body2" sx={sideTextSx}>
+        {text}
+      </AppText>
+    </AppBox>
+  </AppStack>
+);
+
+const SummaryItem = ({ label, value }) => (
+  <AppBox>
+    <AppText variant="body2" sx={summaryLabelSx}>
+      {label}
+    </AppText>
+
+    <AppBox sx={summaryValueSx}>{value}</AppBox>
+  </AppBox>
+);
+
+const SectionHeader = ({ title, subtitle }) => (
+  <AppBox sx={{ minWidth: 0 }}>
+    <AppHeading level={2} weight={700} sx={sectionTitleSx}>
+      {title}
+    </AppHeading>
+
+    {subtitle ? (
+      <AppText variant="body2" sx={sectionSubtitleSx}>
+        {subtitle}
+      </AppText>
+    ) : null}
+  </AppBox>
+);
+
+const FormActions = ({ left, right }) => (
+  <AppBox
+    display="flex"
+    alignItems="center"
+    justifyContent="space-between"
+    sx={formActionsSx}
+  >
+    {left}
+    {right}
+  </AppBox>
+);
+
+const IconBox = ({ icon, colorVariant = "primary" }) => (
+  <AppBox
+    display="flex"
+    alignItems="center"
+    justifyContent="center"
+    sx={{
+      width: 34,
+      height: 34,
+      minWidth: 34,
+      borderRadius: "9px",
+      bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
+      color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
+      fontSize: "17px",
+      lineHeight: 0,
     }}
   >
     {icon}
-  </span>
+  </AppBox>
 );
 
-const pageTitleSx = {
-  fontSize: 22,
-  lineHeight: 1.15,
-  color: "var(--app-color-text)",
+const pageHeaderSx = {
+  width: "100%",
+};
+
+const pageHeaderContentSx = {
+  minWidth: 0,
+
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
 };
 
 const breadcrumbSx = {
-  mt: 0.35,
+  mt: 1,
 };
 
 const breadcrumbItemSx = {
-  fontSize: 12,
+  fontSize: "12px",
   color: "var(--app-color-text-muted)",
 };
 
 const breadcrumbCurrentSx = {
-  fontSize: 12,
-  fontWeight: 600,
+  fontSize: "12px",
   color: "var(--app-color-text)",
+  fontWeight: 600,
 };
 
-const alertSx = {
-  mt: 3,
-};
-
-const loadingCardSx = {
+const mainCardSx = {
   mt: 4,
-  p: 3,
-};
-
-const stateCardSx = {
-  mt: 4,
-  minHeight: 430,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const formCardSx = {
-  p: 3,
+  px: 2,
+  py: 2,
+  bgcolor: "var(--app-color-surface)",
 };
 
 const sectionTitleSx = {
-  fontSize: 17,
+  m: 0,
+  fontSize: "15px",
+  lineHeight: 1.3,
   color: "var(--app-color-text)",
 };
 
 const sectionSubtitleSx = {
-  mt: 0.35,
-  maxWidth: 720,
-  fontSize: 12.5,
+  mt: 0.7,
+  fontSize: "12.5px",
+  lineHeight: "21px",
   color: "var(--app-color-text-muted)",
-};
-
-const lockedAlertSx = {
-  mt: 3,
 };
 
 const labelSx = {
-  fontSize: 12.5,
-  fontWeight: 600,
+  fontSize: "12.5px",
+  fontWeight: 700,
+  color: "var(--app-color-text)",
 };
 
 const inputSx = {
-  fontSize: 13,
+  minHeight: 38,
+  fontSize: "12.5px",
 };
 
 const textareaSx = {
-  fontSize: 13,
+  fontSize: "12.5px",
+  lineHeight: "21px",
 };
 
 const helperTextSx = {
-  fontSize: 11.5,
-};
-
-const flagCardSx = {
-  height: "100%",
-  p: 1.5,
-  backgroundColor: "var(--app-color-surface-alt)",
-};
-
-const flagLabelSx = {
-  fontSize: 12.5,
-  fontWeight: 600,
-  color: "var(--app-color-text)",
-};
-
-const permissionCardSx = {
-  mt: 3,
-  p: 2.25,
-  backgroundColor: "var(--app-color-surface-alt)",
-};
-
-const innerTitleSx = {
-  fontSize: 14.5,
-  color: "var(--app-color-text)",
-};
-
-const innerSubtitleSx = {
-  mt: 0.25,
-  fontSize: 12,
+  fontSize: "11.5px",
+  lineHeight: "18px",
   color: "var(--app-color-text-muted)",
 };
 
-const permissionAlertSx = {
-  mt: 2,
-};
-
-const submitAlertSx = {
-  mt: 3,
-};
-
-const actionsSx = {
-  mt: 3,
-  pt: 2.5,
+const formActionsSx = {
+  mt: 5,
+  pt: 2,
   borderTop: "1px solid var(--app-color-border)",
 };
 
 const primaryButtonSx = {
-  minHeight: 36,
+  height: 36,
   px: 2,
-  fontSize: 12.5,
-  fontWeight: 650,
+  fontSize: "12.5px",
+  fontWeight: 700,
 };
 
 const secondaryButtonSx = {
-  minHeight: 36,
-  px: 1.7,
-  fontSize: 12.5,
-  fontWeight: 600,
+  height: 36,
+  px: 1.8,
+  fontSize: "12.5px",
+  fontWeight: 650,
 };
 
-const miniButtonSx = {
-  minHeight: 30,
-  px: 1.25,
-  fontSize: 11.5,
-  fontWeight: 600,
+const topActionButtonSx = {
+  height: 34,
+  px: 1.5,
+  fontSize: "12px",
+  fontWeight: 650,
 };
 
-const sideCardSx = {
-  p: 2.25,
+const filterButtonSx = {
+  height: 38,
+  px: 1.5,
+  fontSize: "12px",
+  fontWeight: 650,
 };
 
-const sideTitleSx = {
-  fontSize: 15,
+const tableHeadSx = {
+  fontSize: "12px",
+  fontWeight: 700,
+  color: "var(--app-color-text-muted)",
+};
+
+const tableHeadCenterSx = {
+  ...tableHeadSx,
+  textAlign: "center",
+};
+
+const moduleTitleSx = {
+  m: 0,
+  fontSize: "12.8px",
+  lineHeight: 1.3,
   color: "var(--app-color-text)",
 };
 
-const sideSubtitleSx = {
-  mt: 0.25,
-  fontSize: 12,
+const moduleSubtitleSx = {
+  mt: 0.4,
+  fontSize: "11.5px",
+  lineHeight: "18px",
   color: "var(--app-color-text-muted)",
 };
 
-const previewDescriptionSx = {
+const checkboxSx = {
+  p: 0,
+};
+
+const permissionAlertSx = {
   mt: 3,
-  p: 1.5,
-  backgroundColor: "var(--app-color-surface-alt)",
+  fontSize: "12.5px",
 };
 
-const descriptionTextSx = {
-  fontSize: 12.5,
+const alertSx = {
+  mt: 3,
+  fontSize: "12.5px",
+};
+
+const submitAlertSx = {
+  mt: 3,
+  fontSize: "12.5px",
+};
+
+const errorTextSx = {
+  mt: 1,
+  fontSize: "12px",
+  color: "var(--app-color-error)",
+};
+
+const reviewLabelSx = {
+  fontSize: "12px",
+  fontWeight: 700,
+  color: "var(--app-color-text)",
+};
+
+const reviewValueSx = {
+  mt: 1,
+  fontSize: "12.5px",
+  lineHeight: "20px",
   color: "var(--app-color-text-muted)",
+};
+
+const permissionSummaryCardSx = {
+  px: 1.2,
+  py: 1.2,
+  bgcolor: "var(--app-color-surface)",
+};
+
+const permissionCountSx = {
+  mt: 1.4,
+  fontSize: "11.5px",
+  color: "var(--app-color-text-muted)",
+};
+
+const scopeTitleSx = {
+  m: 0,
+  fontSize: "12.5px",
+  color: "var(--app-color-text)",
+};
+
+const scopeTextSx = {
+  mt: 0.4,
+  fontSize: "11.5px",
+  color: "var(--app-color-text-muted)",
+};
+
+const sideTextSx = {
+  mt: 0.8,
+  fontSize: "12.3px",
+  lineHeight: "21px",
+  color: "var(--app-color-text-muted)",
+};
+
+const sidePointTitleSx = {
+  m: 0,
+  fontSize: "12.5px",
+  lineHeight: 1.35,
+  color: "var(--app-color-text)",
 };
 
 const summaryLabelSx = {
-  fontSize: 11.5,
-  color: "var(--app-color-text-muted)",
-};
-
-const summaryValueSx = {
-  mt: 0.25,
-  fontSize: 18,
+  fontSize: "12px",
+  fontWeight: 700,
   color: "var(--app-color-text)",
 };
 
-const ruleTextSx = {
-  fontSize: 12.5,
-  lineHeight: 1.45,
+const summaryValueSx = {
+  mt: 0.8,
+  fontSize: "12.5px",
+  lineHeight: "20px",
   color: "var(--app-color-text-muted)",
+};
+
+const permissionTotalSx = {
+  mt: 1,
+  mb: 0,
+  fontSize: "22px",
+  color: "var(--app-color-primary)",
+};
+
+const smallTagSx = {
+  height: 22,
+  fontSize: "11px",
+  fontWeight: 700,
 };
 
 export default EditRoleDesktopPage;

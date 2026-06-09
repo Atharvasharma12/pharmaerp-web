@@ -25,7 +25,7 @@ import { ROUTES } from "@/constants";
 const sidebarItems = [
   {
     label: "Dashboard",
-    path: ROUTES.DASHBOARD,
+    path: ROUTES.SETUP_CENTER,
     icon: <FiHome />,
   },
   {
@@ -105,7 +105,7 @@ const AppMobileSidebar = ({ open, onClose }) => {
         <div className="flex h-full flex-col">
           <div className="flex h-[62px] items-center justify-between border-b border-border px-4">
             <NavLink
-              to={ROUTES.DASHBOARD}
+              to={ROUTES.SETUP_CENTER}
               onClick={onClose}
               className="flex items-center gap-2.5"
             >

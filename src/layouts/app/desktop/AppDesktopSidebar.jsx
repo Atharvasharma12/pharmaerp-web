@@ -25,7 +25,7 @@ import { ROUTES } from "@/constants";
 const sidebarItems = [
   {
     label: "Dashboard",
-    path: ROUTES.DASHBOARD,
+    path: ROUTES.SETUP_CENTER,
     icon: <FiHome />,
   },
   {
@@ -114,7 +114,7 @@ const AppDesktopSidebar = ({ open = true, onClose }) => {
         <div className="flex h-full flex-col overflow-hidden">
           <div className="flex h-[58px] shrink-0 items-center px-5 border-b border-divider">
             <NavLink
-              to={ROUTES.DASHBOARD}
+              to={ROUTES.SETUP_CENTER}
               className="flex min-w-0 items-center gap-2.5 transition-opacity hover:opacity-90"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-divider bg-surface shadow-sm">

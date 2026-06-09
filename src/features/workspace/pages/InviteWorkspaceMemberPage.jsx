@@ -7,6 +7,7 @@ import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
 
 import useWorkspace from "../hooks/useWorkspace";
+import useAccessControl from "@/features/access-control/hooks/useAccessControl";
 
 import InviteWorkspaceMemberDesktopPage from "./desktop/InviteWorkspaceMemberDesktopPage";
 import InviteWorkspaceMemberMobilePage from "./mobile/InviteWorkspaceMemberMobilePage";
@@ -31,13 +32,8 @@ const buildInvitePayload = (formData) => {
   const roleId = normalizeText(formData.roleId);
   const notes = normalizeText(formData.notes);
 
-  if (roleId) {
-    payload.roleId = roleId;
-  }
-
-  if (notes) {
-    payload.notes = notes;
-  }
+  if (roleId) payload.roleId = roleId;
+  if (notes) payload.notes = notes;
 
   return payload;
 };
@@ -62,7 +58,11 @@ const InviteWorkspaceMemberPage = () => {
     clearMessage,
   } = useWorkspace();
 
+  const { roles, getWorkspaceRoles, getWorkspaceRolesStatus } =
+    useAccessControl();
+
   const hasFetchedWorkspacesRef = useRef(false);
+  const hasFetchedRolesRef = useRef(false);
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
@@ -70,8 +70,18 @@ const InviteWorkspaceMemberPage = () => {
   const workspaceId = currentWorkspace?._id;
 
   const isCheckingWorkspace = getMyWorkspacesStatus === API_STATUS.LOADING;
+  const isFetchingRoles = getWorkspaceRolesStatus === API_STATUS.LOADING;
   const isInviting = inviteWorkspaceMemberStatus === API_STATUS.LOADING;
-  const isLoading = isCheckingWorkspace || isInviting;
+
+  const isLoading = isCheckingWorkspace || isFetchingRoles || isInviting;
+
+  const activeRoles = useMemo(
+    () =>
+      (Array.isArray(roles) ? roles : []).filter(
+        (role) => role?.status === "active" && !role?.isDeleted,
+      ),
+    [roles],
+  );
 
   const workspaceSummary = useMemo(
     () => ({
@@ -84,14 +94,6 @@ const InviteWorkspaceMemberPage = () => {
     [currentWorkspace],
   );
 
-  const fetchWorkspaces = useCallback(async () => {
-    try {
-      await getMyWorkspaces();
-    } catch {
-      // Error is already stored in workspace slice.
-    }
-  }, [getMyWorkspaces]);
-
   useEffect(() => {
     clearError();
     clearMessage();
@@ -100,14 +102,36 @@ const InviteWorkspaceMemberPage = () => {
       clearError();
       clearMessage();
     };
-  }, [clearError, clearMessage]);
+
+    // Run only on mount/unmount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (workspaceId || hasFetchedWorkspacesRef.current) return;
 
     hasFetchedWorkspacesRef.current = true;
-    fetchWorkspaces();
-  }, [fetchWorkspaces, workspaceId]);
+
+    getMyWorkspaces().catch(() => {
+      // Error is already stored in workspace slice.
+    });
+
+    // getMyWorkspaces is recreated by custom hook.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId]);
+
+  useEffect(() => {
+    if (!workspaceId || hasFetchedRolesRef.current) return;
+
+    hasFetchedRolesRef.current = true;
+
+    getWorkspaceRoles().catch(() => {
+      // Error is already stored in access-control slice.
+    });
+
+    // getWorkspaceRoles is recreated by custom hook.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId]);
 
   useEffect(() => {
     if (!error) return;
@@ -149,24 +173,20 @@ const InviteWorkspaceMemberPage = () => {
     (event) => {
       const { name, value } = event.target;
 
-      if (error) {
-        clearError();
-      }
+      if (error) clearError();
 
-      if (formErrors[name] || formErrors.submit) {
-        setFormErrors((prev) => ({
-          ...prev,
-          [name]: "",
-          submit: "",
-        }));
-      }
+      setFormErrors((prev) => ({
+        ...prev,
+        [name]: "",
+        submit: "",
+      }));
 
       setFormData((prev) => ({
         ...prev,
         [name]: value,
       }));
     },
-    [clearError, error, formErrors],
+    [clearError, error],
   );
 
   const handleReset = useCallback(() => {
@@ -230,12 +250,16 @@ const InviteWorkspaceMemberPage = () => {
   const pageProps = {
     formData,
     formErrors,
+
     workspace: currentWorkspace,
     workspaceSummary,
+    roles: activeRoles,
 
     isLoading,
     isCheckingWorkspace,
+    isFetchingRoles,
     isInviting,
+
     error,
     message,
 

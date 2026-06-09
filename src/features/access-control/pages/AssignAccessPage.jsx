@@ -22,6 +22,72 @@ const INITIAL_FORM_DATA = {
   branchIds: [],
 };
 
+const dummyMembers = [
+  {
+    _id: "dummy-member-ravi",
+    userId: {
+      _id: "dummy-ravi-user",
+      fullName: "Ravi Verma",
+      email: "ravi.verma@medplus.com",
+      phone: "9876543210",
+    },
+    role: { name: "Pharmacist" },
+    status: "active",
+    isOwner: false,
+  },
+  {
+    _id: "dummy-member-sneha",
+    userId: {
+      _id: "dummy-sneha-user",
+      fullName: "Sneha Kapoor",
+      email: "sneha.kapoor@medplus.com",
+      phone: "9876543211",
+    },
+    role: { name: "Manager" },
+    status: "active",
+    isOwner: false,
+  },
+  {
+    _id: "dummy-member-amit",
+    userId: {
+      _id: "dummy-amit-user",
+      fullName: "Amit Mishra",
+      email: "amit.mishra@medplus.com",
+      phone: "9876543212",
+    },
+    role: { name: "Cashier" },
+    status: "active",
+    isOwner: false,
+  },
+  {
+    _id: "dummy-member-admin",
+    userId: {
+      _id: "dummy-admin-user",
+      fullName: "Admin",
+      email: "admin@medplus.com",
+      phone: "9876543213",
+    },
+    role: { name: "Owner" },
+    status: "active",
+    isOwner: true,
+  },
+];
+
+const dummyCompanies = [
+  { _id: "company-medplus", name: "MedPlus Pharmacy", status: "active" },
+  { _id: "company-healthcare", name: "HealthCare Medicals", status: "active" },
+  { _id: "company-citycare", name: "CityCare Pharma", status: "active" },
+  { _id: "company-lifeline", name: "LifeLine Drugs", status: "active" },
+];
+
+const dummyBranches = [
+  { _id: "branch-main", name: "Main Branch", status: "active" },
+  { _id: "branch-central", name: "Central Branch", status: "active" },
+  { _id: "branch-north", name: "North Branch", status: "active" },
+  { _id: "branch-south", name: "South Branch", status: "active" },
+  { _id: "branch-east", name: "East Branch", status: "active" },
+];
+
 const normalizeText = (value) => String(value || "").trim();
 
 const formatName = (value, fallback = "-") => {
@@ -66,7 +132,9 @@ const getDisplayPhone = (member) => {
   const user = getUser(member);
   const phone = user?.phone || user?.mobile || user?.profile?.phone;
 
-  return phone ? `+91 ${phone}` : "-";
+  if (!phone) return "-";
+
+  return String(phone).startsWith("+") ? phone : `+91 ${phone}`;
 };
 
 const getRoleName = (member) => {
@@ -93,6 +161,7 @@ const mapMemberForOption = (member) => {
     displayEmail,
     displayPhone: getDisplayPhone(member),
     displayRole,
+    status: member?.status || "active",
     disabled:
       Boolean(member?.isOwner) || member?.status !== "active" || !memberUserId,
   };
@@ -184,7 +253,7 @@ const AssignAccessPage = () => {
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
 
-  const workspaceId = currentWorkspace?._id;
+  const workspaceId = currentWorkspace?._id || currentWorkspace?.id;
 
   const isLoadingWorkspaces = getMyWorkspacesStatus === API_STATUS.LOADING;
   const isLoadingMembers = getWorkspaceMembersStatus === API_STATUS.LOADING;
@@ -288,7 +357,7 @@ const AssignAccessPage = () => {
   }, [fetchBranches]);
 
   useEffect(() => {
-    if (!message) return;
+    if (!message) return undefined;
 
     const timer = window.setTimeout(() => {
       clearMessage();
@@ -297,10 +366,11 @@ const AssignAccessPage = () => {
     return () => window.clearTimeout(timer);
   }, [clearMessage, message]);
 
-  const memberOptions = useMemo(
-    () => (Array.isArray(members) ? members : []).map(mapMemberForOption),
-    [members],
-  );
+  const memberOptions = useMemo(() => {
+    const sourceMembers =
+      Array.isArray(members) && members.length ? members : dummyMembers;
+    return sourceMembers.map(mapMemberForOption);
+  }, [members]);
 
   const selectedMember = useMemo(
     () =>
@@ -309,15 +379,17 @@ const AssignAccessPage = () => {
     [formData.memberUserId, memberOptions],
   );
 
-  const companyOptions = useMemo(
-    () => (Array.isArray(companies) ? companies : []).map(mapCompanyForOption),
-    [companies],
-  );
+  const companyOptions = useMemo(() => {
+    const sourceCompanies =
+      Array.isArray(companies) && companies.length ? companies : dummyCompanies;
+    return sourceCompanies.map(mapCompanyForOption);
+  }, [companies]);
 
-  const branchOptions = useMemo(
-    () => (Array.isArray(branches) ? branches : []).map(mapBranchForOption),
-    [branches],
-  );
+  const branchOptions = useMemo(() => {
+    const sourceBranches =
+      Array.isArray(branches) && branches.length ? branches : dummyBranches;
+    return sourceBranches.map(mapBranchForOption);
+  }, [branches]);
 
   const selectedCompanyOptions = useMemo(
     () =>
@@ -475,6 +547,10 @@ const AssignAccessPage = () => {
     clearCompanyError?.();
     clearBranchError?.();
 
+    hasFetchedMembersRef.current = false;
+    hasFetchedCompaniesRef.current = false;
+    hasFetchedBranchesRef.current = false;
+
     await Promise.allSettled([
       fetchMembers(),
       fetchCompanies(),
@@ -493,6 +569,10 @@ const AssignAccessPage = () => {
 
   const handleBack = useCallback(() => {
     navigate(ROUTES.MEMBER_ACCESS);
+  }, [navigate]);
+
+  const handleBackToAccessControl = useCallback(() => {
+    navigate(ROUTES.ACCESS_CONTROL);
   }, [navigate]);
 
   const handleViewMembers = useCallback(() => {
@@ -566,6 +646,7 @@ const AssignAccessPage = () => {
     handleReset,
     handleRefresh,
     handleBack,
+    handleBackToAccessControl,
     handleViewMembers,
     handleViewAccessList,
 

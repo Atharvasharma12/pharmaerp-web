@@ -27,7 +27,7 @@ const AppMobileHeader = ({ onMenuClick }) => {
           />
 
           <Link
-            to={ROUTES.DASHBOARD}
+            to={ROUTES.SETUP_CENTER}
             className="flex min-w-0 flex-1 items-center gap-2.5"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface shadow-sm">

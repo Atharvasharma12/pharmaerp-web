@@ -18,19 +18,19 @@ const footerConfig = {
     backLabel: "Back",
     backTo: ROUTES.CREATE_WORKSPACE,
     continueLabel: "Continue to Dashboard",
-    continueTo: ROUTES.DASHBOARD,
+    continueTo: ROUTES.SETUP_CENTER,
   },
   [ROUTES.TRIAL_ACTIVATED]: {
     backLabel: "Back",
     backTo: ROUTES.CHOOSE_PLAN,
     continueLabel: "Go to Dashboard",
-    continueTo: ROUTES.DASHBOARD,
+    continueTo: ROUTES.SETUP_CENTER,
   },
   [ROUTES.SUBSCRIPTION_SUCCESS]: {
     backLabel: "Back",
     backTo: ROUTES.CHOOSE_PLAN,
     continueLabel: "Go to Dashboard",
-    continueTo: ROUTES.DASHBOARD,
+    continueTo: ROUTES.SETUP_CENTER,
   },
 };
 
@@ -44,7 +44,7 @@ const OnboardingDesktopFooter = () => {
         backLabel: "Back",
         backTo: ROUTES.HOME,
         continueLabel: "Continue",
-        continueTo: ROUTES.DASHBOARD,
+        continueTo: ROUTES.SETUP_CENTER,
       },
     [location.pathname],
   );

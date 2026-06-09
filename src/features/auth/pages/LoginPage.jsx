@@ -63,7 +63,7 @@ const LoginPage = () => {
 
     try {
       await login(payload);
-      navigate(ROUTES.DASHBOARD, { replace: true });
+      navigate(ROUTES.SETUP_CENTER, { replace: true });
     } catch {
       // Error handled in auth state
     }

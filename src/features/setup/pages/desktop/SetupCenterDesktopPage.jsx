@@ -1,6 +1,6 @@
 // src/features/setup/pages/desktop/SetupCenterDesktopPage.jsx
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiArrowRight,
@@ -34,6 +34,7 @@ import { ROUTES } from "@/constants";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useCompany from "@/features/company/hooks/useCompany";
 import useBranch from "@/features/branch/hooks/useBranch";
+import useSubscription from "@/features/subscription/subscriptions/hooks/useSubscription";
 
 const setupSteps = [
   {
@@ -129,37 +130,76 @@ const setupIcons = {
   purchase: <FiShoppingCart />,
 };
 
+const ACTIVE_SUBSCRIPTION_STATUSES = [
+  "ACTIVE",
+  "TRIAL",
+  "TRIALING",
+  "TRIAL_ACTIVE",
+  "PAID",
+];
+
+const getWorkspaceFromItem = (item) => item?.workspace || item || null;
+
 const SetupCenterDesktopPage = () => {
   const navigate = useNavigate();
+  const fetchedSubscriptionWorkspaceRef = useRef(null);
 
-  const { workspace, currentWorkspace, activeWorkspace, selectedWorkspace } =
-    useWorkspace();
+  const {
+    workspace,
+    workspaces,
+    currentWorkspace,
+    activeWorkspace,
+    selectedWorkspace,
+  } = useWorkspace();
 
   const { companies = [] } = useCompany();
   const { branches = [] } = useBranch();
 
-  const resolvedWorkspace =
-    currentWorkspace ||
-    activeWorkspace ||
-    selectedWorkspace ||
-    workspace ||
-    null;
+  const { getWorkspaceCurrentSubscription, currentWorkspaceSubscription } =
+    useSubscription();
 
-  const hasWorkspace = Boolean(resolvedWorkspace?._id || resolvedWorkspace?.id);
+  const resolvedWorkspace = useMemo(() => {
+    if (currentWorkspace) return currentWorkspace;
+    if (activeWorkspace) return activeWorkspace;
+    if (selectedWorkspace) return selectedWorkspace;
+    if (workspace) return workspace;
 
-  const subscription =
+    const firstWorkspaceItem = Array.isArray(workspaces) ? workspaces[0] : null;
+
+    return getWorkspaceFromItem(firstWorkspaceItem);
+  }, [
+    activeWorkspace,
+    currentWorkspace,
+    selectedWorkspace,
+    workspace,
+    workspaces,
+  ]);
+
+  const workspaceId = resolvedWorkspace?._id || resolvedWorkspace?.id;
+  const hasWorkspace = Boolean(workspaceId);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    if (fetchedSubscriptionWorkspaceRef.current === workspaceId) return;
+
+    fetchedSubscriptionWorkspaceRef.current = workspaceId;
+    getWorkspaceCurrentSubscription(workspaceId).catch(() => {});
+  }, [workspaceId, getWorkspaceCurrentSubscription]);
+
+  const workspaceSubscription =
+    currentWorkspaceSubscription ||
     resolvedWorkspace?.subscription ||
     resolvedWorkspace?.activeSubscription ||
     resolvedWorkspace?.currentSubscription ||
     null;
 
   const subscriptionStatus =
-    subscription?.status || resolvedWorkspace?.subscriptionStatus;
+    workspaceSubscription?.status || resolvedWorkspace?.subscriptionStatus;
 
   const hasSubscription = Boolean(
-    subscription?._id ||
-    subscription?.id ||
-    ["ACTIVE", "TRIAL", "TRIALING"].includes(
+    workspaceSubscription?._id ||
+    workspaceSubscription?.id ||
+    ACTIVE_SUBSCRIPTION_STATUSES.includes(
       String(subscriptionStatus || "").toUpperCase(),
     ),
   );
@@ -370,7 +410,6 @@ const SetupRightSidebar = ({ onHelp }) => (
         pointIcon: <FiCheckCircle />,
         pointIconVariant: "check",
       },
-
       {
         title: "Setup Tips",
         icon: <FiBookOpen />,

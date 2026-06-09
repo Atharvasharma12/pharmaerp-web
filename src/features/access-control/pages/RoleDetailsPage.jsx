@@ -1,3 +1,5 @@
+// src/features/access-control/pages/RoleDetailsPage.jsx
+
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -27,7 +29,6 @@ const formatDate = (value) => {
 
 const formatUser = (user) => {
   if (!user) return "-";
-
   if (typeof user === "string") return user;
 
   return (
@@ -42,36 +43,50 @@ const formatUser = (user) => {
 
 const normalizeRoleResponse = (response) => {
   if (!response) return null;
-
   if (response?._id) return response;
-
   if (response?.data?._id) return response.data;
-
   if (response?.data?.data?._id) return response.data.data;
 
   return null;
 };
 
-const mapRoleForView = (role) => {
+const toTitle = (value) =>
+  String(value || "")
+    .replace(/[_-]+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+
+const mapRoleForView = (role, availablePermissions = []) => {
   if (!role?._id) return null;
 
   const permissions = Array.isArray(role.permissions) ? role.permissions : [];
+  const status = String(role.status || "active").toLowerCase();
+  const isSystem = Boolean(role.isSystem);
+  const isEditable = role.isEditable !== false && !isSystem;
+
+  const totalPermissionCount = Array.isArray(availablePermissions)
+    ? availablePermissions.length
+    : 0;
 
   return {
+    ...role,
+
     _id: role._id,
     workspaceId: role.workspaceId || "-",
 
-    name: role.name || "-",
+    name: role.name || toTitle(role.code) || "Role",
     code: role.code || "-",
     description: role.description || "No description added.",
 
     permissions,
     permissionCount: permissions.length,
+    totalPermissionCount,
 
-    isSystem: Boolean(role.isSystem),
-    isEditable: Boolean(role.isEditable),
-
-    status: role.status || "-",
+    isSystem,
+    isEditable,
+    status,
 
     createdBy: role.createdBy || null,
     createdByText: formatUser(role.createdBy),
@@ -86,8 +101,31 @@ const mapRoleForView = (role) => {
     deletedAtText: formatDate(role.deletedAt),
     deletedByText: formatUser(role.deletedBy),
 
-    typeText: role.isSystem ? "System" : "Custom",
-    editableText: role.isEditable ? "Editable" : "Locked",
+    displayName: role.name || toTitle(role.code) || "Role",
+    displayCode: role.code || "-",
+    displayDescription: role.description || "No description added.",
+    displayStatus: status,
+    displayType: isSystem ? "System Role" : "Custom Role",
+    displayEditable: isEditable ? "Editable" : "Locked",
+    displayCreatedBy: formatUser(role.createdBy),
+    displayCreatedAt: formatDate(role.createdAt),
+    displayUpdatedAt: formatDate(role.updatedAt),
+    displayDeletedAt: formatDate(role.deletedAt),
+    displayDeletedBy: formatUser(role.deletedBy),
+
+    membersCount:
+      role.membersCount || role.memberCount || role.members?.length || 0,
+
+    members: Array.isArray(role.members) ? role.members : [],
+
+    recentActivity: Array.isArray(role.recentActivity)
+      ? role.recentActivity
+      : Array.isArray(role.activities)
+        ? role.activities
+        : [],
+
+    canEdit: isEditable,
+    canDelete: !isSystem,
   };
 };
 
@@ -98,9 +136,13 @@ const RoleDetailsPage = () => {
 
   const {
     currentRole,
+    permissions,
+
     getRoleById,
+    getAvailablePermissions,
 
     getRoleStatus,
+    getAvailablePermissionsStatus,
 
     error,
     message,
@@ -111,26 +153,21 @@ const RoleDetailsPage = () => {
   } = useAccessControl();
 
   const hasFetchedRoleRef = useRef(false);
+  const hasFetchedPermissionsRef = useRef(false);
 
-  const isLoading = getRoleStatus === API_STATUS.LOADING;
+  const isLoading =
+    getRoleStatus === API_STATUS.LOADING ||
+    getAvailablePermissionsStatus === API_STATUS.LOADING;
+
   const hasError = getRoleStatus === API_STATUS.ERROR;
 
-  const fetchRole = useCallback(async () => {
-    if (!roleId) return;
+  const role = useMemo(() => {
+    const normalizedRole = normalizeRoleResponse(currentRole);
 
-    try {
-      const response = await getRoleById(roleId);
+    return mapRoleForView(normalizedRole, permissions);
+  }, [currentRole, permissions]);
 
-      const normalizedRole = normalizeRoleResponse(response);
-
-      if (!normalizedRole?._id) {
-        // Redux should still receive the thunk payload.
-        // This only prevents page-level crash when unwrap returns unexpected shape.
-      }
-    } catch {
-      // Error is already stored in access control slice.
-    }
-  }, [getRoleById, roleId]);
+  const hasRole = Boolean(role?._id);
 
   useEffect(() => {
     clearError();
@@ -140,15 +177,36 @@ const RoleDetailsPage = () => {
       clearError();
       clearCurrentRole();
     };
-  }, [clearCurrentRole, clearError]);
+
+    // Keep this mount-only to avoid clearing currentRole repeatedly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    if (!roleId) return;
-    if (hasFetchedRoleRef.current) return;
+    if (!roleId || hasFetchedRoleRef.current) return;
 
     hasFetchedRoleRef.current = true;
-    fetchRole();
-  }, [fetchRole, roleId]);
+
+    getRoleById(roleId).catch(() => {
+      // Error is stored in access-control slice.
+    });
+
+    // getRoleById is recreated by the custom hook, so do not depend on it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roleId]);
+
+  useEffect(() => {
+    if (hasFetchedPermissionsRef.current) return;
+
+    hasFetchedPermissionsRef.current = true;
+
+    getAvailablePermissions().catch(() => {
+      // Error is stored in access-control slice.
+    });
+
+    // getAvailablePermissions is recreated by the custom hook, so do not depend on it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!message) return undefined;
@@ -160,18 +218,15 @@ const RoleDetailsPage = () => {
     return () => window.clearTimeout(timer);
   }, [clearMessage, message]);
 
-  const role = useMemo(() => {
-    const normalizedRole = normalizeRoleResponse(currentRole);
-
-    return mapRoleForView(normalizedRole);
-  }, [currentRole]);
-
-  const hasRole = Boolean(role?._id);
-
   const handleRefresh = useCallback(() => {
-    hasFetchedRoleRef.current = false;
-    fetchRole();
-  }, [fetchRole]);
+    if (!roleId) return;
+
+    hasFetchedRoleRef.current = true;
+
+    getRoleById(roleId).catch(() => {
+      // Error is stored in access-control slice.
+    });
+  }, [getRoleById, roleId]);
 
   const handleBackToRoles = useCallback(() => {
     navigate(ROUTES.ROLES);
@@ -182,7 +237,7 @@ const RoleDetailsPage = () => {
   }, [navigate]);
 
   const handleEditRole = useCallback(() => {
-    if (!role?._id || !role?.isEditable) return;
+    if (!role?._id || !role?.canEdit) return;
 
     navigate(ROUTES.EDIT_ROLE.replace(":roleId", role._id));
   }, [navigate, role]);

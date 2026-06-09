@@ -96,21 +96,21 @@ const SubscriptionSuccessPage = () => {
         description: "Start using your activated PharmaERP workspace.",
         actionText: "Open Dashboard",
         primary: true,
-        onClick: () => navigate(ROUTES.DASHBOARD, { replace: true }),
+        onClick: () => navigate(ROUTES.SETUP_CENTER, { replace: true }),
       },
       {
         id: "invoice",
         title: "View Invoice",
         description: "Check your subscription payment invoice.",
         actionText: "View Invoice",
-        onClick: () => navigate(ROUTES.DASHBOARD, { replace: true }),
+        onClick: () => navigate(ROUTES.SETUP_CENTER, { replace: true }),
       },
       {
         id: "settings",
         title: "Manage Subscription",
         description: "Upgrade, downgrade or manage billing details.",
         actionText: "Manage Plan",
-        onClick: () => navigate(ROUTES.DASHBOARD, { replace: true }),
+        onClick: () => navigate(ROUTES.SETUP_CENTER, { replace: true }),
       },
     ],
     [navigate],
@@ -148,17 +148,17 @@ const SubscriptionSuccessPage = () => {
   );
 
   const handleGoToDashboard = () => {
-    navigate(ROUTES.DASHBOARD, { replace: true });
+    navigate(ROUTES.SETUP_CENTER, { replace: true });
   };
 
   const handleViewInvoice = () => {
     // TODO: Replace with invoice route or download invoice action
-    navigate(ROUTES.DASHBOARD, { replace: true });
+    navigate(ROUTES.SETUP_CENTER, { replace: true });
   };
 
   const handleManageSubscription = () => {
     // TODO: Replace with subscription/settings route
-    navigate(ROUTES.DASHBOARD, { replace: true });
+    navigate(ROUTES.SETUP_CENTER, { replace: true });
   };
 
   const pageProps = {

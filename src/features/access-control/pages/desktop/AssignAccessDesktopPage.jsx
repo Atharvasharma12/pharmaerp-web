@@ -2,9 +2,11 @@
 
 import {
   FiArrowLeft,
+  FiBookOpen,
   FiBriefcase,
   FiCheckCircle,
   FiGitBranch,
+  FiHeadphones,
   FiInfo,
   FiKey,
   FiRefreshCcw,
@@ -30,6 +32,8 @@ import {
   AppSwitch,
   AppTag,
   AppText,
+  PageHeader,
+  PageRightSidebar,
 } from "@/components";
 
 const AssignAccessDesktopPage = ({
@@ -60,27 +64,90 @@ const AssignAccessDesktopPage = ({
   handleBackToAccessControl,
   handleViewMembers,
   handleViewAccessList,
+  clearMessage,
 }) => {
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
-      <div className="mx-auto w-full max-w-[1380px]">
-        <PageHeader
-          isLoading={isLoading}
-          onBack={handleBack}
-          onAccessControl={handleBackToAccessControl || handleBack}
-          onRefresh={handleRefresh}
-          onViewAccessList={handleViewAccessList}
-        />
+      {message ? <TopToast message={message} onClose={clearMessage} /> : null}
 
-        {message ? (
-          <AppAlert
-            severity="success"
-            variant="soft"
-            title={message}
-            rounded="md"
-            sx={alertSx}
-          />
-        ) : null}
+      <div className="mx-auto w-full max-w-[1500px]">
+        <PageHeader
+          title="Assign Access"
+          subtitle="Configure company and branch access for a workspace member."
+          extra={
+            <AppBreadcrumb
+              size="small"
+              variant="text"
+              items={[
+                {
+                  label: "Access Control",
+                  onClick: handleBackToAccessControl || handleBack,
+                },
+                { label: "Member Access", onClick: handleBack },
+                { label: "Assign Access", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
+            />
+          }
+          actions={
+            <AppStack
+              direction="row"
+              align="center"
+              justify="flex-end"
+              gap={1.1}
+              sx={{ flexShrink: 0 }}
+            >
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiArrowLeft />}
+                onClick={handleBack}
+                disabled={isSubmitting}
+                sx={secondaryButtonSx}
+              >
+                Member Access
+              </AppButton>
+
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiRefreshCw />}
+                onClick={handleRefresh}
+                loading={isLoading}
+                disabled={isLoading || isSubmitting}
+                sx={secondaryButtonSx}
+              >
+                Refresh
+              </AppButton>
+
+              <AppButton
+                type="button"
+                variant="contained"
+                colorVariant="primary"
+                rounded="md"
+                size="small"
+                startIcon={<FiShield />}
+                onClick={handleViewAccessList}
+                disabled={isSubmitting}
+                sx={primaryButtonSx}
+              >
+                View Access
+              </AppButton>
+            </AppStack>
+          }
+          align="flex-start"
+          justify="space-between"
+          sx={pageHeaderSx}
+          contentSx={pageHeaderContentSx}
+        />
 
         {error && !formErrors.submit ? (
           <AppAlert
@@ -94,306 +161,335 @@ const AssignAccessDesktopPage = ({
           </AppAlert>
         ) : null}
 
-        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_390px] gap-4">
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={formCardSx}
-          >
-            <AppBox component="form" onSubmit={handleSubmit}>
-              <AppStack direction="row" align="flex-start" gap={1.2}>
-                <IconBox icon={<FiSliders />} large />
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_290px] items-start gap-5">
+          <main className="min-w-0 space-y-5">
+            <HeroSummary
+              selectedMember={selectedMember}
+              accessSummary={accessSummary}
+              companyOptions={companyOptions}
+              branchOptions={branchOptions}
+              formData={formData}
+            />
 
-                <AppBox sx={{ minWidth: 0, flex: 1 }}>
-                  <AppHeading level={2} weight={650} sx={sectionTitleSx}>
-                    Assign Member Access
-                  </AppHeading>
-
-                  <AppText variant="body2" sx={sectionSubtitleSx}>
-                    Configure company and branch visibility for an active
-                    workspace member. Workspace owners already have full access
-                    and cannot be restricted.
-                  </AppText>
-                </AppBox>
-              </AppStack>
-
-              <div className="mt-4 grid grid-cols-1 gap-3">
-                <AppSelect
-                  label="Workspace Member"
-                  name="memberUserId"
-                  value={formData.memberUserId || ""}
-                  onChange={handleChange}
-                  options={memberOptions}
-                  disabled={isSubmitting || isLoadingMembers}
-                  loading={isLoadingMembers}
-                  placeholder="Select active member"
-                  fullWidth
-                  required
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  startIcon={<FiUserCheck />}
-                  error={Boolean(formErrors.memberUserId)}
-                  helperText={
-                    formErrors.memberUserId ||
-                    "Only active non-owner members can be assigned restricted access."
-                  }
-                  labelSx={labelSx}
-                  inputSx={inputSx}
-                  helperTextSx={helperTextSx}
-                  renderOption={(option) => <MemberOption option={option} />}
-                />
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <AccessToggleCard
-                  icon={<FiBriefcase />}
-                  title="Company Access"
-                  description="Allow access to all companies or choose specific companies."
-                  checked={formData.accessAllCompanies}
-                  name="accessAllCompanies"
-                  label="Access all companies"
-                  disabled={isSubmitting}
-                  onChange={handleToggleChange}
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              shadow="sm"
+              padding="none"
+              sx={formCardSx}
+            >
+              <AppBox component="form" onSubmit={handleSubmit}>
+                <SectionHeader
+                  icon={<FiSliders />}
+                  title="Assign Member Access"
+                  subtitle="Choose an active non-owner member, then decide whether they can access all companies and branches or only selected records."
                 />
 
-                <AccessToggleCard
-                  icon={<FiGitBranch />}
-                  title="Branch Access"
-                  description="Allow access to all branches or choose specific branches."
-                  checked={formData.accessAllBranches}
-                  name="accessAllBranches"
-                  label="Access all branches"
-                  disabled={isSubmitting}
-                  onChange={handleToggleChange}
-                />
-              </div>
+                <div className="mt-4 grid grid-cols-1 gap-3">
+                  <AppSelect
+                    label="Workspace Member"
+                    name="memberUserId"
+                    value={formData.memberUserId || ""}
+                    onChange={handleChange}
+                    options={memberOptions}
+                    disabled={isSubmitting || isLoadingMembers}
+                    loading={isLoadingMembers}
+                    placeholder="Select active member"
+                    fullWidth
+                    required
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    startIcon={<FiUserCheck />}
+                    error={Boolean(formErrors.memberUserId)}
+                    helperText={
+                      formErrors.memberUserId ||
+                      "Only active non-owner members can be assigned restricted access."
+                    }
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                    helperTextSx={helperTextSx}
+                    renderOption={(option) => <MemberOption option={option} />}
+                  />
+                </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <AppMultiSelect
-                  label="Companies"
-                  name="companyIds"
-                  value={formData.companyIds || []}
-                  onChange={(value) =>
-                    handleMultiSelectChange("companyIds", value)
-                  }
-                  options={companyOptions}
-                  disabled={isSubmitting || formData.accessAllCompanies}
-                  loading={isLoadingCompanies}
-                  placeholder="Select companies"
-                  fullWidth
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  startIcon={<FiBriefcase />}
-                  showCheckbox
-                  showChips
-                  showSelectAll
-                  clearable
-                  onClear={() => handleMultiSelectChange("companyIds", [])}
-                  error={Boolean(formErrors.companyIds)}
-                  helperText={
-                    formErrors.companyIds ||
-                    (formData.accessAllCompanies
-                      ? "Disabled because all company access is enabled."
-                      : "Select one or more active companies.")
-                  }
-                  labelSx={labelSx}
-                  inputSx={inputSx}
-                  helperTextSx={helperTextSx}
-                />
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <AccessToggleCard
+                    icon={<FiBriefcase />}
+                    title="Company Access"
+                    description="Allow access to all companies or choose specific companies."
+                    checked={formData.accessAllCompanies}
+                    name="accessAllCompanies"
+                    label="Access all companies"
+                    disabled={isSubmitting}
+                    onChange={handleToggleChange}
+                  />
 
-                <AppMultiSelect
-                  label="Branches"
-                  name="branchIds"
-                  value={formData.branchIds || []}
-                  onChange={(value) =>
-                    handleMultiSelectChange("branchIds", value)
-                  }
-                  options={branchOptions}
-                  disabled={isSubmitting || formData.accessAllBranches}
-                  loading={isLoadingBranches}
-                  placeholder="Select branches"
-                  fullWidth
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  startIcon={<FiGitBranch />}
-                  showCheckbox
-                  showChips
-                  showSelectAll
-                  clearable
-                  onClear={() => handleMultiSelectChange("branchIds", [])}
-                  error={Boolean(formErrors.branchIds)}
-                  helperText={
-                    formErrors.branchIds ||
-                    (formData.accessAllBranches
-                      ? "Disabled because all branch access is enabled."
-                      : "Select one or more active branches.")
-                  }
-                  labelSx={labelSx}
-                  inputSx={inputSx}
-                  helperTextSx={helperTextSx}
-                />
-              </div>
+                  <AccessToggleCard
+                    icon={<FiGitBranch />}
+                    title="Branch Access"
+                    description="Allow access to all branches or choose specific branches."
+                    checked={formData.accessAllBranches}
+                    name="accessAllBranches"
+                    label="Access all branches"
+                    disabled={isSubmitting}
+                    onChange={handleToggleChange}
+                  />
+                </div>
 
-              {formErrors.submit ? (
-                <AppAlert
-                  severity="error"
-                  variant="soft"
-                  rounded="md"
-                  sx={submitAlertSx}
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <AppMultiSelect
+                    label="Companies"
+                    name="companyIds"
+                    value={formData.companyIds || []}
+                    onChange={(value) =>
+                      handleMultiSelectChange("companyIds", value)
+                    }
+                    options={companyOptions}
+                    disabled={isSubmitting || formData.accessAllCompanies}
+                    loading={isLoadingCompanies}
+                    placeholder="Select companies"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    startIcon={<FiBriefcase />}
+                    showCheckbox
+                    showChips
+                    showSelectAll
+                    clearable
+                    onClear={() => handleMultiSelectChange("companyIds", [])}
+                    error={Boolean(formErrors.companyIds)}
+                    helperText={
+                      formErrors.companyIds ||
+                      (formData.accessAllCompanies
+                        ? "Disabled because all company access is enabled."
+                        : "Select one or more active companies.")
+                    }
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                    helperTextSx={helperTextSx}
+                  />
+
+                  <AppMultiSelect
+                    label="Branches"
+                    name="branchIds"
+                    value={formData.branchIds || []}
+                    onChange={(value) =>
+                      handleMultiSelectChange("branchIds", value)
+                    }
+                    options={branchOptions}
+                    disabled={isSubmitting || formData.accessAllBranches}
+                    loading={isLoadingBranches}
+                    placeholder="Select branches"
+                    fullWidth
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    startIcon={<FiGitBranch />}
+                    showCheckbox
+                    showChips
+                    showSelectAll
+                    clearable
+                    onClear={() => handleMultiSelectChange("branchIds", [])}
+                    error={Boolean(formErrors.branchIds)}
+                    helperText={
+                      formErrors.branchIds ||
+                      (formData.accessAllBranches
+                        ? "Disabled because all branch access is enabled."
+                        : "Select one or more active branches.")
+                    }
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                    helperTextSx={helperTextSx}
+                  />
+                </div>
+
+                {formErrors.submit ? (
+                  <AppAlert
+                    severity="error"
+                    variant="soft"
+                    rounded="md"
+                    sx={submitAlertSx}
+                  >
+                    {formErrors.submit}
+                  </AppAlert>
+                ) : null}
+
+                <AppStack
+                  direction="row"
+                  align="center"
+                  justify="space-between"
+                  gap={1.2}
+                  sx={actionsSx}
                 >
-                  {formErrors.submit}
-                </AppAlert>
-              ) : null}
-
-              <AppStack
-                direction="row"
-                align="center"
-                justify="space-between"
-                gap={1.2}
-                sx={actionsSx}
-              >
-                <AppButton
-                  type="button"
-                  variant="outlined"
-                  colorVariant="neutral"
-                  rounded="md"
-                  startIcon={<FiRefreshCcw />}
-                  onClick={handleReset}
-                  disabled={isSubmitting}
-                  sx={secondaryButtonSx}
-                >
-                  Reset
-                </AppButton>
-
-                <AppStack direction="row" align="center" gap={1}>
                   <AppButton
                     type="button"
                     variant="outlined"
                     colorVariant="neutral"
                     rounded="md"
-                    startIcon={<FiArrowLeft />}
-                    onClick={handleBack}
+                    startIcon={<FiRefreshCcw />}
+                    onClick={handleReset}
                     disabled={isSubmitting}
-                    sx={secondaryButtonSx}
+                    sx={secondaryLargeButtonSx}
                   >
-                    Back
+                    Reset
                   </AppButton>
 
-                  <AppButton
-                    type="submit"
-                    variant="contained"
-                    colorVariant="primary"
-                    rounded="md"
-                    startIcon={<FiSave />}
-                    loading={isSubmitting}
-                    disabled={isSubmitting || isLoading}
-                    sx={primaryButtonSx}
-                  >
-                    Assign Access
-                  </AppButton>
+                  <AppStack direction="row" align="center" gap={1}>
+                    <AppButton
+                      type="button"
+                      variant="outlined"
+                      colorVariant="neutral"
+                      rounded="md"
+                      startIcon={<FiArrowLeft />}
+                      onClick={handleBack}
+                      disabled={isSubmitting}
+                      sx={secondaryLargeButtonSx}
+                    >
+                      Back
+                    </AppButton>
+
+                    <AppButton
+                      type="submit"
+                      variant="contained"
+                      colorVariant="primary"
+                      rounded="md"
+                      startIcon={<FiSave />}
+                      loading={isSubmitting}
+                      disabled={isSubmitting || isLoading}
+                      sx={primaryLargeButtonSx}
+                    >
+                      Assign Access
+                    </AppButton>
+                  </AppStack>
                 </AppStack>
-              </AppStack>
-            </AppBox>
-          </AppCard>
+              </AppBox>
+            </AppCard>
+          </main>
 
-          <AppStack direction="column" gap={1.5}>
-            <SelectedMemberCard
-              member={selectedMember}
-              onViewMembers={handleViewMembers}
-            />
-            <AccessSummaryCard
-              accessSummary={accessSummary}
-              formData={formData}
-            />
-            <AccessInfoCard />
-          </AppStack>
+          <AssignAccessRightSidebar
+            selectedMember={selectedMember}
+            accessSummary={accessSummary}
+            formData={formData}
+            onViewMembers={handleViewMembers}
+          />
         </div>
       </div>
     </section>
   );
 };
 
-const PageHeader = ({
-  isLoading,
-  onBack,
-  onAccessControl,
-  onRefresh,
-  onViewAccessList,
-}) => (
-  <AppStack direction="row" align="flex-start" justify="space-between">
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox icon={<FiKey />} large />
+const TopToast = ({ message, onClose }) => (
+  <div className="fixed left-1/2 top-4 z-[1400] w-[calc(100%-32px)] max-w-md -translate-x-1/2">
+    <AppAlert
+      severity="success"
+      variant="filled"
+      title={message}
+      closable
+      onClose={onClose}
+      sx={toastSx}
+    />
+  </div>
+);
 
-      <AppBox>
-        <AppHeading level={1} weight={650} sx={pageTitleSx}>
-          Assign Access
-        </AppHeading>
+const HeroSummary = ({
+  selectedMember,
+  accessSummary,
+  companyOptions = [],
+  branchOptions = [],
+  formData,
+}) => {
+  const items = [
+    {
+      id: "member",
+      title: "Selected Member",
+      value: selectedMember?.displayName || "Not selected",
+      subtitle: selectedMember?.displayRole || "Choose workspace member",
+      icon: <FiUserCheck />,
+      colorVariant: "success",
+    },
+    {
+      id: "companies",
+      title: "Company Access",
+      value: accessSummary?.companyAccessLabel || "All companies",
+      subtitle: `${companyOptions.length || 4} active companies available`,
+      icon: <FiBriefcase />,
+      colorVariant: "info",
+    },
+    {
+      id: "branches",
+      title: "Branch Access",
+      value: accessSummary?.branchAccessLabel || "All branches",
+      subtitle: `${branchOptions.length || 5} active branches available`,
+      icon: <FiGitBranch />,
+      colorVariant: "purple",
+    },
+    {
+      id: "mode",
+      title: "Access Mode",
+      value:
+        formData.accessAllCompanies && formData.accessAllBranches
+          ? "Full Access"
+          : "Restricted",
+      subtitle: "Review before assigning",
+      icon: <FiShield />,
+      colorVariant:
+        formData.accessAllCompanies && formData.accessAllBranches
+          ? "success"
+          : "warning",
+    },
+  ];
 
-        <AppBreadcrumb
-          size="small"
-          variant="text"
-          items={[
-            { label: "Access Control", onClick: onAccessControl },
-            { label: "Member Access", onClick: onBack },
-            { label: "Assign", current: true },
-          ]}
-          sx={breadcrumbSx}
-          itemSx={breadcrumbItemSx}
-          currentItemSx={breadcrumbCurrentSx}
-        />
-      </AppBox>
-    </AppStack>
+  return (
+    <div className="grid grid-cols-4 gap-4">
+      {items.map((item) => (
+        <AppCard
+          key={item.id}
+          variant="default"
+          rounded="lg"
+          bordered
+          shadow="sm"
+          padding="none"
+          sx={summaryCardSx}
+        >
+          <AppStack direction="row" align="flex-start" gap={1.1}>
+            <IconBox icon={item.icon} colorVariant={item.colorVariant} />
 
-    <AppStack direction="row" align="center" gap={0.8}>
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiArrowLeft />}
-        onClick={onBack}
-        disabled={isLoading}
-        sx={secondaryButtonSx}
-      >
-        Member Access
-      </AppButton>
+            <AppBox sx={{ minWidth: 0 }}>
+              <AppText variant="body2" sx={summaryTitleSx}>
+                {item.title}
+              </AppText>
 
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiRefreshCw />}
-        onClick={onRefresh}
-        loading={isLoading}
-        disabled={isLoading}
-        sx={secondaryButtonSx}
-      >
-        Refresh
-      </AppButton>
+              <AppHeading level={3} weight={750} sx={summaryValueSx}>
+                {item.value}
+              </AppHeading>
 
-      <AppButton
-        type="button"
-        variant="contained"
-        colorVariant="primary"
-        rounded="md"
-        size="small"
-        startIcon={<FiShield />}
-        onClick={onViewAccessList}
-        disabled={isLoading}
-        sx={primaryButtonSx}
-      >
-        View Access
-      </AppButton>
-    </AppStack>
+              <AppText variant="body2" sx={summarySubtitleSx}>
+                {item.subtitle}
+              </AppText>
+            </AppBox>
+          </AppStack>
+        </AppCard>
+      ))}
+    </div>
+  );
+};
+
+const SectionHeader = ({ icon, title, subtitle }) => (
+  <AppStack direction="row" align="flex-start" gap={1.2}>
+    <IconBox icon={icon} colorVariant="success" large />
+
+    <AppBox sx={{ minWidth: 0, flex: 1 }}>
+      <AppHeading level={2} weight={750} sx={sectionTitleSx}>
+        {title}
+      </AppHeading>
+
+      <AppText variant="body2" sx={sectionSubtitleSx}>
+        {subtitle}
+      </AppText>
+    </AppBox>
   </AppStack>
 );
 
@@ -432,18 +528,26 @@ const AccessToggleCard = ({
   onChange,
 }) => (
   <AppCard
-    variant="soft"
+    variant="default"
     rounded="lg"
     bordered
     shadow="none"
     padding="none"
-    sx={toggleCardSx}
+    sx={{
+      ...toggleCardSx,
+      borderColor: checked
+        ? "var(--app-color-primary-soft)"
+        : "var(--app-color-border)",
+      bgcolor: checked
+        ? "var(--app-color-primary-soft)"
+        : "var(--app-color-surface-alt)",
+    }}
   >
-    <AppStack direction="row" align="flex-start" gap={1}>
+    <AppStack direction="row" align="flex-start" gap={1.1}>
       <IconBox icon={icon} colorVariant={checked ? "success" : "warning"} />
 
       <AppBox sx={{ minWidth: 0, flex: 1 }}>
-        <AppHeading level={3} weight={650} sx={toggleTitleSx}>
+        <AppHeading level={3} weight={700} sx={toggleTitleSx}>
           {title}
         </AppHeading>
 
@@ -467,30 +571,65 @@ const AccessToggleCard = ({
   </AppCard>
 );
 
-const SelectedMemberCard = ({ member, onViewMembers }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox icon={<FiUserCheck />} colorVariant="primary" />
+const AssignAccessRightSidebar = ({
+  selectedMember,
+  accessSummary,
+  formData,
+  onViewMembers,
+}) => (
+  <PageRightSidebar
+    spacing={4}
+    cards={[
+      {
+        title: "Selected Member",
+        icon: <FiUserCheck />,
+        colorVariant: "success",
+        variant: "default",
+        custom: (
+          <SelectedMemberContent
+            member={selectedMember}
+            onViewMembers={onViewMembers}
+          />
+        ),
+      },
+      {
+        title: "Access Summary",
+        icon: <FiCheckCircle />,
+        colorVariant: "info",
+        variant: "default",
+        custom: (
+          <AccessSummaryContent
+            accessSummary={accessSummary}
+            formData={formData}
+          />
+        ),
+      },
+      {
+        title: "Assignment Rules",
+        icon: <FiInfo />,
+        colorVariant: "neutral",
+        variant: "default",
+        description:
+          "Backend validation requires selected records when all access is disabled.",
+        custom: <AccessRulesContent />,
+      },
+      {
+        title: "Need Help?",
+        icon: <FiHeadphones />,
+        colorVariant: "neutral",
+        variant: "default",
+        description:
+          "Learn more about member access and access management in PharmaERP.",
+        actionLabel: "View User Guide",
+        actionIcon: <FiBookOpen />,
+      },
+    ]}
+  />
+);
 
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppHeading level={2} weight={650} sx={sideTitleSx}>
-          Selected Member
-        </AppHeading>
-
-        <AppText variant="body2" sx={sideSubtitleSx}>
-          Access will be assigned to this member.
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <div className="mt-3 space-y-2">
+const SelectedMemberContent = ({ member, onViewMembers }) => (
+  <div>
+    <div className="space-y-2">
       <AppKeyValue label="Name" value={member?.displayName || "Not selected"} />
       <AppKeyValue label="Email" value={member?.displayEmail || "-"} />
       <AppKeyValue label="Phone" value={member?.displayPhone || "-"} />
@@ -510,33 +649,12 @@ const SelectedMemberCard = ({ member, onViewMembers }) => (
     >
       View Members
     </AppButton>
-  </AppCard>
+  </div>
 );
 
-const AccessSummaryCard = ({ accessSummary, formData }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox icon={<FiCheckCircle />} colorVariant="success" />
-
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppHeading level={2} weight={650} sx={sideTitleSx}>
-          Access Summary
-        </AppHeading>
-
-        <AppText variant="body2" sx={sideSubtitleSx}>
-          Review the final payload before saving.
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <div className="mt-3 space-y-2">
+const AccessSummaryContent = ({ accessSummary, formData }) => (
+  <div>
+    <div className="space-y-2">
       <AppKeyValue
         label="Companies"
         value={accessSummary?.companyAccessLabel || "-"}
@@ -560,7 +678,7 @@ const AccessSummaryCard = ({ accessSummary, formData }) => (
         values={accessSummary?.selectedBranches}
       />
     ) : null}
-  </AppCard>
+  </div>
 );
 
 const PreviewList = ({ title, values = [] }) => (
@@ -602,49 +720,25 @@ const PreviewList = ({ title, values = [] }) => (
   </div>
 );
 
-const AccessInfoCard = () => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox icon={<FiInfo />} colorVariant="info" />
-
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppHeading level={2} weight={650} sx={sideTitleSx}>
-          Assignment Rules
-        </AppHeading>
-
-        <AppText variant="body2" sx={sideSubtitleSx}>
-          Backend validation requires selected records when all access is
-          disabled.
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <div className="mt-3 space-y-2">
-      <RuleItem
-        icon={<FiShield />}
-        text="Only workspace owners can manage member access."
-      />
-      <RuleItem
-        icon={<FiUsers />}
-        text="Workspace owner access cannot be changed."
-      />
-      <RuleItem
-        icon={<FiBriefcase />}
-        text="Choose companies when company access is limited."
-      />
-      <RuleItem
-        icon={<FiGitBranch />}
-        text="Choose branches when branch access is limited."
-      />
-    </div>
-  </AppCard>
+const AccessRulesContent = () => (
+  <div className="mt-3 space-y-2.5">
+    <RuleItem
+      icon={<FiShield />}
+      text="Only workspace owners can manage member access."
+    />
+    <RuleItem
+      icon={<FiUsers />}
+      text="Workspace owner access cannot be changed."
+    />
+    <RuleItem
+      icon={<FiBriefcase />}
+      text="Choose companies when company access is limited."
+    />
+    <RuleItem
+      icon={<FiGitBranch />}
+      text="Choose branches when branch access is limited."
+    />
+  </div>
 );
 
 const RuleItem = ({ icon, text }) => (
@@ -663,28 +757,35 @@ const IconBox = ({ icon, colorVariant = "primary", large = false }) => (
     alignItems="center"
     justifyContent="center"
     sx={{
-      width: large ? 42 : 38,
-      height: large ? 42 : 38,
-      minWidth: large ? 42 : 38,
+      width: large ? 44 : 42,
+      height: large ? 44 : 42,
+      minWidth: large ? 44 : 42,
       borderRadius: "12px",
-      bgcolor: `var(--app-color-${colorVariant}-soft)`,
-      color: `var(--app-color-${colorVariant})`,
-      fontSize: large ? "22px" : "19px",
+      bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
+      color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
+      fontSize: large ? "22px" : "20px",
+      lineHeight: 0,
     }}
   >
     {icon}
   </AppBox>
 );
 
-const pageTitleSx = {
-  m: 0,
-  fontSize: "25px",
-  lineHeight: 1.18,
-  letterSpacing: "-0.45px",
-  color: "var(--app-color-text)",
+const pageHeaderSx = { width: "100%" };
+
+const pageHeaderContentSx = {
+  minWidth: 0,
+
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
 };
 
-const breadcrumbSx = { mt: 0.4 };
+const breadcrumbSx = { mb: 1 };
 
 const breadcrumbItemSx = {
   fontSize: "12px",
@@ -698,20 +799,66 @@ const breadcrumbCurrentSx = {
 };
 
 const primaryButtonSx = {
-  height: 34,
-  px: 1.5,
+  height: 36,
+  minWidth: 112,
+  px: 1.7,
   fontSize: "12px",
   fontWeight: 700,
+  boxShadow: "0 10px 20px rgba(22, 163, 74, 0.18)",
 };
 
 const secondaryButtonSx = {
-  height: 34,
-  px: 1.25,
+  height: 36,
+  minWidth: 92,
+  px: 1.5,
+  fontSize: "12px",
+  fontWeight: 650,
+};
+
+const primaryLargeButtonSx = {
+  height: 38,
+  px: 1.8,
+  fontSize: "12px",
+  fontWeight: 700,
+  boxShadow: "0 10px 20px rgba(22, 163, 74, 0.18)",
+};
+
+const secondaryLargeButtonSx = {
+  height: 38,
+  px: 1.6,
   fontSize: "12px",
   fontWeight: 650,
 };
 
 const alertSx = { mt: 3 };
+
+const summaryCardSx = {
+  minHeight: 104,
+  px: 1.6,
+  py: 1.45,
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+};
+
+const summaryTitleSx = {
+  fontSize: "11.5px",
+  fontWeight: 650,
+  color: "var(--app-color-text-muted)",
+};
+
+const summaryValueSx = {
+  m: 0,
+  mt: 0.45,
+  fontSize: "18px",
+  lineHeight: 1.1,
+  color: "var(--app-color-text)",
+};
+
+const summarySubtitleSx = {
+  mt: 0.55,
+  fontSize: "11px",
+  color: "var(--app-color-text-muted)",
+};
 
 const formCardSx = {
   px: 3,
@@ -729,7 +876,7 @@ const sectionTitleSx = {
 
 const sectionSubtitleSx = {
   mt: 0.45,
-  maxWidth: 720,
+  maxWidth: 760,
   fontSize: "12px",
   lineHeight: 1.6,
   color: "var(--app-color-text-muted)",
@@ -742,7 +889,7 @@ const labelSx = {
 };
 
 const inputSx = {
-  minHeight: 37,
+  minHeight: 38,
   fontSize: "12px",
   bgcolor: "var(--app-color-surface)",
 };
@@ -753,10 +900,9 @@ const helperTextSx = {
 };
 
 const toggleCardSx = {
-  px: 1.45,
-  py: 1.35,
-  bgcolor: "var(--app-color-surface-alt)",
-  borderColor: "var(--app-color-border)",
+  px: 1.5,
+  py: 1.4,
+  transition: "border-color 160ms ease, background-color 160ms ease",
 };
 
 const toggleTitleSx = {
@@ -773,9 +919,7 @@ const toggleDescriptionSx = {
   color: "var(--app-color-text-muted)",
 };
 
-const switchSx = {
-  mt: 1,
-};
+const switchSx = { mt: 1 };
 
 const switchLabelSx = {
   fontSize: "11.5px",
@@ -783,42 +927,12 @@ const switchLabelSx = {
   color: "var(--app-color-text)",
 };
 
-const submitAlertSx = {
-  mt: 3,
-};
+const submitAlertSx = { mt: 3 };
 
 const actionsSx = {
   mt: 4,
   pt: 2.2,
   borderTop: "1px solid var(--app-color-border)",
-};
-
-const sideCardSx = {
-  px: 1.55,
-  py: 1.45,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const sideTitleSx = {
-  m: 0,
-  fontSize: "14px",
-  lineHeight: 1.25,
-  color: "var(--app-color-text)",
-};
-
-const sideSubtitleSx = {
-  mt: 0.3,
-  fontSize: "11px",
-  lineHeight: 1.45,
-  color: "var(--app-color-text-muted)",
-};
-
-const sideButtonSx = {
-  mt: 1.5,
-  height: 34,
-  fontSize: "12px",
-  fontWeight: 700,
 };
 
 const optionTitleSx = {
@@ -831,6 +945,13 @@ const optionSubtitleSx = {
   mt: 0.2,
   fontSize: "10.5px",
   color: "var(--app-color-text-muted)",
+};
+
+const sideButtonSx = {
+  mt: 1.5,
+  height: 34,
+  fontSize: "12px",
+  fontWeight: 700,
 };
 
 const previewTitleSx = {
@@ -850,6 +971,10 @@ const ruleTextSx = {
   fontSize: "11.5px",
   lineHeight: 1.5,
   color: "var(--app-color-text-muted)",
+};
+
+const toastSx = {
+  boxShadow: "0 16px 40px rgba(15, 23, 42, 0.18)",
 };
 
 export default AssignAccessDesktopPage;
