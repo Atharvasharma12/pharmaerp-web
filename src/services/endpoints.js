@@ -67,6 +67,8 @@ export const ENDPOINTS = {
 
     LIST: "/organization/branches",
 
+    WORKSPACE_LIST: "/organization/branches/workspace/all",
+
     BY_ID: (branchId) => `/organization/branches/${branchId}`,
   },
 

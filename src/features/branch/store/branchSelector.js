@@ -16,6 +16,9 @@ export const selectCreateBranchStatus = (state) =>
 export const selectGetCompanyBranchesStatus = (state) =>
   state.branch.getCompanyBranchesStatus;
 
+export const selectGetWorkspaceBranchesStatus = (state) =>
+  state.branch.getWorkspaceBranchesStatus;
+
 export const selectGetBranchStatus = (state) => state.branch.getBranchStatus;
 
 export const selectUpdateBranchStatus = (state) =>

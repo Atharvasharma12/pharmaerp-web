@@ -6,6 +6,7 @@ import { storage } from "@/utils";
 import {
   createBranch,
   getCompanyBranches,
+  getWorkspaceBranches,
   getBranchById,
   updateBranch,
   deleteBranch,
@@ -32,6 +33,7 @@ const initialState = {
 
   createBranchStatus: API_STATUS.IDLE,
   getCompanyBranchesStatus: API_STATUS.IDLE,
+  getWorkspaceBranchesStatus: API_STATUS.IDLE,
   getBranchStatus: API_STATUS.IDLE,
   updateBranchStatus: API_STATUS.IDLE,
   deleteBranchStatus: API_STATUS.IDLE,
@@ -127,6 +129,40 @@ const branchSlice = createSlice({
       .addCase(getCompanyBranches.rejected, (state, action) => {
         state.getCompanyBranchesStatus = API_STATUS.ERROR;
         state.error = action.payload || "Failed to fetch branches";
+      })
+
+      // GET WORKSPACE BRANCHES
+      .addCase(getWorkspaceBranches.pending, (state) => {
+        state.getWorkspaceBranchesStatus = API_STATUS.LOADING;
+        state.error = null;
+      })
+      .addCase(getWorkspaceBranches.fulfilled, (state, action) => {
+        state.getWorkspaceBranchesStatus = API_STATUS.SUCCESS;
+
+        state.branches = Array.isArray(action.payload) ? action.payload : [];
+
+        const persistedBranchId = storage.get(BRANCH_STORAGE_KEY);
+
+        const matchedBranch =
+          state.branches.find((branch) => branch?._id === persistedBranchId) ||
+          null;
+
+        const firstBranch = state.branches[0] || null;
+
+        state.currentBranch =
+          state.currentBranch || matchedBranch || firstBranch;
+
+        if (state.currentBranch?._id) {
+          persistCurrentBranch(state.currentBranch);
+        } else {
+          removePersistedBranch();
+        }
+
+        state.message = "Workspace branches fetched successfully";
+      })
+      .addCase(getWorkspaceBranches.rejected, (state, action) => {
+        state.getWorkspaceBranchesStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to fetch workspace branches";
       })
 
       // GET BRANCH

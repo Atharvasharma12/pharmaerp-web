@@ -9,6 +9,10 @@ const branchService = {
     return apiClient.get(ENDPOINTS.BRANCH.LIST);
   },
 
+  getWorkspaceBranches() {
+    return apiClient.get(ENDPOINTS.BRANCH.WORKSPACE_LIST);
+  },
+
   getBranchById(branchId) {
     return apiClient.get(ENDPOINTS.BRANCH.BY_ID(branchId));
   },

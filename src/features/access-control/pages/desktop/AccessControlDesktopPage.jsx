@@ -2,7 +2,6 @@ import {
   FiArrowRight,
   FiBookOpen,
   FiCheckCircle,
-  FiKey,
   FiRefreshCw,
   FiShield,
   FiSliders,
@@ -15,14 +14,18 @@ import { LuStore } from "react-icons/lu";
 import {
   AppAlert,
   AppBox,
+  AppBreadcrumb,
   AppButton,
   AppCard,
   AppErrorState,
   AppHeading,
   AppStack,
+  AppStatCard,
   AppTableSkeleton,
   AppTag,
   AppText,
+  PageHeader,
+  PageRightSidebar,
 } from "@/components";
 
 const statIcons = {
@@ -71,7 +74,43 @@ const AccessControlDesktopPage = ({
       {message ? <TopToast message={message} onClose={clearMessage} /> : null}
 
       <div className="mx-auto w-full max-w-[1500px]">
-        <PageHeader isLoading={isLoading} onRefresh={handleRefresh} />
+        <PageHeader
+          title="Access Control"
+          subtitle="Manage roles, permissions and control access for your workspace."
+          extra={
+            <AppBreadcrumb
+              size="small"
+              variant="text"
+              items={[
+                { label: "Dashboard" },
+                { label: "Access Control", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
+            />
+          }
+          actions={
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              startIcon={<FiRefreshCw />}
+              onClick={handleRefresh}
+              loading={isLoading}
+              disabled={isLoading}
+              sx={secondaryButtonSx}
+            >
+              Refresh
+            </AppButton>
+          }
+          align="flex-start"
+          justify="space-between"
+          sx={pageHeaderSx}
+          contentSx={pageHeaderContentSx}
+        />
 
         <StatsGrid stats={dashboardStats} />
 
@@ -141,7 +180,7 @@ const AccessControlDesktopPage = ({
               />
             </div>
 
-            <RightSidebar />
+            <AccessControlRightSidebar />
           </div>
         )}
       </div>
@@ -162,78 +201,22 @@ const TopToast = ({ message, onClose }) => (
   </div>
 );
 
-const PageHeader = ({ isLoading, onRefresh }) => (
-  <div className="flex items-center justify-between w-full">
-    <AppStack direction="row" align="center" gap={1.4}>
-      <IconBox icon={<FiShield />} colorVariant="success" large plain />
-
-      <AppBox>
-        <AppHeading level={1} weight={800} sx={pageTitleSx}>
-          Access Control
-        </AppHeading>
-
-        <AppText variant="body2" sx={pageSubtitleSx}>
-          Manage roles, permissions and control access for your workspace.
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <AppButton
-      type="button"
-      variant="outlined"
-      colorVariant="neutral"
-      rounded="md"
-      size="small"
-      startIcon={<FiRefreshCw />}
-      onClick={onRefresh}
-      loading={isLoading}
-      disabled={isLoading}
-      sx={secondaryButtonSx}
-    >
-      Refresh
-    </AppButton>
-  </div>
-);
-
 const StatsGrid = ({ stats }) => (
   <div className="mt-4 grid grid-cols-5 gap-3">
     {stats.map((stat) => (
-      <StatCard key={stat.id} stat={stat} />
-    ))}
-  </div>
-);
-
-const StatCard = ({ stat }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={statCardSx}
-  >
-    <AppStack direction="row" align="flex-start" gap={1.1}>
-      <IconBox
+      <AppStatCard
+        key={stat.id}
+        title={stat.title}
+        value={stat.value}
+        subtitle={stat.description}
         icon={statIcons[stat.id] || <FiShield />}
         colorVariant={stat.colorVariant}
-        stat
+        variant="default"
+        sx={statCardSx}
+        iconSx={statIconSx}
       />
-
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppText variant="body2" sx={statTitleSx}>
-          {stat.title}
-        </AppText>
-
-        <AppHeading level={2} weight={650} sx={statValueSx}>
-          {stat.value}
-        </AppHeading>
-
-        <AppText variant="body2" sx={statDescriptionSx}>
-          {stat.description}
-        </AppText>
-      </AppBox>
-    </AppStack>
-  </AppCard>
+    ))}
+  </div>
 );
 
 const AccessOverviewCard = ({ items = [] }) => (
@@ -364,102 +347,60 @@ const ActivityRow = ({ activity }) => (
     </div>
   </div>
 );
-const RightSidebar = () => (
-  <div className="space-y-5">
-    <InfoCard
-      title="What is Access Control?"
-      description="Access Control helps you manage roles, permissions and member access across your workspace."
-      points={[
-        "Create roles and set permissions",
-        "Assign roles to members",
-        "Control company and branch access",
-        "Secure your pharmacy business",
-      ]}
-    />
 
-    <InfoCard
-      title="Best Practices"
-      points={[
-        "Create role based on responsibilities",
-        "Assign minimum required permissions",
-        "Review access regularly",
-        "Remove access when not needed",
-      ]}
-      soft
-    />
-
-    <AppCard
-      variant="default"
-      rounded="lg"
-      bordered
-      shadow="sm"
-      padding="none"
-      sx={sideCardSx}
-    >
-      <AppHeading level={3} weight={700} sx={sideTitleSx}>
-        Need Help?
-      </AppHeading>
-
-      <AppText variant="body2" sx={sideTextSx}>
-        Learn more about Access Control management in PharmaERP.
-      </AppText>
-
-      <button
-        type="button"
-        className="mt-4 inline-flex items-center gap-2 text-[13px] font-bold text-primary"
-      >
-        <FiBookOpen /> View User Guide <FiArrowRight />
-      </button>
-    </AppCard>
-  </div>
-);
-
-const InfoCard = ({ title, description, points = [], soft = false }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={soft ? softSideCardSx : sideCardSx}
-  >
-    <AppHeading
-      level={3}
-      weight={700}
-      sx={soft ? bestPracticeTitleSx : sideTitleSx}
-    >
-      {title}
-    </AppHeading>
-
-    {description ? (
-      <AppText variant="body2" sx={sideTextSx}>
-        {description}
-      </AppText>
-    ) : null}
-
-    <div className="mt-4 space-y-3">
-      {points.map((point) => (
-        <AppStack key={point} direction="row" align="center" gap={1}>
-          {soft ? (
-            <FiZap className="shrink-0 text-[15px] text-primary" />
-          ) : (
-            <FiCheckCircle className="shrink-0 text-[15px] text-primary" />
-          )}
-          <AppText variant="body2" sx={pointTextSx}>
-            {point}
-          </AppText>
-        </AppStack>
-      ))}
-    </div>
-  </AppCard>
+const AccessControlRightSidebar = () => (
+  <PageRightSidebar
+    spacing={4}
+    cards={[
+      {
+        title: "What is Access Control?",
+        icon: <FiShield />,
+        colorVariant: "primary",
+        variant: "default",
+        description:
+          "Access Control helps you manage roles, permissions and member access across your workspace.",
+        points: [
+          "Create roles and set permissions",
+          "Assign roles to members",
+          "Control company and branch access",
+          "Secure your pharmacy business",
+        ],
+        pointIcon: <FiCheckCircle />,
+      },
+      {
+        title: "Best Practices",
+        icon: <FiZap />,
+        colorVariant: "primary",
+        variant: "soft",
+        soft: true,
+        points: [
+          "Create role based on responsibilities",
+          "Assign minimum required permissions",
+          "Review access regularly",
+          "Remove access when not needed",
+        ],
+        pointIcon: <FiZap />,
+        pointIconVariant: "zap",
+      },
+      {
+        title: "Need Help?",
+        icon: <FiBookOpen />,
+        colorVariant: "info",
+        variant: "default",
+        description: "Learn more about Access Control management in PharmaERP.",
+        actionLabel: "View User Guide",
+        actionIcon: <FiArrowRight />,
+      },
+    ]}
+  />
 );
 
 const SectionHeader = ({ title, subtitle, action }) => (
-  <AppStack
-    direction="row"
-    align="flex-start"
-    justify="space-between"
-    gap={1.5}
+  <AppBox
+    display="flex"
+    alignItems="flex-start"
+    justifyContent="space-between"
+    sx={{ width: "100%" }}
   >
     <AppBox sx={{ minWidth: 0 }}>
       <AppHeading level={2} weight={700} sx={sectionTitleSx}>
@@ -474,7 +415,7 @@ const SectionHeader = ({ title, subtitle, action }) => (
     </AppBox>
 
     {action}
-  </AppStack>
+  </AppBox>
 );
 
 const IconBox = ({
@@ -506,19 +447,35 @@ const IconBox = ({
   </AppBox>
 );
 
-const pageTitleSx = {
-  m: 0,
-  fontSize: "25px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.45px",
-  color: "var(--app-color-text)",
+const pageHeaderSx = {
+  width: "100%",
 };
 
-const pageSubtitleSx = {
-  mt: 0.55,
-  fontSize: "14px",
-  lineHeight: "22px",
+const pageHeaderContentSx = {
+  minWidth: 0,
+
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
+};
+
+const breadcrumbSx = {
+  mt: 1,
+};
+
+const breadcrumbItemSx = {
+  fontSize: "12px",
   color: "var(--app-color-text-muted)",
+};
+
+const breadcrumbCurrentSx = {
+  fontSize: "12px",
+  fontWeight: 650,
+  color: "var(--app-color-text)",
 };
 
 const secondaryButtonSx = {
@@ -533,30 +490,38 @@ const secondaryButtonSx = {
 };
 
 const statCardSx = {
-  px: 1.5,
-  py: 1.35,
   minHeight: 88,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
+
+  "& .MuiCardContent-root": {
+    p: 0,
+  },
+
+  p: 1.5,
+
+  "& p:first-of-type": {
+    fontSize: "11px",
+  },
+
+  "& h1, & h2, & h3, & h4, & h5, & h6": {
+    fontSize: "18px",
+  },
+
+  "& p:last-of-type": {
+    fontSize: "11px",
+  },
 };
 
-const statTitleSx = {
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-};
+const statIconSx = {
+  width: 38,
+  height: 38,
+  minWidth: 38,
+  borderRadius: "11px",
 
-const statValueSx = {
-  mt: 0.45,
-  mb: 0,
-  fontSize: "18px",
-  lineHeight: 1.15,
-  color: "var(--app-color-text)",
-};
-
-const statDescriptionSx = {
-  mt: 0.65,
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
+  "& svg": {
+    fontSize: 19,
+  },
 };
 
 const alertSx = {
@@ -666,43 +631,6 @@ const activitySubtitleSx = {
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-};
-
-const sideCardSx = {
-  px: 2.2,
-  py: 2,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const softSideCardSx = {
-  ...sideCardSx,
-  bgcolor: "var(--app-color-readonly-bg)",
-};
-
-const sideTitleSx = {
-  m: 0,
-  fontSize: "16px",
-  lineHeight: 1.25,
-  color: "var(--app-color-text)",
-};
-
-const bestPracticeTitleSx = {
-  ...sideTitleSx,
-  color: "var(--app-color-primary)",
-};
-
-const sideTextSx = {
-  mt: 1,
-  fontSize: "13px",
-  lineHeight: "21px",
-  color: "var(--app-color-text-muted)",
-};
-
-const pointTextSx = {
-  fontSize: "12.5px",
-  lineHeight: "18px",
   color: "var(--app-color-text-muted)",
 };
 

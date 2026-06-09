@@ -27,10 +27,13 @@ import {
   AppSearchInput,
   AppSelect,
   AppStack,
+  AppStatCard,
   AppStatusBadge,
   AppTableSkeleton,
   AppTag,
   AppText,
+  PageHeader,
+  PageRightSidebar,
 } from "@/components";
 
 const statIcons = {
@@ -93,9 +96,60 @@ const RolesDesktopPage = ({
 
       <div className="mx-auto w-full max-w-[1500px]">
         <PageHeader
-          onBack={handleBackToAccessControl}
-          onCreate={handleCreateRole}
-          onExport={handleExportRoles}
+          title="Roles"
+          subtitle="Create and manage roles for your workspace. Define permissions for each role."
+          extra={
+            <AppBreadcrumb
+              size="small"
+              variant="text"
+              items={[
+                { label: "Access Control", onClick: handleBackToAccessControl },
+                { label: "Roles", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
+            />
+          }
+          actions={
+            <AppStack
+              direction="row"
+              align="center"
+              justify="flex-end"
+              gap={1.1}
+              sx={{ flexShrink: 0 }}
+            >
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiDownload />}
+                onClick={handleExportRoles}
+                sx={secondaryButtonSx}
+              >
+                Export
+              </AppButton>
+
+              <AppButton
+                type="button"
+                variant="contained"
+                colorVariant="primary"
+                rounded="md"
+                size="small"
+                startIcon={<FiPlus />}
+                onClick={handleCreateRole}
+                sx={primaryButtonSx}
+              >
+                Create Role
+              </AppButton>
+            </AppStack>
+          }
+          align="flex-start"
+          justify="space-between"
+          sx={pageHeaderSx}
+          contentSx={pageHeaderContentSx}
         />
 
         {error && !hasError ? (
@@ -200,7 +254,7 @@ const RolesDesktopPage = ({
             </AppCard>
           </div>
 
-          <RightSidebar roleHelp={roleHelp} />
+          <RolesRightSidebar roleHelp={roleHelp} />
         </div>
       </div>
     </section>
@@ -220,108 +274,22 @@ const TopToast = ({ message, onClose }) => (
   </div>
 );
 
-const PageHeader = ({ onBack, onCreate, onExport }) => (
-  <div className="w-full">
-    <AppBreadcrumb
-      size="small"
-      variant="text"
-      items={[
-        { label: "Access Control", onClick: onBack },
-        { label: "Roles", current: true },
-      ]}
-      sx={breadcrumbSx}
-      itemSx={breadcrumbItemSx}
-      currentItemSx={breadcrumbCurrentSx}
-    />
-
-    <div className="flex w-full items-center justify-between gap-5">
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppHeading level={1} weight={800} sx={pageTitleSx}>
-          Roles
-        </AppHeading>
-
-        <AppText variant="body2" sx={pageSubtitleSx}>
-          Create and manage roles for your workspace. Define permissions for
-          each role.
-        </AppText>
-      </AppBox>
-
-      <AppStack
-        direction="row"
-        align="center"
-        justify="flex-end"
-        gap={1.1}
-        sx={{ flexShrink: 0 }}
-      >
-        <AppButton
-          type="button"
-          variant="outlined"
-          colorVariant="neutral"
-          rounded="md"
-          size="small"
-          startIcon={<FiDownload />}
-          onClick={onExport}
-          sx={secondaryButtonSx}
-        >
-          Export
-        </AppButton>
-
-        <AppButton
-          type="button"
-          variant="contained"
-          colorVariant="primary"
-          rounded="md"
-          size="small"
-          startIcon={<FiPlus />}
-          onClick={onCreate}
-          sx={primaryButtonSx}
-        >
-          Create Role
-        </AppButton>
-      </AppStack>
-    </div>
-  </div>
-);
-
 const StatsGrid = ({ stats }) => (
   <div className="grid grid-cols-4 gap-4">
     {stats.map((stat) => (
-      <StatCard key={stat.id} stat={stat} />
-    ))}
-  </div>
-);
-
-const StatCard = ({ stat }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={statCardSx}
-  >
-    <AppStack direction="row" align="flex-start" gap={1.3}>
-      <IconBox
+      <AppStatCard
+        key={stat.id}
+        title={stat.title}
+        value={stat.value}
+        subtitle={stat.description}
         icon={statIcons[stat.id] || <FiShield />}
         colorVariant={stat.colorVariant}
-        stat
+        variant="default"
+        sx={statCardSx}
+        iconSx={statIconSx}
       />
-
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppText variant="body2" sx={statTitleSx}>
-          {stat.title}
-        </AppText>
-
-        <AppHeading level={2} weight={700} sx={statValueSx}>
-          {stat.value}
-        </AppHeading>
-
-        <AppText variant="body2" sx={statDescriptionSx}>
-          {stat.description}
-        </AppText>
-      </AppBox>
-    </AppStack>
-  </AppCard>
+    ))}
+  </div>
 );
 
 const TableToolbar = ({
@@ -590,93 +558,52 @@ const TableFooter = ({ totalRoles, filteredRolesCount }) => (
   </div>
 );
 
-const RightSidebar = ({ roleHelp }) => (
-  <div className="space-y-4">
-    <AppCard
-      variant="default"
-      rounded="lg"
-      bordered
-      shadow="sm"
-      padding="none"
-      sx={sideCardSx}
-    >
-      <AppStack direction="row" align="center" gap={1.2}>
-        <IconBox icon={<FiUsers />} colorVariant="success" largeRound />
-        <AppHeading level={3} weight={700} sx={sideTitleSx}>
-          About Roles
-        </AppHeading>
-      </AppStack>
-
-      <AppText variant="body2" sx={sideTextSx}>
-        Roles help you to group permissions and assign them to members. Create
-        custom roles based on responsibilities.
-      </AppText>
-
-      <div className="mt-4 space-y-3">
-        {(roleHelp?.aboutPoints || []).map((point) => (
-          <AppStack key={point} direction="row" align="center" gap={1}>
-            <FiCheckCircle className="shrink-0 text-[15px] text-success" />
-            <AppText variant="body2" sx={pointTextSx}>
-              {point}
-            </AppText>
-          </AppStack>
-        ))}
-      </div>
-    </AppCard>
-
-    <AppCard
-      variant="default"
-      rounded="lg"
-      bordered
-      shadow="sm"
-      padding="none"
-      sx={sideCardSx}
-    >
-      <AppHeading level={3} weight={700} sx={sideTitleSx}>
-        Role Types
-      </AppHeading>
-
-      <div className="mt-4 space-y-4">
-        <RoleTypeInfo
-          label="System"
-          colorVariant="info"
-          description={roleHelp?.systemDescription}
-        />
-        <RoleTypeInfo
-          label="Custom"
-          colorVariant="purple"
-          description={roleHelp?.customDescription}
-        />
-      </div>
-    </AppCard>
-
-    <AppCard
-      variant="default"
-      rounded="lg"
-      bordered
-      shadow="sm"
-      padding="none"
-      sx={sideCardSx}
-    >
-      <AppStack direction="row" align="center" gap={1.2}>
-        <FiHeadphones className="text-[24px] text-text-muted" />
-        <AppHeading level={3} weight={700} sx={sideTitleSx}>
-          Need Help?
-        </AppHeading>
-      </AppStack>
-
-      <AppText variant="body2" sx={sideTextSx}>
-        Learn more about roles and permissions management in PharmaERP.
-      </AppText>
-
-      <button
-        type="button"
-        className="mt-4 inline-flex items-center gap-2 text-[12px] font-bold text-primary"
-      >
-        View User Guide <FiChevronRight />
-      </button>
-    </AppCard>
-  </div>
+const RolesRightSidebar = ({ roleHelp }) => (
+  <PageRightSidebar
+    spacing={4}
+    cards={[
+      {
+        title: "About Roles",
+        icon: <FiUsers />,
+        colorVariant: "success",
+        variant: "default",
+        description:
+          "Roles help you to group permissions and assign them to members. Create custom roles based on responsibilities.",
+        points: roleHelp?.aboutPoints || [],
+        pointIcon: <FiCheckCircle />,
+        pointIconVariant: "check",
+      },
+      {
+        title: "Role Types",
+        icon: null,
+        colorVariant: "info",
+        variant: "default",
+        custom: (
+          <div className="space-y-4">
+            <RoleTypeInfo
+              label="System"
+              colorVariant="info"
+              description={roleHelp?.systemDescription}
+            />
+            <RoleTypeInfo
+              label="Custom"
+              colorVariant="purple"
+              description={roleHelp?.customDescription}
+            />
+          </div>
+        ),
+      },
+      {
+        title: "Need Help?",
+        icon: <FiHeadphones />,
+        colorVariant: "neutral",
+        variant: "default",
+        description:
+          "Learn more about roles and permissions management in PharmaERP.",
+        actionLabel: "View User Guide",
+      },
+    ]}
+  />
 );
 
 const RoleTypeInfo = ({ label, colorVariant, description }) => (
@@ -727,8 +654,24 @@ const IconBox = ({
   </AppBox>
 );
 
+const pageHeaderSx = {
+  width: "100%",
+};
+
+const pageHeaderContentSx = {
+  minWidth: 0,
+
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
+};
+
 const breadcrumbSx = {
-  mb: 1.1,
+  mt: 1,
 };
 
 const breadcrumbItemSx = {
@@ -740,21 +683,6 @@ const breadcrumbCurrentSx = {
   fontSize: "12px",
   fontWeight: 650,
   color: "var(--app-color-text)",
-};
-
-const pageTitleSx = {
-  m: 0,
-  fontSize: "25px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.45px",
-  color: "var(--app-color-text)",
-};
-
-const pageSubtitleSx = {
-  mt: 0.55,
-  fontSize: "13px",
-  lineHeight: "21px",
-  color: "var(--app-color-text-muted)",
 };
 
 const primaryButtonSx = {
@@ -775,32 +703,20 @@ const secondaryButtonSx = {
 const alertSx = { mt: 3 };
 
 const statCardSx = {
-  px: 1.55,
-  py: 1.45,
-  minHeight: 112,
+  minHeight: 96,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
 
-const statTitleSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text-muted)",
-};
+const statIconSx = {
+  width: 44,
+  height: 44,
+  minWidth: 44,
+  borderRadius: "12px",
 
-const statValueSx = {
-  mt: 0.45,
-  mb: 0,
-  fontSize: "24px",
-  lineHeight: 1.05,
-  color: "var(--app-color-text)",
-};
-
-const statDescriptionSx = {
-  mt: 0.75,
-  fontSize: "11.5px",
-  lineHeight: "18px",
-  color: "var(--app-color-text-muted)",
+  "& svg": {
+    fontSize: 22,
+  },
 };
 
 const tableCardSx = {
@@ -898,33 +814,6 @@ const pageSizeButtonSx = {
   px: 1.2,
   fontSize: "12px",
   fontWeight: 600,
-};
-
-const sideCardSx = {
-  px: 2,
-  py: 1.8,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const sideTitleSx = {
-  m: 0,
-  fontSize: "15px",
-  lineHeight: 1.25,
-  color: "var(--app-color-text)",
-};
-
-const sideTextSx = {
-  mt: 1.5,
-  fontSize: "12px",
-  lineHeight: "21px",
-  color: "var(--app-color-text-muted)",
-};
-
-const pointTextSx = {
-  fontSize: "12px",
-  lineHeight: "18px",
-  color: "var(--app-color-text-muted)",
 };
 
 const roleTypeTextSx = {

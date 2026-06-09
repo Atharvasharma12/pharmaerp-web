@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   createBranch,
   getCompanyBranches,
+  getWorkspaceBranches,
   getBranchById,
   updateBranch,
   deleteBranch,
@@ -24,6 +25,7 @@ import {
   selectBranchMessage,
   selectCreateBranchStatus,
   selectGetCompanyBranchesStatus,
+  selectGetWorkspaceBranchesStatus,
   selectGetBranchStatus,
   selectUpdateBranchStatus,
   selectDeleteBranchStatus,
@@ -41,6 +43,9 @@ const useBranch = () => {
 
   const createBranchStatus = useSelector(selectCreateBranchStatus);
   const getCompanyBranchesStatus = useSelector(selectGetCompanyBranchesStatus);
+  const getWorkspaceBranchesStatus = useSelector(
+    selectGetWorkspaceBranchesStatus,
+  );
   const getBranchStatus = useSelector(selectGetBranchStatus);
   const updateBranchStatus = useSelector(selectUpdateBranchStatus);
   const deleteBranchStatus = useSelector(selectDeleteBranchStatus);
@@ -51,6 +56,10 @@ const useBranch = () => {
 
   const fetchCompanyBranches = () => {
     return dispatch(getCompanyBranches()).unwrap();
+  };
+
+  const fetchWorkspaceBranches = () => {
+    return dispatch(getWorkspaceBranches()).unwrap();
   };
 
   const fetchBranchById = (branchId) => {
@@ -100,12 +109,14 @@ const useBranch = () => {
 
     createBranchStatus,
     getCompanyBranchesStatus,
+    getWorkspaceBranchesStatus,
     getBranchStatus,
     updateBranchStatus,
     deleteBranchStatus,
 
     createBranch: submitCreateBranch,
     getCompanyBranches: fetchCompanyBranches,
+    getWorkspaceBranches: fetchWorkspaceBranches,
     getBranchById: fetchBranchById,
     updateBranch: submitUpdateBranch,
     deleteBranch: submitDeleteBranch,

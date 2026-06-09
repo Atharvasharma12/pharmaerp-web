@@ -35,6 +35,8 @@ import {
   AppTag,
   AppTextarea,
   AppText,
+  PageHeader,
+  PageRightSidebar,
 } from "@/components";
 
 const actionKeys = ["view", "create", "update", "delete"];
@@ -111,10 +113,68 @@ const CreateRoleDesktopPage = ({
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
       <div className="mx-auto w-full max-w-[1500px]">
-        <div className="grid grid-cols-[minmax(0,1fr)_330px] items-start gap-5">
-          <AppBox sx={{ minWidth: 0 }}>
-            <PageHeader />
+        <PageHeader
+          title="Create New Role"
+          subtitle="Define role details, set permissions and configure access scope."
+          extra={
+            <AppBreadcrumb
+              size="small"
+              variant="text"
+              items={[
+                { label: "Access Control", href: "/access-control" },
+                { label: "Roles", href: "/access-control/roles" },
+                { label: "Create Role", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
+            />
+          }
+          actions={
+            <AppStack
+              direction="row"
+              align="center"
+              justify="flex-end"
+              gap={1}
+              sx={{ flexShrink: 0 }}
+            >
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiArrowLeft />}
+                onClick={handleCancel}
+                sx={secondaryButtonSx}
+              >
+                Back
+              </AppButton>
 
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiRefreshCw />}
+                onClick={handleRefreshPermissions}
+                loading={isLoadingPermissions}
+                disabled={isLoadingPermissions}
+                sx={secondaryButtonSx}
+              >
+                Refresh
+              </AppButton>
+            </AppStack>
+          }
+          align="flex-start"
+          justify="space-between"
+          sx={pageHeaderSx}
+          contentSx={pageHeaderContentSx}
+        />
+
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_330px] items-start gap-5">
+          <AppBox sx={{ minWidth: 0 }}>
             <Stepper
               currentStep={currentStep}
               onStepChange={handleStepChange}
@@ -216,31 +276,6 @@ const CreateRoleDesktopPage = ({
   );
 };
 
-const PageHeader = () => (
-  <AppBox>
-    <AppBreadcrumb
-      size="small"
-      variant="text"
-      items={[
-        { label: "Access Control", href: "/access-control" },
-        { label: "Roles", href: "/access-control/roles" },
-        { label: "Create Role", current: true },
-      ]}
-      sx={breadcrumbSx}
-      itemSx={breadcrumbItemSx}
-      currentItemSx={breadcrumbCurrentSx}
-    />
-
-    <AppHeading level={1} weight={800} sx={pageTitleSx}>
-      Create New Role
-    </AppHeading>
-
-    <AppText variant="body2" sx={pageSubtitleSx}>
-      Define role details, set permissions and configure access scope.
-    </AppText>
-  </AppBox>
-);
-
 const Stepper = ({ currentStep, onStepChange }) => {
   const steps = [
     {
@@ -261,7 +296,7 @@ const Stepper = ({ currentStep, onStepChange }) => {
   ];
 
   return (
-    <div className="mt-8 grid grid-cols-[1fr_120px_1fr_120px_1fr] items-center">
+    <div className="grid grid-cols-[1fr_120px_1fr_120px_1fr] items-center">
       {steps.map((step, index) => {
         const active = currentStep === step.id;
         const completed = currentStep > step.id;
@@ -468,7 +503,12 @@ const PermissionsStep = ({
     padding="none"
     sx={mainCardSx}
   >
-    <AppStack direction="row" align="center" justify="space-between" gap={2}>
+    <AppBox
+      display="flex"
+      alignItems="center"
+      justifyContent="space-between"
+      sx={{ width: "100%" }}
+    >
       <AppBox sx={{ minWidth: 0 }}>
         <AppHeading level={2} weight={700} sx={sectionTitleSx}>
           Set Permissions
@@ -521,8 +561,7 @@ const PermissionsStep = ({
           Refresh
         </AppButton>
       </AppStack>
-    </AppStack>
-
+    </AppBox>
     <div className="mt-4 grid grid-cols-[minmax(0,1fr)_180px_106px] gap-3">
       <AppInput
         value={permissionSearch}
@@ -719,7 +758,12 @@ const ReviewStep = ({
     padding="none"
     sx={mainCardSx}
   >
-    <AppStack direction="row" align="center" justify="space-between" gap={2}>
+    <AppBox
+      display="flex"
+      alignItems="center"
+      justifyContent="space-between"
+      sx={{ width: "100%" }}
+    >
       <SectionHeader
         title="Review Role Details"
         subtitle="Review all information before creating this role."
@@ -736,7 +780,7 @@ const ReviewStep = ({
       >
         Update Details
       </AppButton>
-    </AppStack>
+    </AppBox>
 
     <div className="mt-5 grid grid-cols-4 gap-4">
       <ReviewItem title="Role Name" value={previewRole?.name || "-"} />
@@ -938,226 +982,228 @@ const RightSidebar = ({
 }) => {
   if (currentStep === 1) {
     return (
-      <div className="space-y-5">
-        <GuideCard />
-        <RoleTypesCard />
-        <NeedHelpCard />
-      </div>
+      <PageRightSidebar
+        spacing={4}
+        cards={[
+          {
+            title: "Role Creation Guide",
+            icon: <FiBookOpen />,
+            colorVariant: "primary",
+            variant: "default",
+            description: "Follow these steps to create an effective role.",
+            custom: (
+              <div className="mt-4 space-y-4">
+                <GuideStep
+                  number="1"
+                  title="Add Role Details"
+                  text="Enter a clear name and description for the role."
+                />
+                <GuideStep
+                  number="2"
+                  title="Set Permissions"
+                  text="Choose the permissions this role should have."
+                />
+                <GuideStep
+                  number="3"
+                  title="Review & Create"
+                  text="Review all settings and create the role."
+                />
+              </div>
+            ),
+          },
+          {
+            title: "Role Types",
+            icon: <FiShield />,
+            colorVariant: "info",
+            variant: "default",
+            custom: (
+              <div className="space-y-4">
+                <RoleType
+                  icon={<FiShield />}
+                  title="System Role"
+                  text="Default roles created by the system. You cannot delete system roles."
+                  colorVariant="primary"
+                />
+                <RoleType
+                  icon={<FiUsers />}
+                  title="Custom Role"
+                  text="Custom roles created for your workspace. You can update or delete these roles."
+                />
+              </div>
+            ),
+          },
+          {
+            title: "Need Help?",
+            icon: <FiBookOpen />,
+            colorVariant: "neutral",
+            variant: "default",
+            description:
+              "Learn more about roles and permissions management in PharmaERP.",
+            actionLabel: "View User Guide",
+            actionIcon: <FiArrowRight />,
+          },
+        ]}
+      />
     );
   }
 
   if (currentStep === 2) {
     return (
-      <div className="space-y-5">
-        <PermissionGuideCard />
-        <RoleSummaryCard
-          previewRole={previewRole}
-          permissionSummary={permissionSummary}
-          compact
-        />
-        <NeedHelpCard />
-      </div>
+      <PageRightSidebar
+        spacing={4}
+        cards={[
+          {
+            title: "Permission Guide",
+            icon: <FiBookOpen />,
+            colorVariant: "primary",
+            variant: "default",
+            description:
+              "Set appropriate permissions to control what members can access and do.",
+            custom: (
+              <div className="mt-4 space-y-3">
+                {[
+                  ["View", "Allow viewing of data"],
+                  ["Create", "Allow creating new data"],
+                  ["Update", "Allow modifying existing data"],
+                  ["Delete", "Allow deleting data"],
+                ].map(([title, text]) => (
+                  <AppStack key={title} direction="row" align="center" gap={1}>
+                    <FiCheckCircle className="shrink-0 text-[15px] text-primary" />
+                    <AppText variant="body2" sx={sideTextSx}>
+                      <strong>{title}:</strong> {text}
+                    </AppText>
+                  </AppStack>
+                ))}
+              </div>
+            ),
+          },
+          {
+            title: "Role Summary",
+            icon: <FiUsers />,
+            colorVariant: "success",
+            variant: "default",
+            custom: (
+              <RoleSummaryContent
+                previewRole={previewRole}
+                permissionSummary={permissionSummary}
+                compact
+              />
+            ),
+          },
+          {
+            title: "Need Help?",
+            icon: <FiBookOpen />,
+            colorVariant: "neutral",
+            variant: "default",
+            description:
+              "Learn more about roles and permissions management in PharmaERP.",
+            actionLabel: "View User Guide",
+            actionIcon: <FiArrowRight />,
+          },
+        ]}
+      />
     );
   }
 
   return (
-    <div className="space-y-5">
-      <RoleSummaryCard
-        previewRole={previewRole}
-        permissionSummary={permissionSummary}
-      />
-      <NextStepsCard />
-      <NeedHelpCard onReset={onReset} />
-    </div>
+    <PageRightSidebar
+      spacing={4}
+      cards={[
+        {
+          title: "Role Summary",
+          icon: <FiUsers />,
+          colorVariant: "success",
+          variant: "default",
+          custom: (
+            <RoleSummaryContent
+              previewRole={previewRole}
+              permissionSummary={permissionSummary}
+            />
+          ),
+        },
+        {
+          title: "What happens next?",
+          icon: <FiCheckCircle />,
+          colorVariant: "primary",
+          variant: "default",
+          description:
+            "Once you create this role, you can assign it to members and manage their access.",
+          points: [
+            "Assign role to members",
+            "Update permissions anytime",
+            "Manage access scope",
+          ],
+          pointIcon: <FiCheckCircle />,
+          pointIconVariant: "check",
+        },
+        {
+          title: "Need Help?",
+          icon: <FiBookOpen />,
+          colorVariant: "neutral",
+          variant: "default",
+          description:
+            "Learn more about roles and permissions management in PharmaERP.",
+          actionLabel: "View User Guide",
+          actionIcon: <FiArrowRight />,
+          custom: onReset ? (
+            <button
+              type="button"
+              onClick={onReset}
+              className="mt-3 flex items-center gap-2 text-[12px] font-bold text-text-muted"
+            >
+              <FiRefreshCw /> Reset Form
+            </button>
+          ) : null,
+        },
+      ]}
+    />
   );
 };
 
-const GuideCard = () => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <SideHeader icon={<FiBookOpen />} title="Role Creation Guide" />
-
-    <AppText variant="body2" sx={sideTextSx}>
-      Follow these steps to create an effective role.
-    </AppText>
-
-    <div className="mt-4 space-y-4">
-      <GuideStep
-        number="1"
-        title="Add Role Details"
-        text="Enter a clear name and description for the role."
-      />
-      <GuideStep
-        number="2"
-        title="Set Permissions"
-        text="Choose the permissions this role should have."
-      />
-      <GuideStep
-        number="3"
-        title="Review & Create"
-        text="Review all settings and create the role."
-      />
-    </div>
-  </AppCard>
-);
-
-const GuideStep = ({ number, title, text }) => (
-  <AppStack direction="row" align="flex-start" gap={1.2}>
-    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-primary text-[10px] font-bold text-primary">
-      {number}
-    </span>
-
-    <AppBox>
-      <AppHeading level={4} weight={700} sx={sidePointTitleSx}>
-        {title}
-      </AppHeading>
-
-      <AppText variant="body2" sx={sideTextSx}>
-        {text}
-      </AppText>
-    </AppBox>
-  </AppStack>
-);
-
-const RoleTypesCard = () => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <AppHeading level={3} weight={700} sx={sideTitleSx}>
-      Role Types
-    </AppHeading>
-
-    <div className="mt-4 space-y-4">
-      <RoleType
-        icon={<FiShield />}
-        title="System Role"
-        text="Default roles created by the system. You cannot delete system roles."
-        colorVariant="primary"
-      />
-      <RoleType
-        icon={<FiUsers />}
-        title="Custom Role"
-        text="Custom roles created for your workspace. You can update or delete these roles."
-      />
-    </div>
-  </AppCard>
-);
-
-const RoleType = ({ icon, title, text, colorVariant = "success" }) => (
-  <AppStack direction="row" align="flex-start" gap={1.3}>
-    <IconBox icon={icon} colorVariant={colorVariant} />
-
-    <AppBox>
-      <AppHeading level={4} weight={700} sx={sidePointTitleSx}>
-        {title}
-      </AppHeading>
-
-      <AppText variant="body2" sx={sideTextSx}>
-        {text}
-      </AppText>
-    </AppBox>
-  </AppStack>
-);
-
-const PermissionGuideCard = () => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <SideHeader icon={<FiBookOpen />} title="Permission Guide" />
-
-    <AppText variant="body2" sx={sideTextSx}>
-      Set appropriate permissions to control what members can access and do.
-    </AppText>
-
-    <div className="mt-4 space-y-3">
-      {[
-        ["View", "Allow viewing of data"],
-        ["Create", "Allow creating new data"],
-        ["Update", "Allow modifying existing data"],
-        ["Delete", "Allow deleting data"],
-      ].map(([title, text]) => (
-        <AppStack key={title} direction="row" align="center" gap={1}>
-          <FiCheckCircle className="shrink-0 text-[15px] text-primary" />
-          <AppText variant="body2" sx={sideTextSx}>
-            <strong>{title}:</strong> {text}
-          </AppText>
-        </AppStack>
-      ))}
-    </div>
-  </AppCard>
-);
-
-const RoleSummaryCard = ({
+const RoleSummaryContent = ({
   previewRole,
   permissionSummary,
   compact = false,
 }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <SideHeader icon={<FiUsers />} title="Role Summary" />
+  <div className="space-y-3">
+    <SummaryItem label="Role Name" value={previewRole?.name || "-"} />
 
-    <div className="mt-4 space-y-3">
-      <SummaryItem label="Role Name" value={previewRole?.name || "-"} />
+    {!compact ? (
+      <SummaryItem label="Role Code" value={previewRole?.code || "-"} />
+    ) : null}
 
-      {!compact ? (
-        <SummaryItem label="Role Code" value={previewRole?.code || "-"} />
-      ) : null}
+    <SummaryItem
+      label="Role Type"
+      value={
+        <AppTag
+          label="Custom Role"
+          variant="soft"
+          colorVariant="primary"
+          rounded="md"
+          sx={smallTagSx}
+        />
+      }
+    />
 
-      <SummaryItem
-        label="Role Type"
-        value={
-          <AppTag
-            label="Custom Role"
-            variant="soft"
-            colorVariant="primary"
-            rounded="md"
-            sx={smallTagSx}
-          />
-        }
-      />
+    <SummaryItem
+      label="Status"
+      value={
+        <AppTag
+          label="Active"
+          variant="soft"
+          colorVariant="success"
+          rounded="md"
+          sx={smallTagSx}
+        />
+      }
+    />
 
-      <SummaryItem
-        label="Status"
-        value={
-          <AppTag
-            label="Active"
-            variant="soft"
-            colorVariant="success"
-            rounded="md"
-            sx={smallTagSx}
-          />
-        }
-      />
+    <SummaryItem
+      label="Description"
+      value={previewRole?.description || "Custom workspace role."}
+    />
 
-      <SummaryItem
-        label="Description"
-        value={previewRole?.description || "Custom workspace role."}
-      />
-    </div>
-
-    <div className="mt-4 border-t border-border pt-4">
+    <div className="border-t border-border pt-4">
       <AppText variant="body2" sx={summaryLabelSx}>
         Permissions
       </AppText>
@@ -1172,7 +1218,7 @@ const RoleSummaryCard = ({
     </div>
 
     {!compact ? (
-      <div className="mt-4 border-t border-border pt-4">
+      <div className="border-t border-border pt-4">
         <AppText variant="body2" sx={summaryLabelSx}>
           Access Scope
         </AppText>
@@ -1196,7 +1242,41 @@ const RoleSummaryCard = ({
         </div>
       </div>
     ) : null}
-  </AppCard>
+  </div>
+);
+
+const GuideStep = ({ number, title, text }) => (
+  <AppStack direction="row" align="flex-start" gap={1.2}>
+    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-primary text-[10px] font-bold text-primary">
+      {number}
+    </span>
+
+    <AppBox>
+      <AppHeading level={4} weight={700} sx={sidePointTitleSx}>
+        {title}
+      </AppHeading>
+
+      <AppText variant="body2" sx={sideTextSx}>
+        {text}
+      </AppText>
+    </AppBox>
+  </AppStack>
+);
+
+const RoleType = ({ icon, title, text, colorVariant = "success" }) => (
+  <AppStack direction="row" align="flex-start" gap={1.3}>
+    <IconBox icon={icon} colorVariant={colorVariant} />
+
+    <AppBox>
+      <AppHeading level={4} weight={700} sx={sidePointTitleSx}>
+        {title}
+      </AppHeading>
+
+      <AppText variant="body2" sx={sideTextSx}>
+        {text}
+      </AppText>
+    </AppBox>
+  </AppStack>
 );
 
 const SummaryItem = ({ label, value }) => (
@@ -1207,90 +1287,6 @@ const SummaryItem = ({ label, value }) => (
 
     <AppBox sx={summaryValueSx}>{value}</AppBox>
   </AppBox>
-);
-
-const NextStepsCard = () => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <SideHeader icon={<FiCheckCircle />} title="What happens next?" />
-
-    <AppText variant="body2" sx={sideTextSx}>
-      Once you create this role, you can assign it to members and manage their
-      access.
-    </AppText>
-
-    <div className="mt-4 space-y-3">
-      {[
-        "Assign role to members",
-        "Update permissions anytime",
-        "Manage access scope",
-      ].map((item) => (
-        <AppStack key={item} direction="row" align="center" gap={1}>
-          <FiCheckCircle className="text-[15px] text-primary" />
-          <AppText variant="body2" sx={sideTextSx}>
-            {item}
-          </AppText>
-        </AppStack>
-      ))}
-    </div>
-  </AppCard>
-);
-
-const NeedHelpCard = ({ onReset }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <AppStack direction="row" align="flex-start" gap={1.3}>
-      <IconBox icon={<FiHelpCircle />} colorVariant="neutral" />
-
-      <AppBox>
-        <AppHeading level={3} weight={700} sx={sideTitleSx}>
-          Need Help?
-        </AppHeading>
-
-        <AppText variant="body2" sx={sideTextSx}>
-          Learn more about roles and permissions management in PharmaERP.
-        </AppText>
-
-        <button
-          type="button"
-          className="mt-3 inline-flex items-center gap-2 text-[12px] font-bold text-primary"
-        >
-          <FiBookOpen /> View User Guide <FiArrowRight />
-        </button>
-
-        {onReset ? (
-          <button
-            type="button"
-            onClick={onReset}
-            className="mt-2 flex items-center gap-2 text-[12px] font-bold text-text-muted"
-          >
-            <FiX /> Reset Form
-          </button>
-        ) : null}
-      </AppBox>
-    </AppStack>
-  </AppCard>
-);
-
-const SideHeader = ({ icon, title }) => (
-  <AppStack direction="row" align="center" gap={1}>
-    <span className="text-[18px] text-primary">{icon}</span>
-    <AppHeading level={3} weight={700} sx={sideTitleSx}>
-      {title}
-    </AppHeading>
-  </AppStack>
 );
 
 const SectionHeader = ({ title, subtitle }) => (
@@ -1308,18 +1304,16 @@ const SectionHeader = ({ title, subtitle }) => (
 );
 
 const FormActions = ({ left, right }) => (
-  <AppStack
-    direction="row"
-    align="center"
-    justify="space-between"
-    gap={2}
+  <AppBox
+    display="flex"
+    alignItems="center"
+    justifyContent="space-between"
     sx={formActionsSx}
   >
-    <AppBox>{left}</AppBox>
-    <AppBox>{right}</AppBox>
-  </AppStack>
+    {left}
+    {right}
+  </AppBox>
 );
-
 const IconBox = ({ icon, colorVariant = "primary" }) => (
   <AppBox
     display="flex"
@@ -1340,8 +1334,24 @@ const IconBox = ({ icon, colorVariant = "primary" }) => (
   </AppBox>
 );
 
+const pageHeaderSx = {
+  width: "100%",
+};
+
+const pageHeaderContentSx = {
+  minWidth: 0,
+
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
+};
+
 const breadcrumbSx = {
-  mb: 2,
+  mt: 1,
 };
 
 const breadcrumbItemSx = {

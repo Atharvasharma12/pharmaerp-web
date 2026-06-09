@@ -1764,34 +1764,65 @@ Example:
 ### AppInfoCard
 
 Path: `src/components/ui/data-display/AppInfoCard.jsx`  
-Use for: Informational cards, contextual notes, help blocks, summary callouts, guidance panels.  
+Use for: Informational cards, contextual notes, help blocks, summary callouts, guidance panels, sidebar help cards.  
 Built with: `AppCard`, `AppBadge`
 
 Props:  
-`title: string | ReactNode`, `description: string | ReactNode`, `icon: ReactNode`, `badge: string | ReactNode`, `badgeColor: string`, `colorVariant: string`, `action: ReactNode`, `children: ReactNode`, `variant: string`, `sx: object`, `iconSx: object`
+`title: string | ReactNode`, `description: string | ReactNode`, `icon: ReactNode`, `iconPlacement: string`, `badge: string | ReactNode`, `badgeColor: string`, `colorVariant: string`, `action: ReactNode`, `children: ReactNode`, `variant: string`, `sx: object`, `iconSx: object`
 
 Values:  
-`variant=default|outlined|soft|ghost`, `colorVariant=primary|success|error|warning|info`, `badgeColor=primary|success|error|warning|info|dark|neutral`
+`variant=default|outlined|soft|ghost`, `colorVariant=primary|success|error|warning|info|neutral`, `badgeColor=primary|success|error|warning|info|dark|neutral`, `iconPlacement=column|heading`
 
 Example:  
 `<AppInfoCard title="Note" description="This setting affects all users." colorVariant="info" />`
+
+Example (Heading Icon):  
+`<AppInfoCard title="Need Help?" description="Learn more about roles and permissions." icon={<FiHeadphones />} iconPlacement="heading" />`
+
+Guidelines:
+
+- Use `iconPlacement="heading"` for sidebar help cards and compact information panels.
+- Use `iconPlacement="column"` when the icon should be visually emphasized as a separate leading section.
+- Prefer `AppInfoCard` over custom help/info `AppCard` implementations when possible.
 
 ---
 
 ### AppStatCard
 
 Path: `src/components/ui/data-display/AppStatCard.jsx`  
-Use for: Dashboard metrics, statistic cards, quick summaries, KPI-like display cards.  
+Use for: Dashboard metrics, statistic cards, quick summaries, KPI displays, overview counters, analytics summaries.  
 Built with: `AppCard`, `AppBadge`
 
 Props:  
 `title: string | ReactNode`, `value: string | number | ReactNode`, `subtitle: string | ReactNode`, `icon: ReactNode`, `trend: string`, `trendValue: string | number | ReactNode`, `colorVariant: string`, `variant: string`, `loading: boolean`, `sx: object`, `iconSx: object`
 
 Values:  
-`trend=up|down|neutral`, `colorVariant=primary|success|error|warning|info`, `variant=default|soft|outlined`
+`trend=up|down|neutral`, `colorVariant=primary|success|error|warning|info|neutral`, `variant=default|soft|outlined`
+
+Layout:
+
+- Optional colored icon section on the left.
+- Title displayed above the value.
+- Optional subtitle displayed below the value.
+- Optional trend indicator and trend badge displayed at the bottom.
+- Uses compact dashboard-card spacing by default.
 
 Example:  
 `<AppStatCard title="Orders" value="1,240" trend="up" trendValue="+8%" colorVariant="success" />`
+
+Example (With Icon):  
+`<AppStatCard title="Total Roles" value="24" subtitle="Across workspace" icon={<FiUsers />} colorVariant="primary" />`
+
+Example (Loading State):  
+`<AppStatCard title="Revenue" loading />`
+
+Guidelines:
+
+- Use for dashboard summary metrics and KPI displays.
+- Prefer icons for quick visual recognition of the metric.
+- Use `trend` and `trendValue` together when displaying growth or decline.
+- Keep titles short and values prominent.
+- Use `subtitle` for supporting context rather than additional metrics.
 
 ---
 
@@ -3315,6 +3346,59 @@ Example:
 - Prefer `spacing` props over custom margins for page layout consistency.
 - Use `fluid=true` only for full-width dashboards or data-heavy pages.
 - Use `disablePadding=true` only when the parent layout already controls padding.
+
+## Page Layout
+
+### PageHeader
+
+Path: `src/components/shared/page/PageHeader.jsx`  
+Use for: Standard page title area with heading, subtitle, breadcrumbs, actions, extra content, and optional divider.
+
+Built with: `AppBox`, `AppStack`, `AppHeading`, `AppText`, `AppBreadcrumb`
+
+Props:
+`title`, `subtitle`, `breadcrumbItems`, `actions`, `extra`, `align`, `justify`, `stacked`, `divider`, `sx`, `contentSx`
+
+Example:
+`<PageHeader title="Roles" subtitle="Create and manage roles." actions={<AppButton>Create</AppButton>} />`
+
+Rules:
+
+- Use `PageHeader` for page-level headers instead of rebuilding title/action rows.
+- Keep actions on the right through the `actions` prop.
+- Put breadcrumbs below heading using `extra` or `breadcrumbItems` depending on page design.
+
+### PageRightSidebar
+
+Path: `src/components/shared/page/PageRightSidebar.jsx`  
+Use for: Reusable right-side help/info/sidebar panels on desktop pages.
+
+Built with: `AppInfoCard`, `AppStack`, `AppButton`, `AppText`
+
+Props:
+`cards`, `children`, `spacing`, `sx`, `cardSx`
+
+Card shape:
+`{ title, description, icon, iconPlacement, badge, badgeColor, colorVariant, points, pointIcon, pointIconVariant, action, actionLabel, actionIcon, onAction, custom, children, variant, soft, sx, iconSx }`
+
+Example:
+`<PageRightSidebar cards={[{ title: "Need Help?", description: "Learn more.", actionLabel: "View Guide" }]} />`
+
+Rules:
+
+- Use `PageRightSidebar` for repeated right sidebar help/info cards.
+- Use default card fields for common cards.
+- Use `custom` only when a card needs unique inner content.
+- Do not recreate repeated sidebar `AppCard` sections inside pages.
+- Prefer `AppInfoCard` styling through `PageRightSidebar`.
+
+### Page Layout AI Rules
+
+- Use `PageHeader` for standard page headers with title, subtitle, breadcrumbs, and actions.
+- Use `PageRightSidebar` for repeated right-side help/info panels.
+- Use `custom` slots only for unique sidebar content.
+- Do not recreate page headers or sidebar info cards in every page.
+- Prefer catalog components before custom page-local UI.
 
 ## Display
 

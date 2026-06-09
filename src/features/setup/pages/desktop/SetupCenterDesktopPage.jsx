@@ -7,6 +7,7 @@ import {
   FiBookOpen,
   FiBriefcase,
   FiCheck,
+  FiCheckCircle,
   FiCreditCard,
   FiHeadphones,
   FiHome,
@@ -20,11 +21,14 @@ import {
 
 import {
   AppBox,
+  AppBreadcrumb,
   AppButton,
   AppCard,
   AppHeading,
   AppStack,
   AppText,
+  PageHeader,
+  PageRightSidebar,
 } from "@/components";
 import { ROUTES } from "@/constants";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
@@ -214,21 +218,48 @@ const SetupCenterDesktopPage = () => {
   );
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-4 py-3">
-      <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-4">
-        <div>
-          <div className="flex items-center justify-between gap-5">
-            <AppBox>
-              <AppHeading level={1} weight={650} sx={pageTitleSx}>
-                Setup Center
-              </AppHeading>
+    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
+      <div className="mx-auto w-full max-w-[1500px]">
+        <PageHeader
+          title="Setup Center"
+          subtitle="Complete these simple steps to set up your pharmacy business and start using PharmaERP to its full potential."
+          extra={
+            <AppBreadcrumb
+              size="small"
+              variant="text"
+              items={[
+                { label: "Dashboard" },
+                { label: "Setup Center", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
+            />
+          }
+          actions={
+            nextStep ? (
+              <AppButton
+                type="button"
+                variant="contained"
+                colorVariant="primary"
+                rounded="md"
+                size="small"
+                endIcon={<FiArrowRight />}
+                onClick={nextStep.onClick}
+                sx={headerActionButtonSx}
+              >
+                Continue Setup
+              </AppButton>
+            ) : null
+          }
+          align="flex-start"
+          justify="space-between"
+          sx={pageHeaderSx}
+          contentSx={pageHeaderContentSx}
+        />
 
-              <AppText variant="body2" sx={pageSubtitleSx}>
-                Complete these simple steps to set up your pharmacy business and
-                start using PharmaERP to its full potential.
-              </AppText>
-            </AppBox>
-
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_300px] items-start gap-5">
+          <AppBox sx={{ minWidth: 0 }}>
             <ProgressPanel
               progress={progress}
               completed={completedStepsCount}
@@ -236,28 +267,28 @@ const SetupCenterDesktopPage = () => {
               nextStep={nextStep}
               onContinue={() => nextStep?.onClick?.()}
             />
-          </div>
 
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={mainCardSx}
-          >
-            {mappedSetupSteps.map((step, index) => (
-              <SetupRow
-                key={step.id}
-                step={step}
-                index={index}
-                isLast={index === mappedSetupSteps.length - 1}
-              />
-            ))}
-          </AppCard>
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              shadow="sm"
+              padding="none"
+              sx={mainCardSx}
+            >
+              {mappedSetupSteps.map((step, index) => (
+                <SetupRow
+                  key={step.id}
+                  step={step}
+                  index={index}
+                  isLast={index === mappedSetupSteps.length - 1}
+                />
+              ))}
+            </AppCard>
+          </AppBox>
+
+          <SetupRightSidebar onHelp={() => navigate("/help-center")} />
         </div>
-
-        <RightSidebar onHelp={() => navigate("/help-center")} />
       </div>
     </section>
   );
@@ -274,18 +305,18 @@ const ProgressPanel = ({
     variant="default"
     rounded="lg"
     bordered
-    shadow="xs"
+    shadow="sm"
     padding="none"
     sx={progressPanelSx}
   >
     <AppStack direction="row" align="center" justify="space-between" gap={1.5}>
       <AppBox sx={{ minWidth: 0, flex: 1 }}>
         <AppStack direction="row" align="center" justify="space-between">
-          <AppHeading level={2} weight={650} sx={progressHeadingSx}>
+          <AppHeading level={2} weight={700} sx={progressHeadingSx}>
             Your Setup Progress
           </AppHeading>
 
-          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-primary">
+          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10.5px] font-bold text-primary">
             {progress}%
           </span>
         </AppStack>
@@ -302,7 +333,7 @@ const ProgressPanel = ({
         </AppText>
       </AppBox>
 
-      {nextStep && (
+      {nextStep ? (
         <AppButton
           type="button"
           variant="contained"
@@ -314,117 +345,68 @@ const ProgressPanel = ({
         >
           Continue
         </AppButton>
-      )}
+      ) : null}
     </AppStack>
   </AppCard>
 );
 
-const RightSidebar = ({ onHelp }) => (
-  <div className="space-y-3">
-    <InfoCard
-      icon={<FiZap />}
-      title="Why Setup is Important?"
-      description="Completing the setup helps you unlock all features of PharmaERP and manage your pharmacy business efficiently."
-      points={[
-        "Streamlined operations",
-        "Better inventory control",
-        "Accurate reporting",
-        "Business growth",
-      ]}
-    />
+const SetupRightSidebar = ({ onHelp }) => (
+  <PageRightSidebar
+    spacing={4}
+    cards={[
+      {
+        title: "Why Setup is Important?",
+        icon: <FiZap />,
+        colorVariant: "primary",
+        variant: "default",
+        description:
+          "Completing the setup helps you unlock all features of PharmaERP and manage your pharmacy business efficiently.",
+        points: [
+          "Streamlined operations",
+          "Better inventory control",
+          "Accurate reporting",
+          "Business growth",
+        ],
+        pointIcon: <FiCheckCircle />,
+        pointIconVariant: "check",
+      },
 
-    <AppCard
-      variant="default"
-      rounded="lg"
-      bordered
-      shadow="xs"
-      padding="none"
-      sx={sideCardSx}
-    >
-      <AppStack direction="row" align="flex-start" gap={1.3}>
-        <IconBubble icon={<FiHeadphones />} />
-        <AppBox>
-          <AppHeading level={3} weight={650} sx={sideTitleSx}>
-            Need Help?
-          </AppHeading>
-
-          <AppText variant="body2" sx={sideTextSx}>
-            Our support team is ready to help you at every step.
-          </AppText>
-
-          <button
-            type="button"
-            onClick={onHelp}
-            className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary"
-          >
-            Contact Support <FiArrowRight />
-          </button>
-        </AppBox>
-      </AppStack>
-    </AppCard>
-
-    <AppCard
-      variant="default"
-      rounded="lg"
-      bordered
-      shadow="xs"
-      padding="none"
-      sx={sideCardSx}
-    >
-      <AppStack direction="row" align="flex-start" gap={1.3}>
-        <IconBubble icon={<FiBookOpen />} />
-        <AppBox>
-          <AppHeading level={3} weight={650} sx={sideTitleSx}>
-            Setup Tips
-          </AppHeading>
-
-          <div className="mt-2 space-y-2">
+      {
+        title: "Setup Tips",
+        icon: <FiBookOpen />,
+        colorVariant: "info",
+        variant: "default",
+        custom: (
+          <div className="space-y-2">
             <Tip text="Complete each unlocked step before moving ahead." />
             <Tip text="All data is secure and can be edited later." />
             <Tip text="Takes only a few minutes to get started." />
           </div>
-        </AppBox>
-      </AppStack>
-    </AppCard>
-  </div>
-);
+        ),
+      },
+      {
+        title: "Need Help?",
+        icon: <FiHeadphones />,
+        colorVariant: "neutral",
+        variant: "default",
+        custom: (
+          <AppBox>
+            <AppText variant="body2" sx={sideTextSx}>
+              Our support team is ready to help you at every step.
+            </AppText>
 
-const InfoCard = ({ icon, title, description, points }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="xs"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <AppStack direction="row" align="flex-start" gap={1.3}>
-      <IconBubble icon={icon} />
-
-      <AppBox>
-        <AppHeading level={3} weight={650} sx={sideTitleSx}>
-          {title}
-        </AppHeading>
-
-        <AppText variant="body2" sx={sideTextSx}>
-          {description}
-        </AppText>
-
-        <div className="mt-3 space-y-2">
-          {points.map((point) => (
-            <AppStack key={point} direction="row" align="center" gap={0.8}>
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] text-text-inverse">
-                <FiCheck />
-              </span>
-              <AppText variant="body2" sx={pointTextSx}>
-                {point}
-              </AppText>
-            </AppStack>
-          ))}
-        </div>
-      </AppBox>
-    </AppStack>
-  </AppCard>
+            <button
+              type="button"
+              onClick={onHelp}
+              className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold text-primary"
+            >
+              Contact Support <FiArrowRight />
+            </button>
+          </AppBox>
+        ),
+      },
+    ]}
+  />
 );
 
 const SetupRow = ({ step, index, isLast }) => {
@@ -441,13 +423,13 @@ const SetupRow = ({ step, index, isLast }) => {
       }`}
     >
       <div className="relative flex h-full justify-center">
-        {!isLast && (
+        {!isLast ? (
           <span
             className={`absolute left-1/2 top-7 h-[calc(100%+16px)] -translate-x-1/2 border-l ${
               step.completed ? "border-primary" : "border-border-strong"
             } border-dashed`}
           />
-        )}
+        ) : null}
 
         <span
           className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full border text-[12px] font-semibold ${
@@ -585,73 +567,77 @@ const IconBox = ({ icon, colorVariant = "primary", locked = false }) => (
   </AppBox>
 );
 
-const IconBubble = ({ icon }) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      width: 42,
-      height: 42,
-      minWidth: 42,
-      borderRadius: "50%",
-      bgcolor: "var(--app-color-primary-soft)",
-      color: "var(--app-color-primary)",
-      fontSize: "21px",
-      lineHeight: 0,
-    }}
-  >
-    {icon}
-  </AppBox>
-);
-
-const pageTitleSx = {
-  m: 0,
-  fontSize: "20px",
-  lineHeight: 1.15,
-  color: "var(--app-color-text)",
+const pageHeaderSx = {
+  width: "100%",
 };
 
-const pageSubtitleSx = {
-  mt: 0.45,
-  maxWidth: 560,
+const pageHeaderContentSx = {
+  minWidth: 0,
+
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
+};
+
+const breadcrumbSx = {
+  mt: 1,
+};
+
+const breadcrumbItemSx = {
   fontSize: "12px",
-  lineHeight: 1.45,
   color: "var(--app-color-text-muted)",
 };
 
+const breadcrumbCurrentSx = {
+  fontSize: "12px",
+  fontWeight: 650,
+  color: "var(--app-color-text)",
+};
+
+const headerActionButtonSx = {
+  height: 36,
+  px: 1.6,
+  fontSize: "12px",
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+};
+
 const progressPanelSx = {
-  width: 430,
-  flexShrink: 0,
-  px: 1.5,
-  py: 1.2,
+  px: 1.7,
+  py: 1.35,
   bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
 };
 
 const progressHeadingSx = {
   m: 0,
-  fontSize: "12.5px",
+  fontSize: "13px",
   color: "var(--app-color-text)",
 };
 
 const progressCountSx = {
-  mt: 0.6,
-  fontSize: "10.8px",
+  mt: 0.7,
+  fontSize: "11.5px",
   color: "var(--app-color-text-muted)",
 };
 
 const continueButtonSx = {
-  height: 30,
-  px: 1.2,
-  fontSize: "10.8px",
-  fontWeight: 650,
+  height: 32,
+  px: 1.25,
+  fontSize: "11.5px",
+  fontWeight: 700,
   whiteSpace: "nowrap",
 };
 
 const mainCardSx = {
-  mt: 1.4,
+  mt: 3,
   overflow: "hidden",
   bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
 };
 
 const rowTitleSx = {
@@ -697,33 +683,16 @@ const actionButtonSx = {
   whiteSpace: "nowrap",
 };
 
-const sideCardSx = {
-  px: 1.5,
-  py: 1.35,
-  bgcolor: "var(--app-color-surface)",
-};
-
-const sideTitleSx = {
-  m: 0,
-  fontSize: "13px",
-  color: "var(--app-color-text)",
-};
-
 const sideTextSx = {
-  mt: 0.55,
-  fontSize: "10.8px",
-  lineHeight: 1.5,
-  color: "var(--app-color-text-muted)",
-};
-
-const pointTextSx = {
-  fontSize: "10.8px",
+  mt: 0,
+  fontSize: "12px",
+  lineHeight: "21px",
   color: "var(--app-color-text-muted)",
 };
 
 const tipTextSx = {
-  fontSize: "10.8px",
-  lineHeight: 1.4,
+  fontSize: "12px",
+  lineHeight: "20px",
   color: "var(--app-color-text-muted)",
 };
 

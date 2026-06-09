@@ -30,6 +30,19 @@ export const getCompanyBranches = createAsyncThunk(
   },
 );
 
+export const getWorkspaceBranches = createAsyncThunk(
+  "branch/getWorkspaceBranches",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await branchService.getWorkspaceBranches();
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
 export const getBranchById = createAsyncThunk(
   "branch/getBranchById",
   async (branchId, { rejectWithValue }) => {

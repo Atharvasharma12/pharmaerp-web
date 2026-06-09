@@ -31,6 +31,7 @@ const AppStatCard = ({
     error: { main: t.error, soft: t.errorSoft },
     warning: { main: t.warning, soft: t.warningSoft },
     info: { main: t.info, soft: t.infoSoft },
+    neutral: { main: t.neutral || t.textMuted, soft: t.surfaceAlt },
   };
 
   const active = colorMap[colorVariant] || colorMap.primary;
@@ -53,64 +54,41 @@ const AppStatCard = ({
   const activeTrend = trendMap[trend];
 
   return (
-    <AppCard variant={variant} padding="md" shadow="xs" rounded="lg" sx={sx}>
-      <Box display="flex" alignItems="center" justifyContent="space-between">
-        {/* Left */}
-        <Box>
-          {title && (
-            <Typography
-              sx={{
-                fontSize: "0.82rem",
-                color: t.textMuted,
-                fontWeight: 600,
-                mb: 0.5,
-              }}
-            >
-              {title}
-            </Typography>
-          )}
-
-          {value && (
-            <Typography
-              sx={{
-                fontSize: "1.5rem",
-                fontWeight: 800,
-                color: t.text,
-                lineHeight: 1.2,
-              }}
-            >
-              {value}
-            </Typography>
-          )}
-
-          {subtitle && (
-            <Typography
-              sx={{
-                fontSize: "0.78rem",
-                color: t.textMuted,
-                mt: 0.5,
-              }}
-            >
-              {subtitle}
-            </Typography>
-          )}
-        </Box>
-
-        {/* Right Icon */}
-        {icon && (
+    <AppCard
+      variant={variant}
+      padding="none"
+      shadow="xs"
+      rounded="lg"
+      sx={sx}
+      contentSx={{
+        p: 1.5,
+      }}
+    >
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: icon ? "38px minmax(0, 1fr)" : "1fr",
+          alignItems: "flex-start",
+          gap: 1.75,
+        }}
+      >
+        {/* Left Icon */}
+        {icon ? (
           <Box
             sx={{
-              width: 44,
-              height: 44,
-              borderRadius: "12px",
+              width: 38,
+              height: 38,
+              minWidth: 38,
+              borderRadius: "11px",
               backgroundColor: active.soft,
               color: active.main,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              lineHeight: 0,
 
               "& svg": {
-                fontSize: 22,
+                fontSize: 19,
               },
 
               ...iconSx,
@@ -118,18 +96,60 @@ const AppStatCard = ({
           >
             {icon}
           </Box>
-        )}
+        ) : null}
+
+        {/* Right Info */}
+        <Box sx={{ minWidth: 0 }}>
+          {title ? (
+            <Typography
+              sx={{
+                fontSize: "11px",
+                color: t.textMuted,
+                fontWeight: 600,
+                mb: 0.5,
+              }}
+            >
+              {title}
+            </Typography>
+          ) : null}
+
+          {value !== undefined && value !== null ? (
+            <Typography
+              sx={{
+                fontSize: "18px",
+                fontWeight: 800,
+                color: t.text,
+                lineHeight: 1.15,
+              }}
+            >
+              {loading ? "..." : value}
+            </Typography>
+          ) : null}
+
+          {subtitle ? (
+            <Typography
+              sx={{
+                fontSize: "11px",
+                color: t.textMuted,
+                mt: 0.65,
+                lineHeight: "16px",
+              }}
+            >
+              {subtitle}
+            </Typography>
+          ) : null}
+        </Box>
       </Box>
 
-      {/* Trend */}
       {(trend || trendValue) && (
         <Box mt={1.5} display="flex" alignItems="center" gap={1}>
-          {trend && activeTrend?.icon && (
+          {trend && activeTrend?.icon ? (
             <Box
               sx={{
                 color: activeTrend.color,
                 display: "flex",
                 alignItems: "center",
+                lineHeight: 0,
 
                 "& svg": {
                   fontSize: 16,
@@ -138,9 +158,9 @@ const AppStatCard = ({
             >
               {activeTrend.icon}
             </Box>
-          )}
+          ) : null}
 
-          {trendValue && (
+          {trendValue ? (
             <AppBadge
               label={trendValue}
               size="small"
@@ -153,7 +173,7 @@ const AppStatCard = ({
                     : "neutral"
               }
             />
-          )}
+          ) : null}
         </Box>
       )}
     </AppCard>
