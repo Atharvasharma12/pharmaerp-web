@@ -1280,3 +1280,11 @@ For every page I provide:
 * Backend model + Joi validation decides required/optional behavior.
 * Do not make frontend validation stricter than backend unless I explicitly ask.
 
+
+When I share an old page and a reference image, use the image only as a layout and UI structure reference. Follow the image for section placement, component positioning, page flow, and overall layout composition.
+
+Use the existing components, CSS, design system, spacing, padding, sizing, typography, font weights, colors, border radius, shadows, and styling patterns from the components and pages I have already shared (e.g., AppStatCard, PageHeader, PageRightSidebar, etc.). Keep functionality, architecture, and component usage consistent with the existing codebase.
+
+The goal is to recreate the layout of the reference image while keeping the look and feel fully consistent with the already shared components and styles. Use placeholder/dummy content where needed. Do not make any changes until I explicitly ask.
+
+

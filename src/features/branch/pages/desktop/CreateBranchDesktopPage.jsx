@@ -1,728 +1,231 @@
 // src/features/branch/pages/desktop/CreateBranchDesktopPage.jsx
 
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback } from "react";
 import {
   FiArrowLeft,
+  FiArrowRight,
   FiBriefcase,
   FiCalendar,
-  FiClock,
-  FiCreditCard,
+  FiCheck,
+  FiCheckCircle,
+  FiEdit3,
   FiFileText,
+  FiGrid,
+  FiInfo,
   FiMail,
   FiMapPin,
-  FiPackage,
   FiPhone,
-  FiSave,
-  FiSettings,
-  FiTruck,
+  FiRefreshCw,
   FiUser,
 } from "react-icons/fi";
 
 import {
-  AppAccordion,
+  AppAlert,
   AppBox,
   AppBreadcrumb,
   AppButton,
   AppCard,
-  AppDialog,
-  AppGrid,
   AppHeading,
   AppInput,
-  AppKeyValue,
-  AppPhoneInput,
   AppSelect,
   AppStack,
-  AppStatusBadge,
-  AppSwitch,
+  AppTag,
+  PageHeader,
+  PageRightSidebar,
+  HELP_SUPPORT_CARD,
   AppText,
 } from "@/components";
 
-const FIELD_SECTIONS = [
-  {
-    id: "basic",
-    title: "Basic Information",
-    icon: <FiBriefcase />,
-    columns: 3,
-    fields: [
-      {
-        component: "input",
-        label: "Branch Name",
-        name: "branchName",
-        placeholder: "Enter branch name",
-        required: true,
-        startIcon: <FiBriefcase />,
-      },
-      {
-        component: "select",
-        label: "Branch Type",
-        name: "branchType",
-        optionsKey: "branchTypeOptions",
-      },
-      {
-        component: "switch",
-        label: "Primary Branch",
-        name: "isPrimary",
-      },
-      {
-        component: "input",
-        label: "Branch Email",
-        name: "branchEmail",
-        placeholder: "Enter branch email",
-        startIcon: <FiMail />,
-      },
-      {
-        component: "phone",
-        label: "Branch Phone Number",
-        name: "branchPhone",
-      },
-    ],
-  },
-  {
-    id: "address",
-    title: "Address",
-    icon: <FiMapPin />,
-    columns: 3,
-    divided: true,
-    green: true,
-    fields: [
-      {
-        component: "input",
-        label: "Address Line 1",
-        name: "addressLine1",
-        placeholder: "Enter address line 1",
-        endIcon: <FiMapPin />,
-      },
-      {
-        component: "input",
-        label: "Address Line 2",
-        name: "addressLine2",
-        placeholder: "Enter address line 2",
-      },
-      {
-        component: "input",
-        label: "City",
-        name: "city",
-        placeholder: "Enter city",
-      },
-      {
-        component: "input",
-        label: "District",
-        name: "district",
-        placeholder: "Enter district",
-      },
-      {
-        component: "input",
-        label: "State",
-        name: "state",
-        placeholder: "Enter state",
-      },
-      {
-        component: "input",
-        label: "Country",
-        name: "country",
-        placeholder: "Enter country",
-      },
-      {
-        component: "input",
-        label: "Pincode",
-        name: "pincode",
-        placeholder: "Enter pincode",
-      },
-      {
-        component: "input",
-        label: "Google Map Location",
-        name: "googleMapLocation",
-        placeholder: "Enter Google Map location/link",
-      },
-    ],
-  },
-  {
-    id: "license",
-    title: "License Details",
-    icon: <FiFileText />,
-    columns: 4,
-    divided: true,
-    green: true,
-    fields: [
-      {
-        component: "input",
-        label: "Drug License Number",
-        name: "drugLicenseNumber",
-        placeholder: "Enter drug license number",
-        startIcon: <FiFileText />,
-      },
-      {
-        component: "input",
-        label: "Drug License Type",
-        name: "drugLicenseType",
-        placeholder: "Enter license type",
-      },
-      {
-        component: "input",
-        label: "FSSAI Number",
-        name: "fssaiNumber",
-        placeholder: "Enter FSSAI number",
-      },
-      {
-        component: "input",
-        label: "License Expiry Date",
-        name: "licenseExpiresAt",
-        type: "date",
-        startIcon: <FiCalendar />,
-      },
-    ],
-  },
-  {
-    id: "pharmacist",
-    title: "Pharmacist Details",
-    icon: <FiUser />,
-    columns: 4,
-    divided: true,
-    green: true,
-    fields: [
-      {
-        component: "input",
-        label: "Pharmacist Name",
-        name: "pharmacistName",
-        placeholder: "Enter pharmacist name",
-        startIcon: <FiUser />,
-      },
-      {
-        component: "input",
-        label: "Registration Number",
-        name: "pharmacistRegistrationNumber",
-        placeholder: "Enter registration number",
-      },
-      {
-        component: "phone",
-        label: "Pharmacist Mobile",
-        name: "pharmacistMobile",
-      },
-      {
-        component: "input",
-        label: "Pharmacist Email",
-        name: "pharmacistEmail",
-        placeholder: "Enter pharmacist email",
-        startIcon: <FiMail />,
-      },
-    ],
-  },
-  {
-    id: "emergency",
-    title: "Emergency Contact",
-    icon: <FiPhone />,
-    columns: 3,
-    divided: true,
-    green: true,
-    fields: [
-      {
-        component: "input",
-        label: "Contact Name",
-        name: "emergencyContactName",
-        placeholder: "Enter emergency contact name",
-        startIcon: <FiUser />,
-      },
-      {
-        component: "phone",
-        label: "Contact Mobile",
-        name: "emergencyContactMobile",
-      },
-      {
-        component: "input",
-        label: "Relationship",
-        name: "emergencyContactRelationship",
-        placeholder: "Enter relationship",
-      },
-    ],
-  },
-  {
-    id: "billing",
-    title: "Billing Settings",
-    icon: <FiCreditCard />,
-    columns: 4,
-    divided: true,
-    green: true,
-    fields: [
-      {
-        component: "input",
-        label: "Invoice Prefix",
-        name: "invoicePrefix",
-        placeholder: "INV",
-      },
-      {
-        component: "input",
-        label: "Purchase Prefix",
-        name: "purchasePrefix",
-        placeholder: "PUR",
-      },
-      {
-        component: "input",
-        label: "Sales Return Prefix",
-        name: "salesReturnPrefix",
-        placeholder: "SR",
-      },
-      {
-        component: "input",
-        label: "Purchase Return Prefix",
-        name: "purchaseReturnPrefix",
-        placeholder: "PR",
-      },
-      {
-        component: "input",
-        label: "Credit Note Prefix",
-        name: "creditNotePrefix",
-        placeholder: "CN",
-      },
-      {
-        component: "input",
-        label: "Debit Note Prefix",
-        name: "debitNotePrefix",
-        placeholder: "DBN",
-      },
-      {
-        component: "input",
-        label: "Starting Invoice Number",
-        name: "startingInvoiceNumber",
-        placeholder: "1",
-      },
-      {
-        component: "input",
-        label: "Starting Purchase Number",
-        name: "startingPurchaseNumber",
-        placeholder: "1",
-      },
-    ],
-  },
-  {
-    id: "inventory",
-    title: "Inventory Settings",
-    icon: <FiPackage />,
-    columns: 4,
-    divided: true,
-    green: true,
-    fields: [
-      {
-        component: "select",
-        label: "Inventory Mode",
-        name: "inventoryMode",
-        optionsKey: "inventoryModeOptions",
-      },
-      {
-        component: "select",
-        label: "Price Mode",
-        name: "priceMode",
-        optionsKey: "priceModeOptions",
-      },
-      {
-        component: "switch",
-        label: "Allow Negative Stock",
-        name: "allowNegativeStock",
-      },
-      {
-        component: "switch",
-        label: "Allow Backdated Entries",
-        name: "allowBackdatedEntries",
-      },
-      {
-        component: "switch",
-        label: "Batch Tracking",
-        name: "enableBatchTracking",
-      },
-      {
-        component: "switch",
-        label: "Expiry Tracking",
-        name: "enableExpiryTracking",
-      },
-      {
-        component: "switch",
-        label: "Rack Tracking",
-        name: "enableRackTracking",
-      },
-      {
-        component: "switch",
-        label: "Stock Tracking",
-        name: "enableStockTracking",
-      },
-    ],
-  },
-  {
-    id: "working-hours",
-    title: "Working Hours",
-    icon: <FiClock />,
-    columns: 4,
-    divided: true,
-    green: true,
-    fields: [
-      {
-        component: "input",
-        label: "Opening Time",
-        name: "openingTime",
-        placeholder: "09:00 AM",
-        startIcon: <FiClock />,
-      },
-      {
-        component: "input",
-        label: "Closing Time",
-        name: "closingTime",
-        placeholder: "09:00 PM",
-        startIcon: <FiClock />,
-      },
-      {
-        component: "input",
-        label: "Weekly Off",
-        name: "weeklyOff",
-        placeholder: "Sunday",
-      },
-      {
-        component: "input",
-        label: "Working Days",
-        name: "workingDays",
-        placeholder: "Monday, Tuesday, Wednesday",
-      },
-    ],
-  },
-  {
-    id: "facilities",
-    title: "Facilities",
-    icon: <FiTruck />,
-    columns: 5,
-    divided: true,
-    green: true,
-    fields: [
-      { component: "switch", label: "Home Delivery", name: "homeDelivery" },
-      { component: "switch", label: "WhatsApp Orders", name: "whatsappOrders" },
-      { component: "switch", label: "Online Orders", name: "onlineOrders" },
-      {
-        component: "switch",
-        label: "Cold Storage",
-        name: "coldStorageAvailable",
-      },
-      {
-        component: "switch",
-        label: "24x7 Service",
-        name: "twentyFourSevenService",
-      },
-    ],
-  },
-];
-
-const ADDITIONAL_FIELDS = [
-  {
-    component: "input",
-    label: "Timezone",
-    name: "timezone",
-    placeholder: "Asia/Kolkata",
-  },
-  {
-    component: "select",
-    label: "Currency",
-    name: "currency",
-    optionsKey: "currencyOptions",
-  },
-  {
-    component: "input",
-    label: "Date Format",
-    name: "dateFormat",
-    placeholder: "DD/MM/YYYY",
-  },
-  {
-    component: "select",
-    label: "Time Format",
-    name: "timeFormat",
-    optionsKey: "timeFormatOptions",
-  },
-];
-
-const PREVIEW_GROUPS = [
-  {
-    title: "Basic Information",
-    fields: [
-      ["Branch Name", "branchName"],
-      ["Branch Type", "branchType"],
-      ["Status", "status"],
-      ["Primary Branch", "isPrimary", "boolean"],
-      ["Branch Email", "branchEmail"],
-      ["Branch Phone", "branchPhone", "phone"],
-    ],
-  },
-  {
-    title: "Address",
-    fields: [
-      ["Address Line 1", "addressLine1"],
-      ["Address Line 2", "addressLine2"],
-      ["City", "city"],
-      ["District", "district"],
-      ["State", "state"],
-      ["Country", "country"],
-      ["Pincode", "pincode"],
-      ["Google Map", "googleMapLocation"],
-    ],
-  },
-  {
-    title: "License & Pharmacist",
-    fields: [
-      ["Drug License", "drugLicenseNumber"],
-      ["Drug License Type", "drugLicenseType"],
-      ["FSSAI", "fssaiNumber"],
-      ["License Expiry", "licenseExpiresAt"],
-      ["Pharmacist", "pharmacistName"],
-      ["Registration Number", "pharmacistRegistrationNumber"],
-      ["Pharmacist Mobile", "pharmacistMobile", "phone"],
-      ["Pharmacist Email", "pharmacistEmail"],
-    ],
-  },
-  {
-    title: "Emergency Contact",
-    fields: [
-      ["Contact Name", "emergencyContactName"],
-      ["Contact Mobile", "emergencyContactMobile", "phone"],
-      ["Relationship", "emergencyContactRelationship"],
-    ],
-  },
-  {
-    title: "Billing, Inventory & Settings",
-    fields: [
-      ["Invoice Prefix", "invoicePrefix"],
-      ["Purchase Prefix", "purchasePrefix"],
-      ["Sales Return Prefix", "salesReturnPrefix"],
-      ["Purchase Return Prefix", "purchaseReturnPrefix"],
-      ["Credit Note Prefix", "creditNotePrefix"],
-      ["Debit Note Prefix", "debitNotePrefix"],
-      ["Starting Invoice", "startingInvoiceNumber"],
-      ["Starting Purchase", "startingPurchaseNumber"],
-      ["Inventory Mode", "inventoryMode"],
-      ["Price Mode", "priceMode"],
-      ["Currency", "currency"],
-      ["Timezone", "timezone"],
-      ["Date Format", "dateFormat"],
-      ["Time Format", "timeFormat"],
-    ],
-  },
-  {
-    title: "Working Hours & Facilities",
-    fields: [
-      ["Opening Time", "openingTime"],
-      ["Closing Time", "closingTime"],
-      ["Weekly Off", "weeklyOff"],
-      ["Working Days", "workingDays"],
-      ["Home Delivery", "homeDelivery", "boolean"],
-      ["WhatsApp Orders", "whatsappOrders", "boolean"],
-      ["Online Orders", "onlineOrders", "boolean"],
-      ["Cold Storage", "coldStorageAvailable", "boolean"],
-      ["24x7 Service", "twentyFourSevenService", "boolean"],
-    ],
-  },
-];
-
 const CreateBranchDesktopPage = memo(
   ({
-    initialFormData,
-    formErrors,
-    isLoading,
-    isConfirmOpen,
-    previewData,
-    branchTypeOptions,
-    inventoryModeOptions,
-    priceModeOptions,
-    currencyOptions,
-    timeFormatOptions,
-    booleanOptions,
+    formData,
+    formErrors = {},
+    isLoading = false,
+    currentStep = 1,
+
+    branchTypeOptions = [],
+    booleanOptions = [],
+
     handleChange,
     handleSubmit,
     handleBack,
-    closeConfirm,
-    handleConfirmCreate,
+    handleContinue,
+    handleStepChange,
+    handleSaveDraft,
+    handleCancel,
   }) => {
-    const optionMaps = useMemo(
-      () => ({
-        branchTypeOptions,
-        inventoryModeOptions,
-        priceModeOptions,
-        currencyOptions,
-        timeFormatOptions,
-        booleanOptions,
-      }),
-      [
-        booleanOptions,
-        branchTypeOptions,
-        currencyOptions,
-        inventoryModeOptions,
-        priceModeOptions,
-        timeFormatOptions,
-      ],
-    );
+    // Function triggered when the header Refresh button is clicked
+    const handleResetAndRefresh = useCallback(() => {
+      handleStepChange?.(1);
 
-    const breadcrumbItems = useMemo(
-      () => [
-        { label: "Branches", onClick: handleBack },
-        { label: "Create Branch", current: true },
-      ],
-      [handleBack],
-    );
+      if (formData) {
+        Object.keys(formData).forEach((key) => {
+          let defaultValue = "";
+          if (Array.isArray(formData[key])) defaultValue = [];
+          if (typeof formData[key] === "boolean") defaultValue = false;
+          if (key === "isPrimary") defaultValue = "false";
+          if (key === "branchType") defaultValue = "retail";
+          if (key === "country") defaultValue = "India";
 
-    const additionalAccordionItems = useMemo(
-      () => [
-        {
-          id: "additional-settings",
-          title: "Additional Settings",
-          icon: <FiSettings />,
-          content: (
-            <AppGrid columns={4} gap={1.25} columnGap={2}>
-              {ADDITIONAL_FIELDS.map((field) => (
-                <FastField
-                  key={field.name}
-                  field={field}
-                  initialValue={initialFormData[field.name]}
-                  error={formErrors[field.name]}
-                  optionMaps={optionMaps}
-                  onFieldChange={handleChange}
-                />
-              ))}
-            </AppGrid>
-          ),
-        },
-      ],
-      [formErrors, handleChange, initialFormData, optionMaps],
-    );
+          handleChange?.({
+            target: {
+              name: key,
+              value: defaultValue,
+            },
+          });
+        });
+      }
+    }, [formData, handleChange, handleStepChange]);
 
     return (
-      <section className="min-h-[calc(100vh-58px)] bg-bg px-5 pb-3">
+      <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
         <div className="mx-auto w-full max-w-[1500px]">
-          <div className="sticky top-0 z-30 -mx-5 mb-2 flex w-[calc(100%+40px)] items-center justify-between border-b border-border bg-bg/95 px-5 py-1.5 backdrop-blur">
-            <AppStack direction="row" align="center" gap={1}>
-              <IconBox icon={<FiBriefcase />} large />
-
-              <AppBox>
-                <AppHeading level={1} weight={700} sx={pageTitleSx}>
-                  Create Branch
-                </AppHeading>
-
-                <AppBreadcrumb
+          <PageHeader
+            title="Create New Branch"
+            subtitle={
+              currentStep === 5
+                ? "Review all legal parameters and locations before deploying your branch."
+                : "Configure operational parameters, addresses, compliance targets, and licenses."
+            }
+            extra={
+              <AppBreadcrumb
+                size="small"
+                variant="text"
+                items={[
+                  { label: "Branches", onClick: handleCancel },
+                  { label: "Create Branch", current: true },
+                ]}
+                sx={breadcrumbSx}
+                itemSx={breadcrumbItemSx}
+                currentItemSx={breadcrumbCurrentSx}
+              />
+            }
+            actions={
+              <AppStack
+                direction="row"
+                align="center"
+                justify="flex-end"
+                gap={1}
+                sx={{ flexShrink: 0 }}
+              >
+                <AppButton
+                  type="button"
+                  variant="outlined"
+                  colorVariant="neutral"
+                  rounded="md"
                   size="small"
-                  variant="text"
-                  items={breadcrumbItems}
-                  sx={breadcrumbSx}
-                  itemSx={breadcrumbItemSx}
-                  currentItemSx={breadcrumbCurrentSx}
-                />
-              </AppBox>
-            </AppStack>
-
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiArrowLeft />}
-              onClick={handleBack}
-              disabled={isLoading}
-              sx={backButtonSx}
-            >
-              Back to Branches
-            </AppButton>
-          </div>
-
-          <AppBox component="form" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-[minmax(0,1fr)_330px] gap-3.5">
-              <div>
-                <AppCard
-                  variant="default"
-                  rounded="lg"
-                  bordered
-                  shadow="sm"
-                  padding="none"
-                  sx={mainCardSx}
+                  startIcon={<FiArrowLeft />}
+                  onClick={handleCancel}
+                  sx={secondaryButtonSx}
                 >
-                  {FIELD_SECTIONS.map((section) => (
-                    <FormSection
-                      key={section.id}
-                      icon={section.icon}
-                      title={section.title}
-                      columns={section.columns}
-                      divided={section.divided}
-                      green={section.green}
-                    >
-                      {section.fields.map((field) => (
-                        <FastField
-                          key={field.name}
-                          field={field}
-                          initialValue={initialFormData[field.name]}
-                          error={formErrors[field.name]}
-                          optionMaps={optionMaps}
-                          onFieldChange={handleChange}
-                        />
-                      ))}
-                    </FormSection>
-                  ))}
+                  Back
+                </AppButton>
 
-                  <div className="-mx-4 mt-3 border-t border-border px-4 pt-2.5">
-                    <AppAccordion
-                      size="small"
-                      variant="ghost"
-                      items={additionalAccordionItems}
-                      sx={accordionSx}
-                      summarySx={accordionSummarySx}
-                      detailsSx={accordionDetailsSx}
-                    />
-                  </div>
-                </AppCard>
+                <AppButton
+                  type="button"
+                  variant="outlined"
+                  colorVariant="neutral"
+                  rounded="md"
+                  size="small"
+                  startIcon={<FiRefreshCw />}
+                  onClick={handleResetAndRefresh}
+                  loading={isLoading}
+                  disabled={isLoading}
+                  sx={secondaryButtonSx}
+                >
+                  Refresh
+                </AppButton>
+              </AppStack>
+            }
+            align="flex-start"
+            justify="space-between"
+            sx={pageHeaderSx}
+            contentSx={pageHeaderContentSx}
+          />
 
-                {formErrors.submit ? (
-                  <AppText variant="body2" sx={submitErrorSx}>
-                    {formErrors.submit}
-                  </AppText>
-                ) : null}
+          <div className="mt-4 grid grid-cols-[minmax(0,1fr)_330px] items-start gap-5">
+            <AppBox sx={{ minWidth: 0 }}>
+              {/* Top Step Progress Tracker */}
+              <TopStepper
+                currentStep={currentStep}
+                onStepChange={handleStepChange}
+              />
 
-                <div className="mt-2 flex w-full justify-end">
-                  <AppStack
-                    direction="row"
-                    align="center"
-                    justify="flex-end"
-                    gap={1}
-                  >
-                    <AppButton
-                      type="button"
-                      variant="outlined"
-                      colorVariant="neutral"
-                      rounded="md"
-                      size="small"
-                      onClick={handleBack}
-                      disabled={isLoading}
-                      sx={cancelButtonSx}
-                    >
-                      Cancel
-                    </AppButton>
+              {formErrors.submit ? (
+                <AppAlert
+                  severity="error"
+                  variant="soft"
+                  rounded="md"
+                  sx={alertSx}
+                >
+                  {formErrors.submit}
+                </AppAlert>
+              ) : null}
 
-                    <AppButton
-                      type="submit"
-                      variant="contained"
-                      colorVariant="primary"
-                      rounded="md"
-                      size="small"
-                      startIcon={<FiSave />}
-                      loading={isLoading}
-                      disabled={isLoading}
-                      sx={saveButtonSx}
-                    >
-                      Save Branch
-                    </AppButton>
-                  </AppStack>
-                </div>
-              </div>
+              <AppBox
+                component="form"
+                onSubmit={(e) => e.preventDefault()}
+                sx={{ mt: 3.5 }}
+              >
+                {currentStep === 1 && (
+                  <BranchDetailsForm
+                    formData={formData}
+                    formErrors={formErrors}
+                    branchTypeOptions={branchTypeOptions}
+                    booleanOptions={booleanOptions}
+                    handleChange={handleChange}
+                    handleCancel={handleCancel}
+                    handleContinue={handleContinue}
+                  />
+                )}
 
-              <FormAssistSidebar />
-            </div>
-          </AppBox>
+                {currentStep === 2 && (
+                  <AddressForm
+                    formData={formData}
+                    formErrors={formErrors}
+                    handleChange={handleChange}
+                    handleBack={handleBack}
+                    handleContinue={handleContinue}
+                  />
+                )}
+
+                {currentStep === 3 && (
+                  <LicenseForm
+                    formData={formData}
+                    formErrors={formErrors}
+                    handleChange={handleChange}
+                    handleBack={handleBack}
+                    handleContinue={handleContinue}
+                  />
+                )}
+
+                {currentStep === 4 && (
+                  <ComplianceContactsForm
+                    formData={formData}
+                    formErrors={formErrors}
+                    handleChange={handleChange}
+                    handleBack={handleBack}
+                    handleContinue={handleContinue}
+                  />
+                )}
+
+                {currentStep === 5 && (
+                  <ReviewAndCreateStep
+                    formData={formData}
+                    isCreating={isLoading}
+                    onBack={handleBack}
+                    onSaveDraft={handleSaveDraft}
+                    onSubmit={handleSubmit}
+                    onEditSection={handleStepChange}
+                  />
+                )}
+              </AppBox>
+            </AppBox>
+
+            {/* Right Sidebar Utility Panels */}
+            <RightSidebarPanel currentStep={currentStep} formData={formData} />
+          </div>
         </div>
-
-        <ConfirmPreviewDialog
-          open={isConfirmOpen}
-          data={previewData}
-          isLoading={isLoading}
-          onBack={closeConfirm}
-          onCreate={handleConfirmCreate}
-        />
       </section>
     );
   },
@@ -730,675 +233,1182 @@ const CreateBranchDesktopPage = memo(
 
 CreateBranchDesktopPage.displayName = "CreateBranchDesktopPage";
 
-const SIDEBAR_CHECKS = [
-  {
-    icon: <FiBriefcase />,
-    title: "Branch profile",
-    text: "Name, type, primary flag, email and phone details.",
-  },
-  {
-    icon: <FiMapPin />,
-    title: "Address details",
-    text: "Used on invoices, branch records and delivery workflows.",
-  },
-  {
-    icon: <FiUser />,
-    title: "Pharmacist & emergency",
-    text: "Important for branch accountability and urgent contacts.",
-  },
-  {
-    icon: <FiFileText />,
-    title: "Licenses",
-    text: "Drug license, license type, expiry and FSSAI references.",
-  },
-];
+/* ==========================================================================
+   TOP WORKFLOW PROGRESS STEPPER
+   ========================================================================== */
 
-const SIDEBAR_ERP_AREAS = [
-  {
-    icon: <FiCreditCard />,
-    title: "Billing",
-    text: "Invoice, purchase, return and note series defaults.",
-  },
-  {
-    icon: <FiPackage />,
-    title: "Inventory",
-    text: "Stock, batch, rack and expiry controls.",
-  },
-  {
-    icon: <FiTruck />,
-    title: "Facilities",
-    text: "Delivery, online order, cold storage and 24x7 flags.",
-  },
-];
+const TopStepper = memo(({ currentStep, onStepChange }) => {
+  const steps = [
+    { id: 1, title: "Branch Details", label: "Profile parameters" },
+    { id: 2, title: "Address Details", label: "Registered location" },
+    { id: 3, title: "Statutory Licenses", label: "Drug & FSSAI tags" },
+    { id: 4, title: "Compliance Contacts", label: "Accountability links" },
+    { id: 5, title: "Review & Create", label: "Final verification" },
+  ];
 
-const SIDEBAR_REMINDERS = [
-  "Verify branch phone, address and license numbers before creating.",
-  "Set invoice and purchase start numbers carefully before transactions begin.",
-  "Enable stock, batch, expiry and rack tracking based on branch workflow.",
-];
-
-const FormAssistSidebar = memo(() => (
-  <aside className="self-start">
+  return (
     <AppCard
       variant="default"
       rounded="lg"
-      bordered
-      shadow="sm"
+      bordered={false}
+      shadow="none"
       padding="none"
-      sx={assistCardSx}
+      sx={stepperCardSx}
     >
-      <SidebarHeader
-        icon={<FiBriefcase />}
-        title="Branch Setup"
-        subtitle="Complete key details before creating this branch."
-      />
+      <div className="relative w-full after:pointer-events-none after:absolute after:right-0 after:top-0 after:z-10 after:h-full after:w-8 after:bg-gradient-to-l after:from-surface after:to-transparent">
+        <div className="flex items-center justify-between px-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {steps.map((step, idx) => {
+            const active = currentStep === step.id;
+            const completed = currentStep > step.id;
 
-      <div className="my-3 h-px bg-border" />
+            return (
+              <div
+                key={step.id}
+                className="flex flex-1 items-center last:flex-none"
+              >
+                <button
+                  type="button"
+                  onClick={() => onStepChange?.(step.id)}
+                  className="flex shrink-0 items-center gap-1.5 text-left transition outline-none"
+                >
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                      completed
+                        ? "bg-primary-soft text-primary"
+                        : active
+                          ? "bg-primary text-text-inverse"
+                          : "border border-border bg-surface-alt text-text-muted"
+                    }`}
+                  >
+                    {completed ? <FiCheck className="text-[13px]" /> : step.id}
+                  </span>
 
-      <AppStack direction="column" gap={0.9}>
-        {SIDEBAR_CHECKS.map((item) => (
-          <SidebarInfoRow key={item.title} item={item} />
-        ))}
-      </AppStack>
+                  <span className="min-w-0 pr-1.5">
+                    <span
+                      className={`block text-[11.5px] font-bold ${active || completed ? "text-text" : "text-text-muted"}`}
+                    >
+                      {step.title}
+                    </span>
+                    <span className="block text-[10.5px] text-text-muted whitespace-nowrap">
+                      {step.label}
+                    </span>
+                  </span>
+                </button>
 
-      <div className="my-3 h-px bg-border" />
-
-      <SidebarHeader
-        icon={<FiSettings />}
-        title="Used In ERP"
-        subtitle="These settings affect branch workflows."
-      />
-
-      <AppStack direction="column" gap={0.85} sx={{ mt: 1.1 }}>
-        {SIDEBAR_ERP_AREAS.map((item) => (
-          <SidebarInfoRow key={item.title} item={item} compact />
-        ))}
-      </AppStack>
-
-      <AppBox sx={assistNoteSx}>
-        <AppText variant="body2" weight={700} sx={assistNoteTitleSx}>
-          Before creating
-        </AppText>
-        <AppStack direction="column" gap={0.55} sx={{ mt: 0.65 }}>
-          {SIDEBAR_REMINDERS.map((item) => (
-            <AppText key={item} variant="caption" sx={assistReminderSx}>
-              • {item}
-            </AppText>
-          ))}
-        </AppStack>
-      </AppBox>
+                {idx < steps.length - 1 && (
+                  <div className="mx-2 h-px min-w-[16px] flex-1 bg-border" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </AppCard>
-  </aside>
-));
+  );
+});
+TopStepper.displayName = "TopStepper";
 
-FormAssistSidebar.displayName = "FormAssistSidebar";
+/* ==========================================================================
+   ACTIVE STEPS FORM MODULES (STEPS 1 - 4)
+   ========================================================================== */
 
-const SidebarInfoRow = memo(({ item, compact = false }) => (
-  <AppStack direction="row" align="flex-start" gap={0.9}>
-    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-[13px] text-primary">
-      {item.icon}
-    </span>
-
-    <AppBox sx={{ minWidth: 0 }}>
-      <AppText variant="body2" weight={700} sx={assistStepTitleSx}>
-        {item.title}
-      </AppText>
-      <AppText
-        variant="caption"
-        sx={compact ? assistCompactTextSx : assistStepTextSx}
-      >
-        {item.text}
-      </AppText>
-    </AppBox>
-  </AppStack>
-));
-
-SidebarInfoRow.displayName = "SidebarInfoRow";
-
-const SidebarHeader = memo(({ icon, title, subtitle }) => (
-  <AppStack direction="row" align="center" gap={0.85}>
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
-      {icon}
-    </span>
-    <AppBox>
-      <AppHeading level={2} weight={700} sx={assistTitleSx}>
-        {title}
+const BranchDetailsForm = ({
+  formData,
+  formErrors,
+  branchTypeOptions,
+  booleanOptions,
+  handleChange,
+  handleCancel,
+  handleContinue,
+}) => (
+  <AppCard
+    variant="default"
+    rounded="lg"
+    bordered
+    shadow="sm"
+    padding="none"
+    sx={formMainCardSx}
+  >
+    <div className="border-b border-border pb-3">
+      <AppHeading level={2} weight={700} sx={sectionTitleSx}>
+        Branch Core Profile
       </AppHeading>
-      <AppText variant="body2" sx={assistSubtitleSx}>
-        {subtitle}
+      <AppText variant="body2" sx={sectionSubtitleSx}>
+        Provide core naming structures, communications routing endpoints, and
+        infrastructure modes.
       </AppText>
-    </AppBox>
-  </AppStack>
-));
+    </div>
 
-SidebarHeader.displayName = "SidebarHeader";
-
-const FastField = memo(
-  ({ field, initialValue, error, optionMaps, onFieldChange }) => {
-    const [value, setValue] = useState(initialValue ?? "");
-
-    const handleLocalChange = useCallback(
-      (eventOrValue) => {
-        const nextValue = eventOrValue?.target
-          ? eventOrValue.target.value
-          : eventOrValue;
-
-        setValue(nextValue);
-        onFieldChange(field.name, nextValue);
-      },
-      [field.name, onFieldChange],
-    );
-
-    const commonProps = {
-      label: field.label,
-      name: field.name,
-      value,
-      onChange: handleLocalChange,
-      placeholder: field.placeholder,
-      required: field.required,
-      fullWidth: true,
-      size: "small",
-      variant: "bordered",
-      rounded: "md",
-      error: Boolean(error),
-      helperText: error,
-      labelSx,
-      inputSx,
-    };
-
-    if (field.component === "select") {
-      return (
-        <AppSelect
-          {...commonProps}
-          options={optionMaps[field.optionsKey] || []}
-        />
-      );
-    }
-
-    if (field.component === "switch") {
-      const checked = value === true || value === "true";
-
-      return (
-        <AppBox sx={switchFieldSx}>
-          <AppSwitch
-            label={field.label}
-            name={field.name}
-            checked={checked}
-            onChange={(event) =>
-              handleLocalChange(event?.target?.checked ? "true" : "false")
-            }
-            size="small"
-            colorVariant="primary"
-            labelPlacement="start"
-            fullWidth
-            disabled={field.disabled}
-            error={Boolean(error)}
-            helperText={error}
-            sx={compactSwitchWrapperSx}
-            switchSx={compactSwitchSx}
-            labelSx={switchLabelSx}
-            helperTextSx={switchHelperTextSx}
-          />
-        </AppBox>
-      );
-    }
-
-    if (field.component === "phone") {
-      return (
-        <AppPhoneInput {...commonProps} countryCode="+91" showCountryCode />
-      );
-    }
-
-    return (
+    <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4">
       <AppInput
-        {...commonProps}
-        type={field.type}
-        startIcon={field.startIcon}
-        endIcon={field.endIcon}
+        label="Branch Name"
+        name="branchName"
+        value={formData.branchName || ""}
+        onChange={handleChange}
+        placeholder="Enter branch name"
+        required
+        error={Boolean(formErrors.branchName)}
+        helperText={formErrors.branchName}
+        labelSx={labelSx}
+        inputSx={inputSx}
       />
-    );
-  },
-  (prev, next) =>
-    prev.initialValue === next.initialValue &&
-    prev.error === next.error &&
-    prev.field === next.field &&
-    prev.optionMaps === next.optionMaps &&
-    prev.onFieldChange === next.onFieldChange,
-);
+      <AppSelect
+        label="Branch Type"
+        name="branchType"
+        value={formData.branchType || ""}
+        onChange={handleChange}
+        options={branchTypeOptions}
+        required
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppSelect
+        label="Primary Location Flag"
+        name="isPrimary"
+        value={formData.isPrimary || "false"}
+        onChange={handleChange}
+        options={booleanOptions}
+        required
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="Branch Email Address"
+        name="branchEmail"
+        value={formData.branchEmail || ""}
+        onChange={handleChange}
+        placeholder="branch@company.com"
+        error={Boolean(formErrors.branchEmail)}
+        helperText={formErrors.branchEmail}
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="Mobile Number"
+        name="mobile"
+        value={formData.mobile || ""}
+        onChange={handleChange}
+        placeholder="Enter 10-digit mobile number"
+        error={Boolean(formErrors.mobile)}
+        helperText={formErrors.mobile}
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="WhatsApp Number"
+        name="whatsapp"
+        value={formData.whatsapp || ""}
+        onChange={handleChange}
+        placeholder="Enter WhatsApp communication link"
+        error={Boolean(formErrors.whatsapp)}
+        helperText={formErrors.whatsapp}
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <div className="col-span-2">
+        <AppInput
+          label="Landline Number (Optional)"
+          name="landline"
+          value={formData.landline || ""}
+          onChange={handleChange}
+          placeholder="Enter area code and landline number"
+          labelSx={labelSx}
+          inputSx={inputSx}
+        />
+      </div>
+    </div>
 
-FastField.displayName = "FastField";
-
-const FormSection = memo(
-  ({ icon, title, columns, children, divided, green }) => (
-    <AppBox sx={divided ? sectionDividedSx : sectionSx}>
-      <AppStack direction="row" align="center" gap={0.8} sx={{ mb: 1.35 }}>
-        <span
-          className={[
-            "flex text-[15px]",
-            green ? "text-primary" : "text-text-muted",
-          ].join(" ")}
-        >
-          {icon}
-        </span>
-
-        <AppHeading level={2} weight={650} sx={sectionTitleSx}>
-          {title}
-        </AppHeading>
-      </AppStack>
-
-      <AppGrid columns={columns} gap={1.25} columnGap={2}>
-        {children}
-      </AppGrid>
-    </AppBox>
-  ),
-);
-
-FormSection.displayName = "FormSection";
-
-const ConfirmPreviewDialog = memo(
-  ({ open, data, isLoading, onBack, onCreate }) => {
-    if (!data) return null;
-
-    return (
-      <AppDialog
-        open={open}
-        onClose={onBack}
-        title="Confirm Branch Details"
-        subtitle="Please verify these details before creating the branch."
-        maxWidth="lg"
-        fullWidth
-        closeOnBackdrop={false}
-        showActions
-        cancelLabel="Back to Edit"
-        confirmLabel="Create Branch"
-        onCancel={onBack}
-        onConfirm={onCreate}
-        confirmLoading={isLoading}
-        confirmDisabled={isLoading}
-        cancelProps={{ disabled: isLoading }}
-        confirmProps={{ startIcon: <FiSave /> }}
-        paperSx={dialogPaperSx}
-        contentSx={dialogContentSx}
+    <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+      <AppButton
+        variant="outlined"
+        colorVariant="neutral"
+        rounded="md"
+        size="small"
+        onClick={handleCancel}
+        sx={secondaryActionBtnSx}
       >
-        <AppStack
-          direction="row"
-          align="center"
-          justify="space-between"
-          sx={dialogStatusSx}
-        >
-          <AppText variant="body2" sx={dialogSubTitleSx}>
-            Review the details below before creating the branch.
-          </AppText>
-
-          <AppStack direction="row" align="center" gap={0.7}>
-            <AppStatusBadge
-              status={data.status || "active"}
-              size="small"
-              variant="soft"
-              rounded="full"
-              sx={statusBadgeSx}
-            />
-            {data.isPrimary === "true" ? (
-              <AppStatusBadge
-                status="primary"
-                label="Primary"
-                size="small"
-                variant="soft"
-                rounded="full"
-                sx={statusBadgeSx}
-              />
-            ) : null}
-          </AppStack>
-        </AppStack>
-
-        {PREVIEW_GROUPS.map((group) => (
-          <PreviewGroup key={group.title} group={group} data={data} />
-        ))}
-      </AppDialog>
-    );
-  },
+        Cancel
+      </AppButton>
+      <AppButton
+        variant="contained"
+        colorVariant="primary"
+        rounded="md"
+        size="small"
+        endIcon={<FiArrowRight />}
+        onClick={handleContinue}
+        sx={primaryActionBtnSx}
+      >
+        Save & Continue
+      </AppButton>
+    </div>
+  </AppCard>
 );
 
-ConfirmPreviewDialog.displayName = "ConfirmPreviewDialog";
-
-const PreviewGroup = memo(({ group, data }) => {
-  const rows = group.fields
-    .map(([label, key, type]) => ({
-      label,
-      value: formatPreviewValue(data, key, type),
-    }))
-    .filter((row) => row.value !== "-");
-
-  if (rows.length === 0) return null;
-
-  return (
-    <div className="mb-3 rounded-lg border border-border bg-bg/40 p-3 last:mb-0">
-      <AppHeading level={3} weight={650} sx={previewGroupTitleSx}>
-        {group.title}
+const AddressForm = ({
+  formData,
+  formErrors,
+  handleChange,
+  handleBack,
+  handleContinue,
+}) => (
+  <AppCard
+    variant="default"
+    rounded="lg"
+    bordered
+    shadow="sm"
+    padding="none"
+    sx={formMainCardSx}
+  >
+    <div className="border-b border-border pb-3">
+      <AppHeading level={2} weight={700} sx={sectionTitleSx}>
+        Registered Branch Address
       </AppHeading>
+      <AppText variant="body2" sx={sectionSubtitleSx}>
+        Physical spatial mapping directly bound to tax reporting setups and
+        invoice templates.
+      </AppText>
+    </div>
 
-      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
-        {rows.map((row) => (
-          <AppKeyValue
-            key={`${group.title}-${row.label}`}
-            label={row.label}
-            value={row.value}
-            direction="row"
-            align="space-between"
-            size="small"
-            sx={previewKeyValueSx}
-            labelSx={previewLabelSx}
-            valueSx={previewValueSx}
+    <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4">
+      <AppInput
+        label="Address Line 1"
+        name="addressLine1"
+        value={formData.addressLine1 || ""}
+        onChange={handleChange}
+        placeholder="Plot, Building, Commercial complex unit"
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="Address Line 2"
+        name="addressLine2"
+        value={formData.addressLine2 || ""}
+        onChange={handleChange}
+        placeholder="Locality, Sector, Landmark parameters"
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="City"
+        name="city"
+        value={formData.city || ""}
+        onChange={handleChange}
+        placeholder="Enter City"
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="District"
+        name="district"
+        value={formData.district || ""}
+        onChange={handleChange}
+        placeholder="Enter District"
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="State"
+        name="state"
+        value={formData.state || ""}
+        onChange={handleChange}
+        placeholder="Enter State"
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="Pincode"
+        name="pincode"
+        value={formData.pincode || ""}
+        onChange={handleChange}
+        placeholder="6-digit PIN code map index"
+        error={Boolean(formErrors.pincode)}
+        helperText={formErrors.pincode}
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="Country"
+        name="country"
+        value={formData.country || ""}
+        onChange={handleChange}
+        placeholder="India"
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="Google Map Location Link"
+        name="googleMapLocation"
+        value={formData.googleMapLocation || ""}
+        onChange={handleChange}
+        placeholder="https://maps.google.com/?q=..."
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+    </div>
+
+    <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+      <AppButton
+        variant="outlined"
+        colorVariant="neutral"
+        rounded="md"
+        size="small"
+        startIcon={<FiArrowLeft />}
+        onClick={handleBack}
+        sx={secondaryActionBtnSx}
+      >
+        Back
+      </AppButton>
+      <AppButton
+        variant="contained"
+        colorVariant="primary"
+        rounded="md"
+        size="small"
+        endIcon={<FiArrowRight />}
+        onClick={handleContinue}
+        sx={primaryActionBtnSx}
+      >
+        Save & Continue
+      </AppButton>
+    </div>
+  </AppCard>
+);
+
+const LicenseForm = ({
+  formData,
+  handleChange,
+  handleBack,
+  handleContinue,
+}) => (
+  <AppCard
+    variant="default"
+    rounded="lg"
+    bordered
+    shadow="sm"
+    padding="none"
+    sx={formMainCardSx}
+  >
+    <div className="border-b border-border pb-3">
+      <AppHeading level={2} weight={700} sx={sectionTitleSx}>
+        Statutory Compliance Licenses
+      </AppHeading>
+      <AppText variant="body2" sx={sectionSubtitleSx}>
+        Configure trackable pharmacy compliance logs and operational parameters.
+      </AppText>
+    </div>
+
+    <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4">
+      <AppInput
+        label="Drug License Number"
+        name="drugLicenseNumber"
+        value={formData.drugLicenseNumber || ""}
+        onChange={handleChange}
+        placeholder="Form 20 / Form 21 identifiers"
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="Drug License Type"
+        name="drugLicenseType"
+        value={formData.drugLicenseType || ""}
+        onChange={handleChange}
+        placeholder="e.g., Retail / Wholesale mapping parameters"
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="FSSAI Number"
+        name="fssaiNumber"
+        value={formData.fssaiNumber || ""}
+        onChange={handleChange}
+        placeholder="Enter 14-digit food compliance token"
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppInput
+        label="License Expiry Date"
+        name="licenseExpiresAt"
+        type="date"
+        value={formData.licenseExpiresAt || ""}
+        onChange={handleChange}
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+    </div>
+
+    <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+      <AppButton
+        variant="outlined"
+        colorVariant="neutral"
+        rounded="md"
+        size="small"
+        startIcon={<FiArrowLeft />}
+        onClick={handleBack}
+        sx={secondaryActionBtnSx}
+      >
+        Back
+      </AppButton>
+      <AppButton
+        variant="contained"
+        colorVariant="primary"
+        rounded="md"
+        size="small"
+        endIcon={<FiArrowRight />}
+        onClick={handleContinue}
+        sx={primaryActionBtnSx}
+      >
+        Save & Continue
+      </AppButton>
+    </div>
+  </AppCard>
+);
+
+const ComplianceContactsForm = ({
+  formData,
+  formErrors,
+  handleChange,
+  handleBack,
+  handleContinue,
+}) => (
+  <AppCard
+    variant="default"
+    rounded="lg"
+    bordered
+    shadow="sm"
+    padding="none"
+    sx={formMainCardSx}
+  >
+    <div className="border-b border-border pb-3">
+      <AppHeading level={2} weight={700} sx={sectionTitleSx}>
+        Compliance Contacts & Pharmacist Links
+      </AppHeading>
+      <AppText variant="body2" sx={sectionSubtitleSx}>
+        Link technical operators, pharmacy practitioners, and emergency contacts
+        to records.
+      </AppText>
+    </div>
+
+    <div className="mt-4">
+      <AppHeading
+        level={3}
+        weight={700}
+        sx={{ fontSize: "13px", mb: 2, color: "var(--app-color-primary)" }}
+      >
+        Pharmacist Parameters
+      </AppHeading>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+        <AppInput
+          label="Registered Pharmacist Name"
+          name="pharmacistName"
+          value={formData.pharmacistName || ""}
+          onChange={handleChange}
+          placeholder="Full name matching council logs"
+          labelSx={labelSx}
+          inputSx={inputSx}
+        />
+        <AppInput
+          label="Pharmacy Registration Number"
+          name="pharmacistRegistrationNumber"
+          value={formData.pharmacistRegistrationNumber || ""}
+          onChange={handleChange}
+          placeholder="State council registration index"
+          labelSx={labelSx}
+          inputSx={inputSx}
+        />
+        <AppInput
+          label="Pharmacist Mobile"
+          name="pharmacistMobile"
+          value={formData.pharmacistMobile || ""}
+          onChange={handleChange}
+          placeholder="Pharmacist phone contact record"
+          error={Boolean(formErrors.pharmacistMobile)}
+          helperText={formErrors.pharmacistMobile}
+          labelSx={labelSx}
+          inputSx={inputSx}
+        />
+        <AppInput
+          label="Pharmacist Email"
+          name="pharmacistEmail"
+          value={formData.pharmacistEmail || ""}
+          onChange={handleChange}
+          placeholder="pharmacist@company.com"
+          error={Boolean(formErrors.pharmacistEmail)}
+          helperText={formErrors.pharmacistEmail}
+          labelSx={labelSx}
+          inputSx={inputSx}
+        />
+      </div>
+    </div>
+
+    <div className="mt-6 border-t border-border pt-4">
+      <AppHeading
+        level={3}
+        weight={700}
+        sx={{ fontSize: "13px", mb: 2, color: "var(--app-color-primary)" }}
+      >
+        Emergency Contact Link
+      </AppHeading>
+      <div className="grid grid-cols-3 gap-x-4 gap-y-4">
+        <AppInput
+          label="Contact Name"
+          name="emergencyContactName"
+          value={formData.emergencyContactName || ""}
+          onChange={handleChange}
+          placeholder="Full name"
+          labelSx={labelSx}
+          inputSx={inputSx}
+        />
+        <AppInput
+          label="Contact Mobile"
+          name="emergencyContactMobile"
+          value={formData.emergencyContactMobile || ""}
+          onChange={handleChange}
+          placeholder="10-digit number"
+          error={Boolean(formErrors.emergencyContactMobile)}
+          helperText={formErrors.emergencyContactMobile}
+          labelSx={labelSx}
+          inputSx={inputSx}
+        />
+        <AppInput
+          label="Relationship Mapping"
+          name="emergencyContactRelationship"
+          value={formData.emergencyContactRelationship || ""}
+          onChange={handleChange}
+          placeholder="e.g., Manager / Director"
+          labelSx={labelSx}
+          inputSx={inputSx}
+        />
+      </div>
+    </div>
+
+    <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+      <AppButton
+        variant="outlined"
+        colorVariant="neutral"
+        rounded="md"
+        size="small"
+        startIcon={<FiArrowLeft />}
+        onClick={handleBack}
+        sx={secondaryActionBtnSx}
+      >
+        Back
+      </AppButton>
+      <AppButton
+        variant="contained"
+        colorVariant="primary"
+        rounded="md"
+        size="small"
+        endIcon={<FiArrowRight />}
+        onClick={handleContinue}
+        sx={primaryActionBtnSx}
+      >
+        Continue to Review
+      </AppButton>
+    </div>
+  </AppCard>
+);
+
+/* ==========================================================================
+   STEP 5: SCREEN REVIEW SECTIONS
+   ========================================================================== */
+
+const ReviewAndCreateStep = ({
+  formData,
+  isCreating,
+  onBack,
+  onSaveDraft,
+  onSubmit,
+  onEditSection,
+}) => {
+  return (
+    <div className="space-y-4">
+      {/* 1. Branch Overview Summary Card */}
+      <AppCard
+        variant="default"
+        rounded="lg"
+        bordered
+        shadow="sm"
+        padding="none"
+        sx={reviewCardSx}
+      >
+        <ReviewSectionHeader
+          title="Branch Profile Overview"
+          stepId={1}
+          onEdit={onEditSection}
+        />
+
+        <div className="mt-4 flex flex-wrap items-start justify-between gap-6">
+          <div className="flex items-center gap-4 min-w-[320px]">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-border bg-primary-soft text-primary text-[28px]">
+              <FiBriefcase />
+            </div>
+            <div className="min-w-0">
+              <AppStack direction="row" align="center" gap={1}>
+                <AppHeading level={3} weight={700} sx={reviewCompNameSx}>
+                  {formData.branchName || "Main Retail Pharmacy Hub"}
+                </AppHeading>
+                {formData.isPrimary === "true" && (
+                  <AppTag
+                    label="Primary Branch"
+                    variant="soft"
+                    colorVariant="success"
+                    rounded="md"
+                    sx={smallReviewTagSx}
+                  />
+                )}
+              </AppStack>
+              <div className="mt-1.5 space-y-1">
+                <div className="flex items-center gap-2 text-[12px] text-text-muted">
+                  <FiMail className="shrink-0" />{" "}
+                  <span>{formData.branchEmail || "Not provided"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[12px] text-text-muted">
+                  <FiPhone className="shrink-0" />{" "}
+                  <span>
+                    {formData.mobile
+                      ? `+91 ${formData.mobile}`
+                      : "No mobile linked"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-1 grid grid-cols-2 gap-x-4 gap-y-2.5 max-w-[480px]">
+            <ReviewItem
+              label="Branch Infrastructure Type"
+              value={
+                <span className="capitalize">
+                  {formData.branchType?.replace("_", " ")}
+                </span>
+              }
+            />
+            <ReviewItem
+              label="WhatsApp Alert Comms"
+              value={formData.whatsapp ? `+91 ${formData.whatsapp}` : "-"}
+            />
+          </div>
+        </div>
+      </AppCard>
+
+      {/* 2. Address & Statutory Licenses Row */}
+      <div className="grid grid-cols-2 gap-4">
+        <AppCard
+          variant="default"
+          rounded="lg"
+          bordered
+          shadow="sm"
+          padding="none"
+          sx={reviewCardSx}
+        >
+          <ReviewSectionHeader
+            title="Spatial Address Properties"
+            stepId={2}
+            onEdit={onEditSection}
           />
-        ))}
+          <div className="mt-4 space-y-2">
+            <ReviewRowData
+              label="Address"
+              value={`${formData.addressLine1 || "-"} ${formData.addressLine2 || ""}`}
+            />
+            <ReviewRowData
+              label="City Workspace"
+              value={formData.city || "-"}
+            />
+            <ReviewRowData
+              label="District Boundary"
+              value={formData.district || "-"}
+            />
+            <ReviewRowData label="State Record" value={formData.state || "-"} />
+            <ReviewRowData
+              label="Postal PIN Index"
+              value={formData.pincode || "-"}
+            />
+            <ReviewRowData
+              label="Country Identity"
+              value={formData.country || "India"}
+            />
+          </div>
+        </AppCard>
+
+        <AppCard
+          variant="default"
+          rounded="lg"
+          bordered
+          shadow="sm"
+          padding="none"
+          sx={reviewCardSx}
+        >
+          <ReviewSectionHeader
+            title="Compliance Tracking Log"
+            stepId={3}
+            onEdit={onEditSection}
+          />
+          <div className="mt-4 space-y-2">
+            <ReviewRowData
+              label="Drug License Number"
+              value={formData.drugLicenseNumber || "-"}
+            />
+            <ReviewRowData
+              label="Drug License Classification"
+              value={formData.drugLicenseType || "-"}
+            />
+            <ReviewRowData
+              label="Food Authority FSSAI"
+              value={formData.fssaiNumber || "-"}
+            />
+            <ReviewRowData
+              label="Statutory Expiration Term"
+              value={formData.licenseExpiresAt || "-"}
+            />
+          </div>
+        </AppCard>
+      </div>
+
+      {/* 3. Practitioner & Emergency Entities */}
+      <AppCard
+        variant="default"
+        rounded="lg"
+        bordered
+        shadow="sm"
+        padding="none"
+        sx={reviewCardSx}
+      >
+        <ReviewSectionHeader
+          title="Practitioner Registry & Points of Contact"
+          stepId={4}
+          onEdit={onEditSection}
+        />
+        <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-2">
+          <ReviewRowData
+            label="Pharmacist Practitioner"
+            value={formData.pharmacistName || "-"}
+          />
+          <ReviewRowData
+            label="Council Log Index"
+            value={formData.pharmacistRegistrationNumber || "-"}
+          />
+          <ReviewRowData
+            label="Pharmacist Mobile"
+            value={formData.pharmacistMobile || "-"}
+          />
+          <ReviewRowData
+            label="Pharmacist Email"
+            value={formData.pharmacistEmail || "-"}
+          />
+          <div className="col-span-2 border-t border-border pt-2 mt-1">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+              <ReviewRowData
+                label="Emergency Contact Person"
+                value={formData.emergencyContactName || "-"}
+              />
+              <ReviewRowData
+                label="Emergency Mobile"
+                value={formData.emergencyContactMobile || "-"}
+              />
+              <ReviewRowData
+                label="Relationship Flag"
+                value={formData.emergencyContactRelationship || "-"}
+              />
+            </div>
+          </div>
+        </div>
+      </AppCard>
+
+      {/* 4. Action Bars Strip */}
+      <div className="mt-6 flex items-center justify-between border-t border-border bg-surface rounded-xl border p-3 shadow-xs">
+        <AppButton
+          variant="outlined"
+          colorVariant="neutral"
+          rounded="md"
+          size="small"
+          startIcon={<FiArrowLeft />}
+          onClick={onBack}
+          disabled={isCreating}
+          sx={secondaryActionBtnSx}
+        >
+          Back
+        </AppButton>
+        <AppStack direction="row" align="center" gap={1}>
+          <AppButton
+            variant="outlined"
+            colorVariant="neutral"
+            rounded="md"
+            size="small"
+            onClick={onSaveDraft}
+            disabled={isCreating}
+            sx={secondaryActionBtnSx}
+          >
+            Save as Draft
+          </AppButton>
+          <AppButton
+            variant="contained"
+            colorVariant="primary"
+            rounded="md"
+            size="small"
+            startIcon={<FiCheckCircle />}
+            onClick={onSubmit}
+            loading={isCreating}
+            disabled={isCreating}
+            sx={primaryActionBtnSx}
+          >
+            Create Branch
+          </AppButton>
+        </AppStack>
       </div>
     </div>
   );
+};
+
+const ReviewSectionHeader = ({ title, stepId, onEdit }) => (
+  <div className="flex items-center justify-between border-b border-border pb-2.5">
+    <AppHeading
+      level={4}
+      weight={700}
+      sx={{ m: 0, fontSize: "13.5px", color: "var(--app-color-text)" }}
+    >
+      {title}
+    </AppHeading>
+    <AppButton
+      variant="outlined"
+      colorVariant="neutral"
+      rounded="md"
+      size="small"
+      startIcon={<FiEdit3 />}
+      onClick={() => onEdit(stepId)}
+      sx={{
+        height: 28,
+        px: 1,
+        fontSize: "11px",
+        fontWeight: 650,
+        bg: "var(--app-color-surface-alt)",
+      }}
+    >
+      Edit
+    </AppButton>
+  </div>
+);
+
+const ReviewItem = ({ label, value }) => (
+  <div>
+    <span className="block text-[11px] text-text-muted font-semibold">
+      {label}
+    </span>
+    <span className="block mt-0.5 text-[12px] font-medium text-text">
+      {value}
+    </span>
+  </div>
+);
+
+const ReviewRowData = ({ label, value }) => (
+  <div className="flex items-start justify-between gap-4 text-[12px]">
+    <span className="text-text-muted font-medium whitespace-nowrap">
+      {label}
+    </span>
+    <div className="text-right font-bold text-text max-w-[300px] truncate">
+      {value}
+    </div>
+  </div>
+);
+
+/* ==========================================================================
+   RIGHT ASSISTANT PANEL COMPONENT
+   ========================================================================== */
+
+const RightSidebarPanel = memo(({ currentStep, formData }) => {
+  const stepsMeta = [
+    {
+      id: 1,
+      title: "Branch Parameters",
+      text: "Name, communication types, and status fields",
+    },
+    {
+      id: 2,
+      title: "Spatial Location",
+      text: "Workplace office geographical coordinates",
+    },
+    {
+      id: 3,
+      title: "Licenses & Trackers",
+      text: "Drug registrations and food certification numbers",
+    },
+    {
+      id: 4,
+      title: "Technical Supervision",
+      text: "Linked pharmacist practitioners and backup profiles",
+    },
+    {
+      id: 5,
+      title: "Review & Deploy",
+      text: "Final operational audit sequence",
+    },
+  ];
+
+  const cards = [
+    {
+      title: "Wizard Workflow Progress",
+      icon: <FiGrid />,
+      colorVariant: "primary",
+      variant: "default",
+      custom: (
+        <div className="mt-4 space-y-3.5">
+          {stepsMeta.map((s) => {
+            const active = currentStep === s.id;
+            const completed = currentStep > s.id;
+            return (
+              <AppStack key={s.id} direction="row" align="flex-start" gap={1.2}>
+                <span
+                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
+                    completed
+                      ? "bg-success text-text-inverse"
+                      : active
+                        ? "bg-primary text-text-inverse"
+                        : "border border-border text-text-muted"
+                  }`}
+                >
+                  {completed ? <FiCheck className="text-[10px]" /> : s.id}
+                </span>
+                <div>
+                  <span
+                    className={`block text-[12px] font-bold leading-none ${active ? "text-primary" : completed ? "text-text" : "text-text-muted"}`}
+                  >
+                    {s.title}
+                  </span>
+                  <span className="block mt-1 text-[10.5px] leading-tight text-text-muted">
+                    {s.text}
+                  </span>
+                </div>
+              </AppStack>
+            );
+          })}
+        </div>
+      ),
+    },
+  ];
+
+  if (currentStep !== 5) {
+    cards.push({
+      title: "Statutory Guidelines",
+      icon: <FiInfo />,
+      colorVariant: "success",
+      variant: "default",
+      description:
+        "Providing certified licensing records guarantees smooth operation validation procedures.",
+      points: [
+        "Automated index tracker generation",
+        "Encrypted database slug verification",
+        "Unique address pattern logging",
+        "Direct point-of-contact schema tracking",
+      ],
+      pointIcon: <FiCheckCircle />,
+    });
+  } else {
+    cards.push(
+      {
+        title: "Branch Configuration Summary",
+        icon: <FiBriefcase />,
+        colorVariant: "success",
+        variant: "default",
+        custom: (
+          <div className="mt-3 space-y-2.5 border-t border-border pt-3">
+            <AppStack direction="row" align="center" gap={1}>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-success-soft text-success text-[18px]">
+                <FiBriefcase />
+              </div>
+              <div className="min-w-0">
+                <AppHeading
+                  level={4}
+                  weight={700}
+                  sx={{ m: 0, fontSize: "12.5px" }}
+                >
+                  {formData.branchName || "Retail Node"}
+                </AppHeading>
+                <AppTag
+                  label={
+                    formData.isPrimary === "true"
+                      ? "Primary Core"
+                      : "Sub Location Node"
+                  }
+                  variant="soft"
+                  colorVariant="success"
+                  rounded="md"
+                  sx={{ height: 16, fontSize: "9px", px: 0.5, mt: 0.2 }}
+                />
+              </div>
+            </AppStack>
+            <div className="space-y-1.5 pt-1 text-[11.5px] text-text-muted">
+              <div className="flex items-center gap-2">
+                <FiBriefcase />{" "}
+                <span className="capitalize">
+                  {formData.branchType?.replace("_", " ")}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FiUser />{" "}
+                <span>
+                  {formData.pharmacistName || "No technical operator linked"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FiFileText />{" "}
+                <span>
+                  {formData.drugLicenseNumber || "No drug license logged"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FiMapPin />{" "}
+                <span>
+                  {formData.city || "No City declared"},{" "}
+                  {formData.state || "No State"}
+                </span>
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Database Index Actions",
+        icon: <FiCheckCircle />,
+        colorVariant: "primary",
+        variant: "soft",
+        soft: true,
+        points: [
+          "Unique branchCode prefix codes compile dynamically.",
+          "Pre-validation schemas map automated lowertext slugs.",
+          "Partial tracking constraints block duplicating entries.",
+        ],
+        pointIcon: <FiCheckCircle />,
+      },
+    );
+  }
+
+  cards.push(HELP_SUPPORT_CARD);
+
+  return <PageRightSidebar spacing={4} cards={cards} />;
 });
+RightSidebarPanel.displayName = "RightSidebarPanel";
 
-PreviewGroup.displayName = "PreviewGroup";
+/* ==========================================================================
+   STYLE THEME OBJECT MAPS (SX TOKENS)
+   ========================================================================== */
 
-const formatPreviewValue = (data, key, type) => {
-  const value = data?.[key];
-
-  if (type === "boolean") {
-    if (value === true || value === "true") return "Yes";
-    if (value === false || value === "false") return "No";
-  }
-
-  if (type === "phone" && value) {
-    return `${data.phoneCountryCode || "+91"} ${value}`;
-  }
-
-  return value || "-";
+const pageHeaderSx = {
+  width: "100%",
 };
 
-const IconBox = memo(({ icon, large = false }) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      width: large ? 34 : 30,
-      height: large ? 34 : 30,
-      minWidth: large ? 34 : 30,
-      borderRadius: large ? "9px" : "8px",
-      bgcolor: "var(--app-color-primary-soft)",
-      color: "var(--app-color-primary)",
-      fontSize: large ? "18px" : "15px",
-      lineHeight: 0,
-    }}
-  >
-    {icon}
-  </AppBox>
-));
-
-IconBox.displayName = "IconBox";
-
-const pageTitleSx = {
-  m: 0,
-  fontSize: "17px",
-  lineHeight: 1.05,
-  letterSpacing: "-0.25px",
-  color: "var(--app-color-text)",
+const pageHeaderContentSx = {
+  minWidth: 0,
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
 };
 
-const breadcrumbSx = { mt: 0, lineHeight: 1 };
+const breadcrumbSx = {
+  mt: 1,
+};
 
 const breadcrumbItemSx = {
-  fontSize: "10.5px",
-  fontWeight: 500,
+  fontSize: "12px",
   color: "var(--app-color-text-muted)",
 };
 
 const breadcrumbCurrentSx = {
-  fontSize: "10.5px",
-  fontWeight: 600,
+  fontSize: "12px",
+  fontWeight: 650,
   color: "var(--app-color-text)",
 };
 
-const backButtonSx = {
-  height: 29,
-  px: 1.25,
-  fontSize: "11px",
+const secondaryButtonSx = {
+  height: 36,
+  minWidth: 92,
+  px: 1.4,
+  fontSize: "12px",
   fontWeight: 650,
-  bgcolor: "var(--app-color-surface)",
 };
 
-const mainCardSx = {
+const stepperCardSx = {
   px: 2,
-  py: 1.25,
+  py: 2,
   bgcolor: "var(--app-color-surface)",
+  border: "1px solid var(--app-color-border)",
+  borderRadius: "12px",
 };
 
-const sectionSx = { m: 0 };
-
-const sectionDividedSx = {
-  mt: 1.8,
-  pt: 1.55,
-  borderTop: "1px solid var(--app-color-border)",
+const formMainCardSx = {
+  p: 2.5,
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
 };
 
 const sectionTitleSx = {
   m: 0,
-  fontSize: "12.5px",
-  lineHeight: 1.25,
+  fontSize: "15px",
+  lineHeight: 1.3,
   color: "var(--app-color-text)",
 };
 
+const sectionSubtitleSx = {
+  mt: 0.7,
+  fontSize: "12.5px",
+  lineHeight: "21px",
+  color: "var(--app-color-text-muted)",
+};
+
 const labelSx = {
-  mb: 0.3,
-  fontSize: "11.3px",
-  fontWeight: 600,
+  fontSize: "12.5px",
+  fontWeight: 700,
   color: "var(--app-color-text)",
 };
 
 const inputSx = {
-  height: 35,
-  fontSize: "12.3px",
-  fontWeight: 500,
+  minHeight: 38,
+  fontSize: "12.5px",
   bgcolor: "var(--app-color-surface-alt)",
 };
 
-const statusBadgeSx = {
-  width: "fit-content",
-  flex: "0 0 auto",
-};
-
-const submitErrorSx = {
-  mt: 1,
-  textAlign: "right",
-  fontSize: "12px",
-  fontWeight: 600,
-  color: "var(--app-color-danger)",
-};
-
-const accordionSx = {
-  boxShadow: "none",
-  bgcolor: "transparent",
-};
-
-const accordionSummarySx = {
-  minHeight: 26,
-  px: 0,
-  py: 0,
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const accordionDetailsSx = {
-  px: 0,
-  pt: 0.7,
-  pb: 0,
-};
-
-const cancelButtonSx = {
+const primaryActionBtnSx = {
   height: 36,
   px: 2,
-  fontSize: "12px",
-  fontWeight: 650,
-  bgcolor: "var(--app-color-surface)",
-};
-
-const saveButtonSx = {
-  height: 36,
-  px: 2.4,
-  fontSize: "12px",
+  fontSize: "12.5px",
   fontWeight: 700,
-  boxShadow: "var(--app-shadow-sm)",
+  boxShadow: "var(--app-shadow-xs)",
 };
 
-const switchFieldSx = {
-  minHeight: 34,
-  display: "flex",
-  alignItems: "center",
-  px: 0.75,
-  py: 0.35,
-  borderRadius: "9px",
-  border: "1px solid var(--app-color-border)",
-  bgcolor: "var(--app-color-surface-alt)",
-};
-
-const compactSwitchWrapperSx = {
-  width: "100%",
-  m: 0,
-  minHeight: 0,
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 0.8,
-};
-
-const compactSwitchSx = {
-  transform: "scale(0.62)",
-  transformOrigin: "right center",
-  mr: -1.1,
-};
-
-const switchLabelSx = {
-  flex: 1,
-  mr: 0.5,
-  fontSize: "10.8px",
-  lineHeight: "14px",
+const secondaryActionBtnSx = {
+  height: 36,
+  px: 1.8,
+  fontSize: "12.5px",
   fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const switchHelperTextSx = {
-  mt: 0.15,
-  fontSize: "10.5px",
-};
-
-const assistCardSx = {
-  px: 1.45,
-  py: 1.35,
   bgcolor: "var(--app-color-surface)",
 };
 
-const assistTitleSx = {
+const alertSx = { mt: 2 };
+
+const reviewCardSx = {
+  p: 2,
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+};
+
+const reviewCompNameSx = {
   m: 0,
-  fontSize: "13.5px",
+  fontSize: "15px",
   lineHeight: 1.2,
   color: "var(--app-color-text)",
+  maxWidth: "260px",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 };
 
-const assistSubtitleSx = {
-  mt: 0.3,
-  fontSize: "10.8px",
-  lineHeight: "14px",
-  color: "var(--app-color-text-muted)",
-};
-
-const assistStepTitleSx = {
-  m: 0,
-  fontSize: "11.8px",
-  lineHeight: "15px",
-  color: "var(--app-color-text)",
-};
-
-const assistStepTextSx = {
-  mt: 0.1,
-  display: "block",
-  fontSize: "10.8px",
-  lineHeight: "14.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const assistCompactTextSx = {
-  mt: 0.05,
-  display: "block",
-  fontSize: "10.6px",
-  lineHeight: "14px",
-  color: "var(--app-color-text-muted)",
-};
-
-const assistNoteSx = {
-  mt: 1.25,
-  p: 1,
-  borderRadius: "10px",
-  border: "1px solid var(--app-color-border)",
-  bgcolor: "var(--app-color-surface-alt)",
-};
-
-const assistNoteTitleSx = {
-  m: 0,
-  fontSize: "11.4px",
-  lineHeight: "15px",
-  color: "var(--app-color-text)",
-};
-
-const assistReminderSx = {
-  display: "block",
-  fontSize: "10.6px",
-  lineHeight: "14.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const dialogPaperSx = {
-  bgcolor: "var(--app-color-surface)",
-};
-
-const dialogContentSx = {
-  maxHeight: "68vh",
-  overflowY: "auto",
-};
-
-const dialogStatusSx = {
-  mb: 1.5,
-};
-
-const dialogSubTitleSx = {
-  mt: 0.45,
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-
-const previewGroupTitleSx = {
-  m: 0,
-  fontSize: "12.5px",
-  lineHeight: 1.25,
-  color: "var(--app-color-text)",
-};
-
-const previewKeyValueSx = {
-  minHeight: 26,
-  gap: 1.5,
-};
-
-const previewLabelSx = {
-  minWidth: 116,
-  fontSize: "10.5px",
-  fontWeight: 600,
-  color: "var(--app-color-text-muted)",
-};
-
-const previewValueSx = {
-  textAlign: "right",
-  fontSize: "11.8px",
-  lineHeight: "16px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-  overflowWrap: "anywhere",
+const smallReviewTagSx = {
+  height: 18,
+  fontSize: "9.5px",
+  px: 0.6,
+  fontWeight: 700,
 };
 
 export default CreateBranchDesktopPage;

@@ -27,6 +27,7 @@ import {
   AppHeading,
   AppStack,
   AppText,
+  HELP_SUPPORT_CARD,
   PageHeader,
   PageRightSidebar,
 } from "@/components";
@@ -423,27 +424,7 @@ const SetupRightSidebar = ({ onHelp }) => (
           </div>
         ),
       },
-      {
-        title: "Need Help?",
-        icon: <FiHeadphones />,
-        colorVariant: "neutral",
-        variant: "default",
-        custom: (
-          <AppBox>
-            <AppText variant="body2" sx={sideTextSx}>
-              Our support team is ready to help you at every step.
-            </AppText>
-
-            <button
-              type="button"
-              onClick={onHelp}
-              className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold text-primary"
-            >
-              Contact Support <FiArrowRight />
-            </button>
-          </AppBox>
-        ),
-      },
+      HELP_SUPPORT_CARD,
     ]}
   />
 );

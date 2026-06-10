@@ -4,3 +4,4 @@ export { default as DetailsSection } from "./DetailsSection";
 export { default as InfoGrid } from "./InfoGrid";
 export { default as KeyValueList } from "./KeyValueList";
 export { default as DescriptionList } from "./DescriptionList";
+export { HELP_SUPPORT_CARD } from "./HelpSupportCard";

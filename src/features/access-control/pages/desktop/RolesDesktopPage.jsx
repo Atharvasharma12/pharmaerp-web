@@ -32,6 +32,7 @@ import {
   AppTableSkeleton,
   AppTag,
   AppText,
+  HELP_SUPPORT_CARD,
   PageHeader,
   PageRightSidebar,
 } from "@/components";
@@ -593,15 +594,7 @@ const RolesRightSidebar = ({ roleHelp }) => (
           </div>
         ),
       },
-      {
-        title: "Need Help?",
-        icon: <FiHeadphones />,
-        colorVariant: "neutral",
-        variant: "default",
-        description:
-          "Learn more about roles and permissions management in PharmaERP.",
-        actionLabel: "View User Guide",
-      },
+      HELP_SUPPORT_CARD,
     ]}
   />
 );

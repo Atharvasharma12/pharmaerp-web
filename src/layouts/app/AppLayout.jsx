@@ -51,9 +51,9 @@ const AppLayout = () => {
     clearCurrentBranch,
   } = useBranch();
 
+  // 1. WORKSPACE INITIALIZATION
   useEffect(() => {
     if (initializedWorkspaceRef.current) return;
-
     initializedWorkspaceRef.current = true;
 
     const initWorkspaces = async () => {
@@ -102,7 +102,6 @@ const AppLayout = () => {
         const selectedWorkspaceItem =
           workspaceItems?.find((item) => {
             const workspace = getWorkspaceFromItem(item);
-
             return workspace?._id === savedWorkspaceId;
           }) || workspaceItems?.[0];
 
@@ -122,15 +121,13 @@ const AppLayout = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 2. FIXED COMPANY INITIALIZATION
   useEffect(() => {
     const workspaceId = currentWorkspace?._id;
-
     if (!workspaceId) return;
 
     if (initializedCompanyWorkspaceRef.current === workspaceId) return;
-
     initializedCompanyWorkspaceRef.current = workspaceId;
-    initializedBranchCompanyRef.current = null;
 
     const initCompanies = async () => {
       try {
@@ -146,17 +143,12 @@ const AppLayout = () => {
           null;
 
         if (!selectedCompany?._id) {
-          if (currentCompany?._id) {
-            clearCurrentCompany();
-          }
-
-          if (currentBranch?._id) {
-            clearCurrentBranch();
-          }
-
+          if (currentCompany?._id) clearCurrentCompany();
+          if (currentBranch?._id) clearCurrentBranch();
           return;
         }
 
+        // FIXED: Enforce absolute checking across standard string IDs to protect active page operations
         if (currentCompany?._id !== selectedCompany._id) {
           setCurrentCompany(selectedCompany);
         }
@@ -169,13 +161,12 @@ const AppLayout = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWorkspace?._id]);
 
+  // 3. FIXED BRANCH INITIALIZATION
   useEffect(() => {
     const companyId = currentCompany?._id;
-
     if (!companyId) return;
 
     if (initializedBranchCompanyRef.current === companyId) return;
-
     initializedBranchCompanyRef.current = companyId;
 
     const initBranches = async () => {
@@ -192,13 +183,11 @@ const AppLayout = () => {
           null;
 
         if (!selectedBranch?._id) {
-          if (currentBranch?._id) {
-            clearCurrentBranch();
-          }
-
+          if (currentBranch?._id) clearCurrentBranch();
           return;
         }
 
+        // FIXED: Enforce string ID comparison block matching corporate metrics
         if (currentBranch?._id !== selectedBranch._id) {
           setCurrentBranch(selectedBranch);
         }

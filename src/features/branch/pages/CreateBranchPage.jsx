@@ -1,6 +1,6 @@
 // src/features/branch/pages/CreateBranchPage.jsx
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { API_STATUS } from "@/constants";
@@ -12,15 +12,16 @@ import CreateBranchDesktopPage from "./desktop/CreateBranchDesktopPage";
 import CreateBranchMobilePage from "./mobile/CreateBranchMobilePage";
 
 const INITIAL_FORM_DATA = {
+  // Step 1: Basic Profile Details
   branchName: "",
   branchType: "retail",
-  status: "active",
   isPrimary: "false",
-
   branchEmail: "",
-  phoneCountryCode: "+91",
-  branchPhone: "",
+  mobile: "",
+  whatsapp: "",
+  landline: "",
 
+  // Step 2: Address (ADDRESS_SCHEMA)
   addressLine1: "",
   addressLine2: "",
   city: "",
@@ -30,53 +31,20 @@ const INITIAL_FORM_DATA = {
   pincode: "",
   googleMapLocation: "",
 
+  // Step 3: Licenses (LICENSE_SCHEMA)
   drugLicenseNumber: "",
   drugLicenseType: "",
   fssaiNumber: "",
   licenseExpiresAt: "",
 
+  // Step 4: Compliance Contacts (PHARMACIST_SCHEMA & EMERGENCY_CONTACT_SCHEMA)
   pharmacistName: "",
   pharmacistRegistrationNumber: "",
   pharmacistMobile: "",
   pharmacistEmail: "",
-
   emergencyContactName: "",
   emergencyContactMobile: "",
   emergencyContactRelationship: "",
-
-  invoicePrefix: "INV",
-  purchasePrefix: "PUR",
-  salesReturnPrefix: "SR",
-  purchaseReturnPrefix: "PR",
-  creditNotePrefix: "CN",
-  debitNotePrefix: "DBN",
-  startingInvoiceNumber: "1",
-  startingPurchaseNumber: "1",
-
-  inventoryMode: "independent",
-  priceMode: "company_default",
-  allowNegativeStock: "false",
-  allowBackdatedEntries: "false",
-  enableBatchTracking: "true",
-  enableExpiryTracking: "true",
-  enableRackTracking: "true",
-  enableStockTracking: "true",
-
-  openingTime: "",
-  closingTime: "",
-  weeklyOff: "",
-  workingDays: "",
-
-  homeDelivery: "false",
-  whatsappOrders: "false",
-  onlineOrders: "false",
-  coldStorageAvailable: "false",
-  twentyFourSevenService: "false",
-
-  timezone: "Asia/Kolkata",
-  currency: "INR",
-  dateFormat: "DD/MM/YYYY",
-  timeFormat: "12h",
 };
 
 const branchTypeOptions = [
@@ -87,32 +55,6 @@ const branchTypeOptions = [
   { label: "Hospital Pharmacy", value: "hospital_pharmacy" },
   { label: "Online", value: "online" },
   { label: "Other", value: "other" },
-];
-
-const statusOptions = [
-  { label: "Active", value: "active" },
-  { label: "Inactive", value: "inactive" },
-  { label: "Suspended", value: "suspended" },
-];
-
-const inventoryModeOptions = [
-  { label: "Independent", value: "independent" },
-  { label: "Shared", value: "shared" },
-];
-
-const priceModeOptions = [
-  { label: "Company Default", value: "company_default" },
-  { label: "Branch Specific", value: "branch_specific" },
-];
-
-const currencyOptions = [
-  { label: "INR - Indian Rupee (₹)", value: "INR" },
-  { label: "USD - US Dollar ($)", value: "USD" },
-];
-
-const timeFormatOptions = [
-  { label: "12 Hour", value: "12h" },
-  { label: "24 Hour", value: "24h" },
 ];
 
 const booleanOptions = [
@@ -129,213 +71,112 @@ const normalizeLowerText = (value) => normalizeText(value).toLowerCase();
 const normalizePhone = (value) => normalizeText(value).replace(/\D/g, "");
 const toBoolean = (value) => value === true || value === "true";
 
-const toNumber = (value, fallback = 0) => {
-  const numberValue = Number(value);
-  return Number.isNaN(numberValue) ? fallback : numberValue;
+const toDateOrNull = (value) => {
+  const trimmedValue = normalizeText(value);
+  if (!trimmedValue) return null;
+  const parsedDate = new Date(trimmedValue);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate.toISOString();
 };
-
-const hasAddress = (formData) =>
-  Boolean(
-    normalizeText(formData.addressLine1) ||
-    normalizeText(formData.addressLine2) ||
-    normalizeText(formData.city) ||
-    normalizeText(formData.district) ||
-    normalizeText(formData.state) ||
-    normalizeText(formData.country) ||
-    normalizeText(formData.pincode) ||
-    normalizeText(formData.googleMapLocation),
-  );
-
-const buildAddressPayload = (formData) => {
-  if (!hasAddress(formData)) return undefined;
-
-  return {
-    addressLine1: normalizeText(formData.addressLine1) || null,
-    addressLine2: normalizeText(formData.addressLine2) || null,
-    city: normalizeText(formData.city) || null,
-    district: normalizeText(formData.district) || null,
-    state: normalizeText(formData.state) || null,
-    country: normalizeText(formData.country) || "India",
-    pincode: normalizeText(formData.pincode) || null,
-    googleMapLocation: normalizeText(formData.googleMapLocation) || null,
-  };
-};
-
-const hasLicense = (formData) =>
-  Boolean(
-    normalizeText(formData.drugLicenseNumber) ||
-    normalizeText(formData.drugLicenseType) ||
-    normalizeText(formData.fssaiNumber) ||
-    normalizeText(formData.licenseExpiresAt),
-  );
-
-const buildLicensePayload = (formData) => {
-  if (!hasLicense(formData)) return undefined;
-
-  return {
-    drugLicenseNumber: normalizeUpperText(formData.drugLicenseNumber) || null,
-    drugLicenseType: normalizeText(formData.drugLicenseType) || null,
-    fssaiNumber: normalizeText(formData.fssaiNumber) || null,
-    expiresAt: normalizeText(formData.licenseExpiresAt) || null,
-  };
-};
-
-const hasPharmacist = (formData) =>
-  Boolean(
-    normalizeText(formData.pharmacistName) ||
-    normalizeText(formData.pharmacistRegistrationNumber) ||
-    normalizeText(formData.pharmacistMobile) ||
-    normalizeText(formData.pharmacistEmail),
-  );
-
-const buildPharmacistPayload = (formData) => {
-  if (!hasPharmacist(formData)) return undefined;
-
-  return {
-    name: normalizeText(formData.pharmacistName) || null,
-    registrationNumber:
-      normalizeUpperText(formData.pharmacistRegistrationNumber) || null,
-    mobile: normalizePhone(formData.pharmacistMobile) || null,
-    email: normalizeLowerText(formData.pharmacistEmail) || null,
-  };
-};
-
-const hasEmergencyContact = (formData) =>
-  Boolean(
-    normalizeText(formData.emergencyContactName) ||
-    normalizeText(formData.emergencyContactMobile) ||
-    normalizeText(formData.emergencyContactRelationship),
-  );
-
-const buildEmergencyContactPayload = (formData) => {
-  if (!hasEmergencyContact(formData)) return undefined;
-
-  return {
-    name: normalizeText(formData.emergencyContactName) || null,
-    mobile: normalizePhone(formData.emergencyContactMobile) || null,
-    relationship: normalizeText(formData.emergencyContactRelationship) || null,
-  };
-};
-
-const buildWorkingDays = (value) =>
-  normalizeText(value)
-    .split(",")
-    .map((day) => normalizeText(day))
-    .filter(Boolean);
 
 const buildBranchPayload = (formData) => {
-  const phone = normalizePhone(formData.branchPhone);
-
   return {
     name: normalizeText(formData.branchName),
     type: formData.branchType || "retail",
-
-    email: normalizeLowerText(formData.branchEmail) || null,
-    phone: phone || null,
-
-    address: buildAddressPayload(formData),
-    license: buildLicensePayload(formData),
-    pharmacist: buildPharmacistPayload(formData),
-    emergencyContact: buildEmergencyContactPayload(formData),
-
-    billingSettings: {
-      invoicePrefix: normalizeUpperText(formData.invoicePrefix) || "INV",
-      purchasePrefix: normalizeUpperText(formData.purchasePrefix) || "PUR",
-      salesReturnPrefix: normalizeUpperText(formData.salesReturnPrefix) || "SR",
-      purchaseReturnPrefix:
-        normalizeUpperText(formData.purchaseReturnPrefix) || "PR",
-      creditNotePrefix: normalizeUpperText(formData.creditNotePrefix) || "CN",
-      debitNotePrefix: normalizeUpperText(formData.debitNotePrefix) || "DBN",
-      startingInvoiceNumber: toNumber(formData.startingInvoiceNumber, 1),
-      startingPurchaseNumber: toNumber(formData.startingPurchaseNumber, 1),
-    },
-
-    inventorySettings: {
-      inventoryMode: formData.inventoryMode || "independent",
-      priceMode: formData.priceMode || "company_default",
-      allowNegativeStock: toBoolean(formData.allowNegativeStock),
-      allowBackdatedEntries: toBoolean(formData.allowBackdatedEntries),
-      enableBatchTracking: toBoolean(formData.enableBatchTracking),
-      enableExpiryTracking: toBoolean(formData.enableExpiryTracking),
-      enableRackTracking: toBoolean(formData.enableRackTracking),
-      enableStockTracking: toBoolean(formData.enableStockTracking),
-    },
-
-    workingHours: {
-      openingTime: normalizeText(formData.openingTime) || null,
-      closingTime: normalizeText(formData.closingTime) || null,
-      weeklyOff: normalizeText(formData.weeklyOff) || null,
-      workingDays: buildWorkingDays(formData.workingDays),
-    },
-
-    facilities: {
-      homeDelivery: toBoolean(formData.homeDelivery),
-      whatsappOrders: toBoolean(formData.whatsappOrders),
-      onlineOrders: toBoolean(formData.onlineOrders),
-      coldStorageAvailable: toBoolean(formData.coldStorageAvailable),
-      twentyFourSevenService: toBoolean(formData.twentyFourSevenService),
-    },
-
-    settings: {
-      timezone: normalizeText(formData.timezone) || "Asia/Kolkata",
-      currency: normalizeUpperText(formData.currency) || "INR",
-      dateFormat: normalizeText(formData.dateFormat) || "DD/MM/YYYY",
-      timeFormat: formData.timeFormat || "12h",
-    },
-
     isPrimary: toBoolean(formData.isPrimary),
+    email: normalizeLowerText(formData.branchEmail) || null,
+
+    phones: {
+      mobile: normalizePhone(formData.mobile) || null,
+      whatsapp: normalizePhone(formData.whatsapp) || null,
+      landline: normalizeText(formData.landline) || null,
+    },
+
+    address: {
+      addressLine1: normalizeText(formData.addressLine1) || null,
+      addressLine2: normalizeText(formData.addressLine2) || null,
+      city: normalizeText(formData.city) || null,
+      district: normalizeText(formData.district) || null,
+      state: normalizeText(formData.state) || null,
+      country: normalizeText(formData.country) || "India",
+      pincode: normalizeText(formData.pincode) || null,
+      googleMapLocation: normalizeText(formData.googleMapLocation) || null,
+    },
+
+    license: {
+      drugLicenseNumber: normalizeUpperText(formData.drugLicenseNumber) || null,
+      drugLicenseType: normalizeText(formData.drugLicenseType) || null,
+      fssaiNumber: normalizeText(formData.fssaiNumber) || null,
+      expiresAt: toDateOrNull(formData.licenseExpiresAt),
+    },
+
+    pharmacist: {
+      name: normalizeText(formData.pharmacistName) || null,
+      registrationNumber:
+        normalizeUpperText(formData.pharmacistRegistrationNumber) || null,
+      mobile: normalizePhone(formData.pharmacistMobile) || null,
+      email: normalizeLowerText(formData.pharmacistEmail) || null,
+    },
+
+    emergencyContact: {
+      name: normalizeText(formData.emergencyContactName) || null,
+      mobile: normalizePhone(formData.emergencyContactMobile) || null,
+      relationship:
+        normalizeText(formData.emergencyContactRelationship) || null,
+    },
   };
 };
 
-const validateForm = (formData) => {
+const validateStepData = (step, formData) => {
   const errors = {};
 
-  const branchName = normalizeText(formData.branchName);
-  const branchEmail = normalizeLowerText(formData.branchEmail);
-  const branchPhone = normalizePhone(formData.branchPhone);
-  const pharmacistMobile = normalizePhone(formData.pharmacistMobile);
-  const pharmacistEmail = normalizeLowerText(formData.pharmacistEmail);
-  const emergencyContactMobile = normalizePhone(
-    formData.emergencyContactMobile,
-  );
-  const startingInvoiceNumber = toNumber(formData.startingInvoiceNumber, 1);
-  const startingPurchaseNumber = toNumber(formData.startingPurchaseNumber, 1);
+  if (step === 1) {
+    const branchName = normalizeText(formData.branchName);
+    const branchEmail = normalizeLowerText(formData.branchEmail);
+    const mobile = normalizePhone(formData.mobile);
+    const whatsapp = normalizePhone(formData.whatsapp);
 
-  if (!branchName) {
-    errors.branchName = "Branch name is required";
-  } else if (branchName.length < 2) {
-    errors.branchName = "Branch name must be at least 2 characters";
-  } else if (branchName.length > 160) {
-    errors.branchName = "Branch name cannot exceed 160 characters";
+    if (!branchName) {
+      errors.branchName = "Branch name is required";
+    } else if (branchName.length < 2) {
+      errors.branchName = "Branch name must be at least 2 characters";
+    } else if (branchName.length > 160) {
+      errors.branchName = "Branch name cannot exceed 160 characters";
+    }
+
+    if (branchEmail && !EMAIL_REGEX.test(branchEmail)) {
+      errors.branchEmail = "Enter a valid branch email address";
+    }
+    if (mobile && !PHONE_REGEX.test(mobile)) {
+      errors.mobile = "Invalid mobile number";
+    }
+    if (whatsapp && !PHONE_REGEX.test(whatsapp)) {
+      errors.whatsapp = "Invalid WhatsApp number";
+    }
   }
 
-  if (branchEmail && !EMAIL_REGEX.test(branchEmail)) {
-    errors.branchEmail = "Enter a valid email address";
+  if (step === 2) {
+    const pincode = normalizeText(formData.pincode);
+    if (pincode && pincode.length !== 6) {
+      errors.pincode = "Pincode must be exactly 6 digits";
+    }
   }
 
-  if (branchPhone && !PHONE_REGEX.test(branchPhone)) {
-    errors.branchPhone = "Invalid phone number";
-  }
+  if (step === 4) {
+    const pharmacistMobile = normalizePhone(formData.pharmacistMobile);
+    const pharmacistEmail = normalizeLowerText(formData.pharmacistEmail);
+    const emergencyContactMobile = normalizePhone(
+      formData.emergencyContactMobile,
+    );
 
-  if (pharmacistMobile && !PHONE_REGEX.test(pharmacistMobile)) {
-    errors.pharmacistMobile = "Invalid pharmacist mobile number";
-  }
-
-  if (pharmacistEmail && !EMAIL_REGEX.test(pharmacistEmail)) {
-    errors.pharmacistEmail = "Enter a valid pharmacist email";
-  }
-
-  if (emergencyContactMobile && !PHONE_REGEX.test(emergencyContactMobile)) {
-    errors.emergencyContactMobile = "Invalid emergency contact mobile number";
-  }
-
-  if (startingInvoiceNumber < 1) {
-    errors.startingInvoiceNumber = "Starting invoice number must be at least 1";
-  }
-
-  if (startingPurchaseNumber < 1) {
-    errors.startingPurchaseNumber =
-      "Starting purchase number must be at least 1";
+    if (pharmacistEmail && !EMAIL_REGEX.test(pharmacistEmail)) {
+      errors.pharmacistEmail = "Enter a valid pharmacist email";
+    }
+    if (pharmacistMobile && !PHONE_REGEX.test(pharmacistMobile)) {
+      errors.pharmacistMobile = "Invalid pharmacist mobile number";
+    }
+    if (emergencyContactMobile && !PHONE_REGEX.test(emergencyContactMobile)) {
+      errors.emergencyContactMobile = "Invalid emergency contact mobile number";
+    }
   }
 
   return errors;
@@ -352,11 +193,9 @@ const CreateBranchPage = () => {
     clearError,
   } = useBranch();
 
-  const formDataRef = useRef({ ...INITIAL_FORM_DATA });
-  const [mobileFormData, setMobileFormData] = useState(INITIAL_FORM_DATA);
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [previewData, setPreviewData] = useState(null);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const isLoading = createBranchStatus === API_STATUS.LOADING;
 
@@ -366,14 +205,7 @@ const CreateBranchPage = () => {
       const name = isEvent ? nameOrEvent.target.name : nameOrEvent;
       const value = isEvent ? nameOrEvent.target.value : maybeValue;
 
-      formDataRef.current[name] = value;
-
-      if (isMobile) {
-        setMobileFormData((prev) => {
-          if (prev[name] === value) return prev;
-          return { ...prev, [name]: value };
-        });
-      }
+      setFormData((prev) => ({ ...prev, [name]: value }));
 
       if (formErrors[name] || formErrors.submit) {
         setFormErrors((prev) => ({
@@ -387,119 +219,144 @@ const CreateBranchPage = () => {
         clearError();
       }
     },
-    [branchError, clearError, formErrors, isMobile],
+    [clearError, branchError, formErrors],
   );
 
-  const handleBack = useCallback(() => {
+  const handleBackToBranches = useCallback(() => {
     navigate("/branches");
   }, [navigate]);
 
-  const closeConfirm = useCallback(() => {
-    if (!isLoading) {
-      setIsConfirmOpen(false);
-    }
-  }, [isLoading]);
+  const handleStepChange = useCallback(
+    (step) => {
+      if (step <= currentStep) {
+        setCurrentStep(step);
+        return;
+      }
 
-  const handleSubmit = useCallback((event) => {
-    event.preventDefault();
+      for (let i = 1; i < step; i++) {
+        const stepErrors = validateStepData(i, formData);
+        if (Object.keys(stepErrors).length > 0) {
+          setFormErrors(stepErrors);
+          setCurrentStep(i);
+          return;
+        }
+      }
+      setCurrentStep(step);
+    },
+    [currentStep, formData],
+  );
 
-    const snapshot = { ...formDataRef.current };
-    const validationErrors = validateForm(snapshot);
+  const handleContinue = useCallback(() => {
+    const stepErrors = validateStepData(currentStep, formData);
 
-    if (Object.keys(validationErrors).length > 0) {
-      setFormErrors(validationErrors);
-      setIsConfirmOpen(false);
+    if (Object.keys(stepErrors).length > 0) {
+      setFormErrors(stepErrors);
       return;
     }
 
     setFormErrors({});
-    setPreviewData(snapshot);
-    setIsConfirmOpen(true);
-  }, []);
+    setCurrentStep((prev) => Math.min(prev + 1, 5));
+  }, [currentStep, formData]);
 
-  const handleConfirmCreate = useCallback(async () => {
-    try {
-      const snapshot = previewData || { ...formDataRef.current };
-      const payload = buildBranchPayload(snapshot);
-
-      await createBranch(payload);
-      navigate("/branches", { replace: true });
-    } catch (error) {
-      setIsConfirmOpen(false);
-      setFormErrors({
-        submit:
-          typeof error === "string"
-            ? error
-            : "Unable to create branch. Please try again.",
-      });
+  const handleBackStep = useCallback(() => {
+    if (currentStep > 1) {
+      setCurrentStep((prev) => prev - 1);
+    } else {
+      handleBackToBranches();
     }
-  }, [createBranch, navigate, previewData]);
+  }, [currentStep, handleBackToBranches]);
+
+  const handleSaveDraft = useCallback(() => {
+    setFormErrors({});
+    navigate("/branches");
+  }, [navigate]);
+
+  const handleSubmit = useCallback(
+    async (event) => {
+      if (event) event.preventDefault();
+
+      let structuralErrors = {};
+      for (let i = 1; i <= 4; i++) {
+        structuralErrors = {
+          ...structuralErrors,
+          ...validateStepData(i, formData),
+        };
+      }
+
+      if (Object.keys(structuralErrors).length > 0) {
+        setFormErrors(structuralErrors);
+        if (
+          structuralErrors.branchName ||
+          structuralErrors.branchEmail ||
+          structuralErrors.mobile ||
+          structuralErrors.whatsapp
+        ) {
+          setCurrentStep(1);
+        } else if (structuralErrors.pincode) {
+          setCurrentStep(2);
+        } else if (
+          structuralErrors.pharmacistEmail ||
+          structuralErrors.pharmacistMobile ||
+          structuralErrors.emergencyContactMobile
+        ) {
+          setCurrentStep(4);
+        } else {
+          setCurrentStep(3);
+        }
+        return;
+      }
+
+      try {
+        const payload = buildBranchPayload(formData);
+        await createBranch(payload);
+        navigate("/branches", { replace: true });
+      } catch (error) {
+        setFormErrors({
+          submit:
+            typeof error === "string"
+              ? error
+              : "Unable to create branch. Please try again.",
+        });
+      }
+    },
+    [createBranch, formData, navigate],
+  );
 
   const desktopProps = useMemo(
     () => ({
-      initialFormData: INITIAL_FORM_DATA,
+      formData,
       formErrors,
       isLoading,
-      isConfirmOpen,
-      previewData,
+      currentStep,
 
       branchTypeOptions,
-      statusOptions,
-      inventoryModeOptions,
-      priceModeOptions,
-      currencyOptions,
-      timeFormatOptions,
       booleanOptions,
 
       handleChange: handleFieldChange,
       handleSubmit,
-      handleBack,
-      closeConfirm,
-      handleConfirmCreate,
+      handleBack: handleBackStep,
+      handleContinue,
+      handleStepChange,
+      handleSaveDraft,
+      handleCancel: handleBackToBranches,
     }),
     [
-      closeConfirm,
+      formData,
       formErrors,
-      handleBack,
-      handleConfirmCreate,
+      isLoading,
+      currentStep,
       handleFieldChange,
       handleSubmit,
-      isConfirmOpen,
-      isLoading,
-      previewData,
-    ],
-  );
-
-  const mobileProps = useMemo(
-    () => ({
-      formData: mobileFormData,
-      formErrors,
-      isLoading,
-
-      branchTypeOptions,
-      statusOptions,
-      inventoryModeOptions,
-      priceModeOptions,
-      currencyOptions,
-      timeFormatOptions,
-      booleanOptions,
-
-      handleChange: handleFieldChange,
-      handleSubmit,
-      handleBack,
-    }),
-    [
-      formErrors,
-      handleBack,
-      handleFieldChange,
-      handleSubmit,
-      isLoading,
-      mobileFormData,
+      handleBackStep,
+      handleContinue,
+      handleStepChange,
+      handleSaveDraft,
+      handleBackToBranches,
     ],
   );
 
   return isMobile ? (
-    <CreateBranchMobilePage {...mobileProps} />
+    <CreateBranchMobilePage {...desktopProps} />
   ) : (
     <CreateBranchDesktopPage {...desktopProps} />
   );

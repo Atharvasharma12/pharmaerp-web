@@ -37,6 +37,7 @@ import {
   AppText,
   PageHeader,
   PageRightSidebar,
+  HELP_SUPPORT_CARD,
 } from "@/components";
 
 const actionKeys = ["view", "create", "update", "delete"];
@@ -1032,16 +1033,7 @@ const RightSidebar = ({
               </div>
             ),
           },
-          {
-            title: "Need Help?",
-            icon: <FiBookOpen />,
-            colorVariant: "neutral",
-            variant: "default",
-            description:
-              "Learn more about roles and permissions management in PharmaERP.",
-            actionLabel: "View User Guide",
-            actionIcon: <FiArrowRight />,
-          },
+          HELP_SUPPORT_CARD,
         ]}
       />
     );
@@ -1090,16 +1082,7 @@ const RightSidebar = ({
               />
             ),
           },
-          {
-            title: "Need Help?",
-            icon: <FiBookOpen />,
-            colorVariant: "neutral",
-            variant: "default",
-            description:
-              "Learn more about roles and permissions management in PharmaERP.",
-            actionLabel: "View User Guide",
-            actionIcon: <FiArrowRight />,
-          },
+          HELP_SUPPORT_CARD,
         ]}
       />
     );
@@ -1136,25 +1119,7 @@ const RightSidebar = ({
           pointIcon: <FiCheckCircle />,
           pointIconVariant: "check",
         },
-        {
-          title: "Need Help?",
-          icon: <FiBookOpen />,
-          colorVariant: "neutral",
-          variant: "default",
-          description:
-            "Learn more about roles and permissions management in PharmaERP.",
-          actionLabel: "View User Guide",
-          actionIcon: <FiArrowRight />,
-          custom: onReset ? (
-            <button
-              type="button"
-              onClick={onReset}
-              className="mt-3 flex items-center gap-2 text-[12px] font-bold text-text-muted"
-            >
-              <FiRefreshCw /> Reset Form
-            </button>
-          ) : null,
-        },
+        HELP_SUPPORT_CARD,
       ]}
     />
   );

@@ -1,6 +1,4 @@
-// src/features/company/pages/EditCompanyPage.jsx
-
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { API_STATUS } from "@/constants";
@@ -12,62 +10,42 @@ import EditCompanyDesktopPage from "./desktop/EditCompanyDesktopPage";
 import EditCompanyMobilePage from "./mobile/EditCompanyMobilePage";
 
 const INITIAL_FORM_DATA = {
+  // Step 1: Company Details
   companyName: "",
-  companyType: "proprietorship",
-  status: "active",
-
-  gstNumber: "",
-  panNumber: "",
+  companyType: "private_limited",
   companyEmail: "",
-  phoneCountryCode: "+91",
   companyPhone: "",
+  website: "",
+  status: "active",
+  logo: null,
 
+  // Step 2: Owner Details (PERSON_SCHEMA)
+  ownerName: "",
+  ownerEmail: "",
+  ownerMobile: "",
+  ownerAadhaar: "",
+  ownerPan: "",
+
+  // Step 3: Address (ADDRESS_SCHEMA)
   addressLine1: "",
   addressLine2: "",
   city: "",
+  district: "",
   state: "",
   country: "India",
   pincode: "",
 
-  drugLicenseNumber: "",
-  drugLicenseIssuedAt: "",
-  drugLicenseExpiry: "",
-  drugLicenseStatus: "pending",
-
-  foodLicenseNumber: "",
-  foodLicenseIssuedAt: "",
-  foodLicenseExpiry: "",
-  foodLicenseStatus: "pending",
-
-  tradeLicenseNumber: "",
-  tradeLicenseIssuedAt: "",
-  tradeLicenseExpiry: "",
-  tradeLicenseStatus: "pending",
-
-  gstType: "regular",
-  billingType: "gst",
-  defaultGstRate: "0",
-  isGstInclusive: "false",
-
-  invoicePrefix: "INV",
-  invoiceStartNumber: "1",
-  purchasePrefix: "PUR",
-  purchaseStartNumber: "1",
-  salesReturnPrefix: "SR",
-  purchaseReturnPrefix: "PR",
-
-  timezone: "Asia/Kolkata",
-  currency: "INR",
-  dateFormat: "DD/MM/YYYY",
-  timeFormat: "12h",
-
-  allowNegativeStock: "false",
-  allowBackdatedEntries: "false",
-  enableBatchTracking: "true",
-  enableExpiryTracking: "true",
-  enablePurchaseModule: "true",
-  enableSalesModule: "true",
-  enableInventoryModule: "true",
+  // Step 4: License Details & Identity (LICENSE_SCHEMA + Root Identifiers)
+  gstNumber: "",
+  panNumber: "",
+  licenseType: "",
+  retailLicenseNumber: "",
+  wholesaleLicenseNumber: "",
+  fssaiNumber: "",
+  licenseIssuedAt: "",
+  licenseExpiresAt: "",
+  licenseStatus: "pending",
+  licenseDocument: null,
 };
 
 const companyTypeOptions = [
@@ -82,28 +60,6 @@ const companyTypeOptions = [
   { label: "Other", value: "other" },
 ];
 
-const statusOptions = [
-  { label: "Active", value: "active" },
-  { label: "Inactive", value: "inactive" },
-  { label: "Suspended", value: "suspended" },
-];
-
-const currencyOptions = [
-  { label: "INR - Indian Rupee (₹)", value: "INR" },
-  { label: "USD - US Dollar ($)", value: "USD" },
-];
-
-const gstTypeOptions = [
-  { label: "Regular", value: "regular" },
-  { label: "Composition", value: "composition" },
-  { label: "Unregistered", value: "unregistered" },
-];
-
-const billingTypeOptions = [
-  { label: "GST", value: "gst" },
-  { label: "Non GST", value: "non_gst" },
-];
-
 const licenseStatusOptions = [
   { label: "Pending", value: "pending" },
   { label: "Active", value: "active" },
@@ -111,296 +67,84 @@ const licenseStatusOptions = [
   { label: "Suspended", value: "suspended" },
 ];
 
-const timeFormatOptions = [
-  { label: "12 Hour", value: "12h" },
-  { label: "24 Hour", value: "24h" },
-];
-
-const booleanOptions = [
-  { label: "Yes", value: "true" },
-  { label: "No", value: "false" },
-];
-
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 const PHONE_REGEX = /^[6-9][0-9]{9}$/;
+const AADHAAR_REGEX = /^[0-9]{12}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const normalizeText = (value) => String(value || "").trim();
 const normalizeUpperText = (value) => normalizeText(value).toUpperCase();
 const normalizeLowerText = (value) => normalizeText(value).toLowerCase();
 const normalizePhone = (value) => normalizeText(value).replace(/\D/g, "");
-const toBoolean = (value) => value === true || value === "true";
-
-const toNumber = (value, fallback = 0) => {
-  const numberValue = Number(value);
-  return Number.isNaN(numberValue) ? fallback : numberValue;
-};
-
-const toDateInputValue = (value) => {
-  if (!value) return "";
-
-  const parsedDate = new Date(value);
-
-  if (Number.isNaN(parsedDate.getTime())) return "";
-
-  return parsedDate.toISOString().slice(0, 10);
-};
 
 const toDateOrNull = (value) => {
   const trimmedValue = normalizeText(value);
-
   if (!trimmedValue) return null;
-
   const parsedDate = new Date(trimmedValue);
-
-  if (Number.isNaN(parsedDate.getTime())) return null;
-
-  return parsedDate.toISOString();
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate.toISOString();
 };
 
-const hasAddress = (formData) =>
-  Boolean(
-    normalizeText(formData.addressLine1) ||
-    normalizeText(formData.addressLine2) ||
-    normalizeText(formData.city) ||
-    normalizeText(formData.state) ||
-    normalizeText(formData.country) ||
-    normalizeText(formData.pincode),
-  );
-
-const buildAddressPayload = (formData) => {
-  if (!hasAddress(formData)) return null;
-
-  return {
-    addressLine1: normalizeText(formData.addressLine1) || null,
-    addressLine2: normalizeText(formData.addressLine2) || null,
-    city: normalizeText(formData.city) || null,
-    state: normalizeText(formData.state) || null,
-    country: normalizeText(formData.country) || "India",
-    pincode: normalizeText(formData.pincode) || null,
-  };
-};
-
-const hasLicense = (licenseNumber, issuedAt, expiresAt) =>
-  Boolean(
-    normalizeText(licenseNumber) ||
-    normalizeText(issuedAt) ||
-    normalizeText(expiresAt),
-  );
-
-const buildLicensePayload = ({
-  licenseNumber,
-  issuedAt,
-  expiresAt,
-  status,
-}) => {
-  if (!hasLicense(licenseNumber, issuedAt, expiresAt)) return null;
-
-  return {
-    licenseNumber: normalizeUpperText(licenseNumber) || null,
-    issuedAt: toDateOrNull(issuedAt),
-    expiresAt: toDateOrNull(expiresAt),
-    status: status || "pending",
-  };
+const formatIsoToYmd = (isoString) => {
+  if (!isoString) return "";
+  return isoString.split("T")[0];
 };
 
 const buildCompanyPayload = (formData) => {
-  const phone = normalizePhone(formData.companyPhone);
-
   return {
     name: normalizeText(formData.companyName),
-    type: formData.companyType || "proprietorship",
+    type: formData.companyType || "private_limited",
     status: formData.status || "active",
-
+    logo: formData.logo || null,
     email: normalizeLowerText(formData.companyEmail) || null,
-    phone: phone || null,
+    website: normalizeLowerText(formData.website) || null,
     gstin: normalizeUpperText(formData.gstNumber) || null,
     pan: normalizeUpperText(formData.panNumber) || null,
 
-    address: buildAddressPayload(formData),
-
-    drugLicense: buildLicensePayload({
-      licenseNumber: formData.drugLicenseNumber,
-      issuedAt: formData.drugLicenseIssuedAt,
-      expiresAt: formData.drugLicenseExpiry,
-      status: formData.drugLicenseStatus,
-    }),
-
-    foodLicense: buildLicensePayload({
-      licenseNumber: formData.foodLicenseNumber,
-      issuedAt: formData.foodLicenseIssuedAt,
-      expiresAt: formData.foodLicenseExpiry,
-      status: formData.foodLicenseStatus,
-    }),
-
-    tradeLicense: buildLicensePayload({
-      licenseNumber: formData.tradeLicenseNumber,
-      issuedAt: formData.tradeLicenseIssuedAt,
-      expiresAt: formData.tradeLicenseExpiry,
-      status: formData.tradeLicenseStatus,
-    }),
-
-    taxSettings: {
-      gstType: formData.gstType || "regular",
-      billingType: formData.billingType || "gst",
-      defaultGstRate: toNumber(formData.defaultGstRate, 0),
-      isGstInclusive: toBoolean(formData.isGstInclusive),
+    phones: {
+      mobile: normalizePhone(formData.companyPhone) || null,
     },
 
-    billingSettings: {
-      invoicePrefix: normalizeUpperText(formData.invoicePrefix) || "INV",
-      invoiceStartNumber: toNumber(formData.invoiceStartNumber, 1),
-      purchasePrefix: normalizeUpperText(formData.purchasePrefix) || "PUR",
-      purchaseStartNumber: toNumber(formData.purchaseStartNumber, 1),
-      salesReturnPrefix: normalizeUpperText(formData.salesReturnPrefix) || "SR",
-      purchaseReturnPrefix:
-        normalizeUpperText(formData.purchaseReturnPrefix) || "PR",
+    address: {
+      addressLine1: normalizeText(formData.addressLine1) || null,
+      addressLine2: normalizeText(formData.addressLine2) || null,
+      city: normalizeText(formData.city) || null,
+      district: normalizeText(formData.district) || null,
+      state: normalizeText(formData.state) || null,
+      country: normalizeText(formData.country) || "India",
+      pincode: normalizeText(formData.pincode) || null,
     },
 
-    settings: {
-      timezone: normalizeText(formData.timezone) || "Asia/Kolkata",
-      currency: normalizeUpperText(formData.currency) || "INR",
-      dateFormat: normalizeText(formData.dateFormat) || "DD/MM/YYYY",
-      timeFormat: formData.timeFormat || "12h",
-      allowNegativeStock: toBoolean(formData.allowNegativeStock),
-      allowBackdatedEntries: toBoolean(formData.allowBackdatedEntries),
-      enableBatchTracking: toBoolean(formData.enableBatchTracking),
-      enableExpiryTracking: toBoolean(formData.enableExpiryTracking),
-      enablePurchaseModule: toBoolean(formData.enablePurchaseModule),
-      enableSalesModule: toBoolean(formData.enableSalesModule),
-      enableInventoryModule: toBoolean(formData.enableInventoryModule),
+    owner: {
+      name: normalizeText(formData.ownerName) || null,
+      email: normalizeLowerText(formData.ownerEmail) || null,
+      mobile: normalizePhone(formData.ownerMobile) || null,
+      aadhaar: normalizeText(formData.ownerAadhaar) || null,
+      pan: normalizeUpperText(formData.ownerPan) || null,
+    },
+
+    license: {
+      licenseType: normalizeText(formData.licenseType) || null,
+      retailLicenseNumber:
+        normalizeUpperText(formData.retailLicenseNumber) || null,
+      wholesaleLicenseNumber:
+        normalizeUpperText(formData.wholesaleLicenseNumber) || null,
+      fssaiNumber: normalizeText(formData.fssaiNumber) || null,
+      issuedAt: toDateOrNull(formData.licenseIssuedAt),
+      expiresAt: toDateOrNull(formData.licenseExpiresAt),
+      status: formData.licenseStatus || "pending",
+      document: formData.licenseDocument || null,
     },
   };
 };
 
-const mapCompanyToFormData = (company) => ({
-  companyName: company?.name || "",
-  companyType: company?.type || "proprietorship",
-  status: company?.status || "active",
+const validateStepData = (step, formData) => {
+  const errors = {};
 
-  gstNumber: company?.gstin || "",
-  panNumber: company?.pan || "",
-  companyEmail: company?.email || "",
-  phoneCountryCode: "+91",
-  companyPhone: company?.phone || "",
-
-  addressLine1: company?.address?.addressLine1 || "",
-  addressLine2: company?.address?.addressLine2 || "",
-  city: company?.address?.city || "",
-  state: company?.address?.state || "",
-  country: company?.address?.country || "India",
-  pincode: company?.address?.pincode || "",
-
-  drugLicenseNumber: company?.drugLicense?.licenseNumber || "",
-  drugLicenseIssuedAt: toDateInputValue(company?.drugLicense?.issuedAt),
-  drugLicenseExpiry: toDateInputValue(company?.drugLicense?.expiresAt),
-  drugLicenseStatus: company?.drugLicense?.status || "pending",
-
-  foodLicenseNumber: company?.foodLicense?.licenseNumber || "",
-  foodLicenseIssuedAt: toDateInputValue(company?.foodLicense?.issuedAt),
-  foodLicenseExpiry: toDateInputValue(company?.foodLicense?.expiresAt),
-  foodLicenseStatus: company?.foodLicense?.status || "pending",
-
-  tradeLicenseNumber: company?.tradeLicense?.licenseNumber || "",
-  tradeLicenseIssuedAt: toDateInputValue(company?.tradeLicense?.issuedAt),
-  tradeLicenseExpiry: toDateInputValue(company?.tradeLicense?.expiresAt),
-  tradeLicenseStatus: company?.tradeLicense?.status || "pending",
-
-  gstType: company?.taxSettings?.gstType || "regular",
-  billingType: company?.taxSettings?.billingType || "gst",
-  defaultGstRate: String(company?.taxSettings?.defaultGstRate ?? 0),
-  isGstInclusive: String(Boolean(company?.taxSettings?.isGstInclusive)),
-
-  invoicePrefix: company?.billingSettings?.invoicePrefix || "INV",
-  invoiceStartNumber: String(company?.billingSettings?.invoiceStartNumber ?? 1),
-  purchasePrefix: company?.billingSettings?.purchasePrefix || "PUR",
-  purchaseStartNumber: String(
-    company?.billingSettings?.purchaseStartNumber ?? 1,
-  ),
-  salesReturnPrefix: company?.billingSettings?.salesReturnPrefix || "SR",
-  purchaseReturnPrefix: company?.billingSettings?.purchaseReturnPrefix || "PR",
-
-  timezone: company?.settings?.timezone || "Asia/Kolkata",
-  currency: company?.settings?.currency || "INR",
-  dateFormat: company?.settings?.dateFormat || "DD/MM/YYYY",
-  timeFormat: company?.settings?.timeFormat || "12h",
-
-  allowNegativeStock: String(Boolean(company?.settings?.allowNegativeStock)),
-  allowBackdatedEntries: String(
-    Boolean(company?.settings?.allowBackdatedEntries),
-  ),
-  enableBatchTracking: String(company?.settings?.enableBatchTracking !== false),
-  enableExpiryTracking: String(
-    company?.settings?.enableExpiryTracking !== false,
-  ),
-  enablePurchaseModule: String(
-    company?.settings?.enablePurchaseModule !== false,
-  ),
-  enableSalesModule: String(company?.settings?.enableSalesModule !== false),
-  enableInventoryModule: String(
-    company?.settings?.enableInventoryModule !== false,
-  ),
-});
-
-const EditCompanyPage = () => {
-  const navigate = useNavigate();
-  const { companyId } = useParams();
-  const isMobile = useIsMobile();
-
-  const {
-    currentCompany,
-    getCompanyById,
-    updateCompany,
-    getCompanyStatus,
-    updateCompanyStatus,
-    error: companyError,
-    clearError,
-    clearCurrentCompany,
-  } = useCompany();
-
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
-  const [formErrors, setFormErrors] = useState({});
-
-  const isFetching = getCompanyStatus === API_STATUS.LOADING;
-  const isLoading = updateCompanyStatus === API_STATUS.LOADING;
-
-  useEffect(() => {
-    if (!companyId) {
-      navigate("/companies", { replace: true });
-      return;
-    }
-
-    getCompanyById(companyId).catch((error) => {
-      setFormErrors({
-        submit:
-          typeof error === "string"
-            ? error
-            : "Unable to fetch company details.",
-      });
-    });
-
-    return () => {
-      clearError();
-    };
-  }, [companyId, getCompanyById, navigate, clearError]);
-
-  useEffect(() => {
-    if (currentCompany?._id === companyId) {
-      setFormData(mapCompanyToFormData(currentCompany));
-    }
-  }, [currentCompany, companyId]);
-
-  const validateForm = () => {
-    const errors = {};
-
+  if (step === 1) {
     const companyName = normalizeText(formData.companyName);
-    const gstNumber = normalizeUpperText(formData.gstNumber);
-    const panNumber = normalizeUpperText(formData.panNumber);
     const companyEmail = normalizeLowerText(formData.companyEmail);
     const companyPhone = normalizePhone(formData.companyPhone);
-    const defaultGstRate = toNumber(formData.defaultGstRate, 0);
-    const invoiceStartNumber = toNumber(formData.invoiceStartNumber, 1);
-    const purchaseStartNumber = toNumber(formData.purchaseStartNumber, 1);
 
     if (!companyName) {
       errors.companyName = "Company name is required";
@@ -410,116 +154,306 @@ const EditCompanyPage = () => {
       errors.companyName = "Company name cannot exceed 160 characters";
     }
 
-    if (gstNumber && !GSTIN_REGEX.test(gstNumber)) {
-      errors.gstNumber = "Invalid GSTIN";
-    }
-
-    if (panNumber && !PAN_REGEX.test(panNumber)) {
-      errors.panNumber = "Invalid PAN number";
-    }
-
-    if (companyEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(companyEmail)) {
+    if (companyEmail && !EMAIL_REGEX.test(companyEmail)) {
       errors.companyEmail = "Enter a valid email address";
     }
 
     if (companyPhone && !PHONE_REGEX.test(companyPhone)) {
       errors.companyPhone = "Invalid phone number";
     }
+  }
 
-    if (defaultGstRate < 0 || defaultGstRate > 100) {
-      errors.defaultGstRate = "GST rate must be between 0 and 100";
+  if (step === 2) {
+    const ownerEmail = normalizeLowerText(formData.ownerEmail);
+    const ownerMobile = normalizePhone(formData.ownerMobile);
+    const ownerAadhaar = normalizeText(formData.ownerAadhaar);
+    const ownerPan = normalizeUpperText(formData.ownerPan);
+
+    if (ownerEmail && !EMAIL_REGEX.test(ownerEmail)) {
+      errors.ownerEmail = "Enter a valid owner email";
     }
-
-    if (invoiceStartNumber < 1) {
-      errors.invoiceStartNumber = "Invoice start number must be at least 1";
+    if (ownerMobile && !PHONE_REGEX.test(ownerMobile)) {
+      errors.ownerMobile = "Invalid owner mobile number";
     }
-
-    if (purchaseStartNumber < 1) {
-      errors.purchaseStartNumber = "Purchase start number must be at least 1";
+    if (ownerAadhaar && !AADHAAR_REGEX.test(ownerAadhaar)) {
+      errors.ownerAadhaar = "Invalid Aadhaar number (must be 12 digits)";
     }
-
-    return errors;
-  };
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-
-    if (formErrors[name] || formErrors.submit) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: "",
-        submit: "",
-      }));
+    if (ownerPan && !PAN_REGEX.test(ownerPan)) {
+      errors.ownerPan = "Invalid owner PAN number";
     }
+  }
 
-    if (companyError) {
-      clearError();
+  if (step === 3) {
+    const pincode = normalizeText(formData.pincode);
+    if (pincode && pincode.length !== 6) {
+      errors.pincode = "Pincode must be exactly 6 digits";
     }
+  }
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  if (step === 4) {
+    const gstNumber = normalizeUpperText(formData.gstNumber);
+    const panNumber = normalizeUpperText(formData.panNumber);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+    if (gstNumber && !GSTIN_REGEX.test(gstNumber)) {
+      errors.gstNumber = "Invalid GSTIN format";
+    }
+    if (panNumber && !PAN_REGEX.test(panNumber)) {
+      errors.panNumber = "Invalid PAN format";
+    }
+  }
 
-    const validationErrors = validateForm();
+  return errors;
+};
 
-    if (Object.keys(validationErrors).length > 0) {
-      setFormErrors(validationErrors);
+const EditCompanyPage = () => {
+  const { companyId } = useParams();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+
+  const {
+    getCompanyById,
+    updateCompany,
+    updateCompanyStatus,
+    getCompanyStatus,
+    error: companyError,
+    clearError,
+  } = useCompany();
+
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [formErrors, setFormErrors] = useState({});
+  const [currentStep, setCurrentStep] = useState(1);
+
+  const isLoading = updateCompanyStatus === API_STATUS.LOADING;
+  const isFetching = getCompanyStatus === API_STATUS.LOADING;
+
+  // FIXED: Removed unstable getCompanyById reference from dependencies to eliminate network calling loops
+  const loadCompanyData = useCallback(async () => {
+    if (!companyId) return;
+
+    try {
+      const data = await getCompanyById(companyId);
+      if (data) {
+        setFormData({
+          // Step 1: Company Profile Parameters
+          companyName: data.name || "",
+          companyType: data.type || "private_limited",
+          companyEmail: data.email || "",
+          companyPhone: data.phones?.mobile || "",
+          website: data.website || "",
+          status: data.status || "active",
+          logo: data.logo || null,
+
+          // Step 2: Individual Accountability Metrics
+          ownerName: data.owner?.name || "",
+          ownerEmail: data.owner?.email || "",
+          ownerMobile: data.owner?.mobile || "",
+          ownerAadhaar: data.owner?.aadhaar || "",
+          ownerPan: data.owner?.pan || "",
+
+          // Step 3: Location Properties
+          addressLine1: data.address?.addressLine1 || "",
+          addressLine2: data.address?.addressLine2 || "",
+          city: data.address?.city || "",
+          district: data.address?.district || "",
+          state: data.address?.state || "",
+          country: data.address?.country || "India",
+          pincode: data.address?.pincode || "",
+
+          // Step 4: Statutory Compliance Identifiers
+          gstNumber: data.gstin || "",
+          panNumber: data.pan || "",
+          licenseType: data.license?.licenseType || "",
+          retailLicenseNumber: data.license?.retailLicenseNumber || "",
+          wholesaleLicenseNumber: data.license?.wholesaleLicenseNumber || "",
+          fssaiNumber: data.license?.fssaiNumber || "",
+          licenseIssuedAt: formatIsoToYmd(data.license?.issuedAt),
+          licenseExpiresAt: formatIsoToYmd(data.license?.expiresAt),
+          licenseStatus: data.license?.status || "pending",
+          licenseDocument: data.license?.document || null,
+        });
+      }
+    } catch (err) {
+      setFormErrors({
+        submit: "Unable to retrieve company records. Returning to dashboard.",
+      });
+      setTimeout(() => {
+        navigate("/companies");
+      }, 2500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, navigate]);
+
+  useEffect(() => {
+    loadCompanyData();
+  }, [companyId, loadCompanyData]);
+
+  const handleFieldChange = useCallback(
+    (nameOrEvent, maybeValue) => {
+      const isEvent = Boolean(nameOrEvent?.target);
+      const name = isEvent ? nameOrEvent.target.name : nameOrEvent;
+      const value = isEvent ? nameOrEvent.target.value : maybeValue;
+
+      setFormData((prev) => ({ ...prev, [name]: value }));
+
+      if (formErrors[name] || formErrors.submit) {
+        setFormErrors((prev) => ({
+          ...prev,
+          [name]: "",
+          submit: "",
+        }));
+      }
+
+      if (companyError) {
+        clearError();
+      }
+    },
+    [clearError, companyError, formErrors],
+  );
+
+  const handleBackToCompanies = useCallback(() => {
+    navigate("/companies");
+  }, [navigate]);
+
+  const handleStepChange = useCallback(
+    (step) => {
+      if (step <= currentStep) {
+        setCurrentStep(step);
+        return;
+      }
+
+      for (let i = 1; i < step; i++) {
+        const stepErrors = validateStepData(i, formData);
+        if (Object.keys(stepErrors).length > 0) {
+          setFormErrors(stepErrors);
+          setCurrentStep(i);
+          return;
+        }
+      }
+      setCurrentStep(step);
+    },
+    [currentStep, formData],
+  );
+  const handleContinue = useCallback(() => {
+    const stepErrors = validateStepData(currentStep, formData);
+
+    if (Object.keys(stepErrors).length > 0) {
+      setFormErrors(stepErrors);
       return;
     }
 
-    try {
-      const payload = buildCompanyPayload(formData);
-
-      await updateCompany(companyId, payload);
-
-      navigate("/companies", { replace: true });
-    } catch (error) {
-      setFormErrors({
-        submit:
-          typeof error === "string"
-            ? error
-            : "Unable to update company. Please try again.",
-      });
+    // Fixed condition to allow progression from Step 4 to Step 5
+    if (currentStep < 5) {
+      setCurrentStep((prev) => prev + 1);
     }
-  };
+  }, [currentStep, formData]);
 
-  const handleBack = () => {
-    clearCurrentCompany();
+  const handleBackStep = useCallback(() => {
+    if (currentStep > 1) {
+      setCurrentStep((prev) => prev - 1);
+    } else {
+      handleBackToCompanies();
+    }
+  }, [currentStep, handleBackToCompanies]);
+
+  const handleSaveDraft = useCallback(() => {
+    setFormErrors({});
     navigate("/companies");
-  };
+  }, [navigate]);
 
-  const pageProps = useMemo(
+  const handleSubmit = useCallback(
+    async (event) => {
+      if (event) event.preventDefault();
+
+      let structuralErrors = {};
+      for (let i = 1; i <= 4; i++) {
+        structuralErrors = {
+          ...structuralErrors,
+          ...validateStepData(i, formData),
+        };
+      }
+
+      if (Object.keys(structuralErrors).length > 0) {
+        setFormErrors(structuralErrors);
+        if (
+          structuralErrors.companyName ||
+          structuralErrors.companyEmail ||
+          structuralErrors.companyPhone
+        ) {
+          setCurrentStep(1);
+        } else if (
+          structuralErrors.ownerEmail ||
+          structuralErrors.ownerMobile ||
+          structuralErrors.ownerAadhaar ||
+          structuralErrors.ownerPan
+        ) {
+          setCurrentStep(2);
+        } else if (structuralErrors.pincode) {
+          setCurrentStep(3);
+        } else {
+          setCurrentStep(4);
+        }
+        return;
+      }
+
+      try {
+        const payload = buildCompanyPayload(formData);
+        await updateCompany(companyId, payload);
+        navigate("/companies", { replace: true });
+      } catch (error) {
+        setFormErrors({
+          submit:
+            typeof error === "string"
+              ? error
+              : "Unable to update company record modifications. Please retry.",
+        });
+      }
+    },
+    // FIXED: Removed unstable updateCompany dependency to match safe dispatch patterns
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [companyId, formData, navigate],
+  );
+
+  const desktopProps = useMemo(
     () => ({
       formData,
       formErrors,
       isLoading,
       isFetching,
+      currentStep,
 
       companyTypeOptions,
-      currencyOptions,
-      gstTypeOptions,
-      billingTypeOptions,
       licenseStatusOptions,
-      statusOptions,
-      timeFormatOptions,
-      booleanOptions,
 
-      handleChange,
+      handleChange: handleFieldChange,
       handleSubmit,
-      handleBack,
+      handleBack: handleBackStep,
+      handleContinue,
+      handleStepChange,
+      handleSaveDraft,
+      handleCancel: handleBackToCompanies,
+      handleReload: loadCompanyData,
     }),
-    [formData, formErrors, isLoading, isFetching],
+    [
+      formData,
+      formErrors,
+      isLoading,
+      isFetching,
+      currentStep,
+      handleFieldChange,
+      handleSubmit,
+      handleBackStep,
+      handleContinue,
+      handleStepChange,
+      handleSaveDraft,
+      handleBackToCompanies,
+      loadCompanyData,
+    ],
   );
 
   return isMobile ? (
-    <EditCompanyMobilePage {...pageProps} />
+    <EditCompanyMobilePage {...desktopProps} />
   ) : (
-    <EditCompanyDesktopPage {...pageProps} />
+    <EditCompanyDesktopPage {...desktopProps} />
   );
 };
 

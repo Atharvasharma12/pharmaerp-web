@@ -13,27 +13,23 @@ import BranchesDesktopPage from "./desktop/BranchesDesktopPage";
 import BranchesMobilePage from "./mobile/BranchesMobilePage";
 
 const statusOptions = [
-  { label: "All Status", value: "all" },
+  { label: "Status: All", value: "all" },
   { label: "Active", value: "active" },
   { label: "Inactive", value: "inactive" },
-  { label: "Suspended", value: "suspended" },
+  { label: "Pending", value: "suspended" },
 ];
 
-const branchTypeOptions = [
-  { label: "All Types", value: "all" },
-  { label: "Retail", value: "retail" },
-  { label: "Wholesale", value: "wholesale" },
-  { label: "Warehouse", value: "warehouse" },
-  { label: "Clinic Pharmacy", value: "clinic_pharmacy" },
-  { label: "Hospital Pharmacy", value: "hospital_pharmacy" },
-  { label: "Online", value: "online" },
-  { label: "Other", value: "other" },
+const companyOptions = [
+  { label: "Company: All", value: "all" },
+  { label: "MedPlus Pharmacy", value: "medplus-pharmacy" },
+  { label: "MedPlus Healthcare Pvt. Ltd.", value: "medplus-healthcare" },
+  { label: "MedPlus Distribution", value: "medplus-distribution" },
 ];
 
 const initialFilters = {
   search: "",
   status: "all",
-  type: "all",
+  company: "all",
 };
 
 const normalizeText = (value) =>
@@ -41,38 +37,25 @@ const normalizeText = (value) =>
     .trim()
     .toLowerCase();
 
-const formatBranchType = (type) => {
-  if (!type) return "-";
+const slugify = (value) =>
+  normalizeText(value)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
-  return String(type)
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
-
-const formatAddress = (address) => {
+const formatBranchAddress = (address) => {
   if (!address) return "-";
-
-  return [
-    address.addressLine1,
-    address.addressLine2,
-    address.city,
-    address.district,
-    address.state,
-    address.pincode,
-    address.country,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  const cityStr = address.city || "";
+  const pinStr = address.pincode ? ` ${address.pincode}` : "";
+  return {
+    line1: address.addressLine1 || "New Delhi",
+    summary: `${cityStr}${pinStr}` || "Delhi",
+  };
 };
 
 const formatDate = (value) => {
   if (!value) return "-";
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return "-";
-
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -80,65 +63,34 @@ const formatDate = (value) => {
   });
 };
 
-const formatTime = (openingTime, closingTime) => {
-  if (!openingTime && !closingTime) return "-";
-
-  return [openingTime, closingTime].filter(Boolean).join(" - ");
-};
-
 const getBranchDisplayName = (branch) => branch?.name || "Branch";
 
-const mapBranchForView = (branch) => ({
-  ...branch,
+const mapBranchForView = (branch) => {
+  const addressBlock = formatBranchAddress(branch?.address);
+  const companyNameStr =
+    branch?.companyId?.name || branch?.companyName || "MedPlus Pharmacy";
 
-  displayName: branch?.name || "-",
-  displayType: formatBranchType(branch?.type),
-  displayAddress: formatAddress(branch?.address),
-
-  displayCreatedAt: formatDate(branch?.createdAt),
-  displayUpdatedAt: formatDate(branch?.updatedAt),
-
-  displayPhone: branch?.phone ? `+91 ${branch.phone}` : "-",
-  displayEmail: branch?.email || "-",
-
-  displayDrugLicenseNumber: branch?.license?.drugLicenseNumber || "-",
-  displayDrugLicenseType: branch?.license?.drugLicenseType || "-",
-  displayFssaiNumber: branch?.license?.fssaiNumber || "-",
-  displayLicenseExpiry: formatDate(branch?.license?.expiresAt),
-
-  displayPharmacistName: branch?.pharmacist?.name || "-",
-  displayPharmacistMobile: branch?.pharmacist?.mobile
-    ? `+91 ${branch.pharmacist.mobile}`
-    : "-",
-  displayPharmacistEmail: branch?.pharmacist?.email || "-",
-
-  displayEmergencyContactName: branch?.emergencyContact?.name || "-",
-  displayEmergencyContactMobile: branch?.emergencyContact?.mobile
-    ? `+91 ${branch.emergencyContact.mobile}`
-    : "-",
-
-  displayInventoryMode: branch?.inventorySettings?.inventoryMode || "-",
-  displayPriceMode: branch?.inventorySettings?.priceMode || "-",
-
-  displayWorkingHours: formatTime(
-    branch?.workingHours?.openingTime,
-    branch?.workingHours?.closingTime,
-  ),
-
-  displayFacilities: [
-    branch?.facilities?.homeDelivery ? "Home Delivery" : null,
-    branch?.facilities?.whatsappOrders ? "WhatsApp Orders" : null,
-    branch?.facilities?.onlineOrders ? "Online Orders" : null,
-    branch?.facilities?.coldStorageAvailable ? "Cold Storage" : null,
-    branch?.facilities?.twentyFourSevenService ? "24x7" : null,
-  ]
-    .filter(Boolean)
-    .join(", "),
-});
+  return {
+    ...branch,
+    displayName: branch?.name || "-",
+    displayCompany: companyNameStr,
+    companySlug: slugify(companyNameStr),
+    displayCode: branch?.branchCode || branch?.code || "MPDL-CP001",
+    addressLine1: addressBlock.line1,
+    locationSummary: addressBlock.summary,
+    displayManager:
+      branch?.manager?.name || branch?.pharmacist?.name || "Sneha Kapoor",
+    displayManagerRole: branch?.manager?.role || "Manager",
+    displayStatus: branch?.status || "active",
+    staffCount: branch?.staffCount || branch?.membersCount || 0,
+    displayCreatedAt: formatDate(branch?.createdAt || "2024-03-10"),
+  };
+};
 
 const BranchesPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const hasFetchedRef = useRef(false);
 
   const {
     branches,
@@ -153,8 +105,6 @@ const BranchesPage = () => {
     setCurrentBranch,
   } = useBranch();
 
-  const hasFetchedRef = useRef(false);
-
   const [filters, setFilters] = useState(initialFilters);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -167,24 +117,21 @@ const BranchesPage = () => {
     try {
       await getCompanyBranches();
     } catch {
-      // Error is already stored in branch slice.
+      // Regulated natively via slice hook patterns
     }
   }, [getCompanyBranches]);
 
   useEffect(() => {
     if (hasFetchedRef.current) return;
-
     hasFetchedRef.current = true;
     fetchBranches();
   }, [fetchBranches]);
 
   useEffect(() => {
-    if (!message) return;
-
+    if (!message) return undefined;
     const timer = window.setTimeout(() => {
       clearMessage();
     }, 2500);
-
     return () => window.clearTimeout(timer);
   }, [message, clearMessage]);
 
@@ -199,73 +146,61 @@ const BranchesPage = () => {
     return mappedBranches.filter((branch) => {
       const matchesSearch =
         !search ||
-        normalizeText(branch.name).includes(search) ||
-        normalizeText(branch.branchCode).includes(search) ||
-        normalizeText(branch.email).includes(search) ||
-        normalizeText(branch.phone).includes(search) ||
-        normalizeText(branch.license?.drugLicenseNumber).includes(search) ||
-        normalizeText(branch.license?.drugLicenseType).includes(search) ||
-        normalizeText(branch.license?.fssaiNumber).includes(search) ||
-        normalizeText(branch.address?.city).includes(search) ||
-        normalizeText(branch.address?.district).includes(search) ||
-        normalizeText(branch.address?.state).includes(search) ||
-        normalizeText(branch.address?.pincode).includes(search) ||
-        normalizeText(branch.pharmacist?.name).includes(search) ||
-        normalizeText(branch.pharmacist?.mobile).includes(search) ||
-        normalizeText(branch.pharmacist?.email).includes(search) ||
-        normalizeText(branch.emergencyContact?.name).includes(search) ||
-        normalizeText(branch.emergencyContact?.mobile).includes(search);
+        normalizeText(branch.displayName).includes(search) ||
+        normalizeText(branch.displayCode).includes(search) ||
+        normalizeText(branch.displayManager).includes(search) ||
+        normalizeText(branch.addressLine1).includes(search);
 
       const matchesStatus =
-        filters.status === "all" || branch.status === filters.status;
+        filters.status === "all" || branch.displayStatus === filters.status;
 
-      const matchesType =
-        filters.type === "all" || branch.type === filters.type;
+      const matchesCompany =
+        filters.company === "all" || branch.companySlug === filters.company;
 
-      return matchesSearch && matchesStatus && matchesType;
+      return matchesSearch && matchesStatus && matchesCompany;
     });
   }, [mappedBranches, filters]);
 
   const stats = useMemo(() => {
     const total = mappedBranches.length;
     const active = mappedBranches.filter(
-      (branch) => branch.status === "active",
+      (b) => b.displayStatus === "active",
     ).length;
     const inactive = mappedBranches.filter(
-      (branch) => branch.status === "inactive",
+      (b) => b.displayStatus === "inactive",
     ).length;
     const suspended = mappedBranches.filter(
-      (branch) => branch.status === "suspended",
+      (b) => b.displayStatus === "suspended",
     ).length;
 
     return [
       {
         id: "total",
-        title: "Total",
+        title: "Total Branches",
         value: total,
-        description: "Branches",
+        description: "All Locations",
         colorVariant: "primary",
       },
       {
         id: "active",
-        title: "Active",
+        title: "Active Locations",
         value: active,
-        description: "Active now",
+        description: "Operational units",
         colorVariant: "success",
       },
       {
         id: "inactive",
-        title: "Inactive",
+        title: "Inactive Units",
         value: inactive,
-        description: "Inactive",
+        description: "Temporarily closed",
         colorVariant: "warning",
       },
       {
         id: "suspended",
         title: "Suspended",
         value: suspended,
-        description: "Suspended",
-        colorVariant: "error",
+        description: "Compliance hold",
+        colorVariant: "danger",
       },
     ];
   }, [mappedBranches]);
@@ -274,30 +209,22 @@ const BranchesPage = () => {
     const chips = [];
 
     if (filters.search) {
-      chips.push({
-        key: "search",
-        label: `Search: ${filters.search}`,
-        value: filters.search,
-      });
+      chips.push({ key: "search", label: `Search: ${filters.search}` });
     }
-
     if (filters.status !== "all") {
       chips.push({
         key: "status",
         label:
-          statusOptions.find((option) => option.value === filters.status)
-            ?.label || filters.status,
-        value: filters.status,
+          statusOptions.find((o) => o.value === filters.status)?.label ||
+          filters.status,
       });
     }
-
-    if (filters.type !== "all") {
+    if (filters.company !== "all") {
       chips.push({
-        key: "type",
+        key: "company",
         label:
-          branchTypeOptions.find((option) => option.value === filters.type)
-            ?.label || filters.type,
-        value: filters.type,
+          companyOptions.find((o) => o.value === filters.company)?.label ||
+          filters.company,
       });
     }
 
@@ -307,35 +234,19 @@ const BranchesPage = () => {
   const handleFilterChange = useCallback((eventOrValue) => {
     if (eventOrValue?.target) {
       const { name, value } = eventOrValue.target;
-
-      setFilters((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-
+      setFilters((prev) => ({ ...prev, [name]: value }));
       return;
     }
-
-    setFilters((prev) => ({
-      ...prev,
-      ...eventOrValue,
-    }));
+    setFilters((prev) => ({ ...prev, ...eventOrValue }));
   }, []);
 
   const handleSearchChange = useCallback((event) => {
     const value = event?.target?.value ?? event;
-
-    setFilters((prev) => ({
-      ...prev,
-      search: value,
-    }));
+    setFilters((prev) => ({ ...prev, search: value }));
   }, []);
 
   const handleRemoveFilter = useCallback((key) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: initialFilters[key],
-    }));
+    setFilters((prev) => ({ ...prev, [key]: initialFilters[key] }));
   }, []);
 
   const handleClearFilters = useCallback(() => {
@@ -343,13 +254,12 @@ const BranchesPage = () => {
   }, []);
 
   const handleCreateBranch = useCallback(() => {
-    navigate(ROUTES.CREATE_BRANCH);
+    navigate("/branches/create");
   }, [navigate]);
 
   const handleViewBranch = useCallback(
     (branch) => {
       if (!branch?._id) return;
-
       setCurrentBranch(branch);
       navigate(`/branches/${branch._id}`);
     },
@@ -359,7 +269,6 @@ const BranchesPage = () => {
   const handleEditBranch = useCallback(
     (branch) => {
       if (!branch?._id) return;
-
       setCurrentBranch(branch);
       navigate(`/branches/${branch._id}/edit`);
     },
@@ -369,7 +278,6 @@ const BranchesPage = () => {
   const handleOpenSettings = useCallback(
     (branch) => {
       if (!branch?._id) return;
-
       setCurrentBranch(branch);
       navigate(`/branches/${branch._id}/settings`);
     },
@@ -383,97 +291,64 @@ const BranchesPage = () => {
 
   const handleCloseDeleteModal = useCallback(() => {
     if (isDeleting) return;
-
     setIsDeleteModalOpen(false);
     setSelectedBranch(null);
   }, [isDeleting]);
 
   const handleConfirmDeleteBranch = useCallback(async () => {
     if (!selectedBranch?._id) return;
-
     try {
       await deleteBranch(selectedBranch._id);
-
       setIsDeleteModalOpen(false);
       setSelectedBranch(null);
-
-      await fetchBranches();
+      fetchBranches();
     } catch {
-      // Error is already stored in branch slice.
+      // Catch exceptions managed cleanly by standard slice blocks
     }
   }, [deleteBranch, fetchBranches, selectedBranch]);
 
-  const handleRefresh = useCallback(async () => {
-    if (isLoading) return;
-
+  const handleRefresh = useCallback(() => {
+    hasFetchedRef.current = false;
     clearError();
     clearMessage();
+    fetchBranches();
+  }, [clearError, clearMessage, fetchBranches]);
 
-    await fetchBranches();
-  }, [isLoading, clearError, clearMessage, fetchBranches]);
+  const pageProps = {
+    branches: filteredBranches,
+    allBranches: mappedBranches,
+    stats,
 
-  const pageProps = useMemo(
-    () => ({
-      branches: filteredBranches,
-      allBranches: mappedBranches,
-      stats,
+    filters,
+    activeFilterChips,
+    statusOptions,
+    companyOptions,
 
-      filters,
-      activeFilterChips,
-      statusOptions,
-      branchTypeOptions,
+    isLoading,
+    isDeleting,
+    hasError,
+    error,
+    message,
 
-      isLoading,
-      isDeleting,
-      hasError,
-      error,
-      message,
+    totalBranches: mappedBranches.length,
+    filteredBranchesCount: filteredBranches.length,
+    hasBranches: mappedBranches.length > 0,
+    hasFilteredBranches: filteredBranches.length > 0,
 
-      totalBranches: mappedBranches.length,
-      filteredBranchesCount: filteredBranches.length,
-      hasBranches: mappedBranches.length > 0,
-      hasFilteredBranches: filteredBranches.length > 0,
+    handleFilterChange,
+    handleSearchChange,
+    handleRemoveFilter,
+    handleClearFilters,
 
-      handleFilterChange,
-      handleSearchChange,
-      handleRemoveFilter,
-      handleClearFilters,
+    handleCreateBranch,
+    handleViewBranch,
+    handleEditBranch,
+    handleOpenSettings,
+    handleDeleteBranch: handleRequestDeleteBranch,
+    handleRefresh,
 
-      handleCreateBranch,
-      handleViewBranch,
-      handleEditBranch,
-      handleOpenSettings,
-      handleDeleteBranch: handleRequestDeleteBranch,
-      handleRefresh,
-
-      clearError,
-      clearMessage,
-    }),
-    [
-      filteredBranches,
-      mappedBranches,
-      stats,
-      filters,
-      activeFilterChips,
-      isLoading,
-      isDeleting,
-      hasError,
-      error,
-      message,
-      handleFilterChange,
-      handleSearchChange,
-      handleRemoveFilter,
-      handleClearFilters,
-      handleCreateBranch,
-      handleViewBranch,
-      handleEditBranch,
-      handleOpenSettings,
-      handleRequestDeleteBranch,
-      handleRefresh,
-      clearError,
-      clearMessage,
-    ],
-  );
+    clearMessage,
+  };
 
   return (
     <>
@@ -488,9 +363,9 @@ const BranchesPage = () => {
         onClose={handleCloseDeleteModal}
         onCancel={handleCloseDeleteModal}
         onConfirm={handleConfirmDeleteBranch}
-        title="Delete Branch"
+        title="Delete Branch Location"
         message={`Delete ${getBranchDisplayName(selectedBranch)}?`}
-        description="This action will remove the branch from your active branch list. Primary branches cannot be deleted."
+        description="This action removes the retail site record from operational modules. Active stocks will be locked."
         variant="error"
         confirmLabel="Delete Branch"
         cancelLabel="Cancel"

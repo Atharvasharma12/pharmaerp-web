@@ -24,6 +24,7 @@ import {
   AppTableSkeleton,
   AppTag,
   AppText,
+  HELP_SUPPORT_CARD,
   PageHeader,
   PageRightSidebar,
 } from "@/components";
@@ -382,15 +383,7 @@ const AccessControlRightSidebar = () => (
         pointIcon: <FiZap />,
         pointIconVariant: "zap",
       },
-      {
-        title: "Need Help?",
-        icon: <FiBookOpen />,
-        colorVariant: "info",
-        variant: "default",
-        description: "Learn more about Access Control management in PharmaERP.",
-        actionLabel: "View User Guide",
-        actionIcon: <FiArrowRight />,
-      },
+      HELP_SUPPORT_CARD,
     ]}
   />
 );

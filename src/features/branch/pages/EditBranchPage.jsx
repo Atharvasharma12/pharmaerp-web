@@ -1,6 +1,4 @@
-// src/features/branch/pages/EditBranchPage.jsx
-
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { API_STATUS } from "@/constants";
@@ -12,58 +10,42 @@ import EditBranchDesktopPage from "./desktop/EditBranchDesktopPage";
 import EditBranchMobilePage from "./mobile/EditBranchMobilePage";
 
 const INITIAL_FORM_DATA = {
+  // Step 1: Basic Profile Details
   branchName: "",
   branchType: "retail",
-  status: "active",
-
-  gstNumber: "",
+  isPrimary: "false",
   branchEmail: "",
-  phoneCountryCode: "+91",
-  branchPhone: "",
+  mobile: "",
+  whatsapp: "",
+  landline: "",
 
+  // Step 2: Address (ADDRESS_SCHEMA)
   addressLine1: "",
   addressLine2: "",
   city: "",
+  district: "",
   state: "",
   country: "India",
   pincode: "",
+  googleMapLocation: "",
 
-  contactPersonName: "",
-  contactPersonPhone: "",
-  contactPersonEmail: "",
-  contactPersonDesignation: "",
-
+  // Step 3: Licenses (LICENSE_SCHEMA)
   drugLicenseNumber: "",
+  drugLicenseType: "",
+  fssaiNumber: "",
+  licenseExpiresAt: "",
 
-  billingType: "gst",
-  invoicePrefix: "INV",
-  invoiceStartNumber: "1",
-  billPrefix: "BILL",
-  billStartNumber: "1",
-  purchasePrefix: "PUR",
-  purchaseStartNumber: "1",
-  salesReturnPrefix: "SR",
-  purchaseReturnPrefix: "PR",
+  // Step 4: Compliance Contacts (PHARMACIST_SCHEMA & EMERGENCY_CONTACT_SCHEMA)
+  pharmacistName: "",
+  pharmacistRegistrationNumber: "",
+  pharmacistMobile: "",
+  pharmacistEmail: "",
+  emergencyContactName: "",
+  emergencyContactMobile: "",
+  emergencyContactRelationship: "",
 
-  inventoryMode: "independent",
-  priceMode: "company_default",
-  allowNegativeStock: "false",
-  allowBackdatedEntries: "false",
-  enableBatchTracking: "true",
-  enableExpiryTracking: "true",
-  enableRackTracking: "true",
-
-  timezone: "Asia/Kolkata",
-  currency: "INR",
-  dateFormat: "DD/MM/YYYY",
-  timeFormat: "12h",
-  enablePurchaseModule: "true",
-  enableSalesModule: "true",
-  enableInventoryModule: "true",
-  enablePosBilling: "true",
-  defaultGstRate: "0",
-
-  isPrimary: "false",
+  // Operational parameters status flag
+  status: "active",
 };
 
 const branchTypeOptions = [
@@ -82,38 +64,13 @@ const statusOptions = [
   { label: "Suspended", value: "suspended" },
 ];
 
-const billingTypeOptions = [
-  { label: "GST", value: "gst" },
-  { label: "Non GST", value: "non_gst" },
-];
-
-const inventoryModeOptions = [
-  { label: "Independent", value: "independent" },
-  { label: "Shared", value: "shared" },
-];
-
-const priceModeOptions = [
-  { label: "Company Default", value: "company_default" },
-  { label: "Branch Specific", value: "branch_specific" },
-];
-
-const currencyOptions = [
-  { label: "INR - Indian Rupee (₹)", value: "INR" },
-  { label: "USD - US Dollar ($)", value: "USD" },
-];
-
-const timeFormatOptions = [
-  { label: "12 Hour", value: "12h" },
-  { label: "24 Hour", value: "24h" },
-];
-
 const booleanOptions = [
   { label: "Yes", value: "true" },
   { label: "No", value: "false" },
 ];
 
-const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const PHONE_REGEX = /^[6-9][0-9]{9}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const normalizeText = (value) => String(value || "").trim();
 const normalizeUpperText = (value) => normalizeText(value).toUpperCase();
@@ -121,239 +78,81 @@ const normalizeLowerText = (value) => normalizeText(value).toLowerCase();
 const normalizePhone = (value) => normalizeText(value).replace(/\D/g, "");
 const toBoolean = (value) => value === true || value === "true";
 
-const toNumber = (value, fallback = 0) => {
-  const numberValue = Number(value);
-  return Number.isNaN(numberValue) ? fallback : numberValue;
+const toDateOrNull = (value) => {
+  const trimmedValue = normalizeText(value);
+  if (!trimmedValue) return null;
+  const parsedDate = new Date(trimmedValue);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate.toISOString();
 };
 
-const hasAddress = (formData) =>
-  Boolean(
-    normalizeText(formData.addressLine1) ||
-    normalizeText(formData.addressLine2) ||
-    normalizeText(formData.city) ||
-    normalizeText(formData.state) ||
-    normalizeText(formData.country) ||
-    normalizeText(formData.pincode),
-  );
-
-const buildAddressPayload = (formData) => {
-  if (!hasAddress(formData)) return null;
-
-  return {
-    addressLine1: normalizeText(formData.addressLine1) || null,
-    addressLine2: normalizeText(formData.addressLine2) || null,
-    city: normalizeText(formData.city) || null,
-    state: normalizeText(formData.state) || null,
-    country: normalizeText(formData.country) || "India",
-    pincode: normalizeText(formData.pincode) || null,
-  };
-};
-
-const hasContactPerson = (formData) =>
-  Boolean(
-    normalizeText(formData.contactPersonName) ||
-    normalizeText(formData.contactPersonPhone) ||
-    normalizeText(formData.contactPersonEmail) ||
-    normalizeText(formData.contactPersonDesignation),
-  );
-
-const buildContactPersonPayload = (formData) => {
-  if (!hasContactPerson(formData)) return null;
-
-  return {
-    name: normalizeText(formData.contactPersonName) || null,
-    phone: normalizePhone(formData.contactPersonPhone) || null,
-    email: normalizeLowerText(formData.contactPersonEmail) || null,
-    designation: normalizeText(formData.contactPersonDesignation) || null,
-  };
+const formatIsoToDateString = (isoString) => {
+  if (!isoString) return "";
+  try {
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toISOString().split("T")[0];
+  } catch {
+    return "";
+  }
 };
 
 const buildBranchPayload = (formData) => {
-  const branchPhone = normalizePhone(formData.branchPhone);
-
   return {
     name: normalizeText(formData.branchName),
     type: formData.branchType || "retail",
+    isPrimary: toBoolean(formData.isPrimary),
+    email: normalizeLowerText(formData.branchEmail) || null,
     status: formData.status || "active",
 
-    email: normalizeLowerText(formData.branchEmail) || null,
-    phone: branchPhone || null,
-    gstin: normalizeUpperText(formData.gstNumber) || null,
-    drugLicenseNumber: normalizeUpperText(formData.drugLicenseNumber) || null,
-
-    address: buildAddressPayload(formData),
-    contactPerson: buildContactPersonPayload(formData),
-
-    billingSettings: {
-      billingType: formData.billingType || "gst",
-      invoicePrefix: normalizeUpperText(formData.invoicePrefix) || "INV",
-      invoiceStartNumber: toNumber(formData.invoiceStartNumber, 1),
-      billPrefix: normalizeUpperText(formData.billPrefix) || "BILL",
-      billStartNumber: toNumber(formData.billStartNumber, 1),
-      purchasePrefix: normalizeUpperText(formData.purchasePrefix) || "PUR",
-      purchaseStartNumber: toNumber(formData.purchaseStartNumber, 1),
-      salesReturnPrefix: normalizeUpperText(formData.salesReturnPrefix) || "SR",
-      purchaseReturnPrefix:
-        normalizeUpperText(formData.purchaseReturnPrefix) || "PR",
+    phones: {
+      mobile: normalizePhone(formData.mobile) || null,
+      whatsapp: normalizePhone(formData.whatsapp) || null,
+      landline: normalizeText(formData.landline) || null,
     },
 
-    inventorySettings: {
-      inventoryMode: formData.inventoryMode || "independent",
-      priceMode: formData.priceMode || "company_default",
-      allowNegativeStock: toBoolean(formData.allowNegativeStock),
-      allowBackdatedEntries: toBoolean(formData.allowBackdatedEntries),
-      enableBatchTracking: toBoolean(formData.enableBatchTracking),
-      enableExpiryTracking: toBoolean(formData.enableExpiryTracking),
-      enableRackTracking: toBoolean(formData.enableRackTracking),
+    address: {
+      addressLine1: normalizeText(formData.addressLine1) || null,
+      addressLine2: normalizeText(formData.addressLine2) || null,
+      city: normalizeText(formData.city) || null,
+      district: normalizeText(formData.district) || null,
+      state: normalizeText(formData.state) || null,
+      country: normalizeText(formData.country) || "India",
+      pincode: normalizeText(formData.pincode) || null,
+      googleMapLocation: normalizeText(formData.googleMapLocation) || null,
     },
 
-    settings: {
-      timezone: normalizeText(formData.timezone) || "Asia/Kolkata",
-      currency: normalizeUpperText(formData.currency) || "INR",
-      dateFormat: normalizeText(formData.dateFormat) || "DD/MM/YYYY",
-      timeFormat: formData.timeFormat || "12h",
-      enablePurchaseModule: toBoolean(formData.enablePurchaseModule),
-      enableSalesModule: toBoolean(formData.enableSalesModule),
-      enableInventoryModule: toBoolean(formData.enableInventoryModule),
-      enablePosBilling: toBoolean(formData.enablePosBilling),
-      defaultGstRate: toNumber(formData.defaultGstRate, 0),
+    license: {
+      drugLicenseNumber: normalizeUpperText(formData.drugLicenseNumber) || null,
+      drugLicenseType: normalizeText(formData.drugLicenseType) || null,
+      fssaiNumber: normalizeText(formData.fssaiNumber) || null,
+      expiresAt: toDateOrNull(formData.licenseExpiresAt),
     },
 
-    isPrimary: toBoolean(formData.isPrimary),
+    pharmacist: {
+      name: normalizeText(formData.pharmacistName) || null,
+      registrationNumber:
+        normalizeUpperText(formData.pharmacistRegistrationNumber) || null,
+      mobile: normalizePhone(formData.pharmacistMobile) || null,
+      email: normalizeLowerText(formData.pharmacistEmail) || null,
+    },
+
+    emergencyContact: {
+      name: normalizeText(formData.emergencyContactName) || null,
+      mobile: normalizePhone(formData.emergencyContactMobile) || null,
+      relationship:
+        normalizeText(formData.emergencyContactRelationship) || null,
+    },
   };
 };
 
-const mapBranchToFormData = (branch) => ({
-  branchName: branch?.name || "",
-  branchType: branch?.type || "retail",
-  status: branch?.status || "active",
+const validateStepData = (step, formData) => {
+  const errors = {};
 
-  gstNumber: branch?.gstin || "",
-  branchEmail: branch?.email || "",
-  phoneCountryCode: "+91",
-  branchPhone: branch?.phone || "",
-
-  addressLine1: branch?.address?.addressLine1 || "",
-  addressLine2: branch?.address?.addressLine2 || "",
-  city: branch?.address?.city || "",
-  state: branch?.address?.state || "",
-  country: branch?.address?.country || "India",
-  pincode: branch?.address?.pincode || "",
-
-  contactPersonName: branch?.contactPerson?.name || "",
-  contactPersonPhone: branch?.contactPerson?.phone || "",
-  contactPersonEmail: branch?.contactPerson?.email || "",
-  contactPersonDesignation: branch?.contactPerson?.designation || "",
-
-  drugLicenseNumber: branch?.drugLicenseNumber || "",
-
-  billingType: branch?.billingSettings?.billingType || "gst",
-  invoicePrefix: branch?.billingSettings?.invoicePrefix || "INV",
-  invoiceStartNumber: String(branch?.billingSettings?.invoiceStartNumber ?? 1),
-  billPrefix: branch?.billingSettings?.billPrefix || "BILL",
-  billStartNumber: String(branch?.billingSettings?.billStartNumber ?? 1),
-  purchasePrefix: branch?.billingSettings?.purchasePrefix || "PUR",
-  purchaseStartNumber: String(
-    branch?.billingSettings?.purchaseStartNumber ?? 1,
-  ),
-  salesReturnPrefix: branch?.billingSettings?.salesReturnPrefix || "SR",
-  purchaseReturnPrefix: branch?.billingSettings?.purchaseReturnPrefix || "PR",
-
-  inventoryMode: branch?.inventorySettings?.inventoryMode || "independent",
-  priceMode: branch?.inventorySettings?.priceMode || "company_default",
-  allowNegativeStock: String(
-    Boolean(branch?.inventorySettings?.allowNegativeStock),
-  ),
-  allowBackdatedEntries: String(
-    Boolean(branch?.inventorySettings?.allowBackdatedEntries),
-  ),
-  enableBatchTracking: String(
-    branch?.inventorySettings?.enableBatchTracking !== false,
-  ),
-  enableExpiryTracking: String(
-    branch?.inventorySettings?.enableExpiryTracking !== false,
-  ),
-  enableRackTracking: String(
-    branch?.inventorySettings?.enableRackTracking !== false,
-  ),
-
-  timezone: branch?.settings?.timezone || "Asia/Kolkata",
-  currency: branch?.settings?.currency || "INR",
-  dateFormat: branch?.settings?.dateFormat || "DD/MM/YYYY",
-  timeFormat: branch?.settings?.timeFormat || "12h",
-  enablePurchaseModule: String(
-    branch?.settings?.enablePurchaseModule !== false,
-  ),
-  enableSalesModule: String(branch?.settings?.enableSalesModule !== false),
-  enableInventoryModule: String(
-    branch?.settings?.enableInventoryModule !== false,
-  ),
-  enablePosBilling: String(branch?.settings?.enablePosBilling !== false),
-  defaultGstRate: String(branch?.settings?.defaultGstRate ?? 0),
-
-  isPrimary: String(Boolean(branch?.isPrimary)),
-});
-
-const EditBranchPage = () => {
-  const navigate = useNavigate();
-  const { branchId } = useParams();
-  const isMobile = useIsMobile();
-
-  const {
-    currentBranch,
-    getBranchById,
-    updateBranch,
-    getBranchStatus,
-    updateBranchStatus,
-    error: branchError,
-    clearError,
-    clearCurrentBranch,
-  } = useBranch();
-
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
-  const [formErrors, setFormErrors] = useState({});
-
-  const isFetching = getBranchStatus === API_STATUS.LOADING;
-  const isLoading = updateBranchStatus === API_STATUS.LOADING;
-
-  useEffect(() => {
-    if (!branchId) {
-      navigate("/branches", { replace: true });
-      return;
-    }
-
-    getBranchById(branchId).catch((error) => {
-      setFormErrors({
-        submit:
-          typeof error === "string" ? error : "Unable to fetch branch details.",
-      });
-    });
-
-    return () => {
-      clearError();
-    };
-  }, [branchId, getBranchById, navigate, clearError]);
-
-  useEffect(() => {
-    if (currentBranch?._id === branchId) {
-      setFormData(mapBranchToFormData(currentBranch));
-    }
-  }, [currentBranch, branchId]);
-
-  const validateForm = () => {
-    const errors = {};
-
+  if (step === 1) {
     const branchName = normalizeText(formData.branchName);
-    const gstNumber = normalizeUpperText(formData.gstNumber);
     const branchEmail = normalizeLowerText(formData.branchEmail);
-    const branchPhone = normalizePhone(formData.branchPhone);
-    const contactPersonPhone = normalizePhone(formData.contactPersonPhone);
-    const contactPersonEmail = normalizeLowerText(formData.contactPersonEmail);
-
-    const defaultGstRate = toNumber(formData.defaultGstRate, 0);
-    const invoiceStartNumber = toNumber(formData.invoiceStartNumber, 1);
-    const billStartNumber = toNumber(formData.billStartNumber, 1);
-    const purchaseStartNumber = toNumber(formData.purchaseStartNumber, 1);
+    const mobile = normalizePhone(formData.mobile);
+    const whatsapp = normalizePhone(formData.whatsapp);
 
     if (!branchName) {
       errors.branchName = "Branch name is required";
@@ -363,127 +162,301 @@ const EditBranchPage = () => {
       errors.branchName = "Branch name cannot exceed 160 characters";
     }
 
-    if (gstNumber && !GSTIN_REGEX.test(gstNumber)) {
-      errors.gstNumber = "Invalid GSTIN";
+    if (branchEmail && !EMAIL_REGEX.test(branchEmail)) {
+      errors.branchEmail = "Enter a valid branch email address";
     }
-
-    if (branchEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(branchEmail)) {
-      errors.branchEmail = "Enter a valid email address";
+    if (mobile && !PHONE_REGEX.test(mobile)) {
+      errors.mobile = "Invalid mobile number";
     }
-
-    if (branchPhone && !PHONE_REGEX.test(branchPhone)) {
-      errors.branchPhone = "Invalid phone number";
+    if (whatsapp && !PHONE_REGEX.test(whatsapp)) {
+      errors.whatsapp = "Invalid WhatsApp number";
     }
+  }
 
-    if (contactPersonPhone && !PHONE_REGEX.test(contactPersonPhone)) {
-      errors.contactPersonPhone = "Invalid contact person phone number";
+  if (step === 2) {
+    const pincode = normalizeText(formData.pincode);
+    if (pincode && pincode.length !== 6) {
+      errors.pincode = "Pincode must be exactly 6 digits";
     }
+  }
 
-    if (
-      contactPersonEmail &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactPersonEmail)
-    ) {
-      errors.contactPersonEmail = "Enter a valid contact person email";
+  if (step === 4) {
+    const pharmacistMobile = normalizePhone(formData.pharmacistMobile);
+    const pharmacistEmail = normalizeLowerText(formData.pharmacistEmail);
+    const emergencyContactMobile = normalizePhone(
+      formData.emergencyContactMobile,
+    );
+
+    if (pharmacistEmail && !EMAIL_REGEX.test(pharmacistEmail)) {
+      errors.pharmacistEmail = "Enter a valid pharmacist email";
     }
-
-    if (defaultGstRate < 0 || defaultGstRate > 100) {
-      errors.defaultGstRate = "GST rate must be between 0 and 100";
+    if (pharmacistMobile && !PHONE_REGEX.test(pharmacistMobile)) {
+      errors.pharmacistMobile = "Invalid pharmacist mobile number";
     }
-
-    if (invoiceStartNumber < 1) {
-      errors.invoiceStartNumber = "Invoice start number must be at least 1";
+    if (emergencyContactMobile && !PHONE_REGEX.test(emergencyContactMobile)) {
+      errors.emergencyContactMobile = "Invalid emergency contact mobile number";
     }
+  }
 
-    if (billStartNumber < 1) {
-      errors.billStartNumber = "Bill start number must be at least 1";
+  return errors;
+};
+
+const EditBranchPage = () => {
+  const { branchId } = useParams();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+
+  const {
+    getBranchById,
+    updateBranch,
+    currentBranch,
+    getBranchStatus,
+    updateBranchStatus,
+    error: branchError,
+    clearError,
+    clearCurrentBranch,
+  } = useBranch();
+
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [formErrors, setFormErrors] = useState({});
+  const [currentStep, setCurrentStep] = useState(1);
+
+  const isDataFetching = getBranchStatus === API_STATUS.LOADING;
+  const isSubmitting = updateBranchStatus === API_STATUS.LOADING;
+
+  // FIXED: Separated fetching action from useEffect dependency chain to prevent infinite loops on data reload
+  const loadBranchData = useCallback(async () => {
+    if (!branchId) return;
+    try {
+      await getBranchById(branchId);
+    } catch {
+      setFormErrors({
+        submit: "Failed to load branch data configuration parameters.",
+      });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchId]);
 
-    if (purchaseStartNumber < 1) {
-      errors.purchaseStartNumber = "Purchase start number must be at least 1";
+  useEffect(() => {
+    loadBranchData();
+
+    return () => {
+      clearCurrentBranch();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchId, loadBranchData]);
+
+  // Map server schema layout structure back into form states exclusively when resource values alter
+  useEffect(() => {
+    if (currentBranch && currentBranch._id === branchId) {
+      setFormData({
+        branchName: currentBranch.name || "",
+        branchType: currentBranch.type || "retail",
+        isPrimary: String(currentBranch.isPrimary ?? false),
+        branchEmail: currentBranch.email || "",
+        status: currentBranch.status || "active",
+
+        mobile: currentBranch.phones?.mobile || "",
+        whatsapp: currentBranch.phones?.whatsapp || "",
+        landline: currentBranch.phones?.landline || "",
+
+        addressLine1: currentBranch.address?.addressLine1 || "",
+        addressLine2: currentBranch.address?.addressLine2 || "",
+        city: currentBranch.address?.city || "",
+        district: currentBranch.address?.district || "",
+        state: currentBranch.address?.state || "",
+        country: currentBranch.address?.country || "India",
+        pincode: currentBranch.address?.pincode || "",
+        googleMapLocation: currentBranch.address?.googleMapLocation || "",
+
+        drugLicenseNumber: currentBranch.license?.drugLicenseNumber || "",
+        drugLicenseType: currentBranch.license?.drugLicenseType || "",
+        fssaiNumber: currentBranch.license?.fssaiNumber || "",
+        licenseExpiresAt: formatIsoToDateString(
+          currentBranch.license?.expiresAt,
+        ),
+
+        pharmacistName: currentBranch.pharmacist?.name || "",
+        pharmacistRegistrationNumber:
+          currentBranch.pharmacist?.registrationNumber || "",
+        pharmacistMobile: currentBranch.pharmacist?.mobile || "",
+        pharmacistEmail: currentBranch.pharmacist?.email || "",
+
+        emergencyContactName: currentBranch.emergencyContact?.name || "",
+        emergencyContactMobile: currentBranch.emergencyContact?.mobile || "",
+        emergencyContactRelationship:
+          currentBranch.emergencyContact?.relationship || "",
+      });
     }
+  }, [currentBranch, branchId]);
 
-    return errors;
-  };
+  const handleFieldChange = useCallback(
+    (nameOrEvent, maybeValue) => {
+      const isEvent = Boolean(nameOrEvent?.target);
+      const name = isEvent ? nameOrEvent.target.name : nameOrEvent;
+      const value = isEvent ? nameOrEvent.target.value : maybeValue;
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
+      setFormData((prev) => ({ ...prev, [name]: value }));
 
-    if (formErrors[name] || formErrors.submit) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: "",
-        submit: "",
-      }));
-    }
+      if (formErrors[name] || formErrors.submit) {
+        setFormErrors((prev) => ({
+          ...prev,
+          [name]: "",
+          submit: "",
+        }));
+      }
 
-    if (branchError) {
-      clearError();
-    }
+      if (branchError) {
+        clearError();
+      }
+    },
+    [clearError, branchError, formErrors],
+  );
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  const handleBackToBranches = useCallback(() => {
+    navigate("/branches");
+  }, [navigate]);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleStepChange = useCallback(
+    (step) => {
+      if (step <= currentStep) {
+        setCurrentStep(step);
+        return;
+      }
 
-    const validationErrors = validateForm();
+      for (let i = 1; i < step; i++) {
+        const stepErrors = validateStepData(i, formData);
+        if (Object.keys(stepErrors).length > 0) {
+          setFormErrors(stepErrors);
+          setCurrentStep(i);
+          return;
+        }
+      }
+      setCurrentStep(step);
+    },
+    [currentStep, formData],
+  );
 
-    if (Object.keys(validationErrors).length > 0) {
-      setFormErrors(validationErrors);
+  const handleContinue = useCallback(() => {
+    const stepErrors = validateStepData(currentStep, formData);
+
+    if (Object.keys(stepErrors).length > 0) {
+      setFormErrors(stepErrors);
       return;
     }
 
-    try {
-      const payload = buildBranchPayload(formData);
+    setFormErrors({});
+    setCurrentStep((prev) => Math.min(prev + 1, 5));
+  }, [currentStep, formData]);
 
-      await updateBranch(branchId, payload);
-
-      navigate("/branches", { replace: true });
-    } catch (error) {
-      setFormErrors({
-        submit:
-          typeof error === "string"
-            ? error
-            : "Unable to update branch. Please try again.",
-      });
+  const handleBackStep = useCallback(() => {
+    if (currentStep > 1) {
+      setCurrentStep((prev) => prev - 1);
+    } else {
+      handleBackToBranches();
     }
-  };
+  }, [currentStep, handleBackToBranches]);
 
-  const handleBack = () => {
-    clearCurrentBranch();
+  const handleSaveDraft = useCallback(() => {
+    setFormErrors({});
     navigate("/branches");
-  };
+  }, [navigate]);
 
-  const pageProps = useMemo(
+  const handleSubmit = useCallback(
+    async (event) => {
+      if (event) event.preventDefault();
+
+      let structuralErrors = {};
+      for (let i = 1; i <= 4; i++) {
+        structuralErrors = {
+          ...structuralErrors,
+          ...validateStepData(i, formData),
+        };
+      }
+
+      if (Object.keys(structuralErrors).length > 0) {
+        setFormErrors(structuralErrors);
+        if (
+          structuralErrors.branchName ||
+          structuralErrors.branchEmail ||
+          structuralErrors.mobile ||
+          structuralErrors.whatsapp
+        ) {
+          setCurrentStep(1);
+        } else if (structuralErrors.pincode) {
+          setCurrentStep(2);
+        } else if (
+          structuralErrors.pharmacistEmail ||
+          structuralErrors.pharmacistMobile ||
+          structuralErrors.emergencyContactMobile
+        ) {
+          setCurrentStep(4);
+        } else {
+          setCurrentStep(3);
+        }
+        return;
+      }
+
+      try {
+        const payload = buildBranchPayload(formData);
+        await updateBranch(branchId, payload);
+        navigate("/branches", { replace: true });
+      } catch (error) {
+        setFormErrors({
+          submit:
+            typeof error === "string"
+              ? error
+              : "Unable to update branch properties. Please verify parameters.",
+        });
+      }
+    },
+    // FIXED: Removed unstable updateBranch action method dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [branchId, formData, navigate],
+  );
+
+  const desktopProps = useMemo(
     () => ({
       formData,
       formErrors,
-      isLoading,
-      isFetching,
+      isLoading: isSubmitting,
+      isDataFetching,
+      currentStep,
+      branchCode: currentBranch?.branchCode || "",
 
       branchTypeOptions,
-      statusOptions,
-      billingTypeOptions,
-      inventoryModeOptions,
-      priceModeOptions,
-      currencyOptions,
-      timeFormatOptions,
       booleanOptions,
+      statusOptions,
 
-      handleChange,
+      handleChange: handleFieldChange,
       handleSubmit,
-      handleBack,
+      handleBack: handleBackStep,
+      handleContinue,
+      handleStepChange,
+      handleSaveDraft,
+      handleCancel: handleBackToBranches,
     }),
-    [formData, formErrors, isLoading, isFetching],
+    [
+      formData,
+      formErrors,
+      isSubmitting,
+      isDataFetching,
+      currentStep,
+      currentBranch,
+      handleFieldChange,
+      handleSubmit,
+      handleBackStep,
+      handleContinue,
+      handleStepChange,
+      handleSaveDraft,
+      handleBackToBranches,
+    ],
   );
 
   return isMobile ? (
-    <EditBranchMobilePage {...pageProps} />
+    <EditBranchMobilePage {...desktopProps} />
   ) : (
-    <EditBranchDesktopPage {...pageProps} />
+    <EditBranchDesktopPage {...desktopProps} />
   );
 };
 

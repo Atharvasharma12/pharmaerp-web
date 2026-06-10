@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { API_STATUS } from "@/constants";
+import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import { AppConfirmModal } from "@/components";
 
@@ -13,14 +13,14 @@ import CompaniesDesktopPage from "./desktop/CompaniesDesktopPage";
 import CompaniesMobilePage from "./mobile/CompaniesMobilePage";
 
 const statusOptions = [
-  { label: "All Status", value: "all" },
+  { label: "Status: All", value: "all" },
   { label: "Active", value: "active" },
   { label: "Inactive", value: "inactive" },
   { label: "Suspended", value: "suspended" },
 ];
 
 const companyTypeOptions = [
-  { label: "All Types", value: "all" },
+  { label: "Type: All", value: "all" },
   { label: "Proprietorship", value: "proprietorship" },
   { label: "Partnership", value: "partnership" },
   { label: "LLP", value: "llp" },
@@ -45,7 +45,6 @@ const normalizeText = (value) =>
 
 const formatCompanyType = (type) => {
   if (!type) return "-";
-
   return String(type)
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -54,7 +53,6 @@ const formatCompanyType = (type) => {
 
 const formatAddress = (address) => {
   if (!address) return "-";
-
   return [
     address.addressLine1,
     address.addressLine2,
@@ -62,7 +60,6 @@ const formatAddress = (address) => {
     address.district,
     address.state,
     address.pincode,
-    address.country,
   ]
     .filter(Boolean)
     .join(", ");
@@ -70,11 +67,8 @@ const formatAddress = (address) => {
 
 const formatDate = (value) => {
   if (!value) return "-";
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return "-";
-
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -86,11 +80,8 @@ const formatPhone = (phones) => {
   if (phones?.mobile) return `+91 ${phones.mobile}`;
   if (phones?.whatsapp) return `+91 ${phones.whatsapp}`;
   if (phones?.landline) return phones.landline;
-
   return "-";
 };
-
-const getCompanyDisplayName = (company) => company?.name || "Company";
 
 const mapCompanyForView = (company) => ({
   ...company,
@@ -104,14 +95,17 @@ const mapCompanyForView = (company) => ({
   displayWebsite: company?.website || "-",
   displayGstin: company?.gstin || "-",
   displayPan: company?.pan || "-",
-  displayOwnerName: company?.owner?.name || "-",
-  displayPharmacistName: company?.pharmacist?.name || "-",
-  displayGstType: company?.taxSettings?.gstType || "-",
+  displayOwnerName: company?.owner?.name || company?.ownerName || "-",
+  displayPharmacistName:
+    company?.pharmacist?.name || company?.pharmacistName || "-",
+  displayGstType:
+    company?.taxSettings?.gstType || company?.gstType || "Regular",
 });
 
 const CompaniesPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const hasFetchedRef = useRef(false);
 
   const {
     companies,
@@ -126,8 +120,6 @@ const CompaniesPage = () => {
     setCurrentCompany,
   } = useCompany();
 
-  const hasFetchedRef = useRef(false);
-
   const [filters, setFilters] = useState(initialFilters);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -140,24 +132,21 @@ const CompaniesPage = () => {
     try {
       await getWorkspaceCompanies();
     } catch {
-      // Error is already stored in company slice.
+      // Handled natively via store selectors
     }
   }, [getWorkspaceCompanies]);
 
   useEffect(() => {
     if (hasFetchedRef.current) return;
-
     hasFetchedRef.current = true;
     fetchCompanies();
   }, [fetchCompanies]);
 
   useEffect(() => {
-    if (!message) return;
-
+    if (!message) return undefined;
     const timer = window.setTimeout(() => {
       clearMessage();
     }, 2500);
-
     return () => window.clearTimeout(timer);
   }, [message, clearMessage]);
 
@@ -175,23 +164,10 @@ const CompaniesPage = () => {
         normalizeText(company.name).includes(search) ||
         normalizeText(company.companyCode).includes(search) ||
         normalizeText(company.email).includes(search) ||
-        normalizeText(company.website).includes(search) ||
-        normalizeText(company.phones?.mobile).includes(search) ||
-        normalizeText(company.phones?.whatsapp).includes(search) ||
-        normalizeText(company.phones?.landline).includes(search) ||
         normalizeText(company.gstin).includes(search) ||
         normalizeText(company.pan).includes(search) ||
-        normalizeText(company.owner?.name).includes(search) ||
-        normalizeText(company.owner?.mobile).includes(search) ||
-        normalizeText(company.pharmacist?.name).includes(search) ||
-        normalizeText(company.license?.drugLicenseNumber).includes(search) ||
-        normalizeText(company.license?.retailLicenseNumber).includes(search) ||
-        normalizeText(company.license?.wholesaleLicenseNumber).includes(
-          search,
-        ) ||
-        normalizeText(company.license?.fssaiNumber).includes(search) ||
+        normalizeText(company.displayOwnerName).includes(search) ||
         normalizeText(company.address?.city).includes(search) ||
-        normalizeText(company.address?.district).includes(search) ||
         normalizeText(company.address?.state).includes(search);
 
       const matchesStatus =
@@ -206,44 +182,42 @@ const CompaniesPage = () => {
 
   const stats = useMemo(() => {
     const total = mappedCompanies.length;
-    const active = mappedCompanies.filter(
-      (company) => company.status === "active",
-    ).length;
+    const active = mappedCompanies.filter((c) => c.status === "active").length;
     const inactive = mappedCompanies.filter(
-      (company) => company.status === "inactive",
+      (c) => c.status === "inactive",
     ).length;
     const suspended = mappedCompanies.filter(
-      (company) => company.status === "suspended",
+      (c) => c.status === "suspended",
     ).length;
 
     return [
       {
         id: "total",
-        title: "Total",
+        title: "Total Companies",
         value: total,
-        description: "Companies",
+        description: "Registered profiles",
         colorVariant: "primary",
       },
       {
         id: "active",
-        title: "Active",
+        title: "Active Profiles",
         value: active,
-        description: "Active now",
+        description: "Live operational states",
         colorVariant: "success",
       },
       {
         id: "inactive",
-        title: "Inactive",
+        title: "Inactive Profiles",
         value: inactive,
-        description: "Inactive",
+        description: "Disabled modules",
         colorVariant: "warning",
       },
       {
         id: "suspended",
         title: "Suspended",
         value: suspended,
-        description: "Suspended",
-        colorVariant: "error",
+        description: "Compliance locks",
+        colorVariant: "danger",
       },
     ];
   }, [mappedCompanies]);
@@ -252,30 +226,22 @@ const CompaniesPage = () => {
     const chips = [];
 
     if (filters.search) {
-      chips.push({
-        key: "search",
-        label: `Search: ${filters.search}`,
-        value: filters.search,
-      });
+      chips.push({ key: "search", label: `Search: ${filters.search}` });
     }
-
     if (filters.status !== "all") {
       chips.push({
         key: "status",
         label:
-          statusOptions.find((option) => option.value === filters.status)
-            ?.label || filters.status,
-        value: filters.status,
+          statusOptions.find((o) => o.value === filters.status)?.label ||
+          filters.status,
       });
     }
-
     if (filters.type !== "all") {
       chips.push({
         key: "type",
         label:
-          companyTypeOptions.find((option) => option.value === filters.type)
-            ?.label || filters.type,
-        value: filters.type,
+          companyTypeOptions.find((o) => o.value === filters.type)?.label ||
+          filters.type,
       });
     }
 
@@ -285,35 +251,19 @@ const CompaniesPage = () => {
   const handleFilterChange = useCallback((eventOrValue) => {
     if (eventOrValue?.target) {
       const { name, value } = eventOrValue.target;
-
-      setFilters((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-
+      setFilters((prev) => ({ ...prev, [name]: value }));
       return;
     }
-
-    setFilters((prev) => ({
-      ...prev,
-      ...eventOrValue,
-    }));
+    setFilters((prev) => ({ ...prev, ...eventOrValue }));
   }, []);
 
   const handleSearchChange = useCallback((event) => {
     const value = event?.target?.value ?? event;
-
-    setFilters((prev) => ({
-      ...prev,
-      search: value,
-    }));
+    setFilters((prev) => ({ ...prev, search: value }));
   }, []);
 
   const handleRemoveFilter = useCallback((key) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: initialFilters[key],
-    }));
+    setFilters((prev) => ({ ...prev, [key]: initialFilters[key] }));
   }, []);
 
   const handleClearFilters = useCallback(() => {
@@ -327,7 +277,6 @@ const CompaniesPage = () => {
   const handleViewCompany = useCallback(
     (company) => {
       if (!company?._id) return;
-
       setCurrentCompany(company);
       navigate(`/companies/${company._id}`);
     },
@@ -337,7 +286,6 @@ const CompaniesPage = () => {
   const handleEditCompany = useCallback(
     (company) => {
       if (!company?._id) return;
-
       setCurrentCompany(company);
       navigate(`/companies/${company._id}/edit`);
     },
@@ -347,7 +295,6 @@ const CompaniesPage = () => {
   const handleOpenSettings = useCallback(
     (company) => {
       if (!company?._id) return;
-
       setCurrentCompany(company);
       navigate(`/companies/${company._id}/settings`);
     },
@@ -361,95 +308,63 @@ const CompaniesPage = () => {
 
   const handleCloseDeleteModal = useCallback(() => {
     if (isDeleting) return;
-
     setIsDeleteModalOpen(false);
     setSelectedCompany(null);
   }, [isDeleting]);
 
   const handleConfirmDeleteCompany = useCallback(async () => {
     if (!selectedCompany?._id) return;
-
     try {
       await deleteCompany(selectedCompany._id);
-
       setIsDeleteModalOpen(false);
       setSelectedCompany(null);
     } catch {
-      // Error is already stored in company slice.
+      // Error handles cleanly via hook slice handles
     }
   }, [deleteCompany, selectedCompany]);
 
-  const handleRefresh = useCallback(async () => {
-    if (isLoading) return;
-
+  const handleRefresh = useCallback(() => {
+    hasFetchedRef.current = false;
     clearError();
     clearMessage();
+    fetchCompanies();
+  }, [clearError, clearMessage, fetchCompanies]);
 
-    await fetchCompanies();
-  }, [isLoading, clearError, clearMessage, fetchCompanies]);
+  const pageProps = {
+    companies: filteredCompanies,
+    allCompanies: mappedCompanies,
+    stats,
 
-  const pageProps = useMemo(
-    () => ({
-      companies: filteredCompanies,
-      allCompanies: mappedCompanies,
-      stats,
+    filters,
+    activeFilterChips,
+    statusOptions,
+    companyTypeOptions,
 
-      filters,
-      activeFilterChips,
-      statusOptions,
-      companyTypeOptions,
+    isLoading,
+    isDeleting,
+    hasError,
+    error,
+    message,
 
-      isLoading,
-      isDeleting,
-      hasError,
-      error,
-      message,
+    totalCompanies: mappedCompanies.length,
+    filteredCompaniesCount: filteredCompanies.length,
+    hasCompanies: mappedCompanies.length > 0,
+    hasFilteredCompanies: filteredCompanies.length > 0,
 
-      totalCompanies: mappedCompanies.length,
-      filteredCompaniesCount: filteredCompanies.length,
-      hasCompanies: mappedCompanies.length > 0,
-      hasFilteredCompanies: filteredCompanies.length > 0,
+    handleFilterChange,
+    handleSearchChange,
+    handleRemoveFilter,
+    handleClearFilters,
 
-      handleFilterChange,
-      handleSearchChange,
-      handleRemoveFilter,
-      handleClearFilters,
+    handleCreateCompany,
+    handleViewCompany,
+    handleEditCompany,
+    handleOpenSettings,
+    handleDeleteCompany: handleRequestDeleteCompany,
+    handleRefresh,
 
-      handleCreateCompany,
-      handleViewCompany,
-      handleEditCompany,
-      handleOpenSettings,
-      handleDeleteCompany: handleRequestDeleteCompany,
-      handleRefresh,
-
-      clearError,
-      clearMessage,
-    }),
-    [
-      filteredCompanies,
-      mappedCompanies,
-      stats,
-      filters,
-      activeFilterChips,
-      isLoading,
-      isDeleting,
-      hasError,
-      error,
-      message,
-      handleFilterChange,
-      handleSearchChange,
-      handleRemoveFilter,
-      handleClearFilters,
-      handleCreateCompany,
-      handleViewCompany,
-      handleEditCompany,
-      handleOpenSettings,
-      handleRequestDeleteCompany,
-      handleRefresh,
-      clearError,
-      clearMessage,
-    ],
-  );
+    clearMessage,
+  };
 
   return (
     <>
@@ -464,16 +379,16 @@ const CompaniesPage = () => {
         onClose={handleCloseDeleteModal}
         onCancel={handleCloseDeleteModal}
         onConfirm={handleConfirmDeleteCompany}
-        title="Delete Company"
-        message={`Delete ${getCompanyDisplayName(selectedCompany)}?`}
-        description="This action will remove the company from your workspace. You cannot see it in the active company list after deletion."
+        title="Delete Company Record"
+        message={`Delete ${selectedCompany?.displayName || "this company profile"}?`}
+        description="This will execute a soft-delete process on your workspace asset profile. Connected branches will remain suspended until remapped."
         variant="error"
         confirmLabel="Delete Company"
-        cancelLabel="Cancel"
+        cancelLabel="Keep Profile"
         loading={isDeleting}
         confirmDisabled={isDeleting}
         cancelDisabled={isDeleting}
-        closeOnBackdrop={false}
+        closeOnBackdrop={!isDeleting}
       />
     </>
   );

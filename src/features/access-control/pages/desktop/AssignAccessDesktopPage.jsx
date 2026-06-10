@@ -32,6 +32,7 @@ import {
   AppSwitch,
   AppTag,
   AppText,
+  HELP_SUPPORT_CARD,
   PageHeader,
   PageRightSidebar,
 } from "@/components";
@@ -613,16 +614,7 @@ const AssignAccessRightSidebar = ({
           "Backend validation requires selected records when all access is disabled.",
         custom: <AccessRulesContent />,
       },
-      {
-        title: "Need Help?",
-        icon: <FiHeadphones />,
-        colorVariant: "neutral",
-        variant: "default",
-        description:
-          "Learn more about member access and access management in PharmaERP.",
-        actionLabel: "View User Guide",
-        actionIcon: <FiBookOpen />,
-      },
+      HELP_SUPPORT_CARD,
     ]}
   />
 );
