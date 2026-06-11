@@ -4,6 +4,9 @@ export const selectBranches = (state) => state.branch.branches;
 
 export const selectCurrentBranch = (state) => state.branch.currentBranch;
 
+// NEW: Added to select the branch being viewed or edited separately from global context
+export const selectManagedBranch = (state) => state.branch.managedBranch;
+
 export const selectBranchStatus = (state) => state.branch.status;
 
 export const selectBranchError = (state) => state.branch.error;

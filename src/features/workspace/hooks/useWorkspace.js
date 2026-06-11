@@ -13,6 +13,8 @@ import {
   getWorkspaceInvitations,
   cancelWorkspaceInvitation,
   acceptWorkspaceInvitation,
+  getIncomingUserInvitations,
+  acceptIncomingInvitation,
 } from "../store/workspaceThunk";
 
 import {
@@ -22,6 +24,7 @@ import {
   clearCurrentWorkspace,
   clearWorkspaceMembers,
   clearWorkspaceInvitations,
+  clearIncomingInvitations,
 } from "../store/workspaceSlice";
 
 import {
@@ -44,6 +47,9 @@ import {
   selectGetWorkspaceInvitationsStatus,
   selectCancelWorkspaceInvitationStatus,
   selectAcceptWorkspaceInvitationStatus,
+  selectIncomingInvitations,
+  selectGetIncomingUserInvitationsStatus,
+  selectAcceptIncomingInvitationStatus,
 } from "../store/workspaceSelector";
 
 const useWorkspace = () => {
@@ -90,6 +96,15 @@ const useWorkspace = () => {
 
   const acceptWorkspaceInvitationStatus = useSelector(
     selectAcceptWorkspaceInvitationStatus,
+  );
+
+  // --- NEW USER INBOX SELECTORS ---
+  const incomingInvitations = useSelector(selectIncomingInvitations);
+  const getIncomingUserInvitationsStatus = useSelector(
+    selectGetIncomingUserInvitationsStatus,
+  );
+  const acceptIncomingInvitationStatus = useSelector(
+    selectAcceptIncomingInvitationStatus,
   );
 
   const submitCreateWorkspace = (payload) => {
@@ -165,6 +180,15 @@ const useWorkspace = () => {
     return dispatch(acceptWorkspaceInvitation(token)).unwrap();
   };
 
+  // --- NEW USER INBOX DISPATCH METHODS ---
+  const fetchIncomingUserInvitations = () => {
+    return dispatch(getIncomingUserInvitations()).unwrap();
+  };
+
+  const submitAcceptIncomingInvitation = (token) => {
+    return dispatch(acceptIncomingInvitation(token)).unwrap();
+  };
+
   const clearError = () => {
     dispatch(clearWorkspaceError());
   };
@@ -187,6 +211,10 @@ const useWorkspace = () => {
 
   const removeWorkspaceInvitations = () => {
     dispatch(clearWorkspaceInvitations());
+  };
+
+  const removeIncomingInvitations = () => {
+    dispatch(clearIncomingInvitations());
   };
 
   return {
@@ -214,6 +242,11 @@ const useWorkspace = () => {
     cancelWorkspaceInvitationStatus,
     acceptWorkspaceInvitationStatus,
 
+    // --- NEW INBOX STATES EXPOSED ---
+    incomingInvitations,
+    getIncomingUserInvitationsStatus,
+    acceptIncomingInvitationStatus,
+
     createWorkspace: submitCreateWorkspace,
     getMyWorkspaces: fetchMyWorkspaces,
     getWorkspaceById: fetchWorkspaceById,
@@ -229,6 +262,10 @@ const useWorkspace = () => {
     cancelWorkspaceInvitation: submitCancelWorkspaceInvitation,
     acceptWorkspaceInvitation: submitAcceptWorkspaceInvitation,
 
+    // --- NEW INBOX METHOD DISPATCHERS EXPOSED ---
+    getIncomingUserInvitations: fetchIncomingUserInvitations,
+    acceptIncomingInvitation: submitAcceptIncomingInvitation,
+
     clearError,
     clearMessage,
 
@@ -236,6 +273,7 @@ const useWorkspace = () => {
     clearCurrentWorkspace: removeCurrentWorkspace,
     clearWorkspaceMembers: removeWorkspaceMembers,
     clearWorkspaceInvitations: removeWorkspaceInvitations,
+    clearIncomingInvitations: removeIncomingInvitations,
   };
 };
 

@@ -58,6 +58,12 @@ const workspaceService = {
   acceptWorkspaceInvitation(token) {
     return apiClient.post(ENDPOINTS.WORKSPACE.ACCEPT_INVITATION(token));
   },
+
+  // --- NEW USER PROFILE INCOMING INVITATIONS API ENDPOINT MAP ---
+
+  getIncomingUserInvitations() {
+    return apiClient.get(ENDPOINTS.WORKSPACE.USER_INBOX_INVITATIONS);
+  },
 };
 
 export default workspaceService;

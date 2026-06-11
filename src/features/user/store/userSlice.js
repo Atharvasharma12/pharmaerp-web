@@ -1,13 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-import {
-  API_STATUS,
-  USER_STORAGE_KEY,
-  WORKSPACE_STORAGE_KEY,
-  COMPANY_STORAGE_KEY,
-  BRANCH_STORAGE_KEY,
-} from "@/constants";
-import { storage } from "@/utils";
+import { API_STATUS } from "@/constants";
 
 import {
   getProfile,
@@ -33,34 +26,6 @@ const normalizeActiveContext = (context) => ({
   updatedAt: context?.updatedAt || null,
 });
 
-const persistActiveContext = (context) => {
-  const normalizedContext = normalizeActiveContext(context);
-
-  if (normalizedContext.workspaceId) {
-    storage.set(WORKSPACE_STORAGE_KEY, normalizedContext.workspaceId);
-  } else {
-    storage.remove(WORKSPACE_STORAGE_KEY);
-  }
-
-  if (normalizedContext.companyId) {
-    storage.set(COMPANY_STORAGE_KEY, normalizedContext.companyId);
-  } else {
-    storage.remove(COMPANY_STORAGE_KEY);
-  }
-
-  if (normalizedContext.branchId) {
-    storage.set(BRANCH_STORAGE_KEY, normalizedContext.branchId);
-  } else {
-    storage.remove(BRANCH_STORAGE_KEY);
-  }
-};
-
-const clearPersistedActiveContext = () => {
-  storage.remove(WORKSPACE_STORAGE_KEY);
-  storage.remove(COMPANY_STORAGE_KEY);
-  storage.remove(BRANCH_STORAGE_KEY);
-};
-
 const getUserFromPayload = (payload) => {
   return payload?.user || payload || null;
 };
@@ -69,14 +34,11 @@ const getActiveContextFromUser = (user) => {
   return normalizeActiveContext(user?.activeContext);
 };
 
-const initialUser = storage.get(USER_STORAGE_KEY) || null;
-
+// CLEANED: Removed initial state loading from USER_STORAGE_KEY
 const initialState = {
-  user: initialUser,
+  user: null,
 
-  activeContext: initialUser?.activeContext
-    ? getActiveContextFromUser(initialUser)
-    : getEmptyActiveContext(),
+  activeContext: getEmptyActiveContext(),
 
   status: API_STATUS.IDLE,
   error: null,
@@ -92,31 +54,24 @@ const initialState = {
   deactivateAccountStatus: API_STATUS.IDLE,
 };
 
-const syncUserToStorage = (state, user) => {
+// CLEANED: Removed storage.set and storage.remove dependencies entirely
+const syncUserToState = (state, user) => {
   state.user = user || null;
 
   if (state.user) {
-    storage.set(USER_STORAGE_KEY, state.user);
-
     state.activeContext = getActiveContextFromUser(state.user);
-    persistActiveContext(state.activeContext);
   } else {
     state.activeContext = getEmptyActiveContext();
-
-    storage.remove(USER_STORAGE_KEY);
-    clearPersistedActiveContext();
   }
 };
 
+// CLEANED: Removed active context local storage propagation layers
 const syncActiveContextToState = (state, context) => {
   state.activeContext = normalizeActiveContext(context);
 
   if (state.user) {
     state.user.activeContext = state.activeContext;
-    storage.set(USER_STORAGE_KEY, state.user);
   }
-
-  persistActiveContext(state.activeContext);
 };
 
 const userSlice = createSlice({
@@ -135,11 +90,11 @@ const userSlice = createSlice({
 
     setUser(state, action) {
       const user = getUserFromPayload(action.payload);
-      syncUserToStorage(state, user);
+      syncUserToState(state, user);
     },
 
     clearUser(state) {
-      syncUserToStorage(state, null);
+      syncUserToState(state, null);
     },
 
     setActiveContext(state, action) {
@@ -162,7 +117,7 @@ const userSlice = createSlice({
         state.status = API_STATUS.SUCCESS;
 
         const user = getUserFromPayload(action.payload);
-        syncUserToStorage(state, user);
+        syncUserToState(state, user);
 
         state.message = "Profile fetched successfully";
       })
@@ -180,7 +135,7 @@ const userSlice = createSlice({
         state.updateProfileStatus = API_STATUS.SUCCESS;
 
         const user = getUserFromPayload(action.payload);
-        syncUserToStorage(state, user || state.user);
+        syncUserToState(state, user || state.user);
 
         state.message = "Profile updated successfully";
       })
@@ -198,7 +153,7 @@ const userSlice = createSlice({
         state.updateAvatarStatus = API_STATUS.SUCCESS;
 
         const user = getUserFromPayload(action.payload);
-        syncUserToStorage(state, user || state.user);
+        syncUserToState(state, user || state.user);
 
         state.message = "Avatar updated successfully";
       })
@@ -216,7 +171,7 @@ const userSlice = createSlice({
         state.deleteAvatarStatus = API_STATUS.SUCCESS;
 
         const user = getUserFromPayload(action.payload);
-        syncUserToStorage(state, user || state.user);
+        syncUserToState(state, user || state.user);
 
         state.message = "Avatar deleted successfully";
       })
@@ -251,7 +206,7 @@ const userSlice = createSlice({
         state.updateActiveContextStatus = API_STATUS.SUCCESS;
 
         const user = getUserFromPayload(action.payload);
-        syncUserToStorage(state, user || state.user);
+        syncUserToState(state, user || state.user);
 
         state.message = "Active context updated successfully";
       })
@@ -270,7 +225,7 @@ const userSlice = createSlice({
         state.message =
           action.payload?.message || "Account deactivated successfully";
 
-        syncUserToStorage(state, null);
+        syncUserToState(state, null);
       })
       .addCase(deactivateAccount.rejected, (state, action) => {
         state.deactivateAccountStatus = API_STATUS.ERROR;

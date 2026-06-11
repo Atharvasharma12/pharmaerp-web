@@ -21,6 +21,8 @@ import {
   getWorkspaceInvitations,
   cancelWorkspaceInvitation,
   acceptWorkspaceInvitation,
+  getIncomingUserInvitations,
+  acceptIncomingInvitation,
 } from "./workspaceThunk";
 
 const getWorkspaceFromItem = (item) => {
@@ -45,6 +47,9 @@ const initialState = {
   members: [],
   invitations: [],
 
+  // New State for User Profile Inbox
+  incomingInvitations: [],
+
   status: API_STATUS.IDLE,
   error: null,
   message: null,
@@ -63,6 +68,10 @@ const initialState = {
   getWorkspaceInvitationsStatus: API_STATUS.IDLE,
   cancelWorkspaceInvitationStatus: API_STATUS.IDLE,
   acceptWorkspaceInvitationStatus: API_STATUS.IDLE,
+
+  // New Loading Statuses
+  getIncomingUserInvitationsStatus: API_STATUS.IDLE,
+  acceptIncomingInvitationStatus: API_STATUS.IDLE,
 };
 
 const setPending = (state) => {
@@ -114,6 +123,10 @@ const workspaceSlice = createSlice({
 
     clearWorkspaceInvitations(state) {
       state.invitations = [];
+    },
+
+    clearIncomingInvitations(state) {
+      state.incomingInvitations = [];
     },
   },
 
@@ -379,7 +392,7 @@ const workspaceSlice = createSlice({
         state.error = action.payload || "Workspace invitation cancel failed";
       })
 
-      // ACCEPT WORKSPACE INVITATION
+      // ACCEPT WORKSPACE INVITATION (VIA EMAIL LINK)
       .addCase(acceptWorkspaceInvitation.pending, (state) => {
         state.acceptWorkspaceInvitationStatus = API_STATUS.LOADING;
         state.error = null;
@@ -392,6 +405,44 @@ const workspaceSlice = createSlice({
       .addCase(acceptWorkspaceInvitation.rejected, (state, action) => {
         state.acceptWorkspaceInvitationStatus = API_STATUS.ERROR;
         state.error = action.payload || "Workspace invitation accept failed";
+      })
+
+      // GET INCOMING USER INVITATIONS (PROFILE INBOX)
+      .addCase(getIncomingUserInvitations.pending, (state) => {
+        state.getIncomingUserInvitationsStatus = API_STATUS.LOADING;
+        state.error = null;
+      })
+      .addCase(getIncomingUserInvitations.fulfilled, (state, action) => {
+        state.getIncomingUserInvitationsStatus = API_STATUS.SUCCESS;
+        state.incomingInvitations = action.payload || [];
+      })
+      .addCase(getIncomingUserInvitations.rejected, (state, action) => {
+        state.getIncomingUserInvitationsStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to load incoming invitations";
+      })
+
+      // ACCEPT INCOMING INVITATION (PROFILE INBOX)
+      .addCase(acceptIncomingInvitation.pending, (state) => {
+        state.acceptIncomingInvitationStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(acceptIncomingInvitation.fulfilled, (state, action) => {
+        state.acceptIncomingInvitationStatus = API_STATUS.SUCCESS;
+        state.message = "Workspace joined successfully";
+
+        // Remove the accepted invitation from the inbox list instantly
+        if (action.meta?.arg) {
+          state.incomingInvitations = state.incomingInvitations.filter(
+            (invitation) =>
+              invitation.tokenHash !== action.meta.arg &&
+              invitation._id !== action.meta.arg,
+          );
+        }
+      })
+      .addCase(acceptIncomingInvitation.rejected, (state, action) => {
+        state.acceptIncomingInvitationStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to accept workspace invitation";
       });
   },
 });
@@ -403,6 +454,7 @@ export const {
   clearCurrentWorkspace,
   clearWorkspaceMembers,
   clearWorkspaceInvitations,
+  clearIncomingInvitations,
 } = workspaceSlice.actions;
 
 export default workspaceSlice.reducer;

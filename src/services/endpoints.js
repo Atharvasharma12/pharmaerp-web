@@ -1,5 +1,3 @@
-// src/services/endpoints.js
-
 export const ENDPOINTS = {
   AUTH: {
     REGISTER: "/core/auth/register",
@@ -52,6 +50,9 @@ export const ENDPOINTS = {
 
     ACCEPT_INVITATION: (token) =>
       `/organization/workspaces/invitations/${token}/accept`,
+
+    // --- NEW USER PROFILE INCOMING INVITATIONS ENDPOINT MAP ---
+    USER_INBOX_INVITATIONS: "/organization/workspaces/user-inbox/invitations",
   },
 
   COMPANY: {

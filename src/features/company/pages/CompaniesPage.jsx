@@ -3,14 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { API_STATUS, ROUTES } from "@/constants";
+import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import { AppConfirmModal } from "@/components";
 
 import useCompany from "../hooks/useCompany";
-
-import CompaniesDesktopPage from "./desktop/CompaniesDesktopPage";
-import CompaniesMobilePage from "./mobile/CompaniesMobilePage";
+import { CompaniesMobilePage } from "./mobile";
+import { CompaniesDesktopPage } from "./desktop";
 
 const statusOptions = [
   { label: "Status: All", value: "all" },
@@ -107,6 +106,7 @@ const CompaniesPage = () => {
   const isMobile = useIsMobile();
   const hasFetchedRef = useRef(false);
 
+  // CLEANED: Removed setCurrentCompany dependency completely
   const {
     companies,
     getWorkspaceCompanies,
@@ -117,7 +117,6 @@ const CompaniesPage = () => {
     message,
     clearError,
     clearMessage,
-    setCurrentCompany,
   } = useCompany();
 
   const [filters, setFilters] = useState(initialFilters);
@@ -132,7 +131,7 @@ const CompaniesPage = () => {
     try {
       await getWorkspaceCompanies();
     } catch {
-      // Handled natively via store selectors
+      // Regulated by store selectors
     }
   }, [getWorkspaceCompanies]);
 
@@ -274,31 +273,29 @@ const CompaniesPage = () => {
     navigate("/companies/create");
   }, [navigate]);
 
+  // FIXED: Removed global active context updates during internal route switching
   const handleViewCompany = useCallback(
     (company) => {
       if (!company?._id) return;
-      setCurrentCompany(company);
       navigate(`/companies/${company._id}`);
     },
-    [navigate, setCurrentCompany],
+    [navigate],
   );
 
   const handleEditCompany = useCallback(
     (company) => {
       if (!company?._id) return;
-      setCurrentCompany(company);
       navigate(`/companies/${company._id}/edit`);
     },
-    [navigate, setCurrentCompany],
+    [navigate],
   );
 
   const handleOpenSettings = useCallback(
     (company) => {
       if (!company?._id) return;
-      setCurrentCompany(company);
       navigate(`/companies/${company._id}/settings`);
     },
-    [navigate, setCurrentCompany],
+    [navigate],
   );
 
   const handleRequestDeleteCompany = useCallback((company) => {
@@ -319,7 +316,7 @@ const CompaniesPage = () => {
       setIsDeleteModalOpen(false);
       setSelectedCompany(null);
     } catch {
-      // Error handles cleanly via hook slice handles
+      // Managed gracefully by standard slice errors
     }
   }, [deleteCompany, selectedCompany]);
 

@@ -4,6 +4,9 @@ export const selectCompanies = (state) => state.company.companies;
 
 export const selectCurrentCompany = (state) => state.company.currentCompany;
 
+// NEW: Added to select the company being viewed or edited separately
+export const selectManagedCompany = (state) => state.company.managedCompany;
+
 export const selectCompanyStatus = (state) => state.company.status;
 
 export const selectCompanyError = (state) => state.company.error;

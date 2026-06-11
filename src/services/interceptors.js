@@ -1,22 +1,13 @@
 // src/services/interceptors.js
 
-import {
-  TOKEN_KEY,
-  WORKSPACE_STORAGE_KEY,
-  COMPANY_STORAGE_KEY,
-  BRANCH_STORAGE_KEY,
-} from "../constants";
-
+import { TOKEN_KEY } from "../constants";
 import { storage, getErrorMessage } from "../utils";
 
-export const setupInterceptors = (apiClient) => {
+export const setupInterceptors = (apiClient, store) => {
   apiClient.interceptors.request.use(
     (config) => {
+      // 1. Authentication remains safely handled via tokens
       const token = storage.get(TOKEN_KEY);
-
-      const workspaceId = storage.get(WORKSPACE_STORAGE_KEY);
-      const companyId = storage.get(COMPANY_STORAGE_KEY);
-      const branchId = storage.get(BRANCH_STORAGE_KEY);
 
       config.headers = config.headers || {};
 
@@ -24,16 +15,25 @@ export const setupInterceptors = (apiClient) => {
         config.headers.Authorization = `Bearer ${token}`;
       }
 
-      if (workspaceId) {
-        config.headers["x-workspace-id"] = workspaceId;
-      }
+      // 2. FIXED: Extract runtime active contexts straight out of global Redux memory state tree
+      if (store) {
+        const state = store.getState();
 
-      if (companyId) {
-        config.headers["x-company-id"] = companyId;
-      }
+        const workspaceId = state.workspace?.currentWorkspace?._id;
+        const companyId = state.company?.currentCompany?._id;
+        const branchId = state.branch?.currentBranch?._id;
 
-      if (branchId) {
-        config.headers["x-branch-id"] = branchId;
+        if (workspaceId) {
+          config.headers["x-workspace-id"] = workspaceId;
+        }
+
+        if (companyId) {
+          config.headers["x-company-id"] = companyId;
+        }
+
+        if (branchId) {
+          config.headers["x-branch-id"] = branchId;
+        }
       }
 
       return config;

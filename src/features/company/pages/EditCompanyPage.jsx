@@ -215,6 +215,7 @@ const EditCompanyPage = () => {
     updateCompany,
     updateCompanyStatus,
     getCompanyStatus,
+    clearManagedCompany,
     error: companyError,
     clearError,
   } = useCompany();
@@ -226,7 +227,6 @@ const EditCompanyPage = () => {
   const isLoading = updateCompanyStatus === API_STATUS.LOADING;
   const isFetching = getCompanyStatus === API_STATUS.LOADING;
 
-  // FIXED: Removed unstable getCompanyById reference from dependencies to eliminate network calling loops
   const loadCompanyData = useCallback(async () => {
     if (!companyId) return;
 
@@ -283,9 +283,17 @@ const EditCompanyPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId, navigate]);
 
+  // FIXED: Trigger load action exclusively on companyId parameter shifting
   useEffect(() => {
     loadCompanyData();
   }, [companyId, loadCompanyData]);
+
+  // FIXED: Separated clean-up effect block to fire only when unmounting page layout view
+  useEffect(() => {
+    return () => {
+      clearManagedCompany();
+    };
+  }, [clearManagedCompany]);
 
   const handleFieldChange = useCallback(
     (nameOrEvent, maybeValue) => {
@@ -333,6 +341,7 @@ const EditCompanyPage = () => {
     },
     [currentStep, formData],
   );
+
   const handleContinue = useCallback(() => {
     const stepErrors = validateStepData(currentStep, formData);
 
@@ -341,7 +350,6 @@ const EditCompanyPage = () => {
       return;
     }
 
-    // Fixed condition to allow progression from Step 4 to Step 5
     if (currentStep < 5) {
       setCurrentStep((prev) => prev + 1);
     }
@@ -408,7 +416,6 @@ const EditCompanyPage = () => {
         });
       }
     },
-    // FIXED: Removed unstable updateCompany dependency to match safe dispatch patterns
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [companyId, formData, navigate],
   );
@@ -456,5 +463,4 @@ const EditCompanyPage = () => {
     <EditCompanyDesktopPage {...desktopProps} />
   );
 };
-
 export default EditCompanyPage;

@@ -176,3 +176,31 @@ export const acceptWorkspaceInvitation = createAsyncThunk(
     }
   },
 );
+
+// --- NEW USER PROFILE DIRECT INBOX INTEGRATIONS ---
+
+export const getIncomingUserInvitations = createAsyncThunk(
+  "workspace/getIncomingUserInvitations",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await workspaceService.getIncomingUserInvitations();
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const acceptIncomingInvitation = createAsyncThunk(
+  "workspace/acceptIncomingInvitation",
+  async (token, { rejectWithValue }) => {
+    try {
+      const response = await workspaceService.acceptWorkspaceInvitation(token);
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);

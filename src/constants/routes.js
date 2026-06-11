@@ -54,8 +54,8 @@ export const ROUTES = {
   // Dashboard
   DASHBOARD: "/dashboard",
 
-  // User
-  PROFILE: "/profile",
+  // User Profile
+  PROFILE: "/me",
 
   // Settings
   SETTINGS: "/settings",

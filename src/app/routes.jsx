@@ -13,6 +13,7 @@ import { GuestRoute, ProtectedRoute, WorkspaceRequiredRoute } from "@/guards";
 
 import authRoutes from "@/features/auth/routes/authRoutes";
 import onboardingRoutes from "@/features/onboarding/routes/onboardingRoutes";
+import userRoutes from "@/features/user/routes/userRoutes";
 import workspaceRoutes from "@/features/workspace/routes/workspaceRoutes";
 import setupRoutes from "@/features/setup/routes/setupRoutes";
 import dashboardRoutes from "@/features/dashboard/routes/dashboardRoutes";
@@ -110,7 +111,7 @@ export const router = createBrowserRouter([
         <AppLayout />
       </ProtectedRoute>
     ),
-    children: [...setupRoutes],
+    children: [...setupRoutes, ...userRoutes],
   },
 
   {

@@ -209,12 +209,12 @@ const EditBranchPage = () => {
   const {
     getBranchById,
     updateBranch,
-    currentBranch,
+    managedBranch,
     getBranchStatus,
     updateBranchStatus,
+    clearManagedBranch,
     error: branchError,
     clearError,
-    clearCurrentBranch,
   } = useBranch();
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
@@ -224,71 +224,70 @@ const EditBranchPage = () => {
   const isDataFetching = getBranchStatus === API_STATUS.LOADING;
   const isSubmitting = updateBranchStatus === API_STATUS.LOADING;
 
-  // FIXED: Separated fetching action from useEffect dependency chain to prevent infinite loops on data reload
   const loadBranchData = useCallback(async () => {
     if (!branchId) return;
     try {
-      await getBranchById(branchId);
-    } catch {
+      const data = await getBranchById(branchId);
+      if (data) {
+        setFormData({
+          branchName: data.name || "",
+          branchType: data.type || "retail",
+          isPrimary: String(data.isPrimary ?? false),
+          branchEmail: data.email || "",
+          status: data.status || "active",
+
+          mobile: data.phones?.mobile || "",
+          whatsapp: data.phones?.whatsapp || "",
+          landline: data.phones?.landline || "",
+
+          addressLine1: data.address?.addressLine1 || "",
+          addressLine2: data.address?.addressLine2 || "",
+          city: data.address?.city || "",
+          district: data.address?.district || "",
+          state: data.address?.state || "",
+          country: data.address?.country || "India",
+          pincode: data.address?.pincode || "",
+          googleMapLocation: data.address?.googleMapLocation || "",
+
+          drugLicenseNumber: data.license?.drugLicenseNumber || "",
+          drugLicenseType: data.license?.drugLicenseType || "",
+          fssaiNumber: data.license?.fssaiNumber || "",
+          licenseExpiresAt: formatIsoToDateString(data.license?.expiresAt),
+
+          pharmacistName: data.pharmacist?.name || "",
+          pharmacistRegistrationNumber:
+            data.pharmacist?.registrationNumber || "",
+          pharmacistMobile: data.pharmacist?.mobile || "",
+          pharmacistEmail: data.pharmacist?.email || "",
+
+          emergencyContactName: data.emergencyContact?.name || "",
+          emergencyContactMobile: data.emergencyContact?.mobile || "",
+          emergencyContactRelationship:
+            data.emergencyContact?.relationship || "",
+        });
+      }
+    } catch (err) {
       setFormErrors({
-        submit: "Failed to load branch data configuration parameters.",
+        submit: "Unable to retrieve branch records. Returning to dashboard.",
       });
+      setTimeout(() => {
+        navigate("/branches");
+      }, 2500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branchId]);
+  }, [branchId, navigate]);
 
+  // Trigger load action exclusively on branchId parameter shifting
   useEffect(() => {
     loadBranchData();
-
-    return () => {
-      clearCurrentBranch();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branchId, loadBranchData]);
 
-  // Map server schema layout structure back into form states exclusively when resource values alter
+  // Separated clean-up effect block to fire only when unmounting page layout view
   useEffect(() => {
-    if (currentBranch && currentBranch._id === branchId) {
-      setFormData({
-        branchName: currentBranch.name || "",
-        branchType: currentBranch.type || "retail",
-        isPrimary: String(currentBranch.isPrimary ?? false),
-        branchEmail: currentBranch.email || "",
-        status: currentBranch.status || "active",
-
-        mobile: currentBranch.phones?.mobile || "",
-        whatsapp: currentBranch.phones?.whatsapp || "",
-        landline: currentBranch.phones?.landline || "",
-
-        addressLine1: currentBranch.address?.addressLine1 || "",
-        addressLine2: currentBranch.address?.addressLine2 || "",
-        city: currentBranch.address?.city || "",
-        district: currentBranch.address?.district || "",
-        state: currentBranch.address?.state || "",
-        country: currentBranch.address?.country || "India",
-        pincode: currentBranch.address?.pincode || "",
-        googleMapLocation: currentBranch.address?.googleMapLocation || "",
-
-        drugLicenseNumber: currentBranch.license?.drugLicenseNumber || "",
-        drugLicenseType: currentBranch.license?.drugLicenseType || "",
-        fssaiNumber: currentBranch.license?.fssaiNumber || "",
-        licenseExpiresAt: formatIsoToDateString(
-          currentBranch.license?.expiresAt,
-        ),
-
-        pharmacistName: currentBranch.pharmacist?.name || "",
-        pharmacistRegistrationNumber:
-          currentBranch.pharmacist?.registrationNumber || "",
-        pharmacistMobile: currentBranch.pharmacist?.mobile || "",
-        pharmacistEmail: currentBranch.pharmacist?.email || "",
-
-        emergencyContactName: currentBranch.emergencyContact?.name || "",
-        emergencyContactMobile: currentBranch.emergencyContact?.mobile || "",
-        emergencyContactRelationship:
-          currentBranch.emergencyContact?.relationship || "",
-      });
-    }
-  }, [currentBranch, branchId]);
+    return () => {
+      clearManagedBranch();
+    };
+  }, [clearManagedBranch]);
 
   const handleFieldChange = useCallback(
     (nameOrEvent, maybeValue) => {
@@ -410,7 +409,6 @@ const EditBranchPage = () => {
         });
       }
     },
-    // FIXED: Removed unstable updateBranch action method dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [branchId, formData, navigate],
   );
@@ -422,7 +420,7 @@ const EditBranchPage = () => {
       isLoading: isSubmitting,
       isDataFetching,
       currentStep,
-      branchCode: currentBranch?.branchCode || "",
+      branchCode: managedBranch?.branchCode || "",
 
       branchTypeOptions,
       booleanOptions,
@@ -435,6 +433,7 @@ const EditBranchPage = () => {
       handleStepChange,
       handleSaveDraft,
       handleCancel: handleBackToBranches,
+      handleReload: loadBranchData,
     }),
     [
       formData,
@@ -442,7 +441,7 @@ const EditBranchPage = () => {
       isSubmitting,
       isDataFetching,
       currentStep,
-      currentBranch,
+      managedBranch,
       handleFieldChange,
       handleSubmit,
       handleBackStep,
@@ -450,6 +449,7 @@ const EditBranchPage = () => {
       handleStepChange,
       handleSaveDraft,
       handleBackToBranches,
+      loadBranchData,
     ],
   );
 

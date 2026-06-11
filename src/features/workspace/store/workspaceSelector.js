@@ -1,5 +1,3 @@
-export const selectWorkspace = (state) => state.workspace;
-
 export const selectWorkspaces = (state) => state.workspace.workspaces;
 
 export const selectCurrentWorkspace = (state) =>
@@ -51,3 +49,14 @@ export const selectCancelWorkspaceInvitationStatus = (state) =>
 
 export const selectAcceptWorkspaceInvitationStatus = (state) =>
   state.workspace.acceptWorkspaceInvitationStatus;
+
+// --- NEW USER PROFILE INCOMING INVITATIONS SELECTORS ---
+
+export const selectIncomingInvitations = (state) =>
+  state.workspace.incomingInvitations || [];
+
+export const selectGetIncomingUserInvitationsStatus = (state) =>
+  state.workspace.getIncomingUserInvitationsStatus;
+
+export const selectAcceptIncomingInvitationStatus = (state) =>
+  state.workspace.acceptIncomingInvitationStatus;

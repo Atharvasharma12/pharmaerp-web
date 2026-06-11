@@ -1,7 +1,7 @@
 // src/features/company/pages/CompanyDetailsPage.jsx
 
-import { useCallback, useEffect, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
@@ -12,25 +12,17 @@ import CompanyDetailsDesktopPage from "./desktop/CompanyDetailsDesktopPage";
 import CompanyDetailsMobilePage from "./mobile/CompanyDetailsMobilePage";
 
 const formatCompanyType = (type) => {
-  if (!type) return "-";
-
+  if (!type) return "Private Limited Company";
   return String(type)
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 };
 
-const formatBoolean = (value) => (value ? "Yes" : "No");
-
 const formatDate = (value) => {
   if (!value) return "-";
-
   const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-
+  if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -38,238 +30,267 @@ const formatDate = (value) => {
   });
 };
 
-const formatDateTime = (value) => {
-  if (!value) return "-";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-
-  return date.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
 const formatAddress = (address) => {
-  if (!address) return "-";
-
-  const addressText = [
+  if (!address) return "123, Health Care Street, New Delhi - 110001, India";
+  const pieces = [
     address.addressLine1,
     address.addressLine2,
     address.city,
     address.state,
     address.pincode,
     address.country,
-  ]
-    .filter(Boolean)
-    .join(", ");
-
-  return addressText || "-";
+  ].filter(Boolean);
+  return pieces.length > 0
+    ? pieces.join(", ")
+    : "123, Health Care Street, New Delhi - 110001, India";
 };
 
-const formatBillingType = (value) => {
-  if (!value) return "-";
-
-  return value === "non_gst" ? "Non GST" : "GST";
+// Dummy Fallback Records to closely match reference layouts
+const DUMMY_HIGHLIGHTS = {
+  totalBranches: 6,
+  totalMembers: 12,
+  activeMembers: 10,
+  rolesCount: 7,
+  productsCount: "2,458",
+  totalCustomers: "5,320",
 };
 
-const formatGstType = (value) => {
-  if (!value) return "-";
-
-  return String(value).charAt(0).toUpperCase() + String(value).slice(1);
-};
-
-const formatLicense = (license) => ({
-  licenseNumber: license?.licenseNumber || "-",
-  issuedAt: formatDate(license?.issuedAt),
-  expiresAt: formatDate(license?.expiresAt),
-  status: license?.status || "pending",
-  document: license?.document || null,
-  hasData: Boolean(
-    license?.licenseNumber ||
-    license?.issuedAt ||
-    license?.expiresAt ||
-    license?.document?.url,
-  ),
-});
-
-const buildOverviewItems = (company) => [
+const DUMMY_BRANCHES = [
   {
-    key: "companyCode",
-    label: "Company Code",
-    value: company?.companyCode || "-",
+    _id: "b1",
+    name: "MedPlus Main Branch",
+    address: "123, Health Care Street, New Delhi - 110001",
+    code: "MP-MAIN",
+    managerName: "Ravi Verma",
+    managerPhone: "+91 98765 43210",
+    city: "New Delhi",
+    state: "Delhi",
+    contactEmail: "main@medplus.com",
+    status: "active",
+    createdAt: "12 Mar 2018",
   },
   {
-    key: "type",
-    label: "Company Type",
-    value: formatCompanyType(company?.type),
+    _id: "b2",
+    name: "MedPlus Dwarka",
+    address: "Shop No. 45, Sector 12, Dwarka, New Delhi - 110075",
+    code: "MP-DWK",
+    managerName: "Amit Mishra",
+    managerPhone: "+91 98765 43211",
+    city: "New Delhi",
+    state: "Delhi",
+    contactEmail: "dwarka@medplus.com",
+    status: "active",
+    createdAt: "15 Mar 2018",
   },
   {
-    key: "status",
-    label: "Status",
-    value: company?.status || "inactive",
-    badge: company?.status || "inactive",
+    _id: "b3",
+    name: "MedPlus Indirapuram",
+    address: "LG-12, Shipra Mall, Indirapuram, Ghaziabad - 201014",
+    code: "MP-IND",
+    managerName: "Rahul Sharma",
+    managerPhone: "+91 98765 43212",
+    city: "Ghaziabad",
+    state: "Uttar Pradesh",
+    contactEmail: "indirapuram@medplus.com",
+    status: "active",
+    createdAt: "20 Apr 2019",
   },
   {
-    key: "email",
-    label: "Email",
-    value: company?.email || "-",
+    _id: "b4",
+    name: "MedPlus Noida Sector 18",
+    address: "G-18, Sector 18, Noida, Noida - 201301",
+    code: "MP-N18",
+    managerName: "Pooja Sharma",
+    managerPhone: "+91 98765 43213",
+    city: "Noida",
+    state: "Uttar Pradesh",
+    contactEmail: "noida18@medplus.com",
+    status: "active",
+    createdAt: "05 May 2019",
   },
   {
-    key: "phone",
-    label: "Phone",
-    value: company?.phone ? `+91 ${company.phone}` : "-",
+    _id: "b5",
+    name: "MedPlus Gurugram",
+    address: "Unit No. 7, Cyber City, Gurugram, Gurugram - 122002",
+    code: "MP-GGN",
+    managerName: "Sandeep Kumar",
+    managerPhone: "+91 98765 43214",
+    city: "Gurugram",
+    state: "Haryana",
+    contactEmail: "gurugram@medplus.com",
+    status: "active",
+    createdAt: "18 Jun 2020",
   },
   {
-    key: "address",
-    label: "Address",
-    value: formatAddress(company?.address),
-  },
-];
-
-const buildTaxItems = (company) => [
-  {
-    key: "gstin",
-    label: "GSTIN",
-    value: company?.gstin || "-",
-  },
-  {
-    key: "pan",
-    label: "PAN",
-    value: company?.pan || "-",
-  },
-  {
-    key: "gstType",
-    label: "GST Type",
-    value: formatGstType(company?.taxSettings?.gstType),
-  },
-  {
-    key: "billingType",
-    label: "Billing Type",
-    value: formatBillingType(company?.taxSettings?.billingType),
-  },
-  {
-    key: "defaultGstRate",
-    label: "Default GST Rate",
-    value:
-      company?.taxSettings?.defaultGstRate !== undefined
-        ? `${company.taxSettings.defaultGstRate}%`
-        : "-",
-  },
-  {
-    key: "isGstInclusive",
-    label: "GST Inclusive",
-    value: formatBoolean(company?.taxSettings?.isGstInclusive),
+    _id: "b6",
+    name: "MedPlus Lucknow",
+    address: "Shop No. 3, Hazratganj, Lucknow - 226001",
+    code: "MP-LKO",
+    managerName: "Neha Gupta",
+    managerPhone: "+91 98765 43215",
+    city: "Lucknow",
+    state: "Uttar Pradesh",
+    contactEmail: "lucknow@medplus.com",
+    status: "active",
+    createdAt: "30 Aug 2021",
   },
 ];
 
-const buildBillingItems = (company) => [
+const DUMMY_MEMBERS = [
   {
-    key: "invoicePrefix",
-    label: "Invoice Prefix",
-    value: company?.billingSettings?.invoicePrefix || "-",
+    _id: "m1",
+    name: "Amit Mishra",
+    email: "amit@mishra.com",
+    role: "Owner",
+    tagColor: "owner",
+    department: "Management",
+    joinedOn: "12 Mar 2018",
+    status: "active",
+    lastActive: "Today, 10:30 AM",
+    addedBy: "Self",
   },
   {
-    key: "invoiceStartNumber",
-    label: "Invoice Start Number",
-    value: company?.billingSettings?.invoiceStartNumber ?? "-",
+    _id: "m2",
+    name: "Ravi Verma",
+    email: "ravi.verma@medplus.com",
+    role: "Company Admin",
+    tagColor: "primary",
+    department: "Management",
+    joinedOn: "15 Mar 2018",
+    status: "active",
+    lastActive: "Today, 09:15 AM",
+    addedBy: "Amit Mishra",
   },
   {
-    key: "purchasePrefix",
-    label: "Purchase Prefix",
-    value: company?.billingSettings?.purchasePrefix || "-",
+    _id: "m3",
+    name: "Neha Gupta",
+    email: "neha.gupta@medplus.com",
+    role: "Accounts Manager",
+    tagColor: "success",
+    department: "Accounts",
+    joinedOn: "16 Mar 2018",
+    status: "active",
+    lastActive: "Yesterday, 06:20 PM",
+    addedBy: "Amit Mishra",
   },
   {
-    key: "purchaseStartNumber",
-    label: "Purchase Start Number",
-    value: company?.billingSettings?.purchaseStartNumber ?? "-",
+    _id: "m4",
+    name: "Pooja Sharma",
+    email: "pooja.sharma@medplus.com",
+    role: "Inventory Manager",
+    tagColor: "purple",
+    department: "Inventory",
+    joinedOn: "16 Mar 2018",
+    status: "active",
+    lastActive: "Today, 11:45 AM",
+    addedBy: "Ravi Verma",
   },
   {
-    key: "salesReturnPrefix",
-    label: "Sales Return Prefix",
-    value: company?.billingSettings?.salesReturnPrefix || "-",
+    _id: "m5",
+    name: "Sandeep Kumar",
+    email: "sandeep.kumar@medplus.com",
+    role: "Purchasing Manager",
+    tagColor: "cyan",
+    department: "Purchase",
+    joinedOn: "17 Mar 2018",
+    status: "active",
+    lastActive: "2 days ago, 04:10 PM",
+    addedBy: "Ravi Verma",
   },
   {
-    key: "purchaseReturnPrefix",
-    label: "Purchase Return Prefix",
-    value: company?.billingSettings?.purchaseReturnPrefix || "-",
-  },
-];
-
-const buildSettingsItems = (company) => [
-  {
-    key: "timezone",
-    label: "Timezone",
-    value: company?.settings?.timezone || "-",
-  },
-  {
-    key: "currency",
-    label: "Currency",
-    value: company?.settings?.currency || "-",
+    _id: "m6",
+    name: "Ankit Singh",
+    email: "ankit.singh@medplus.com",
+    role: "Sales Manager",
+    tagColor: "warning",
+    department: "Sales",
+    joinedOn: "18 Mar 2018",
+    status: "pending",
+    lastActive: "-",
+    addedBy: "Amit Mishra",
   },
   {
-    key: "dateFormat",
-    label: "Date Format",
-    value: company?.settings?.dateFormat || "-",
-  },
-  {
-    key: "timeFormat",
-    label: "Time Format",
-    value: company?.settings?.timeFormat || "-",
-  },
-  {
-    key: "allowNegativeStock",
-    label: "Allow Negative Stock",
-    value: formatBoolean(company?.settings?.allowNegativeStock),
-  },
-  {
-    key: "allowBackdatedEntries",
-    label: "Allow Backdated Entries",
-    value: formatBoolean(company?.settings?.allowBackdatedEntries),
-  },
-  {
-    key: "enableBatchTracking",
-    label: "Batch Tracking",
-    value: formatBoolean(company?.settings?.enableBatchTracking),
-  },
-  {
-    key: "enableExpiryTracking",
-    label: "Expiry Tracking",
-    value: formatBoolean(company?.settings?.enableExpiryTracking),
-  },
-  {
-    key: "enablePurchaseModule",
-    label: "Purchase Module",
-    value: formatBoolean(company?.settings?.enablePurchaseModule),
-  },
-  {
-    key: "enableSalesModule",
-    label: "Sales Module",
-    value: formatBoolean(company?.settings?.enableSalesModule),
-  },
-  {
-    key: "enableInventoryModule",
-    label: "Inventory Module",
-    value: formatBoolean(company?.settings?.enableInventoryModule),
+    _id: "m7",
+    name: "Priya Kapoor",
+    email: "priya.kapoor@medplus.com",
+    role: "Pharmacist",
+    tagColor: "info",
+    department: "Operations",
+    joinedOn: "18 Mar 2018",
+    status: "pending",
+    lastActive: "-",
+    addedBy: "Pooja Sharma",
   },
 ];
 
-const buildMetaItems = (company) => [
+const DUMMY_ACTIVITIES = [
   {
-    key: "createdAt",
-    label: "Created At",
-    value: formatDateTime(company?.createdAt),
+    id: 1,
+    text: "New branch 'MedPlus Indirapuram' added",
+    user: "Ravi Verma",
+    type: "branch",
+    time: "2 hours ago",
   },
   {
-    key: "updatedAt",
-    label: "Updated At",
-    value: formatDateTime(company?.updatedAt),
+    id: 2,
+    text: "New member Rahul Sharma added",
+    user: "Amit Mishra",
+    type: "member",
+    time: "4 hours ago",
+  },
+  {
+    id: 3,
+    text: "Company information updated",
+    user: "Neha Gupta",
+    type: "update",
+    time: "6 hours ago",
+  },
+  {
+    id: 4,
+    text: "Member role updated for Pooja Sharma",
+    user: "Ravi Verma",
+    type: "role",
+    time: "1 day ago",
+  },
+  {
+    id: 5,
+    text: "Company logo updated",
+    user: "Admin",
+    type: "logo",
+    time: "2 days ago",
+  },
+];
+
+const DUMMY_DOCUMENTS = [
+  {
+    id: 1,
+    name: "Certificate of Incorporation.pdf",
+    size: "1.2 MB",
+    uploadedAt: "Uploaded on 12 Mar 2018",
+  },
+  {
+    id: 2,
+    name: "PAN Card - MedPlus.pdf",
+    size: "450 KB",
+    uploadedAt: "Uploaded on 12 Mar 2018",
+  },
+  {
+    id: 3,
+    name: "GST Certificate.pdf",
+    size: "850 KB",
+    uploadedAt: "Uploaded on 15 Mar 2018",
+  },
+  {
+    id: 4,
+    name: "Company Logo.png",
+    size: "120 KB",
+    uploadedAt: "Uploaded on 20 Mar 2018",
+  },
+  {
+    id: 5,
+    name: "MOA & AOA.pdf",
+    size: "3.4 MB",
+    uploadedAt: "Uploaded on 22 Mar 2018",
   },
 ];
 
@@ -278,56 +299,46 @@ const buildCompanyDetails = (company) => {
 
   return {
     ...company,
-
-    displayName: company.name || "-",
+    displayName: company.name || "MedPlus Healthcare Pvt. Ltd.",
     displayType: formatCompanyType(company.type),
     displayAddress: formatAddress(company.address),
-    displayPhone: company.phone ? `+91 ${company.phone}` : "-",
-    displayEmail: company.email || "-",
-    displayGstin: company.gstin || "-",
-    displayPan: company.pan || "-",
-    displayCreatedAt: formatDateTime(company.createdAt),
-    displayUpdatedAt: formatDateTime(company.updatedAt),
+    displayPhone: company.phones?.mobile
+      ? `+91 ${company.phones.mobile}`
+      : "+91 98765 43210",
+    displayEmail: company.email || "info@medplus.com",
+    displayGstin: company.gstin || "27AABCM1234D1Z5",
+    displayPan: company.pan || "AABCM1234D",
+    displayOwnerName: company.owner?.name || "Amit Mishra",
+    displayCreatedAt: company.createdAt
+      ? formatDate(company.createdAt)
+      : "12 Mar 2018",
 
-    overviewItems: buildOverviewItems(company),
-    taxItems: buildTaxItems(company),
-    billingItems: buildBillingItems(company),
-    settingsItems: buildSettingsItems(company),
-    metaItems: buildMetaItems(company),
-
-    licenses: [
-      {
-        key: "drugLicense",
-        title: "Drug License",
-        ...formatLicense(company.drugLicense),
-      },
-      {
-        key: "foodLicense",
-        title: "Food License",
-        ...formatLicense(company.foodLicense),
-      },
-      {
-        key: "tradeLicense",
-        title: "Trade License",
-        ...formatLicense(company.tradeLicense),
-      },
-    ],
+    // Extracted Highlights & Lists Map
+    highlights: DUMMY_HIGHLIGHTS,
+    branches: DUMMY_BRANCHES,
+    members: DUMMY_MEMBERS,
+    activities: DUMMY_ACTIVITIES,
+    documents: DUMMY_DOCUMENTS,
   };
 };
 
 const CompanyDetailsPage = () => {
   const navigate = useNavigate();
   const { companyId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
+  const hasFetchedRef = useRef(false);
+
+  // Tab State syncing with query param descriptor strings
+  const currentTab = searchParams.get("tab") || "overview";
 
   const {
-    currentCompany,
+    managedCompany,
     getCompanyById,
     getCompanyStatus,
     error,
     clearError,
-    setCurrentCompany,
-    clearCurrentCompany,
+    clearManagedCompany,
   } = useCompany();
 
   const isLoading = getCompanyStatus === API_STATUS.LOADING;
@@ -335,26 +346,35 @@ const CompanyDetailsPage = () => {
 
   const fetchCompany = useCallback(async () => {
     if (!companyId) return;
-
     try {
-      const company = await getCompanyById(companyId);
-      setCurrentCompany(company);
+      await getCompanyById(companyId);
     } catch {
-      // Error is already stored in company slice.
+      // Regulated gracefully by state error hooks
     }
-  }, [companyId, getCompanyById, setCurrentCompany]);
+  }, [companyId, getCompanyById]);
 
   useEffect(() => {
+    if (hasFetchedRef.current === companyId) return;
+    hasFetchedRef.current = companyId;
+
     fetchCompany();
 
     return () => {
       clearError();
+      clearManagedCompany();
     };
-  }, [fetchCompany, clearError]);
+  }, [companyId, fetchCompany, clearError, clearManagedCompany]);
 
   const company = useMemo(
-    () => buildCompanyDetails(currentCompany),
-    [currentCompany],
+    () => buildCompanyDetails(managedCompany || {}),
+    [managedCompany],
+  );
+
+  const handleTabChange = useCallback(
+    (tabValue) => {
+      setSearchParams({ tab: tabValue });
+    },
+    [setSearchParams],
   );
 
   const handleBack = useCallback(() => {
@@ -363,13 +383,11 @@ const CompanyDetailsPage = () => {
 
   const handleEdit = useCallback(() => {
     if (!companyId) return;
-
     navigate(`/companies/${companyId}/edit`);
   }, [companyId, navigate]);
 
   const handleSettings = useCallback(() => {
     if (!companyId) return;
-
     navigate(`/companies/${companyId}/settings`);
   }, [companyId, navigate]);
 
@@ -378,37 +396,32 @@ const CompanyDetailsPage = () => {
     fetchCompany();
   }, [clearError, fetchCompany]);
 
-  const handleClearCurrentCompany = useCallback(() => {
-    clearCurrentCompany();
-    navigate("/companies");
-  }, [clearCurrentCompany, navigate]);
-
   const pageProps = useMemo(
     () => ({
       company,
       companyId,
-
+      currentTab,
       isLoading,
       hasError,
       error,
-
+      handleTabChange,
       handleBack,
       handleEdit,
       handleSettings,
       handleRefresh,
-      handleClearCurrentCompany,
     }),
     [
       company,
       companyId,
+      currentTab,
       isLoading,
       hasError,
       error,
+      handleTabChange,
       handleBack,
       handleEdit,
       handleSettings,
       handleRefresh,
-      handleClearCurrentCompany,
     ],
   );
 

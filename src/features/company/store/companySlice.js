@@ -1,12 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-
-import {
-  API_STATUS,
-  COMPANY_STORAGE_KEY,
-  BRANCH_STORAGE_KEY,
-} from "@/constants";
-import { storage } from "@/utils";
-
+import { API_STATUS } from "@/constants";
 import {
   createCompany,
   getWorkspaceCompanies,
@@ -15,20 +8,10 @@ import {
   deleteCompany,
 } from "./companyThunk";
 
-const persistCurrentCompany = (company) => {
-  if (company?._id) {
-    storage.set(COMPANY_STORAGE_KEY, company._id);
-  }
-};
-
-const removePersistedCompany = () => {
-  storage.remove(COMPANY_STORAGE_KEY);
-  storage.remove(BRANCH_STORAGE_KEY);
-};
-
 const initialState = {
   companies: [],
   currentCompany: null,
+  managedCompany: null,
 
   status: API_STATUS.IDLE,
   error: null,
@@ -54,40 +37,27 @@ const setRejected = (state, action) => {
 
 const companySlice = createSlice({
   name: "company",
-
   initialState,
-
   reducers: {
     clearCompanyError(state) {
       state.error = null;
     },
-
     clearCompanyMessage(state) {
       state.message = null;
     },
-
     setCurrentCompany(state, action) {
       state.currentCompany = action.payload || null;
-
-      if (state.currentCompany?._id) {
-        persistCurrentCompany(state.currentCompany);
-
-        storage.remove(BRANCH_STORAGE_KEY);
-      } else {
-        removePersistedCompany();
-      }
     },
-
     clearCurrentCompany(state) {
       state.currentCompany = null;
-      removePersistedCompany();
     },
-
     clearCompanies(state) {
       state.companies = [];
     },
+    clearManagedCompany(state) {
+      state.managedCompany = null;
+    },
   },
-
   extraReducers: (builder) => {
     builder
       // CREATE COMPANY
@@ -99,14 +69,9 @@ const companySlice = createSlice({
       .addCase(createCompany.fulfilled, (state, action) => {
         state.createCompanyStatus = API_STATUS.SUCCESS;
         state.currentCompany = action.payload || null;
-
         if (action.payload) {
           state.companies.unshift(action.payload);
-          persistCurrentCompany(action.payload);
-
-          storage.remove(BRANCH_STORAGE_KEY);
         }
-
         state.message = "Company created successfully";
       })
       .addCase(createCompany.rejected, (state, action) => {
@@ -123,24 +88,8 @@ const companySlice = createSlice({
         state.getWorkspaceCompaniesStatus = API_STATUS.SUCCESS;
         state.companies = action.payload || [];
 
-        const persistedCompanyId = storage.get(COMPANY_STORAGE_KEY);
-
-        const matchedCompany =
-          state.companies.find(
-            (company) => company?._id === persistedCompanyId,
-          ) || null;
-
-        const firstCompany = state.companies[0] || null;
-
-        state.currentCompany =
-          state.currentCompany || matchedCompany || firstCompany;
-
-        if (state.currentCompany?._id) {
-          persistCurrentCompany(state.currentCompany);
-        } else {
-          removePersistedCompany();
-        }
-
+        // Keep active company in memory if already set; otherwise let layout handle initial assignment
+        state.currentCompany = state.currentCompany || null;
         state.message = "Companies fetched successfully";
       })
       .addCase(getWorkspaceCompanies.rejected, (state, action) => {
@@ -153,14 +102,7 @@ const companySlice = createSlice({
       .addCase(getCompanyById.fulfilled, (state, action) => {
         state.status = API_STATUS.SUCCESS;
         state.getCompanyStatus = API_STATUS.SUCCESS;
-        state.currentCompany = action.payload || null;
-
-        if (action.payload?._id) {
-          persistCurrentCompany(action.payload);
-        } else {
-          removePersistedCompany();
-        }
-
+        state.managedCompany = action.payload || null;
         state.message = "Company fetched successfully";
       })
       .addCase(getCompanyById.rejected, (state, action) => {
@@ -176,18 +118,17 @@ const companySlice = createSlice({
       })
       .addCase(updateCompany.fulfilled, (state, action) => {
         state.updateCompanyStatus = API_STATUS.SUCCESS;
-        state.currentCompany = action.payload || state.currentCompany;
-
         state.companies = state.companies.map((company) =>
           company?._id === action.payload?._id ? action.payload : company,
         );
+        state.managedCompany = action.payload || state.managedCompany;
 
-        if (state.currentCompany?._id) {
-          persistCurrentCompany(state.currentCompany);
-        } else {
-          removePersistedCompany();
+        if (
+          state.currentCompany?._id === action.payload?._id &&
+          action.payload
+        ) {
+          state.currentCompany = action.payload;
         }
-
         state.message = "Company updated successfully";
       })
       .addCase(updateCompany.rejected, (state, action) => {
@@ -203,16 +144,15 @@ const companySlice = createSlice({
       })
       .addCase(deleteCompany.fulfilled, (state, action) => {
         state.deleteCompanyStatus = API_STATUS.SUCCESS;
-
         state.companies = state.companies.filter(
           (company) => company?._id !== action.meta.arg,
         );
-
+        if (state.managedCompany?._id === action.meta.arg) {
+          state.managedCompany = null;
+        }
         if (state.currentCompany?._id === action.meta.arg) {
           state.currentCompany = null;
-          removePersistedCompany();
         }
-
         state.message = "Company deleted successfully";
       })
       .addCase(deleteCompany.rejected, (state, action) => {
@@ -228,6 +168,7 @@ export const {
   setCurrentCompany,
   clearCurrentCompany,
   clearCompanies,
+  clearManagedCompany,
 } = companySlice.actions;
 
 export default companySlice.reducer;

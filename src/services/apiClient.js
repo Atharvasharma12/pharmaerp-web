@@ -14,6 +14,12 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
-setupInterceptors(apiClient);
+// Set up interceptors with a null store initial value at load time
+setupInterceptors(apiClient, null);
+
+// FIXED: Export dynamic injection bridge to pass the store instance down without circular reference loops
+export const injectStore = (store) => {
+  setupInterceptors(apiClient, store);
+};
 
 export default apiClient;

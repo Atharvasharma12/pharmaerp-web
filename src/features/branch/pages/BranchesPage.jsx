@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { API_STATUS, ROUTES } from "@/constants";
+import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import { AppConfirmModal } from "@/components";
 
 import useBranch from "../hooks/useBranch";
+import useCompany from "@/features/company/hooks/useCompany"; // IMPORT THIS: To read global company layout states
 
 import BranchesDesktopPage from "./desktop/BranchesDesktopPage";
 import BranchesMobilePage from "./mobile/BranchesMobilePage";
@@ -92,6 +93,9 @@ const BranchesPage = () => {
   const isMobile = useIsMobile();
   const hasFetchedRef = useRef(false);
 
+  // Read the active workspace company context driving the application layout tree
+  const { currentCompany } = useCompany();
+
   const {
     branches,
     getCompanyBranches,
@@ -102,30 +106,37 @@ const BranchesPage = () => {
     message,
     clearError,
     clearMessage,
-    setCurrentBranch,
   } = useBranch();
 
   const [filters, setFilters] = useState(initialFilters);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  const isLoading = getCompanyBranchesStatus === API_STATUS.LOADING;
+  // FIXED: Standardize loading status flags across UI frames safely
+  const isLoading =
+    getCompanyBranchesStatus === API_STATUS.LOADING || !currentCompany?._id;
   const isDeleting = deleteBranchStatus === API_STATUS.LOADING;
   const hasError = getCompanyBranchesStatus === API_STATUS.ERROR;
 
   const fetchBranches = useCallback(async () => {
+    // SECURITY GUARD: Stop execution if parent corporate profile hasn't hydrated into layout yet
+    if (!currentCompany?._id) return;
+
     try {
       await getCompanyBranches();
     } catch {
-      // Regulated natively via slice hook patterns
+      // Regulated by store selectors
     }
-  }, [getCompanyBranches]);
+  }, [getCompanyBranches, currentCompany?._id]);
 
+  // FIXED: Re-evaluate layout fetches whenever companyId settles from core refresh waterfalls
   useEffect(() => {
-    if (hasFetchedRef.current) return;
-    hasFetchedRef.current = true;
+    if (!currentCompany?._id) return;
+    if (hasFetchedRef.current === currentCompany._id) return;
+
+    hasFetchedRef.current = currentCompany._id;
     fetchBranches();
-  }, [fetchBranches]);
+  }, [currentCompany?._id, fetchBranches]);
 
   useEffect(() => {
     if (!message) return undefined;
@@ -260,28 +271,25 @@ const BranchesPage = () => {
   const handleViewBranch = useCallback(
     (branch) => {
       if (!branch?._id) return;
-      setCurrentBranch(branch);
       navigate(`/branches/${branch._id}`);
     },
-    [navigate, setCurrentBranch],
+    [navigate],
   );
 
   const handleEditBranch = useCallback(
     (branch) => {
       if (!branch?._id) return;
-      setCurrentBranch(branch);
       navigate(`/branches/${branch._id}/edit`);
     },
-    [navigate, setCurrentBranch],
+    [navigate],
   );
 
   const handleOpenSettings = useCallback(
     (branch) => {
       if (!branch?._id) return;
-      setCurrentBranch(branch);
       navigate(`/branches/${branch._id}/settings`);
     },
-    [navigate, setCurrentBranch],
+    [navigate],
   );
 
   const handleRequestDeleteBranch = useCallback((branch) => {
@@ -303,7 +311,7 @@ const BranchesPage = () => {
       setSelectedBranch(null);
       fetchBranches();
     } catch {
-      // Catch exceptions managed cleanly by standard slice blocks
+      // Errors managed via base thunks
     }
   }, [deleteBranch, fetchBranches, selectedBranch]);
 

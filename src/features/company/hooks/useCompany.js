@@ -14,11 +14,13 @@ import {
   setCurrentCompany,
   clearCurrentCompany,
   clearCompanies,
+  clearManagedCompany, // Added clear reducer
 } from "../store/companySlice";
 
 import {
   selectCompanies,
   selectCurrentCompany,
+  selectManagedCompany, // Added selector
   selectCompanyStatus,
   selectCompanyError,
   selectCompanyMessage,
@@ -34,6 +36,7 @@ const useCompany = () => {
 
   const companies = useSelector(selectCompanies);
   const currentCompany = useSelector(selectCurrentCompany);
+  const managedCompany = useSelector(selectManagedCompany); // Added hook state
 
   const status = useSelector(selectCompanyStatus);
   const error = useSelector(selectCompanyError);
@@ -92,9 +95,14 @@ const useCompany = () => {
     dispatch(clearCompanies());
   };
 
+  const removeManagedCompany = () => {
+    dispatch(clearManagedCompany());
+  };
+
   return {
     companies,
     currentCompany,
+    managedCompany, // Exposed management state
 
     status,
     error,
@@ -118,6 +126,7 @@ const useCompany = () => {
     setCurrentCompany: saveCurrentCompany,
     clearCurrentCompany: removeCurrentCompany,
     clearCompanies: removeCompanies,
+    clearManagedCompany: removeManagedCompany, // Clean-up handler for pages
   };
 };
 

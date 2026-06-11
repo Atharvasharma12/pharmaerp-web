@@ -144,6 +144,7 @@ const getWorkspaceFromItem = (item) => item?.workspace || item || null;
 const SetupCenterDesktopPage = () => {
   const navigate = useNavigate();
   const fetchedSubscriptionWorkspaceRef = useRef(null);
+  const fetchedBranchesWorkspaceRef = useRef(null);
 
   const {
     workspace,
@@ -154,7 +155,9 @@ const SetupCenterDesktopPage = () => {
   } = useWorkspace();
 
   const { companies = [] } = useCompany();
-  const { branches = [] } = useBranch();
+
+  // Destructured getWorkspaceBranches to fetch workspace wide layout
+  const { branches = [], getWorkspaceBranches } = useBranch();
 
   const { getWorkspaceCurrentSubscription, currentWorkspaceSubscription } =
     useSubscription();
@@ -179,6 +182,7 @@ const SetupCenterDesktopPage = () => {
   const workspaceId = resolvedWorkspace?._id || resolvedWorkspace?.id;
   const hasWorkspace = Boolean(workspaceId);
 
+  // Fetch subscription layout
   useEffect(() => {
     if (!workspaceId) return;
     if (fetchedSubscriptionWorkspaceRef.current === workspaceId) return;
@@ -186,6 +190,15 @@ const SetupCenterDesktopPage = () => {
     fetchedSubscriptionWorkspaceRef.current = workspaceId;
     getWorkspaceCurrentSubscription(workspaceId).catch(() => {});
   }, [workspaceId, getWorkspaceCurrentSubscription]);
+
+  // Fetch workspace branches systematically to ensure global branch presence verification
+  useEffect(() => {
+    if (!workspaceId) return;
+    if (fetchedBranchesWorkspaceRef.current === workspaceId) return;
+
+    fetchedBranchesWorkspaceRef.current = workspaceId;
+    getWorkspaceBranches().catch(() => {});
+  }, [workspaceId, getWorkspaceBranches]);
 
   const workspaceSubscription =
     currentWorkspaceSubscription ||
@@ -206,6 +219,8 @@ const SetupCenterDesktopPage = () => {
   );
 
   const hasCompany = Array.isArray(companies) && companies.length > 0;
+
+  // Marks done if branches exist in either company arrays or historical workspace lists
   const hasBranch = Array.isArray(branches) && branches.length > 0;
 
   const setupState = useMemo(

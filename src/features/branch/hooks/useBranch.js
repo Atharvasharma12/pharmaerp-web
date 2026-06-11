@@ -15,11 +15,13 @@ import {
   setCurrentBranch,
   clearCurrentBranch,
   clearBranches,
+  clearManagedBranch, // Added clear reducer
 } from "../store/branchSlice";
 
 import {
   selectBranches,
   selectCurrentBranch,
+  selectManagedBranch, // Added selector
   selectBranchStatus,
   selectBranchError,
   selectBranchMessage,
@@ -36,6 +38,7 @@ const useBranch = () => {
 
   const branches = useSelector(selectBranches);
   const currentBranch = useSelector(selectCurrentBranch);
+  const managedBranch = useSelector(selectManagedBranch); // Added hook state
 
   const status = useSelector(selectBranchStatus);
   const error = useSelector(selectBranchError);
@@ -99,9 +102,14 @@ const useBranch = () => {
     dispatch(clearBranches());
   };
 
+  const removeManagedBranch = () => {
+    dispatch(clearManagedBranch());
+  };
+
   return {
     branches,
     currentBranch,
+    managedBranch, // Exposed management state
 
     status,
     error,
@@ -127,6 +135,7 @@ const useBranch = () => {
     setCurrentBranch: saveCurrentBranch,
     clearCurrentBranch: removeCurrentBranch,
     clearBranches: removeBranches,
+    clearManagedBranch: removeManagedBranch, // Clean-up handler for pages
   };
 };
 

@@ -1,10 +1,8 @@
 // src/layouts/app/AppLayout.jsx
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useIsMobile } from "@/hooks";
-import { storage } from "@/utils";
-
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useCompany from "@/features/company/hooks/useCompany";
 import useBranch from "@/features/branch/hooks/useBranch";
@@ -13,12 +11,6 @@ import useUser from "@/features/user/hooks/useUser";
 import AppDesktopLayout from "./desktop/AppDesktopLayout";
 import AppMobileLayout from "./mobile/AppMobileLayout";
 
-import {
-  WORKSPACE_STORAGE_KEY,
-  COMPANY_STORAGE_KEY,
-  BRANCH_STORAGE_KEY,
-} from "@/constants";
-
 const getWorkspaceFromItem = (item) => {
   return item?.workspace || item || null;
 };
@@ -26,15 +18,9 @@ const getWorkspaceFromItem = (item) => {
 const AppLayout = () => {
   const isMobile = useIsMobile();
 
-  const initializedWorkspaceRef = useRef(false);
-  const initializedCompanyWorkspaceRef = useRef(null);
-  const initializedBranchCompanyRef = useRef(null);
-
   const { user, getActiveContext } = useUser();
-
   const { workspaces, currentWorkspace, getMyWorkspaces, setCurrentWorkspace } =
     useWorkspace();
-
   const {
     companies,
     currentCompany,
@@ -42,7 +28,6 @@ const AppLayout = () => {
     setCurrentCompany,
     clearCurrentCompany,
   } = useCompany();
-
   const {
     branches,
     currentBranch,
@@ -51,154 +36,104 @@ const AppLayout = () => {
     clearCurrentBranch,
   } = useBranch();
 
-  // 1. WORKSPACE INITIALIZATION
-  useEffect(() => {
-    if (initializedWorkspaceRef.current) return;
-    initializedWorkspaceRef.current = true;
+  // STRATEGY: If Redux is populated, we are routing (skip loading). If empty, we are reloading (show loader).
+  const isHardRefresh = !currentWorkspace?._id || !currentCompany?._id;
+  const [isSyncComplete, setIsSyncComplete] = useState(!isHardRefresh);
 
-    const initWorkspaces = async () => {
+  const initializedRef = useRef(false);
+
+  // ONE SINGLE EFFECT TO HYDRATE CORE CONTEXT IN PERFECT SEQUENTIAL ORDER
+  useEffect(() => {
+    // If we are navigating or already booted this session, unlock instantly and exit
+    if (!isHardRefresh || initializedRef.current) {
+      setIsSyncComplete(true);
+      return;
+    }
+
+    initializedRef.current = true;
+
+    const bootApplicationContext = async () => {
       try {
+        // STEP 1: Await source-of-truth active identifiers from database
         const activeContext = await getActiveContext().catch(() => null);
 
-        const activeWorkspaceId =
+        const targetWorkspaceId =
           activeContext?.workspaceId ||
           user?.activeContext?.workspaceId ||
-          storage.get(WORKSPACE_STORAGE_KEY);
+          null;
+        const targetCompanyId =
+          activeContext?.companyId || user?.activeContext?.companyId || null;
+        const targetBranchId =
+          activeContext?.branchId || user?.activeContext?.branchId || null;
 
-        const activeCompanyId =
-          activeContext?.companyId ||
-          user?.activeContext?.companyId ||
-          storage.get(COMPANY_STORAGE_KEY);
-
-        const activeBranchId =
-          activeContext?.branchId ||
-          user?.activeContext?.branchId ||
-          storage.get(BRANCH_STORAGE_KEY);
-
-        if (activeWorkspaceId) {
-          storage.set(WORKSPACE_STORAGE_KEY, activeWorkspaceId);
-        } else {
-          storage.remove(WORKSPACE_STORAGE_KEY);
-        }
-
-        if (activeCompanyId) {
-          storage.set(COMPANY_STORAGE_KEY, activeCompanyId);
-        } else {
-          storage.remove(COMPANY_STORAGE_KEY);
-        }
-
-        if (activeBranchId) {
-          storage.set(BRANCH_STORAGE_KEY, activeBranchId);
-        } else {
-          storage.remove(BRANCH_STORAGE_KEY);
-        }
-
+        // STEP 2: Resolve Workspace Array
         const workspaceItems = workspaces?.length
           ? workspaces
           : await getMyWorkspaces();
-
-        const savedWorkspaceId = storage.get(WORKSPACE_STORAGE_KEY);
-
         const selectedWorkspaceItem =
-          workspaceItems?.find((item) => {
-            const workspace = getWorkspaceFromItem(item);
-            return workspace?._id === savedWorkspaceId;
-          }) || workspaceItems?.[0];
+          workspaceItems?.find(
+            (item) => getWorkspaceFromItem(item)?._id === targetWorkspaceId,
+          ) || workspaceItems?.[0];
 
         const selectedWorkspace = getWorkspaceFromItem(selectedWorkspaceItem);
-
-        if (!selectedWorkspace?._id) return;
-
-        if (currentWorkspace?._id !== selectedWorkspace._id) {
+        if (selectedWorkspace?._id) {
           setCurrentWorkspace(selectedWorkspace);
         }
+
+        // STEP 3: Resolve Company Array
+        if (selectedWorkspace?._id) {
+          const companyItems = await getWorkspaceCompanies();
+          const selectedCompany =
+            companyItems?.find((company) => company?._id === targetCompanyId) ||
+            companyItems?.[0] ||
+            null;
+
+          if (selectedCompany?._id) {
+            setCurrentCompany(selectedCompany);
+
+            // STEP 4: Resolve Branch Array (Only attempts if a valid company exists)
+            const branchItems = await getCompanyBranches();
+            const selectedBranch =
+              branchItems?.find((branch) => branch?._id === targetBranchId) ||
+              branchItems?.[0] ||
+              null;
+
+            if (selectedBranch?._id) {
+              setCurrentBranch(selectedBranch);
+            } else {
+              clearCurrentBranch();
+            }
+          } else {
+            clearCurrentCompany();
+            clearCurrentBranch();
+          }
+        }
+
+        // UNLOCK GATE: Everything resolved in sequential order safely!
+        setIsSyncComplete(true);
       } catch (error) {
-        console.error("Failed to initialize workspaces:", error);
+        console.error(
+          "Critical failure during layout initialization sync:",
+          error,
+        );
+        setIsSyncComplete(true); // Fail-safe to prevent hard UI freezes
       }
     };
 
-    initWorkspaces();
+    bootApplicationContext();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isHardRefresh]);
 
-  // 2. FIXED COMPANY INITIALIZATION
-  useEffect(() => {
-    const workspaceId = currentWorkspace?._id;
-    if (!workspaceId) return;
-
-    if (initializedCompanyWorkspaceRef.current === workspaceId) return;
-    initializedCompanyWorkspaceRef.current = workspaceId;
-
-    const initCompanies = async () => {
-      try {
-        const companyItems = companies?.length
-          ? companies
-          : await getWorkspaceCompanies();
-
-        const savedCompanyId = storage.get(COMPANY_STORAGE_KEY);
-
-        const selectedCompany =
-          companyItems?.find((company) => company?._id === savedCompanyId) ||
-          companyItems?.[0] ||
-          null;
-
-        if (!selectedCompany?._id) {
-          if (currentCompany?._id) clearCurrentCompany();
-          if (currentBranch?._id) clearCurrentBranch();
-          return;
-        }
-
-        // FIXED: Enforce absolute checking across standard string IDs to protect active page operations
-        if (currentCompany?._id !== selectedCompany._id) {
-          setCurrentCompany(selectedCompany);
-        }
-      } catch (error) {
-        console.error("Failed to initialize companies:", error);
-      }
-    };
-
-    initCompanies();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentWorkspace?._id]);
-
-  // 3. FIXED BRANCH INITIALIZATION
-  useEffect(() => {
-    const companyId = currentCompany?._id;
-    if (!companyId) return;
-
-    if (initializedBranchCompanyRef.current === companyId) return;
-    initializedBranchCompanyRef.current = companyId;
-
-    const initBranches = async () => {
-      try {
-        const branchItems = branches?.length
-          ? branches
-          : await getCompanyBranches();
-
-        const savedBranchId = storage.get(BRANCH_STORAGE_KEY);
-
-        const selectedBranch =
-          branchItems?.find((branch) => branch?._id === savedBranchId) ||
-          branchItems?.[0] ||
-          null;
-
-        if (!selectedBranch?._id) {
-          if (currentBranch?._id) clearCurrentBranch();
-          return;
-        }
-
-        // FIXED: Enforce string ID comparison block matching corporate metrics
-        if (currentBranch?._id !== selectedBranch._id) {
-          setCurrentBranch(selectedBranch);
-        }
-      } catch (error) {
-        console.error("Failed to initialize branches:", error);
-      }
-    };
-
-    initBranches();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentCompany?._id]);
+  // Render Loader Curtain on Refresh, serve layout instantly on navigation click redirects
+  if (!isSyncComplete) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-bg">
+        <div className="text-sm font-medium text-text-muted">
+          Syncing context with server...
+        </div>
+      </div>
+    );
+  }
 
   return isMobile ? <AppMobileLayout /> : <AppDesktopLayout />;
 };

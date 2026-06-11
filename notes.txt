@@ -1145,6 +1145,25 @@ AppLayout
         └── all future ERP modules
 
 
+        src/features/user/
+├── pages/
+│   ├── MyProfilePage.jsx                // Main layout switcher
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── MyProfileDesktopPage.jsx    // Desktop view implementation
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── MyProfileMobilePage.jsx     // Mobile view implementation
+│       └── index.js
+│
+├── hooks/
+│   └── index.js                         // Exporting hook logic (if separated from generic state layers)
+│
+└── index.js
+
+
 You are acting as a senior full-stack React + Redux Toolkit + Node.js + Express + MongoDB architect.
 
 Project Context
