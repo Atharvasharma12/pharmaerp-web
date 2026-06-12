@@ -45,6 +45,7 @@ export const ROUTES = {
   ROLE_DETAILS: "/access-control/roles/:roleId",
   MEMBER_ACCESS: "/access-control/member-access",
   ASSIGN_ACCESS: "/access-control/member-access/assign",
+  ASSIGN_ROLE: "/access-control/roles/assign",
   EDIT_ACCESS: "/access-control/member-access/:memberId/edit",
   PERMISSIONS: "/access-control/permissions",
 

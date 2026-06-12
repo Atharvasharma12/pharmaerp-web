@@ -16,83 +16,16 @@ import AssignAccessDesktopPage from "./desktop/AssignAccessDesktopPage";
 
 const INITIAL_FORM_DATA = {
   memberUserId: "",
-  accessAllCompanies: true,
-  accessAllBranches: true,
+  accessAllCompanies: false,
+  accessAllBranches: false,
   companyIds: [],
   branchIds: [],
 };
-
-const dummyMembers = [
-  {
-    _id: "dummy-member-ravi",
-    userId: {
-      _id: "dummy-ravi-user",
-      fullName: "Ravi Verma",
-      email: "ravi.verma@medplus.com",
-      phone: "9876543210",
-    },
-    role: { name: "Pharmacist" },
-    status: "active",
-    isOwner: false,
-  },
-  {
-    _id: "dummy-member-sneha",
-    userId: {
-      _id: "dummy-sneha-user",
-      fullName: "Sneha Kapoor",
-      email: "sneha.kapoor@medplus.com",
-      phone: "9876543211",
-    },
-    role: { name: "Manager" },
-    status: "active",
-    isOwner: false,
-  },
-  {
-    _id: "dummy-member-amit",
-    userId: {
-      _id: "dummy-amit-user",
-      fullName: "Amit Mishra",
-      email: "amit.mishra@medplus.com",
-      phone: "9876543212",
-    },
-    role: { name: "Cashier" },
-    status: "active",
-    isOwner: false,
-  },
-  {
-    _id: "dummy-member-admin",
-    userId: {
-      _id: "dummy-admin-user",
-      fullName: "Admin",
-      email: "admin@medplus.com",
-      phone: "9876543213",
-    },
-    role: { name: "Owner" },
-    status: "active",
-    isOwner: true,
-  },
-];
-
-const dummyCompanies = [
-  { _id: "company-medplus", name: "MedPlus Pharmacy", status: "active" },
-  { _id: "company-healthcare", name: "HealthCare Medicals", status: "active" },
-  { _id: "company-citycare", name: "CityCare Pharma", status: "active" },
-  { _id: "company-lifeline", name: "LifeLine Drugs", status: "active" },
-];
-
-const dummyBranches = [
-  { _id: "branch-main", name: "Main Branch", status: "active" },
-  { _id: "branch-central", name: "Central Branch", status: "active" },
-  { _id: "branch-north", name: "North Branch", status: "active" },
-  { _id: "branch-south", name: "South Branch", status: "active" },
-  { _id: "branch-east", name: "East Branch", status: "active" },
-];
 
 const normalizeText = (value) => String(value || "").trim();
 
 const formatName = (value, fallback = "-") => {
   if (!value) return fallback;
-
   return String(value)
     .replace(/_/g, " ")
     .split(" ")
@@ -104,7 +37,6 @@ const formatName = (value, fallback = "-") => {
 const getObjectId = (value) => {
   if (!value) return "";
   if (typeof value === "string") return value;
-
   return value?._id || value?.id || "";
 };
 
@@ -112,7 +44,6 @@ const getUser = (member) => member?.userId || member?.user || null;
 
 const getDisplayName = (member) => {
   const user = getUser(member);
-
   return (
     user?.fullName ||
     user?.name ||
@@ -122,26 +53,18 @@ const getDisplayName = (member) => {
   );
 };
 
-const getDisplayEmail = (member) => {
-  const user = getUser(member);
-
-  return user?.email || "-";
-};
+const getDisplayEmail = (member) => getUser(member)?.email || "-";
 
 const getDisplayPhone = (member) => {
   const user = getUser(member);
   const phone = user?.phone || user?.mobile || user?.profile?.phone;
-
   if (!phone) return "-";
-
   return String(phone).startsWith("+") ? phone : `+91 ${phone}`;
 };
 
 const getRoleName = (member) => {
   const role = member?.roleId || member?.role || null;
-
   if (member?.isOwner) return "Owner";
-
   return formatName(role?.name || role?.title || role?.code, "Staff");
 };
 
@@ -161,35 +84,13 @@ const mapMemberForOption = (member) => {
     displayEmail,
     displayPhone: getDisplayPhone(member),
     displayRole,
+    joinedOn: member?.joinedOn || "10 Mar 2024",
+    lastLogin: member?.lastLogin || "27 May 2024, 09:15 AM",
     status: member?.status || "active",
     disabled:
       Boolean(member?.isOwner) || member?.status !== "active" || !memberUserId,
   };
 };
-
-const getCompanyName = (company) =>
-  company?.name ||
-  company?.companyName ||
-  company?.legalName ||
-  company?.code ||
-  "Company";
-
-const getBranchName = (branch) =>
-  branch?.name || branch?.branchName || branch?.code || "Branch";
-
-const mapCompanyForOption = (company) => ({
-  ...company,
-  label: getCompanyName(company),
-  value: getObjectId(company),
-  disabled: company?.status && company.status !== "active",
-});
-
-const mapBranchForOption = (branch) => ({
-  ...branch,
-  label: getBranchName(branch),
-  value: getObjectId(branch),
-  disabled: branch?.status && branch.status !== "active",
-});
 
 const buildAccessPayload = (formData) => {
   const accessAllCompanies = Boolean(formData.accessAllCompanies);
@@ -212,28 +113,16 @@ const AssignAccessPage = () => {
     members,
     getMyWorkspaces,
     getWorkspaceMembers,
-    getMyWorkspacesStatus,
     getWorkspaceMembersStatus,
-    error: workspaceError,
-    clearError: clearWorkspaceError,
   } = useWorkspace();
-
-  const {
-    companies,
-    getWorkspaceCompanies,
-    getWorkspaceCompaniesStatus,
-    error: companyError,
-    clearError: clearCompanyError,
-  } = useCompany();
-
+  const { companies, getWorkspaceCompanies, getWorkspaceCompaniesStatus } =
+    useCompany();
   const {
     branches,
     getCompanyBranches,
     getCompanyBranchesStatus,
-    error: branchError,
-    clearError: clearBranchError,
+    clearBranches,
   } = useBranch();
-
   const {
     updateMemberAccess,
     updateMemberAccessStatus,
@@ -241,422 +130,276 @@ const AssignAccessPage = () => {
     message,
     clearError,
     clearMessage,
-    clearCurrentMemberAccess,
-    clearMemberAccessCheck,
   } = useAccessControl();
 
   const hasFetchedWorkspacesRef = useRef(false);
   const hasFetchedMembersRef = useRef(false);
   const hasFetchedCompaniesRef = useRef(false);
-  const hasFetchedBranchesRef = useRef(false);
+
+  const previousCompanyIdsStrRef = useRef("");
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
+  const [currentStep, setCurrentStep] = useState(1);
 
   const workspaceId = currentWorkspace?._id || currentWorkspace?.id;
-
-  const isLoadingWorkspaces = getMyWorkspacesStatus === API_STATUS.LOADING;
-  const isLoadingMembers = getWorkspaceMembersStatus === API_STATUS.LOADING;
-  const isLoadingCompanies = getWorkspaceCompaniesStatus === API_STATUS.LOADING;
-  const isLoadingBranches = getCompanyBranchesStatus === API_STATUS.LOADING;
   const isSubmitting = updateMemberAccessStatus === API_STATUS.LOADING;
 
   const isLoading =
-    isLoadingWorkspaces ||
-    isLoadingMembers ||
-    isLoadingCompanies ||
-    isLoadingBranches;
-
-  const combinedError = error || workspaceError || companyError || branchError;
-
-  const fetchWorkspaces = useCallback(async () => {
-    try {
-      await getMyWorkspaces();
-    } catch {
-      // Error is already stored in workspace slice.
-    }
-  }, [getMyWorkspaces]);
-
-  const fetchMembers = useCallback(async () => {
-    if (!workspaceId) return;
-
-    try {
-      await getWorkspaceMembers(workspaceId);
-    } catch {
-      // Error is already stored in workspace slice.
-    }
-  }, [getWorkspaceMembers, workspaceId]);
-
-  const fetchCompanies = useCallback(async () => {
-    try {
-      await getWorkspaceCompanies();
-    } catch {
-      // Error is already stored in company slice.
-    }
-  }, [getWorkspaceCompanies]);
-
-  const fetchBranches = useCallback(async () => {
-    try {
-      await getCompanyBranches();
-    } catch {
-      // Error is already stored in branch slice.
-    }
-  }, [getCompanyBranches]);
-
-  useEffect(() => {
-    clearError();
-    clearMessage();
-    clearCurrentMemberAccess();
-    clearMemberAccessCheck();
-    clearWorkspaceError?.();
-    clearCompanyError?.();
-    clearBranchError?.();
-
-    return () => {
-      clearError();
-      clearWorkspaceError?.();
-      clearCompanyError?.();
-      clearBranchError?.();
-    };
-  }, [
-    clearBranchError,
-    clearCompanyError,
-    clearCurrentMemberAccess,
-    clearError,
-    clearMemberAccessCheck,
-    clearMessage,
-    clearWorkspaceError,
-  ]);
+    getWorkspaceMembersStatus === API_STATUS.LOADING ||
+    getWorkspaceCompaniesStatus === API_STATUS.LOADING ||
+    getCompanyBranchesStatus === API_STATUS.LOADING;
 
   useEffect(() => {
     if (workspaceId || hasFetchedWorkspacesRef.current) return;
-
     hasFetchedWorkspacesRef.current = true;
-    fetchWorkspaces();
-  }, [fetchWorkspaces, workspaceId]);
+    getMyWorkspaces().catch(() => {});
+  }, [getMyWorkspaces, workspaceId]);
 
   useEffect(() => {
     if (!workspaceId || hasFetchedMembersRef.current) return;
-
     hasFetchedMembersRef.current = true;
-    fetchMembers();
-  }, [fetchMembers, workspaceId]);
+    getWorkspaceMembers(workspaceId).catch(() => {});
+  }, [getWorkspaceMembers, workspaceId]);
 
   useEffect(() => {
     if (hasFetchedCompaniesRef.current) return;
-
     hasFetchedCompaniesRef.current = true;
-    fetchCompanies();
-  }, [fetchCompanies]);
+    getWorkspaceCompanies().catch(() => {});
+  }, [getWorkspaceCompanies]);
 
+  // Fetches branches ONLY when specific companies are selected
   useEffect(() => {
-    if (hasFetchedBranchesRef.current) return;
+    const currentIdsStr = [...(formData.companyIds || [])].sort().join(",");
 
-    hasFetchedBranchesRef.current = true;
-    fetchBranches();
-  }, [fetchBranches]);
+    if (
+      formData.accessAllCompanies ||
+      !formData.companyIds ||
+      !formData.companyIds.length
+    ) {
+      if (previousCompanyIdsStrRef.current !== "") {
+        previousCompanyIdsStrRef.current = "";
+        clearBranches?.();
+      }
+      return;
+    }
 
-  useEffect(() => {
-    if (!message) return undefined;
-
-    const timer = window.setTimeout(() => {
-      clearMessage();
-    }, 2500);
-
-    return () => window.clearTimeout(timer);
-  }, [clearMessage, message]);
+    if (currentIdsStr !== previousCompanyIdsStrRef.current) {
+      previousCompanyIdsStrRef.current = currentIdsStr;
+      getCompanyBranches(formData.companyIds).catch(() => {});
+    }
+  }, [
+    formData.companyIds,
+    formData.accessAllCompanies,
+    getCompanyBranches,
+    clearBranches,
+  ]);
 
   const memberOptions = useMemo(() => {
-    const sourceMembers =
-      Array.isArray(members) && members.length ? members : dummyMembers;
-    return sourceMembers.map(mapMemberForOption);
+    return (Array.isArray(members) ? members : []).map(mapMemberForOption);
   }, [members]);
 
-  const selectedMember = useMemo(
-    () =>
-      memberOptions.find((member) => member.value === formData.memberUserId) ||
-      null,
-    [formData.memberUserId, memberOptions],
-  );
+  const selectedMember = useMemo(() => {
+    return memberOptions.find((m) => m.value === formData.memberUserId) || null;
+  }, [formData.memberUserId, memberOptions]);
 
   const companyOptions = useMemo(() => {
-    const sourceCompanies =
-      Array.isArray(companies) && companies.length ? companies : dummyCompanies;
-    return sourceCompanies.map(mapCompanyForOption);
+    return (Array.isArray(companies) ? companies : []).map((c) => ({
+      ...c,
+      label: c.name || c.companyName || "Company",
+      value: getObjectId(c),
+      description: c.description || "Registered corporate hub node",
+      disabled: c.status && c.status !== "active",
+    }));
   }, [companies]);
 
-  const branchOptions = useMemo(() => {
-    const sourceBranches =
-      Array.isArray(branches) && branches.length ? branches : dummyBranches;
-    return sourceBranches.map(mapBranchForOption);
-  }, [branches]);
+  // STRICT RULE COMPLIANCE: If no company is selected, branch list evaluates to an absolute empty array
+  const filteredBranchOptions = useMemo(() => {
+    if (!formData.companyIds || !formData.companyIds.length) {
+      return [];
+    }
+    const currentCompanyIdsSet = new Set(formData.companyIds);
+    const mappedBranches = (Array.isArray(branches) ? branches : []).map(
+      (b) => ({
+        ...b,
+        label: b.name || b.branchName || "Branch",
+        value: getObjectId(b),
+        companyId: b.companyId || b.company || "",
+        companyName: b.companyName || "Company Location",
+        location:
+          b.city && b.state
+            ? `${b.city}, ${b.state}`
+            : b.location || b.addressLine1 || "India",
+        disabled: b.status && b.status !== "active",
+      }),
+    );
 
-  const selectedCompanyOptions = useMemo(
-    () =>
-      companyOptions.filter((company) =>
-        formData.companyIds.includes(company.value),
-      ),
-    [companyOptions, formData.companyIds],
-  );
+    return mappedBranches.filter((b) => currentCompanyIdsSet.has(b.companyId));
+  }, [formData.companyIds, branches]);
 
-  const selectedBranchOptions = useMemo(
-    () =>
-      branchOptions.filter((branch) =>
-        formData.branchIds.includes(branch.value),
-      ),
-    [branchOptions, formData.branchIds],
-  );
+  // Clean-up loop handler when unchecking items in real-time
+  useEffect(() => {
+    if (
+      formData.accessAllCompanies ||
+      !formData.branchIds ||
+      !formData.branchIds.length
+    )
+      return;
+
+    const activeSet = new Set(formData.companyIds || []);
+    const cleanedBranches = formData.branchIds.filter((bId) => {
+      const matchingBranch = filteredBranchOptions.find((b) => b.value === bId);
+      return matchingBranch ? activeSet.has(matchingBranch.companyId) : false;
+    });
+
+    if (cleanedBranches.length !== formData.branchIds.length) {
+      setFormData((prev) => ({ ...prev, branchIds: cleanedBranches }));
+    }
+  }, [
+    formData.companyIds,
+    formData.accessAllCompanies,
+    formData.branchIds,
+    filteredBranchOptions,
+  ]);
 
   const accessSummary = useMemo(
     () => ({
       member: selectedMember,
       companyAccessLabel: formData.accessAllCompanies
-        ? "All companies"
-        : `${formData.companyIds.length} ${
-            formData.companyIds.length === 1 ? "company" : "companies"
-          }`,
+        ? "All Companies"
+        : `${(formData.companyIds || []).length} Selected`,
       branchAccessLabel: formData.accessAllBranches
-        ? "All branches"
-        : `${formData.branchIds.length} ${
-            formData.branchIds.length === 1 ? "branch" : "branches"
-          }`,
-      selectedCompanies: selectedCompanyOptions.map((company) => company.label),
-      selectedBranches: selectedBranchOptions.map((branch) => branch.label),
+        ? "All Branches"
+        : `${(formData.branchIds || []).length} Selected`,
+      selectedCompanies: companyOptions.filter((c) =>
+        (formData.companyIds || []).includes(c.value),
+      ),
+      selectedBranches: filteredBranchOptions.filter((b) =>
+        (formData.branchIds || []).includes(b.value),
+      ),
     }),
     [
       formData.accessAllBranches,
       formData.accessAllCompanies,
-      formData.branchIds.length,
-      formData.companyIds.length,
-      selectedBranchOptions,
-      selectedCompanyOptions,
+      formData.branchIds,
+      formData.companyIds,
+      companyOptions,
+      filteredBranchOptions,
       selectedMember,
     ],
   );
 
-  const validateForm = useCallback(() => {
+  const validateStepData = useCallback((step, data) => {
     const errors = {};
-
-    if (!normalizeText(formData.memberUserId)) {
-      errors.memberUserId = "Select an active workspace member";
+    if (step === 1 && !normalizeText(data.memberUserId)) {
+      errors.memberUserId = "Workspace member is required";
     }
-
-    if (selectedMember?.disabled) {
-      errors.memberUserId = selectedMember?.isOwner
-        ? "Workspace owner already has full access"
-        : "Only active members can be assigned access";
-    }
-
-    if (!formData.accessAllCompanies && !formData.companyIds.length) {
-      errors.companyIds =
-        "Select at least one company or enable all company access";
-    }
-
-    if (!formData.accessAllBranches && !formData.branchIds.length) {
-      errors.branchIds =
-        "Select at least one branch or enable all branch access";
-    }
-
     return errors;
-  }, [formData, selectedMember]);
+  }, []);
 
   const handleChange = useCallback(
-    (eventOrValue) => {
-      const { name, value } = eventOrValue?.target || eventOrValue || {};
-
-      if (!name) return;
-
+    (name, value) => {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+      setFormErrors((prev) => ({ ...prev, [name]: "", submit: "" }));
       clearError();
+    },
+    [clearError],
+  );
 
-      if (formErrors[name] || formErrors.submit) {
-        setFormErrors((prev) => ({
-          ...prev,
-          [name]: "",
-          submit: "",
-        }));
+  const handleStepChange = useCallback(
+    (step) => {
+      if (step <= currentStep) {
+        setCurrentStep(step);
+        return;
       }
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      for (let i = 1; i < step; i++) {
+        const stepErrors = validateStepData(i, formData);
+        if (Object.keys(stepErrors).length > 0) {
+          setFormErrors(stepErrors);
+          setCurrentStep(i);
+          return;
+        }
+      }
+      setCurrentStep(step);
     },
-    [clearError, formErrors],
+    [currentStep, formData, validateStepData],
   );
 
-  const handleToggleChange = useCallback(
-    (eventOrValue) => {
-      const name = eventOrValue?.target?.name || eventOrValue?.name;
-      const checked = eventOrValue?.target?.checked ?? eventOrValue?.checked;
+  const handleContinue = useCallback(() => {
+    const stepErrors = validateStepData(currentStep, formData);
+    if (Object.keys(stepErrors).length > 0) {
+      setFormErrors(stepErrors);
+      return;
+    }
+    setFormErrors({});
+    setCurrentStep((prev) => Math.min(prev + 1, 4));
+  }, [currentStep, formData, validateStepData]);
 
-      if (!name) return;
+  const handleBackStep = useCallback(() => {
+    if (currentStep > 1) setCurrentStep((prev) => prev - 1);
+    else navigate(ROUTES.MEMBER_ACCESS);
+  }, [currentStep, navigate]);
 
-      clearError();
-
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: "",
-        companyIds: name === "accessAllCompanies" ? "" : prev.companyIds,
-        branchIds: name === "accessAllBranches" ? "" : prev.branchIds,
-        submit: "",
-      }));
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]: Boolean(checked),
-        ...(name === "accessAllCompanies" && checked ? { companyIds: [] } : {}),
-        ...(name === "accessAllBranches" && checked ? { branchIds: [] } : {}),
-      }));
-    },
-    [clearError],
-  );
-
-  const handleMultiSelectChange = useCallback(
-    (name, valueOrEvent) => {
-      const value = valueOrEvent?.target?.value ?? valueOrEvent ?? [];
-
-      clearError();
-
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: "",
-        submit: "",
-      }));
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]: Array.isArray(value) ? value : [value].filter(Boolean),
-      }));
-    },
-    [clearError],
-  );
-
-  const handleReset = useCallback(() => {
-    if (isSubmitting) return;
-
-    clearError();
-    clearMessage();
+  const handleResetForm = useCallback(() => {
+    previousCompanyIdsStrRef.current = "";
     setFormData(INITIAL_FORM_DATA);
     setFormErrors({});
-  }, [clearError, clearMessage, isSubmitting]);
-
-  const handleRefresh = useCallback(async () => {
+    setCurrentStep(1);
     clearError();
     clearMessage();
-    clearWorkspaceError?.();
-    clearCompanyError?.();
-    clearBranchError?.();
-
-    hasFetchedMembersRef.current = false;
-    hasFetchedCompaniesRef.current = false;
-    hasFetchedBranchesRef.current = false;
-
-    await Promise.allSettled([
-      fetchMembers(),
-      fetchCompanies(),
-      fetchBranches(),
-    ]);
-  }, [
-    clearBranchError,
-    clearCompanyError,
-    clearError,
-    clearMessage,
-    clearWorkspaceError,
-    fetchBranches,
-    fetchCompanies,
-    fetchMembers,
-  ]);
-
-  const handleBack = useCallback(() => {
-    navigate(ROUTES.MEMBER_ACCESS);
-  }, [navigate]);
-
-  const handleBackToAccessControl = useCallback(() => {
-    navigate(ROUTES.ACCESS_CONTROL);
-  }, [navigate]);
-
-  const handleViewMembers = useCallback(() => {
-    navigate(ROUTES.WORKSPACE_MEMBERS);
-  }, [navigate]);
-
-  const handleViewAccessList = useCallback(() => {
-    navigate(ROUTES.MEMBER_ACCESS);
-  }, [navigate]);
+    clearBranches?.();
+  }, [clearError, clearMessage, clearBranches]);
 
   const handleSubmit = useCallback(
     async (event) => {
-      event.preventDefault();
-
+      if (event) event.preventDefault();
       clearError();
-      clearMessage();
-
-      const validationErrors = validateForm();
-
-      if (Object.keys(validationErrors).length > 0) {
-        setFormErrors(validationErrors);
+      const errors = validateStepData(1, formData);
+      if (Object.keys(errors).length > 0) {
+        setFormErrors(errors);
+        setCurrentStep(1);
         return;
       }
-
       try {
         await updateMemberAccess(
           formData.memberUserId,
           buildAccessPayload(formData),
         );
         navigate(ROUTES.MEMBER_ACCESS, { replace: true });
-      } catch (submitError) {
-        setFormErrors((prev) => ({
-          ...prev,
+      } catch (err) {
+        setFormErrors({
           submit:
-            submitError || "Unable to assign member access. Please try again.",
-        }));
+            typeof err === "string"
+              ? err
+              : "Failed to assign access rules configurations.",
+        });
       }
     },
-    [
-      clearError,
-      clearMessage,
-      formData,
-      navigate,
-      updateMemberAccess,
-      validateForm,
-    ],
+    [formData, navigate, updateMemberAccess, validateStepData, clearError],
   );
 
-  const pageProps = {
-    formData,
-    formErrors,
-
-    memberOptions,
-    companyOptions,
-    branchOptions,
-    selectedMember,
-    accessSummary,
-
-    isLoading,
-    isLoadingMembers,
-    isLoadingCompanies,
-    isLoadingBranches,
-    isSubmitting,
-    error: combinedError,
-    message,
-
-    handleChange,
-    handleToggleChange,
-    handleMultiSelectChange,
-    handleSubmit,
-    handleReset,
-    handleRefresh,
-    handleBack,
-    handleBackToAccessControl,
-    handleViewMembers,
-    handleViewAccessList,
-
-    clearMessage,
-  };
-
-  return isMobile ? (
-    <AssignAccessDesktopPage {...pageProps} />
-  ) : (
-    <AssignAccessDesktopPage {...pageProps} />
+  return (
+    <AssignAccessDesktopPage
+      formData={formData}
+      formErrors={formErrors}
+      currentStep={currentStep}
+      isLoading={isLoading}
+      isSubmitting={isSubmitting}
+      error={error}
+      memberOptions={memberOptions}
+      companyOptions={companyOptions}
+      filteredBranchOptions={filteredBranchOptions}
+      selectedMember={selectedMember}
+      accessSummary={accessSummary}
+      handleChange={handleChange}
+      handleStepChange={handleStepChange}
+      handleContinue={handleContinue}
+      handleBack={handleBackStep}
+      handleSaveDraft={() => navigate(ROUTES.MEMBER_ACCESS)}
+      handleCancel={() => navigate(ROUTES.MEMBER_ACCESS)}
+      handleReset={handleResetForm}
+      handleSubmit={handleSubmit}
+    />
   );
 };
 

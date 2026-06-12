@@ -8,23 +8,15 @@ import { useIsMobile } from "@/hooks";
 import { AppConfirmModal } from "@/components";
 
 import useBranch from "../hooks/useBranch";
-import useCompany from "@/features/company/hooks/useCompany"; // IMPORT THIS: To read global company layout states
-
-import BranchesDesktopPage from "./desktop/BranchesDesktopPage";
-import BranchesMobilePage from "./mobile/BranchesMobilePage";
+import useCompany from "@/features/company/hooks/useCompany";
+import { BranchesMobilePage } from "./mobile";
+import { BranchesDesktopPage } from "./desktop";
 
 const statusOptions = [
   { label: "Status: All", value: "all" },
   { label: "Active", value: "active" },
   { label: "Inactive", value: "inactive" },
-  { label: "Pending", value: "suspended" },
-];
-
-const companyOptions = [
-  { label: "Company: All", value: "all" },
-  { label: "MedPlus Pharmacy", value: "medplus-pharmacy" },
-  { label: "MedPlus Healthcare Pvt. Ltd.", value: "medplus-healthcare" },
-  { label: "MedPlus Distribution", value: "medplus-distribution" },
+  { label: "Suspended", value: "suspended" },
 ];
 
 const initialFilters = {
@@ -44,13 +36,18 @@ const slugify = (value) =>
     .replace(/^-+|-+$/g, "");
 
 const formatBranchAddress = (address) => {
-  if (!address) return "-";
+  if (!address) return { line1: "", summary: "" };
+
+  const line1Parts = [address.addressLine1, address.addressLine2].filter(
+    Boolean,
+  );
+  const line1 = line1Parts.join(", ") || "";
+
   const cityStr = address.city || "";
   const pinStr = address.pincode ? ` ${address.pincode}` : "";
-  return {
-    line1: address.addressLine1 || "New Delhi",
-    summary: `${cityStr}${pinStr}` || "Delhi",
-  };
+  const summary = `${cityStr}${pinStr}`.trim();
+
+  return { line1, summary };
 };
 
 const formatDate = (value) => {
@@ -68,23 +65,22 @@ const getBranchDisplayName = (branch) => branch?.name || "Branch";
 
 const mapBranchForView = (branch) => {
   const addressBlock = formatBranchAddress(branch?.address);
-  const companyNameStr =
-    branch?.companyId?.name || branch?.companyName || "MedPlus Pharmacy";
+  // Safely fallback to database populated fields without injecting placeholder names
+  const companyNameStr = branch?.companyId?.name || branch?.companyName || "";
 
   return {
     ...branch,
-    displayName: branch?.name || "-",
+    displayName: branch?.name || "",
     displayCompany: companyNameStr,
     companySlug: slugify(companyNameStr),
-    displayCode: branch?.branchCode || branch?.code || "MPDL-CP001",
+    displayCode: branch?.branchCode || "",
     addressLine1: addressBlock.line1,
     locationSummary: addressBlock.summary,
-    displayManager:
-      branch?.manager?.name || branch?.pharmacist?.name || "Sneha Kapoor",
-    displayManagerRole: branch?.manager?.role || "Manager",
+    displayManager: branch?.pharmacist?.name || "",
+    displayManagerRole: branch?.pharmacist?.name ? "Pharmacist" : "",
     displayStatus: branch?.status || "active",
     staffCount: branch?.staffCount || branch?.membersCount || 0,
-    displayCreatedAt: formatDate(branch?.createdAt || "2024-03-10"),
+    displayCreatedAt: formatDate(branch?.createdAt),
   };
 };
 
@@ -112,14 +108,13 @@ const BranchesPage = () => {
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  // FIXED: Standardize loading status flags across UI frames safely
+  // Standardize loading status flags across UI frames safely
   const isLoading =
     getCompanyBranchesStatus === API_STATUS.LOADING || !currentCompany?._id;
   const isDeleting = deleteBranchStatus === API_STATUS.LOADING;
   const hasError = getCompanyBranchesStatus === API_STATUS.ERROR;
 
   const fetchBranches = useCallback(async () => {
-    // SECURITY GUARD: Stop execution if parent corporate profile hasn't hydrated into layout yet
     if (!currentCompany?._id) return;
 
     try {
@@ -129,7 +124,7 @@ const BranchesPage = () => {
     }
   }, [getCompanyBranches, currentCompany?._id]);
 
-  // FIXED: Re-evaluate layout fetches whenever companyId settles from core refresh waterfalls
+  // Re-evaluate layout fetches whenever companyId settles from core refresh waterfalls
   useEffect(() => {
     if (!currentCompany?._id) return;
     if (hasFetchedRef.current === currentCompany._id) return;
@@ -151,6 +146,24 @@ const BranchesPage = () => {
     [branches],
   );
 
+  // Dynamically derive company selection options from actual loaded branches instead of using hardcoded lists
+  const companyOptions = useMemo(() => {
+    const options = [{ label: "Company: All", value: "all" }];
+    const uniqueCompanies = new Map();
+
+    mappedBranches.forEach((branch) => {
+      if (branch.displayCompany && branch.companySlug) {
+        uniqueCompanies.set(branch.companySlug, branch.displayCompany);
+      }
+    });
+
+    uniqueCompanies.forEach((name, slug) => {
+      options.push({ label: name, value: slug });
+    });
+
+    return options;
+  }, [mappedBranches]);
+
   const filteredBranches = useMemo(() => {
     const search = normalizeText(filters.search);
 
@@ -160,7 +173,8 @@ const BranchesPage = () => {
         normalizeText(branch.displayName).includes(search) ||
         normalizeText(branch.displayCode).includes(search) ||
         normalizeText(branch.displayManager).includes(search) ||
-        normalizeText(branch.addressLine1).includes(search);
+        normalizeText(branch.addressLine1).includes(search) ||
+        normalizeText(branch.locationSummary).includes(search);
 
       const matchesStatus =
         filters.status === "all" || branch.displayStatus === filters.status;
@@ -240,7 +254,7 @@ const BranchesPage = () => {
     }
 
     return chips;
-  }, [filters]);
+  }, [filters, companyOptions]);
 
   const handleFilterChange = useCallback((eventOrValue) => {
     if (eventOrValue?.target) {
@@ -372,7 +386,11 @@ const BranchesPage = () => {
         onCancel={handleCloseDeleteModal}
         onConfirm={handleConfirmDeleteBranch}
         title="Delete Branch Location"
-        message={`Delete ${getBranchDisplayName(selectedBranch)}?`}
+        message={
+          selectedBranch
+            ? `Delete ${getBranchDisplayName(selectedBranch)}?`
+            : "Delete Branch?"
+        }
         description="This action removes the retail site record from operational modules. Active stocks will be locked."
         variant="error"
         confirmLabel="Delete Branch"

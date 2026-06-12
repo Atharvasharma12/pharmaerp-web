@@ -1,18 +1,18 @@
 // src/features/company/pages/desktop/CompaniesDesktopPage.jsx
 
+import { useMemo } from "react";
 import {
   FiBriefcase,
   FiChevronLeft,
   FiChevronRight,
   FiDownload,
-  FiFilter,
-  FiHeadphones,
   FiMoreHorizontal,
   FiPlus,
   FiRefreshCw,
   FiSearch,
-  FiSliders,
   FiUsers,
+  FiMail,
+  FiPhone,
 } from "react-icons/fi";
 
 import {
@@ -37,28 +37,17 @@ import {
   PageHeader,
   PageRightSidebar,
 } from "@/components";
-import { useMemo } from "react";
-
-const companyIconMap = {
-  "Main Business": <FiBriefcase />,
-  Healthcare: <FiBriefcase />,
-  Distribution: <FiBriefcase />,
-  Laboratory: <FiBriefcase />,
-  Wellness: <FiBriefcase />,
-  Retail: <FiBriefcase />,
-  "E-commerce": <FiBriefcase />,
-  Pharmacy: <FiBriefcase />,
-};
 
 const companyColorMap = {
-  "Main Business": "success",
-  Healthcare: "info",
-  Distribution: "warning",
-  Laboratory: "successSoft",
-  Wellness: "danger",
-  Retail: "primary",
-  "E-commerce": "cyan",
-  Pharmacy: "purple",
+  proprietorship: "primary",
+  partnership: "info",
+  llp: "warning",
+  private_limited: "success",
+  public_limited: "purple",
+  opc: "cyan",
+  trust: "neutral",
+  society: "neutral",
+  other: "neutral",
 };
 
 const statusColorMap = {
@@ -70,7 +59,6 @@ const statusColorMap = {
 const CompaniesDesktopPage = ({
   companies = [],
   stats = [],
-  accessOverview = [],
 
   filters,
   activeFilterChips = [],
@@ -103,7 +91,6 @@ const CompaniesDesktopPage = ({
 }) => {
   const showInitialSkeleton = isLoading && !hasCompanies;
 
-  // Build reactive statistics for the breakdown widget
   const derivedOverview = useMemo(() => {
     const total = companies.length || 1;
     const active = companies.filter((c) => c.status === "active").length;
@@ -287,7 +274,7 @@ const CompaniesDesktopPage = ({
               />
             )}
 
-            {hasCompanies ? (
+            {hasCompanies && totalCompanies > 10 ? (
               <TableFooter
                 totalCompanies={totalCompanies}
                 filteredCompaniesCount={filteredCompaniesCount}
@@ -332,7 +319,7 @@ const TableToolbar = ({
         name="search"
         value={filters.search}
         onChange={handleSearchChange}
-        placeholder="Search companies by name, email or phone..."
+        placeholder="Search companies..."
         clearable
         onClear={() => handleSearchChange("")}
         size="small"
@@ -412,15 +399,15 @@ const CompaniesTable = ({
   onSettings,
   onDelete,
 }) => (
-  <div className="w-full overflow-x-auto">
-    <div className="min-w-[930px]">
-      <div className="grid grid-cols-[minmax(240px,1.4fr)_115px_140px_95px_100px_110px_54px] border-b border-border bg-surface-alt px-3.5 py-2.5">
+  <div className="w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <div className="min-w-[980px]">
+      <div className="grid grid-cols-[1.5fr_1.1fr_1.3fr_1.4fr_75px_95px_54px] border-b border-border bg-surface-alt px-3.5 py-2.5">
         <HeaderCell>Company</HeaderCell>
         <HeaderCell>Type</HeaderCell>
-        <HeaderCell>Contact</HeaderCell>
+        <HeaderCell>Owner</HeaderCell>
+        <HeaderCell>Location</HeaderCell>
+        <HeaderCell>Staff</HeaderCell>
         <HeaderCell>Status</HeaderCell>
-        <HeaderCell>Members</HeaderCell>
-        <HeaderCell>Created On</HeaderCell>
         <HeaderCell align="right">Actions</HeaderCell>
       </div>
 
@@ -448,86 +435,90 @@ const HeaderCell = ({ children, align = "left" }) => (
   </div>
 );
 
-const CompanyRow = ({ company, onView, onEdit, onSettings, onDelete }) => {
-  const currentTypeName = company.displayType || "Pharmacy";
-
-  return (
-    <div className="grid min-h-[64px] grid-cols-[minmax(240px,1.4fr)_115px_140px_95px_100px_110px_54px] items-center px-3.5 py-2.5 transition hover:bg-surface-hover/60">
-      <AppStack direction="row" align="center" gap={1.1} sx={{ minWidth: 0 }}>
+const CompanyRow = ({ company, onView, onEdit, onSettings, onDelete }) => (
+  <div className="grid min-h-[58px] grid-cols-[1.5fr_1.1fr_1.3fr_1.4fr_75px_95px_54px] items-center px-3.5 py-2 transition hover:bg-surface-hover/60">
+    <div className="flex items-center gap-3 min-w-0 h-full">
+      <div className="flex items-center justify-center shrink-0">
         <IconBox
-          icon={companyIconMap[currentTypeName] || <FiBriefcase />}
-          colorVariant={companyColorMap[currentTypeName] || "primary"}
+          icon={<FiBriefcase />}
+          colorVariant={companyColorMap[company.type] || "primary"}
           small
         />
-        <AppBox sx={{ minWidth: 0 }}>
-          <AppHeading level={3} weight={700} sx={companyNameSx}>
-            {company.displayName}
-          </AppHeading>
-          <AppText variant="body2" sx={companyEmailSx}>
+      </div>
+      <div className="flex flex-col min-w-0 justify-center">
+        <AppHeading level={3} weight={700} sx={companyNameSx}>
+          {company.displayName || "-"}
+        </AppHeading>
+        {company.displayEmail && (
+          <AppText variant="body2" sx={companySubTextSx}>
             {company.displayEmail}
           </AppText>
-          <AppText variant="body2" sx={companyPhoneSx}>
-            {company.displayPhone}
-          </AppText>
-        </AppBox>
-      </AppStack>
+        )}
+      </div>
+    </div>
 
+    <div>
       <AppTag
-        label={currentTypeName}
+        label={company.displayType || "-"}
         variant="soft"
-        colorVariant={companyColorMap[currentTypeName] || "primary"}
+        colorVariant={companyColorMap[company.type] || "neutral"}
         rounded="md"
         sx={roleTagSx}
       />
+    </div>
 
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppText variant="body2" sx={tableTextSx}>
-          {company.displayOwnerName}
+    <AppBox sx={{ minWidth: 0 }}>
+      <AppText variant="body2" sx={tableTextSx}>
+        {company.displayOwnerName || "-"}
+      </AppText>
+      {company.displayOwnerContact && (
+        <AppText variant="body2" sx={subLocationTextSx}>
+          {company.displayOwnerContact}
         </AppText>
-        <AppText variant="body2" sx={updatedBySx}>
-          {company.displayPharmacistName || "Manager"}
-        </AppText>
-      </AppBox>
+      )}
+    </AppBox>
 
+    <AppBox sx={{ minWidth: 0 }}>
+      <AppText variant="body2" sx={tableTextSx}>
+        {company.addressLine1 || "-"}
+      </AppText>
+      {company.locationSummary && (
+        <AppText variant="body2" sx={subLocationTextSx}>
+          {company.locationSummary}
+        </AppText>
+      )}
+    </AppBox>
+
+    <AppStack direction="row" align="center" gap={0.5}>
+      <FiUsers className="text-[12px] text-text-muted" />
+      <AppText variant="body2" sx={staffCountSx}>
+        {company.memberCount || company.membersCount || 0}
+      </AppText>
+    </AppStack>
+
+    <div>
       <AppStatusBadge
-        status={company.status || "active"}
-        label={
-          company.status === "active"
-            ? "Active"
-            : company.status === "suspended"
-              ? "Suspended"
-              : "Inactive"
-        }
+        status={company.status}
+        label={company.status || ""}
         variant="soft"
         size="small"
         rounded="md"
         colorVariant={statusColorMap[company.status] || "neutral"}
         sx={statusBadgeSx}
       />
-
-      <AppStack direction="row" align="center" gap={0.75}>
-        <FiUsers className="text-[13px] text-text-muted" />
-        <AppText variant="body2" sx={memberCountTextSx}>
-          {company.memberCount || company.membersCount || 0}
-        </AppText>
-      </AppStack>
-
-      <AppText variant="body2" sx={dateTextSx}>
-        {company.displayCreatedAt || "-"}
-      </AppText>
-
-      <div className="flex justify-end">
-        <CompanyActions
-          company={company}
-          onView={onView}
-          onEdit={onEdit}
-          onSettings={onSettings}
-          onDelete={onDelete}
-        />
-      </div>
     </div>
-  );
-};
+
+    <div className="flex justify-end">
+      <CompanyActions
+        company={company}
+        onView={onView}
+        onEdit={onEdit}
+        onSettings={onSettings}
+        onDelete={onDelete}
+      />
+    </div>
+  </div>
+);
 
 const CompanyActions = ({ company, onView, onEdit, onSettings, onDelete }) => {
   const items = [
@@ -572,7 +563,8 @@ const TableFooter = ({
 }) => (
   <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
     <AppText variant="body2" sx={footerTextSx}>
-      Showing 1 to {filteredCompaniesCount} of {totalCompanies} companies
+      Showing {filteredCompaniesCount > 0 ? 1 : 0} to {filteredCompaniesCount}{" "}
+      of {totalCompanies} companies
     </AppText>
 
     <AppStack direction="row" align="center" gap={1}>
@@ -637,37 +629,56 @@ const CompaniesRightSidebar = ({ overviewData = [] }) => (
   />
 );
 
-const OverviewChartCard = ({ overviewData }) => (
-  <div>
-    <div className="mx-auto mt-2 flex h-[86px] w-[86px] items-center justify-center rounded-full bg-[conic-gradient(var(--app-color-primary)_0_75%,var(--app-color-border-strong)_75%_92%,var(--app-color-warning)_92%_100%)]">
-      <div className="h-[45px] w-[45px] rounded-full bg-surface" />
-    </div>
+const OverviewChartCard = ({ overviewData }) => {
+  const conicGradientStyle = useMemo(() => {
+    let currentPercentage = 0;
+    const segments = overviewData.map((item) => {
+      const start = currentPercentage;
+      currentPercentage += item.percent || 0;
+      return `var(--app-color-${item.id === "active" ? "primary" : item.id === "inactive" ? "border-strong" : "warning"}) ${start}% ${currentPercentage}%`;
+    });
+    return {
+      background: segments.length
+        ? `conic-gradient(${segments.join(", ")})`
+        : "var(--app-color-border)",
+    };
+  }, [overviewData]);
 
-    <div className="mt-4 space-y-3">
-      {overviewData.map((item) => (
-        <div
-          key={item.id}
-          className="grid grid-cols-[1fr_auto] items-center gap-3"
-        >
-          <AppStack
-            direction="row"
-            align="center"
-            gap={0.8}
-            sx={{ minWidth: 0 }}
+  return (
+    <div>
+      <div
+        style={conicGradientStyle}
+        className="mx-auto mt-2 flex h-[86px] w-[86px] items-center justify-center rounded-full"
+      >
+        <div className="h-[45px] w-[45px] rounded-full bg-surface" />
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {overviewData.map((item) => (
+          <div
+            key={item.id}
+            className="grid grid-cols-[1fr_auto] items-center gap-3"
           >
-            <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
-            <AppText variant="body2" sx={overviewLabelSx}>
-              {item.label}
+            <AppStack
+              direction="row"
+              align="center"
+              gap={0.8}
+              sx={{ minWidth: 0 }}
+            >
+              <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
+              <AppText variant="body2" sx={overviewLabelSx}>
+                {item.label}
+              </AppText>
+            </AppStack>
+            <AppText variant="body2" sx={overviewValueSx}>
+              {item.value} ({item.percent || 0}%)
             </AppText>
-          </AppStack>
-          <AppText variant="body2" sx={overviewValueSx}>
-            {item.value} ({item.percent}%)
-          </AppText>
-        </div>
-      ))}
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const SidebarQuickActions = () => (
   <div className="space-y-3">
@@ -693,24 +704,22 @@ const IconBox = ({ icon, colorVariant = "primary", small = false }) => (
   <AppBox
     display="flex"
     alignItems="center"
-    justify="center"
+    justifyContent="center"
     sx={{
-      width: small ? 36 : 44,
-      height: small ? 36 : 44,
-      minWidth: small ? 36 : 44,
+      width: small ? 32 : 44,
+      height: small ? 32 : 44,
+      minWidth: small ? 32 : 44,
       borderRadius: small ? "9px" : "12px",
       bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
       color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
-      fontSize: small ? "16px" : "22px",
-      alignItems: "center",
-      justifyContent: "center",
+      fontSize: small ? "15px" : "22px",
     }}
   >
     {icon}
   </AppBox>
 );
 
-// Style Token Maps Shared across Access Control & Onboarding UI
+// Style definitions
 const pageHeaderSx = { width: "100%" };
 const pageHeaderContentSx = {
   minWidth: 0,
@@ -773,50 +782,55 @@ const chipsRowSx = { mt: 1.2, flexWrap: "wrap" };
 const companyNameSx = {
   m: 0,
   fontSize: "12.5px",
-  lineHeight: 1.25,
+  fontWeight: 700,
   color: "var(--app-color-text)",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
 };
-const companyEmailSx = {
-  mt: 0.25,
+const companySubTextSx = {
   fontSize: "11px",
   color: "var(--app-color-text-muted)",
-  lineHeight: 1.2,
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
 };
-const companyPhoneSx = {
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-  lineHeight: 1.2,
-};
-
 const roleTagSx = {
   height: 22,
-  px: 0.9,
+  px: 1.2,
   fontSize: "10.5px",
-  fontWeight: 700,
+  fontWeight: 600,
+  textTransform: "capitalize",
   width: "fit-content",
 };
 const tableTextSx = {
   fontSize: "12px",
   fontWeight: 600,
   color: "var(--app-color-text)",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
 };
-const memberCountTextSx = {
+const subLocationTextSx = {
+  mt: 0.2,
+  fontSize: "11px",
+  color: "var(--app-color-text-muted)",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+};
+const statusBadgeSx = {
+  height: 22,
+  px: 1.5,
+  fontSize: "10.5px",
+  textTransform: "capitalize",
+};
+const staffCountSx = {
   fontSize: "12px",
   fontWeight: 600,
   color: "var(--app-color-text)",
 };
-const statusBadgeSx = {
-  height: 22,
-  px: 0,
-  fontSize: "10.5px",
-  textTransform: "capitalize",
-};
-const dateTextSx = { fontSize: "12px", color: "var(--app-color-text)" };
-const updatedBySx = {
-  mt: 0.25,
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-};
+
 const footerTextSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
 const pageSizeButtonSx = {
   height: 32,

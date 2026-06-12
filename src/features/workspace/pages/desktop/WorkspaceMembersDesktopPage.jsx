@@ -2,9 +2,10 @@
 
 import {
   FiArrowLeft,
+  FiCheckCircle,
   FiClock,
   FiMail,
-  FiMoreVertical,
+  FiMoreHorizontal,
   FiRefreshCw,
   FiSearch,
   FiShield,
@@ -13,6 +14,7 @@ import {
   FiUserPlus,
   FiUsers,
   FiX,
+  FiZap,
 } from "react-icons/fi";
 
 import {
@@ -28,6 +30,7 @@ import {
   AppSearchInput,
   AppSelect,
   AppStack,
+  AppStatCard,
   AppStatusBadge,
   AppTable,
   AppTableSkeleton,
@@ -35,6 +38,8 @@ import {
   AppText,
   AppEmptyState,
   AppErrorState,
+  HELP_SUPPORT_CARD,
+  PageRightSidebar,
 } from "@/components";
 
 const statIcons = {
@@ -48,6 +53,7 @@ const WorkspaceMembersDesktopPage = ({
   workspace,
   members = [],
   stats = [],
+  memberHelp,
 
   filters,
   activeFilterChips = [],
@@ -85,20 +91,20 @@ const WorkspaceMembersDesktopPage = ({
       id: "member",
       key: "displayName",
       label: "Member",
-      minWidth: 285,
+      minWidth: 280,
       render: (_, member) => <MemberCell member={member} />,
     },
     {
       id: "contact",
       key: "contact",
-      label: "Contact",
+      label: "Contact Information",
       minWidth: 240,
       render: (_, member) => <ContactCell member={member} />,
     },
     {
       id: "role",
       key: "role",
-      label: "Role",
+      label: "Workspace Role",
       minWidth: 160,
       render: (_, member) => (
         <AppTag
@@ -106,29 +112,16 @@ const WorkspaceMembersDesktopPage = ({
           variant="soft"
           colorVariant={member?.isOwner ? "warning" : "primary"}
           size="small"
-          rounded="full"
-        />
-      ),
-    },
-    {
-      id: "status",
-      key: "status",
-      label: "Status",
-      width: 130,
-      render: (_, member) => (
-        <AppStatusBadge
-          status={member?.status || "inactive"}
-          variant="soft"
-          size="small"
-          rounded="full"
+          rounded="md"
+          sx={roleTagSx}
         />
       ),
     },
     {
       id: "joinedAt",
       key: "createdAt",
-      label: "Joined",
-      width: 130,
+      label: "Joined Date",
+      minWidth: 140,
       render: (_, member) => (
         <AppText variant="body2" sx={tableValueSx}>
           {member?.displayJoinedAt || "-"}
@@ -136,14 +129,26 @@ const WorkspaceMembersDesktopPage = ({
       ),
     },
     {
-      id: "lastActiveAt",
-      key: "lastActiveAt",
-      label: "Last Active",
-      width: 165,
+      id: "status",
+      key: "status",
+      label: "Status",
+      width: 120,
       render: (_, member) => (
-        <AppText variant="body2" sx={tableValueSx}>
-          {member?.displayLastActiveAt || "-"}
-        </AppText>
+        <AppStatusBadge
+          status={member?.status || "inactive"}
+          label={member?.status || "inactive"}
+          variant="soft"
+          size="small"
+          rounded="md"
+          colorVariant={
+            member?.status === "active"
+              ? "success"
+              : member?.status === "suspended"
+                ? "error"
+                : "neutral"
+          }
+          sx={statusBadgeSx}
+        />
       ),
     },
     {
@@ -151,7 +156,7 @@ const WorkspaceMembersDesktopPage = ({
       key: "actions",
       label: "Actions",
       align: "right",
-      width: 150,
+      width: 70,
       render: (_, member) => (
         <MemberActions
           member={member}
@@ -168,15 +173,88 @@ const WorkspaceMembersDesktopPage = ({
 
       <div className="mx-auto w-full max-w-[1500px]">
         <PageHeader
-          workspace={workspace}
-          isLoading={isLoading}
-          onBack={handleBackToWorkspace}
-          onRefresh={handleRefresh}
-          onInvite={handleInviteMember}
-          onViewInvitations={handleViewInvitations}
-        />
+          title="Workspace Members"
+          subtitle="Manage your team members, workspace roles and control account access."
+          extra={
+            <AppBreadcrumb
+              size="small"
+              variant="text"
+              items={[
+                { label: "Workspace", onClick: handleBackToWorkspace },
+                { label: workspace?.name || "Members", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
+            />
+          }
+          actions={
+            <AppStack
+              direction="row"
+              align="center"
+              justify="flex-end"
+              gap={1.1}
+              sx={{ flexShrink: 0 }}
+            >
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiArrowLeft />}
+                onClick={handleBackToWorkspace}
+                sx={secondaryButtonSx}
+              >
+                Workspace
+              </AppButton>
 
-        <StatsGrid stats={stats} />
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiRefreshCw />}
+                onClick={handleRefresh}
+                loading={isLoading}
+                disabled={isLoading}
+                sx={secondaryButtonSx}
+              >
+                Refresh
+              </AppButton>
+
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="primary"
+                rounded="md"
+                size="small"
+                onClick={handleViewInvitations}
+                sx={secondaryButtonSx}
+              >
+                Invitations
+              </AppButton>
+
+              <AppButton
+                type="button"
+                variant="contained"
+                colorVariant="primary"
+                rounded="md"
+                size="small"
+                startIcon={<FiUserPlus />}
+                onClick={handleInviteMember}
+                sx={primaryButtonSx}
+              >
+                Invite Member
+              </AppButton>
+            </AppStack>
+          }
+          align="flex-start"
+          justify="space-between"
+          sx={pageHeaderSx}
+          contentSx={pageHeaderContentSx}
+        />
 
         {error && !hasError ? (
           <AppAlert
@@ -191,93 +269,103 @@ const WorkspaceMembersDesktopPage = ({
           </AppAlert>
         ) : null}
 
-        <AppCard
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="sm"
-          padding="none"
-          sx={tableCardSx}
-        >
-          <TableHeader
-            filters={filters}
-            activeFilterChips={activeFilterChips}
-            statusOptions={statusOptions}
-            roleOptions={roleOptions}
-            totalMembers={totalMembers}
-            filteredMembersCount={filteredMembersCount}
-            handleFilterChange={handleFilterChange}
-            handleSearchChange={handleSearchChange}
-            handleRemoveFilter={handleRemoveFilter}
-            handleClearFilters={handleClearFilters}
-          />
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_290px] gap-5">
+          <div className="min-w-0">
+            <StatsGrid stats={stats} />
 
-          {hasError ? (
-            <AppErrorState
-              title="Unable to load workspace members"
-              description={error || "Please refresh and try again."}
-              actionText="Refresh"
-              onRetry={handleRefresh}
-              size="page"
-              sx={stateSx}
-            />
-          ) : showInitialSkeleton ? (
-            <AppTableSkeleton rows={6} columns={7} showHeader={false} />
-          ) : !hasMembers ? (
-            <AppEmptyState
-              title="No members yet"
-              description="Invite team members to collaborate in this workspace."
-              icon={<FiUsers />}
-              action={
-                <AppButton
-                  variant="contained"
-                  colorVariant="primary"
-                  rounded="md"
-                  startIcon={<FiUserPlus />}
-                  onClick={handleInviteMember}
-                >
-                  Invite Member
-                </AppButton>
-              }
-              size="page"
-              sx={stateSx}
-            />
-          ) : !hasFilteredMembers ? (
-            <AppEmptyState
-              title="No members found"
-              description="Try changing your search or filters."
-              icon={<FiSearch />}
-              action={
-                <AppButton
-                  variant="outlined"
-                  colorVariant="neutral"
-                  rounded="md"
-                  onClick={handleClearFilters}
-                >
-                  Clear Filters
-                </AppButton>
-              }
-              size="page"
-              sx={stateSx}
-            />
-          ) : (
-            <AppTable
-              columns={columns}
-              rows={members}
-              getRowId={(row) => row._id}
-              dense
-              bordered={false}
-              rounded={false}
-              hover
-              stickyHeader
-              minWidth={1260}
-              maxHeight="calc(100vh - 315px)"
-              sx={tableSx}
-              headSx={tableHeadSx}
-              cellSx={tableCellSx}
-            />
-          )}
-        </AppCard>
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              shadow="sm"
+              padding="none"
+              sx={tableCardSx}
+            >
+              <TableToolbar
+                filters={filters}
+                activeFilterChips={activeFilterChips}
+                statusOptions={statusOptions}
+                roleOptions={roleOptions}
+                totalMembers={totalMembers}
+                filteredMembersCount={filteredMembersCount}
+                handleFilterChange={handleFilterChange}
+                handleSearchChange={handleSearchChange}
+                handleRemoveFilter={handleRemoveFilter}
+                handleClearFilters={handleClearFilters}
+              />
+
+              {hasError ? (
+                <AppErrorState
+                  title="Unable to load workspace members"
+                  description={error || "Please refresh and try again."}
+                  actionText="Refresh"
+                  onRetry={handleRefresh}
+                  size="page"
+                  sx={stateSx}
+                />
+              ) : showInitialSkeleton ? (
+                <AppTableSkeleton rows={8} columns={6} showHeader={false} />
+              ) : !hasMembers ? (
+                <AppEmptyState
+                  title="No members yet"
+                  description="Invite team members to collaborate in this workspace."
+                  icon={<FiUsers />}
+                  action={
+                    <AppButton
+                      variant="contained"
+                      colorVariant="primary"
+                      rounded="md"
+                      startIcon={<FiUserPlus />}
+                      onClick={handleInviteMember}
+                      sx={primaryButtonSx}
+                    >
+                      Invite Member
+                    </AppButton>
+                  }
+                  size="page"
+                  sx={stateSx}
+                />
+              ) : !hasFilteredMembers ? (
+                <AppEmptyState
+                  title="No members found"
+                  description="Try changing your search or filters."
+                  icon={<FiSearch />}
+                  action={
+                    <AppButton
+                      variant="outlined"
+                      colorVariant="neutral"
+                      rounded="md"
+                      onClick={handleClearFilters}
+                      sx={secondaryButtonSx}
+                    >
+                      Clear Filters
+                    </AppButton>
+                  }
+                  size="page"
+                  sx={stateSx}
+                />
+              ) : (
+                <AppTable
+                  columns={columns}
+                  rows={members}
+                  getRowId={(row) => row._id}
+                  dense
+                  bordered={false}
+                  rounded={false}
+                  hover
+                  stickyHeader
+                  minWidth={1050}
+                  maxHeight="calc(100vh - 315px)"
+                  sx={tableSx}
+                  headSx={tableHeadSx}
+                  cellSx={tableCellSx}
+                />
+              )}
+            </AppCard>
+          </div>
+
+          <WorkspaceMembersRightSidebar memberHelp={memberHelp} />
+        </div>
       </div>
     </section>
   );
@@ -297,134 +385,55 @@ const TopToast = ({ message, onClose }) => (
 );
 
 const PageHeader = ({
-  workspace,
-  isLoading,
-  onBack,
-  onRefresh,
-  onInvite,
-  onViewInvitations,
+  title,
+  subtitle,
+  extra,
+  actions,
+  align,
+  justify,
+  sx,
+  contentSx,
 }) => (
-  <AppStack direction="row" align="flex-start" justify="space-between">
-    <AppStack direction="row" align="center" gap={1}>
-      <IconBox icon={<FiUsers />} large />
-
-      <AppBox>
-        <AppHeading level={1} weight={650} sx={pageTitleSx}>
-          Workspace Members
-        </AppHeading>
-
-        <AppBreadcrumb
-          size="small"
-          variant="text"
-          items={[
-            { label: "Workspace", onClick: onBack },
-            { label: workspace?.name || "Members", current: true },
-          ]}
-          sx={breadcrumbSx}
-          itemSx={breadcrumbItemSx}
-          currentItemSx={breadcrumbCurrentSx}
-        />
-      </AppBox>
-    </AppStack>
-
-    <AppStack direction="row" align="center" gap={0.8}>
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiArrowLeft />}
-        onClick={onBack}
-        sx={secondaryButtonSx}
-      >
-        Workspace
-      </AppButton>
-
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiRefreshCw />}
-        onClick={onRefresh}
-        loading={isLoading}
-        disabled={isLoading}
-        sx={secondaryButtonSx}
-      >
-        Refresh
-      </AppButton>
-
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="primary"
-        rounded="md"
-        size="small"
-        onClick={onViewInvitations}
-        sx={secondaryButtonSx}
-      >
-        Invitations
-      </AppButton>
-
-      <AppButton
-        type="button"
-        variant="contained"
-        colorVariant="primary"
-        rounded="md"
-        size="small"
-        startIcon={<FiUserPlus />}
-        onClick={onInvite}
-        sx={primaryButtonSx}
-      >
-        Invite Member
-      </AppButton>
-    </AppStack>
-  </AppStack>
+  <AppBox
+    display="flex"
+    alignItems={align || "flex-start"}
+    justifyContent={justify || "space-between"}
+    sx={{ width: "100%", ...sx }}
+  >
+    <AppBox sx={contentSx}>
+      <AppHeading level={1} weight={650}>
+        {title}
+      </AppHeading>
+      {subtitle ? (
+        <AppText variant="body2" sx={pageHeaderSubtitleSx}>
+          {subtitle}
+        </AppText>
+      ) : null}
+      {extra}
+    </AppBox>
+    {actions}
+  </AppBox>
 );
 
 const StatsGrid = ({ stats }) => (
-  <div className="mt-4 grid grid-cols-4 gap-3">
+  <div className="grid grid-cols-4 gap-4">
     {stats.map((stat) => (
-      <StatCard key={stat.id} stat={stat} />
+      <AppStatCard
+        key={stat.id}
+        title={stat.title}
+        value={stat.value}
+        subtitle={stat.description}
+        icon={statIcons[stat.id] || <FiUsers />}
+        colorVariant={stat.colorVariant}
+        variant="default"
+        sx={statCardSx}
+        iconSx={statIconSx}
+      />
     ))}
   </div>
 );
 
-const StatCard = ({ stat }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={statCardSx}
-  >
-    <AppStack direction="row" align="flex-start" gap={1.1}>
-      <IconBox
-        icon={statIcons[stat.id] || <FiUsers />}
-        colorVariant={stat.colorVariant}
-      />
-
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppText variant="body2" sx={statTitleSx}>
-          {stat.title}
-        </AppText>
-
-        <AppHeading level={2} weight={650} sx={statValueSx}>
-          {stat.value}
-        </AppHeading>
-
-        <AppText variant="body2" sx={statDescriptionSx}>
-          {stat.description}
-        </AppText>
-      </AppBox>
-    </AppStack>
-  </AppCard>
-);
-
-const TableHeader = ({
+const TableToolbar = ({
   filters,
   activeFilterChips,
   statusOptions,
@@ -436,57 +445,45 @@ const TableHeader = ({
   handleRemoveFilter,
   handleClearFilters,
 }) => (
-  <div className="border-b border-border px-3 py-2.5">
-    <div className="grid grid-cols-[minmax(220px,1fr)_minmax(600px,auto)] items-center gap-5">
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppHeading level={2} weight={650} sx={sectionTitleSx}>
-          Member Directory
-        </AppHeading>
+  <div className="border-b border-border px-3.5 py-3">
+    <div className="grid grid-cols-[minmax(0,1fr)_128px_128px] items-center gap-3">
+      <AppSearchInput
+        name="search"
+        value={filters.search}
+        onChange={handleSearchChange}
+        placeholder="Search members by name, email or status..."
+        clearable
+        onClear={() => handleSearchChange("")}
+        size="small"
+        variant="bordered"
+        rounded="md"
+        sx={searchSx}
+        inputSx={filterInputSx}
+      />
 
-        <AppText variant="body2" sx={sectionSubtitleSx}>
-          Showing {filteredMembersCount} of {totalMembers} members
-        </AppText>
-      </AppBox>
+      <AppSelect
+        name="status"
+        value={filters.status}
+        onChange={handleFilterChange}
+        options={statusOptions}
+        size="small"
+        variant="bordered"
+        rounded="md"
+        sx={selectSx}
+        inputSx={filterInputSx}
+      />
 
-      <div className="grid min-w-[600px] grid-cols-[minmax(280px,1fr)_145px_145px] items-center gap-3 justify-self-end">
-        <AppSearchInput
-          name="search"
-          value={filters.search}
-          onChange={handleSearchChange}
-          placeholder="Search member, email, phone, role..."
-          clearable
-          onClear={() => handleSearchChange("")}
-          size="small"
-          variant="bordered"
-          rounded="md"
-          sx={searchSx}
-          inputSx={filterInputSx}
-        />
-
-        <AppSelect
-          name="status"
-          value={filters.status}
-          onChange={handleFilterChange}
-          options={statusOptions}
-          size="small"
-          variant="bordered"
-          rounded="md"
-          sx={selectSx}
-          inputSx={filterInputSx}
-        />
-
-        <AppSelect
-          name="role"
-          value={filters.role}
-          onChange={handleFilterChange}
-          options={roleOptions}
-          size="small"
-          variant="bordered"
-          rounded="md"
-          sx={selectSx}
-          inputSx={filterInputSx}
-        />
-      </div>
+      <AppSelect
+        name="role"
+        value={filters.role}
+        onChange={handleFilterChange}
+        options={roleOptions}
+        size="small"
+        variant="bordered"
+        rounded="md"
+        sx={selectSx}
+        inputSx={filterInputSx}
+      />
     </div>
 
     {activeFilterChips.length ? (
@@ -516,12 +513,15 @@ const TableHeader = ({
 );
 
 const MemberCell = ({ member }) => (
-  <AppStack direction="row" align="center" gap={1.1}>
-    <Avatar name={member?.displayName} />
+  // Added h-full and items-center to ensure the layout centers perfectly vertically
+  <div className="flex items-center gap-3 min-w-0 h-full">
+    <div className="flex items-center justify-center shrink-0">
+      <Avatar name={member?.displayName} />
+    </div>
 
-    <AppBox sx={{ minWidth: 0 }}>
+    <div className="flex flex-col min-w-0 justify-center">
       <AppStack direction="row" align="center" gap={0.7}>
-        <AppHeading level={3} weight={650} sx={memberNameSx}>
+        <AppHeading level={3} weight={700} sx={memberNameSx}>
           {member?.displayName || "-"}
         </AppHeading>
 
@@ -531,18 +531,14 @@ const MemberCell = ({ member }) => (
             variant="soft"
             colorVariant="warning"
             size="small"
-            rounded="full"
+            rounded="md"
+            sx={roleTagSx}
           />
         ) : null}
       </AppStack>
-
-      <AppText variant="body2" sx={memberMetaSx}>
-        Member ID: {member?._id || "-"}
-      </AppText>
-    </AppBox>
-  </AppStack>
+    </div>
+  </div>
 );
-
 const ContactCell = ({ member }) => (
   <AppBox sx={{ minWidth: 0 }}>
     <AppKeyValue
@@ -604,25 +600,98 @@ const MemberActions = ({ member, onChangeStatus, onRemove }) => {
   ];
 
   return (
-    <AppStack direction="row" align="center" justify="flex-end" gap={0.45}>
-      <AppMenu
-        trigger={
-          <AppIconButton
-            icon={<FiMoreVertical />}
-            tooltip={isOwner ? "Owner cannot be modified" : "Member actions"}
-            variant="soft"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-          />
-        }
-        items={items}
-        dense
-        minWidth={190}
-      />
-    </AppStack>
+    <AppMenu
+      trigger={
+        <button
+          type="button"
+          aria-label="Member actions"
+          className="inline-flex h-auto w-auto items-center justify-center border-0 bg-transparent p-0 text-text-muted shadow-none outline-none transition hover:bg-transparent hover:text-text focus:bg-transparent active:bg-transparent"
+        >
+          <FiMoreHorizontal className="text-[18px]" />
+        </button>
+      }
+      items={items}
+      dense
+      minWidth={180}
+    />
   );
 };
+
+const WorkspaceMembersRightSidebar = ({ memberHelp }) => (
+  <PageRightSidebar
+    spacing={4}
+    cards={[
+      {
+        title: "About Workspace",
+        icon: <FiUsers />,
+        colorVariant: "success",
+        variant: "default",
+        description:
+          "Manage access tiers, tracking profiles and verify operational states for staff inside your dashboard directory.",
+        points: memberHelp?.aboutPoints || [
+          "Assign custom security profiles",
+          "Provision access rights securely",
+          "Track operations audit changes",
+          "Enforce platform permissions",
+        ],
+        pointIcon: <FiCheckCircle />,
+        pointIconVariant: "check",
+      },
+      {
+        title: "Security Measures",
+        icon: <FiZap />,
+        colorVariant: "primary",
+        variant: "soft",
+        soft: true,
+        points: [
+          "Audit workspace rosters monthly",
+          "Apply minimum access logic",
+          "Audit deactivated user tokens",
+          "Enforce modern authentication",
+        ],
+        pointIcon: <FiZap />,
+        pointIconVariant: "zap",
+      },
+      {
+        title: "Workspace Directory Info",
+        icon: null,
+        colorVariant: "info",
+        variant: "default",
+        custom: (
+          <div className="space-y-4">
+            <div>
+              <AppTag
+                label="Primary Owner"
+                variant="soft"
+                colorVariant="warning"
+                rounded="md"
+                sx={roleTagSx}
+              />
+              <AppText variant="body2" sx={sidebarInfoTextSx}>
+                Holds complete business platform orchestration control rights.
+                Max 1 per workspace entity.
+              </AppText>
+            </div>
+            <div>
+              <AppTag
+                label="Standard Users"
+                variant="soft"
+                colorVariant="primary"
+                rounded="md"
+                sx={roleTagSx}
+              />
+              <AppText variant="body2" sx={sidebarInfoTextSx}>
+                Assigned limited operational profiles tailored strictly around
+                clear department boundaries.
+              </AppText>
+            </div>
+          </div>
+        ),
+      },
+      HELP_SUPPORT_CARD,
+    ]}
+  />
+);
 
 const Avatar = ({ name }) => {
   const initials = String(name || "M")
@@ -634,41 +703,62 @@ const Avatar = ({ name }) => {
     .join("");
 
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[13px] font-bold text-primary">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[12px] font-bold text-primary">
       {initials || "M"}
     </span>
   );
 };
 
-const IconBox = ({ icon, colorVariant = "primary", large = false }) => (
+const IconBox = ({
+  icon,
+  colorVariant = "primary",
+  large = false,
+  small = false,
+  stat = false,
+}) => (
   <AppBox
     display="flex"
     alignItems="center"
     justifyContent="center"
     sx={{
-      width: large ? 42 : 38,
-      height: large ? 42 : 38,
-      minWidth: large ? 42 : 38,
-      borderRadius: "12px",
-      bgcolor: `var(--app-color-${colorVariant}-soft)`,
-      color: `var(--app-color-${colorVariant})`,
-      fontSize: large ? "21px" : "19px",
+      width: large ? 48 : small ? 32 : stat ? 38 : 44,
+      height: large ? 48 : small ? 32 : stat ? 38 : 44,
+      minWidth: large ? 48 : small ? 32 : stat ? 38 : 44,
+      borderRadius: large ? "14px" : small ? "9px" : stat ? "11px" : "12px",
+      bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
+      color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
+      fontSize: large ? "34px" : small ? "16px" : stat ? "19px" : "22px",
+      lineHeight: 0,
     }}
   >
     {icon}
   </AppBox>
 );
 
-const pageTitleSx = {
-  m: 0,
-  fontSize: "25px",
-  lineHeight: 1.18,
-  letterSpacing: "-0.45px",
-  color: "var(--app-color-text)",
+const pageHeaderSx = {
+  width: "100%",
+};
+
+const pageHeaderSubtitleSx = {
+  mt: 0.55,
+  fontSize: "13px",
+  lineHeight: "20px",
+  color: "var(--app-color-text-muted)",
+};
+
+const pageHeaderContentSx = {
+  minWidth: 0,
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
 };
 
 const breadcrumbSx = {
-  mt: 0.4,
+  mt: 1,
 };
 
 const breadcrumbItemSx = {
@@ -683,44 +773,34 @@ const breadcrumbCurrentSx = {
 };
 
 const primaryButtonSx = {
-  height: 34,
-  px: 1.5,
+  height: 36,
+  px: 1.6,
   fontSize: "12px",
   fontWeight: 700,
 };
 
 const secondaryButtonSx = {
-  height: 34,
-  px: 1.35,
+  height: 36,
+  minWidth: 92,
+  px: 1.4,
   fontSize: "12px",
   fontWeight: 650,
 };
 
 const statCardSx = {
-  px: 1.45,
-  py: 1.35,
+  minHeight: 96,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
 
-const statTitleSx = {
-  fontSize: "11.5px",
-  fontWeight: 650,
-  color: "var(--app-color-text-muted)",
-};
-
-const statValueSx = {
-  mt: 0.25,
-  mb: 0,
-  fontSize: "25px",
-  lineHeight: 1.05,
-  color: "var(--app-color-text)",
-};
-
-const statDescriptionSx = {
-  mt: 0.25,
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
+const statIconSx = {
+  width: 44,
+  height: 44,
+  minWidth: 44,
+  borderRadius: "12px",
+  "& svg": {
+    fontSize: 22,
+  },
 };
 
 const alertSx = {
@@ -732,19 +812,9 @@ const tableCardSx = {
   overflow: "hidden",
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
-};
-
-const sectionTitleSx = {
-  m: 0,
-  fontSize: "16px",
-  lineHeight: 1.2,
-  color: "var(--app-color-text)",
-};
-
-const sectionSubtitleSx = {
-  mt: 0.35,
-  fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
+  "& > div": {
+    minWidth: 0,
+  },
 };
 
 const searchSx = {
@@ -756,7 +826,7 @@ const selectSx = {
 };
 
 const filterInputSx = {
-  height: 35,
+  height: 36,
   fontSize: "12px",
   bgcolor: "var(--app-color-surface)",
 };
@@ -769,13 +839,19 @@ const chipsRowSx = {
 const tableSx = {
   "& .MuiTableContainer-root": {
     borderRadius: 0,
+    // Applies hidden scrollbar styling engine to the underlying Material-UI wrapper container
+    scrollbarWidth: "none", // Firefox
+    msOverflowStyle: "none", // IE / Edge
+    "&::-webkit-scrollbar": {
+      display: "none", // Chrome / Safari / Webkit
+    },
   },
 };
 
 const tableHeadSx = {
   bgcolor: "var(--app-color-surface-alt)",
   "& .MuiTableCell-root": {
-    fontSize: "11px",
+    fontSize: "11.2px",
     fontWeight: 750,
     color: "var(--app-color-text-muted)",
     textTransform: "uppercase",
@@ -784,7 +860,7 @@ const tableHeadSx = {
 };
 
 const tableCellSx = {
-  py: 1,
+  py: 1.2,
   fontSize: "12px",
   borderColor: "var(--app-color-border)",
 };
@@ -797,23 +873,41 @@ const tableValueSx = {
 
 const memberNameSx = {
   m: 0,
-  maxWidth: 180,
+  maxWidth: 210,
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   fontSize: "12.5px",
-  lineHeight: 1.2,
+  lineHeight: 1.25,
   color: "var(--app-color-text)",
 };
 
 const memberMetaSx = {
-  mt: 0.35,
-  maxWidth: 225,
+  mt: 0.3,
+  maxWidth: 250,
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  fontSize: "10.8px",
+  fontSize: "11px",
+  lineHeight: "18px",
   color: "var(--app-color-text-muted)",
+};
+
+const roleTagSx = {
+  width: "fit-content",
+  height: 22,
+  px: 0.8,
+  fontSize: "10.5px",
+  fontWeight: 700,
+};
+
+const statusBadgeSx = {
+  width: "fit-content",
+  height: 22,
+  px: 1,
+  fontSize: "10.5px",
+  fontWeight: 700,
+  textTransform: "capitalize",
 };
 
 const keyValueSx = {
@@ -842,8 +936,15 @@ const keyTextSx = {
   color: "var(--app-color-text)",
 };
 
+const sidebarInfoTextSx = {
+  mt: 0.9,
+  fontSize: "12px",
+  lineHeight: "21px",
+  color: "var(--app-color-text-muted)",
+};
+
 const stateSx = {
-  minHeight: 330,
+  minHeight: 430,
 };
 
 const toastSx = {

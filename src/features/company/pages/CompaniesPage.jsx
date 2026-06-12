@@ -43,25 +43,26 @@ const normalizeText = (value) =>
     .toLowerCase();
 
 const formatCompanyType = (type) => {
-  if (!type) return "-";
+  if (!type) return "";
   return String(type)
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 };
 
-const formatAddress = (address) => {
-  if (!address) return "-";
-  return [
-    address.addressLine1,
-    address.addressLine2,
-    address.city,
-    address.district,
-    address.state,
-    address.pincode,
-  ]
-    .filter(Boolean)
-    .join(", ");
+const formatAddressBlock = (address) => {
+  if (!address) return { line1: "", summary: "" };
+
+  const line1Parts = [address.addressLine1, address.addressLine2].filter(
+    Boolean,
+  );
+  const line1 = line1Parts.join(", ") || "";
+
+  const cityStr = address.city || "";
+  const pinStr = address.pincode ? ` ${address.pincode}` : "";
+  const summary = `${cityStr}${pinStr}`.trim();
+
+  return { line1, summary };
 };
 
 const formatDate = (value) => {
@@ -75,38 +76,36 @@ const formatDate = (value) => {
   });
 };
 
-const formatPhone = (phones) => {
-  if (phones?.mobile) return `+91 ${phones.mobile}`;
-  if (phones?.whatsapp) return `+91 ${phones.whatsapp}`;
-  if (phones?.landline) return phones.landline;
-  return "-";
-};
+const mapCompanyForView = (company) => {
+  const addressBlock = formatAddressBlock(company?.address);
 
-const mapCompanyForView = (company) => ({
-  ...company,
-  displayName: company?.name || "-",
-  displayType: formatCompanyType(company?.type),
-  displayAddress: formatAddress(company?.address),
-  displayCreatedAt: formatDate(company?.createdAt),
-  displayUpdatedAt: formatDate(company?.updatedAt),
-  displayPhone: formatPhone(company?.phones),
-  displayEmail: company?.email || "-",
-  displayWebsite: company?.website || "-",
-  displayGstin: company?.gstin || "-",
-  displayPan: company?.pan || "-",
-  displayOwnerName: company?.owner?.name || company?.ownerName || "-",
-  displayPharmacistName:
-    company?.pharmacist?.name || company?.pharmacistName || "-",
-  displayGstType:
-    company?.taxSettings?.gstType || company?.gstType || "Regular",
-});
+  return {
+    ...company,
+    displayName: company?.name || "",
+    displayType: formatCompanyType(company?.type),
+    addressLine1: addressBlock.line1,
+    locationSummary: addressBlock.summary,
+    displayCreatedAt: formatDate(company?.createdAt),
+    displayUpdatedAt: formatDate(company?.updatedAt),
+    displayPhone:
+      company?.phones?.mobile ||
+      company?.phones?.whatsapp ||
+      company?.phones?.landline ||
+      "",
+    displayEmail: company?.email || "",
+    displayWebsite: company?.website || "",
+    displayGstin: company?.gstin || "",
+    displayPan: company?.pan || "",
+    displayOwnerName: company?.owner?.name || "",
+    displayOwnerContact: company?.owner?.mobile || company?.owner?.email || "",
+  };
+};
 
 const CompaniesPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const hasFetchedRef = useRef(false);
 
-  // CLEANED: Removed setCurrentCompany dependency completely
   const {
     companies,
     getWorkspaceCompanies,
@@ -160,14 +159,14 @@ const CompaniesPage = () => {
     return mappedCompanies.filter((company) => {
       const matchesSearch =
         !search ||
-        normalizeText(company.name).includes(search) ||
+        normalizeText(company.displayName).includes(search) ||
         normalizeText(company.companyCode).includes(search) ||
-        normalizeText(company.email).includes(search) ||
-        normalizeText(company.gstin).includes(search) ||
-        normalizeText(company.pan).includes(search) ||
+        normalizeText(company.displayEmail).includes(search) ||
+        normalizeText(company.displayGstin).includes(search) ||
+        normalizeText(company.displayPan).includes(search) ||
         normalizeText(company.displayOwnerName).includes(search) ||
-        normalizeText(company.address?.city).includes(search) ||
-        normalizeText(company.address?.state).includes(search);
+        normalizeText(company.addressLine1).includes(search) ||
+        normalizeText(company.locationSummary).includes(search);
 
       const matchesStatus =
         filters.status === "all" || company.status === filters.status;
@@ -273,7 +272,6 @@ const CompaniesPage = () => {
     navigate("/companies/create");
   }, [navigate]);
 
-  // FIXED: Removed global active context updates during internal route switching
   const handleViewCompany = useCallback(
     (company) => {
       if (!company?._id) return;
@@ -377,7 +375,11 @@ const CompaniesPage = () => {
         onCancel={handleCloseDeleteModal}
         onConfirm={handleConfirmDeleteCompany}
         title="Delete Company Record"
-        message={`Delete ${selectedCompany?.displayName || "this company profile"}?`}
+        message={
+          selectedCompany
+            ? `Delete ${selectedCompany.displayName}?`
+            : "Delete Company?"
+        }
         description="This will execute a soft-delete process on your workspace asset profile. Connected branches will remain suspended until remapped."
         variant="error"
         confirmLabel="Delete Company"

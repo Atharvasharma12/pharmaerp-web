@@ -1,5 +1,3 @@
-// src/features/access-control/pages/desktop/index.js
-
 export { default as AccessControlDesktopPage } from "./AccessControlDesktopPage";
 export { default as RolesDesktopPage } from "./RolesDesktopPage";
 export { default as CreateRoleDesktopPage } from "./CreateRoleDesktopPage";
@@ -9,3 +7,4 @@ export { default as MemberAccessDesktopPage } from "./MemberAccessDesktopPage";
 export { default as AssignAccessDesktopPage } from "./AssignAccessDesktopPage";
 export { default as EditAccessDesktopPage } from "./EditAccessDesktopPage";
 export { default as PermissionDesktopPage } from "./PermissionDesktopPage";
+export { default as AssignRoleDesktopPage } from "./AssignRoleDesktopPage";

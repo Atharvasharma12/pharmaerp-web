@@ -1,22 +1,20 @@
 // src/features/access-control/pages/desktop/AssignAccessDesktopPage.jsx
 
+import { memo, useCallback } from "react";
 import {
   FiArrowLeft,
-  FiBookOpen,
+  FiArrowRight,
   FiBriefcase,
+  FiCheck,
   FiCheckCircle,
-  FiGitBranch,
-  FiHeadphones,
   FiInfo,
-  FiKey,
-  FiRefreshCcw,
   FiRefreshCw,
   FiSave,
-  FiShield,
-  FiSliders,
   FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
+import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
+import { LuStore } from "react-icons/lu";
 
 import {
   AppAlert,
@@ -24,949 +22,989 @@ import {
   AppBreadcrumb,
   AppButton,
   AppCard,
+  AppCheckbox,
   AppHeading,
-  AppKeyValue,
-  AppMultiSelect,
   AppSelect,
   AppStack,
-  AppSwitch,
   AppTag,
   AppText,
-  HELP_SUPPORT_CARD,
   PageHeader,
   PageRightSidebar,
+  HELP_SUPPORT_CARD,
 } from "@/components";
 
-const AssignAccessDesktopPage = ({
-  formData,
-  formErrors = {},
+const AssignAccessDesktopPage = memo(
+  ({
+    formData,
+    formErrors = {},
+    currentStep = 1,
+    isLoading = false,
+    isSubmitting = false,
+    error,
+    memberOptions = [],
+    companyOptions = [],
+    filteredBranchOptions = [],
+    selectedMember,
+    accessSummary,
+    handleChange,
+    handleStepChange,
+    handleContinue,
+    handleBack,
+    handleSaveDraft,
+    handleCancel,
+    handleReset,
+    handleSubmit,
+  }) => {
+    const handleCompanyCheckboxChange = useCallback(
+      (companyId, checked) => {
+        const currentIds = formData.companyIds || [];
+        const nextIds = checked
+          ? [...currentIds, companyId]
+          : currentIds.filter((id) => id !== companyId);
+        handleChange("companyIds", nextIds);
+      },
+      [formData.companyIds, handleChange],
+    );
 
-  memberOptions = [],
-  companyOptions = [],
-  branchOptions = [],
-  selectedMember,
-  accessSummary,
+    const handleBranchCheckboxChange = useCallback(
+      (branchId, checked) => {
+        const currentIds = formData.branchIds || [];
+        const nextIds = checked
+          ? [...currentIds, branchId]
+          : currentIds.filter((id) => id !== branchId);
+        handleChange("branchIds", nextIds);
+      },
+      [formData.branchIds, handleChange],
+    );
 
-  isLoading = false,
-  isLoadingMembers = false,
-  isLoadingCompanies = false,
-  isLoadingBranches = false,
-  isSubmitting = false,
-  error,
-  message,
+    const handleToggleAllCompanies = useCallback(
+      (checked) => {
+        const nextIds = checked ? companyOptions.map((c) => c.value) : [];
+        handleChange("companyIds", nextIds);
+      },
+      [companyOptions, handleChange],
+    );
 
-  handleChange,
-  handleToggleChange,
-  handleMultiSelectChange,
-  handleSubmit,
-  handleReset,
-  handleRefresh,
-  handleBack,
-  handleBackToAccessControl,
-  handleViewMembers,
-  handleViewAccessList,
-  clearMessage,
-}) => {
-  return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
-      {message ? <TopToast message={message} onClose={clearMessage} /> : null}
+    const handleToggleAllBranches = useCallback(
+      (checked) => {
+        const nextIds = checked
+          ? filteredBranchOptions.map((b) => b.value)
+          : [];
+        handleChange("branchIds", nextIds);
+      },
+      [filteredBranchOptions, handleChange],
+    );
 
-      <div className="mx-auto w-full max-w-[1500px]">
-        <PageHeader
-          title="Assign Access"
-          subtitle="Configure company and branch access for a workspace member."
-          extra={
-            <AppBreadcrumb
-              size="small"
-              variant="text"
-              items={[
-                {
-                  label: "Access Control",
-                  onClick: handleBackToAccessControl || handleBack,
-                },
-                { label: "Member Access", onClick: handleBack },
-                { label: "Assign Access", current: true },
-              ]}
-              sx={breadcrumbSx}
-              itemSx={breadcrumbItemSx}
-              currentItemSx={breadcrumbCurrentSx}
-            />
-          }
-          actions={
-            <AppStack
-              direction="row"
-              align="center"
-              justify="flex-end"
-              gap={1.1}
-              sx={{ flexShrink: 0 }}
-            >
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="neutral"
-                rounded="md"
+    return (
+      <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
+        <div className="mx-auto w-full max-w-[1500px]">
+          <PageHeader
+            title="Assign Access"
+            subtitle="Configure company and branch access parameters securely."
+            extra={
+              <AppBreadcrumb
                 size="small"
-                startIcon={<FiArrowLeft />}
-                onClick={handleBack}
-                disabled={isSubmitting}
-                sx={secondaryButtonSx}
+                variant="text"
+                items={[
+                  { label: "Access Control", onClick: handleCancel },
+                  { label: "Member Access", onClick: handleCancel },
+                  { label: "Assign Access", current: true },
+                ]}
+                sx={breadcrumbSx}
+                itemSx={breadcrumbItemSx}
+                currentItemSx={breadcrumbCurrentSx}
+              />
+            }
+            actions={
+              <AppStack
+                direction="row"
+                align="center"
+                gap={1}
+                sx={{ flexShrink: 0 }}
               >
-                Member Access
-              </AppButton>
+                <AppButton
+                  type="button"
+                  variant="outlined"
+                  colorVariant="neutral"
+                  rounded="md"
+                  size="small"
+                  startIcon={<FiArrowLeft />}
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                  sx={secondaryButtonSx}
+                >
+                  Cancel
+                </AppButton>
+                <AppButton
+                  type="button"
+                  variant="outlined"
+                  colorVariant="neutral"
+                  rounded="md"
+                  size="small"
+                  startIcon={<FiRefreshCw />}
+                  onClick={handleReset}
+                  disabled={isSubmitting}
+                  sx={secondaryButtonSx}
+                >
+                  Reset
+                </AppButton>
+              </AppStack>
+            }
+            sx={pageHeaderSx}
+            contentSx={pageHeaderContentSx}
+          />
 
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="neutral"
-                rounded="md"
-                size="small"
-                startIcon={<FiRefreshCw />}
-                onClick={handleRefresh}
-                loading={isLoading}
-                disabled={isLoading || isSubmitting}
-                sx={secondaryButtonSx}
-              >
-                Refresh
-              </AppButton>
+          {error && !formErrors.submit && (
+            <AppAlert severity="error" variant="soft" rounded="md" sx={alertSx}>
+              {error}
+            </AppAlert>
+          )}
 
-              <AppButton
-                type="button"
-                variant="contained"
-                colorVariant="primary"
-                rounded="md"
-                size="small"
-                startIcon={<FiShield />}
-                onClick={handleViewAccessList}
-                disabled={isSubmitting}
-                sx={primaryButtonSx}
-              >
-                View Access
-              </AppButton>
-            </AppStack>
-          }
-          align="flex-start"
-          justify="space-between"
-          sx={pageHeaderSx}
-          contentSx={pageHeaderContentSx}
-        />
+          <div className="mt-4 grid grid-cols-[minmax(0,1fr)_330px] items-start gap-5">
+            <AppBox sx={{ minWidth: 0 }}>
+              <WorkflowStepper
+                currentStep={currentStep}
+                onStepChange={handleStepChange}
+              />
 
-        {error && !formErrors.submit ? (
-          <AppAlert
-            severity="error"
-            variant="soft"
-            title="Something went wrong"
-            rounded="md"
-            sx={alertSx}
-          >
-            {error}
-          </AppAlert>
-        ) : null}
+              <AppBox sx={{ mt: 4 }}>
+                {currentStep === 1 && (
+                  <Step1Form
+                    memberOptions={memberOptions}
+                    selectedMember={selectedMember}
+                    formData={formData}
+                    formErrors={formErrors}
+                    handleChange={handleChange}
+                    handleCancel={handleCancel}
+                    handleContinue={handleContinue}
+                    isLoading={isLoading}
+                  />
+                )}
 
-        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_290px] items-start gap-5">
-          <main className="min-w-0 space-y-5">
-            <HeroSummary
+                {currentStep === 2 && (
+                  <Step2Form
+                    companyOptions={companyOptions}
+                    formData={formData}
+                    onCompanyCheck={handleCompanyCheckboxChange}
+                    onToggleAll={handleToggleAllCompanies}
+                    handleBack={handleBack}
+                    handleContinue={handleContinue}
+                    isLoading={isLoading}
+                  />
+                )}
+
+                {currentStep === 3 && (
+                  <Step3Form
+                    filteredBranchOptions={filteredBranchOptions}
+                    formData={formData}
+                    onBranchCheck={handleBranchCheckboxChange}
+                    onToggleAll={handleToggleAllBranches}
+                    handleBack={handleBack}
+                    handleContinue={handleContinue}
+                    isLoading={isLoading}
+                  />
+                )}
+
+                {currentStep === 4 && (
+                  <Step4Form
+                    selectedMember={selectedMember}
+                    accessSummary={accessSummary}
+                    formErrors={formErrors}
+                    isSubmitting={isSubmitting}
+                    handleBack={handleBack}
+                    handleSaveDraft={handleSaveDraft}
+                    handleSubmit={handleSubmit}
+                    onEditStep={handleStepChange}
+                  />
+                )}
+              </AppBox>
+            </AppBox>
+
+            <RightSidebarPanel
+              currentStep={currentStep}
               selectedMember={selectedMember}
               accessSummary={accessSummary}
-              companyOptions={companyOptions}
-              branchOptions={branchOptions}
-              formData={formData}
             />
-
-            <AppCard
-              variant="default"
-              rounded="lg"
-              bordered
-              shadow="sm"
-              padding="none"
-              sx={formCardSx}
-            >
-              <AppBox component="form" onSubmit={handleSubmit}>
-                <SectionHeader
-                  icon={<FiSliders />}
-                  title="Assign Member Access"
-                  subtitle="Choose an active non-owner member, then decide whether they can access all companies and branches or only selected records."
-                />
-
-                <div className="mt-4 grid grid-cols-1 gap-3">
-                  <AppSelect
-                    label="Workspace Member"
-                    name="memberUserId"
-                    value={formData.memberUserId || ""}
-                    onChange={handleChange}
-                    options={memberOptions}
-                    disabled={isSubmitting || isLoadingMembers}
-                    loading={isLoadingMembers}
-                    placeholder="Select active member"
-                    fullWidth
-                    required
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    startIcon={<FiUserCheck />}
-                    error={Boolean(formErrors.memberUserId)}
-                    helperText={
-                      formErrors.memberUserId ||
-                      "Only active non-owner members can be assigned restricted access."
-                    }
-                    labelSx={labelSx}
-                    inputSx={inputSx}
-                    helperTextSx={helperTextSx}
-                    renderOption={(option) => <MemberOption option={option} />}
-                  />
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <AccessToggleCard
-                    icon={<FiBriefcase />}
-                    title="Company Access"
-                    description="Allow access to all companies or choose specific companies."
-                    checked={formData.accessAllCompanies}
-                    name="accessAllCompanies"
-                    label="Access all companies"
-                    disabled={isSubmitting}
-                    onChange={handleToggleChange}
-                  />
-
-                  <AccessToggleCard
-                    icon={<FiGitBranch />}
-                    title="Branch Access"
-                    description="Allow access to all branches or choose specific branches."
-                    checked={formData.accessAllBranches}
-                    name="accessAllBranches"
-                    label="Access all branches"
-                    disabled={isSubmitting}
-                    onChange={handleToggleChange}
-                  />
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <AppMultiSelect
-                    label="Companies"
-                    name="companyIds"
-                    value={formData.companyIds || []}
-                    onChange={(value) =>
-                      handleMultiSelectChange("companyIds", value)
-                    }
-                    options={companyOptions}
-                    disabled={isSubmitting || formData.accessAllCompanies}
-                    loading={isLoadingCompanies}
-                    placeholder="Select companies"
-                    fullWidth
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    startIcon={<FiBriefcase />}
-                    showCheckbox
-                    showChips
-                    showSelectAll
-                    clearable
-                    onClear={() => handleMultiSelectChange("companyIds", [])}
-                    error={Boolean(formErrors.companyIds)}
-                    helperText={
-                      formErrors.companyIds ||
-                      (formData.accessAllCompanies
-                        ? "Disabled because all company access is enabled."
-                        : "Select one or more active companies.")
-                    }
-                    labelSx={labelSx}
-                    inputSx={inputSx}
-                    helperTextSx={helperTextSx}
-                  />
-
-                  <AppMultiSelect
-                    label="Branches"
-                    name="branchIds"
-                    value={formData.branchIds || []}
-                    onChange={(value) =>
-                      handleMultiSelectChange("branchIds", value)
-                    }
-                    options={branchOptions}
-                    disabled={isSubmitting || formData.accessAllBranches}
-                    loading={isLoadingBranches}
-                    placeholder="Select branches"
-                    fullWidth
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    startIcon={<FiGitBranch />}
-                    showCheckbox
-                    showChips
-                    showSelectAll
-                    clearable
-                    onClear={() => handleMultiSelectChange("branchIds", [])}
-                    error={Boolean(formErrors.branchIds)}
-                    helperText={
-                      formErrors.branchIds ||
-                      (formData.accessAllBranches
-                        ? "Disabled because all branch access is enabled."
-                        : "Select one or more active branches.")
-                    }
-                    labelSx={labelSx}
-                    inputSx={inputSx}
-                    helperTextSx={helperTextSx}
-                  />
-                </div>
-
-                {formErrors.submit ? (
-                  <AppAlert
-                    severity="error"
-                    variant="soft"
-                    rounded="md"
-                    sx={submitAlertSx}
-                  >
-                    {formErrors.submit}
-                  </AppAlert>
-                ) : null}
-
-                <AppStack
-                  direction="row"
-                  align="center"
-                  justify="space-between"
-                  gap={1.2}
-                  sx={actionsSx}
-                >
-                  <AppButton
-                    type="button"
-                    variant="outlined"
-                    colorVariant="neutral"
-                    rounded="md"
-                    startIcon={<FiRefreshCcw />}
-                    onClick={handleReset}
-                    disabled={isSubmitting}
-                    sx={secondaryLargeButtonSx}
-                  >
-                    Reset
-                  </AppButton>
-
-                  <AppStack direction="row" align="center" gap={1}>
-                    <AppButton
-                      type="button"
-                      variant="outlined"
-                      colorVariant="neutral"
-                      rounded="md"
-                      startIcon={<FiArrowLeft />}
-                      onClick={handleBack}
-                      disabled={isSubmitting}
-                      sx={secondaryLargeButtonSx}
-                    >
-                      Back
-                    </AppButton>
-
-                    <AppButton
-                      type="submit"
-                      variant="contained"
-                      colorVariant="primary"
-                      rounded="md"
-                      startIcon={<FiSave />}
-                      loading={isSubmitting}
-                      disabled={isSubmitting || isLoading}
-                      sx={primaryLargeButtonSx}
-                    >
-                      Assign Access
-                    </AppButton>
-                  </AppStack>
-                </AppStack>
-              </AppBox>
-            </AppCard>
-          </main>
-
-          <AssignAccessRightSidebar
-            selectedMember={selectedMember}
-            accessSummary={accessSummary}
-            formData={formData}
-            onViewMembers={handleViewMembers}
-          />
+          </div>
         </div>
-      </div>
-    </section>
-  );
-};
-
-const TopToast = ({ message, onClose }) => (
-  <div className="fixed left-1/2 top-4 z-[1400] w-[calc(100%-32px)] max-w-md -translate-x-1/2">
-    <AppAlert
-      severity="success"
-      variant="filled"
-      title={message}
-      closable
-      onClose={onClose}
-      sx={toastSx}
-    />
-  </div>
+      </section>
+    );
+  },
 );
 
-const HeroSummary = ({
-  selectedMember,
-  accessSummary,
-  companyOptions = [],
-  branchOptions = [],
-  formData,
-}) => {
-  const items = [
-    {
-      id: "member",
-      title: "Selected Member",
-      value: selectedMember?.displayName || "Not selected",
-      subtitle: selectedMember?.displayRole || "Choose workspace member",
-      icon: <FiUserCheck />,
-      colorVariant: "success",
-    },
-    {
-      id: "companies",
-      title: "Company Access",
-      value: accessSummary?.companyAccessLabel || "All companies",
-      subtitle: `${companyOptions.length || 4} active companies available`,
-      icon: <FiBriefcase />,
-      colorVariant: "info",
-    },
-    {
-      id: "branches",
-      title: "Branch Access",
-      value: accessSummary?.branchAccessLabel || "All branches",
-      subtitle: `${branchOptions.length || 5} active branches available`,
-      icon: <FiGitBranch />,
-      colorVariant: "purple",
-    },
-    {
-      id: "mode",
-      title: "Access Mode",
-      value:
-        formData.accessAllCompanies && formData.accessAllBranches
-          ? "Full Access"
-          : "Restricted",
-      subtitle: "Review before assigning",
-      icon: <FiShield />,
-      colorVariant:
-        formData.accessAllCompanies && formData.accessAllBranches
-          ? "success"
-          : "warning",
-    },
+AssignAccessDesktopPage.displayName = "AssignAccessDesktopPage";
+
+/* ==========================================================================
+   HORIZONTAL PROGRESS STEPS STEPPER
+   ========================================================================== */
+
+const WorkflowStepper = memo(({ currentStep, onStepChange }) => {
+  const steps = [
+    { id: 1, title: "Select Member", label: "Identity matching" },
+    { id: 2, title: "Company Access", label: "Configure corporate nodes" },
+    { id: 3, title: "Branch Access", label: "Configure outlet boundaries" },
+    { id: 4, title: "Review & Confirm", label: "Commit data safely" },
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-4">
-      {items.map((item) => (
-        <AppCard
-          key={item.id}
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="sm"
-          padding="none"
-          sx={summaryCardSx}
-        >
-          <AppStack direction="row" align="flex-start" gap={1.1}>
-            <IconBox icon={item.icon} colorVariant={item.colorVariant} />
+    <AppCard
+      variant="default"
+      rounded="lg"
+      bordered={false}
+      shadow="none"
+      padding="none"
+      sx={stepperCardSx}
+    >
+      <div className="flex items-center justify-between px-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {steps.map((step, idx) => {
+          const active = currentStep === step.id;
+          const completed = currentStep > step.id;
 
-            <AppBox sx={{ minWidth: 0 }}>
-              <AppText variant="body2" sx={summaryTitleSx}>
-                {item.title}
-              </AppText>
-
-              <AppHeading level={3} weight={750} sx={summaryValueSx}>
-                {item.value}
-              </AppHeading>
-
-              <AppText variant="body2" sx={summarySubtitleSx}>
-                {item.subtitle}
-              </AppText>
-            </AppBox>
-          </AppStack>
-        </AppCard>
-      ))}
-    </div>
+          return (
+            <div
+              key={step.id}
+              className="flex flex-1 items-center last:flex-none"
+            >
+              <button
+                type="button"
+                onClick={() => onStepChange?.(step.id)}
+                className="flex shrink-0 items-center gap-2 text-left transition outline-none"
+              >
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${completed ? "bg-primary-soft text-primary" : active ? "bg-primary text-text-inverse" : "border border-border bg-surface-alt text-text-muted"}`}
+                >
+                  {completed ? <FiCheck className="text-[13px]" /> : step.id}
+                </span>
+                <span className="min-w-0 pr-1.5">
+                  <span
+                    className={`block text-[11.5px] font-bold ${active || completed ? "text-text" : "text-text-muted"}`}
+                  >
+                    {step.title}
+                  </span>
+                  <span className="block text-[10.5px] text-text-muted whitespace-nowrap">
+                    {step.label}
+                  </span>
+                </span>
+              </button>
+              {idx < steps.length - 1 && (
+                <div className="mx-3 h-px min-w-[16px] flex-1 bg-border" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </AppCard>
   );
-};
+});
+WorkflowStepper.displayName = "WorkflowStepper";
 
-const SectionHeader = ({ icon, title, subtitle }) => (
-  <AppStack direction="row" align="flex-start" gap={1.2}>
-    <IconBox icon={icon} colorVariant="success" large />
+/* ==========================================================================
+   WIZARD SEGREGATED FORMS MODULE STEP PIECES
+   ========================================================================== */
 
-    <AppBox sx={{ minWidth: 0, flex: 1 }}>
-      <AppHeading level={2} weight={750} sx={sectionTitleSx}>
-        {title}
-      </AppHeading>
-
-      <AppText variant="body2" sx={sectionSubtitleSx}>
-        {subtitle}
-      </AppText>
-    </AppBox>
-  </AppStack>
-);
-
-const MemberOption = ({ option }) => (
-  <AppStack direction="row" align="center" justify="space-between" gap={1}>
-    <AppBox sx={{ minWidth: 0 }}>
-      <AppText variant="body2" sx={optionTitleSx}>
-        {option?.displayName || option?.label}
-      </AppText>
-
-      <AppText variant="body2" sx={optionSubtitleSx}>
-        {option?.displayEmail || "-"} · {option?.displayRole || "Staff"}
-      </AppText>
-    </AppBox>
-
-    {option?.isOwner ? (
-      <AppTag
-        label="Owner"
-        variant="soft"
-        colorVariant="warning"
-        size="small"
-        rounded="full"
-      />
-    ) : null}
-  </AppStack>
-);
-
-const AccessToggleCard = ({
-  icon,
-  title,
-  description,
-  checked,
-  name,
-  label,
-  disabled,
-  onChange,
+const Step1Form = ({
+  memberOptions,
+  selectedMember,
+  formData,
+  formErrors,
+  handleChange,
+  handleCancel,
+  handleContinue,
+  isLoading,
 }) => (
   <AppCard
     variant="default"
     rounded="lg"
     bordered
-    shadow="none"
+    shadow="sm"
     padding="none"
-    sx={{
-      ...toggleCardSx,
-      borderColor: checked
-        ? "var(--app-color-primary-soft)"
-        : "var(--app-color-border)",
-      bgcolor: checked
-        ? "var(--app-color-primary-soft)"
-        : "var(--app-color-surface-alt)",
-    }}
+    sx={formMainCardSx}
   >
-    <AppStack direction="row" align="flex-start" gap={1.1}>
-      <IconBox icon={icon} colorVariant={checked ? "success" : "warning"} />
-
-      <AppBox sx={{ minWidth: 0, flex: 1 }}>
-        <AppHeading level={3} weight={700} sx={toggleTitleSx}>
-          {title}
-        </AppHeading>
-
-        <AppText variant="body2" sx={toggleDescriptionSx}>
-          {description}
-        </AppText>
-
-        <AppSwitch
-          name={name}
-          label={label}
-          checked={Boolean(checked)}
-          onChange={onChange}
-          disabled={disabled}
-          colorVariant="primary"
-          size="small"
-          sx={switchSx}
-          labelSx={switchLabelSx}
-        />
-      </AppBox>
-    </AppStack>
+    <div className="border-b border-border pb-3">
+      <AppHeading level={2} weight={700} sx={sectionTitleSx}>
+        1. Select Workspace Member
+      </AppHeading>
+      <AppText variant="body2" sx={sectionSubtitleSx}>
+        Specify an active team operator from the workspace profile registries
+        list.
+      </AppText>
+    </div>
+    <div className="mt-5 grid grid-cols-[1fr_260px] gap-6 items-start">
+      <AppSelect
+        label="Workspace Member Target"
+        name="memberUserId"
+        value={formData.memberUserId || ""}
+        onChange={(e) => handleChange("memberUserId", e.target.value)}
+        options={memberOptions}
+        required
+        loading={isLoading}
+        error={Boolean(formErrors.memberUserId)}
+        helperText={formErrors.memberUserId}
+        placeholder="Select user full name..."
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      {selectedMember && (
+        <div className="rounded-xl border border-border bg-surface-alt p-3 space-y-2 mt-5 text-[12px]">
+          <div className="flex justify-between">
+            <span className="text-text-muted">Role:</span>
+            <span className="font-bold text-primary">
+              {selectedMember.displayRole}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-muted">Email:</span>
+            <span className="font-medium text-text truncate max-w-[130px]">
+              {selectedMember.displayEmail}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+    <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+      <AppButton
+        variant="outlined"
+        colorVariant="neutral"
+        rounded="md"
+        size="small"
+        onClick={handleCancel}
+        sx={secondaryActionBtnSx}
+      >
+        Cancel
+      </AppButton>
+      <AppButton
+        variant="contained"
+        colorVariant="primary"
+        rounded="md"
+        size="small"
+        endIcon={<FiArrowRight />}
+        onClick={handleContinue}
+        sx={primaryActionBtnSx}
+      >
+        Continue to Companies
+      </AppButton>
+    </div>
   </AppCard>
 );
 
-const AssignAccessRightSidebar = ({
+const Step2Form = ({
+  companyOptions,
+  formData,
+  onCompanyCheck,
+  onToggleAll,
+  handleBack,
+  handleContinue,
+  isLoading,
+}) => {
+  const isAllChecked =
+    companyOptions.length > 0 &&
+    companyOptions.every((c) => (formData.companyIds || []).includes(c.value));
+  return (
+    <AppCard
+      variant="default"
+      rounded="lg"
+      bordered
+      shadow="sm"
+      padding="none"
+      sx={formMainCardSx}
+    >
+      <div className="border-b border-border pb-3 flex items-center justify-between">
+        <div>
+          <AppHeading level={2} weight={700} sx={sectionTitleSx}>
+            2. Corporate Company Access
+          </AppHeading>
+          <AppText variant="body2" sx={sectionSubtitleSx}>
+            Check desired company rows. Leave completely blank to clear out all
+            enterprise records.
+          </AppText>
+        </div>
+        {companyOptions.length > 0 && (
+          <AppStack direction="row" align="center" gap={1}>
+            <AppButton
+              variant="outlined"
+              colorVariant="neutral"
+              size="small"
+              rounded="md"
+              sx={{ height: 26, fontSize: "11px" }}
+              onClick={() => onToggleAll(true)}
+            >
+              Select All
+            </AppButton>
+            <AppButton
+              variant="outlined"
+              colorVariant="neutral"
+              size="small"
+              rounded="md"
+              sx={{ height: 26, fontSize: "11px" }}
+              onClick={() => onToggleAll(false)}
+            >
+              Clear All
+            </AppButton>
+          </AppStack>
+        )}
+      </div>
+
+      <div className="mt-4 border border-border rounded-xl overflow-hidden">
+        <div className="grid grid-cols-[46px_minmax(200px,1fr)_minmax(200px,1.2fr)] border-b border-border bg-surface-alt px-4 py-2 text-[11.5px] font-bold text-text-muted">
+          <div className="flex items-center">
+            <AppCheckbox
+              size="small"
+              colorVariant="primary"
+              checked={isAllChecked}
+              onChange={(e) => onToggleAll(e.target.checked)}
+              checkboxSx={checkboxSx}
+            />
+          </div>
+          <div>Company Legal Identity</div>
+          <div>Description Scope Parameters</div>
+        </div>
+        <div className="divide-y divide-border bg-surface">
+          {companyOptions.length ? (
+            companyOptions.map((company) => (
+              <div
+                key={company.value}
+                className="grid grid-cols-[46px_minmax(200px,1fr)_minmax(200px,1.2fr)] items-center px-4 py-2.5 text-[12.5px]"
+              >
+                <div className="flex items-center">
+                  <AppCheckbox
+                    size="small"
+                    colorVariant="primary"
+                    checked={(formData.companyIds || []).includes(
+                      company.value,
+                    )}
+                    onChange={(e) =>
+                      onCompanyCheck(company.value, e.target.checked)
+                    }
+                    checkboxSx={checkboxSx}
+                  />
+                </div>
+                <div className="flex items-center gap-2 font-bold text-text">
+                  <HiOutlineBuildingOffice2 className="text-text-muted text-[15px]" />
+                  <span>{company.label}</span>
+                </div>
+                <div className="text-text-muted truncate pr-4">
+                  {company.description}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-4 text-center text-text-muted text-[12px] bg-surface">
+              No workspace company profiles loaded in account.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+        <AppButton
+          variant="outlined"
+          colorVariant="neutral"
+          rounded="md"
+          size="small"
+          startIcon={<FiArrowLeft />}
+          onClick={handleBack}
+          sx={secondaryActionBtnSx}
+        >
+          Back
+        </AppButton>
+        <AppButton
+          variant="contained"
+          colorVariant="primary"
+          rounded="md"
+          size="small"
+          endIcon={<FiArrowRight />}
+          onClick={handleContinue}
+          sx={primaryActionBtnSx}
+        >
+          Continue to Branches
+        </AppButton>
+      </div>
+    </AppCard>
+  );
+};
+
+const Step3Form = ({
+  filteredBranchOptions,
+  formData,
+  onBranchCheck,
+  onToggleAll,
+  handleBack,
+  handleContinue,
+  isLoading,
+}) => {
+  const isAllChecked =
+    filteredBranchOptions.length > 0 &&
+    filteredBranchOptions.every((b) =>
+      (formData.branchIds || []).includes(b.value),
+    );
+  return (
+    <AppCard
+      variant="default"
+      rounded="lg"
+      bordered
+      shadow="sm"
+      padding="none"
+      sx={formMainCardSx}
+    >
+      <div className="border-b border-border pb-3 flex items-center justify-between">
+        <div>
+          <AppHeading level={2} weight={700} sx={sectionTitleSx}>
+            3. Physical Store Branch Access
+          </AppHeading>
+          <AppText variant="body2" sx={sectionSubtitleSx}>
+            Select specific physical locations. Uncheck everything to assign
+            zero child branch rows safely.
+          </AppText>
+        </div>
+        {filteredBranchOptions.length > 0 && (
+          <AppStack direction="row" align="center" gap={1}>
+            <AppButton
+              variant="outlined"
+              colorVariant="neutral"
+              size="small"
+              rounded="md"
+              sx={{ height: 26, fontSize: "11px" }}
+              onClick={() => onToggleAll(true)}
+            >
+              Select All
+            </AppButton>
+            <AppButton
+              variant="outlined"
+              colorVariant="neutral"
+              size="small"
+              rounded="md"
+              sx={{ height: 26, fontSize: "11px" }}
+              onClick={() => onToggleAll(false)}
+            >
+              Clear All
+            </AppButton>
+          </AppStack>
+        )}
+      </div>
+
+      <div className="mt-4">
+        {isLoading ? (
+          <div className="rounded-xl border border-dashed border-border bg-surface-alt py-8 text-center text-text-muted text-[12px]">
+            <FiRefreshCw className="animate-spin mx-auto text-[20px] mb-2 text-primary" />
+            Loading filtered database outlets parameters matrix...
+          </div>
+        ) : filteredBranchOptions.length > 0 ? (
+          <div className="border border-border rounded-xl overflow-hidden">
+            <div className="grid grid-cols-[46px_1fr_1fr_1fr] border-b border-border bg-surface-alt px-4 py-2 text-[11.5px] font-bold text-text-muted">
+              <div className="flex items-center">
+                <AppCheckbox
+                  size="small"
+                  colorVariant="primary"
+                  checked={isAllChecked}
+                  onChange={(e) => onToggleAll(e.target.checked)}
+                  checkboxSx={checkboxSx}
+                />
+              </div>
+              <div>Branch Name</div>
+              <div>Parent Corporate Group</div>
+              <div>Location Address</div>
+            </div>
+            <div className="divide-y divide-border bg-surface">
+              {filteredBranchOptions.map((branch) => (
+                <div
+                  key={branch.value}
+                  className="grid grid-cols-[46px_1fr_1fr_1fr] items-center px-4 py-2.5 text-[12.5px]"
+                >
+                  <div className="flex items-center">
+                    <AppCheckbox
+                      size="small"
+                      colorVariant="primary"
+                      checked={(formData.branchIds || []).includes(
+                        branch.value,
+                      )}
+                      onChange={(e) =>
+                        onBranchCheck(branch.value, e.target.checked)
+                      }
+                      checkboxSx={checkboxSx}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 font-bold text-text">
+                    <LuStore className="text-text-muted text-[15px]" />
+                    <span>{branch.label}</span>
+                  </div>
+                  <div className="text-text-muted text-[12px] font-medium">
+                    {branch.companyName}
+                  </div>
+                  <div className="text-text-muted truncate pr-2 text-[12px]">
+                    {branch.location}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-border bg-surface-alt py-8 px-4 text-center">
+            <FiInfo className="mx-auto text-[24px] text-text-muted mb-1.5" />
+            <AppHeading level={4} weight={700} sx={{ m: 0, fontSize: "13px" }}>
+              No Eligible Child Outlets Loaded
+            </AppHeading>
+            <AppText
+              variant="body2"
+              sx={{
+                mt: 0.5,
+                fontSize: "11.5px",
+                color: "var(--app-color-text-muted)",
+              }}
+            >
+              No child branch options loaded because no company scopes were
+              checked in Step 2. You can freely continue forward to save clean
+              zero-access configurations.
+            </AppText>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+        <AppButton
+          variant="outlined"
+          colorVariant="neutral"
+          rounded="md"
+          size="small"
+          startIcon={<FiArrowLeft />}
+          onClick={handleBack}
+          sx={secondaryActionBtnSx}
+        >
+          Back
+        </AppButton>
+        <AppButton
+          variant="contained"
+          colorVariant="primary"
+          rounded="md"
+          size="small"
+          endIcon={<FiArrowRight />}
+          onClick={handleContinue}
+          sx={primaryActionBtnSx}
+        >
+          Review Access Summary
+        </AppButton>
+      </div>
+    </AppCard>
+  );
+};
+
+const Step4Form = ({
   selectedMember,
   accessSummary,
-  formData,
-  onViewMembers,
+  formErrors,
+  isSubmitting,
+  handleBack,
+  handleSaveDraft,
+  handleSubmit,
+  onEditStep,
 }) => (
-  <PageRightSidebar
-    spacing={4}
-    cards={[
-      {
-        title: "Selected Member",
-        icon: <FiUserCheck />,
-        colorVariant: "success",
-        variant: "default",
-        custom: (
-          <SelectedMemberContent
-            member={selectedMember}
-            onViewMembers={onViewMembers}
-          />
-        ),
-      },
-      {
-        title: "Access Summary",
-        icon: <FiCheckCircle />,
-        colorVariant: "info",
-        variant: "default",
-        custom: (
-          <AccessSummaryContent
-            accessSummary={accessSummary}
-            formData={formData}
-          />
-        ),
-      },
-      {
-        title: "Assignment Rules",
-        icon: <FiInfo />,
-        colorVariant: "neutral",
-        variant: "default",
-        description:
-          "Backend validation requires selected records when all access is disabled.",
-        custom: <AccessRulesContent />,
-      },
-      HELP_SUPPORT_CARD,
-    ]}
-  />
+  <div className="space-y-4">
+    <AppCard
+      variant="default"
+      rounded="lg"
+      bordered
+      shadow="sm"
+      padding="none"
+      sx={reviewCardSx}
+    >
+      <ReviewSectionHeader
+        title="4. Final Verification Summary"
+        stepId={1}
+        onEdit={onEditStep}
+        labelText="Change Operator"
+      />
+      <div className="mt-4 flex items-center justify-between text-[12.5px]">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft font-bold text-primary">
+            {selectedMember?.displayName ? selectedMember.displayName[0] : "S"}
+          </div>
+          <div>
+            <span className="block font-bold text-text">
+              {selectedMember?.displayName || "Operator Target"}
+            </span>
+            <span className="block text-[11px] text-text-muted mt-0.5">
+              {selectedMember?.displayEmail}
+            </span>
+          </div>
+        </div>
+        <div className="text-right pr-1">
+          <span className="text-text-muted">Assigned System Role:</span>{" "}
+          <strong className="text-primary">
+            {selectedMember?.displayRole || "-"}
+          </strong>
+        </div>
+      </div>
+    </AppCard>
+
+    <AppCard
+      variant="default"
+      rounded="lg"
+      bordered
+      shadow="sm"
+      padding="none"
+      sx={reviewCardSx}
+    >
+      <ReviewSectionHeader
+        title="Access Mapping Scope Authorization Matrix"
+        stepId={2}
+        onEdit={onEditStep}
+        labelText="Modify Node Rules"
+      />
+      <div className="mt-4 grid grid-cols-2 gap-4 text-[12px]">
+        <div className="border border-border rounded-xl p-3 bg-surface-alt">
+          <span className="block font-bold text-text-muted mb-2 uppercase tracking-wide text-[10.5px]">
+            Companies Assigned ({accessSummary.selectedCompanies.length})
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {accessSummary.selectedCompanies.length ? (
+              accessSummary.selectedCompanies.map((c) => (
+                <AppTag
+                  key={c.value}
+                  label={c.label}
+                  variant="soft"
+                  colorVariant="primary"
+                  rounded="md"
+                />
+              ))
+            ) : (
+              <span className="text-text-muted text-[11px] font-medium">
+                No company records assigned (Clear Access)
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="border border-border rounded-xl p-3 bg-surface-alt">
+          <span className="block font-bold text-text-muted mb-2 uppercase tracking-wide text-[10.5px]">
+            Branches Enabled Outlets ({accessSummary.selectedBranches.length})
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {accessSummary.selectedBranches.length ? (
+              accessSummary.selectedBranches.map((b) => (
+                <AppTag
+                  key={b.value}
+                  label={b.label}
+                  variant="soft"
+                  colorVariant="success"
+                  rounded="md"
+                />
+              ))
+            ) : (
+              <span className="text-text-muted text-[11px] font-medium">
+                No store branches assigned (Clear Access)
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </AppCard>
+
+    {formErrors.submit && (
+      <AppAlert severity="error" variant="soft" rounded="md" sx={{ mt: 2 }}>
+        {formErrors.submit}
+      </AppAlert>
+    )}
+
+    <div className="mt-6 flex items-center justify-between border-t border-border bg-surface rounded-xl border p-3 shadow-xs">
+      <AppButton
+        variant="outlined"
+        colorVariant="neutral"
+        rounded="md"
+        size="small"
+        startIcon={<FiArrowLeft />}
+        onClick={handleBack}
+        disabled={isSubmitting}
+        sx={secondaryActionBtnSx}
+      >
+        Back
+      </AppButton>
+      <AppStack direction="row" align="center" gap={1}>
+        <AppButton
+          variant="outlined"
+          colorVariant="neutral"
+          rounded="md"
+          size="small"
+          onClick={handleSaveDraft}
+          disabled={isSubmitting}
+          sx={secondaryActionBtnSx}
+        >
+          Save Draft
+        </AppButton>
+        <AppButton
+          variant="contained"
+          colorVariant="primary"
+          rounded="md"
+          size="small"
+          startIcon={<FiCheckCircle />}
+          onClick={handleSubmit}
+          loading={isSubmitting}
+          disabled={isSubmitting}
+          sx={primaryActionBtnSx}
+        >
+          Confirm & Assign Access
+        </AppButton>
+      </AppStack>
+    </div>
+  </div>
 );
 
-const SelectedMemberContent = ({ member, onViewMembers }) => (
-  <div>
-    <div className="space-y-2">
-      <AppKeyValue label="Name" value={member?.displayName || "Not selected"} />
-      <AppKeyValue label="Email" value={member?.displayEmail || "-"} />
-      <AppKeyValue label="Phone" value={member?.displayPhone || "-"} />
-      <AppKeyValue label="Role" value={member?.displayRole || "-"} />
-      <AppKeyValue label="Status" value={member?.status || "-"} />
-    </div>
-
+const ReviewSectionHeader = ({ title, stepId, onEdit, labelText }) => (
+  <div className="flex items-center justify-between border-b border-border pb-2">
+    <AppHeading level={4} weight={700} sx={{ m: 0, fontSize: "13px" }}>
+      {title}
+    </AppHeading>
     <AppButton
-      type="button"
       variant="outlined"
-      colorVariant="primary"
+      colorVariant="neutral"
       rounded="md"
-      fullWidth
-      startIcon={<FiUsers />}
-      onClick={onViewMembers}
-      sx={sideButtonSx}
+      size="small"
+      onClick={() => onEdit(stepId)}
+      sx={{
+        height: 24,
+        fontSize: "10.5px",
+        px: 1,
+        bgcolor: "var(--app-color-surface-alt)",
+      }}
     >
-      View Members
+      {labelText}
     </AppButton>
   </div>
 );
 
-const AccessSummaryContent = ({ accessSummary, formData }) => (
-  <div>
-    <div className="space-y-2">
-      <AppKeyValue
-        label="Companies"
-        value={accessSummary?.companyAccessLabel || "-"}
-      />
-      <AppKeyValue
-        label="Branches"
-        value={accessSummary?.branchAccessLabel || "-"}
-      />
-    </div>
+/* ==========================================================================
+   SIDEBAR COMPONENT
+   ========================================================================== */
 
-    {!formData.accessAllCompanies ? (
-      <PreviewList
-        title="Selected Companies"
-        values={accessSummary?.selectedCompanies}
-      />
-    ) : null}
-
-    {!formData.accessAllBranches ? (
-      <PreviewList
-        title="Selected Branches"
-        values={accessSummary?.selectedBranches}
-      />
-    ) : null}
-  </div>
+const RightSidebarPanel = memo(
+  ({ currentStep, selectedMember, accessSummary }) => {
+    const sidebarCards = [
+      {
+        title: "Assignment Summary",
+        icon: <FiUsers />,
+        colorVariant: "primary",
+        variant: "default",
+        custom: (
+          <div className="mt-3 space-y-3 border-t border-border pt-3 text-[12px]">
+            <div>
+              <span className="block text-[10.5px] font-bold text-text-muted uppercase">
+                Target Employee
+              </span>
+              <span className="block font-bold text-text mt-0.5">
+                {selectedMember?.displayName || "Not Selected"}
+              </span>
+            </div>
+            <div>
+              <span className="block text-[10.5px] font-bold text-text-muted uppercase">
+                Companies Scope
+              </span>
+              <span className="block font-semibold text-text mt-0.5">
+                {accessSummary.companyAccessLabel}
+              </span>
+            </div>
+            <div>
+              <span className="block text-[10.5px] font-bold text-text-muted uppercase">
+                Branches Scope
+              </span>
+              <span className="block font-semibold text-text mt-0.5">
+                {accessSummary.branchAccessLabel}
+              </span>
+            </div>
+          </div>
+        ),
+      },
+      HELP_SUPPORT_CARD,
+    ];
+    return <PageRightSidebar spacing={4} cards={sidebarCards} />;
+  },
 );
+RightSidebarPanel.displayName = "RightSidebarPanel";
 
-const PreviewList = ({ title, values = [] }) => (
-  <div className="mt-3 rounded-xl border border-border bg-surface-alt px-3 py-2">
-    <AppText variant="body2" sx={previewTitleSx}>
-      {title}
-    </AppText>
-
-    <div className="mt-2 flex flex-wrap gap-1.5">
-      {values.length ? (
-        values
-          .slice(0, 8)
-          .map((value) => (
-            <AppTag
-              key={value}
-              label={value}
-              variant="soft"
-              colorVariant="primary"
-              size="small"
-              rounded="full"
-            />
-          ))
-      ) : (
-        <AppText variant="body2" sx={previewEmptySx}>
-          No records selected
-        </AppText>
-      )}
-
-      {values.length > 8 ? (
-        <AppTag
-          label={`+${values.length - 8} more`}
-          variant="soft"
-          colorVariant="neutral"
-          size="small"
-          rounded="full"
-        />
-      ) : null}
-    </div>
-  </div>
-);
-
-const AccessRulesContent = () => (
-  <div className="mt-3 space-y-2.5">
-    <RuleItem
-      icon={<FiShield />}
-      text="Only workspace owners can manage member access."
-    />
-    <RuleItem
-      icon={<FiUsers />}
-      text="Workspace owner access cannot be changed."
-    />
-    <RuleItem
-      icon={<FiBriefcase />}
-      text="Choose companies when company access is limited."
-    />
-    <RuleItem
-      icon={<FiGitBranch />}
-      text="Choose branches when branch access is limited."
-    />
-  </div>
-);
-
-const RuleItem = ({ icon, text }) => (
-  <AppStack direction="row" align="flex-start" gap={0.8}>
-    <span className="mt-[2px] text-[13px] text-primary">{icon}</span>
-
-    <AppText variant="body2" sx={ruleTextSx}>
-      {text}
-    </AppText>
-  </AppStack>
-);
-
-const IconBox = ({ icon, colorVariant = "primary", large = false }) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      width: large ? 44 : 42,
-      height: large ? 44 : 42,
-      minWidth: large ? 44 : 42,
-      borderRadius: "12px",
-      bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
-      color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
-      fontSize: large ? "22px" : "20px",
-      lineHeight: 0,
-    }}
-  >
-    {icon}
-  </AppBox>
-);
+/* ==========================================================================
+   FIXED STYLES TOKENS MAP MAPS (ADDED ALERTSX VARIABLE)
+   ========================================================================== */
 
 const pageHeaderSx = { width: "100%" };
-
 const pageHeaderContentSx = {
   minWidth: 0,
-
-  "& h1, & h2, & h3, & h4": {
+  "& h1": {
     m: 0,
-    fontSize: "25px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.45px",
+    fontSize: "24px",
     color: "var(--app-color-text)",
+    fontWeight: 750,
   },
 };
-
-const breadcrumbSx = { mb: 1 };
-
+const breadcrumbSx = { mt: 0.5 };
 const breadcrumbItemSx = {
-  fontSize: "12px",
+  fontSize: "11.5px",
   color: "var(--app-color-text-muted)",
 };
-
 const breadcrumbCurrentSx = {
-  fontSize: "12px",
-  fontWeight: 650,
+  fontSize: "11.5px",
+  fontWeight: 600,
   color: "var(--app-color-text)",
 };
-
-const primaryButtonSx = {
-  height: 36,
-  minWidth: 112,
-  px: 1.7,
-  fontSize: "12px",
-  fontWeight: 700,
-  boxShadow: "0 10px 20px rgba(22, 163, 74, 0.18)",
-};
-
 const secondaryButtonSx = {
-  height: 36,
-  minWidth: 92,
-  px: 1.5,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-
-const primaryLargeButtonSx = {
-  height: 38,
-  px: 1.8,
-  fontSize: "12px",
-  fontWeight: 700,
-  boxShadow: "0 10px 20px rgba(22, 163, 74, 0.18)",
-};
-
-const secondaryLargeButtonSx = {
-  height: 38,
-  px: 1.6,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-
-const alertSx = { mt: 3 };
-
-const summaryCardSx = {
-  minHeight: 104,
-  px: 1.6,
-  py: 1.45,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const summaryTitleSx = {
+  height: 34,
+  px: 1.2,
   fontSize: "11.5px",
   fontWeight: 650,
-  color: "var(--app-color-text-muted)",
 };
-
-const summaryValueSx = {
-  m: 0,
-  mt: 0.45,
-  fontSize: "18px",
-  lineHeight: 1.1,
-  color: "var(--app-color-text)",
+const stepperCardSx = {
+  px: 2,
+  py: 1.8,
+  bgcolor: "var(--app-color-surface)",
+  border: "1px solid var(--app-color-border)",
+  borderRadius: "12px",
 };
-
-const summarySubtitleSx = {
-  mt: 0.55,
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-};
-
-const formCardSx = {
-  px: 3,
-  py: 2.6,
+const formMainCardSx = {
+  p: 2.5,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
-
 const sectionTitleSx = {
   m: 0,
-  fontSize: "18px",
-  lineHeight: 1.2,
+  fontSize: "14.5px",
   color: "var(--app-color-text)",
 };
-
 const sectionSubtitleSx = {
-  mt: 0.45,
-  maxWidth: 760,
+  mt: 0.5,
   fontSize: "12px",
-  lineHeight: 1.6,
   color: "var(--app-color-text-muted)",
 };
-
 const labelSx = {
   fontSize: "12px",
-  fontWeight: 650,
+  fontWeight: 700,
   color: "var(--app-color-text)",
+  mb: 0.5,
 };
-
 const inputSx = {
   minHeight: 38,
   fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
+  bgcolor: "var(--app-color-surface-alt)",
 };
-
-const helperTextSx = {
-  fontSize: "10.8px",
-  lineHeight: 1.45,
+const primaryActionBtnSx = {
+  height: 36,
+  px: 1.8,
+  fontSize: "12.5px",
+  fontWeight: 700,
 };
-
-const toggleCardSx = {
+const secondaryActionBtnSx = {
+  height: 36,
   px: 1.5,
-  py: 1.4,
-  transition: "border-color 160ms ease, background-color 160ms ease",
-};
-
-const toggleTitleSx = {
-  m: 0,
-  fontSize: "13px",
-  color: "var(--app-color-text)",
-};
-
-const toggleDescriptionSx = {
-  mt: 0.35,
-  minHeight: 34,
-  fontSize: "11px",
-  lineHeight: 1.5,
-  color: "var(--app-color-text-muted)",
-};
-
-const switchSx = { mt: 1 };
-
-const switchLabelSx = {
-  fontSize: "11.5px",
+  fontSize: "12.5px",
   fontWeight: 650,
-  color: "var(--app-color-text)",
 };
-
-const submitAlertSx = { mt: 3 };
-
-const actionsSx = {
-  mt: 4,
-  pt: 2.2,
-  borderTop: "1px solid var(--app-color-border)",
-};
-
-const optionTitleSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const optionSubtitleSx = {
-  mt: 0.2,
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const sideButtonSx = {
-  mt: 1.5,
-  height: 34,
-  fontSize: "12px",
-  fontWeight: 700,
-};
-
-const previewTitleSx = {
-  fontSize: "11px",
-  fontWeight: 700,
-  color: "var(--app-color-text-muted)",
-  textTransform: "uppercase",
-  letterSpacing: "0.04em",
-};
-
-const previewEmptySx = {
+const checkboxSx = { p: 0 };
+const errorTextSx = {
+  mt: 1,
   fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
+  color: "var(--app-color-error)",
+};
+const reviewCardSx = {
+  p: 2,
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
 };
 
-const ruleTextSx = {
-  fontSize: "11.5px",
-  lineHeight: 1.5,
-  color: "var(--app-color-text-muted)",
-};
-
-const toastSx = {
-  boxShadow: "0 16px 40px rgba(15, 23, 42, 0.18)",
-};
+// FIXED: Defined missing styling variable layer mapping token parameters
+const alertSx = { mt: 2, fontSize: "12.5px" };
 
 export default AssignAccessDesktopPage;

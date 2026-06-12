@@ -1040,6 +1040,7 @@ src/features/access-control/
 │   ├── RoleDetailsPage.jsx
 │   ├── MemberAccessPage.jsx
 │   ├── AssignAccessPage.jsx
+│   ├── AssignRolePage.jsx
 │   ├── EditAccessPage.jsx
 │   ├── PermissionPage.jsx
 │   ├── index.js
@@ -1052,6 +1053,7 @@ src/features/access-control/
 │   │   ├── RoleDetailsDesktopPage.jsx
 │   │   ├── MemberAccessDesktopPage.jsx
 │   │   ├── AssignAccessDesktopPage.jsx
+│   │   ├── AssignRoleDesktopPage.jsx
 │   │   ├── EditAccessDesktopPage.jsx
 │   │   ├── PermissionDesktopPage.jsx
 │   │   └── index.js
@@ -1064,6 +1066,7 @@ src/features/access-control/
 │       ├── RoleDetailsMobilePage.jsx
 │       ├── MemberAccessMobilePage.jsx
 │       ├── AssignAccessMobilePage.jsx
+│       ├── AssignRoleMobilePage.jsx
 │       ├── EditAccessMobilePage.jsx
 │       ├── PermissionMobilePage.jsx
 │       └── index.js

@@ -1,5 +1,3 @@
-// src/features/access-control/routes/accessControlRoutes.js
-
 import { ROUTES } from "@/constants";
 
 import {
@@ -10,6 +8,7 @@ import {
   RoleDetailsPage,
   MemberAccessPage,
   AssignAccessPage,
+  AssignRolePage,
   EditAccessPage,
   PermissionPage,
 } from "../pages";
@@ -42,6 +41,10 @@ const accessControlRoutes = [
   {
     path: ROUTES.ASSIGN_ACCESS,
     element: <AssignAccessPage />,
+  },
+  {
+    path: ROUTES.ASSIGN_ROLE,
+    element: <AssignRolePage />,
   },
   {
     path: ROUTES.EDIT_ACCESS,

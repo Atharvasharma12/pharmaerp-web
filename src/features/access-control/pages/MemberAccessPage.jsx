@@ -587,6 +587,9 @@ const MemberAccessPage = () => {
   const handleAssignAccess = useCallback(() => {
     navigate(ROUTES.ASSIGN_ACCESS);
   }, [navigate]);
+  const handleAssignRole = useCallback(() => {
+    navigate(ROUTES.ASSIGN_ROLE);
+  }, [navigate]);
 
   const handleViewMembers = useCallback(() => {
     navigate(ROUTES.WORKSPACE_MEMBERS);
@@ -648,6 +651,7 @@ const MemberAccessPage = () => {
     handleRefresh,
     handleBackToAccessControl,
     handleAssignAccess,
+    handleAssignRole,
     handleViewMembers,
     handleViewRoles,
     handleExportMemberAccess,

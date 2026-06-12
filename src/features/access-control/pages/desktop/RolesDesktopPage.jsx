@@ -1,15 +1,16 @@
+// src/features/workspace/pages/desktop/RolesDesktopPage.jsx
+
+import { useMemo } from "react";
 import {
   FiCheckCircle,
   FiChevronLeft,
   FiChevronRight,
   FiDownload,
   FiFilter,
-  FiHeadphones,
   FiMoreHorizontal,
   FiPlus,
   FiSearch,
   FiShield,
-  FiSliders,
   FiUsers,
 } from "react-icons/fi";
 
@@ -41,7 +42,7 @@ const statIcons = {
   total: <FiUsers />,
   system: <FiShield />,
   custom: <FiUsers />,
-  inactive: <FiSliders />,
+  inactive: <FiFilter />,
 };
 
 const statusColorMap = {
@@ -246,7 +247,8 @@ const RolesDesktopPage = ({
                 />
               )}
 
-              {hasRoles ? (
+              {/* Smart Pagination Block: Hides if entries fit entirely within one page view context */}
+              {hasRoles && totalRoles > 10 ? (
                 <TableFooter
                   totalRoles={totalRoles}
                   filteredRolesCount={filteredRolesCount}
@@ -382,7 +384,8 @@ const TableToolbar = ({
 );
 
 const RoleTable = ({ roles, onView, onEdit, onDelete }) => (
-  <div className="w-full overflow-x-auto">
+  // Applied horizontal track suppression mechanisms directly here
+  <div className="w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
     <div className="min-w-[920px]">
       <div className="grid grid-cols-[minmax(250px,1.25fr)_95px_95px_minmax(190px,1fr)_100px_70px] border-b border-border bg-surface-alt px-3.5 py-2.5">
         <HeaderCell>Role Name</HeaderCell>
@@ -420,27 +423,32 @@ const HeaderCell = ({ children, align = "left" }) => (
 
 const RoleRow = ({ role, onView, onEdit, onDelete }) => (
   <div className="grid min-h-[58px] grid-cols-[minmax(250px,1.25fr)_95px_95px_minmax(190px,1fr)_100px_70px] items-center px-3.5 py-2.5 transition hover:bg-surface-hover/60">
-    <AppStack direction="row" align="center" gap={1.1} sx={{ minWidth: 0 }}>
-      <IconBox icon={<FiUsers />} colorVariant="success" small />
-
-      <AppBox sx={{ minWidth: 0 }}>
+    {/* Corrected vertical layout matching your profile/branch row parameters */}
+    <div className="flex items-center gap-3 min-w-0 h-full">
+      <div className="flex items-center justify-center shrink-0">
+        <IconBox icon={<FiUsers />} colorVariant="success" small />
+      </div>
+      <div className="flex flex-col min-w-0 justify-center">
         <AppHeading level={3} weight={700} sx={roleNameSx}>
           {role.displayName}
         </AppHeading>
+        {role.displaySubtitle && (
+          <AppText variant="body2" sx={roleSubtitleSx}>
+            {role.displaySubtitle}
+          </AppText>
+        )}
+      </div>
+    </div>
 
-        <AppText variant="body2" sx={roleSubtitleSx}>
-          {role.displaySubtitle}
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <AppTag
-      label={role.displayType}
-      variant="soft"
-      colorVariant={typeColorMap[role.displayType] || "primary"}
-      rounded="md"
-      sx={typeTagSx}
-    />
+    <div>
+      <AppTag
+        label={role.displayType}
+        variant="soft"
+        colorVariant={typeColorMap[role.displayType] || "primary"}
+        rounded="md"
+        sx={typeTagSx}
+      />
+    </div>
 
     <AppStack direction="row" align="center" gap={0.75}>
       <FiUsers className="text-[13px] text-text-muted" />
@@ -450,18 +458,20 @@ const RoleRow = ({ role, onView, onEdit, onDelete }) => (
     </AppStack>
 
     <AppText variant="body2" sx={descriptionSx}>
-      {role.displayDescription}
+      {role.displayDescription || "-"}
     </AppText>
 
-    <AppStatusBadge
-      status={role.displayStatus}
-      label={role.displayStatus}
-      variant="soft"
-      size="small"
-      rounded="md"
-      colorVariant={statusColorMap[role.displayStatus] || "neutral"}
-      sx={statusBadgeSx}
-    />
+    <div>
+      <AppStatusBadge
+        status={role.displayStatus}
+        label={role.displayStatus || ""}
+        variant="soft"
+        size="small"
+        rounded="md"
+        colorVariant={statusColorMap[role.displayStatus] || "neutral"}
+        sx={statusBadgeSx}
+      />
+    </div>
 
     <div className="flex justify-end">
       <RoleActions
@@ -518,7 +528,8 @@ const RoleActions = ({ role, onView, onEdit, onDelete }) => {
 const TableFooter = ({ totalRoles, filteredRolesCount }) => (
   <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
     <AppText variant="body2" sx={footerTextSx}>
-      Showing 1 to {filteredRolesCount} of {totalRoles} roles
+      Showing {filteredRolesCount > 0 ? 1 : 0} to {filteredRolesCount} of{" "}
+      {totalRoles} roles
     </AppText>
 
     <AppStack direction="row" align="center" gap={1}>
@@ -640,20 +651,16 @@ const IconBox = ({
       bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
       color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
       fontSize: largeRound ? "22px" : small ? "16px" : stat ? "22px" : "19px",
-      lineHeight: 0,
     }}
   >
     {icon}
   </AppBox>
 );
 
-const pageHeaderSx = {
-  width: "100%",
-};
-
+// Style System Parameters
+const pageHeaderSx = { width: "100%" };
 const pageHeaderContentSx = {
   minWidth: 0,
-
   "& h1, & h2, & h3, & h4": {
     m: 0,
     fontSize: "25px",
@@ -662,16 +669,11 @@ const pageHeaderContentSx = {
     color: "var(--app-color-text)",
   },
 };
-
-const breadcrumbSx = {
-  mt: 1,
-};
-
+const breadcrumbSx = { mt: 1 };
 const breadcrumbItemSx = {
   fontSize: "12px",
   color: "var(--app-color-text-muted)",
 };
-
 const breadcrumbCurrentSx = {
   fontSize: "12px",
   fontWeight: 650,
@@ -684,7 +686,6 @@ const primaryButtonSx = {
   fontSize: "12px",
   fontWeight: 700,
 };
-
 const secondaryButtonSx = {
   height: 36,
   minWidth: 92,
@@ -694,22 +695,17 @@ const secondaryButtonSx = {
 };
 
 const alertSx = { mt: 3 };
-
 const statCardSx = {
   minHeight: 96,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
-
 const statIconSx = {
   width: 44,
   height: 44,
   minWidth: 44,
   borderRadius: "12px",
-
-  "& svg": {
-    fontSize: 22,
-  },
+  "& svg": { fontSize: 22 },
 };
 
 const tableCardSx = {
@@ -717,32 +713,23 @@ const tableCardSx = {
   overflow: "hidden",
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
-
-  "& > div": {
-    minWidth: 0,
-  },
+  "& > div": { minWidth: 0 },
 };
 
 const searchSx = { width: "100%" };
 const selectSx = { width: "100%" };
-
 const filterInputSx = {
   height: 36,
   fontSize: "12px",
   bgcolor: "var(--app-color-surface)",
 };
-
 const filterButtonSx = {
   height: 36,
   px: 1.25,
   fontSize: "12px",
   fontWeight: 650,
 };
-
-const chipsRowSx = {
-  mt: 1.2,
-  flexWrap: "wrap",
-};
+const chipsRowSx = { mt: 1.2, flexWrap: "wrap" };
 
 const roleNameSx = {
   m: 0,
@@ -754,7 +741,6 @@ const roleNameSx = {
   lineHeight: 1.25,
   color: "var(--app-color-text)",
 };
-
 const roleSubtitleSx = {
   mt: 0.3,
   maxWidth: 250,
@@ -773,34 +759,27 @@ const typeTagSx = {
   fontSize: "10.5px",
   fontWeight: 700,
 };
-
 const memberTextSx = {
   fontSize: "12px",
   fontWeight: 650,
   color: "var(--app-color-text)",
 };
-
 const descriptionSx = {
   maxWidth: 230,
   fontSize: "11.5px",
   lineHeight: "18px",
   color: "var(--app-color-text)",
 };
-
 const statusBadgeSx = {
   width: "fit-content",
   height: 22,
-  px: 1,
+  px: 1.5,
   fontSize: "10.5px",
   fontWeight: 700,
   textTransform: "capitalize",
 };
 
-const footerTextSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-
+const footerTextSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
 const pageSizeButtonSx = {
   height: 34,
   minWidth: 122,
@@ -808,7 +787,6 @@ const pageSizeButtonSx = {
   fontSize: "12px",
   fontWeight: 600,
 };
-
 const roleTypeTextSx = {
   mt: 0.9,
   fontSize: "12px",
@@ -817,9 +795,6 @@ const roleTypeTextSx = {
 };
 
 const stateSx = { minHeight: 430 };
-
-const toastSx = {
-  boxShadow: "var(--app-shadow-lg)",
-};
+const toastSx = { boxShadow: "var(--app-shadow-lg)" };
 
 export default RolesDesktopPage;

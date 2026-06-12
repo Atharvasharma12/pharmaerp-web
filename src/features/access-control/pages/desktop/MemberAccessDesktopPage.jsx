@@ -1,16 +1,16 @@
 // src/features/access-control/pages/desktop/MemberAccessDesktopPage.jsx
 
+import { useMemo } from "react";
 import {
-  FiBookOpen,
   FiChevronLeft,
   FiChevronRight,
   FiDownload,
   FiFilter,
-  FiHeadphones,
   FiMoreHorizontal,
   FiPlus,
   FiRefreshCw,
   FiSearch,
+  FiShield,
   FiSliders,
   FiUsers,
 } from "react-icons/fi";
@@ -92,6 +92,7 @@ const MemberAccessDesktopPage = ({
   handleRefresh,
   handleBackToAccessControl,
   handleAssignAccess,
+  handleAssignRole,
   handleExportMemberAccess,
   handleEditAccess,
 
@@ -151,6 +152,19 @@ const MemberAccessDesktopPage = ({
                 sx={secondaryButtonSx}
               >
                 Filters
+              </AppButton>
+
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="primary"
+                rounded="md"
+                size="small"
+                startIcon={<FiShield />}
+                onClick={handleAssignRole}
+                sx={secondaryButtonSx}
+              >
+                Assign Role
               </AppButton>
 
               <AppButton
@@ -264,7 +278,8 @@ const MemberAccessDesktopPage = ({
               />
             )}
 
-            {hasAccessRecords ? (
+            {/* Pagination Row Hides Cleanly When List Entries Fit on One Single Page Context */}
+            {hasAccessRecords && totalAccessRecords > 10 ? (
               <TableFooter
                 totalAccessRecords={totalAccessRecords}
                 filteredAccessRecordsCount={filteredAccessRecordsCount}
@@ -413,15 +428,17 @@ const TableToolbar = ({
 );
 
 const MemberAccessTable = ({ accessList, onEdit }) => (
-  <div className="w-full overflow-x-auto">
-    <div className="min-w-[930px]">
-      <div className="grid grid-cols-[minmax(220px,1.35fr)_115px_minmax(130px,0.95fr)_minmax(125px,0.95fr)_95px_120px_54px] border-b border-border bg-surface-alt px-3.5 py-2.5">
+  // Applied clean horizontal track suppression layout variables directly here
+  <div className="w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <div className="min-w-[960px]">
+      {/* Reconfigured column weights to handle repositioned Status parameters */}
+      <div className="grid grid-cols-[1.5fr_1.1fr_1.4fr_1.4fr_1.2fr_90px_54px] border-b border-border bg-surface-alt px-3.5 py-2.5">
         <HeaderCell>Member</HeaderCell>
         <HeaderCell>Role</HeaderCell>
         <HeaderCell>Companies Access</HeaderCell>
         <HeaderCell>Branches Access</HeaderCell>
-        <HeaderCell>Status</HeaderCell>
         <HeaderCell>Last Updated</HeaderCell>
+        <HeaderCell>Status</HeaderCell>
         <HeaderCell align="right">Actions</HeaderCell>
       </div>
 
@@ -443,57 +460,85 @@ const HeaderCell = ({ children, align = "left" }) => (
 );
 
 const MemberAccessRow = ({ access, onEdit }) => (
-  <div className="grid min-h-[58px] grid-cols-[minmax(220px,1.35fr)_115px_minmax(130px,0.95fr)_minmax(125px,0.95fr)_95px_120px_54px] items-center px-3.5 py-2.5 transition hover:bg-surface-hover/60">
-    <AppStack direction="row" align="center" gap={1.1} sx={{ minWidth: 0 }}>
-      <Avatar name={access.displayName} />
-
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppHeading level={3} weight={700} sx={memberNameSx}>
-          {access.displayName}
+  <div className="grid min-h-[58px] grid-cols-[1.5fr_1.1fr_1.4fr_1.4fr_1.2fr_90px_54px] items-center px-3.5 py-2.5 transition hover:bg-surface-hover/60">
+    <div className="flex items-center gap-3 min-w-0 h-full w-full">
+      <div className="flex items-center justify-center shrink-0">
+        <Avatar name={access.displayName} />
+      </div>
+      {/* 🛠️ FIXED: Added min-w-0 here to force the text layout tree to drop below parent fractions */}
+      <div className="flex flex-col min-w-0 justify-center w-full">
+        {/* 🛠️ FIXED: Added truncate to ensure the row values clip safely with trailing dots (...) */}
+        <AppHeading
+          level={3}
+          weight={700}
+          sx={{
+            ...memberNameSx,
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+          }}
+        >
+          {access.displayName || "-"}
         </AppHeading>
+        {access.displayEmail && (
+          <AppText
+            variant="body2"
+            sx={{
+              ...memberEmailSx,
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+            }}
+          >
+            {access.displayEmail}
+          </AppText>
+        )}
+      </div>
+    </div>
 
-        <AppText variant="body2" sx={memberEmailSx}>
-          {access.displayEmail}
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <AppTag
-      label={access.displayRole}
-      variant="soft"
-      colorVariant={
-        access.roleColorVariant || roleColorMap[access.displayRole] || "primary"
-      }
-      rounded="md"
-      sx={roleTagSx}
-    />
+    {/* Remaining column segments unchanged... */}
+    <div>
+      <AppTag
+        label={access.displayRole || "-"}
+        variant="soft"
+        colorVariant={
+          access.roleColorVariant ||
+          roleColorMap[access.displayRole] ||
+          "primary"
+        }
+        rounded="md"
+        sx={roleTagSx}
+      />
+    </div>
 
     <AppText variant="body2" sx={tableTextSx}>
-      {access.companyAccessLabel}
+      {access.companyAccessLabel || "-"}
     </AppText>
 
     <AppText variant="body2" sx={tableTextSx}>
-      {access.branchAccessLabel}
+      {access.branchAccessLabel || "-"}
     </AppText>
-
-    <AppStatusBadge
-      status={access.displayStatus}
-      label={access.displayStatus === "active" ? "Active" : "Inactive"}
-      variant="soft"
-      size="small"
-      rounded="md"
-      colorVariant={statusColorMap[access.displayStatus] || "neutral"}
-      sx={statusBadgeSx}
-    />
 
     <AppBox sx={{ minWidth: 0 }}>
       <AppText variant="body2" sx={dateTextSx}>
-        {access.displayUpdatedAt}
+        {access.displayUpdatedAt || "-"}
       </AppText>
       <AppText variant="body2" sx={updatedBySx}>
         by {access.updatedBy || "Admin"}
       </AppText>
     </AppBox>
+
+    <div>
+      <AppStatusBadge
+        status={access.displayStatus}
+        label={access.displayStatus === "active" ? "Active" : "Inactive"}
+        variant="soft"
+        size="small"
+        rounded="md"
+        colorVariant={statusColorMap[access.displayStatus] || "neutral"}
+        sx={statusBadgeSx}
+      />
+    </div>
 
     <div className="flex justify-end">
       <MemberActions access={access} onEdit={onEdit} />
@@ -542,7 +587,7 @@ const Avatar = ({ name }) => {
     .join("");
 
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-alt text-[11px] font-bold text-text">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-alt text-[11px] font-bold text-text">
       {initials || "M"}
     </span>
   );
@@ -551,7 +596,8 @@ const Avatar = ({ name }) => {
 const TableFooter = ({ totalAccessRecords, filteredAccessRecordsCount }) => (
   <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
     <AppText variant="body2" sx={footerTextSx}>
-      Showing 1 to {filteredAccessRecordsCount} of {totalAccessRecords} members
+      Showing {filteredAccessRecordsCount > 0 ? 1 : 0} to{" "}
+      {filteredAccessRecordsCount} of {totalAccessRecords} members
     </AppText>
 
     <AppStack direction="row" align="center" gap={1}>
@@ -615,40 +661,59 @@ const MemberAccessRightSidebar = ({ accessOverview = [] }) => (
   />
 );
 
-const AccessOverviewCard = ({ accessOverview }) => (
-  <div>
-    <div className="mx-auto mt-2 flex h-[86px] w-[86px] items-center justify-center rounded-full bg-[conic-gradient(var(--app-color-primary)_0_43%,var(--app-color-success-soft)_43%_93%,var(--app-color-border-strong)_93%_100%)]">
-      <div className="h-[45px] w-[45px] rounded-full bg-surface" />
-    </div>
+const AccessOverviewCard = ({ accessOverview }) => {
+  const conicGradientStyle = useMemo(() => {
+    let currentPercentage = 0;
+    const segments = accessOverview.map((item) => {
+      const start = currentPercentage;
+      currentPercentage += item.percent || 0;
+      return `var(--app-color-${item.id === "full" ? "primary" : item.id === "partial" ? "success-soft" : "border-strong"}) ${start}% ${currentPercentage}%`;
+    });
+    return {
+      background: segments.length
+        ? `conic-gradient(${segments.join(", ")})`
+        : "var(--app-color-border)",
+    };
+  }, [accessOverview]);
 
-    <div className="mt-4 space-y-3">
-      {accessOverview.map((item) => (
-        <div
-          key={item.id}
-          className="grid grid-cols-[1fr_auto] items-center gap-3"
-        >
-          <AppStack
-            direction="row"
-            align="center"
-            gap={0.8}
-            sx={{ minWidth: 0 }}
+  return (
+    <div>
+      <div
+        style={conicGradientStyle}
+        className="mx-auto mt-2 flex h-[86px] w-[86px] items-center justify-center rounded-full"
+      >
+        <div className="h-[45px] w-[45px] rounded-full bg-surface" />
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {accessOverview.map((item) => (
+          <div
+            key={item.id}
+            className="grid grid-cols-[1fr_auto] items-center gap-3"
           >
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${item.id === "full" ? "bg-primary" : item.id === "partial" ? "bg-success-soft" : "bg-border-strong"}`}
-            />
-            <AppText variant="body2" sx={overviewLabelSx}>
-              {item.label}
-            </AppText>
-          </AppStack>
+            <AppStack
+              direction="row"
+              align="center"
+              gap={0.8}
+              sx={{ minWidth: 0 }}
+            >
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${item.id === "full" ? "bg-primary" : item.id === "partial" ? "bg-success-soft" : "bg-border-strong"}`}
+              />
+              <AppText variant="body2" sx={overviewLabelSx}>
+                {item.label}
+              </AppText>
+            </AppStack>
 
-          <AppText variant="body2" sx={overviewValueSx}>
-            {item.value} ({item.percent}%)
-          </AppText>
-        </div>
-      ))}
+            <AppText variant="body2" sx={overviewValueSx}>
+              {item.value} ({item.percent || 0}%)
+            </AppText>
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const QuickActions = () => (
   <div className="space-y-3">
@@ -668,13 +733,10 @@ const QuickAction = ({ icon, text }) => (
   </button>
 );
 
-const pageHeaderSx = {
-  width: "100%",
-};
-
+// Modular Core Token Scales Shared Across Layout Structures
+const pageHeaderSx = { width: "100%" };
 const pageHeaderContentSx = {
   minWidth: 0,
-
   "& h1, & h2, & h3, & h4": {
     m: 0,
     fontSize: "25px",
@@ -683,16 +745,11 @@ const pageHeaderContentSx = {
     color: "var(--app-color-text)",
   },
 };
-
-const breadcrumbSx = {
-  mb: 1,
-};
-
+const breadcrumbSx = { mb: 1 };
 const breadcrumbItemSx = {
   fontSize: "12px",
   color: "var(--app-color-text-muted)",
 };
-
 const breadcrumbCurrentSx = {
   fontSize: "12px",
   fontWeight: 650,
@@ -706,7 +763,6 @@ const secondaryButtonSx = {
   fontSize: "12px",
   fontWeight: 650,
 };
-
 const primaryButtonSx = {
   height: 36,
   minWidth: 124,
@@ -720,40 +776,24 @@ const statCardSx = {
   minHeight: 104,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
-
-  "& .MuiCardContent-root": {
-    p: 0,
-  },
-
+  "& .MuiCardContent-root": { p: 0 },
   p: 1.6,
-
-  "& p:first-of-type": {
-    fontSize: "11.5px",
-  },
-
+  "& p:first-of-type": { fontSize: "11.5px" },
   "& h1, & h2, & h3, & h4, & h5, & h6": {
     fontSize: "25px",
     lineHeight: 1.05,
   },
-
-  "& p:last-of-type": {
-    fontSize: "11px",
-  },
+  "& p:last-of-type": { fontSize: "11px" },
 };
-
 const statIconSx = {
   width: 44,
   height: 44,
   minWidth: 44,
   borderRadius: "12px",
-
-  "& svg": {
-    fontSize: 22,
-  },
+  "& svg": { fontSize: 22 },
 };
 
 const alertSx = { mt: 3 };
-
 const tableCardSx = {
   overflow: "hidden",
   bgcolor: "var(--app-color-surface)",
@@ -762,13 +802,11 @@ const tableCardSx = {
 
 const searchSx = { width: "100%" };
 const selectSx = { width: "100%" };
-
 const filterInputSx = {
   minHeight: 36,
   fontSize: "12px",
   bgcolor: "var(--app-color-surface)",
 };
-
 const clearButtonSx = {
   height: 36,
   minWidth: 88,
@@ -776,11 +814,7 @@ const clearButtonSx = {
   fontSize: "12px",
   fontWeight: 650,
 };
-
-const chipsRowSx = {
-  mt: 1.2,
-  flexWrap: "wrap",
-};
+const chipsRowSx = { mt: 1.2, flexWrap: "wrap" };
 
 const memberNameSx = {
   m: 0,
@@ -788,14 +822,12 @@ const memberNameSx = {
   lineHeight: 1.25,
   color: "var(--app-color-text)",
 };
-
 const memberEmailSx = {
   mt: 0.35,
   fontSize: "11px",
   lineHeight: 1.25,
   color: "var(--app-color-text-muted)",
 };
-
 const roleTagSx = {
   height: 22,
   px: 0.9,
@@ -803,26 +835,22 @@ const roleTagSx = {
   fontWeight: 700,
   width: "fit-content",
 };
-
 const tableTextSx = {
   fontSize: "12px",
   fontWeight: 500,
   color: "var(--app-color-text)",
 };
-
 const statusBadgeSx = {
   height: 22,
-  px: 0,
+  px: 1.5,
   fontSize: "10.5px",
   textTransform: "capitalize",
 };
-
 const dateTextSx = {
   fontSize: "12px",
   lineHeight: 1.25,
   color: "var(--app-color-text)",
 };
-
 const updatedBySx = {
   mt: 0.35,
   fontSize: "11px",
@@ -830,11 +858,7 @@ const updatedBySx = {
   color: "var(--app-color-text-muted)",
 };
 
-const footerTextSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-
+const footerTextSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
 const pageSizeButtonSx = {
   height: 32,
   minWidth: 128,
@@ -843,24 +867,17 @@ const pageSizeButtonSx = {
   fontSize: "12px",
   fontWeight: 650,
 };
-
-const stateSx = {
-  minHeight: 360,
-};
+const stateSx = { minHeight: 360 };
 
 const overviewLabelSx = {
   fontSize: "12px",
   color: "var(--app-color-text-muted)",
 };
-
 const overviewValueSx = {
   fontSize: "12px",
   fontWeight: 700,
   color: "var(--app-color-text)",
 };
-
-const toastSx = {
-  boxShadow: "0 16px 40px rgba(15, 23, 42, 0.18)",
-};
+const toastSx = { boxShadow: "0 16px 40px rgba(15, 23, 42, 0.18)" };
 
 export default MemberAccessDesktopPage;

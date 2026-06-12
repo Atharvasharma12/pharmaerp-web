@@ -5,17 +5,15 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiDownload,
-  FiFilter,
   FiGitBranch,
-  FiHeadphones,
   FiMoreHorizontal,
   FiPlus,
   FiRefreshCw,
   FiSearch,
-  FiSliders,
   FiUsers,
+  FiMail,
+  FiPhone,
 } from "react-icons/fi";
-import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
 
 import {
   AppAlert,
@@ -33,7 +31,6 @@ import {
   AppStack,
   AppStatusBadge,
   AppTableSkeleton,
-  AppTag,
   AppText,
   HELP_SUPPORT_CARD,
   PageHeader,
@@ -81,17 +78,15 @@ const BranchesDesktopPage = ({
 }) => {
   const showInitialSkeleton = isLoading && !hasBranches;
 
-  // Compute breakdown dynamics matching the circular graph visualization
   const derivedOverview = useMemo(() => {
     const total = branches.length || 1;
     const active = branches.filter((b) => b.displayStatus === "active").length;
     const inactive = branches.filter(
       (b) => b.displayStatus === "inactive",
     ).length;
-    const pending = branches.filter(
+    const suspended = branches.filter(
       (b) => b.displayStatus === "suspended",
     ).length;
-    const closed = branches.filter((b) => b.displayStatus === "closed").length;
 
     return [
       {
@@ -109,18 +104,11 @@ const BranchesDesktopPage = ({
         color: "bg-border-strong",
       },
       {
-        id: "pending",
-        label: "Pending",
-        value: pending,
-        percent: Math.round((pending / total) * 100),
+        id: "suspended",
+        label: "Suspended",
+        value: suspended,
+        percent: Math.round((suspended / total) * 100),
         color: "bg-warning",
-      },
-      {
-        id: "closed",
-        label: "Closed",
-        value: closed,
-        percent: Math.round((closed / total) * 100),
-        color: "bg-purple",
       },
     ];
   }, [branches]);
@@ -277,7 +265,8 @@ const BranchesDesktopPage = ({
               />
             )}
 
-            {hasBranches ? (
+            {/* Pagination block displays dynamically strictly when entries exceed page ceiling */}
+            {hasBranches && totalBranches > 10 ? (
               <TableFooter
                 totalBranches={totalBranches}
                 filteredBranchesCount={filteredBranchesCount}
@@ -322,7 +311,7 @@ const TableToolbar = ({
         name="search"
         value={filters.search}
         onChange={handleSearchChange}
-        placeholder="Search branches by name, address or code..."
+        placeholder="Search branches..."
         clearable
         onClear={() => handleSearchChange("")}
         size="small"
@@ -396,17 +385,16 @@ const TableToolbar = ({
 );
 
 const BranchesTable = ({ branches, onView, onEdit, onSettings, onDelete }) => (
-  <div className="w-full overflow-x-auto">
-    <div className="min-w-[940px]">
-      <div className="grid grid-cols-[1.2fr_1.1fr_100px_1.1fr_1.1fr_85px_85px_100px_54px] border-b border-border bg-surface-alt px-3.5 py-2.5">
+  // Updated container classes: hides scrollbar tracks across Webkit, Firefox, and IE engines
+  <div className="w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <div className="min-w-[960px]">
+      <div className="grid grid-cols-[1.5fr_1.1fr_1.4fr_1.5fr_85px_95px_54px] border-b border-border bg-surface-alt px-3.5 py-2.5">
         <HeaderCell>Branch</HeaderCell>
-        <HeaderCell>Company</HeaderCell>
-        <HeaderCell>Code</HeaderCell>
+        <HeaderCell>Type</HeaderCell>
         <HeaderCell>Location</HeaderCell>
-        <HeaderCell>Manager</HeaderCell>
-        <HeaderCell>Status</HeaderCell>
+        <HeaderCell>Contact Info</HeaderCell>
         <HeaderCell>Staff</HeaderCell>
-        <HeaderCell>Created On</HeaderCell>
+        <HeaderCell>Status</HeaderCell>
         <HeaderCell align="right">Actions</HeaderCell>
       </div>
 
@@ -425,7 +413,6 @@ const BranchesTable = ({ branches, onView, onEdit, onSettings, onDelete }) => (
     </div>
   </div>
 );
-
 const HeaderCell = ({ children, align = "left" }) => (
   <div
     className={`text-[11.2px] font-bold leading-5 text-text-muted ${align === "right" ? "text-right" : "text-left"}`}
@@ -435,52 +422,56 @@ const HeaderCell = ({ children, align = "left" }) => (
 );
 
 const BranchRow = ({ branch, onView, onEdit, onSettings, onDelete }) => (
-  <div className="grid min-h-[58px] grid-cols-[1.2fr_1.1fr_100px_1.1fr_1.1fr_85px_85px_100px_54px] items-center px-3.5 py-2 transition hover:bg-surface-hover/60">
-    <AppStack direction="row" align="center" gap={1} sx={{ minWidth: 0 }}>
-      <IconBox icon={<FiGitBranch />} colorVariant="success" small />
-      <AppHeading level={3} weight={700} sx={branchNameSx}>
-        {branch.displayName}
-      </AppHeading>
-    </AppStack>
+  <div className="grid min-h-[58px] grid-cols-[1.5fr_1.1fr_1.4fr_1.5fr_85px_95px_54px] items-center px-3.5 py-2 transition hover:bg-surface-hover/60">
+    <div className="flex items-center gap-3 min-w-0 h-full">
+      <div className="flex items-center justify-center shrink-0">
+        <IconBox icon={<FiGitBranch />} colorVariant="success" small />
+      </div>
+      <div className="flex flex-col min-w-0 justify-center">
+        <AppHeading level={3} weight={700} sx={branchNameSx}>
+          {branch.displayName || "-"}
+        </AppHeading>
+      </div>
+    </div>
 
-    <AppStack direction="row" align="center" gap={0.6} sx={{ minWidth: 0 }}>
-      <HiOutlineBuildingOffice2 className="shrink-0 text-[13px] text-text-muted" />
-      <AppText variant="body2" sx={companyTextSx}>
-        {branch.displayCompany}
-      </AppText>
-    </AppStack>
-
-    <AppText variant="body2" sx={codeTextSx}>
-      {branch.displayCode}
+    <AppText variant="body2" sx={typeTextSx}>
+      {branch.type || "-"}
     </AppText>
 
     <AppBox sx={{ minWidth: 0 }}>
       <AppText variant="body2" sx={tableTextSx}>
-        {branch.addressLine1}
+        {branch.addressLine1 || "-"}
       </AppText>
-      <AppText variant="body2" sx={subLocationTextSx}>
-        {branch.locationSummary}
-      </AppText>
+      {branch.locationSummary && (
+        <AppText variant="body2" sx={subLocationTextSx}>
+          {branch.locationSummary}
+        </AppText>
+      )}
     </AppBox>
 
-    <AppBox sx={{ minWidth: 0 }}>
-      <AppText variant="body2" sx={tableTextSx}>
-        {branch.displayManager}
-      </AppText>
-      <AppText variant="body2" sx={subLocationTextSx}>
-        {branch.displayManagerRole}
-      </AppText>
+    <AppBox sx={{ minWidth: 0 }} className="space-y-0.5">
+      {branch.email ? (
+        <div className="flex items-center gap-1.5 min-w-0">
+          <FiMail className="text-[11px] text-text-muted shrink-0" />
+          <AppText variant="body2" sx={contactTextSx}>
+            {branch.email}
+          </AppText>
+        </div>
+      ) : null}
+      {branch.phones?.mobile ? (
+        <div className="flex items-center gap-1.5 min-w-0">
+          <FiPhone className="text-[11px] text-text-muted shrink-0" />
+          <AppText variant="body2" sx={contactTextSx}>
+            {branch.phones.mobile}
+          </AppText>
+        </div>
+      ) : null}
+      {!branch.email && !branch.phones?.mobile ? (
+        <AppText variant="body2" sx={contactTextSx}>
+          -
+        </AppText>
+      ) : null}
     </AppBox>
-
-    <AppStatusBadge
-      status={branch.displayStatus || "active"}
-      label={branch.displayStatus === "active" ? "Active" : "Inactive"}
-      variant="soft"
-      size="small"
-      rounded="md"
-      colorVariant={statusColorMap[branch.displayStatus] || "neutral"}
-      sx={statusBadgeSx}
-    />
 
     <AppStack direction="row" align="center" gap={0.5}>
       <FiUsers className="text-[12px] text-text-muted" />
@@ -489,9 +480,17 @@ const BranchRow = ({ branch, onView, onEdit, onSettings, onDelete }) => (
       </AppText>
     </AppStack>
 
-    <AppText variant="body2" sx={dateTextSx}>
-      {branch.displayCreatedAt}
-    </AppText>
+    <div>
+      <AppStatusBadge
+        status={branch.displayStatus}
+        label={branch.displayStatus || ""}
+        variant="soft"
+        size="small"
+        rounded="md"
+        colorVariant={statusColorMap[branch.displayStatus] || "neutral"}
+        sx={statusBadgeSx}
+      />
+    </div>
 
     <div className="flex justify-end">
       <BranchActions
@@ -549,7 +548,8 @@ const TableFooter = ({
 }) => (
   <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
     <AppText variant="body2" sx={footerTextSx}>
-      Showing 1 to {filteredBranchesCount} of {totalBranches} branches
+      Showing {filteredBranchesCount > 0 ? 1 : 0} to {filteredBranchesCount} of{" "}
+      {totalBranches} branches
     </AppText>
 
     <AppStack direction="row" align="center" gap={1}>
@@ -614,37 +614,56 @@ const BranchesRightSidebar = ({ overviewData = [] }) => (
   />
 );
 
-const OverviewChartCard = ({ overviewData }) => (
-  <div>
-    <div className="mx-auto mt-2 flex h-[86px] w-[86px] items-center justify-center rounded-full bg-[conic-gradient(var(--app-color-primary)_0_78%,var(--app-color-border-strong)_78%_92%,var(--app-color-warning)_92%_98%,var(--app-color-purple)_98%_100%)]">
-      <div className="h-[45px] w-[45px] rounded-full bg-surface" />
-    </div>
+const OverviewChartCard = ({ overviewData }) => {
+  const conicGradientStyle = useMemo(() => {
+    let currentPercentage = 0;
+    const segments = overviewData.map((item) => {
+      const start = currentPercentage;
+      currentPercentage += item.percent || 0;
+      return `var(--app-color-${item.id === "active" ? "primary" : item.id === "inactive" ? "border-strong" : "warning"}) ${start}% ${currentPercentage}%`;
+    });
+    return {
+      background: segments.length
+        ? `conic-gradient(${segments.join(", ")})`
+        : "var(--app-color-border)",
+    };
+  }, [overviewData]);
 
-    <div className="mt-4 space-y-3">
-      {overviewData.map((item) => (
-        <div
-          key={item.id}
-          className="grid grid-cols-[1fr_auto] items-center gap-3"
-        >
-          <AppStack
-            direction="row"
-            align="center"
-            gap={0.8}
-            sx={{ minWidth: 0 }}
+  return (
+    <div>
+      <div
+        style={conicGradientStyle}
+        className="mx-auto mt-2 flex h-[86px] w-[86px] items-center justify-center rounded-full"
+      >
+        <div className="h-[45px] w-[45px] rounded-full bg-surface" />
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {overviewData.map((item) => (
+          <div
+            key={item.id}
+            className="grid grid-cols-[1fr_auto] items-center gap-3"
           >
-            <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
-            <AppText variant="body2" sx={overviewLabelSx}>
-              {item.label}
+            <AppStack
+              direction="row"
+              align="center"
+              gap={0.8}
+              sx={{ minWidth: 0 }}
+            >
+              <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
+              <AppText variant="body2" sx={overviewLabelSx}>
+                {item.label}
+              </AppText>
+            </AppStack>
+            <AppText variant="body2" sx={overviewValueSx}>
+              {item.value} ({item.percent || 0}%)
             </AppText>
-          </AppStack>
-          <AppText variant="body2" sx={overviewValueSx}>
-            {item.value} ({item.percent}%)
-          </AppText>
-        </div>
-      ))}
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const SidebarQuickActions = () => (
   <div className="space-y-3">
@@ -670,7 +689,7 @@ const IconBox = ({ icon, colorVariant = "primary", small = false }) => (
   <AppBox
     display="flex"
     alignItems="center"
-    justify="center"
+    justifyContent="center"
     sx={{
       width: small ? 32 : 44,
       height: small ? 32 : 44,
@@ -679,15 +698,13 @@ const IconBox = ({ icon, colorVariant = "primary", small = false }) => (
       bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
       color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
       fontSize: small ? "15px" : "22px",
-      alignItems: "center",
-      justifyContent: "center",
     }}
   >
     {icon}
   </AppBox>
 );
 
-// Modular Core Token Scales Synchronized Across Layout Engines
+// CSS Token Variable Sets
 const pageHeaderSx = { width: "100%" };
 const pageHeaderContentSx = {
   minWidth: 0,
@@ -756,20 +773,11 @@ const branchNameSx = {
   whiteSpace: "nowrap",
   overflow: "hidden",
 };
-const companyTextSx = {
+const typeTextSx = {
   fontSize: "12px",
-  fontWeight: 550,
   color: "var(--app-color-text)",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
+  textTransform: "capitalize",
 };
-const codeTextSx = {
-  fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
-  fontFamily: "monospace",
-};
-
 const tableTextSx = {
   fontSize: "12px",
   fontWeight: 600,
@@ -786,9 +794,16 @@ const subLocationTextSx = {
   whiteSpace: "nowrap",
   overflow: "hidden",
 };
+const contactTextSx = {
+  fontSize: "11.5px",
+  color: "var(--app-color-text)",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+};
 const statusBadgeSx = {
   height: 22,
-  px: 0,
+  px: 1.5,
   fontSize: "10.5px",
   textTransform: "capitalize",
 };
@@ -797,13 +812,7 @@ const staffCountSx = {
   fontWeight: 600,
   color: "var(--app-color-text)",
 };
-const dateTextSx = { fontSize: "11.5px", color: "var(--app-color-text)" };
 
-const updatedBySx = {
-  mt: 0.25,
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-};
 const footerTextSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
 const pageSizeButtonSx = {
   height: 32,
