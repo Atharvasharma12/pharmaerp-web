@@ -9,6 +9,7 @@ import { useIsMobile } from "@/hooks";
 import useAccessControl from "../hooks/useAccessControl";
 
 import EditRoleDesktopPage from "./desktop/EditRoleDesktopPage";
+import EditRoleMobilePage from "./mobile/EditRoleMobilePage";
 
 const INITIAL_FORM_DATA = {
   name: "",
@@ -245,7 +246,7 @@ const EditRolePage = () => {
     try {
       await getRoleById(roleId);
     } catch {
-      // Error is already stored in access-control slice.
+      // Error is stored in slice context.
     }
   }, [getRoleById, roleId]);
 
@@ -253,7 +254,7 @@ const EditRolePage = () => {
     try {
       await getAvailablePermissions();
     } catch {
-      // Error is already stored in access-control slice.
+      // Error is stored in slice context.
     }
   }, [getAvailablePermissions]);
 
@@ -559,7 +560,7 @@ const EditRolePage = () => {
 
   const handleSubmit = useCallback(
     async (event) => {
-      event.preventDefault();
+      if (event) event.preventDefault();
 
       clearError();
       clearMessage();
@@ -645,7 +646,7 @@ const EditRolePage = () => {
   };
 
   return isMobile ? (
-    <EditRoleDesktopPage {...pageProps} />
+    <EditRoleMobilePage {...pageProps} />
   ) : (
     <EditRoleDesktopPage {...pageProps} />
   );

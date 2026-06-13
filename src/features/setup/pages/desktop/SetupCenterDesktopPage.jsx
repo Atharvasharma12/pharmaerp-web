@@ -1,6 +1,5 @@
 // src/features/setup/pages/desktop/SetupCenterDesktopPage.jsx
 
-import { useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiArrowRight,
@@ -9,7 +8,6 @@ import {
   FiCheck,
   FiCheckCircle,
   FiCreditCard,
-  FiHeadphones,
   FiHome,
   FiLock,
   FiPackage,
@@ -31,94 +29,6 @@ import {
   PageHeader,
   PageRightSidebar,
 } from "@/components";
-import { ROUTES } from "@/constants";
-import useWorkspace from "@/features/workspace/hooks/useWorkspace";
-import useCompany from "@/features/company/hooks/useCompany";
-import useBranch from "@/features/branch/hooks/useBranch";
-import useSubscription from "@/features/subscription/subscriptions/hooks/useSubscription";
-
-const setupSteps = [
-  {
-    id: "workspace",
-    title: "Create Workspace",
-    description: "Create your workspace to manage all pharmacy operations.",
-    actionText: "Create Workspace",
-    route: ROUTES.CREATE_WORKSPACE,
-    completedRoute: ROUTES.WORKSPACE_DETAILS,
-    requiredFields: [],
-    colorVariant: "primary",
-  },
-  {
-    id: "plan",
-    title: "Choose Plan",
-    description: "Choose the perfect plan for your pharmacy business.",
-    actionText: "View Plan",
-    route: ROUTES.CHOOSE_PLAN,
-    completedRoute: ROUTES.CHOOSE_PLAN,
-    requiredFields: ["workspace"],
-    colorVariant: "success",
-  },
-  {
-    id: "company",
-    title: "Create Company",
-    description: "Add your company details and set up your business profile.",
-    actionText: "Create Company",
-    route: ROUTES.CREATE_COMPANY,
-    completedRoute: ROUTES.COMPANIES,
-    requiredFields: ["workspace", "plan"],
-    colorVariant: "info",
-  },
-  {
-    id: "branch",
-    title: "Create Branch",
-    description: "Add your pharmacy branch or store location.",
-    actionText: "Create Branch",
-    route: ROUTES.CREATE_BRANCH,
-    completedRoute: ROUTES.BRANCHES,
-    requiredFields: ["workspace", "plan", "company"],
-    colorVariant: "neutral",
-  },
-  {
-    id: "team",
-    title: "Invite Team",
-    description: "Invite your team members and assign roles.",
-    actionText: "Invite Team",
-    route: ROUTES.INVITE_WORKSPACE_MEMBER,
-    completedRoute: ROUTES.WORKSPACE_MEMBERS,
-    requiredFields: ["workspace", "plan", "company", "branch"],
-    colorVariant: "neutral",
-  },
-  {
-    id: "products",
-    title: "Add Products",
-    description: "Add medicines and products to your inventory.",
-    actionText: "Add Products",
-    route: "/inventory/products/create",
-    completedRoute: "/inventory/products",
-    requiredFields: ["workspace", "plan", "company", "branch"],
-    colorVariant: "neutral",
-  },
-  {
-    id: "suppliers",
-    title: "Add Suppliers",
-    description: "Add your suppliers and manage supplier information.",
-    actionText: "Add Suppliers",
-    route: "/purchases/suppliers/create",
-    completedRoute: "/purchases/suppliers",
-    requiredFields: ["workspace", "plan", "company", "branch"],
-    colorVariant: "neutral",
-  },
-  {
-    id: "purchase",
-    title: "Create First Purchase",
-    description: "Create your first purchase order and stock your inventory.",
-    actionText: "Create Purchase",
-    route: "/purchases/create",
-    completedRoute: "/purchases",
-    requiredFields: ["workspace", "plan", "company", "branch"],
-    colorVariant: "neutral",
-  },
-];
 
 const setupIcons = {
   workspace: <FiHome />,
@@ -131,147 +41,13 @@ const setupIcons = {
   purchase: <FiShoppingCart />,
 };
 
-const ACTIVE_SUBSCRIPTION_STATUSES = [
-  "ACTIVE",
-  "TRIAL",
-  "TRIALING",
-  "TRIAL_ACTIVE",
-  "PAID",
-];
-
-const getWorkspaceFromItem = (item) => item?.workspace || item || null;
-
-const SetupCenterDesktopPage = () => {
+const SetupCenterDesktopPage = ({
+  mappedSetupSteps = [],
+  completedStepsCount = 0,
+  progress = 0,
+  nextStep = null,
+}) => {
   const navigate = useNavigate();
-  const fetchedSubscriptionWorkspaceRef = useRef(null);
-  const fetchedBranchesWorkspaceRef = useRef(null);
-
-  const {
-    workspace,
-    workspaces,
-    currentWorkspace,
-    activeWorkspace,
-    selectedWorkspace,
-  } = useWorkspace();
-
-  const { companies = [] } = useCompany();
-
-  // Destructured getWorkspaceBranches to fetch workspace wide layout
-  const { branches = [], getWorkspaceBranches } = useBranch();
-
-  const { getWorkspaceCurrentSubscription, currentWorkspaceSubscription } =
-    useSubscription();
-
-  const resolvedWorkspace = useMemo(() => {
-    if (currentWorkspace) return currentWorkspace;
-    if (activeWorkspace) return activeWorkspace;
-    if (selectedWorkspace) return selectedWorkspace;
-    if (workspace) return workspace;
-
-    const firstWorkspaceItem = Array.isArray(workspaces) ? workspaces[0] : null;
-
-    return getWorkspaceFromItem(firstWorkspaceItem);
-  }, [
-    activeWorkspace,
-    currentWorkspace,
-    selectedWorkspace,
-    workspace,
-    workspaces,
-  ]);
-
-  const workspaceId = resolvedWorkspace?._id || resolvedWorkspace?.id;
-  const hasWorkspace = Boolean(workspaceId);
-
-  // Fetch subscription layout
-  useEffect(() => {
-    if (!workspaceId) return;
-    if (fetchedSubscriptionWorkspaceRef.current === workspaceId) return;
-
-    fetchedSubscriptionWorkspaceRef.current = workspaceId;
-    getWorkspaceCurrentSubscription(workspaceId).catch(() => {});
-  }, [workspaceId, getWorkspaceCurrentSubscription]);
-
-  // Fetch workspace branches systematically to ensure global branch presence verification
-  useEffect(() => {
-    if (!workspaceId) return;
-    if (fetchedBranchesWorkspaceRef.current === workspaceId) return;
-
-    fetchedBranchesWorkspaceRef.current = workspaceId;
-    getWorkspaceBranches().catch(() => {});
-  }, [workspaceId, getWorkspaceBranches]);
-
-  const workspaceSubscription =
-    currentWorkspaceSubscription ||
-    resolvedWorkspace?.subscription ||
-    resolvedWorkspace?.activeSubscription ||
-    resolvedWorkspace?.currentSubscription ||
-    null;
-
-  const subscriptionStatus =
-    workspaceSubscription?.status || resolvedWorkspace?.subscriptionStatus;
-
-  const hasSubscription = Boolean(
-    workspaceSubscription?._id ||
-    workspaceSubscription?.id ||
-    ACTIVE_SUBSCRIPTION_STATUSES.includes(
-      String(subscriptionStatus || "").toUpperCase(),
-    ),
-  );
-
-  const hasCompany = Array.isArray(companies) && companies.length > 0;
-
-  // Marks done if branches exist in either company arrays or historical workspace lists
-  const hasBranch = Array.isArray(branches) && branches.length > 0;
-
-  const setupState = useMemo(
-    () => ({
-      workspace: hasWorkspace,
-      plan: hasSubscription,
-      company: hasCompany,
-      branch: hasBranch,
-      team: false,
-      products: false,
-      suppliers: false,
-      purchase: false,
-    }),
-    [hasWorkspace, hasSubscription, hasCompany, hasBranch],
-  );
-
-  const mappedSetupSteps = useMemo(
-    () =>
-      setupSteps.map((step) => {
-        const locked = step.requiredFields.some((field) => !setupState[field]);
-        const completed = Boolean(setupState[step.id]);
-        const targetRoute = completed
-          ? step.completedRoute || step.route
-          : step.route;
-
-        return {
-          ...step,
-          completed,
-          locked,
-          disabled: locked,
-          onClick: () => {
-            if (!locked && targetRoute) {
-              navigate(targetRoute);
-            }
-          },
-        };
-      }),
-    [navigate, setupState],
-  );
-
-  const completedStepsCount = mappedSetupSteps.filter(
-    (step) => step.completed,
-  ).length;
-
-  const progress = mappedSetupSteps.length
-    ? Math.round((completedStepsCount / mappedSetupSteps.length) * 100)
-    : 0;
-
-  const nextStep = mappedSetupSteps.find(
-    (step) => !step.completed && !step.locked,
-  );
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
@@ -529,7 +305,7 @@ const SetupRow = ({ step, index, isLast }) => {
             ? "View Workspace"
             : step.id === "plan"
               ? "View Plan"
-              : "View"
+              : "View Details"
           : step.actionText}
       </AppButton>
     </div>
@@ -608,7 +384,6 @@ const pageHeaderSx = {
 
 const pageHeaderContentSx = {
   minWidth: 0,
-
   "& h1, & h2, & h3, & h4": {
     m: 0,
     fontSize: "25px",
@@ -716,13 +491,6 @@ const actionButtonSx = {
   fontSize: "10.8px",
   fontWeight: 650,
   whiteSpace: "nowrap",
-};
-
-const sideTextSx = {
-  mt: 0,
-  fontSize: "12px",
-  lineHeight: "21px",
-  color: "var(--app-color-text-muted)",
 };
 
 const tipTextSx = {

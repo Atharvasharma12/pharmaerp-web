@@ -48,6 +48,7 @@ const INITIAL_FORM_DATA = {
 };
 
 const branchTypeOptions = [
+  { label: "Select branch type", value: "" },
   { label: "Retail", value: "retail" },
   { label: "Wholesale", value: "wholesale" },
   { label: "Warehouse", value: "warehouse" },
@@ -143,10 +144,15 @@ const validateStepData = (step, formData) => {
       errors.branchName = "Branch name cannot exceed 160 characters";
     }
 
+    if (!formData.branchType) {
+      errors.branchType = "Branch type selection is required";
+    }
     if (branchEmail && !EMAIL_REGEX.test(branchEmail)) {
       errors.branchEmail = "Enter a valid branch email address";
     }
-    if (mobile && !PHONE_REGEX.test(mobile)) {
+    if (!mobile) {
+      errors.mobile = "Mobile number is required";
+    } else if (!PHONE_REGEX.test(mobile)) {
       errors.mobile = "Invalid mobile number";
     }
     if (whatsapp && !PHONE_REGEX.test(whatsapp)) {
@@ -156,7 +162,9 @@ const validateStepData = (step, formData) => {
 
   if (step === 2) {
     const pincode = normalizeText(formData.pincode);
-    if (pincode && pincode.length !== 6) {
+    if (!pincode) {
+      errors.pincode = "Pincode is required";
+    } else if (pincode.length !== 6) {
       errors.pincode = "Pincode must be exactly 6 digits";
     }
   }
@@ -271,6 +279,13 @@ const CreateBranchPage = () => {
     navigate("/branches");
   }, [navigate]);
 
+  const handleResetAndRefresh = useCallback(() => {
+    setCurrentStep(1);
+    setFormErrors({});
+    setFormData(INITIAL_FORM_DATA);
+    clearError();
+  }, [clearError]);
+
   const handleSubmit = useCallback(
     async (event) => {
       if (event) event.preventDefault();
@@ -287,6 +302,7 @@ const CreateBranchPage = () => {
         setFormErrors(structuralErrors);
         if (
           structuralErrors.branchName ||
+          structuralErrors.branchType ||
           structuralErrors.branchEmail ||
           structuralErrors.mobile ||
           structuralErrors.whatsapp
@@ -322,7 +338,7 @@ const CreateBranchPage = () => {
     [createBranch, formData, navigate],
   );
 
-  const desktopProps = useMemo(
+  const pageProps = useMemo(
     () => ({
       formData,
       formErrors,
@@ -339,6 +355,7 @@ const CreateBranchPage = () => {
       handleStepChange,
       handleSaveDraft,
       handleCancel: handleBackToBranches,
+      handleResetAndRefresh,
     }),
     [
       formData,
@@ -352,13 +369,14 @@ const CreateBranchPage = () => {
       handleStepChange,
       handleSaveDraft,
       handleBackToBranches,
+      handleResetAndRefresh,
     ],
   );
 
   return isMobile ? (
-    <CreateBranchMobilePage {...desktopProps} />
+    <CreateBranchMobilePage {...pageProps} />
   ) : (
-    <CreateBranchDesktopPage {...desktopProps} />
+    <CreateBranchDesktopPage {...pageProps} />
   );
 };
 

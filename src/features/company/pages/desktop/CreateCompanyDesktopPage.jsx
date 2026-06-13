@@ -1,10 +1,9 @@
 // src/features/company/pages/desktop/CreateCompanyDesktopPage.jsx
 
-import { memo, useCallback } from "react";
+import { memo } from "react";
 import {
   FiArrowLeft,
   FiArrowRight,
-  FiBookOpen,
   FiBriefcase,
   FiCheck,
   FiCheckCircle,
@@ -21,7 +20,6 @@ import {
   FiUser,
 } from "react-icons/fi";
 import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
-import { LuStore } from "react-icons/lu";
 
 import {
   AppAlert,
@@ -34,7 +32,6 @@ import {
   AppSelect,
   AppStack,
   AppTag,
-  AppTextarea,
   AppText,
   PageHeader,
   PageRightSidebar,
@@ -49,6 +46,7 @@ const CreateCompanyDesktopPage = memo(
     currentStep = 1,
 
     companyTypeOptions = [],
+    industryOptions = [],
     licenseStatusOptions = [],
 
     handleChange,
@@ -58,30 +56,8 @@ const CreateCompanyDesktopPage = memo(
     handleStepChange,
     handleSaveDraft,
     handleCancel,
+    handleResetAndRefresh,
   }) => {
-    // Function triggered when the header Refresh button is clicked
-    const handleResetAndRefresh = useCallback(() => {
-      // 1. Throw user back to step 1
-      handleStepChange?.(1);
-
-      // 2. Map through all fields present in formData and dispatch empty strings/values
-      if (formData) {
-        Object.keys(formData).forEach((key) => {
-          let defaultValue = "";
-          // Maintain logical array/boolean footprints if your parent state initializes them differently
-          if (Array.isArray(formData[key])) defaultValue = [];
-          if (typeof formData[key] === "boolean") defaultValue = false;
-
-          handleChange?.({
-            target: {
-              name: key,
-              value: defaultValue,
-            },
-          });
-        });
-      }
-    }, [formData, handleChange, handleStepChange]);
-
     return (
       <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
         <div className="mx-auto w-full max-w-[1500px]">
@@ -177,6 +153,7 @@ const CreateCompanyDesktopPage = memo(
                     formData={formData}
                     formErrors={formErrors}
                     companyTypeOptions={companyTypeOptions}
+                    industryOptions={industryOptions}
                     handleChange={handleChange}
                     handleCancel={handleCancel}
                     handleContinue={handleContinue}
@@ -217,6 +194,8 @@ const CreateCompanyDesktopPage = memo(
                 {currentStep === 5 && (
                   <ReviewAndCreateStep
                     formData={formData}
+                    companyTypeOptions={companyTypeOptions}
+                    industryOptions={industryOptions}
                     isCreating={isLoading}
                     onBack={handleBack}
                     onSaveDraft={handleSaveDraft}
@@ -325,6 +304,7 @@ const CompanyDetailsForm = ({
   formData,
   formErrors,
   companyTypeOptions,
+  industryOptions,
   handleChange,
   handleCancel,
   handleContinue,
@@ -367,6 +347,8 @@ const CompanyDetailsForm = ({
         onChange={handleChange}
         options={companyTypeOptions}
         required
+        error={Boolean(formErrors.companyType)}
+        helperText={formErrors.companyType}
         labelSx={labelSx}
         inputSx={inputSx}
       />
@@ -376,6 +358,7 @@ const CompanyDetailsForm = ({
         value={formData.companyEmail || ""}
         onChange={handleChange}
         placeholder="Enter company email address"
+        required
         error={Boolean(formErrors.companyEmail)}
         helperText={formErrors.companyEmail}
         labelSx={labelSx}
@@ -383,10 +366,10 @@ const CompanyDetailsForm = ({
       />
       <div className="flex flex-col">
         <label className="mb-1 text-[12.5px] font-bold text-text">
-          Phone Number
+          Phone Number <span className="text-error">*</span>
         </label>
         <div className="flex gap-2">
-          <div className="w-[85px]">
+          <div className="w-[95px]">
             <AppSelect
               name="countryCode"
               value="India (+91)"
@@ -408,16 +391,39 @@ const CompanyDetailsForm = ({
           </div>
         </div>
       </div>
+      <AppInput
+        label="Website (Optional)"
+        name="website"
+        value={formData.website || ""}
+        onChange={handleChange}
+        placeholder="https://www.company.com"
+        startIcon={<FiGlobe className="text-text-muted" />}
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppSelect
+        label="Industry"
+        name="industry"
+        value={formData.industry || ""}
+        onChange={handleChange}
+        options={industryOptions}
+        required
+        error={Boolean(formErrors.industry)}
+        helperText={formErrors.industry}
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
       <div className="col-span-2">
         <AppInput
-          label="Website (Optional)"
-          name="website"
-          value={formData.website || ""}
+          label="Company Description (Optional)"
+          name="companyDescription"
+          value={formData.companyDescription || ""}
           onChange={handleChange}
-          placeholder="https://www.company.com"
-          startIcon={<FiGlobe className="text-text-muted" />}
+          placeholder="Enter a brief description about your company"
           labelSx={labelSx}
           inputSx={inputSx}
+          multiline
+          rows={3}
         />
       </div>
     </div>
@@ -864,12 +870,22 @@ const LicenseAndIdentityForm = ({
 
 const ReviewAndCreateStep = ({
   formData,
+  companyTypeOptions,
+  industryOptions,
   isCreating,
   onBack,
   onSaveDraft,
   onSubmit,
   onEditSection,
 }) => {
+  const resolvedTypeLabel =
+    companyTypeOptions.find((opt) => opt.value === formData.companyType)
+      ?.label || formData.companyType;
+  const resolvedIndustryLabel =
+    industryOptions.find((opt) => opt.value === formData.industry)?.label ||
+    formData.industry ||
+    "Not provided";
+
   return (
     <div className="space-y-4">
       {/* 1. Company Overview Summary Card */}
@@ -898,7 +914,7 @@ const ReviewAndCreateStep = ({
                   {formData.companyName || "MedPlus Healthcare Pvt. Ltd."}
                 </AppHeading>
                 <AppTag
-                  label="Healthcare"
+                  label={resolvedIndustryLabel}
                   variant="soft"
                   colorVariant="success"
                   rounded="md"
@@ -929,18 +945,19 @@ const ReviewAndCreateStep = ({
           </div>
 
           <div className="flex flex-1 grid grid-cols-2 gap-x-4 gap-y-2.5 max-w-[480px]">
-            <ReviewItem
-              label="Company Type"
-              value={
-                formData.companyType === "private_limited"
-                  ? "Private Limited"
-                  : formData.companyType
-              }
-            />
+            <ReviewItem label="Company Type" value={resolvedTypeLabel} />
             <ReviewItem
               label="Operational Status"
               value={<span className="capitalize">{formData.status}</span>}
             />
+            {formData.companyDescription && (
+              <div className="col-span-2">
+                <ReviewItem
+                  label="Description"
+                  value={formData.companyDescription}
+                />
+              </div>
+            )}
           </div>
         </div>
       </AppCard>

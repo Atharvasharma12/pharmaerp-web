@@ -1,19 +1,12 @@
 // src/features/onboarding/pages/desktop/TrialActivatedDesktopPage.jsx
 
+import React from "react";
 import {
   FiArrowRight,
-  FiBarChart2,
-  FiBriefcase,
   FiCalendar,
   FiCheck,
-  FiFileText,
-  FiHeadphones,
-  FiHome,
   FiInfo,
-  FiShoppingCart,
   FiShield,
-  FiUsers,
-  FiZap,
 } from "react-icons/fi";
 
 import {
@@ -25,75 +18,30 @@ import {
   AppText,
 } from "@/components";
 
-const includedFeatures = [
-  {
-    icon: <FiBriefcase />,
-    title: "5 Companies",
-    text: "Create and manage up to 5 companies",
-  },
-  {
-    icon: <FiHome />,
-    title: "10 Branches",
-    text: "Add and manage up to 10 branches",
-  },
-  {
-    icon: <FiUsers />,
-    title: "Up to 20 Users",
-    text: "Invite your team and assign roles",
-  },
-  {
-    icon: <FiFileText />,
-    title: "Advanced Inventory",
-    text: "Inventory, stock, expiry & batch management",
-  },
-  {
-    icon: <FiShoppingCart />,
-    title: "Purchases & Suppliers",
-    text: "Manage purchases and suppliers",
-  },
-  {
-    icon: <FiFileText />,
-    title: "POS Billing",
-    text: "Fast and easy billing system",
-  },
-  {
-    icon: <FiBarChart2 />,
-    title: "Reports & Analytics",
-    text: "Insightful reports and dashboards",
-  },
-  {
-    icon: <FiHeadphones />,
-    title: "Priority Support",
-    text: "Get priority email support",
-  },
-];
-
 const nextSteps = [
   {
-    icon: <FiBriefcase />,
     title: "Create Company",
     text: "Add your first company to get started",
   },
   {
-    icon: <FiHome />,
     title: "Create Branch",
     text: "Add your first branch or store",
   },
   {
-    icon: <FiUsers />,
     title: "Add Staff",
     text: "Invite your team and assign roles",
   },
   {
-    icon: <FiZap />,
     title: "Start Using ERP",
     text: "Explore and manage your business",
   },
 ];
 
-const TrialActivatedDesktopPage = ({ trialData, handleGoToDashboard }) => {
-  const trialEndsOn = getTrialEndDate(trialData?.trialDays || 14);
-
+const TrialActivatedDesktopPage = ({
+  trialData,
+  includedFeatures = [],
+  handleGoToDashboard,
+}) => {
   return (
     <section className="relative -mx-6 -my-8 min-h-[calc(100vh-58px)] bg-bg px-8 py-5">
       <AppCard
@@ -112,20 +60,25 @@ const TrialActivatedDesktopPage = ({ trialData, handleGoToDashboard }) => {
           </AppHeading>
 
           <AppText variant="body2" sx={subtitleSx}>
-            Great! Your {trialData?.trialDays || 14}-day free trial has been
+            Great! Your {trialData?.trialDays || 7}-day free trial has been
             successfully activated.
             <br />
             Explore all features and set up your pharmacy business.
           </AppText>
         </AppBox>
 
-        <TrialSummaryCard trialData={trialData} trialEndsOn={trialEndsOn} />
+        <TrialSummaryCard trialData={trialData} />
 
         <SectionTitle title="What You Get in Trial" />
 
         <div className="grid grid-cols-4 gap-x-8 gap-y-5">
           {includedFeatures.map((feature) => (
-            <FeatureItem key={feature.title} {...feature} />
+            <FeatureItem
+              key={feature.id || feature.title}
+              icon={feature.icon}
+              title={feature.title}
+              text={feature.text}
+            />
           ))}
         </div>
 
@@ -153,7 +106,7 @@ const TrialActivatedDesktopPage = ({ trialData, handleGoToDashboard }) => {
   );
 };
 
-const TrialSummaryCard = ({ trialData, trialEndsOn }) => (
+const TrialSummaryCard = ({ trialData }) => (
   <AppCard
     variant="soft"
     rounded="lg"
@@ -166,26 +119,21 @@ const TrialSummaryCard = ({ trialData, trialEndsOn }) => (
       <SummaryItem
         icon={<FiCalendar />}
         label="Trial Plan"
-        value={trialData?.planName || "Professional"}
+        value={trialData?.planName || "Professional Plan"}
         highlight
       />
       <SummaryItem
         icon={<FiCalendar />}
         label="Trial Period"
-        value={`${trialData?.trialDays || 14} Days`}
+        value={`${trialData?.trialDays || 7} Days`}
       />
       <SummaryItem
         icon={<FiCalendar />}
         label="Trial Ends On"
-        value={trialEndsOn}
+        value={trialData?.trialEndsOn}
         highlight
       />
-      <SummaryItem
-        icon={<FiShield />}
-        label="Status"
-        value={trialData?.trialStatus || "Active"}
-        badge
-      />
+      <SummaryItem icon={<FiShield />} label="Status" value="Active" badge />
     </div>
 
     <AppBox sx={noticeSx}>
@@ -271,25 +219,23 @@ const NextStepsCard = () => (
 
     <div className="mt-6 grid grid-cols-[1fr_28px_1fr_28px_1fr_28px_1fr] items-start gap-3">
       {nextSteps.map((step, index) => (
-        <ReactFragmentLike key={step.title}>
-          <NextStep {...step} />
+        <React.Fragment key={step.title}>
+          <NextStep title={step.title} text={step.text} />
 
           {index < nextSteps.length - 1 && (
             <div className="mt-8 flex justify-center text-[20px] text-primary">
               <FiArrowRight />
             </div>
           )}
-        </ReactFragmentLike>
+        </React.Fragment>
       ))}
     </div>
   </AppCard>
 );
 
-const ReactFragmentLike = ({ children }) => <>{children}</>;
-
-const NextStep = ({ icon, title, text }) => (
+const NextStep = ({ title, text }) => (
   <AppStack direction="row" align="flex-start" gap={1.2}>
-    <IconBox icon={icon} large />
+    <IconBox icon={<FiCheck />} large />
 
     <AppBox>
       <AppHeading level={3} weight={650} sx={featureTitleSx}>
@@ -356,17 +302,7 @@ const IconBox = ({ icon, soft = false, large = false }) => (
   </AppBox>
 );
 
-const getTrialEndDate = (trialDays) => {
-  const date = new Date();
-  date.setDate(date.getDate() + Number(trialDays || 14));
-
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
-
+/* Styles Dictionary Tokens Mapping */
 const pageCardSx = {
   mx: "auto",
   maxWidth: 1180,
@@ -374,7 +310,6 @@ const pageCardSx = {
   py: 4,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-md)",
 };
 
 const titleSx = {
@@ -434,7 +369,7 @@ const noticeSx = {
   px: 1.5,
   py: 1.2,
   borderRadius: "8px",
-  border: "1px solid var(--app-color-info)",
+  border: "1px solid var(--app-color-border)",
   bgcolor: "var(--app-color-info-soft)",
 };
 

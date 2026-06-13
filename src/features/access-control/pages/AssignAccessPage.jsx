@@ -13,6 +13,7 @@ import useBranch from "@/features/branch/hooks/useBranch";
 import useAccessControl from "../hooks/useAccessControl";
 
 import AssignAccessDesktopPage from "./desktop/AssignAccessDesktopPage";
+import AssignAccessMobilePage from "./mobile/AssignAccessMobilePage";
 
 const INITIAL_FORM_DATA = {
   memberUserId: "",
@@ -378,7 +379,29 @@ const AssignAccessPage = () => {
     [formData, navigate, updateMemberAccess, validateStepData, clearError],
   );
 
-  return (
+  return isMobile ? (
+    <AssignAccessMobilePage
+      formData={formData}
+      formErrors={formErrors}
+      currentStep={currentStep}
+      isLoading={isLoading}
+      isSubmitting={isSubmitting}
+      error={error}
+      message={message}
+      memberOptions={memberOptions}
+      companyOptions={companyOptions}
+      filteredBranchOptions={filteredBranchOptions}
+      selectedMember={selectedMember}
+      accessSummary={accessSummary}
+      handleChange={handleChange}
+      handleStepChange={handleStepChange}
+      handleContinue={handleContinue}
+      handleBack={handleBackStep}
+      handleCancel={() => navigate(ROUTES.MEMBER_ACCESS)}
+      handleReset={handleResetForm}
+      handleSubmit={handleSubmit}
+    />
+  ) : (
     <AssignAccessDesktopPage
       formData={formData}
       formErrors={formErrors}

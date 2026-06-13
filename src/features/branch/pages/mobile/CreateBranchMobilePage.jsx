@@ -1,24 +1,21 @@
 // src/features/branch/pages/mobile/CreateBranchMobilePage.jsx
 
+import { memo } from "react";
 import {
   FiArrowLeft,
+  FiArrowRight,
   FiBriefcase,
-  FiCalendar,
+  FiCheck,
   FiCheckCircle,
-  FiClock,
-  FiCreditCard,
+  FiEdit3,
   FiFileText,
-  FiInfo,
-  FiMail,
   FiMapPin,
-  FiPackage,
+  FiMail,
   FiPhone,
-  FiSave,
-  FiSettings,
   FiShield,
-  FiTruck,
   FiUser,
 } from "react-icons/fi";
+import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
 
 import {
   AppBox,
@@ -26,970 +23,1115 @@ import {
   AppCard,
   AppHeading,
   AppInput,
-  AppPhoneInput,
+  AppSelect,
   AppStack,
-  AppSwitch,
+  AppTag,
   AppText,
 } from "@/components";
 
-const FIELD_SECTIONS = [
-  {
-    id: "basic",
-    title: "Basic Information",
-    subtitle: "Branch identity, type, primary flag and contact details.",
-    icon: <FiBriefcase />,
-    fields: [
-      {
-        component: "input",
-        label: "Branch Name",
-        name: "branchName",
-        placeholder: "Enter branch name",
-        required: true,
-        startIcon: <FiBriefcase />,
-      },
-      {
-        component: "select",
-        label: "Branch Type",
-        name: "branchType",
-        optionsKey: "branchTypeOptions",
-      },
-      {
-        component: "select",
-        label: "Status",
-        name: "status",
-        optionsKey: "statusOptions",
-      },
-      {
-        component: "switch",
-        label: "Primary Branch",
-        name: "isPrimary",
-      },
-      {
-        component: "input",
-        label: "Branch Email",
-        name: "branchEmail",
-        placeholder: "Enter branch email",
-        startIcon: <FiMail />,
-      },
-      {
-        component: "phone",
-        label: "Branch Phone Number",
-        name: "branchPhone",
-      },
-    ],
-  },
-  {
-    id: "address",
-    title: "Address",
-    subtitle: "Used on invoices, records and branch delivery workflows.",
-    icon: <FiMapPin />,
-    fields: [
-      {
-        component: "input",
-        label: "Address Line 1",
-        name: "addressLine1",
-        placeholder: "Enter address line 1",
-        startIcon: <FiMapPin />,
-      },
-      {
-        component: "input",
-        label: "Address Line 2",
-        name: "addressLine2",
-        placeholder: "Enter address line 2",
-      },
-      {
-        component: "input",
-        label: "City",
-        name: "city",
-        placeholder: "Enter city",
-      },
-      {
-        component: "input",
-        label: "District",
-        name: "district",
-        placeholder: "Enter district",
-      },
-      {
-        component: "input",
-        label: "State",
-        name: "state",
-        placeholder: "Enter state",
-      },
-      {
-        component: "input",
-        label: "Country",
-        name: "country",
-        placeholder: "Enter country",
-      },
-      {
-        component: "input",
-        label: "Pincode",
-        name: "pincode",
-        placeholder: "Enter pincode",
-      },
-      {
-        component: "input",
-        label: "Google Map Location",
-        name: "googleMapLocation",
-        placeholder: "Enter Google Map location/link",
-        startIcon: <FiMapPin />,
-      },
-    ],
-  },
-  {
-    id: "license",
-    title: "License Details",
-    subtitle: "Drug license, license type, expiry and FSSAI references.",
-    icon: <FiFileText />,
-    fields: [
-      {
-        component: "input",
-        label: "Drug License Number",
-        name: "drugLicenseNumber",
-        placeholder: "Enter drug license number",
-        startIcon: <FiFileText />,
-      },
-      {
-        component: "input",
-        label: "Drug License Type",
-        name: "drugLicenseType",
-        placeholder: "Enter license type",
-      },
-      {
-        component: "input",
-        label: "FSSAI Number",
-        name: "fssaiNumber",
-        placeholder: "Enter FSSAI number",
-      },
-      {
-        component: "input",
-        label: "License Expiry Date",
-        name: "licenseExpiresAt",
-        type: "date",
-        startIcon: <FiCalendar />,
-      },
-    ],
-  },
-  {
-    id: "pharmacist",
-    title: "Pharmacist Details",
-    subtitle: "Registration and pharmacist accountability details.",
-    icon: <FiUser />,
-    fields: [
-      {
-        component: "input",
-        label: "Pharmacist Name",
-        name: "pharmacistName",
-        placeholder: "Enter pharmacist name",
-        startIcon: <FiUser />,
-      },
-      {
-        component: "input",
-        label: "Registration Number",
-        name: "pharmacistRegistrationNumber",
-        placeholder: "Enter registration number",
-      },
-      {
-        component: "phone",
-        label: "Pharmacist Mobile",
-        name: "pharmacistMobile",
-      },
-      {
-        component: "input",
-        label: "Pharmacist Email",
-        name: "pharmacistEmail",
-        placeholder: "Enter pharmacist email",
-        startIcon: <FiMail />,
-      },
-    ],
-  },
-  {
-    id: "emergency",
-    title: "Emergency Contact",
-    subtitle: "Urgent branch contact person and relationship details.",
-    icon: <FiPhone />,
-    fields: [
-      {
-        component: "input",
-        label: "Contact Name",
-        name: "emergencyContactName",
-        placeholder: "Enter emergency contact name",
-        startIcon: <FiUser />,
-      },
-      {
-        component: "phone",
-        label: "Contact Mobile",
-        name: "emergencyContactMobile",
-      },
-      {
-        component: "input",
-        label: "Relationship",
-        name: "emergencyContactRelationship",
-        placeholder: "Enter relationship",
-      },
-    ],
-  },
-  {
-    id: "billing",
-    title: "Billing Settings",
-    subtitle: "Invoice, purchase, return and note series defaults.",
-    icon: <FiCreditCard />,
-    fields: [
-      {
-        component: "input",
-        label: "Invoice Prefix",
-        name: "invoicePrefix",
-        placeholder: "INV",
-      },
-      {
-        component: "input",
-        label: "Purchase Prefix",
-        name: "purchasePrefix",
-        placeholder: "PUR",
-      },
-      {
-        component: "input",
-        label: "Sales Return Prefix",
-        name: "salesReturnPrefix",
-        placeholder: "SR",
-      },
-      {
-        component: "input",
-        label: "Purchase Return Prefix",
-        name: "purchaseReturnPrefix",
-        placeholder: "PR",
-      },
-      {
-        component: "input",
-        label: "Credit Note Prefix",
-        name: "creditNotePrefix",
-        placeholder: "CN",
-      },
-      {
-        component: "input",
-        label: "Debit Note Prefix",
-        name: "debitNotePrefix",
-        placeholder: "DBN",
-      },
-      {
-        component: "input",
-        label: "Starting Invoice Number",
-        name: "startingInvoiceNumber",
-        placeholder: "1",
-      },
-      {
-        component: "input",
-        label: "Starting Purchase Number",
-        name: "startingPurchaseNumber",
-        placeholder: "1",
-      },
-    ],
-  },
-  {
-    id: "inventory",
-    title: "Inventory Settings",
-    subtitle: "Stock, batch, rack, expiry and pricing controls.",
-    icon: <FiPackage />,
-    fields: [
-      {
-        component: "select",
-        label: "Inventory Mode",
-        name: "inventoryMode",
-        optionsKey: "inventoryModeOptions",
-      },
-      {
-        component: "select",
-        label: "Price Mode",
-        name: "priceMode",
-        optionsKey: "priceModeOptions",
-      },
-      {
-        component: "switch",
-        label: "Allow Negative Stock",
-        name: "allowNegativeStock",
-      },
-      {
-        component: "switch",
-        label: "Allow Backdated Entries",
-        name: "allowBackdatedEntries",
-      },
-      {
-        component: "switch",
-        label: "Batch Tracking",
-        name: "enableBatchTracking",
-      },
-      {
-        component: "switch",
-        label: "Expiry Tracking",
-        name: "enableExpiryTracking",
-      },
-      {
-        component: "switch",
-        label: "Rack Tracking",
-        name: "enableRackTracking",
-      },
-      {
-        component: "switch",
-        label: "Stock Tracking",
-        name: "enableStockTracking",
-      },
-    ],
-  },
-  {
-    id: "working-hours",
-    title: "Working Hours",
-    subtitle: "Opening time, closing time and branch working days.",
-    icon: <FiClock />,
-    fields: [
-      {
-        component: "input",
-        label: "Opening Time",
-        name: "openingTime",
-        placeholder: "09:00 AM",
-        startIcon: <FiClock />,
-      },
-      {
-        component: "input",
-        label: "Closing Time",
-        name: "closingTime",
-        placeholder: "09:00 PM",
-        startIcon: <FiClock />,
-      },
-      {
-        component: "input",
-        label: "Weekly Off",
-        name: "weeklyOff",
-        placeholder: "Sunday",
-      },
-      {
-        component: "input",
-        label: "Working Days",
-        name: "workingDays",
-        placeholder: "Monday, Tuesday, Wednesday",
-      },
-    ],
-  },
-  {
-    id: "facilities",
-    title: "Facilities",
-    subtitle: "Delivery, online order, cold storage and 24x7 flags.",
-    icon: <FiTruck />,
-    fields: [
-      {
-        component: "switch",
-        label: "Home Delivery",
-        name: "homeDelivery",
-      },
-      {
-        component: "switch",
-        label: "WhatsApp Orders",
-        name: "whatsappOrders",
-      },
-      {
-        component: "switch",
-        label: "Online Orders",
-        name: "onlineOrders",
-      },
-      {
-        component: "switch",
-        label: "Cold Storage",
-        name: "coldStorageAvailable",
-      },
-      {
-        component: "switch",
-        label: "24x7 Service",
-        name: "twentyFourSevenService",
-      },
-    ],
-  },
-  {
-    id: "settings",
-    title: "Additional Settings",
-    subtitle: "Currency, timezone, date and time display preferences.",
-    icon: <FiSettings />,
-    fields: [
-      {
-        component: "input",
-        label: "Timezone",
-        name: "timezone",
-        placeholder: "Asia/Kolkata",
-      },
-      {
-        component: "select",
-        label: "Currency",
-        name: "currency",
-        optionsKey: "currencyOptions",
-      },
-      {
-        component: "input",
-        label: "Date Format",
-        name: "dateFormat",
-        placeholder: "DD/MM/YYYY",
-      },
-      {
-        component: "select",
-        label: "Time Format",
-        name: "timeFormat",
-        optionsKey: "timeFormatOptions",
-      },
-    ],
-  },
-];
+const CreateBranchMobilePage = memo(
+  ({
+    formData,
+    formErrors = {},
+    isLoading = false,
+    currentStep = 1,
 
-const setupTips = [
-  {
-    icon: <FiShield />,
-    title: "Verify branch records",
-    desc: "Check branch phone, address and license details before saving.",
-  },
-  {
-    icon: <FiPackage />,
-    title: "Stock controls",
-    desc: "Batch, expiry, rack and stock tracking affect inventory flows.",
-  },
-  {
-    icon: <FiCheckCircle />,
-    title: "Billing series",
-    desc: "Confirm invoice and purchase start numbers before transactions.",
-  },
-];
+    branchTypeOptions = [],
+    booleanOptions = [],
 
-const CreateBranchMobilePage = ({
-  formData,
-  formErrors = {},
-  isLoading = false,
-  branchTypeOptions = [],
-  statusOptions = [],
-  inventoryModeOptions = [],
-  priceModeOptions = [],
-  currencyOptions = [],
-  timeFormatOptions = [],
-  handleChange,
-  handleSubmit,
-  handleBack,
-}) => {
-  const optionMaps = {
-    branchTypeOptions,
-    statusOptions,
-    inventoryModeOptions,
-    priceModeOptions,
-    currencyOptions,
-    timeFormatOptions,
-  };
+    handleChange,
+    handleSubmit,
+    handleBack,
+    handleContinue,
+    handleStepChange,
+    handleCancel,
+  }) => {
+    return (
+      <section className="relative w-full overflow-hidden bg-bg">
+        <AppBox sx={containerSx}>
+          {/* Section 1: Header Title Metadata Block */}
+          <AppBox sx={headerTitleBlockSx}>
+            <AppText variant="caption" weight={700} sx={stepTrackerLabelSx}>
+              Step {currentStep} of 5
+            </AppText>
+            <AppHeading level={1} weight={800} sx={pageTitleSx}>
+              {currentStep === 5 ? "Review & Create" : "Create Branch"}
+            </AppHeading>
+            <AppText variant="body2" weight={500} sx={pageSubtitleSx}>
+              {currentStep === 5
+                ? "Please review all your branch details before creating."
+                : "Configure operational parameters, addresses, and compliance parameters."}
+            </AppText>
+          </AppBox>
+
+          {/* Section 2: Progress Timeline Workflow Stepper Component */}
+          <MobileWorkflowStepper
+            currentStep={currentStep}
+            onStepClick={handleStepChange}
+          />
+
+          {/* Section 3: Central Step Form Switcher Matrix */}
+          <AppBox sx={{ mt: 1.5 }}>
+            {formErrors.submit && (
+              <AppText variant="body2" sx={submitErrorTextSx}>
+                {formErrors.submit}
+              </AppText>
+            )}
+
+            {currentStep === 1 && (
+              <MobileStepBranchDetails
+                formData={formData}
+                formErrors={formErrors}
+                branchTypeOptions={branchTypeOptions}
+                booleanOptions={booleanOptions}
+                handleChange={handleChange}
+                isLoading={isLoading}
+              />
+            )}
+
+            {currentStep === 2 && (
+              <MobileStepAddressDetails
+                formData={formData}
+                formErrors={formErrors}
+                handleChange={handleChange}
+                isLoading={isLoading}
+              />
+            )}
+
+            {currentStep === 3 && (
+              <MobileStepLicenseDetails
+                formData={formData}
+                formErrors={formErrors}
+                handleChange={handleChange}
+                isLoading={isLoading}
+              />
+            )}
+
+            {currentStep === 4 && (
+              <MobileStepComplianceDetails
+                formData={formData}
+                formErrors={formErrors}
+                handleChange={handleChange}
+                isLoading={isLoading}
+              />
+            )}
+
+            {currentStep === 5 && (
+              <MobileStepReviewAndCreate
+                formData={formData}
+                branchTypeOptions={branchTypeOptions}
+                onEditSection={handleStepChange}
+              />
+            )}
+          </AppBox>
+
+          {/* Section 4: Data Privacy Advisory Banner Section */}
+          <AppCard
+            variant="soft"
+            rounded="lg"
+            bordered={false}
+            shadow="none"
+            padding="none"
+            sx={securityFooterBannerSx}
+          >
+            <AppStack direction="row" align="flex-start" gap={1}>
+              <FiShield className="text-[15px] text-success mt-0.5 shrink-0" />
+              <AppBox sx={{ minWidth: 0 }}>
+                <AppText
+                  variant="body2"
+                  weight={750}
+                  sx={securityBannerTitleSx}
+                >
+                  Your data is safe with us.
+                </AppText>
+                <AppText variant="body2" weight={500} sx={securityBannerDescSx}>
+                  We use advanced security to protect your business information.
+                </AppText>
+              </AppBox>
+            </AppStack>
+          </AppCard>
+
+          {/* Section 5: Core Form Bottom Presentational Action Bars */}
+          <AppBox sx={bottomStickyActionBarSx}>
+            {currentStep === 5 ? (
+              <AppStack
+                direction="row"
+                align="center"
+                justify="space-between"
+                fullWidth
+              >
+                <AppButton
+                  variant="outlined"
+                  colorVariant="neutral"
+                  rounded="md"
+                  startIcon={<FiArrowLeft />}
+                  onClick={handleBack}
+                  disabled={isLoading}
+                  sx={actionButtonLeftSx}
+                >
+                  Back
+                </AppButton>
+                <AppButton
+                  variant="contained"
+                  colorVariant="success"
+                  rounded="md"
+                  startIcon={<FiCheckCircle />}
+                  onClick={handleSubmit}
+                  loading={isLoading}
+                  disabled={isLoading}
+                  sx={actionButtonRightSx}
+                >
+                  Create Branch
+                </AppButton>
+              </AppStack>
+            ) : (
+              <AppStack
+                direction="row"
+                gap={1.2}
+                justify="space-between"
+                fullWidth
+              >
+                <AppButton
+                  variant="outlined"
+                  colorVariant="neutral"
+                  rounded="md"
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                  sx={actionButtonCancelSx}
+                >
+                  Cancel
+                </AppButton>
+                <AppButton
+                  variant="contained"
+                  colorVariant="success"
+                  rounded="md"
+                  endIcon={<FiArrowRight />}
+                  onClick={handleContinue}
+                  disabled={isLoading}
+                  sx={actionButtonContinueSx}
+                >
+                  Save & Continue
+                </AppButton>
+              </AppStack>
+            )}
+          </AppBox>
+        </AppBox>
+      </section>
+    );
+  },
+);
+
+
+
+/* ==========================================================================
+   PRESENTATIONAL STEPPER COMPONENT WITH CONSTRICTION RAIL METRICS
+   ========================================================================== */
+
+const MobileWorkflowStepper = ({ currentStep, onStepClick }) => {
+  const stepsMeta = [
+    { id: 1, title: "Branch Details" },
+    { id: 2, title: "Address" },
+    { id: 3, title: "Statutory Info" },
+    { id: 4, title: "Compliance" },
+    { id: 5, title: "Review & Create" },
+  ];
 
   return (
-    <section className="relative min-h-screen w-full overflow-hidden bg-bg">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,color-mix(in_srgb,var(--app-color-primary)_8%,transparent),transparent_36%)]" />
-
-      <AppBox sx={sectionSx}>
+    <AppBox sx={stepperOuterBoundarySx}>
+      <AppBox sx={stepperInnerTrackSx}>
         <AppStack
           direction="row"
           align="center"
           justify="space-between"
-          gap={1}
+          sx={{ width: "100%" }}
         >
-          <AppButton
-            type="button"
-            variant="outlined"
-            colorVariant="neutral"
-            rounded="md"
-            disabled={isLoading}
-            startIcon={<FiArrowLeft />}
-            onClick={handleBack}
-            sx={backButtonSx}
-          >
-            Back
-          </AppButton>
+          {stepsMeta.map((step, idx) => {
+            const isActive = currentStep === step.id;
+            const isCompleted = currentStep > step.id;
 
-          <AppBox sx={headerBadgeSx}>
-            <FiBriefcase />
-            <span>Branch Setup</span>
-          </AppBox>
-        </AppStack>
-
-        <AppBox sx={headerSx}>
-          <AppHeading level={1} weight={800} align="center" sx={titleSx}>
-            Create Branch
-          </AppHeading>
-
-          <AppText variant="body2" align="center" weight={600} sx={subtitleSx}>
-            Add branch profile, address, license, inventory and facility
-            settings.
-          </AppText>
-        </AppBox>
-
-        <AppBox component="form" onSubmit={handleSubmit} sx={{ mt: 2.2 }}>
-          <AppStack direction="column" gap={1.65}>
-            {FIELD_SECTIONS.map((section) => (
-              <FormSection key={section.id} section={section}>
-                {section.fields.map((field) => (
-                  <MobileField
-                    key={field.name}
-                    field={field}
-                    value={formData[field.name] ?? ""}
-                    error={formErrors[field.name]}
-                    disabled={isLoading}
-                    optionMaps={optionMaps}
-                    onChange={handleChange}
+            return (
+              <div
+                key={step.id}
+                className="flex flex-col items-center flex-1 relative"
+              >
+                {/* Micro Independent Horizontal Connector Line Rails (No-Touch Setup) */}
+                {idx > 0 && (
+                  <div
+                    className="absolute"
+                    style={{
+                      height: "2px",
+                      width: "35%",
+                      left: "-17.5%",
+                      top: "13px",
+                      zIndex: 1,
+                      backgroundColor:
+                        isCompleted || isActive
+                          ? "var(--app-color-success, #10b981)"
+                          : "var(--app-color-border, #e2e8f0)",
+                    }}
                   />
-                ))}
-              </FormSection>
-            ))}
+                )}
 
-            {formErrors.submit ? (
-              <AppText variant="body2" sx={submitErrorSx}>
-                {formErrors.submit}
-              </AppText>
-            ) : null}
+                <button
+                  type="button"
+                  onClick={() => onStepClick?.(step.id)}
+                  className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold transition-all outline-none border-0"
+                  style={{
+                    backgroundColor: isActive
+                      ? "var(--app-color-success, #10b981)"
+                      : isCompleted
+                        ? "var(--app-color-success-soft, #e6f4ea)"
+                        : "var(--app-color-surface-alt, #f8fafc)",
+                    color: isActive
+                      ? "var(--app-color-text-inverse, #ffffff)"
+                      : isCompleted || isActive
+                        ? "var(--app-color-success, #10b981)"
+                        : "var(--app-color-text-muted, #94a3b8)",
+                    border:
+                      isCompleted || isActive
+                        ? "none"
+                        : "1px solid var(--app-color-border, #e2e8f0)",
+                  }}
+                >
+                  {isCompleted ? <FiCheck className="text-[13px]" /> : step.id}
+                </button>
 
-            <AppCard
-              variant="default"
-              rounded="xl"
-              bordered
-              shadow="sm"
-              padding="none"
-              sx={infoCardSx}
-            >
-              <AppStack direction="row" align="flex-start" gap={1.1}>
-                <AppBox sx={infoIconSx}>
-                  <FiInfo />
-                </AppBox>
-
-                <AppBox sx={{ minWidth: 0 }}>
-                  <AppHeading level={3} weight={750} sx={infoTitleSx}>
-                    Before creating
-                  </AppHeading>
-
-                  <AppText variant="body2" weight={500} sx={infoTextSx}>
-                    Review branch contact, address, license, billing and
-                    inventory settings. These details affect invoices, stock
-                    movement and branch operations.
-                  </AppText>
-                </AppBox>
-              </AppStack>
-            </AppCard>
-
-            <AppCard
-              variant="default"
-              rounded="xl"
-              bordered
-              shadow="sm"
-              padding="none"
-              sx={featuresCardSx}
-            >
-              {setupTips.map((item, index) => (
-                <TipRow
-                  key={item.title}
-                  {...item}
-                  bordered={index !== setupTips.length - 1}
-                />
-              ))}
-            </AppCard>
-
-            <AppButton
-              type="submit"
-              variant="contained"
-              colorVariant="primary"
-              rounded="md"
-              fullWidth
-              loading={isLoading}
-              disabled={isLoading}
-              startIcon={<FiSave />}
-              sx={saveButtonSx}
-            >
-              Save Branch
-            </AppButton>
-          </AppStack>
-        </AppBox>
+                <AppText
+                  variant="caption"
+                  weight={isActive ? 750 : 550}
+                  sx={{
+                    ...stepperTitleTextSx,
+                    color: isActive
+                      ? "var(--app-color-text)"
+                      : "var(--app-color-text-muted)",
+                  }}
+                >
+                  {step.title}
+                </AppText>
+              </div>
+            );
+          })}
+        </AppStack>
       </AppBox>
-    </section>
+    </AppBox>
   );
 };
 
-const FormSection = ({ section, children }) => (
+/* ==========================================================================
+   FORM EDIT SUB-STEPS CONFIGURATION MODULE PANELS (STEPS 1 - 4)
+   ========================================================================== */
+
+const MobileStepBranchDetails = ({
+  formData,
+  formErrors,
+  branchTypeOptions,
+  booleanOptions,
+  handleChange,
+  isLoading,
+}) => (
   <AppCard
     variant="default"
-    rounded="xl"
+    rounded="lg"
     bordered
-    shadow="sm"
+    shadow="none"
     padding="none"
-    sx={formCardSx}
+    sx={formCardContainerSx}
   >
-    <AppStack direction="row" align="flex-start" gap={1} sx={sectionHeaderSx}>
-      <AppBox sx={sectionIconSx}>{section.icon}</AppBox>
+    <AppHeading level={3} weight={800} sx={formCardSectionHeaderSx}>
+      Branch Core Profile
+    </AppHeading>
+    <AppText variant="body2" sx={formCardSectionDescSx}>
+      Provide branch tracking naming structures and infrastructure channels.
+    </AppText>
 
-      <AppBox sx={{ minWidth: 0, flex: 1 }}>
-        <AppHeading level={2} weight={750} sx={sectionTitleSx}>
-          {section.title}
-        </AppHeading>
+    <AppStack direction="column" gap={1.4} sx={{ mt: 1.8 }}>
+      <AppInput
+        label="Branch Name"
+        name="branchName"
+        value={formData.branchName || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Enter branch name"
+        required
+        error={Boolean(formErrors.branchName)}
+        helperText={formErrors.branchName}
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
 
-        <AppText variant="body2" weight={500} sx={sectionSubtitleSx}>
-          {section.subtitle}
-        </AppText>
-      </AppBox>
-    </AppStack>
+      <AppSelect
+        label="Branch Type"
+        name="branchType"
+        value={formData.branchType || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        options={branchTypeOptions}
+        required
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
 
-    <AppStack direction="column" gap={1.15} sx={fieldsStackSx}>
-      {children}
+      <AppSelect
+        label="Primary Location Flag"
+        name="isPrimary"
+        value={formData.isPrimary || "false"}
+        onChange={handleChange}
+        disabled={isLoading}
+        options={booleanOptions}
+        required
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+
+      <AppInput
+        label="Branch Email Address"
+        name="branchEmail"
+        value={formData.branchEmail || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="branch@company.com"
+        error={Boolean(formErrors.branchEmail)}
+        helperText={formErrors.branchEmail}
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+
+      <AppInput
+        label="Mobile Number"
+        name="mobile"
+        value={formData.mobile || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Enter 10-digit mobile number"
+        required
+        error={Boolean(formErrors.mobile)}
+        helperText={formErrors.mobile}
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+
+      <AppInput
+        label="WhatsApp Number"
+        name="whatsapp"
+        value={formData.whatsapp || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Enter WhatsApp communication link"
+        error={Boolean(formErrors.whatsapp)}
+        helperText={formErrors.whatsapp}
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+
+      <AppInput
+        label="Landline Number (Optional)"
+        name="landline"
+        value={formData.landline || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Enter landline number"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
     </AppStack>
   </AppCard>
 );
 
-const MobileField = ({
-  field,
-  value,
-  error,
-  disabled,
-  optionMaps,
-  onChange,
-}) => {
-  const commonProps = {
-    label: field.label,
-    name: field.name,
-    value,
-    onChange,
-    disabled,
-    placeholder: field.placeholder,
-    required: field.required,
-    fullWidth: true,
-    size: "small",
-    variant: "bordered",
-    rounded: "md",
-    error: Boolean(error),
-    helperText: error,
-    labelSx,
-    inputSx,
-    helperTextSx,
-  };
+const MobileStepAddressDetails = ({
+  formData,
+  formErrors,
+  handleChange,
+  isLoading,
+}) => (
+  <AppCard
+    variant="default"
+    rounded="lg"
+    bordered
+    shadow="none"
+    padding="none"
+    sx={formCardContainerSx}
+  >
+    <AppHeading level={3} weight={800} sx={formCardSectionHeaderSx}>
+      Registered Branch Address
+    </AppHeading>
+    <AppText variant="body2" sx={formCardSectionDescSx}>
+      Define office addresses bound to spatial models and print layouts.
+    </AppText>
 
-  if (field.component === "select") {
-    return (
-      <AppInput {...commonProps} select>
-        {(optionMaps[field.optionsKey] || []).map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </AppInput>
-    );
-  }
+    <AppStack direction="column" gap={1.4} sx={{ mt: 1.8 }}>
+      <AppInput
+        label="Address Line 1"
+        name="addressLine1"
+        value={formData.addressLine1 || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Flat/Plot, Building, Corporate complex"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="Address Line 2"
+        name="addressLine2"
+        value={formData.addressLine2 || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Locality, Sector, Landmark parameters"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="City"
+        name="city"
+        value={formData.city || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Enter city"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="District"
+        name="district"
+        value={formData.district || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Enter district"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="State"
+        name="state"
+        value={formData.state || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Enter state"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="Pincode"
+        name="pincode"
+        value={formData.pincode || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Enter 6-digit PIN tracking code"
+        required
+        error={Boolean(formErrors.pincode)}
+        helperText={formErrors.pincode}
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="Country"
+        name="country"
+        value={formData.country || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="India"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="Google Map Location Link"
+        name="googleMapLocation"
+        value={formData.googleMapLocation || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Paste map coordinate link structures"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+    </AppStack>
+  </AppCard>
+);
 
-  if (field.component === "switch") {
-    const checked = value === true || value === "true";
+const MobileStepLicenseDetails = ({
+  formData,
+  formErrors,
+  handleChange,
+  isLoading,
+}) => (
+  <AppCard
+    variant="default"
+    rounded="lg"
+    bordered
+    shadow="none"
+    padding="none"
+    sx={formCardContainerSx}
+  >
+    <AppHeading level={3} weight={800} sx={formCardSectionHeaderSx}>
+      Statutory Compliance Licenses
+    </AppHeading>
+    <AppText variant="body2" sx={formCardSectionDescSx}>
+      Configure industry regulatory numbers and license profiles.
+    </AppText>
 
-    return (
-      <AppBox sx={switchFieldSx}>
-        <AppSwitch
-          label={field.label}
-          name={field.name}
-          checked={checked}
-          onChange={(event) =>
-            onChange(field.name, event?.target?.checked ? "true" : "false")
-          }
-          size="small"
-          colorVariant="primary"
-          labelPlacement="start"
-          fullWidth
-          disabled={disabled}
-          error={Boolean(error)}
-          helperText={error}
-          sx={switchWrapperSx}
-          switchSx={switchSx}
-          labelSx={switchLabelSx}
-          helperTextSx={switchHelperTextSx}
-        />
+    <AppStack direction="column" gap={1.4} sx={{ mt: 1.8 }}>
+      <AppInput
+        label="Drug License Number"
+        name="drugLicenseNumber"
+        value={formData.drugLicenseNumber || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Form 20 / Form 21 identifiers"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="Drug License Type"
+        name="drugLicenseType"
+        value={formData.drugLicenseType || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Retail / Wholesale parameters"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="FSSAI Number"
+        name="fssaiNumber"
+        value={formData.fssaiNumber || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Enter 14-digit food authorization code"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="License Expiry Date"
+        name="licenseExpiresAt"
+        type="date"
+        value={formData.licenseExpiresAt || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+    </AppStack>
+  </AppCard>
+);
+
+const MobileStepComplianceDetails = ({
+  formData,
+  formErrors,
+  handleChange,
+  isLoading,
+}) => (
+  <AppCard
+    variant="default"
+    rounded="lg"
+    bordered
+    shadow="none"
+    padding="none"
+    sx={formCardContainerSx}
+  >
+    <AppHeading level={3} weight={800} sx={formCardSectionHeaderSx}>
+      Compliance Contacts Links
+    </AppHeading>
+    <AppText variant="body2" sx={formCardSectionDescSx}>
+      Link accountability governance entities and emergency contact lines.
+    </AppText>
+
+    <AppStack direction="column" gap={1.4} sx={{ mt: 1.8 }}>
+      <AppText variant="subtitle2" weight={800} sx={inlineSubheadingSx}>
+        Pharmacist Parameters
+      </AppText>
+      <AppInput
+        label="Registered Pharmacist Name"
+        name="pharmacistName"
+        value={formData.pharmacistName || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Full name matching council registration logs"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="Pharmacy Registration Number"
+        name="pharmacistRegistrationNumber"
+        value={formData.pharmacistRegistrationNumber || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="State council index string"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="Pharmacist Mobile"
+        name="pharmacistMobile"
+        value={formData.pharmacistMobile || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Pharmacist phone contact record"
+        error={Boolean(formErrors.pharmacistMobile)}
+        helperText={formErrors.pharmacistMobile}
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="Pharmacist Email"
+        name="pharmacistEmail"
+        value={formData.pharmacistEmail || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="pharmacist@company.com"
+        error={Boolean(formErrors.pharmacistEmail)}
+        helperText={formErrors.pharmacistEmail}
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+
+      <AppBox
+        sx={{
+          borderTop: "1px solid var(--app-color-divider)",
+          pt: 1.5,
+          mt: 0.5,
+        }}
+      >
+        <AppText variant="subtitle2" weight={800} sx={inlineSubheadingSx}>
+          Emergency Contact Link
+        </AppText>
       </AppBox>
-    );
-  }
+      <AppInput
+        label="Contact Name"
+        name="emergencyContactName"
+        value={formData.emergencyContactName || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="Full name"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="Contact Mobile"
+        name="emergencyContactMobile"
+        value={formData.emergencyContactMobile || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="10-digit emergency number"
+        error={Boolean(formErrors.emergencyContactMobile)}
+        helperText={formErrors.emergencyContactMobile}
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+      <AppInput
+        label="Relationship Mapping"
+        name="emergencyContactRelationship"
+        value={formData.emergencyContactRelationship || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        placeholder="e.g., Manager / Supervisor"
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+    </AppStack>
+  </AppCard>
+);
 
-  if (field.component === "phone") {
-    return <AppPhoneInput {...commonProps} countryCode="+91" showCountryCode />;
-  }
+/* ==========================================================================
+   STEP 5: AUDIT REVIEW SCREEN PANEL MODULE
+   ========================================================================== */
+
+const MobileStepReviewAndCreate = ({
+  formData,
+  branchTypeOptions,
+  onEditSection,
+}) => {
+  const resolvedType =
+    branchTypeOptions.find((opt) => opt.value === formData.branchType)?.label ||
+    formData.branchType ||
+    "";
 
   return (
-    <AppInput
-      {...commonProps}
-      type={field.type}
-      startIcon={field.startIcon}
-      endIcon={field.endIcon}
-    />
+    <AppCard
+      variant="default"
+      rounded="lg"
+      bordered
+      shadow="none"
+      padding="none"
+      sx={formCardContainerSx}
+    >
+      <AppStack
+        direction="row"
+        align="center"
+        justify="space-between"
+        fullWidth
+        sx={{ borderBottom: "1px solid var(--app-color-border)", pb: 1 }}
+      >
+        <AppHeading
+          level={3}
+          weight={800}
+          sx={{ m: 0, fontSize: "14px", color: "var(--app-color-text)" }}
+        >
+          Review Your Details
+        </AppHeading>
+        <AppButton
+          variant="outlined"
+          colorVariant="neutral"
+          size="small"
+          rounded="md"
+          startIcon={<FiEdit3 />}
+          onClick={() => onEditSection?.(1)}
+          sx={editReviewSectionBtnSx}
+        >
+          Edit
+        </AppButton>
+      </AppStack>
+
+      {/* Review Block 1: Branch Core Metadata */}
+      <AppBox sx={reviewBlockContainerSx}>
+        <AppStack direction="row" gap={0.75} align="center" sx={{ mb: 1 }}>
+          <AppBox sx={reviewHeaderIconTrackSx}>
+            <HiOutlineBuildingOffice2 />
+          </AppBox>
+          <AppText variant="body2" weight={800} sx={reviewBlockHeaderTitleSx}>
+            Branch Profile Overview
+          </AppText>
+        </AppStack>
+        <AppStack direction="column" gap={0.8}>
+          <ReviewGridRow label="Branch Name" value={formData.branchName} />
+          <ReviewGridRow label="Branch Type" value={resolvedType} />
+          <ReviewGridRow
+            label="Primary Flag"
+            value={formData.isPrimary === "true" ? "Yes" : "No"}
+          />
+          <ReviewGridRow label="Email Address" value={formData.branchEmail} />
+          <ReviewGridRow
+            label="Mobile Number"
+            value={formData.mobile ? `+91 ${formData.mobile}` : ""}
+          />
+          <ReviewGridRow
+            label="WhatsApp Comms"
+            value={formData.whatsapp ? `+91 ${formData.whatsapp}` : ""}
+          />
+          <ReviewGridRow label="Landline" value={formData.landline} />
+        </AppStack>
+      </AppBox>
+
+      {/* Review Block 2: Spatial Locations */}
+      <AppBox sx={reviewBlockContainerSx}>
+        <AppStack direction="row" gap={0.75} align="center" sx={{ mb: 1 }}>
+          <AppBox sx={reviewHeaderIconTrackSx}>
+            <FiMapPin />
+          </AppBox>
+          <AppText variant="body2" weight={800} sx={reviewBlockHeaderTitleSx}>
+            Spatial Addresses
+          </AppText>
+        </AppStack>
+        <AppStack direction="column" gap={0.8}>
+          <ReviewGridRow
+            label="Address"
+            value={
+              formData.addressLine1
+                ? `${formData.addressLine1}${formData.addressLine2 ? `, ${formData.addressLine2}` : ""}`
+                : ""
+            }
+          />
+          <ReviewGridRow label="City" value={formData.city} />
+          <ReviewGridRow label="District" value={formData.district} />
+          <ReviewGridRow label="State" value={formData.state} />
+          <ReviewGridRow label="PIN Code" value={formData.pincode} />
+          <ReviewGridRow label="Country" value={formData.country} />
+          <ReviewGridRow
+            label="Maps Location"
+            value={formData.googleMapLocation}
+          />
+        </AppStack>
+      </AppBox>
+
+      {/* Review Block 3: Statutory License Indexes */}
+      <AppBox sx={reviewBlockContainerSx}>
+        <AppStack direction="row" gap={0.75} align="center" sx={{ mb: 1 }}>
+          <AppBox sx={reviewHeaderIconTrackSx}>
+            <FiFileText />
+          </AppBox>
+          <AppText variant="body2" weight={800} sx={reviewBlockHeaderTitleSx}>
+            Statutory Compliance
+          </AppText>
+        </AppStack>
+        <AppStack direction="column" gap={0.8}>
+          <ReviewGridRow
+            label="Drug License No"
+            value={formData.drugLicenseNumber}
+          />
+          <ReviewGridRow
+            label="License Classification"
+            value={formData.drugLicenseType}
+          />
+          <ReviewGridRow label="FSSAI Code" value={formData.fssaiNumber} />
+          <ReviewGridRow
+            label="Expiration Date"
+            value={formData.licenseExpiresAt}
+          />
+        </AppStack>
+      </AppBox>
+
+      {/* Review Block 4: Linked Practitioners */}
+      <AppBox sx={{ pt: 1.25 }}>
+        <AppStack direction="row" gap={0.75} align="center" sx={{ mb: 1 }}>
+          <AppBox sx={reviewHeaderIconTrackSx}>
+            <FiUser />
+          </AppBox>
+          <AppText variant="body2" weight={800} sx={reviewBlockHeaderTitleSx}>
+            Compliance Operators
+          </AppText>
+        </AppStack>
+        <AppStack direction="column" gap={0.8}>
+          <ReviewGridRow
+            label="Pharmacist Name"
+            value={formData.pharmacistName}
+          />
+          <ReviewGridRow
+            label="Council Index"
+            value={formData.pharmacistRegistrationNumber}
+          />
+          <ReviewGridRow
+            label="Pharmacist Phone"
+            value={
+              formData.pharmacistMobile
+                ? `+91 ${formData.pharmacistMobile}`
+                : ""
+            }
+          />
+          <ReviewGridRow
+            label="Pharmacist Email"
+            value={formData.pharmacistEmail}
+          />
+          <ReviewGridRow
+            label="Emergency Contact"
+            value={formData.emergencyContactName}
+          />
+          <ReviewGridRow
+            label="Emergency Phone"
+            value={
+              formData.emergencyContactMobile
+                ? `+91 ${formData.emergencyContactMobile}`
+                : ""
+            }
+          />
+          <ReviewGridRow
+            label="Relationship Map"
+            value={formData.emergencyContactRelationship}
+          />
+        </AppStack>
+      </AppBox>
+    </AppCard>
   );
 };
 
-const TipRow = ({ icon, title, desc, bordered }) => (
-  <div
-    className={[
-      "flex items-center gap-2.5 px-3 py-2.5",
-      bordered ? "border-b border-border" : "",
-    ].join(" ")}
-  >
-    <AppBox sx={tipIconSx}>{icon}</AppBox>
-
-    <div className="min-w-0 flex-1">
-      <AppHeading level={3} weight={750} sx={tipTitleSx}>
-        {title}
-      </AppHeading>
-
-      <AppText variant="body2" weight={500} sx={tipDescSx}>
-        {desc}
-      </AppText>
+const ReviewGridRow = ({ label, value }) => {
+  const resolvedValue =
+    value === undefined || value === null ? "" : String(value);
+  return (
+    <div className="grid grid-cols-[135px_1fr] items-start gap-1 text-[11.8px] leading-normal">
+      <span className="text-text-muted font-semibold whitespace-nowrap">
+        {label}
+      </span>
+      <span className="text-text font-bold text-left px-0.5 break-words">
+        {resolvedValue}
+      </span>
     </div>
-  </div>
-);
+  );
+};
 
-const sectionSx = {
-  position: "relative",
-  zIndex: 1,
+/* ==========================================================================
+   STYLING DICTIONARY TOKENS (HIGH-DENSITY PRESENTATION LAYER SPECIFICATIONS)
+   ========================================================================== */
+
+const containerSx = {
   width: "100%",
-  maxWidth: { xs: 390, sm: 430, md: 460 },
-  minHeight: "100vh",
+  maxWidth: { xs: 430, sm: 460 },
   mx: "auto",
-  px: { xs: 1.55, sm: 2 },
-  pt: { xs: 1.55, sm: 2 },
-  pb: { xs: 2, sm: 2.5 },
+  px: 0,
+  pt: 0,
+  pb: 0,
 };
 
-const backButtonSx = {
-  height: 34,
-  px: 1.2,
-  fontSize: "11.4px",
-  fontWeight: 750,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
+const headerTitleBlockSx = {
+  pt: 1.2,
+  pb: 0.5,
 };
 
-const headerBadgeSx = {
-  height: 32,
-  px: 1.15,
-  borderRadius: "999px",
-  display: "flex",
-  alignItems: "center",
-  gap: 0.65,
-  bgcolor: "var(--app-color-primary-soft)",
-  color: "var(--app-color-primary)",
-  fontSize: "11.2px",
-  fontWeight: 750,
+const stepTrackerLabelSx = {
+  fontSize: "11px",
+  color: "var(--app-color-success, #10b981)",
+  textTransform: "uppercase",
+  letterSpacing: "0.2px",
 };
 
-const headerSx = {
-  width: "100%",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  textAlign: "center",
-  mt: { xs: 1.5, sm: 1.9 },
-};
-
-const titleSx = {
+const pageTitleSx = {
   m: 0,
-  fontSize: { xs: "22px", sm: "24px" },
-  lineHeight: 1.14,
+  mt: 0.25,
+  fontSize: "21px",
+  fontWeight: 800,
+  lineHeight: 1.2,
   letterSpacing: "-0.5px",
   color: "var(--app-color-text)",
 };
 
-const subtitleSx = {
-  mt: 0.55,
-  maxWidth: 335,
-  fontSize: { xs: "11.8px", sm: "12.6px" },
-  lineHeight: "18px",
+const pageSubtitleSx = {
+  mt: 0.4,
+  fontSize: "11.5px",
+  lineHeight: "16px",
   color: "var(--app-color-text-muted)",
 };
 
-const formCardSx = {
+const stepperOuterBoundarySx = {
+  mt: 1.6,
+  mb: 1.4,
   width: "100%",
-  overflow: "hidden",
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-xs)",
-};
-
-const sectionHeaderSx = {
-  px: 1.15,
-  py: 1.15,
-  borderBottom: "1px solid var(--app-color-border)",
-  bgcolor: "var(--app-color-readonly-bg)",
-};
-
-const sectionIconSx = {
-  width: 38,
-  height: 38,
-  minWidth: 38,
-  borderRadius: "13px",
   display: "flex",
-  alignItems: "center",
   justifyContent: "center",
-  bgcolor: "var(--app-color-primary-soft)",
-  color: "var(--app-color-primary)",
-  fontSize: "19px",
 };
 
-const sectionTitleSx = {
+const stepperInnerTrackSx = {
+  width: "100%",
+};
+
+const stepperTitleTextSx = {
+  mt: 0.6,
+  fontSize: "8.5px",
+  textAlign: "center",
+  lineHeight: 1.1,
+  whiteSpace: "nowrap",
+};
+
+const submitErrorTextSx = {
+  mb: 1,
+  fontSize: "11.5px",
+  fontWeight: 700,
+  color: "var(--app-color-error)",
+};
+
+const formCardContainerSx = {
+  p: 1.4,
+  bgcolor: "var(--app-color-surface)",
+  border: "1px solid var(--app-color-border)",
+};
+
+const formCardSectionHeaderSx = {
   m: 0,
-  fontSize: "13.4px",
-  lineHeight: 1.15,
+  fontSize: "13.5px",
   color: "var(--app-color-text)",
 };
 
-const sectionSubtitleSx = {
-  mt: 0.4,
-  fontSize: "10.8px",
-  lineHeight: "15.5px",
+const formCardSectionDescSx = {
+  mt: 0.25,
+  fontSize: "11px",
   color: "var(--app-color-text-muted)",
 };
 
-const fieldsStackSx = {
-  px: 1.15,
-  py: 1.25,
-};
-
-const labelSx = {
-  mb: 0.35,
-  fontSize: "11.6px",
+const mobileLabelSx = {
+  mb: 0.45,
+  fontSize: "11.8px",
   fontWeight: 750,
   color: "var(--app-color-text)",
 };
 
-const inputSx = {
+const inlineSubheadingSx = {
+  m: 0,
+  fontSize: "12.5px",
+  color: "var(--app-color-primary)",
+};
+
+const mobileInputSx = {
   height: 40,
   fontSize: "12px",
   bgcolor: "var(--app-color-surface)",
   color: "var(--app-color-text)",
+  "& input::placeholder": {
+    fontSize: "12px",
+  },
 };
 
-const helperTextSx = {
-  mt: 0.45,
-  fontSize: "10.7px",
-  fontWeight: 500,
-  lineHeight: "15px",
+const securityFooterBannerSx = {
+  mt: 1.5,
+  p: 1,
+  bgcolor: "var(--app-color-readonly-bg, #f8fafc)",
+  border: "1px dashed var(--app-color-border)",
+};
+
+const securityBannerTitleSx = {
+  fontSize: "11px",
+  color: "var(--app-color-text)",
+  lineHeight: 1.2,
+};
+
+const securityBannerDescSx = {
+  mt: 0.15,
+  fontSize: "10px",
   color: "var(--app-color-text-muted)",
+  lineHeight: 1.3,
 };
 
-const switchFieldSx = {
-  minHeight: 40,
+const reviewBlockContainerSx = {
+  borderBottom: "1px solid var(--app-color-divider)",
+  py: 1.25,
+};
+
+const editReviewSectionBtnSx = {
+  height: 25,
+  fontSize: "10.5px",
+  px: 1,
+  fontWeight: 700,
+  borderColor: "var(--app-color-border)",
+};
+
+const reviewHeaderIconTrackSx = {
   display: "flex",
   alignItems: "center",
-  px: 0.95,
-  py: 0.55,
-  borderRadius: "10px",
-  border: "1px solid var(--app-color-border)",
-  bgcolor: "var(--app-color-surface)",
+  justifyContent: "center",
+  width: 25,
+  height: 25,
+  borderRadius: "50%",
+  bgcolor: "var(--app-color-primary-soft)",
+  color: "var(--app-color-primary)",
+  fontSize: "12px",
 };
 
-const switchWrapperSx = {
+const reviewBlockHeaderTitleSx = {
+  m: 0,
+  fontSize: "12px",
+  color: "var(--app-color-text)",
+};
+
+const bottomStickyActionBarSx = {
+  mt: 2.2,
+  mb: 1.5,
   width: "100%",
-  m: 0,
-  minHeight: 0,
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 1,
 };
 
-const switchSx = {
-  transform: "scale(0.72)",
-  transformOrigin: "right center",
-  mr: -0.7,
-};
-
-const switchLabelSx = {
-  flex: 1,
-  mr: 0.7,
-  fontSize: "11.5px",
-  lineHeight: "15px",
-  fontWeight: 750,
-  color: "var(--app-color-text)",
-};
-
-const switchHelperTextSx = {
-  mt: 0.2,
-  fontSize: "10.6px",
-};
-
-const submitErrorSx = {
-  mt: -0.35,
-  px: 0.35,
-  fontSize: "11.4px",
-  fontWeight: 650,
-  lineHeight: "17px",
-  color: "var(--app-color-error)",
-};
-
-const infoCardSx = {
-  mt: 0.2,
-  px: 1.15,
-  py: 1.15,
-  bgcolor: "var(--app-color-readonly-bg)",
-  borderColor: "var(--app-color-primary-soft)",
-};
-
-const infoIconSx = {
-  width: 38,
-  height: 38,
-  minWidth: 38,
-  borderRadius: "999px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  bgcolor: "var(--app-color-primary-soft)",
-  color: "var(--app-color-primary)",
-  fontSize: "20px",
-};
-
-const infoTitleSx = {
-  m: 0,
-  fontSize: "13px",
-  lineHeight: 1.15,
-  color: "var(--app-color-text)",
-};
-
-const infoTextSx = {
-  mt: 0.45,
-  fontSize: "11.2px",
-  lineHeight: "17px",
-  color: "var(--app-color-text-muted)",
-};
-
-const featuresCardSx = {
-  mt: 0.2,
-  overflow: "hidden",
-  bgcolor: "var(--app-color-readonly-bg)",
-  borderColor: "var(--app-color-primary-soft)",
-};
-
-const tipIconSx = {
-  width: 40,
+const actionButtonCancelSx = {
   height: 40,
-  minWidth: 40,
-  borderRadius: "999px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  bgcolor: "var(--app-color-primary-soft)",
-  color: "var(--app-color-primary)",
-  fontSize: "20px",
+  flex: 0.3,
+  fontSize: "12px",
+  fontWeight: 700,
 };
 
-const tipTitleSx = {
-  m: 0,
-  fontSize: "12.3px",
-  lineHeight: 1.15,
-  color: "var(--app-color-text)",
+const actionButtonContinueSx = {
+  height: 40,
+  flex: 0.7,
+  fontSize: "12px",
+  fontWeight: 750,
+  boxShadow: "none",
 };
 
-const tipDescSx = {
-  mt: 0.35,
-  fontSize: "10.75px",
-  lineHeight: "15.5px",
-  color: "var(--app-color-text-muted)",
+const actionButtonLeftSx = {
+  height: 40,
+  width: "auto",
+  px: 2.2,
+  fontSize: "12px",
+  fontWeight: 700,
 };
 
-const saveButtonSx = {
-  mt: 0.35,
-  height: 46,
-  fontSize: "13.6px",
-  fontWeight: 800,
-  boxShadow: "var(--app-shadow-sm)",
+const actionButtonRightSx = {
+  height: 40,
+  width: "auto",
+  px: 2.2,
+  fontSize: "12px",
+  fontWeight: 750,
+  boxShadow: "none",
 };
 
 export default CreateBranchMobilePage;

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+// src/features/user/pages/desktop/MyProfileDesktopPage.jsx
+
 import {
   FiUser,
   FiMail,
@@ -31,174 +32,32 @@ import {
   HELP_SUPPORT_CARD,
 } from "@/components";
 
-import useUser from "@/features/user/hooks/useUser";
-import useAuth from "@/features/auth/hooks/useAuth";
-import useWorkspace from "@/features/workspace/hooks/useWorkspace";
-import { WORKSPACE_STORAGE_KEY } from "@/constants";
-
-const MyProfileDesktopPage = () => {
-  const { user: authUser } = useAuth();
-  const {
-    user: profileUser,
-    status: userStatus,
-    error: userError,
-    message: userMessage,
-    updateProfileStatus,
-    updateAvatarStatus,
-    deleteAvatarStatus,
-    deactivateAccountStatus,
-    updateProfile,
-    updateAvatar,
-    deleteAvatar,
-    deactivateAccount,
-    clearError: clearUserError,
-    clearMessage: clearUserMessage,
-    getProfile,
-  } = useUser();
-
-  // Workspace Hook States for Inbound Invitation stream processing
-  const {
-    incomingInvitations,
-    getIncomingUserInvitations,
-    getIncomingUserInvitationsStatus,
-    acceptIncomingInvitation,
-    acceptIncomingInvitationStatus,
-    error: workspaceError,
-    message: workspaceMessage,
-    clearError: clearWorkspaceError,
-    clearMessage: clearWorkspaceMessage,
-  } = useWorkspace();
-
-  const currentUser = profileUser || authUser;
-
-  const [fullName, setFullName] = useState(
-    currentUser?.fullName || currentUser?.name || "",
-  );
-  const [email, setEmail] = useState(currentUser?.email || "");
-  const [phone, setPhone] = useState(currentUser?.phone || "");
-
-  // Core Hydration: Pull Profile Data and Inbound Invites concurrently on mount
-  useEffect(() => {
-    if (getProfile) {
-      getProfile().catch(() => {});
-    }
-    if (getIncomingUserInvitations) {
-      getIncomingUserInvitations().catch(() => {});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (currentUser) {
-      setFullName(currentUser.fullName || currentUser.name || "");
-      setEmail(currentUser.email || "");
-      setPhone(currentUser.phone || "");
-    }
-  }, [currentUser]);
-
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault();
-    try {
-      await updateProfile({ fullName });
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleAvatarChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const mockAvatarPayload = {
-      avatar: {
-        publicId: `avatar_${Date.now()}`,
-        url: URL.createObjectURL(file),
-      },
-    };
-
-    try {
-      await updateAvatar(mockAvatarPayload);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleDeleteAvatar = async () => {
-    if (window.confirm("Are you sure you want to remove your avatar?")) {
-      try {
-        await deleteAvatar();
-      } catch (err) {
-        console.error(err);
-      }
-    }
-  };
-
-  const handleDeactivate = async () => {
-    if (
-      window.confirm(
-        "CRITICAL ACTION: Are you sure you want to delete your account? This action cannot be undone.",
-      )
-    ) {
-      try {
-        await deactivateAccount();
-        window.location.href = "/login";
-      } catch (err) {
-        console.error(err);
-      }
-    }
-  };
-
-  // Invitation Acceptance workflow sequence
-  const handleAcceptInvitation = async (tokenHashOrRawToken) => {
-    try {
-      const result = await acceptIncomingInvitation(tokenHashOrRawToken);
-      if (result?.success || result?.workspaceId) {
-        // Hydrate target identifier token directly to local state locks
-        const targetWorkspaceId = result?.workspaceId || result?.id;
-        if (targetWorkspaceId) {
-          localStorage.setItem(WORKSPACE_STORAGE_KEY, targetWorkspaceId);
-        }
-        // Force complete document state reload to trigger top-level core bootstrap sequencers
-        window.location.href = "/dashboard";
-      }
-    } catch (err) {
-      console.error("Critical error accepting profile invitation stream:", err);
-    }
-  };
-
-  const userName = currentUser?.fullName || currentUser?.name || "User";
-  const userInitials = userName
-    ?.split(" ")
-    ?.map((word) => word?.[0])
-    ?.join("")
-    ?.slice(0, 2)
-    ?.toUpperCase();
-
-  const isUpdating =
-    updateProfileStatus === "LOADING" ||
-    updateAvatarStatus === "LOADING" ||
-    deleteAvatarStatus === "LOADING";
-
-  const isInvitationsLoading = getIncomingUserInvitationsStatus === "LOADING";
-  const isAcceptingInvitation = acceptIncomingInvitationStatus === "LOADING";
-
-  // Unified notifications messaging matrices
-  const activeMessage = userMessage || workspaceMessage;
-  const activeError = userError || workspaceError;
-
-  const handleDismissMessage = () => {
-    clearUserMessage();
-    clearWorkspaceMessage();
-  };
-
-  const handleDismissError = () => {
-    clearUserError();
-    clearWorkspaceError();
-  };
-
+const MyProfileDesktopPage = ({
+  currentUser,
+  fullName,
+  email,
+  phone,
+  userName,
+  userInitials,
+  incomingInvitations = [],
+  isUpdating = false,
+  isInvitationsLoading = false,
+  isAcceptingInvitation = false,
+  deactivateAccountStatus,
+  activeMessage,
+  activeError,
+  setFullName,
+  handleUpdateProfile,
+  handleAvatarChange,
+  handleDeleteAvatar,
+  handleDeactivate,
+  handleAcceptInvitation,
+  handleDismissMessage,
+  handleDismissError,
+}) => {
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
-      {/* Toast Alert Systems */}
+      {/* --- UNIFIED SYSTEM TOAST NOTIFICATION ALERTS --- */}
       {activeMessage && (
         <div className="fixed left-1/2 top-4 z-[1400] w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-xl border border-success-soft bg-surface p-3 shadow-lg flex items-center gap-3">
           <FiCheckCircle className="text-success text-lg shrink-0" />
@@ -238,6 +97,7 @@ const MyProfileDesktopPage = () => {
       )}
 
       <div className="mx-auto w-full max-w-[1500px]">
+        {/* --- ROUTING BREADCRUMB HEADER NAV STRIP --- */}
         <PageHeader
           title="My Profile"
           subtitle="Manage your personal information, security preferences, and view your system account access configuration."
@@ -261,9 +121,10 @@ const MyProfileDesktopPage = () => {
           contentSx={pageHeaderContentSx}
         />
 
+        {/* --- MAIN PROFILE SPLIT CONTENT DRAWER GRID BAR --- */}
         <div className="mt-4 grid grid-cols-[minmax(0,1fr)_340px] items-start gap-5">
           <AppBox sx={{ minWidth: 0 }}>
-            {/* 1. Core Profile Configuration Card */}
+            {/* 1. Core Profile Identity Profile Information Card Container */}
             <AppCard
               variant="default"
               rounded="lg"
@@ -314,6 +175,7 @@ const MyProfileDesktopPage = () => {
                 </div>
               </div>
 
+              {/* Dynamic Identity Capture Submission Form */}
               <form onSubmit={handleUpdateProfile} className="mt-5 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -402,7 +264,7 @@ const MyProfileDesktopPage = () => {
               </form>
             </AppCard>
 
-            {/* 2. INLINE USER INVITATIONS DIRECTORY INTERFACE */}
+            {/* 2. Pending Workplace Affiliations Inbound Ledger Pipeline */}
             {isInvitationsLoading ? (
               <AppCard
                 variant="default"
@@ -467,8 +329,6 @@ const MyProfileDesktopPage = () => {
                   {incomingInvitations.map((invitation) => {
                     const workspaceObj = invitation.workspaceId || {};
                     const inviterObj = invitation.invitedBy || {};
-
-                    // PASS THE DATABASE ID AS THE TARGET ACCEPTANCE IDENTIFIER
                     const targetId = invitation._id;
 
                     return (
@@ -482,7 +342,7 @@ const MyProfileDesktopPage = () => {
                             weight={700}
                             sx={{
                               m: 0,
-                              fontSize: "13.5px",
+                              fontSize: "13px",
                               color: "var(--app-color-text)",
                             }}
                           >
@@ -518,7 +378,7 @@ const MyProfileDesktopPage = () => {
 
                           {invitation.notes && (
                             <div className="mt-1.5 rounded-md bg-surface p-2 text-[11px] text-text-muted italic border-l-2 border-primary-soft">
-                              "{invitation.notes}"
+                              &ldquo;{invitation.notes}&rdquo;
                             </div>
                           )}
                         </div>
@@ -533,7 +393,7 @@ const MyProfileDesktopPage = () => {
                             loading={isAcceptingInvitation}
                             disabled={isAcceptingInvitation}
                             startIcon={<FiCheck />}
-                            onClick={() => handleAcceptInvitation(targetId)} // <-- Passes ID securely now
+                            onClick={() => handleAcceptInvitation(targetId)}
                             sx={{
                               height: 30,
                               px: 2,
@@ -551,7 +411,7 @@ const MyProfileDesktopPage = () => {
               </AppCard>
             ) : null}
 
-            {/* 3. System Danger Zone Account Status Deactivation Card */}
+            {/* 3. Global System Security Infrastructure Danger Zone Card */}
             <AppCard
               variant="default"
               rounded="lg"
@@ -587,7 +447,7 @@ const MyProfileDesktopPage = () => {
             </AppCard>
           </AppBox>
 
-          {/* Right Audit Meta-tracking Sidebar Controls */}
+          {/* --- RIGHT SYSTEM AUDIT VERIFICATION METRICS SIDEBAR CONTROLS --- */}
           <PageRightSidebar
             spacing={4}
             cards={[
@@ -658,7 +518,7 @@ const MyProfileDesktopPage = () => {
                       </span>
                     </div>
                     <div>
-                      • Secure Metadata Syncing Token:{" "}
+                      • Secure Syncing Token:{" "}
                       <span className="font-mono text-text">
                         SHA256 hash valid
                       </span>
@@ -700,7 +560,7 @@ const ContextNodeLabel = ({
   </div>
 );
 
-// CSS SX Matrix configurations
+/* Styles token configurations mapping customized layout constants */
 const pageHeaderSx = { width: "100%" };
 const pageHeaderContentSx = {
   minWidth: 0,
@@ -708,7 +568,7 @@ const pageHeaderContentSx = {
     m: 0,
     fontSize: "25px",
     lineHeight: 1.15,
-    letterSpacing: "-0.45px",
+    letterSpacing: "-0.4px",
     color: "var(--app-color-text)",
   },
 };

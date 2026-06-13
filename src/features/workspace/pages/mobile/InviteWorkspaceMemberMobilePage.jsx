@@ -20,6 +20,7 @@ import {
   AppCard,
   AppHeading,
   AppInput,
+  AppKeyValue,
   AppStack,
   AppTextarea,
   AppText,
@@ -29,13 +30,13 @@ const InviteWorkspaceMemberMobilePage = ({
   formData,
   formErrors = {},
   workspaceSummary,
-
+  roles = [],
   isLoading = false,
   isCheckingWorkspace = false,
+  isFetchingRoles = false,
   isInviting = false,
   error,
   message,
-
   handleChange,
   handleSubmit,
   handleReset,
@@ -44,187 +45,209 @@ const InviteWorkspaceMemberMobilePage = ({
   handleViewMembers,
 }) => {
   return (
-    <section className="relative min-h-screen w-full overflow-hidden bg-bg">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,color-mix(in_srgb,var(--app-color-primary)_8%,transparent),transparent_36%)]" />
-
-      <AppBox sx={sectionSx}>
-        <AppStack
-          direction="row"
-          align="center"
-          justify="space-between"
-          gap={1}
-        >
-          <AppButton
-            type="button"
-            variant="outlined"
-            colorVariant="neutral"
-            rounded="md"
-            disabled={isLoading}
-            startIcon={<FiArrowLeft />}
-            onClick={handleBack}
-            sx={backButtonSx}
+    <section className="w-full bg-bg">
+      <AppBox sx={containerSx}>
+        {/* Expanded Width Mobile Header Section */}
+        <AppBox sx={headerWrapperSx}>
+          <AppStack
+            direction="row"
+            align="center"
+            justify="space-between"
+            gap={1}
           >
-            Members
-          </AppButton>
+            <AppBox sx={{ minWidth: 0, flex: 1 }}>
+              <AppHeading level={1} weight={800} sx={pageTitleSx}>
+                Invite Member
+              </AppHeading>
+              <AppText variant="body2" weight={600} sx={pageSubtitleSx}>
+                Add team members to your workspace directory.
+              </AppText>
+            </AppBox>
 
-          <AppButton
-            type="button"
-            variant="soft"
-            colorVariant="primary"
-            rounded="md"
-            disabled={isLoading}
-            startIcon={<FiClock />}
-            onClick={handleViewInvitations}
-            sx={invitesButtonSx}
-          >
-            Invites
-          </AppButton>
-        </AppStack>
-
-        <AppBox sx={headerSx}>
-          <AppBox sx={heroIconSx}>
-            <FiUserPlus />
-          </AppBox>
-
-          <AppHeading level={1} weight={800} align="center" sx={titleSx}>
-            Invite Member
-          </AppHeading>
-
-          <AppText variant="body2" align="center" weight={600} sx={subtitleSx}>
-            Send a workspace invitation by email and optionally attach a role id
-            or note.
-          </AppText>
+            <AppStack
+              direction="row"
+              align="center"
+              gap={0.5}
+              sx={{ flexShrink: 0 }}
+            >
+              <AppIconButtonCustom
+                icon={<FiClock />}
+                onClick={handleViewInvitations}
+                disabled={isLoading}
+              />
+              <AppButton
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                rounded="md"
+                onClick={handleBack}
+                disabled={isInviting}
+                sx={headerSecondaryBtnSx}
+              >
+                Members
+              </AppButton>
+            </AppStack>
+          </AppStack>
         </AppBox>
 
-        {message ? (
-          <AppAlert
-            severity="success"
-            variant="soft"
-            title={message}
-            rounded="md"
-            sx={alertSx}
-          />
-        ) : null}
+        {/* Global Alert Notification Interceptors */}
+        {message && (
+          <AppBox sx={alertContainerSx}>
+            <AppAlert
+              severity="success"
+              variant="soft"
+              title={message}
+              rounded="md"
+            />
+          </AppBox>
+        )}
 
-        {error && !formErrors.submit ? (
-          <AppAlert
-            severity="error"
-            variant="soft"
-            title="Something went wrong"
-            rounded="md"
-            sx={alertSx}
-          >
-            {error}
-          </AppAlert>
-        ) : null}
+        {error && !formErrors.submit && (
+          <AppBox sx={alertContainerSx}>
+            <AppAlert
+              severity="error"
+              variant="soft"
+              title="Something went wrong"
+              rounded="md"
+            >
+              {error}
+            </AppAlert>
+          </AppBox>
+        )}
 
-        <AppCard
-          variant="default"
-          rounded="xl"
-          bordered
-          shadow="md"
-          padding="none"
-          sx={formCardSx}
-        >
-          <AppBox component="form" onSubmit={handleSubmit}>
-            <AppStack direction="row" align="flex-start" gap={1.1}>
-              <IconBox icon={<FiUserPlus />} large />
+        {/* Core Direct Input Action Form Fields Block */}
+        <AppBox component="form" onSubmit={handleSubmit} sx={formSectionSx}>
+          <AppStack direction="column" gap={1.65}>
+            <AppInput
+              label="Email Address"
+              name="email"
+              type="email"
+              value={formData.email || ""}
+              onChange={handleChange}
+              disabled={isLoading}
+              placeholder="member@example.com"
+              fullWidth
+              required
+              size="small"
+              variant="bordered"
+              rounded="md"
+              startIcon={<FiMail />}
+              error={Boolean(formErrors.email)}
+              helperText={
+                formErrors.email || "Invitation will be linked to this address."
+              }
+              labelSx={labelSx}
+              inputSx={inputSx}
+              helperTextSx={helperTextSx}
+            />
 
-              <AppBox sx={{ minWidth: 0, flex: 1 }}>
-                <AppHeading level={2} weight={750} sx={sectionTitleSx}>
-                  Member Details
-                </AppHeading>
-
-                <AppText variant="body2" weight={500} sx={sectionSubtitleSx}>
-                  If role id is blank, default staff role will be used when
-                  available.
+            <AppBox>
+              <AppStack
+                direction="row"
+                align="center"
+                gap={0.4}
+                sx={labelRowSx}
+              >
+                <FiShield className="text-[12px] text-text-muted" />
+                <AppText
+                  component="label"
+                  htmlFor="invite-role-id"
+                  sx={labelSx}
+                >
+                  Workspace Role
                 </AppText>
-              </AppBox>
-            </AppStack>
+              </AppStack>
 
-            <AppStack direction="column" gap={1.25} sx={{ mt: 2 }}>
-              <AppInput
-                label="Email Address"
-                name="email"
-                type="email"
-                value={formData.email || ""}
-                onChange={handleChange}
-                disabled={isLoading}
-                placeholder="member@example.com"
-                fullWidth
-                required
-                size="small"
-                variant="bordered"
-                rounded="md"
-                startIcon={<FiMail />}
-                error={Boolean(formErrors.email)}
-                helperText={
-                  formErrors.email ||
-                  "The invitation will be linked to this email address."
-                }
-                labelSx={labelSx}
-                inputSx={inputSx}
-                helperTextSx={helperTextSx}
-              />
-
-              <AppInput
-                label="Role ID"
+              <select
+                id="invite-role-id"
                 name="roleId"
                 value={formData.roleId || ""}
                 onChange={handleChange}
-                disabled={isLoading}
-                placeholder="Optional Mongo role id"
-                fullWidth
-                size="small"
-                variant="bordered"
-                rounded="md"
-                startIcon={<FiShield />}
-                error={Boolean(formErrors.roleId)}
-                helperText={
-                  formErrors.roleId ||
-                  "Optional. Leave blank to invite as default staff."
-                }
-                labelSx={labelSx}
-                inputSx={inputSx}
-                helperTextSx={helperTextSx}
-              />
+                disabled={isLoading || isFetchingRoles}
+                className="w-full rounded-md border px-3 outline-none transition disabled:cursor-not-allowed disabled:opacity-70"
+                style={selectStyle}
+              >
+                <option value="">Default Staff Role</option>
+                {roles.map((role) => (
+                  <option key={role._id} value={role._id}>
+                    {role.name || role.code || "Unnamed Role"}
+                  </option>
+                ))}
+              </select>
 
-              <AppTextarea
-                label="Notes"
-                name="notes"
-                value={formData.notes || ""}
-                onChange={handleChange}
-                disabled={isLoading}
-                placeholder="Optional note for internal reference"
-                fullWidth
-                size="small"
-                variant="bordered"
-                rounded="md"
-                minRows={4}
-                maxRows={6}
-                showCount
-                maxLength={500}
-                error={Boolean(formErrors.notes)}
-                helperText={formErrors.notes || "Maximum 500 characters."}
-                labelSx={labelSx}
-                inputSx={textareaSx}
-                helperTextSx={helperTextSx}
-              />
-            </AppStack>
-
-            {formErrors.submit ? (
-              <AppText variant="body2" sx={submitErrorSx}>
-                {formErrors.submit}
+              <AppText
+                variant="body2"
+                sx={formErrors.roleId ? helperErrorTextSx : helperTextSx}
+              >
+                {formErrors.roleId
+                  ? formErrors.roleId
+                  : isFetchingRoles
+                    ? "Loading workspace roles..."
+                    : "Optional. Leave blank to invite as default staff."}
               </AppText>
-            ) : null}
+            </AppBox>
 
-            <AppStack direction="column" gap={1} sx={actionsSx}>
+            <AppTextarea
+              label="Notes"
+              name="notes"
+              value={formData.notes || ""}
+              onChange={handleChange}
+              disabled={isLoading}
+              placeholder="Optional note for internal reference"
+              fullWidth
+              size="small"
+              variant="bordered"
+              rounded="md"
+              minRows={3}
+              maxRows={5}
+              showCount
+              maxLength={500}
+              error={Boolean(formErrors.notes)}
+              helperText={formErrors.notes || "Maximum 500 characters."}
+              labelSx={labelSx}
+              inputSx={textareaSx}
+              helperTextSx={helperTextSx}
+            />
+
+            {formErrors.submit && (
+              <AppAlert
+                severity="error"
+                variant="soft"
+                rounded="md"
+                sx={{ mt: 1 }}
+              >
+                {formErrors.submit}
+              </AppAlert>
+            )}
+
+            {/* Standardized Form Actions Row Component Structure */}
+            <AppStack
+              direction="row"
+              align="center"
+              justify="space-between"
+              gap={1.2}
+              sx={actionsSx}
+            >
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiRefreshCcw />}
+                onClick={handleReset}
+                disabled={isLoading}
+                sx={secondaryButtonSx}
+              >
+                Reset
+              </AppButton>
+
               <AppButton
                 type="submit"
                 variant="contained"
-                colorVariant="primary"
+                colorVariant="success"
                 rounded="md"
-                fullWidth
+                size="small"
                 startIcon={<FiSend />}
                 loading={isInviting}
                 disabled={isLoading || isCheckingWorkspace}
@@ -232,286 +255,217 @@ const InviteWorkspaceMemberMobilePage = ({
               >
                 Send Invitation
               </AppButton>
-
-              <AppStack direction="row" align="center" gap={0.9}>
-                <AppButton
-                  type="button"
-                  variant="outlined"
-                  colorVariant="neutral"
-                  rounded="md"
-                  fullWidth
-                  startIcon={<FiRefreshCcw />}
-                  onClick={handleReset}
-                  disabled={isLoading}
-                  sx={secondaryButtonSx}
-                >
-                  Reset
-                </AppButton>
-
-                <AppButton
-                  type="button"
-                  variant="outlined"
-                  colorVariant="neutral"
-                  rounded="md"
-                  fullWidth
-                  startIcon={<FiArrowLeft />}
-                  onClick={handleBack}
-                  disabled={isInviting}
-                  sx={secondaryButtonSx}
-                >
-                  Back
-                </AppButton>
-              </AppStack>
             </AppStack>
-          </AppBox>
-        </AppCard>
+          </AppStack>
+        </AppBox>
 
-        <WorkspaceSummaryCard workspaceSummary={workspaceSummary} />
+        {/* High Density Information Advisory Segments Block */}
+        <AppBox sx={infoSectionWrapperSx}>
+          <AppCard
+            variant="default"
+            rounded="lg"
+            bordered
+            shadow="none"
+            padding="none"
+            sx={sideCardSx}
+          >
+            <AppStack direction="row" align="center" gap={0.75}>
+              <AppBox sx={iconBoxSx}>
+                <FiUsers />
+              </AppBox>
+              <AppBox>
+                <AppHeading level={2} weight={750} sx={sideTitleSx}>
+                  Workspace Summary
+                </AppHeading>
+                <AppText variant="body2" sx={sideSubtitleSx}>
+                  Target profile destination details.
+                </AppText>
+              </AppBox>
+            </AppStack>
 
-        <InvitationInfoCard onViewMembers={handleViewMembers} />
+            <div className="mt-3 grid grid-cols-2 gap-x-2 gap-y-1 border-t border-divider/60 pt-2.5">
+              <AppKeyValue
+                label="Name"
+                value={workspaceSummary?.name || "-"}
+                labelSx={summaryLabelSx}
+                valueSx={summaryValueSx}
+              />
+              <AppKeyValue
+                label="Code"
+                value={workspaceSummary?.code || "-"}
+                labelSx={summaryLabelSx}
+                valueSx={summaryValueSx}
+              />
+              <AppKeyValue
+                label="Type"
+                value={workspaceSummary?.type || "-"}
+                labelSx={summaryLabelSx}
+                valueSx={summaryValueSx}
+              />
+              <AppKeyValue
+                label="Phone"
+                value={workspaceSummary?.phone || "-"}
+                labelSx={summaryLabelSx}
+                valueSx={summaryValueSx}
+              />
+            </div>
+          </AppCard>
+
+          <AppCard
+            variant="default"
+            rounded="lg"
+            bordered
+            shadow="none"
+            padding="none"
+            sx={{ ...sideCardSx, mt: 1 }}
+          >
+            <AppStack direction="row" align="center" gap={0.75}>
+              <AppBox
+                sx={{
+                  ...iconBoxSx,
+                  bgcolor: "var(--app-color-info-soft)",
+                  color: "var(--app-color-info)",
+                }}
+              >
+                <FiInfo />
+              </AppBox>
+              <AppBox>
+                <AppHeading level={2} weight={750} sx={sideTitleSx}>
+                  How Invitations Work
+                </AppHeading>
+                <AppText variant="body2" sx={sideSubtitleSx}>
+                  Seat-aware links expire automatically.
+                </AppText>
+              </AppBox>
+            </AppStack>
+
+            <AppStack
+              direction="column"
+              gap={0.85}
+              sx={{
+                mt: 2,
+                borderTop: "1px solid var(--app-color-divider)",
+                pt: 2,
+              }}
+            >
+              <InfoRow
+                icon={<FiCheckCircle />}
+                title="Seat validation"
+                text="Roster validation applies prior to allocation."
+              />
+              <InfoRow
+                icon={<FiClock />}
+                title="72-hour expiry"
+                text="Link codes invalidate automatically post 72 hours."
+              />
+            </AppStack>
+
+            <AppButton
+              type="button"
+              variant="soft"
+              colorVariant="primary"
+              rounded="md"
+              fullWidth
+              size="small"
+              startIcon={<FiUsers />}
+              onClick={handleViewMembers}
+              sx={membersButtonSx}
+            >
+              View Workspace Members
+            </AppButton>
+          </AppCard>
+        </AppBox>
       </AppBox>
     </section>
   );
 };
 
-const WorkspaceSummaryCard = ({ workspaceSummary }) => (
-  <AppCard
-    variant="default"
-    rounded="xl"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sideCardSx}
-  >
-    <AppStack direction="row" align="flex-start" gap={1.05}>
-      <IconBox icon={<FiUsers />} />
-
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppHeading level={2} weight={750} sx={sideTitleSx}>
-          Workspace Summary
-        </AppHeading>
-
-        <AppText variant="body2" weight={500} sx={sideSubtitleSx}>
-          Invitation will be sent for this workspace.
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <AppBox sx={summaryBoxSx}>
-      <SummaryRow label="Name" value={workspaceSummary?.name || "-"} />
-      <SummaryRow label="Code" value={workspaceSummary?.code || "-"} />
-      <SummaryRow label="Type" value={workspaceSummary?.type || "-"} />
-      <SummaryRow label="Email" value={workspaceSummary?.email || "-"} />
-      <SummaryRow label="Phone" value={workspaceSummary?.phone || "-"} />
-    </AppBox>
-  </AppCard>
-);
-
-const InvitationInfoCard = ({ onViewMembers }) => (
-  <AppCard
-    variant="default"
-    rounded="xl"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={infoCardSx}
-  >
-    <AppStack direction="row" align="flex-start" gap={1.05}>
-      <IconBox icon={<FiInfo />} colorVariant="info" />
-
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppHeading level={2} weight={750} sx={sideTitleSx}>
-          How Invitations Work
-        </AppHeading>
-
-        <AppText variant="body2" weight={500} sx={sideSubtitleSx}>
-          Workspace invitations are seat-aware and expire automatically.
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <div className="mt-3 space-y-2.5">
-      <InfoRow
-        icon={<FiCheckCircle />}
-        title="Seat validation"
-        text="The backend checks active members and pending invitations before creating a new invitation."
-      />
-
-      <InfoRow
-        icon={<FiClock />}
-        title="72-hour expiry"
-        text="Invitation links expire after 72 hours if they are not accepted."
-      />
-
-      <InfoRow
-        icon={<FiShield />}
-        title="Owner only"
-        text="Only workspace owners can invite members or cancel pending invitations."
-      />
-    </div>
-
-    <AppButton
-      type="button"
-      variant="soft"
-      colorVariant="primary"
-      rounded="md"
-      fullWidth
-      startIcon={<FiUsers />}
-      onClick={onViewMembers}
-      sx={membersButtonSx}
-    >
-      View Members
-    </AppButton>
-  </AppCard>
-);
-
-const SummaryRow = ({ label, value }) => (
-  <AppStack direction="row" align="center" justify="space-between" gap={1}>
-    <AppText variant="body2" weight={650} sx={summaryLabelSx}>
-      {label}
-    </AppText>
-
-    <AppText variant="body2" weight={750} sx={summaryValueSx}>
-      {value}
-    </AppText>
-  </AppStack>
-);
-
+// Internal Presentation Compositions
 const InfoRow = ({ icon, title, text }) => (
-  <AppStack direction="row" align="flex-start" gap={1}>
+  <AppStack direction="row" align="flex-start" gap={0.75}>
     <AppBox sx={smallInfoIconSx}>{icon}</AppBox>
-
-    <AppBox sx={{ minWidth: 0 }}>
-      <AppHeading level={3} weight={750} sx={infoTitleSx}>
+    <AppBox sx={{ minWidth: 0, flex: 1 }}>
+      <AppHeading level={3} weight={700} sx={infoTitleSx}>
         {title}
       </AppHeading>
-
-      <AppText variant="body2" weight={500} sx={infoTextSx}>
+      <AppText variant="body2" sx={infoTextSx}>
         {text}
       </AppText>
     </AppBox>
   </AppStack>
 );
 
-const IconBox = ({ icon, colorVariant = "primary", large = false }) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      width: large ? 40 : 36,
-      height: large ? 40 : 36,
-      minWidth: large ? 40 : 36,
-      borderRadius: large ? "14px" : "12px",
-      bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
-      color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
-      fontSize: large ? "21px" : "18px",
-      lineHeight: 0,
-    }}
+const AppIconButtonCustom = ({ icon, onClick, disabled }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-surface text-text-muted transition active:bg-surface-active disabled:cursor-not-allowed disabled:opacity-50"
   >
-    {icon}
-  </AppBox>
+    <span className="text-[15px]">{icon}</span>
+  </button>
 );
 
-const sectionSx = {
+/* Architectural Structural Layout Definitions */
+const containerSx = {
   position: "relative",
   zIndex: 1,
   width: "100%",
-  maxWidth: { xs: 390, sm: 430, md: 460 },
-  minHeight: "100vh",
+  maxWidth: { xs: 430, sm: 460 },
   mx: "auto",
-  px: { xs: 1.55, sm: 2 },
-  pt: { xs: 1.55, sm: 2 },
-  pb: { xs: 2, sm: 2.5 },
+  px: 0,
+  pt: 0,
+  pb: 0,
 };
 
-const backButtonSx = {
-  height: 34,
-  px: 1.2,
-  fontSize: "11.4px",
-  fontWeight: 750,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
+const headerWrapperSx = {
+  pt: 1.5,
+  pb: 1,
+  px: 0.5,
 };
 
-const invitesButtonSx = {
-  height: 34,
-  px: 1.2,
-  fontSize: "11.4px",
-  fontWeight: 800,
-};
-
-const headerSx = {
-  width: "100%",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  textAlign: "center",
-  mt: { xs: 1.5, sm: 1.9 },
-};
-
-const heroIconSx = {
-  width: 48,
-  height: 48,
-  mb: 1.1,
-  borderRadius: "16px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  bgcolor: "var(--app-color-primary-soft)",
-  color: "var(--app-color-primary)",
-  fontSize: "24px",
-};
-
-const titleSx = {
+const pageTitleSx = {
   m: 0,
-  fontSize: { xs: "22px", sm: "24px" },
-  lineHeight: 1.14,
-  letterSpacing: "-0.5px",
+  fontSize: "21px",
+  lineHeight: 1.15,
+  letterSpacing: "-0.4px",
   color: "var(--app-color-text)",
 };
 
-const subtitleSx = {
-  mt: 0.55,
-  maxWidth: 335,
-  fontSize: { xs: "11.8px", sm: "12.6px" },
-  lineHeight: "18px",
+const pageSubtitleSx = {
+  mt: 0.2,
+  fontSize: "11.5px",
   color: "var(--app-color-text-muted)",
 };
 
-const alertSx = {
-  mt: 1.75,
-};
-
-const formCardSx = {
-  mt: 2.15,
-  width: "100%",
-  px: { xs: 1.35, sm: 1.65 },
-  py: { xs: 1.35, sm: 1.65 },
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-md)",
-};
-
-const sectionTitleSx = {
-  m: 0,
-  fontSize: "14.2px",
-  lineHeight: 1.2,
+const headerSecondaryBtnSx = {
+  height: 32,
+  fontSize: "11px",
+  fontWeight: 700,
+  px: 1.1,
+  borderColor: "var(--app-color-border-strong)",
   color: "var(--app-color-text)",
 };
 
-const sectionSubtitleSx = {
-  mt: 0.45,
-  fontSize: "11.1px",
-  lineHeight: "16px",
-  color: "var(--app-color-text-muted)",
+const alertContainerSx = {
+  px: 0.5,
+  mb: 1,
+};
+
+const formSectionSx = {
+  px: 0.5,
+  pb: 1.5,
+};
+
+const labelRowSx = {
+  mb: 0.45,
+  alignItems: "center",
 };
 
 const labelSx = {
-  mb: 0.35,
-  fontSize: "11.6px",
-  fontWeight: 750,
+  mb: 0,
+  fontSize: "12.3px",
+  fontWeight: 700,
   color: "var(--app-color-text)",
 };
 
@@ -519,143 +473,136 @@ const inputSx = {
   height: 40,
   fontSize: "12px",
   bgcolor: "var(--app-color-surface)",
+};
+
+const selectStyle = {
+  height: 40,
+  fontSize: "12px",
+  backgroundColor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
   color: "var(--app-color-text)",
 };
 
 const textareaSx = {
-  minHeight: 92,
   fontSize: "12px",
   bgcolor: "var(--app-color-surface)",
-  color: "var(--app-color-text)",
 };
 
 const helperTextSx = {
   mt: 0.45,
-  fontSize: "10.7px",
+  fontSize: "10.5px",
   fontWeight: 500,
-  lineHeight: "15px",
+  lineHeight: "14px",
   color: "var(--app-color-text-muted)",
 };
 
-const submitErrorSx = {
-  mt: 1.2,
-  px: 0.35,
-  fontSize: "11.4px",
-  fontWeight: 650,
-  lineHeight: "17px",
+const helperErrorTextSx = {
+  ...helperTextSx,
   color: "var(--app-color-error)",
 };
 
 const actionsSx = {
-  mt: 1.6,
-  pt: 1.25,
-  borderTop: "1px solid var(--app-color-border)",
+  mt: 1,
+  pt: 1.5,
+  borderTop: "1px solid var(--app-color-divider)",
 };
 
 const primaryButtonSx = {
-  height: 46,
-  fontSize: "13.5px",
-  fontWeight: 800,
-  boxShadow: "var(--app-shadow-sm)",
+  height: 34,
+  px: 1.5,
+  fontSize: "12px",
+  fontWeight: 750,
 };
 
 const secondaryButtonSx = {
-  height: 38,
-  fontSize: "11.8px",
-  fontWeight: 750,
-  bgcolor: "var(--app-color-surface)",
+  height: 34,
+  px: 1.25,
+  fontSize: "12px",
+  fontWeight: 650,
+};
+
+const infoSectionWrapperSx = {
+  px: 0.5,
+  py: 1.25,
+  borderTop: "1px solid var(--app-color-divider)",
+  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, transparent)",
 };
 
 const sideCardSx = {
-  mt: 1.65,
-  px: 1.15,
-  py: 1.2,
+  p: 1.2,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-xs)",
+  boxShadow: "none",
 };
 
-const infoCardSx = {
-  mt: 1.65,
-  px: 1.15,
-  py: 1.2,
-  bgcolor: "var(--app-color-readonly-bg)",
-  borderColor: "var(--app-color-primary-soft)",
-  boxShadow: "var(--app-shadow-xs)",
+const iconBoxSx = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 32,
+  height: 32,
+  borderRadius: "8px",
+  bgcolor: "var(--app-color-primary-soft)",
+  color: "var(--app-color-primary)",
+  fontSize: "15px",
+  flexShrink: 0,
 };
 
 const sideTitleSx = {
   m: 0,
-  fontSize: "13.8px",
+  fontSize: "13px",
   lineHeight: 1.2,
   color: "var(--app-color-text)",
 };
 
 const sideSubtitleSx = {
-  mt: 0.4,
-  fontSize: "11px",
-  lineHeight: "16px",
+  mt: 0.1,
+  fontSize: "10.8px",
   color: "var(--app-color-text-muted)",
 };
 
-const summaryBoxSx = {
-  mt: 1.15,
-  display: "flex",
-  flexDirection: "column",
-  gap: 0.85,
-  p: 1,
-  borderRadius: "11px",
-  border: "1px solid var(--app-color-border)",
-  bgcolor: "var(--app-color-readonly-bg)",
-};
-
 const summaryLabelSx = {
-  fontSize: "10.7px",
+  fontSize: "10px",
   color: "var(--app-color-text-muted)",
 };
 
 const summaryValueSx = {
-  maxWidth: "60%",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  textAlign: "right",
-  fontSize: "11px",
+  fontSize: "11.5px",
   color: "var(--app-color-text)",
+  fontWeight: 600,
 };
 
 const smallInfoIconSx = {
-  width: 30,
-  height: 30,
-  minWidth: 30,
-  borderRadius: "999px",
+  width: 24,
+  height: 24,
+  borderRadius: "50%",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   bgcolor: "var(--app-color-primary-soft)",
   color: "var(--app-color-primary)",
-  fontSize: "15px",
+  fontSize: "12px",
+  flexShrink: 0,
 };
 
 const infoTitleSx = {
   m: 0,
-  fontSize: "12.2px",
-  lineHeight: 1.15,
+  fontSize: "11.5px",
   color: "var(--app-color-text)",
 };
 
 const infoTextSx = {
-  mt: 0.35,
-  fontSize: "10.8px",
-  lineHeight: "15.5px",
+  mt: 0.05,
+  fontSize: "10.5px",
+  lineHeight: "14px",
   color: "var(--app-color-text-muted)",
 };
 
 const membersButtonSx = {
-  mt: 1.35,
-  height: 38,
-  fontSize: "12px",
-  fontWeight: 800,
+  mt: 1.5,
+  height: 34,
+  fontSize: "11.5px",
+  fontWeight: 750,
 };
 
 export default InviteWorkspaceMemberMobilePage;

@@ -57,11 +57,9 @@ const normalizePlans = (plans = []) => {
 
   plans.forEach((plan) => {
     const key = getPlanGroupKey(plan);
-
     if (!groups.has(key)) {
       groups.set(key, []);
     }
-
     groups.get(key).push(plan);
   });
 
@@ -107,12 +105,12 @@ const normalizePlans = (plans = []) => {
       yearlyPrice,
       yearlyMonthlyPrice,
 
-      monthlyText: `${formatCurrency(monthlyPrice)} / month`,
-      yearlyText: `${formatCurrency(yearlyPrice)} / year`,
+      monthlyText: `${formatCurrency(monthlyPrice)}`,
+      yearlyText: `${formatCurrency(yearlyMonthlyPrice)}`,
       savingsText:
         yearlySavings > 0
-          ? `Save ${formatCurrency(yearlySavings)} yearly`
-          : "Best value yearly billing",
+          ? `Save ${formatCurrency(Math.round(yearlySavings / 12))}`
+          : "Best Value",
 
       trialText:
         Number(basePlan.trialDays || 0) > 0
@@ -156,10 +154,8 @@ const ChoosePlanPage = () => {
   const {
     startTrialSubscription,
     purchaseSubscription,
-
     getWorkspaceCurrentSubscription,
     currentWorkspaceSubscription,
-
     startTrialSubscriptionStatus,
     purchaseSubscriptionStatus,
     error: subscriptionError,
@@ -174,9 +170,7 @@ const ChoosePlanPage = () => {
 
   const workspace = useMemo(() => {
     if (currentWorkspace) return currentWorkspace;
-
     const firstWorkspaceItem = Array.isArray(workspaces) ? workspaces[0] : null;
-
     return getWorkspaceFromItem(firstWorkspaceItem);
   }, [currentWorkspace, workspaces]);
 
@@ -185,7 +179,6 @@ const ChoosePlanPage = () => {
 
   const hasWorkspace = Boolean(workspaceId);
   const hasExistingSubscription = Boolean(currentWorkspaceSubscription?._id);
-
   const hasFetchedWorkspaces = getMyWorkspacesStatus === API_STATUS.SUCCESS;
   const isFetchingWorkspaces = getMyWorkspacesStatus === API_STATUS.LOADING;
 
@@ -206,14 +199,12 @@ const ChoosePlanPage = () => {
 
   useEffect(() => {
     if (!workspaceId || hasFetchedSubscriptionRef.current) return;
-
     hasFetchedSubscriptionRef.current = true;
     getWorkspaceCurrentSubscription(workspaceId).catch(() => {});
   }, [workspaceId, getWorkspaceCurrentSubscription]);
 
   useEffect(() => {
     if (!hasExistingSubscription) return;
-
     navigate(ROUTES.SETUP_CENTER, { replace: true });
   }, [hasExistingSubscription, navigate]);
 
@@ -225,7 +216,6 @@ const ChoosePlanPage = () => {
     ) {
       return;
     }
-
     hasFetchedPlansRef.current = true;
     clearError();
     clearSubscriptionError?.();
@@ -242,7 +232,6 @@ const ChoosePlanPage = () => {
 
   useEffect(() => {
     if (selectedPlan || !plans.length) return;
-
     const popularPlan = plans.find((plan) => plan.popular);
     setSelectedPlan((popularPlan || plans[0]).id);
   }, [plans, selectedPlan]);
@@ -253,13 +242,11 @@ const ChoosePlanPage = () => {
   );
 
   const isFetchingPlans = getActivePlansStatus === API_STATUS.LOADING;
-
   const isSubmitting =
     startTrialSubscriptionStatus === API_STATUS.LOADING ||
     purchaseSubscriptionStatus === API_STATUS.LOADING;
 
   const isLoading = isFetchingWorkspaces || isFetchingPlans || isSubmitting;
-
   const error = submitError || subscriptionError || planError;
 
   const shouldHideChoosePlanPage =
@@ -285,8 +272,9 @@ const ChoosePlanPage = () => {
     navigate(ROUTES.CREATE_WORKSPACE);
   };
 
-  const handleStartTrial = async (planId = selectedPlan) => {
-    const plan = plans.find((item) => item.id === planId);
+  const handleStartTrial = async (planId) => {
+    const targetId = planId || selectedPlan;
+    const plan = plans.find((item) => item.id === targetId);
 
     if (!plan || !workspaceId || hasExistingSubscription) return;
 
@@ -326,8 +314,9 @@ const ChoosePlanPage = () => {
     }
   };
 
-  const handlePurchaseSubscription = async (planId = selectedPlan) => {
-    const plan = plans.find((item) => item.id === planId);
+  const handlePurchaseSubscription = async (planId) => {
+    const targetId = planId || selectedPlan;
+    const plan = plans.find((item) => item.id === targetId);
 
     if (!plan || !workspaceId || hasExistingSubscription) return;
 
@@ -366,15 +355,11 @@ const ChoosePlanPage = () => {
     }
   };
 
-  const handleSubmit = () => {
-    handleStartTrial(selectedPlan);
-  };
-
   if (shouldHideChoosePlanPage) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg">
         <div className="text-sm font-medium text-text-muted">
-          Loading workspace...
+          Loading plans...
         </div>
       </div>
     );
@@ -384,24 +369,18 @@ const ChoosePlanPage = () => {
     workspace,
     workspaceId,
     workspaceName,
-
     plans,
     selectedPlan,
     selectedPlanData,
     billingCycle,
     isYearly,
-
     isLoading,
     isFetchingPlans,
-    isFetchingWorkspaces,
-
     error,
-
     handleBillingCycleChange,
     handleToggleBillingCycle,
     handleSelectPlan,
     handleBack,
-    handleSubmit,
     handleStartTrial,
     handlePurchaseSubscription,
   };

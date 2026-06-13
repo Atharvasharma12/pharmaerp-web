@@ -18,6 +18,8 @@ const INITIAL_FORM_DATA = {
   companyEmail: "",
   companyPhone: "",
   website: "",
+  industry: "",
+  companyDescription: "",
   status: "active",
   logo: null,
 
@@ -51,6 +53,7 @@ const INITIAL_FORM_DATA = {
 };
 
 const companyTypeOptions = [
+  { label: "Select company type", value: "" },
   { label: "Proprietorship", value: "proprietorship" },
   { label: "Partnership", value: "partnership" },
   { label: "LLP", value: "llp" },
@@ -60,6 +63,15 @@ const companyTypeOptions = [
   { label: "Trust", value: "trust" },
   { label: "Society", value: "society" },
   { label: "Other", value: "other" },
+];
+
+const industryOptions = [
+  { label: "Select industry", value: "" },
+  { label: "Healthcare & Wellness", value: "healthcare_wellness" },
+  { label: "Pharmaceuticals", value: "pharmaceuticals" },
+  { label: "Retail Pharmacy", value: "retail_pharmacy" },
+  { label: "Wholesale Distribution", value: "wholesale_distribution" },
+  { label: "Medical Devices", value: "medical_devices" },
 ];
 
 const licenseStatusOptions = [
@@ -91,6 +103,8 @@ const buildCompanyPayload = (formData) => {
   return {
     name: normalizeText(formData.companyName),
     type: formData.companyType || "private_limited",
+    industry: formData.industry || null,
+    description: normalizeText(formData.companyDescription) || null,
     status: formData.status || "active",
     logo: formData.logo || null,
     email: normalizeLowerText(formData.companyEmail) || null,
@@ -151,12 +165,24 @@ const validateStepData = (step, formData) => {
       errors.companyName = "Company name cannot exceed 160 characters";
     }
 
-    if (companyEmail && !EMAIL_REGEX.test(companyEmail)) {
+    if (!formData.companyType) {
+      errors.companyType = "Company type is required";
+    }
+
+    if (!companyEmail) {
+      errors.companyEmail = "Email address is required";
+    } else if (!EMAIL_REGEX.test(companyEmail)) {
       errors.companyEmail = "Enter a valid email address";
     }
 
-    if (companyPhone && !PHONE_REGEX.test(companyPhone)) {
+    if (!companyPhone) {
+      errors.companyPhone = "Phone number is required";
+    } else if (!PHONE_REGEX.test(companyPhone)) {
       errors.companyPhone = "Invalid phone number";
+    }
+
+    if (!formData.industry) {
+      errors.industry = "Industry selection is required";
     }
   }
 
@@ -291,6 +317,13 @@ const CreateCompanyPage = () => {
     navigate("/companies");
   }, [navigate]);
 
+  const handleResetAndRefresh = useCallback(() => {
+    setCurrentStep(1);
+    setFormErrors({});
+    setFormData(INITIAL_FORM_DATA);
+    clearError();
+  }, [clearError]);
+
   const handleSubmit = useCallback(
     async (event) => {
       if (event) event.preventDefault();
@@ -307,8 +340,10 @@ const CreateCompanyPage = () => {
         setFormErrors(structuralErrors);
         if (
           structuralErrors.companyName ||
+          structuralErrors.companyType ||
           structuralErrors.companyEmail ||
-          structuralErrors.companyPhone
+          structuralErrors.companyPhone ||
+          structuralErrors.industry
         ) {
           setCurrentStep(1);
         } else if (
@@ -342,7 +377,7 @@ const CreateCompanyPage = () => {
     [createCompany, formData, navigate],
   );
 
-  const desktopProps = useMemo(
+  const pageProps = useMemo(
     () => ({
       formData,
       formErrors,
@@ -350,6 +385,7 @@ const CreateCompanyPage = () => {
       currentStep,
 
       companyTypeOptions,
+      industryOptions,
       licenseStatusOptions,
 
       handleChange: handleFieldChange,
@@ -359,6 +395,7 @@ const CreateCompanyPage = () => {
       handleStepChange,
       handleSaveDraft,
       handleCancel: handleBackToCompanies,
+      handleResetAndRefresh,
     }),
     [
       formData,
@@ -372,13 +409,14 @@ const CreateCompanyPage = () => {
       handleStepChange,
       handleSaveDraft,
       handleBackToCompanies,
+      handleResetAndRefresh,
     ],
   );
 
   return isMobile ? (
-    <CreateCompanyMobilePage {...desktopProps} />
+    <CreateCompanyMobilePage {...pageProps} />
   ) : (
-    <CreateCompanyDesktopPage {...desktopProps} />
+    <CreateCompanyDesktopPage {...pageProps} />
   );
 };
 

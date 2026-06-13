@@ -1,4 +1,4 @@
-// src/features/onboarding/pages/desktop/ChoosePlanDesktopPage.jsx
+// src/features/subscription/plans/pages/desktop/ChoosePlanDesktopPage.jsx
 
 import { useMemo, useState } from "react";
 import {
@@ -27,68 +27,6 @@ import {
   AppSwitch,
   AppText,
 } from "@/components";
-
-const fallbackPlans = [
-  {
-    id: "starter",
-    name: "Starter",
-    subtitle: "Perfect for single pharmacy",
-    monthlyText: "₹999 /month",
-    yearlyText: "₹11,988 /year",
-    yearlyMonthlyPrice: 999,
-    trialDays: 14,
-    popular: false,
-    features: [
-      "1 Company",
-      "1 Branch",
-      "Up to 3 Users",
-      "Inventory Management",
-      "POS Billing",
-      "Basic Reports",
-      "Email Support",
-    ],
-  },
-  {
-    id: "professional",
-    name: "Professional",
-    subtitle: "Best for growing pharmacy business",
-    monthlyText: "₹1,999 /month",
-    yearlyText: "₹23,988 /year",
-    yearlyMonthlyPrice: 1999,
-    trialDays: 14,
-    popular: true,
-    features: [
-      "5 Companies",
-      "10 Branches",
-      "Up to 20 Users",
-      "Advanced Inventory",
-      "Purchases & Suppliers",
-      "Advanced Reports",
-      "Expiry & Batch Management",
-      "Priority Support",
-    ],
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    subtitle: "For large pharmacy chains",
-    monthlyText: "₹3,999 /month",
-    yearlyText: "₹47,988 /year",
-    yearlyMonthlyPrice: 3999,
-    trialDays: 14,
-    popular: false,
-    features: [
-      "Unlimited Companies",
-      "Unlimited Branches",
-      "Unlimited Users",
-      "All Professional Features",
-      "Multi-warehouse",
-      "Advanced Analytics",
-      "Dedicated Account Manager",
-      "24/7 Premium Support",
-    ],
-  },
-];
 
 const comparisonRows = [
   {
@@ -128,9 +66,8 @@ const ChoosePlanDesktopPage = ({
 }) => {
   const [trialPlan, setTrialPlan] = useState(null);
 
-  const visiblePlans = plans.length ? plans : fallbackPlans;
   const activeSelectedPlan = selectedPlan || selectedPlanData?.id;
-  const hasPlans = visiblePlans.length > 0;
+  const hasPlans = plans.length > 0;
 
   const trialEndsOn = useMemo(() => {
     const trialDays = Number(trialPlan?.trialDays || 14);
@@ -158,7 +95,6 @@ const ChoosePlanDesktopPage = ({
 
   const confirmTrial = async () => {
     if (!trialPlan || isLoading) return;
-
     await handleStartTrial?.(trialPlan.id);
   };
 
@@ -171,7 +107,7 @@ const ChoosePlanDesktopPage = ({
           </AppHeading>
 
           <AppText variant="body2" sx={subtitleSx}>
-            Start a free 14-day trial. No credit card required.
+            Start a free trial. No credit card required.
           </AppText>
 
           <div className="mt-4 flex w-full justify-center">
@@ -246,18 +182,14 @@ const ChoosePlanDesktopPage = ({
           <div className="grid grid-cols-[minmax(0,1fr)_180px] gap-3">
             <div>
               <div className="grid grid-cols-3 items-center gap-4">
-                {visiblePlans.map((plan, index) => {
+                {plans.map((plan, index) => {
                   const isSelected =
                     activeSelectedPlan === plan.id ||
                     (!activeSelectedPlan && plan.popular);
 
-                  const priceText = isYearly
-                    ? plan.yearlyText
-                    : plan.monthlyText;
-
-                  const monthlyAmount = isYearly
+                  const priceAmount = isYearly
                     ? plan.yearlyMonthlyPrice
-                    : Number(String(priceText).replace(/[^\d]/g, "") || 0);
+                    : plan.monthlyPrice;
 
                   return (
                     <PlanCard
@@ -265,8 +197,7 @@ const ChoosePlanDesktopPage = ({
                       plan={plan}
                       index={index}
                       isSelected={isSelected}
-                      priceText={priceText}
-                      monthlyAmount={monthlyAmount}
+                      priceAmount={priceAmount}
                       isLoading={isLoading}
                       onSelect={() => handleSelectPlan?.(plan.id)}
                       onStartTrial={(event) => {
@@ -304,8 +235,7 @@ const PlanCard = ({
   plan,
   index,
   isSelected,
-  priceText,
-  monthlyAmount,
+  priceAmount,
   isLoading,
   onSelect,
   onStartTrial,
@@ -348,7 +278,7 @@ const PlanCard = ({
       <AppBox sx={priceWrapSx}>
         <AppStack direction="row" align="flex-end" gap={0.5}>
           <AppHeading level={3} weight={760} sx={priceSx}>
-            ₹{Number(monthlyAmount || 0).toLocaleString("en-IN")}
+            ₹{Number(priceAmount || 0).toLocaleString("en-IN")}
           </AppHeading>
 
           <AppText variant="body2" sx={perMonthSx}>
@@ -357,7 +287,7 @@ const PlanCard = ({
         </AppStack>
 
         <AppText variant="body2" sx={billingTextSx}>
-          Billed annually {priceText}
+          {plan.savingsText}
         </AppText>
       </AppBox>
 
@@ -377,7 +307,9 @@ const PlanCard = ({
         onClick={onStartTrial}
         sx={trialButtonSx}
       >
-        Start 14-Day Free Trial
+        {plan.trialText
+          ? `Start ${plan.trialDays}-Day Free Trial`
+          : "Start Free Trial"}
       </AppButton>
     </AppCard>
   );
@@ -647,7 +579,7 @@ const RightHelpPanel = () => (
       sx={sideCardSx}
     >
       <SideBlock icon={<FiShield />} title="Risk-Free Trial">
-        Try all features for 14 days. Cancel anytime.
+        Try all features risk free. Cancel anytime.
       </SideBlock>
 
       <div className="my-3 border-t border-divider" />
@@ -670,15 +602,18 @@ const SideBlock = ({ icon, title, children }) => (
     <AppBox sx={sideIconSx}>{icon}</AppBox>
 
     <AppBox>
-      <AppHeading level={3} weight={650} sx={sideTitleSx}>
-        {title}
-      </AppHeading>
-
+      <SideHeading title={title} />
       <AppText variant="body2" sx={sideTextSx}>
         {children}
       </AppText>
     </AppBox>
   </AppStack>
+);
+
+const SideHeading = ({ title }) => (
+  <AppHeading level={3} weight={650} sx={sideTitleSx}>
+    {title}
+  </AppHeading>
 );
 
 const ComparisonTable = () => (

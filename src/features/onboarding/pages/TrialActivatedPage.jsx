@@ -2,111 +2,159 @@
 
 import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import {
+  FiBarChart2,
+  FiBriefcase,
+  FiFileText,
+  FiHeadphones,
+  FiHome,
+  FiShoppingCart,
+  FiUsers,
+} from "react-icons/fi";
 
 import { ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
-
-import TrialActivatedDesktopPage from "./desktop/TrialActivatedDesktopPage";
+import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import { TrialActivatedDesktopPage } from "./desktop";
 import TrialActivatedMobilePage from "./mobile/TrialActivatedMobilePage";
+
+const getWorkspaceFromItem = (item) => item?.workspace || item || null;
 
 const TrialActivatedPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { workspaces, currentWorkspace } = useWorkspace();
 
   const selectedPlan = location.state || {};
 
+  const workspaceName = useMemo(() => {
+    if (currentWorkspace?.name) return currentWorkspace.name;
+    const resolved = getWorkspaceFromItem(
+      Array.isArray(workspaces) ? workspaces[0] : null,
+    );
+    return resolved?.name || "MedPlus Pharmacy";
+  }, [currentWorkspace, workspaces]);
+
   const trialData = useMemo(() => {
     const planName = selectedPlan.planName || "Professional";
-    const billingCycle = selectedPlan.billingCycle || "yearly";
-    const amount = selectedPlan.amount || 23988;
+    const trialDays = selectedPlan.trialDays || 7;
+
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + Number(trialDays));
+    const formattedEndsOn = endDate.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
 
     return {
-      planId: selectedPlan.planId || "professional",
-      planName,
-      billingCycle,
-      amount,
-      trialDays: 7,
-      trialStatus: "active",
-      activatedAt: new Date().toISOString(),
-      title: "Your Free Trial is Activated!",
-      description:
-        "Your PharmaERP workspace is ready. Start exploring billing, inventory, reports and pharmacy management tools.",
-      nextBillingText:
-        billingCycle === "yearly"
-          ? "Your yearly billing will start after the free trial."
-          : "Your monthly billing will start after the free trial.",
+      workspaceName,
+      planName: planName.includes("Plan") ? planName : `${planName} Plan`,
+      trialDays,
+      trialEndsOn: formattedEndsOn,
+      usersCount: 5,
     };
-  }, [selectedPlan]);
+  }, [selectedPlan, workspaceName]);
 
-  const quickActions = useMemo(
+  // Centralized features included in the trial plan
+  const includedFeatures = useMemo(
     () => [
       {
-        id: "dashboard",
-        title: "Go to Dashboard",
-        description: "Start managing your pharmacy workspace.",
-        actionText: "Open Dashboard",
-        primary: true,
-        onClick: () => navigate(ROUTES.SETUP_CENTER, { replace: true }),
+        id: "companies",
+        icon: <FiBriefcase />,
+        title: "5 Companies",
+        text: "Create and manage up to 5 companies",
       },
       {
-        id: "billing",
-        title: "Create First Bill",
-        description: "Try quick GST-ready sales billing.",
-        actionText: "Start Billing",
-        onClick: () => navigate(ROUTES.SETUP_CENTER, { replace: true }),
+        id: "branches",
+        icon: <FiHome />,
+        title: "10 Branches",
+        text: "Add and manage up to 10 branches",
+      },
+      {
+        id: "users",
+        icon: <FiUsers />,
+        title: "Up to 20 Users",
+        text: "Invite your team and assign roles",
       },
       {
         id: "inventory",
+        icon: <FiFileText />,
+        title: "Advanced Inventory",
+        text: "Inventory, stock, expiry & batch management",
+      },
+      {
+        id: "purchases",
+        icon: <FiShoppingCart />,
+        title: "Purchases & Suppliers",
+        text: "Manage purchases and suppliers",
+      },
+      {
+        id: "billing",
+        icon: <FiFileText />,
+        title: "POS Billing",
+        text: "Fast and easy billing system",
+      },
+      {
+        id: "reports",
+        icon: <FiBarChart2 />,
+        title: "Reports & Analytics",
+        text: "Insightful reports and dashboards",
+      },
+      {
+        id: "support",
+        icon: <FiHeadphones />,
+        title: "Priority Support",
+        text: "Get priority email support",
+      },
+    ],
+    [],
+  );
+
+  const nextSteps = useMemo(
+    () => [
+      {
+        id: "inventory",
         title: "Add Inventory",
-        description: "Add medicines, batches, stock and expiry dates.",
-        actionText: "Add Stock",
-        onClick: () => navigate(ROUTES.SETUP_CENTER, { replace: true }),
+        description: "Add your medicines & manage stock",
+        actionText: "Go to Inventory",
+        onClick: () => navigate("/inventory/products/create"),
+      },
+      {
+        id: "purchase",
+        title: "Create Purchase",
+        description: "Add your suppliers and create purchase bills",
+        actionText: "Go to Purchase",
+        onClick: () => navigate("/purchases/create"),
+      },
+      {
+        id: "billing",
+        title: "Start Billing",
+        description: "Create invoices and bill your customers",
+        actionText: "Go to POS",
+        onClick: () => navigate("/billing/settings"),
+      },
+      {
+        id: "reports",
+        title: "Explore Reports",
+        description: "View business insights and analytics",
+        actionText: "Go to Reports",
+        onClick: () => navigate("/reports/dashboard"),
       },
     ],
     [navigate],
-  );
-
-  const checklist = useMemo(
-    () => [
-      {
-        id: "workspace",
-        label: "Workspace created",
-        completed: true,
-      },
-      {
-        id: "plan",
-        label: `${trialData.planName} plan selected`,
-        completed: true,
-      },
-      {
-        id: "trial",
-        label: `${trialData.trialDays} days free trial activated`,
-        completed: true,
-      },
-      {
-        id: "setup",
-        label: "Complete pharmacy setup from dashboard",
-        completed: false,
-      },
-    ],
-    [trialData.planName, trialData.trialDays],
   );
 
   const handleGoToDashboard = () => {
     navigate(ROUTES.SETUP_CENTER, { replace: true });
   };
 
-  const handleBackToPlans = () => {
-    navigate(ROUTES.CHOOSE_PLAN);
-  };
-
   const pageProps = {
     trialData,
-    quickActions,
-    checklist,
+    includedFeatures,
+    nextSteps,
     handleGoToDashboard,
-    handleBackToPlans,
   };
 
   return isMobile ? (

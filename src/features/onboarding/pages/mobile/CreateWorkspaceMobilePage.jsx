@@ -224,9 +224,9 @@ const sectionSx = {
   width: "100%",
   maxWidth: { xs: 390, sm: 430, md: 460 },
   mx: "auto",
-  px: { xs: 1.65, sm: 2 },
-  pt: { xs: 2.35, sm: 2.8 },
-  pb: { xs: 1.8, sm: 2.2 },
+  px: 0,
+  pt: 0,
+  pb: 0,
 };
 
 const titleSx = {

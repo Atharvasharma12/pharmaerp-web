@@ -30,10 +30,10 @@ import {
   AppSelect,
   AppStack,
   AppTag,
+  AppText,
   PageHeader,
   PageRightSidebar,
   HELP_SUPPORT_CARD,
-  AppText,
 } from "@/components";
 
 const CreateBranchDesktopPage = memo(
@@ -53,30 +53,8 @@ const CreateBranchDesktopPage = memo(
     handleStepChange,
     handleSaveDraft,
     handleCancel,
+    handleResetAndRefresh,
   }) => {
-    // Function triggered when the header Refresh button is clicked
-    const handleResetAndRefresh = useCallback(() => {
-      handleStepChange?.(1);
-
-      if (formData) {
-        Object.keys(formData).forEach((key) => {
-          let defaultValue = "";
-          if (Array.isArray(formData[key])) defaultValue = [];
-          if (typeof formData[key] === "boolean") defaultValue = false;
-          if (key === "isPrimary") defaultValue = "false";
-          if (key === "branchType") defaultValue = "retail";
-          if (key === "country") defaultValue = "India";
-
-          handleChange?.({
-            target: {
-              name: key,
-              value: defaultValue,
-            },
-          });
-        });
-      }
-    }, [formData, handleChange, handleStepChange]);
-
     return (
       <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
         <div className="mx-auto w-full max-w-[1500px]">
@@ -212,6 +190,7 @@ const CreateBranchDesktopPage = memo(
                 {currentStep === 5 && (
                   <ReviewAndCreateStep
                     formData={formData}
+                    branchTypeOptions={branchTypeOptions}
                     isCreating={isLoading}
                     onBack={handleBack}
                     onSaveDraft={handleSaveDraft}
@@ -359,6 +338,8 @@ const BranchDetailsForm = ({
         onChange={handleChange}
         options={branchTypeOptions}
         required
+        error={Boolean(formErrors.branchType)}
+        helperText={formErrors.branchType}
         labelSx={labelSx}
         inputSx={inputSx}
       />
@@ -389,6 +370,7 @@ const BranchDetailsForm = ({
         value={formData.mobile || ""}
         onChange={handleChange}
         placeholder="Enter 10-digit mobile number"
+        required
         error={Boolean(formErrors.mobile)}
         helperText={formErrors.mobile}
         labelSx={labelSx}
@@ -521,6 +503,7 @@ const AddressForm = ({
         value={formData.pincode || ""}
         onChange={handleChange}
         placeholder="6-digit PIN code map index"
+        required
         error={Boolean(formErrors.pincode)}
         helperText={formErrors.pincode}
         labelSx={labelSx}
@@ -540,7 +523,7 @@ const AddressForm = ({
         name="googleMapLocation"
         value={formData.googleMapLocation || ""}
         onChange={handleChange}
-        placeholder="https://maps.google.com/?q=..."
+        placeholder="http://maps.google.com/..."
         labelSx={labelSx}
         inputSx={inputSx}
       />
@@ -575,6 +558,7 @@ const AddressForm = ({
 
 const LicenseForm = ({
   formData,
+  formErrors,
   handleChange,
   handleBack,
   handleContinue,
@@ -813,12 +797,18 @@ const ComplianceContactsForm = ({
 
 const ReviewAndCreateStep = ({
   formData,
+  branchTypeOptions,
   isCreating,
   onBack,
   onSaveDraft,
   onSubmit,
   onEditSection,
 }) => {
+  const resolvedTypeLabel =
+    branchTypeOptions.find((opt) => opt.value === formData.branchType)?.label ||
+    formData.branchType ||
+    "";
+
   return (
     <div className="space-y-4">
       {/* 1. Branch Overview Summary Card */}
@@ -848,7 +838,7 @@ const ReviewAndCreateStep = ({
                 </AppHeading>
                 {formData.isPrimary === "true" && (
                   <AppTag
-                    label="Primary Branch"
+                    label="Primary Core"
                     variant="soft"
                     colorVariant="success"
                     rounded="md"
@@ -859,15 +849,11 @@ const ReviewAndCreateStep = ({
               <div className="mt-1.5 space-y-1">
                 <div className="flex items-center gap-2 text-[12px] text-text-muted">
                   <FiMail className="shrink-0" />{" "}
-                  <span>{formData.branchEmail || "Not provided"}</span>
+                  <span>{formData.branchEmail || ""}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[12px] text-text-muted">
                   <FiPhone className="shrink-0" />{" "}
-                  <span>
-                    {formData.mobile
-                      ? `+91 ${formData.mobile}`
-                      : "No mobile linked"}
-                  </span>
+                  <span>{formData.mobile ? `+91 ${formData.mobile}` : ""}</span>
                 </div>
               </div>
             </div>
@@ -876,16 +862,13 @@ const ReviewAndCreateStep = ({
           <div className="flex flex-1 grid grid-cols-2 gap-x-4 gap-y-2.5 max-w-[480px]">
             <ReviewItem
               label="Branch Infrastructure Type"
-              value={
-                <span className="capitalize">
-                  {formData.branchType?.replace("_", " ")}
-                </span>
-              }
+              value={resolvedTypeLabel}
             />
             <ReviewItem
-              label="WhatsApp Alert Comms"
-              value={formData.whatsapp ? `+91 ${formData.whatsapp}` : "-"}
+              label="WhatsApp Comms"
+              value={formData.whatsapp ? `+91 ${formData.whatsapp}` : ""}
             />
+            <ReviewItem label="Landline" value={formData.landline || ""} />
           </div>
         </div>
       </AppCard>
@@ -908,24 +891,20 @@ const ReviewAndCreateStep = ({
           <div className="mt-4 space-y-2">
             <ReviewRowData
               label="Address"
-              value={`${formData.addressLine1 || "-"} ${formData.addressLine2 || ""}`}
+              value={
+                formData.addressLine1
+                  ? `${formData.addressLine1}${formData.addressLine2 ? `, ${formData.addressLine2}` : ""}`
+                  : ""
+              }
             />
+            <ReviewRowData label="City" value={formData.city || ""} />
+            <ReviewRowData label="District" value={formData.district || ""} />
+            <ReviewRowData label="State" value={formData.state || ""} />
+            <ReviewRowData label="PIN Code" value={formData.pincode || ""} />
+            <ReviewRowData label="Country" value={formData.country || ""} />
             <ReviewRowData
-              label="City Workspace"
-              value={formData.city || "-"}
-            />
-            <ReviewRowData
-              label="District Boundary"
-              value={formData.district || "-"}
-            />
-            <ReviewRowData label="State Record" value={formData.state || "-"} />
-            <ReviewRowData
-              label="Postal PIN Index"
-              value={formData.pincode || "-"}
-            />
-            <ReviewRowData
-              label="Country Identity"
-              value={formData.country || "India"}
+              label="Maps Location"
+              value={formData.googleMapLocation || ""}
             />
           </div>
         </AppCard>
@@ -946,19 +925,19 @@ const ReviewAndCreateStep = ({
           <div className="mt-4 space-y-2">
             <ReviewRowData
               label="Drug License Number"
-              value={formData.drugLicenseNumber || "-"}
+              value={formData.drugLicenseNumber || ""}
             />
             <ReviewRowData
               label="Drug License Classification"
-              value={formData.drugLicenseType || "-"}
+              value={formData.drugLicenseType || ""}
             />
             <ReviewRowData
               label="Food Authority FSSAI"
-              value={formData.fssaiNumber || "-"}
+              value={formData.fssaiNumber || ""}
             />
             <ReviewRowData
               label="Statutory Expiration Term"
-              value={formData.licenseExpiresAt || "-"}
+              value={formData.licenseExpiresAt || ""}
             />
           </div>
         </AppCard>
@@ -974,40 +953,49 @@ const ReviewAndCreateStep = ({
         sx={reviewCardSx}
       >
         <ReviewSectionHeader
-          title="Practitioner Registry & Points of Contact"
+          title="Compliance Operators & Contact Links"
           stepId={4}
           onEdit={onEditSection}
         />
         <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-2">
           <ReviewRowData
-            label="Pharmacist Practitioner"
-            value={formData.pharmacistName || "-"}
+            label="Pharmacist Name"
+            value={formData.pharmacistName || ""}
           />
           <ReviewRowData
-            label="Council Log Index"
-            value={formData.pharmacistRegistrationNumber || "-"}
+            label="Council Index"
+            value={formData.pharmacistRegistrationNumber || ""}
           />
           <ReviewRowData
-            label="Pharmacist Mobile"
-            value={formData.pharmacistMobile || "-"}
+            label="Pharmacist Phone"
+            value={
+              formData.pharmacistMobile
+                ? `+91 ${formData.pharmacistMobile}`
+                : ""
+            }
           />
           <ReviewRowData
             label="Pharmacist Email"
-            value={formData.pharmacistEmail || "-"}
+            value={formData.pharmacistEmail || ""}
           />
+
           <div className="col-span-2 border-t border-border pt-2 mt-1">
             <div className="grid grid-cols-2 gap-x-8 gap-y-2">
               <ReviewRowData
-                label="Emergency Contact Person"
-                value={formData.emergencyContactName || "-"}
+                label="Emergency Contact"
+                value={formData.emergencyContactName || ""}
               />
               <ReviewRowData
-                label="Emergency Mobile"
-                value={formData.emergencyContactMobile || "-"}
+                label="Emergency Phone"
+                value={
+                  formData.emergencyContactMobile
+                    ? `+91 ${formData.emergencyContactMobile}`
+                    : ""
+                }
               />
               <ReviewRowData
-                label="Relationship Flag"
-                value={formData.emergencyContactRelationship || "-"}
+                label="Relationship Map"
+                value={formData.emergencyContactRelationship || ""}
               />
             </div>
           </div>
@@ -1099,16 +1087,20 @@ const ReviewItem = ({ label, value }) => (
   </div>
 );
 
-const ReviewRowData = ({ label, value }) => (
-  <div className="flex items-start justify-between gap-4 text-[12px]">
-    <span className="text-text-muted font-medium whitespace-nowrap">
-      {label}
-    </span>
-    <div className="text-right font-bold text-text max-w-[300px] truncate">
-      {value}
+const ReviewRowData = ({ label, value }) => {
+  const resolvedValue =
+    value === undefined || value === null ? "" : String(value);
+  return (
+    <div className="flex items-start justify-between gap-4 text-[12px]">
+      <span className="text-text-muted font-medium whitespace-nowrap">
+        {label}
+      </span>
+      <div className="text-right font-bold text-text max-w-[300px] truncate">
+        {resolvedValue}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /* ==========================================================================
    RIGHT ASSISTANT PANEL COMPONENT

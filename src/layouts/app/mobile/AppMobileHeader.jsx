@@ -1,71 +1,106 @@
 // src/layouts/app/mobile/AppMobileHeader.jsx
-
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { FiBell, FiMenu } from "react-icons/fi";
+import { FiBell, FiMenu, FiChevronDown } from "react-icons/fi";
 
 import { AppAvatar, AppIconButton } from "@/components";
 import { ROUTES } from "@/constants";
 
+import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import useCompany from "@/features/company/hooks/useCompany";
+import useBranch from "@/features/branch/hooks/useBranch";
+import AppMobileContextSheet from "./AppMobileContextSheet";
+
 const AppMobileHeader = ({ onMenuClick }) => {
+  const [contextSheetOpen, setContextSheetOpen] = useState(false);
+
+  const { currentWorkspace } = useWorkspace();
+  const { currentCompany } = useCompany();
+  const { currentBranch } = useBranch();
+
+  // Compute clean text descriptions for context indicators
+  const currentWorkspaceName = currentWorkspace?.name || "Select Workspace";
+  const currentCompanyName = currentCompany?.name || "Select Company";
+  const currentBranchName = currentBranch?.name || "Select Branch";
+
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-bg/95 backdrop-blur-md">
-      <div className="px-4 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <AppIconButton
-            icon={<FiMenu className="text-[22px]" />}
-            onClick={onMenuClick}
-            variant="text"
-            colorVariant="dark"
-            rounded="lg"
-            aria-label="Open menu"
-            sx={{
-              width: 38,
-              height: 38,
-              minWidth: 38,
-            }}
-          />
+    <>
+      <header className="sticky top-0 z-50 border-b border-divider bg-bg/95 backdrop-blur-md">
+        <div className="px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            {/* Sidebar Toggle */}
+            <AppIconButton
+              icon={<FiMenu className="text-[22px]" />}
+              onClick={onMenuClick}
+              variant="text"
+              colorVariant="dark"
+              rounded="lg"
+              aria-label="Open menu"
+              sx={{
+                width: 36,
+                height: 36,
+                minWidth: 36,
+              }}
+            />
 
-          <Link
-            to={ROUTES.SETUP_CENTER}
-            className="flex min-w-0 flex-1 items-center gap-2.5"
-          >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface shadow-sm">
-              <img
-                src="/erp-mini-logo.png"
-                alt="PharmaERP Logo"
-                className="h-6 w-6 object-contain"
-              />
-            </div>
-
-            <div className="min-w-0 leading-none">
-              <div className="truncate text-[22px] font-bold tracking-tight text-text">
-                Pharma<span className="text-primary">ERP</span>
-              </div>
-
-              <div className="mt-1 truncate text-[10px] font-medium text-text-muted">
-                Retail Pharmacy Management
-              </div>
-            </div>
-          </Link>
-
-          <div className="flex shrink-0 items-center gap-2">
+            {/* Middle Module: Interactive Multi-Context Trigger Selector */}
             <button
               type="button"
-              aria-label="Notifications"
-              className="relative flex h-9 w-9 items-center justify-center rounded-xl text-text-muted transition hover:bg-surface-hover hover:text-primary"
+              onClick={() => setContextSheetOpen(true)}
+              className="flex min-w-0 flex-1 items-center justify-between gap-1.5 rounded-xl border border-divider bg-surface px-2.5 py-1 text-left shadow-xs transition active:bg-surface-hover"
             >
-              <FiBell className="text-[21px]" />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
+              <div className="min-w-0 flex-1">
+                {/* Primary App Context Tier Name */}
+                <div className="truncate text-xs font-bold text-text leading-tight">
+                  {currentCompanyName !== "Select Company"
+                    ? currentCompanyName
+                    : currentWorkspaceName}
+                </div>
+
+                {/* Context Breadcrumbs Detail Row */}
+                <div className="mt-0.5 flex items-center gap-1.5 truncate text-[9px] font-medium text-text-muted leading-none">
+                  <span className="truncate max-w-[70px]">
+                    {currentWorkspaceName}
+                  </span>
+                  {currentCompanyName !== "Select Company" && (
+                    <>
+                      <span className="text-divider">•</span>
+                      <span className="truncate max-w-[75px] text-primary">
+                        {currentBranchName}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <FiChevronDown className="shrink-0 text-xs text-text-muted" />
             </button>
 
-            <Link to={ROUTES.PROFILE}>
-              <AppAvatar name="Admin" initials="AD" size="small" />
-            </Link>
+            {/* Global Utility Controls Actions Segment */}
+            <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                aria-label="Notifications"
+                className="relative flex h-9 w-9 items-center justify-center rounded-xl text-text-muted transition active:bg-surface-hover active:text-primary"
+              >
+                <FiBell className="text-[20px]" />
+                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
+              </button>
+
+              <Link to={ROUTES.PROFILE} className="shrink-0 pl-0.5">
+                <AppAvatar name="Admin" initials="AD" size="small" />
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Bottom Sheet Dropdown Overlay Dialog */}
+      <AppMobileContextSheet
+        isOpen={contextSheetOpen}
+        onClose={() => setContextSheetOpen(false)}
+      />
+    </>
   );
 };
 

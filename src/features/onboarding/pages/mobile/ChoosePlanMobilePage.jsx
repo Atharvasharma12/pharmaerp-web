@@ -1,12 +1,19 @@
 // src/features/onboarding/pages/mobile/ChoosePlanMobilePage.jsx
 
+import { useMemo, useState } from "react";
 import {
-  FiArrowLeft,
+  FiAlertCircle,
+  FiAward,
+  FiBox,
+  FiCalendar,
   FiCheck,
-  FiCreditCard,
-  FiRefreshCcw,
+  FiClock,
+  FiHome,
+  FiInfo,
+  FiLock,
+  FiSend,
   FiShield,
-  FiStar,
+  FiX,
   FiZap,
 } from "react-icons/fi";
 
@@ -20,80 +27,66 @@ import {
   AppText,
 } from "@/components";
 
+const planGroupIcons = {
+  starter: <FiSend />,
+  professional: <FiBox />,
+  enterprise: <FiAward />,
+};
+
 const ChoosePlanMobilePage = ({
   workspaceName = "Your Workspace",
   plans = [],
   selectedPlan,
-  selectedPlanData,
   billingCycle,
   isYearly,
   isLoading = false,
-  isFetchingPlans = false,
   error,
   handleToggleBillingCycle,
   handleSelectPlan,
   handleBack,
   handleStartTrial,
-  handlePurchaseSubscription,
 }) => {
-  const hasPlans = plans.length > 0;
+  const [trialPlan, setTrialPlan] = useState(null);
+
+  const trialEndsOn = useMemo(() => {
+    const trialDays = Number(trialPlan?.trialDays || 14);
+    const date = new Date();
+    date.setDate(date.getDate() + trialDays);
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }, [trialPlan]);
+
+  const openTrialDialog = (plan) => {
+    if (isLoading) return;
+    handleSelectPlan?.(plan.id);
+    setTrialPlan(plan);
+  };
 
   return (
     <section className="relative w-full overflow-hidden bg-bg">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,color-mix(in_srgb,var(--app-color-primary)_7%,transparent),transparent_34%)]" />
-
-      <AppBox sx={sectionSx}>
-        <AppStack direction="row" align="center" gap={1.05}>
-          <IconBox icon={<FiCreditCard />} />
-
-          <AppBox sx={{ minWidth: 0 }}>
-            <AppHeading level={1} weight={720} sx={titleSx}>
-              Choose Plan
-            </AppHeading>
-
-            <AppText variant="body2" sx={subtitleSx}>
-              Plan for{" "}
-              <span className="font-semibold text-primary">
-                {workspaceName}
-              </span>
-            </AppText>
-          </AppBox>
-        </AppStack>
-
-        <AppCard
-          variant="soft"
-          rounded="lg"
-          bordered
-          shadow="xs"
-          padding="none"
-          sx={workspaceCardSx}
-        >
-          <AppText variant="body2" weight={650} sx={workspaceLabelSx}>
-            Workspace
+      <AppBox sx={containerSx}>
+        <AppBox sx={headerContainerSx}>
+          <AppHeading level={1} weight={800} sx={pageTitleSx}>
+            Choose Your Plan
+          </AppHeading>
+          <AppText variant="body2" weight={600} sx={pageSubtitleSx}>
+            Start your free trial. No credit card required.
           </AppText>
+        </AppBox>
 
-          <AppText variant="body2" weight={700} sx={workspaceNameSx}>
-            {workspaceName}
-          </AppText>
-        </AppCard>
-
-        <AppCard
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="xs"
-          padding="none"
-          sx={billingCardSx}
-        >
-          <AppStack direction="row" align="center" justify="center" gap={1.1}>
+        {/* Centered Billing Switch matching Desktop Logic */}
+        <AppBox sx={billingToggleWrapperSx}>
+          <AppStack direction="row" align="center" justify="center" gap={1.2}>
             <AppText
               variant="body2"
-              weight={!isYearly ? 700 : 500}
-              sx={cycleTextSx}
+              weight={!isYearly ? 750 : 500}
+              sx={cycleLabelSx}
             >
               Monthly
             </AppText>
-
             <AppSwitch
               checked={isYearly}
               onChange={handleToggleBillingCycle}
@@ -101,27 +94,23 @@ const ChoosePlanMobilePage = ({
               colorVariant="primary"
               size="small"
             />
-
             <AppText
               variant="body2"
-              weight={isYearly ? 700 : 500}
-              sx={cycleTextSx}
+              weight={isYearly ? 750 : 500}
+              sx={cycleLabelSx}
             >
               Yearly
             </AppText>
+            <AppText variant="body2" weight={800} sx={saveLabelSx}>
+              (Save 20%)
+            </AppText>
           </AppStack>
+        </AppBox>
 
-          <AppText variant="body2" weight={650} sx={saveTextSx}>
-            {billingCycle === "yearly"
-              ? "Yearly billing selected"
-              : "Switch yearly to save more"}
-          </AppText>
-        </AppCard>
-
-        {error ? (
+        {error && (
           <AppCard
             variant="soft"
-            rounded="lg"
+            rounded="md"
             bordered
             padding="none"
             sx={errorCardSx}
@@ -130,560 +119,499 @@ const ChoosePlanMobilePage = ({
               {error}
             </AppText>
           </AppCard>
-        ) : null}
+        )}
 
-        {isFetchingPlans ? (
-          <AppCard
-            variant="default"
-            rounded="xl"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={loadingCardSx}
-          >
-            <FiRefreshCcw className="animate-spin text-[19px] text-primary" />
+        <AppStack direction="column" gap={1.25} sx={{ mt: 1 }}>
+          {plans.map((plan) => {
+            const planTypeKey = String(
+              plan.slug || plan.type || "",
+            ).toLowerCase();
+            const IconElement = planGroupIcons[planTypeKey] || <FiZap />;
+            const priceDisplay = isYearly
+              ? plan.yearlyMonthlyPrice
+              : plan.monthlyPrice;
 
-            <AppText variant="body2" weight={650} sx={loadingTextSx}>
-              Loading plans...
-            </AppText>
-          </AppCard>
-        ) : null}
+            return (
+              <AppCard
+                key={plan.id}
+                variant="default"
+                rounded="lg"
+                bordered
+                shadow={plan.popular ? "sm" : "none"}
+                padding="none"
+                onClick={() => handleSelectPlan(plan.id)}
+                sx={{
+                  ...planTierCardSx,
+                  borderColor: plan.popular
+                    ? "var(--app-color-success)"
+                    : "var(--app-color-border)",
+                }}
+              >
+                {plan.popular && (
+                  <AppBox sx={popularBadgeSx}>Most Popular</AppBox>
+                )}
 
-        {!isFetchingPlans && !hasPlans ? (
-          <AppCard
-            variant="default"
-            rounded="xl"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={emptyCardSx}
-          >
-            <IconBox icon={<FiShield />} large />
-
-            <AppHeading level={2} weight={720} sx={emptyTitleSx}>
-              No active plans
-            </AppHeading>
-
-            <AppText variant="body2" sx={emptyTextSx}>
-              Please contact support or try again later.
-            </AppText>
-          </AppCard>
-        ) : null}
-
-        {!isFetchingPlans && hasPlans ? (
-          <AppStack direction="column" gap={1.2} sx={{ mt: 1.25 }}>
-            {plans.map((plan) => {
-              const isSelected = selectedPlan === plan.id;
-              const priceText = isYearly ? plan.yearlyText : plan.monthlyText;
-
-              const monthlyEquivalent = isYearly
-                ? `≈ ₹${Number(plan.yearlyMonthlyPrice || 0).toLocaleString(
-                    "en-IN",
-                  )} / month`
-                : plan.trialText;
-
-              const hasTrial = Number(plan.trialDays || 0) > 0;
-
-              return (
-                <AppCard
-                  key={plan.id}
-                  variant="default"
-                  rounded="xl"
-                  bordered
-                  shadow={isSelected ? "md" : "xs"}
-                  padding="none"
-                  sx={{
-                    ...planCardSx,
-                    ...(isSelected ? selectedPlanCardSx : {}),
-                  }}
-                  onClick={() => handleSelectPlan(plan.id)}
+                <AppStack
+                  direction="row"
+                  align="flex-start"
+                  justify="space-between"
+                  gap={1}
+                  sx={{ mt: plan.popular ? 1.6 : 0 }}
                 >
-                  <AppStack direction="row" align="flex-start" gap={1}>
-                    <PlanIcon active={isSelected} />
-
-                    <AppBox sx={{ minWidth: 0, flex: 1 }}>
-                      <AppStack
-                        direction="row"
-                        align="center"
-                        justify="space-between"
-                        gap={1}
-                      >
-                        <AppHeading level={2} weight={720} sx={planNameSx}>
-                          {plan.name}
-                        </AppHeading>
-
-                        {plan.popular ? (
-                          <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary-contrast">
-                            Popular
-                          </span>
-                        ) : null}
-                      </AppStack>
-
-                      <AppText variant="body2" sx={planSubtitleSx}>
+                  <AppStack direction="row" align="center" gap={0.85}>
+                    <AppBox sx={iconWrapperSx}>{IconElement}</AppBox>
+                    <AppBox>
+                      <AppHeading level={2} weight={800} sx={tierTitleSx}>
+                        {plan.name}
+                      </AppHeading>
+                      <AppText variant="body2" weight={500} sx={tierSubtitleSx}>
                         {plan.subtitle}
                       </AppText>
                     </AppBox>
                   </AppStack>
 
-                  <AppBox sx={priceWrapSx}>
-                    <AppHeading level={3} weight={740} sx={priceSx}>
-                      {priceText}
-                    </AppHeading>
-
-                    <AppText variant="body2" weight={600} sx={savingSx}>
-                      {monthlyEquivalent}
-                    </AppText>
-
-                    {isYearly ? (
-                      <AppText variant="body2" weight={600} sx={savingSx}>
-                        {plan.savingsText}
+                  <AppBox sx={{ textAlign: "right" }}>
+                    <AppStack
+                      direction="row"
+                      align="baseline"
+                      justify="flex-end"
+                      gap={0.15}
+                    >
+                      <AppHeading level={3} weight={800} sx={priceTextSx}>
+                        ₹{Number(priceDisplay || 0).toLocaleString("en-IN")}
+                      </AppHeading>
+                      <AppText variant="body2" weight={600} sx={monthLabelSx}>
+                        /month
                       </AppText>
-                    ) : null}
+                    </AppStack>
+                    <AppText variant="body2" weight={700} sx={savingsTextSx}>
+                      {plan.savingsText}
+                    </AppText>
                   </AppBox>
+                </AppStack>
 
-                  <AppBox sx={featureListSx}>
-                    {plan.features.slice(0, 5).map((feature) => (
-                      <FeatureItem key={feature} text={feature} />
-                    ))}
-                  </AppBox>
+                <div className="my-2.5 h-[1px] w-full bg-divider" />
 
-                  <AppStack
-                    direction="row"
-                    align="center"
-                    gap={0.75}
-                    sx={{ mt: 1.15 }}
-                  >
-                    <AppButton
-                      type="button"
-                      variant="outlined"
-                      colorVariant="primary"
-                      rounded="md"
-                      fullWidth
-                      disabled={isLoading || !hasTrial}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleStartTrial(plan.id);
-                      }}
-                      sx={actionButtonSx}
-                    >
-                      Free Trial
-                    </AppButton>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                  {plan.features.slice(0, 8).map((f) => (
+                    <AppStack key={f} direction="row" align="center" gap={0.4}>
+                      <FiCheck className="text-[10.5px] text-success flex-shrink-0" />
+                      <AppText variant="body2" weight={500} sx={featureTextSx}>
+                        {f}
+                      </AppText>
+                    </AppStack>
+                  ))}
+                </div>
 
-                    <AppButton
-                      type="button"
-                      variant={isSelected ? "contained" : "outlined"}
-                      colorVariant={isSelected ? "primary" : "neutral"}
-                      rounded="md"
-                      fullWidth
-                      disabled={isLoading}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handlePurchaseSubscription(plan.id);
-                      }}
-                      sx={actionButtonSx}
-                    >
-                      Subscribe
-                    </AppButton>
-                  </AppStack>
-                </AppCard>
-              );
-            })}
-          </AppStack>
-        ) : null}
+                <AppButton
+                  variant={plan.popular ? "contained" : "outlined"}
+                  colorVariant="success"
+                  size="small"
+                  fullWidth
+                  sx={actionButtonSx}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openTrialDialog(plan);
+                  }}
+                >
+                  Start Free Trial
+                </AppButton>
+              </AppCard>
+            );
+          })}
+        </AppStack>
 
-        <AppCard
-          variant="default"
-          rounded="xl"
-          bordered
-          shadow="sm"
-          padding="none"
-          sx={summaryCardSx}
+        <AppStack
+          direction="row"
+          align="center"
+          justify="space-between"
+          sx={{ mt: 2.5 }}
         >
-          <AppText variant="body2" weight={650} sx={summaryLabelSx}>
-            Selected for {workspaceName}
-          </AppText>
-
-          <AppStack direction="row" align="center" gap={0.7} sx={{ mt: 0.45 }}>
-            <AppHeading level={2} weight={720} sx={summaryTitleSx}>
-              {selectedPlanData ? selectedPlanData.name : "No plan"}
-            </AppHeading>
-
-            {selectedPlanData ? (
-              <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10.5px] font-semibold text-primary">
-                {isYearly ? "Yearly" : "Monthly"}
-              </span>
-            ) : null}
+          <AppButton
+            variant="outlined"
+            colorVariant="neutral"
+            size="small"
+            onClick={handleBack}
+            sx={footerBackSx}
+          >
+            Back
+          </AppButton>
+          <AppStack direction="row" align="center" gap={0.4}>
+            <FiLock className="text-[11px] text-text-muted" />
+            <AppText variant="body2" sx={footerNoteSx}>
+              Change plan anytime later
+            </AppText>
           </AppStack>
-
-          <AppText variant="body2" sx={summaryTextSx}>
-            {selectedPlanData
-              ? isYearly
-                ? selectedPlanData.yearlyText
-                : selectedPlanData.monthlyText
-              : "Please select a plan to continue."}
-          </AppText>
-
-          <AppStack direction="row" align="center" gap={0.75} sx={{ mt: 1.15 }}>
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              startIcon={<FiArrowLeft />}
-              disabled={isLoading}
-              onClick={handleBack}
-              sx={backButtonSx}
-            />
-
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="primary"
-              rounded="md"
-              fullWidth
-              startIcon={<FiZap />}
-              disabled={
-                isLoading ||
-                !selectedPlanData ||
-                !Number(selectedPlanData.trialDays || 0)
-              }
-              onClick={() => handleStartTrial(selectedPlan)}
-              sx={bottomButtonSx}
-            >
-              Trial
-            </AppButton>
-
-            <AppButton
-              type="button"
-              variant="contained"
-              colorVariant="primary"
-              rounded="md"
-              fullWidth
-              loading={isLoading}
-              disabled={isLoading || !selectedPlanData}
-              onClick={() => handlePurchaseSubscription(selectedPlan)}
-              sx={bottomButtonSx}
-            >
-              Subscribe
-            </AppButton>
-          </AppStack>
-        </AppCard>
+        </AppStack>
       </AppBox>
+
+      {/* High Fidelity Ultra-Compact Non-Scrollable Mobile Trial Dialog */}
+      {trialPlan && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-[1px]">
+          <AppCard
+            variant="default"
+            rounded="xl"
+            padding="none"
+            sx={dialogOverlaySx}
+          >
+            <AppBox sx={dialogContentSx}>
+              <button
+                onClick={() => setTrialPlan(null)}
+                className="absolute right-3 top-3 h-7 w-7 rounded-full bg-surface-alt flex items-center justify-center border-0 z-10"
+              >
+                <FiX className="text-sm" />
+              </button>
+
+              <div className="flex flex-col items-center">
+                <div className="relative mb-2">
+                  <FiCalendar className="text-[52px] text-success-soft" />
+                  <span className="absolute inset-0 flex items-center justify-center pt-0.5 text-lg font-black text-success">
+                    {trialPlan.trialDays}
+                  </span>
+                  <FiClock className="absolute bottom-0 right-0 text-sm text-success" />
+                </div>
+
+                <AppHeading
+                  level={1}
+                  weight={850}
+                  align="center"
+                  sx={dialogMainTitleSx}
+                >
+                  Start Your {trialPlan.trialDays}-Day
+                  <br />
+                  <span className="text-success">Free Trial</span>
+                </AppHeading>
+                <AppText
+                  variant="body2"
+                  align="center"
+                  weight={500}
+                  sx={dialogMainSubtitleSx}
+                >
+                  Explore all features of your selected plan. No card required.
+                </AppText>
+              </div>
+
+              <AppBox sx={dialogInfoBannerSx}>
+                <FiInfo className="mt-0.5 text-sm text-info flex-shrink-0" />
+                <AppText variant="body2" weight={500} sx={dialogBannerTextSx}>
+                  Your trial includes all features of the{" "}
+                  <strong>{trialPlan.name} plan</strong>.
+                </AppText>
+              </AppBox>
+
+              <AppBox sx={infoGridSx}>
+                <InfoRow
+                  icon={<FiHome />}
+                  label="Workspace"
+                  value={workspaceName}
+                />
+                <InfoRow
+                  icon={<FiAward />}
+                  label="Plan"
+                  value={trialPlan.name}
+                  badge={`${trialPlan.trialDays} Days`}
+                />
+                <InfoRow
+                  icon={<FiCalendar />}
+                  label="Duration"
+                  value={`${trialPlan.trialDays} Days`}
+                />
+                <InfoRow
+                  icon={<FiCalendar />}
+                  label="Ends On"
+                  value={trialEndsOn}
+                />
+              </AppBox>
+
+              <AppBox sx={dialogWarningBannerSx}>
+                <FiAlertCircle className="mt-0.5 text-sm text-warning flex-shrink-0" />
+                <AppText variant="body2" weight={500} sx={dialogWarningTextSx}>
+                  After trial ends, upgrade to keep active records or downgrade.
+                </AppText>
+              </AppBox>
+
+              <AppButton
+                variant="contained"
+                colorVariant="success"
+                fullWidth
+                size="small"
+                loading={isLoading}
+                onClick={() => handleStartTrial(trialPlan.id)}
+                sx={dialogSubmitBtnSx}
+              >
+                Start Free Trial
+              </AppButton>
+
+              <AppStack
+                direction="row"
+                align="center"
+                justify="center"
+                gap={0.4}
+                sx={{ mt: 1.15 }}
+              >
+                <FiShield className="text-[11px] text-text-muted" />
+                <AppText variant="body2" weight={650} sx={noCardLabelSx}>
+                  No credit card required
+                </AppText>
+              </AppStack>
+
+              <AppBox sx={safeDataBannerSx}>
+                <FiShield className="text-sm text-success flex-shrink-0" />
+                <div className="min-w-0">
+                  <AppText variant="body2" weight={750} sx={safeTitleSx}>
+                    Your data is safe with us
+                  </AppText>
+                  <AppText variant="body2" sx={safeDescSx}>
+                    100% encrypted profile context data.
+                  </AppText>
+                </div>
+              </AppBox>
+            </AppBox>
+          </AppCard>
+        </div>
+      )}
     </section>
   );
 };
 
-const IconBox = ({ icon, large = false }) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      width: large ? 48 : 40,
-      height: large ? 48 : 40,
-      minWidth: large ? 48 : 40,
-      borderRadius: large ? "15px" : "13px",
-      bgcolor: "var(--app-color-primary-soft)",
-      color: "var(--app-color-primary)",
-      fontSize: large ? "24px" : "20px",
-      lineHeight: 0,
-    }}
-  >
-    {icon}
-  </AppBox>
-);
-
-const PlanIcon = ({ active }) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      width: 36,
-      height: 36,
-      minWidth: 36,
-      borderRadius: "12px",
-      bgcolor: active
-        ? "var(--app-color-primary)"
-        : "var(--app-color-primary-soft)",
-      color: active
-        ? "var(--app-color-primary-contrast)"
-        : "var(--app-color-primary)",
-      fontSize: "17px",
-      lineHeight: 0,
-    }}
-  >
-    <FiStar />
-  </AppBox>
-);
-
-const FeatureItem = ({ text }) => (
-  <AppStack direction="row" align="center" gap={0.8}>
-    <AppBox sx={checkIconSx}>
-      <FiCheck />
-    </AppBox>
-
-    <AppText variant="body2" sx={featureTextSx}>
-      {text}
+const InfoRow = ({ icon, label, value, badge }) => (
+  <div className="flex items-center gap-2 py-1.6 border-b border-divider/40 last:border-0">
+    <AppBox sx={rowIconSx}>{icon}</AppBox>
+    <AppText variant="body2" weight={700} sx={rowLabelSx}>
+      {label}
     </AppText>
-  </AppStack>
+    <div className="ml-auto flex items-center gap-1">
+      <AppText variant="body2" weight={650} sx={rowValueSx}>
+        {value}
+      </AppText>
+      {badge && (
+        <span className="rounded bg-success-soft px-1 py-0.25 text-[8.5px] font-bold text-success uppercase">
+          {badge}
+        </span>
+      )}
+    </div>
+  </div>
 );
 
-const sectionSx = {
-  position: "relative",
-  zIndex: 1,
+/* Compact High Density Architectural Styles tokens */
+const containerSx = {
   width: "100%",
-  maxWidth: { xs: 390, sm: 430, md: 460 },
+  maxWidth: { xs: 430, sm: 460 },
   mx: "auto",
-  px: { xs: 1.45, sm: 1.8 },
-  pt: { xs: 1.75, sm: 2.2 },
-  pb: { xs: 1.6, sm: 2 },
+  px: 0,
+  pt: 0,
+  pb: 0,
 };
 
-const titleSx = {
-  m: 0,
-  fontSize: { xs: "22px", sm: "24px" },
-  lineHeight: 1.15,
-  letterSpacing: "-0.45px",
-  color: "var(--app-color-text)",
-};
+const headerContainerSx = { mb: 1.15 };
 
-const subtitleSx = {
-  mt: 0.25,
-  maxWidth: 280,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "12px",
-  lineHeight: "18px",
-  color: "var(--app-color-text-muted)",
-};
+const pageTitleSx = { fontSize: "19px", color: "var(--app-color-text)" };
 
-const workspaceCardSx = {
-  mt: 1.2,
-  px: 1.2,
-  py: 0.8,
-  bgcolor: "var(--app-color-primary-soft)",
-  borderColor: "var(--app-color-border)",
-};
-
-const workspaceLabelSx = {
-  fontSize: "9.8px",
-  textTransform: "uppercase",
-  letterSpacing: "0.07em",
-  color: "var(--app-color-text-muted)",
-};
-
-const workspaceNameSx = {
+const pageSubtitleSx = {
   mt: 0.15,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "12.8px",
-  color: "var(--app-color-text)",
+  fontSize: "11px",
+  color: "var(--app-color-text-muted)",
 };
 
-const billingCardSx = {
-  mt: 1.1,
-  px: 1.2,
-  py: 0.85,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
+const billingToggleWrapperSx = {
+  display: "flex",
+  justifyContent: "center",
+  mb: 1.5,
+  mt: 0.25,
 };
 
-const cycleTextSx = {
-  fontSize: "12.2px",
-  color: "var(--app-color-text)",
-};
+const cycleLabelSx = { fontSize: "12px", color: "var(--app-color-text)" };
 
-const saveTextSx = {
-  mt: 0.4,
-  textAlign: "center",
-  fontSize: "10.8px",
-  color: "var(--app-color-primary)",
-};
+const saveLabelSx = { fontSize: "11.5px", color: "var(--app-color-primary)" };
 
 const errorCardSx = {
-  mt: 1.1,
-  px: 1.2,
-  py: 0.85,
+  mb: 1.25,
+  p: 0.85,
   bgcolor: "var(--app-color-error-soft)",
   borderColor: "var(--app-color-error)",
 };
 
-const errorTextSx = {
-  fontSize: "11.5px",
-  color: "var(--app-color-error)",
+const errorTextSx = { fontSize: "11px", color: "var(--app-color-error)" };
+
+const planTierCardSx = {
+  position: "relative",
+  p: 1.2,
+  bgcolor: "var(--app-color-surface)",
 };
 
-const loadingCardSx = {
-  mt: 1.2,
-  minHeight: 190,
+const popularBadgeSx = {
+  position: "absolute",
+  top: 0,
+  right: 0,
+  bgcolor: "var(--app-color-success)",
+  color: "#fff",
+  px: 0.85,
+  py: 0.3,
+  fontSize: "8.5px",
+  fontWeight: 800,
+  textTransform: "uppercase",
+  borderRadius: "0 0 0 8px",
+  zIndex: 4,
+};
+
+const iconWrapperSx = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 0.9,
-  bgcolor: "var(--app-color-surface)",
-};
-
-const loadingTextSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-
-const emptyCardSx = {
-  mt: 1.2,
-  minHeight: 210,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  px: 2.4,
-  py: 3,
-  textAlign: "center",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const emptyTitleSx = {
-  mt: 1,
-  mb: 0,
-  fontSize: "18px",
-  color: "var(--app-color-text)",
-};
-
-const emptyTextSx = {
-  mt: 0.4,
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-
-const planCardSx = {
-  cursor: "pointer",
-  px: 1.25,
-  py: 1.25,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  transition: "all 160ms ease",
-};
-
-const selectedPlanCardSx = {
-  borderColor: "var(--app-color-primary)",
-  boxShadow: "var(--app-shadow-md)",
-};
-
-const planNameSx = {
-  m: 0,
-  maxWidth: 185,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "15.5px",
-  color: "var(--app-color-text)",
-};
-
-const planSubtitleSx = {
-  mt: 0.25,
-  fontSize: "11.2px",
-  lineHeight: "16px",
-  color: "var(--app-color-text-muted)",
-};
-
-const priceWrapSx = {
-  mt: 1.1,
-  pb: 0.95,
-  borderBottom: "1px solid var(--app-color-border)",
-};
-
-const priceSx = {
-  m: 0,
-  fontSize: "18px",
-  letterSpacing: "-0.3px",
-  color: "var(--app-color-text)",
-};
-
-const savingSx = {
-  mt: 0.25,
-  fontSize: "10.8px",
+  width: 32,
+  height: 32,
+  borderRadius: "50%",
+  bgcolor: "var(--app-color-primary-soft)",
   color: "var(--app-color-primary)",
+  fontSize: "16px",
 };
 
-const featureListSx = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 0.65,
-  mt: 1,
-};
+const tierTitleSx = { m: 0, fontSize: "13.5px" };
 
-const checkIconSx = {
-  width: 18,
-  height: 18,
-  minWidth: 18,
-  borderRadius: "999px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  bgcolor: "var(--app-color-success-soft)",
-  color: "var(--app-color-success)",
+const tierSubtitleSx = {
+  mt: 0.05,
   fontSize: "10px",
+  color: "var(--app-color-text-muted)",
+};
+
+const priceTextSx = { fontSize: "18px", letterSpacing: "-0.3px" };
+
+const monthLabelSx = {
+  fontSize: "10px",
+  color: "var(--app-color-text-muted)",
+  pb: 0.15,
+};
+
+const savingsTextSx = {
+  mt: 0.05,
+  fontSize: "10px",
+  color: "var(--app-color-success)",
 };
 
 const featureTextSx = {
-  fontSize: "11.5px",
-  lineHeight: "16px",
+  fontSize: "10.5px",
   color: "var(--app-color-text)",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 const actionButtonSx = {
-  height: 35,
-  fontSize: "12px",
+  mt: 1.5,
+  height: 30,
+  fontWeight: 750,
+  fontSize: "11.5px",
+};
+
+const footerBackSx = {
+  height: 28,
+  px: 1.25,
+  fontSize: "11px",
   fontWeight: 700,
 };
 
-const summaryCardSx = {
-  position: "sticky",
-  bottom: 10,
-  zIndex: 5,
-  mt: 1.3,
-  px: 1.2,
-  py: 1,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-md)",
-};
-
-const summaryLabelSx = {
-  fontSize: "10.4px",
-  textTransform: "uppercase",
-  letterSpacing: "0.07em",
+const footerNoteSx = {
+  fontSize: "10.5px",
   color: "var(--app-color-text-muted)",
 };
 
-const summaryTitleSx = {
-  m: 0,
-  fontSize: "15.5px",
+/* Centered Ultra-Compact Fixed Height Overlap Layer Design System Rules */
+const dialogOverlaySx = {
+  width: "calc(100% - 24px)",
+  maxWidth: 380,
+  borderRadius: "16px",
+  boxShadow: "var(--app-shadow-xl)",
+  overflow: "hidden",
+};
+
+const dialogContentSx = { p: 1.5, pt: 2, position: "relative" };
+
+const dialogMainTitleSx = { fontSize: "18px", lineHeight: 1.15 };
+
+const dialogMainSubtitleSx = {
+  mt: 0.5,
+  px: 1,
+  fontSize: "11.5px",
+  color: "var(--app-color-text-muted)",
+};
+
+const dialogInfoBannerSx = {
+  mt: 1.5,
+  p: 0.85,
+  display: "flex",
+  gap: 0.75,
+  bgcolor: "var(--app-color-info-soft)",
+  borderRadius: "8px",
+};
+
+const dialogBannerTextSx = {
+  fontSize: "11px",
   color: "var(--app-color-text)",
+  lineHeight: 1.3,
 };
 
-const summaryTextSx = {
-  mt: 0.35,
-  fontSize: "11.8px",
+const infoGridSx = { mt: 1, px: 0.25 };
+
+const rowIconSx = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 26,
+  height: 26,
+  borderRadius: "6px",
+  bgcolor: "var(--app-color-surface-alt)",
+  color: "var(--app-color-success)",
+  fontSize: "13px",
+};
+
+const rowLabelSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
+
+const rowValueSx = { fontSize: "12px", color: "var(--app-color-text)" };
+
+const dialogWarningBannerSx = {
+  mt: 1,
+  p: 0.85,
+  display: "flex",
+  gap: 0.75,
+  bgcolor: "var(--app-color-warning-soft)",
+  borderRadius: "8px",
+};
+
+const dialogWarningTextSx = {
+  fontSize: "11px",
+  color: "var(--app-color-text)",
+  lineHeight: 1.3,
+};
+
+const dialogSubmitBtnSx = {
+  mt: 1.75,
+  height: 38,
+  fontSize: "13.5px",
+  fontWeight: 800,
+};
+
+const noCardLabelSx = {
+  fontSize: "11px",
   color: "var(--app-color-text-muted)",
 };
 
-const backButtonSx = {
-  width: 42,
-  minWidth: 42,
-  height: 38,
-  px: 0,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface-alt)",
+const safeDataBannerSx = {
+  mt: 1.75,
+  mb: 0.25,
+  p: 0.75,
+  display: "flex",
+  align: "center",
+  gap: 0.85,
+  bgcolor: "var(--app-color-readonly-bg)",
+  borderRadius: "8px",
 };
 
-const bottomButtonSx = {
-  height: 38,
-  fontSize: "12.3px",
-  fontWeight: 700,
-  boxShadow: "var(--app-shadow-sm)",
+const safeTitleSx = { fontSize: "11.5px", color: "var(--app-color-text)" };
+
+const safeDescSx = {
+  mt: 0.05,
+  fontSize: "10px",
+  color: "var(--app-color-text-muted)",
 };
 
 export default ChoosePlanMobilePage;

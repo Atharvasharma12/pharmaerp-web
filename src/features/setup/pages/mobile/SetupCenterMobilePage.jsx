@@ -1,18 +1,16 @@
 // src/features/setup/pages/mobile/SetupCenterMobilePage.jsx
 
-import { useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import {
-  FiBarChart2,
-  FiBox,
+  FiBriefcase,
+  FiChevronRight,
   FiCheckCircle,
+  FiClock,
   FiCreditCard,
-  FiFileText,
   FiHeadphones,
   FiHome,
+  FiLock,
+  FiPackage,
   FiShoppingCart,
-  FiStar,
-  FiTrendingUp,
   FiTruck,
   FiUsers,
 } from "react-icons/fi";
@@ -25,416 +23,456 @@ import {
   AppStack,
   AppText,
 } from "@/components";
-import useCompany from "@/features/company/hooks/useCompany";
-import useBranch from "@/features/branch/hooks/useBranch";
-import { dashboardStats, setupSteps } from "@/features/setup/constants";
-
-const statIcons = {
-  sales: <FiShoppingCart />,
-  orders: <FiFileText />,
-  revenue: <FiTrendingUp />,
-  customers: <FiUsers />,
-  lowStock: <FiBox />,
-};
 
 const setupIcons = {
-  company: <FiHome />,
-  branch: <FiShoppingCart />,
-  staff: <FiHeadphones />,
-  medicines: <FiCreditCard />,
-  supplier: <FiTruck />,
-  sale: <FiShoppingCart />,
+  workspace: <FiHome />,
+  plan: <FiCreditCard />,
+  company: <FiBriefcase />,
+  branch: <FiTruck />,
+  team: <FiUsers />,
+  products: <FiPackage />,
+  suppliers: <FiTruck />,
+  purchase: <FiShoppingCart />,
 };
 
-const SetupCenterMobilePage = () => {
-  const navigate = useNavigate();
-
-  const { companies, getWorkspaceCompanies } = useCompany();
-  const { branches, getCompanyBranches } = useBranch();
-
-  const hasCompany = companies.length > 0;
-  const hasBranch = branches.length > 0;
-
-  useEffect(() => {
-    getWorkspaceCompanies().catch(() => {});
-    getCompanyBranches().catch(() => {});
-  }, []);
-
-  const mappedSetupSteps = useMemo(
-    () =>
-      setupSteps.map((step) => ({
-        ...step,
-        completed:
-          step.id === "company"
-            ? hasCompany
-            : step.id === "branch"
-              ? hasBranch
-              : step.completed,
-        onClick: () => {
-          if (!step.disabled && step.route) {
-            navigate(step.route);
-          }
-        },
-      })),
-    [hasCompany, hasBranch, navigate],
-  );
-
-  const completedStepsCount = useMemo(
-    () => mappedSetupSteps.filter((step) => step.completed).length,
-    [mappedSetupSteps],
-  );
-
-  const progress = useMemo(() => {
-    if (!mappedSetupSteps.length) return 0;
-
-    return Math.round((completedStepsCount / mappedSetupSteps.length) * 100);
-  }, [completedStepsCount, mappedSetupSteps.length]);
-
-  const compactStats = [
-    ...dashboardStats,
-    {
-      id: "setup",
-      title: "Setup",
-      value: `${progress}%`,
-      description: "Progress",
-      colorVariant: "primary",
-    },
-  ];
-
+const SetupCenterMobilePage = ({
+  mappedSetupSteps = [],
+  completedStepsCount = 0,
+  progress = 0,
+}) => {
   return (
-    <section className="w-full bg-bg">
-      <AppBox sx={sectionSx}>
-        <AppHeading level={1} weight={750} sx={pageTitleSx}>
-          Setup Center
-        </AppHeading>
+    <section className="relative w-full overflow-hidden bg-bg">
+      <AppBox sx={containerSx}>
+        {/* Compact Page Header */}
+        <AppBox sx={headerContainerSx}>
+          <AppHeading level={1} weight={800} sx={pageTitleSx}>
+            Setup Center
+          </AppHeading>
+          <AppText variant="body2" weight={600} sx={pageSubtitleSx}>
+            Complete these steps to get the most out of PharmaERP.
+          </AppText>
+        </AppBox>
 
-        <AppText variant="body2" weight={500} sx={pageSubtitleSx}>
-          Complete the setup steps below to start using your pharmacy ERP.
-        </AppText>
+        {/* High Density Progress Banner */}
+        <AppCard
+          variant="default"
+          rounded="lg"
+          bordered
+          shadow="sm"
+          padding="none"
+          sx={progressCardSx}
+        >
+          <AppStack
+            direction="row"
+            align="center"
+            justify="space-between"
+            gap={1.25}
+          >
+            <AppBox sx={circleWrapperSx}>
+              <AppBox sx={circleTrackSx}>
+                <AppText variant="body2" weight={800} sx={circleTextSx}>
+                  {completedStepsCount}/{mappedSetupSteps.length}
+                </AppText>
+              </AppBox>
+            </AppBox>
 
-        <div className="mt-3 grid grid-cols-3 gap-1.5">
-          {compactStats.map((stat) => (
-            <StatCard key={stat.id} stat={stat} />
-          ))}
-        </div>
+            <AppBox sx={{ flex: 1, minWidth: 0 }}>
+              <AppHeading level={2} weight={700} sx={progressTitleSx}>
+                Setup Progress
+              </AppHeading>
+              <AppText variant="body2" weight={500} sx={progressSubtitleSx}>
+                Complete the essential setup steps
+              </AppText>
 
-        <ProgressCard progress={progress} />
+              <AppStack
+                direction="row"
+                align="center"
+                gap={0.8}
+                sx={{ mt: 0.85 }}
+              >
+                <AppBox sx={progressBarTrackSx}>
+                  <AppBox
+                    sx={{
+                      ...progressBarFillSx,
+                      width: `${progress}%`,
+                    }}
+                  />
+                </AppBox>
+                <AppText
+                  variant="body2"
+                  weight={750}
+                  sx={progressPercentTextSx}
+                >
+                  {progress}%
+                </AppText>
+              </AppStack>
+            </AppBox>
 
-        <SetupCard setupSteps={mappedSetupSteps} />
+            <AppBox sx={illustrationBoxSx}>
+              <div className="text-[28px] opacity-20">📋</div>
+            </AppBox>
+          </AppStack>
+        </AppCard>
+
+        {/* Dense Action Steps Stack */}
+        <AppStack direction="column" gap={0.85} sx={{ mt: 1.5 }}>
+          {mappedSetupSteps.map((step) => {
+            const IconComponent = setupIcons[step.id] || <FiBriefcase />;
+
+            return (
+              <AppCard
+                key={step.id}
+                variant="default"
+                rounded="md"
+                bordered
+                shadow="none"
+                padding="none"
+                onClick={step.locked ? undefined : step.onClick}
+                sx={{
+                  ...stepRowCardSx,
+                  opacity: step.locked ? 0.55 : 1,
+                  cursor: step.locked ? "not-allowed" : "pointer",
+                }}
+              >
+                <AppStack
+                  direction="row"
+                  align="center"
+                  justify="space-between"
+                  gap={1.15}
+                >
+                  {/* Status Indicator Icon Box */}
+                  <AppBox
+                    sx={{
+                      ...iconContainerSx,
+                      bgcolor: step.completed
+                        ? "var(--app-color-success-soft)"
+                        : step.locked
+                          ? "var(--app-color-surface-alt)"
+                          : `var(--app-color-${step.colorVariant}-soft, var(--app-color-primary-soft))`,
+                      color: step.completed
+                        ? "var(--app-color-success)"
+                        : step.locked
+                          ? "var(--app-color-text-muted)"
+                          : `var(--app-color-${step.colorVariant}, var(--app-color-primary))`,
+                    }}
+                  >
+                    {IconComponent}
+                  </AppBox>
+
+                  {/* Main Text Content */}
+                  <AppBox sx={{ flex: 1, minWidth: 0 }}>
+                    <AppHeading level={3} weight={700} sx={stepTitleSx}>
+                      {step.title}
+                    </AppHeading>
+                    <AppText variant="body2" weight={500} sx={stepDescSx}>
+                      {step.description}
+                    </AppText>
+                  </AppBox>
+
+                  {/* Context Action Area */}
+                  <AppStack
+                    direction="row"
+                    align="center"
+                    gap={0.4}
+                    sx={{ flexShrink: 0 }}
+                  >
+                    {step.completed ? (
+                      <AppStack
+                        direction="row"
+                        align="center"
+                        gap={0.25}
+                        sx={completedBadgeSx}
+                      >
+                        <FiCheckCircle className="text-[11px]" />
+                        <AppText variant="body2" weight={700} sx={badgeTextSx}>
+                          Completed
+                        </AppText>
+                      </AppStack>
+                    ) : step.locked ? (
+                      <AppStack
+                        direction="row"
+                        align="center"
+                        gap={0.2}
+                        sx={lockedBadgeSx}
+                      >
+                        <FiLock className="text-[10px]" />
+                        <AppText variant="body2" weight={600} sx={badgeTextSx}>
+                          Locked
+                        </AppText>
+                      </AppStack>
+                    ) : (
+                      <AppButton
+                        variant="outlined"
+                        colorVariant="success"
+                        size="small"
+                        rounded="md"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          step.onClick();
+                        }}
+                        sx={getStartedButtonSx}
+                      >
+                        {step.actionText || "Get Started"}
+                      </AppButton>
+                    )}
+                    <FiChevronRight className="text-[14px] text-text-muted/40" />
+                  </AppStack>
+                </AppStack>
+              </AppCard>
+            );
+          })}
+        </AppStack>
+
+        {/* Compact Help Section */}
+        <AppCard
+          variant="default"
+          rounded="md"
+          bordered
+          shadow="none"
+          padding="none"
+          sx={helpCardSx}
+        >
+          <AppStack
+            direction="row"
+            align="center"
+            justify="space-between"
+            gap={1}
+          >
+            <AppStack direction="row" align="center" gap={0.75}>
+              <AppBox sx={helpIconBoxSx}>
+                <FiHeadphones />
+              </AppBox>
+              <AppBox>
+                <AppHeading level={3} weight={700} sx={helpTitleSx}>
+                  Need Help?
+                </AppHeading>
+                <AppText variant="body2" weight={500} sx={helpDescSx}>
+                  Our support team is here to help you set up.
+                </AppText>
+              </AppBox>
+            </AppStack>
+
+            <AppButton
+              variant="text"
+              colorVariant="success"
+              size="small"
+              sx={helpActionSx}
+            >
+              Contact Support
+            </AppButton>
+          </AppStack>
+        </AppCard>
       </AppBox>
     </section>
   );
 };
 
-const StatCard = ({ stat }) => (
-  <AppCard
-    variant="default"
-    rounded="xl"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={statCardSx}
-  >
-    <div className="pl-1">
-      <IconBox
-        icon={statIcons[stat.id] || <FiBarChart2 />}
-        colorVariant={stat.colorVariant}
-        compact
-      />
-
-      <AppText variant="body2" weight={650} sx={statTitleSx}>
-        {stat.title}
-      </AppText>
-
-      <AppHeading level={3} weight={800} sx={statValueSx}>
-        {stat.value}
-      </AppHeading>
-
-      <AppText variant="body2" weight={500} sx={statDescriptionSx}>
-        {stat.description}
-      </AppText>
-    </div>
-  </AppCard>
-);
-
-const ProgressCard = ({ progress }) => (
-  <AppCard
-    variant="default"
-    rounded="xl"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={progressCardSx}
-  >
-    <AppStack direction="row" align="center" gap={1.05}>
-      <div className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-full border-[6px] border-border bg-surface">
-        <span className="text-[12px] font-bold text-text">{progress}%</span>
-      </div>
-
-      <AppBox sx={{ minWidth: 0, flex: 1 }}>
-        <AppHeading level={2} weight={750} sx={progressTitleSx}>
-          Your Setup Progress
-        </AppHeading>
-
-        <AppText variant="body2" weight={500} sx={progressSubtitleSx}>
-          Complete the steps to start using PharmaERP
-        </AppText>
-
-        <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-border">
-          <div
-            className="h-full rounded-full bg-primary transition-all"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </AppBox>
-    </AppStack>
-  </AppCard>
-);
-
-const SetupCard = ({ setupSteps }) => (
-  <AppCard
-    variant="default"
-    rounded="xl"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={setupCardSx}
-  >
-    <AppBox sx={setupHeaderSx}>
-      <AppHeading level={2} weight={750} sx={sectionTitleSx}>
-        Let&apos;s Set Up Your Workspace
-      </AppHeading>
-
-      <AppText variant="body2" weight={500} sx={sectionSubtitleSx}>
-        Complete these essential steps to get your pharmacy ready.
-      </AppText>
-    </AppBox>
-
-    <div className="mt-2.5 space-y-2">
-      {setupSteps.map((step) => (
-        <SetupStep key={step.id} step={step} />
-      ))}
-    </div>
-
-    <AppStack direction="row" align="center" gap={0.75} sx={hintSx}>
-      <FiStar className="shrink-0 text-[15px] text-primary" />
-
-      <AppText variant="body2" weight={500} sx={hintTextSx}>
-        Complete all steps to unlock the full power of PharmaERP.
-      </AppText>
-    </AppStack>
-  </AppCard>
-);
-
-const SetupStep = ({ step }) => (
-  <div className="grid grid-cols-[40px_1fr_auto] items-center gap-2.5 rounded-xl border border-border bg-bg/60 px-2.5 py-2.5">
-    <IconBox
-      icon={setupIcons[step.id] || <FiCheckCircle />}
-      colorVariant={step.colorVariant}
-      small
-    />
-
-    <AppBox sx={{ minWidth: 0, pr: 0.8 }}>
-      <AppHeading level={3} weight={700} sx={itemTitleSx}>
-        {step.title}
-      </AppHeading>
-
-      <AppText variant="body2" weight={500} sx={itemSubtitleSx}>
-        {step.description}
-      </AppText>
-    </AppBox>
-
-    <AppButton
-      type="button"
-      variant="outlined"
-      colorVariant={step.disabled ? "neutral" : "primary"}
-      rounded="md"
-      disabled={step.disabled}
-      onClick={step.onClick}
-      sx={stepButtonSx(step.disabled)}
-    >
-      {compactActionText(step.actionText)}
-    </AppButton>
-  </div>
-);
-
-const IconBox = ({
-  icon,
-  colorVariant = "primary",
-  small = false,
-  compact = false,
-}) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      width: compact ? 28 : small ? 36 : 42,
-      height: compact ? 28 : small ? 36 : 42,
-      minWidth: compact ? 28 : small ? 36 : 42,
-      borderRadius: compact ? "10px" : small ? "11px" : "14px",
-      bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
-      color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
-      fontSize: compact ? "15px" : small ? "18px" : "21px",
-      lineHeight: 0,
-      mb: compact ? 0.75 : 0,
-    }}
-  >
-    {icon}
-  </AppBox>
-);
-
-const compactActionText = (text) => {
-  if (text === "Create Company") return "Create";
-  if (text === "Create Branch") return "Create";
-  if (text === "Add Staff") return "Add";
-  if (text === "Add Medicines") return "Add";
-  if (text === "Add Supplier") return "Add";
-  return text;
+/* Micro Padding Structural Layout Config Blocks */
+const containerSx = {
+  position: "relative",
+  zIndex: 1,
+  width: "100%",
+  maxWidth: { xs: 430, sm: 460 },
+  mx: "auto",
+  px: 0, // Removed horizontal padding
+  pt: 0, // 🔥 Removed top padding
+  pb: 0, // 🔥 Removed bottom padding
 };
 
-const sectionSx = {
-  width: "100%",
-  maxWidth: { xs: 390, sm: 430, md: 460 },
-  mx: "auto",
-  px: { xs: 0.35, sm: 0.75 },
-  pt: { xs: 1.25, sm: 1.7 },
-  pb: { xs: 2, sm: 2.5 },
+const headerContainerSx = {
+  mb: 1.5,
+  px: 0.35,
 };
 
 const pageTitleSx = {
   m: 0,
-  px: 0.35,
-  fontSize: { xs: "22px", sm: "24px" },
-  lineHeight: 1.14,
-  letterSpacing: "-0.5px",
-  color: "var(--app-color-text)",
+  fontSize: "18px",
+  letterSpacing: "-0.25px",
+  color: "var(--app-color-text, #0f172a)",
 };
 
 const pageSubtitleSx = {
-  mt: 0.55,
-  px: 0.35,
-  fontSize: "12.4px",
-  lineHeight: "18px",
-  color: "var(--app-color-text-muted)",
-};
-
-const statCardSx = {
-  minHeight: 92,
-  px: 1.05,
-  py: 0.95,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-xs)",
-};
-
-const statTitleSx = {
-  fontSize: "9.5px",
-  lineHeight: 1.2,
-  color: "var(--app-color-text-muted)",
-};
-
-const statValueSx = {
-  mt: 0.45,
-  mb: 0,
-  fontSize: "16px",
-  lineHeight: 1,
-  letterSpacing: "-0.35px",
-  color: "var(--app-color-text)",
-};
-
-const statDescriptionSx = {
-  mt: 0.55,
-  fontSize: "8.9px",
-  lineHeight: "12px",
-  color: "var(--app-color-text-muted)",
+  mt: 0.25,
+  fontSize: "11.5px",
+  color: "var(--app-color-text-muted, #64748b)",
 };
 
 const progressCardSx = {
-  mt: 2.4,
-  px: 1.15,
-  py: 1.2,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-xs)",
+  p: 1.25,
+  bgcolor: "var(--app-color-surface, #ffffff)",
+  borderColor: "var(--app-color-border, #e2e8f0)",
+};
+
+const circleWrapperSx = {
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 44,
+  height: 44,
+  borderRadius: "50%",
+  background:
+    "conic-gradient(var(--app-color-success) 0deg, var(--app-color-success) 180deg, var(--app-color-border) 180deg, var(--app-color-border) 360deg)",
+};
+
+const circleTrackSx = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 38,
+  height: 38,
+  borderRadius: "50%",
+  bgcolor: "var(--app-color-surface, #ffffff)",
+};
+
+const circleTextSx = {
+  fontSize: "11px",
+  fontWeight: 750,
+  color: "var(--app-color-text, #0f172a)",
 };
 
 const progressTitleSx = {
   m: 0,
-  fontSize: "14.2px",
-  lineHeight: 1.2,
-  color: "var(--app-color-text)",
+  fontSize: "13px",
+  color: "var(--app-color-text, #0f172a)",
 };
 
 const progressSubtitleSx = {
-  mt: 0.45,
-  fontSize: "11.2px",
-  lineHeight: "16px",
-  color: "var(--app-color-text-muted)",
+  mt: 0.1,
+  fontSize: "10.5px",
+  color: "var(--app-color-text-muted, #64748b)",
 };
 
-const setupCardSx = {
-  mt: 2.4,
-  px: 1.15,
-  py: 1.2,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-xs)",
+const progressBarTrackSx = {
+  flex: 1,
+  height: 4,
+  borderRadius: 99,
+  bgcolor: "var(--app-color-border, #e2e8f0)",
+  overflow: "hidden",
 };
 
-const setupHeaderSx = {
-  px: 0.35,
+const progressBarFillSx = {
+  height: "100%",
+  borderRadius: 99,
+  bgcolor: "var(--app-color-success, #10b981)",
+  transition: "width 0.3s ease",
 };
 
-const sectionTitleSx = {
+const progressPercentTextSx = {
+  fontSize: "11px",
+  color: "var(--app-color-success, #10b981)",
+};
+
+const illustrationBoxSx = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  pr: 0.25,
+};
+
+const stepRowCardSx = {
+  p: 1, // Compact row sizing
+  bgcolor: "var(--app-color-surface, #ffffff)",
+  borderColor: "var(--app-color-border, #e2e8f0)",
+  transition: "background-color 0.15s ease",
+  "&:active": {
+    bgcolor: "var(--app-color-surface-alt, #f8fafc)",
+  },
+};
+
+const iconContainerSx = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 34,
+  height: 34,
+  borderRadius: "50%",
+  fontSize: "15px",
+  flexShrink: 0,
+};
+
+const stepTitleSx = {
   m: 0,
-  fontSize: "15.2px",
+  fontSize: "12.5px",
   lineHeight: 1.2,
-  color: "var(--app-color-text)",
+  color: "var(--app-color-text, #0f172a)",
 };
 
-const sectionSubtitleSx = {
-  mt: 0.55,
-  fontSize: "11.5px",
-  lineHeight: "17px",
-  color: "var(--app-color-text-muted)",
+const stepDescSx = {
+  mt: 0.15,
+  fontSize: "10.5px",
+  lineHeight: "13px",
+  color: "var(--app-color-text-muted, #64748b)",
 };
 
-const itemTitleSx = {
+const completedBadgeSx = {
+  color: "var(--app-color-success, #10b981)",
+  px: 0.7,
+  py: 0.25,
+  borderRadius: "4deg",
+};
+
+const lockedBadgeSx = {
+  color: "var(--app-color-text-muted, #64748b)",
+  px: 0.5,
+  py: 0.25,
+};
+
+const badgeTextSx = {
+  fontSize: "10.5px",
+  whiteSpace: "nowrap",
+};
+
+const getStartedButtonSx = {
+  height: 25,
+  px: 0.9,
+  fontSize: "10.5px",
+  fontWeight: 700,
+  borderColor: "var(--app-color-border-strong)",
+  color: "var(--app-color-success)",
+  textTransform: "none",
+  whiteSpace: "nowrap",
+  minWidth: "auto",
+};
+
+const helpCardSx = {
+  mt: 1.75,
+  p: 1,
+  bgcolor: "var(--app-color-readonly-bg, #f8fafc)",
+  borderColor: "transparent",
+};
+
+const helpIconBoxSx = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 28,
+  height: 28,
+  borderRadius: "50%",
+  bgcolor: "var(--app-color-success-soft)",
+  color: "var(--app-color-success, #10b981)",
+  fontSize: "13px",
+  flexShrink: 0,
+};
+
+const helpTitleSx = {
   m: 0,
-  fontSize: "12px",
-  lineHeight: 1.15,
-  color: "var(--app-color-text)",
+  fontSize: "11.5px",
+  color: "var(--app-color-text, #0f172a)",
 };
 
-const itemSubtitleSx = {
-  mt: 0.4,
-  fontSize: "10.6px",
-  lineHeight: "15px",
-  color: "var(--app-color-text-muted)",
+const helpDescSx = {
+  mt: 0.1,
+  fontSize: "10px",
+  color: "var(--app-color-text-muted, #64748b)",
 };
 
-const stepButtonSx = (disabled) => ({
-  minWidth: disabled ? 96 : 72,
-  height: 32,
-  px: 1,
-  fontSize: "10.8px",
+const helpActionSx = {
+  fontSize: "11px",
   fontWeight: 750,
-  bgcolor: disabled
-    ? "var(--app-color-disabled-bg)"
-    : "var(--app-color-surface)",
-  color: disabled ? "var(--app-color-text-muted)" : "var(--app-color-primary)",
-});
-
-const hintSx = {
-  mt: 2,
-  px: 0.35,
-};
-
-const hintTextSx = {
-  fontSize: "11.2px",
-  lineHeight: "16px",
-  color: "var(--app-color-text-muted)",
+  textTransform: "none",
+  p: 0,
+  minWidth: "auto",
 };
 
 export default SetupCenterMobilePage;

@@ -19,7 +19,7 @@ const AppMobileLayout = () => {
         onClose={() => setSidebarOpen(false)}
       />
 
-      <main className="min-h-[calc(100vh-128px)] px-4 py-4">
+      <main className="min-h-[calc(100vh-128px)] px-3 py-4">
         <Outlet />
       </main>
 
