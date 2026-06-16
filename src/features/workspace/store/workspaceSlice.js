@@ -1,13 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-
-import {
-  API_STATUS,
-  WORKSPACE_STORAGE_KEY,
-  COMPANY_STORAGE_KEY,
-  BRANCH_STORAGE_KEY,
-} from "@/constants";
-import { storage } from "@/utils";
-
+import { API_STATUS } from "@/constants";
 import {
   createWorkspace,
   getMyWorkspaces,
@@ -29,25 +21,11 @@ const getWorkspaceFromItem = (item) => {
   return item?.workspace || item || null;
 };
 
-const persistCurrentWorkspace = (workspace) => {
-  if (workspace?._id) {
-    storage.set(WORKSPACE_STORAGE_KEY, workspace._id);
-  }
-};
-
-const removePersistedWorkspace = () => {
-  storage.remove(WORKSPACE_STORAGE_KEY);
-  storage.remove(COMPANY_STORAGE_KEY);
-  storage.remove(BRANCH_STORAGE_KEY);
-};
-
 const initialState = {
   workspaces: [],
   currentWorkspace: null,
   members: [],
   invitations: [],
-
-  // New State for User Profile Inbox
   incomingInvitations: [],
 
   status: API_STATUS.IDLE,
@@ -69,7 +47,6 @@ const initialState = {
   cancelWorkspaceInvitationStatus: API_STATUS.IDLE,
   acceptWorkspaceInvitationStatus: API_STATUS.IDLE,
 
-  // New Loading Statuses
   getIncomingUserInvitationsStatus: API_STATUS.IDLE,
   acceptIncomingInvitationStatus: API_STATUS.IDLE,
 };
@@ -87,49 +64,30 @@ const setRejected = (state, action) => {
 
 const workspaceSlice = createSlice({
   name: "workspace",
-
   initialState,
-
   reducers: {
     clearWorkspaceError(state) {
       state.error = null;
     },
-
     clearWorkspaceMessage(state) {
       state.message = null;
     },
-
     setCurrentWorkspace(state, action) {
       state.currentWorkspace = getWorkspaceFromItem(action.payload);
-
-      if (state.currentWorkspace?._id) {
-        persistCurrentWorkspace(state.currentWorkspace);
-
-        storage.remove(COMPANY_STORAGE_KEY);
-        storage.remove(BRANCH_STORAGE_KEY);
-      } else {
-        removePersistedWorkspace();
-      }
     },
-
     clearCurrentWorkspace(state) {
       state.currentWorkspace = null;
-      removePersistedWorkspace();
     },
-
     clearWorkspaceMembers(state) {
       state.members = [];
     },
-
     clearWorkspaceInvitations(state) {
       state.invitations = [];
     },
-
     clearIncomingInvitations(state) {
       state.incomingInvitations = [];
     },
   },
-
   extraReducers: (builder) => {
     builder
       // CREATE WORKSPACE
@@ -141,18 +99,9 @@ const workspaceSlice = createSlice({
       .addCase(createWorkspace.fulfilled, (state, action) => {
         state.createWorkspaceStatus = API_STATUS.SUCCESS;
         state.currentWorkspace = action.payload || null;
-
         if (action.payload) {
-          state.workspaces.unshift({
-            workspace: action.payload,
-          });
-
-          persistCurrentWorkspace(action.payload);
-
-          storage.remove(COMPANY_STORAGE_KEY);
-          storage.remove(BRANCH_STORAGE_KEY);
+          state.workspaces.unshift({ workspace: action.payload });
         }
-
         state.message = "Workspace created successfully";
       })
       .addCase(createWorkspace.rejected, (state, action) => {
@@ -169,27 +118,12 @@ const workspaceSlice = createSlice({
         state.getMyWorkspacesStatus = API_STATUS.SUCCESS;
         state.workspaces = action.payload || [];
 
-        const persistedWorkspaceId = storage.get(WORKSPACE_STORAGE_KEY);
-
-        const matchedWorkspaceItem = state.workspaces.find((item) => {
-          const workspace = getWorkspaceFromItem(item);
-
-          return workspace?._id === persistedWorkspaceId;
-        });
-
-        const matchedWorkspace = getWorkspaceFromItem(matchedWorkspaceItem);
-
-        const firstWorkspaceItem = state.workspaces[0];
-        const firstWorkspace = getWorkspaceFromItem(firstWorkspaceItem);
-
+        // Pure memory fallback: select the existing currentWorkspace if still valid, otherwise default to the first workspace
         state.currentWorkspace =
-          state.currentWorkspace || matchedWorkspace || firstWorkspace || null;
-
-        if (state.currentWorkspace?._id) {
-          persistCurrentWorkspace(state.currentWorkspace);
-        } else {
-          removePersistedWorkspace();
-        }
+          state.currentWorkspace ||
+          (state.workspaces[0]
+            ? getWorkspaceFromItem(state.workspaces[0])
+            : null);
 
         state.message = "Workspaces fetched successfully";
       })
@@ -204,11 +138,6 @@ const workspaceSlice = createSlice({
         state.status = API_STATUS.SUCCESS;
         state.getWorkspaceStatus = API_STATUS.SUCCESS;
         state.currentWorkspace = action.payload || null;
-
-        if (action.payload?._id) {
-          persistCurrentWorkspace(action.payload);
-        }
-
         state.message = "Workspace fetched successfully";
       })
       .addCase(getWorkspaceById.rejected, (state, action) => {
@@ -225,26 +154,14 @@ const workspaceSlice = createSlice({
       .addCase(updateWorkspace.fulfilled, (state, action) => {
         state.updateWorkspaceStatus = API_STATUS.SUCCESS;
         state.currentWorkspace = action.payload || state.currentWorkspace;
-
         state.workspaces = state.workspaces.map((item) => {
           const workspace = getWorkspaceFromItem(item);
-
-          if (workspace?._id === action.payload?._id) {
-            return item.workspace
-              ? {
-                  ...item,
-                  workspace: action.payload,
-                }
-              : action.payload;
-          }
-
-          return item;
+          return workspace?._id === action.payload?._id
+            ? item.workspace
+              ? { ...item, workspace: action.payload }
+              : action.payload
+            : item;
         });
-
-        if (state.currentWorkspace?._id) {
-          persistCurrentWorkspace(state.currentWorkspace);
-        }
-
         state.message = "Workspace updated successfully";
       })
       .addCase(updateWorkspace.rejected, (state, action) => {
@@ -260,21 +177,15 @@ const workspaceSlice = createSlice({
       })
       .addCase(deleteWorkspace.fulfilled, (state, action) => {
         state.deleteWorkspaceStatus = API_STATUS.SUCCESS;
-
-        state.workspaces = state.workspaces.filter((item) => {
-          const workspace = getWorkspaceFromItem(item);
-
-          return workspace?._id !== action.meta.arg;
-        });
+        state.workspaces = state.workspaces.filter(
+          (item) => getWorkspaceFromItem(item)?._id !== action.meta.arg,
+        );
 
         if (state.currentWorkspace?._id === action.meta.arg) {
           state.currentWorkspace = null;
-          removePersistedWorkspace();
         }
-
         state.members = [];
         state.invitations = [];
-
         state.message = "Workspace deleted successfully";
       })
       .addCase(deleteWorkspace.rejected, (state, action) => {
@@ -305,11 +216,9 @@ const workspaceSlice = createSlice({
       })
       .addCase(updateWorkspaceMemberStatus.fulfilled, (state, action) => {
         state.updateWorkspaceMemberStatus = API_STATUS.SUCCESS;
-
         state.members = state.members.map((member) =>
           member?._id === action.payload?._id ? action.payload : member,
         );
-
         state.message = "Workspace member status updated successfully";
       })
       .addCase(updateWorkspaceMemberStatus.rejected, (state, action) => {
@@ -325,11 +234,9 @@ const workspaceSlice = createSlice({
       })
       .addCase(removeWorkspaceMember.fulfilled, (state, action) => {
         state.removeWorkspaceMemberStatus = API_STATUS.SUCCESS;
-
         state.members = state.members.map((member) =>
           member?._id === action.payload?._id ? action.payload : member,
         );
-
         state.message = "Workspace member removed successfully";
       })
       .addCase(removeWorkspaceMember.rejected, (state, action) => {
@@ -345,11 +252,9 @@ const workspaceSlice = createSlice({
       })
       .addCase(inviteWorkspaceMember.fulfilled, (state, action) => {
         state.inviteWorkspaceMemberStatus = API_STATUS.SUCCESS;
-
         if (action.payload) {
           state.invitations.unshift(action.payload);
         }
-
         state.message = "Workspace invitation created successfully";
       })
       .addCase(inviteWorkspaceMember.rejected, (state, action) => {
@@ -380,11 +285,9 @@ const workspaceSlice = createSlice({
       })
       .addCase(cancelWorkspaceInvitation.fulfilled, (state, action) => {
         state.cancelWorkspaceInvitationStatus = API_STATUS.SUCCESS;
-
         state.invitations = state.invitations.map((invitation) =>
           invitation?._id === action.payload?._id ? action.payload : invitation,
         );
-
         state.message = "Workspace invitation cancelled successfully";
       })
       .addCase(cancelWorkspaceInvitation.rejected, (state, action) => {
@@ -392,7 +295,7 @@ const workspaceSlice = createSlice({
         state.error = action.payload || "Workspace invitation cancel failed";
       })
 
-      // ACCEPT WORKSPACE INVITATION (VIA EMAIL LINK)
+      // ACCEPT WORKSPACE INVITATION
       .addCase(acceptWorkspaceInvitation.pending, (state) => {
         state.acceptWorkspaceInvitationStatus = API_STATUS.LOADING;
         state.error = null;
@@ -407,7 +310,7 @@ const workspaceSlice = createSlice({
         state.error = action.payload || "Workspace invitation accept failed";
       })
 
-      // GET INCOMING USER INVITATIONS (PROFILE INBOX)
+      // GET INCOMING USER INVITATIONS
       .addCase(getIncomingUserInvitations.pending, (state) => {
         state.getIncomingUserInvitationsStatus = API_STATUS.LOADING;
         state.error = null;
@@ -421,7 +324,7 @@ const workspaceSlice = createSlice({
         state.error = action.payload || "Failed to load incoming invitations";
       })
 
-      // ACCEPT INCOMING INVITATION (PROFILE INBOX)
+      // ACCEPT INCOMING INVITATION
       .addCase(acceptIncomingInvitation.pending, (state) => {
         state.acceptIncomingInvitationStatus = API_STATUS.LOADING;
         state.error = null;
@@ -430,8 +333,6 @@ const workspaceSlice = createSlice({
       .addCase(acceptIncomingInvitation.fulfilled, (state, action) => {
         state.acceptIncomingInvitationStatus = API_STATUS.SUCCESS;
         state.message = "Workspace joined successfully";
-
-        // Remove the accepted invitation from the inbox list instantly
         if (action.meta?.arg) {
           state.incomingInvitations = state.incomingInvitations.filter(
             (invitation) =>

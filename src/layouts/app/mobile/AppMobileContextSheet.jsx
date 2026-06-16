@@ -1,4 +1,3 @@
-// src/layouts/app/mobile/AppMobileContextSheet.jsx
 import React, { useEffect, useState } from "react";
 import {
   FiX,
@@ -68,9 +67,8 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
         branchId: null,
       });
 
-      // Fetch underlying companies for this brand new workspace context
       await getWorkspaceCompanies();
-      setActiveTab("company"); // Advance user sequentially
+      setActiveTab("company");
     } catch (error) {
       console.error("Failed to update mobile workspace context:", error);
     }
@@ -80,7 +78,7 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
     if (!company?._id || !currentWorkspace?._id) return;
 
     setCurrentCompany(company);
-    clearCurrentBranch(); // Reset stale branch from the previous company
+    clearCurrentBranch();
 
     try {
       await updateActiveContext({
@@ -89,9 +87,8 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
         branchId: null,
       });
 
-      // CRITICAL FIX: Fetch branches specifically mapped to this newly selected company
       await getCompanyBranches();
-      setActiveTab("branch"); // Focus forward on branch choices next
+      setActiveTab("branch");
     } catch (error) {
       console.error("Failed to transition mobile company context:", error);
     }
@@ -108,81 +105,89 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
         companyId: currentCompany._id,
         branchId: branch._id,
       });
-      onClose(); // Chain-selection complete! Close bottom layout
+      onClose();
     } catch (error) {
       console.error("Failed to finalize mobile branch context:", error);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col justify-end bg-black/50 backdrop-blur-xs">
-      <div
-        className="absolute inset-0 -z-10 animate-fade-in"
-        onClick={onClose}
-      />
+    <div className="fixed inset-0 z-[100] flex flex-col justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+      {/* Clickable Backdrop Overlay */}
+      <div className="absolute inset-0 -z-10" onClick={onClose} />
 
-      <div className="flex max-h-[80vh] w-full flex-col rounded-t-2xl bg-surface text-text shadow-2xl transition-transform duration-300">
-        {/* Top Header Control Area */}
-        <div className="relative border-b border-divider px-4 pt-3 pb-3">
-          <div className="mx-auto mb-2.5 h-1 w-10 rounded-full bg-divider/80" />
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold tracking-tight">
-              Account Context
-            </h3>
+      {/* Main Bottom Sheet Area */}
+      <div className="flex max-h-[85vh] w-full flex-col rounded-t-[24px] bg-surface text-text shadow-2xl animate-in slide-in-from-bottom duration-300 ease-out">
+        {/* Top Header Control Segment */}
+        <div className="flex flex-col items-center px-5 pt-3 pb-2 shrink-0">
+          <div className="h-1 w-12 rounded-full bg-divider/60 mb-4" />
+
+          <div className="flex w-full items-center justify-between">
+            <div>
+              <h3 className="text-[16px] font-bold tracking-tight text-text">
+                Switch Context
+              </h3>
+              <p className="text-[11px] font-normal text-text-muted mt-0.5">
+                Navigate across your business infrastructure
+              </p>
+            </div>
+
             <button
               type="button"
               onClick={onClose}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-bg text-text-muted active:scale-95 transition"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-bg text-text-muted active:scale-90 transition shadow-xs"
             >
-              <FiX className="text-sm" />
+              <FiX className="text-base" />
             </button>
           </div>
         </div>
 
-        {/* Segmented Navigation Tabs */}
-        <div className="grid grid-cols-3 border-b border-divider bg-bg/50 p-1 mx-4 mt-3 rounded-lg text-center">
-          <button
-            type="button"
-            onClick={() => setActiveTab("workspace")}
-            className={`rounded-md py-1.5 text-[11px] font-semibold transition ${
-              activeTab === "workspace"
-                ? "bg-surface text-primary shadow-xs"
-                : "text-text-muted"
-            }`}
-          >
-            Workspace
-          </button>
-          <button
-            type="button"
-            onClick={() => currentWorkspace?._id && setActiveTab("company")}
-            disabled={!currentWorkspace?._id}
-            className={`rounded-md py-1.5 text-[11px] font-semibold transition ${
-              activeTab === "company"
-                ? "bg-surface text-primary shadow-xs"
-                : "text-text-muted opacity-60"
-            }`}
-          >
-            Company
-          </button>
-          <button
-            type="button"
-            onClick={() => currentCompany?._id && setActiveTab("branch")}
-            disabled={!currentCompany?._id}
-            className={`rounded-md py-1.5 text-[11px] font-semibold transition ${
-              activeTab === "branch"
-                ? "bg-surface text-primary shadow-xs"
-                : "text-text-muted opacity-60"
-            }`}
-          >
-            Branch
-          </button>
+        {/* Premium Capsule Segmented Navigation Tab-Bar */}
+        <div className="mx-5 my-2.5 shrink-0">
+          <div className="grid grid-cols-3 gap-1 bg-bg/80 p-1 rounded-xl border border-divider/40">
+            <button
+              type="button"
+              onClick={() => setActiveTab("workspace")}
+              className={`rounded-lg py-2 text-xs font-bold tracking-wide transition-all ${
+                activeTab === "workspace"
+                  ? "bg-surface text-primary shadow-sm"
+                  : "text-text-muted active:bg-surface/40"
+              }`}
+            >
+              Workspace
+            </button>
+            <button
+              type="button"
+              onClick={() => currentWorkspace?._id && setActiveTab("company")}
+              disabled={!currentWorkspace?._id}
+              className={`rounded-lg py-2 text-xs font-bold tracking-wide transition-all ${
+                activeTab === "company"
+                  ? "bg-surface text-primary shadow-sm"
+                  : "text-text-muted disabled:opacity-40"
+              }`}
+            >
+              Company
+            </button>
+            <button
+              type="button"
+              onClick={() => currentCompany?._id && setActiveTab("branch")}
+              disabled={!currentCompany?._id}
+              className={`rounded-lg py-2 text-xs font-bold tracking-wide transition-all ${
+                activeTab === "branch"
+                  ? "bg-surface text-primary shadow-sm"
+                  : "text-text-muted disabled:opacity-40"
+              }`}
+            >
+              Branch
+            </button>
+          </div>
         </div>
 
-        {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 pb-8">
+        {/* Dynamic Context Lists Content viewport */}
+        <div className="flex-1 overflow-y-auto px-5 pb-8 pt-2">
           {/* TAB 1: WORKSPACES */}
           {activeTab === "workspace" && (
-            <div className="space-y-2 animate-fade-in">
+            <div className="space-y-2.5 animate-in fade-in duration-200">
               {workspaces?.map((item) => {
                 const ws = getWorkspaceFromItem(item);
                 const isActive = ws?._id === currentWorkspace?._id;
@@ -191,33 +196,39 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
                     key={ws?._id}
                     type="button"
                     onClick={() => handleWorkspaceSelect(item)}
-                    className={`flex w-full items-center justify-between rounded-xl border p-3.5 text-left transition active:scale-[0.99] ${
+                    className={`flex w-full items-center justify-between rounded-xl p-3.5 text-left transition-all active:scale-[0.98] ${
                       isActive
-                        ? "border-primary bg-primary-soft/30"
-                        : "border-divider bg-bg"
+                        ? "bg-primary-soft/40 border border-primary/30"
+                        : "bg-bg/60 border border-transparent hover:bg-bg"
                     }`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-3.5 min-w-0">
                       <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isActive ? "bg-primary text-white" : "bg-surface border border-divider text-text-muted"}`}
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
+                          isActive
+                            ? "bg-primary text-white shadow-md shadow-primary/20"
+                            : "bg-surface text-text-muted border border-divider/60"
+                        }`}
                       >
-                        <FiShoppingBag className="text-sm" />
+                        <FiShoppingBag className="text-[16px]" />
                       </div>
                       <div className="min-w-0">
                         <div
-                          className={`text-xs font-bold truncate ${isActive ? "text-primary" : "text-text"}`}
+                          className={`text-[13px] font-bold truncate ${isActive ? "text-primary" : "text-text"}`}
                         >
                           {ws?.name}
                         </div>
-                        <div className="text-[10px] text-text-muted mt-0.5">
-                          {ws?.type || "Workspace Container"}
+                        <div className="text-[10px] text-text-muted font-medium mt-0.5 tracking-wide uppercase">
+                          {ws?.type || "Standard"}
                         </div>
                       </div>
                     </div>
                     {isActive ? (
-                      <FiCheck className="text-primary text-sm shrink-0" />
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white shadow-xs">
+                        <FiCheck className="text-[11px] stroke-[3]" />
+                      </div>
                     ) : (
-                      <FiChevronRight className="text-divider text-sm" />
+                      <FiChevronRight className="text-text-muted/60 text-base" />
                     )}
                   </button>
                 );
@@ -227,16 +238,20 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
 
           {/* TAB 2: COMPANIES */}
           {activeTab === "company" && (
-            <div className="space-y-2 animate-fade-in">
-              <div className="flex justify-end mb-1">
+            <div className="space-y-2.5 animate-in fade-in duration-200">
+              <div className="flex justify-between items-center mb-1 pl-1">
+                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                  Available Operations
+                </span>
                 <Link
                   to={ROUTES.CREATE_COMPANY}
                   onClick={onClose}
-                  className="text-[11px] font-bold text-primary flex items-center gap-1 bg-primary-soft/50 px-2.5 py-1 rounded-md"
+                  className="text-[11px] font-bold text-primary flex items-center gap-1 bg-primary-soft/80 px-2.5 py-1.5 rounded-lg active:scale-95 transition"
                 >
-                  <FiPlus /> Add Company
+                  <FiPlus className="stroke-[3]" /> New Company
                 </Link>
               </div>
+
               {companies?.length ? (
                 companies.map((comp) => {
                   const isActive = comp?._id === currentCompany?._id;
@@ -245,42 +260,51 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
                       key={comp?._id}
                       type="button"
                       onClick={() => handleCompanySelect(comp)}
-                      className={`flex w-full items-center justify-between rounded-xl border p-3.5 text-left transition active:scale-[0.99] ${
+                      className={`flex w-full items-center justify-between rounded-xl p-3.5 text-left transition-all active:scale-[0.98] ${
                         isActive
-                          ? "border-primary bg-primary-soft/30"
-                          : "border-divider bg-bg"
+                          ? "bg-primary-soft/40 border border-primary/30"
+                          : "bg-bg/60 border border-transparent hover:bg-bg"
                       }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3.5 min-w-0">
                         <div
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isActive ? "bg-primary text-white" : "bg-surface border border-divider text-text-muted"}`}
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
+                            isActive
+                              ? "bg-primary text-white shadow-md shadow-primary/20"
+                              : "bg-surface text-text-muted border border-divider/60"
+                          }`}
                         >
-                          <FiBriefcase className="text-sm" />
+                          <FiBriefcase className="text-[16px]" />
                         </div>
                         <div className="min-w-0">
                           <div
-                            className={`text-xs font-bold truncate ${isActive ? "text-primary" : "text-text"}`}
+                            className={`text-[13px] font-bold truncate ${isActive ? "text-primary" : "text-text"}`}
                           >
                             {comp?.name}
                           </div>
-                          <div className="text-[10px] text-text-muted mt-0.5">
+                          <div className="text-[10px] text-text-muted font-mono mt-0.5">
                             {comp?.gstin
-                              ? `GSTIN: ${comp.gstin}`
-                              : "No Tax ID Assigned"}
+                              ? `GST: ${comp.gstin}`
+                              : "No Registration Identifier"}
                           </div>
                         </div>
                       </div>
                       {isActive ? (
-                        <FiCheck className="text-primary text-sm shrink-0" />
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white shadow-xs">
+                          <FiCheck className="text-[11px] stroke-[3]" />
+                        </div>
                       ) : (
-                        <FiChevronRight className="text-divider text-sm" />
+                        <FiChevronRight className="text-text-muted/60 text-base" />
                       )}
                     </button>
                   );
                 })
               ) : (
-                <div className="text-center py-6 text-xs text-text-muted italic">
-                  No structural companies found under this workspace context.
+                <div className="text-center py-10 bg-bg/40 rounded-xl border border-dashed border-divider p-4">
+                  <FiBriefcase className="text-text-muted/40 text-2xl mx-auto mb-2" />
+                  <p className="text-[12px] font-medium text-text-muted">
+                    No active operating contexts registered.
+                  </p>
                 </div>
               )}
             </div>
@@ -288,16 +312,20 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
 
           {/* TAB 3: BRANCHES */}
           {activeTab === "branch" && (
-            <div className="space-y-2 animate-fade-in">
-              <div className="flex justify-end mb-1">
+            <div className="space-y-2.5 animate-in fade-in duration-200">
+              <div className="flex justify-between items-center mb-1 pl-1">
+                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                  Select Hub Location
+                </span>
                 <Link
                   to={ROUTES.CREATE_BRANCH}
                   onClick={onClose}
-                  className="text-[11px] font-bold text-primary flex items-center gap-1 bg-primary-soft/50 px-2.5 py-1 rounded-md"
+                  className="text-[11px] font-bold text-primary flex items-center gap-1 bg-primary-soft/80 px-2.5 py-1.5 rounded-lg active:scale-95 transition"
                 >
-                  <FiPlus /> Add Branch
+                  <FiPlus className="stroke-[3]" /> New Branch
                 </Link>
               </div>
+
               {branches?.length ? (
                 branches.map((br) => {
                   const isActive = br?._id === currentBranch?._id;
@@ -306,39 +334,47 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
                       key={br?._id}
                       type="button"
                       onClick={() => handleBranchSelect(br)}
-                      className={`flex w-full items-center justify-between rounded-xl border p-3.5 text-left transition active:scale-[0.99] ${
+                      className={`flex w-full items-center justify-between rounded-xl p-3.5 text-left transition-all active:scale-[0.98] ${
                         isActive
-                          ? "border-primary bg-primary-soft/30"
-                          : "border-divider bg-bg"
+                          ? "bg-primary-soft/40 border border-primary/30"
+                          : "bg-bg/60 border border-transparent hover:bg-bg"
                       }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3.5 min-w-0">
                         <div
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isActive ? "bg-primary text-white" : "bg-surface border border-divider text-text-muted"}`}
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
+                            isActive
+                              ? "bg-primary text-white shadow-md shadow-primary/20"
+                              : "bg-surface text-text-muted border border-divider/60"
+                          }`}
                         >
-                          <FiMapPin className="text-sm" />
+                          <FiMapPin className="text-[16px]" />
                         </div>
                         <div className="min-w-0">
                           <div
-                            className={`text-xs font-bold truncate ${isActive ? "text-primary" : "text-text"}`}
+                            className={`text-[13px] font-bold truncate ${isActive ? "text-primary" : "text-text"}`}
                           >
                             {br?.name}
                           </div>
-                          <div className="text-[10px] text-text-muted mt-0.5">
-                            {br?.city || "Standard Location Area"}
+                          <div className="text-[10px] text-text-muted mt-0.5 font-medium">
+                            {br?.city || "Primary Distribution Core"}
                           </div>
                         </div>
                       </div>
                       {isActive && (
-                        <FiCheck className="text-primary text-sm shrink-0" />
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white shadow-xs">
+                          <FiCheck className="text-[11px] stroke-[3]" />
+                        </div>
                       )}
                     </button>
                   );
                 })
               ) : (
-                <div className="text-center py-6 text-xs text-text-muted italic">
-                  No distribution branches registered under this operational
-                  company.
+                <div className="text-center py-10 bg-bg/40 rounded-xl border border-dashed border-divider p-4">
+                  <FiMapPin className="text-text-muted/40 text-2xl mx-auto mb-2" />
+                  <p className="text-[12px] font-medium text-text-muted">
+                    No localized branches linked to this context.
+                  </p>
                 </div>
               )}
             </div>

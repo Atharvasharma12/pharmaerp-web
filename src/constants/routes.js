@@ -1,5 +1,3 @@
-// src/constants/routes.js
-
 export const ROUTES = {
   HOME: "/",
 
@@ -49,6 +47,18 @@ export const ROUTES = {
   EDIT_ACCESS: "/access-control/member-access/:memberId/edit",
   PERMISSIONS: "/access-control/permissions",
 
+  // Catalog - Global Products
+  GLOBAL_PRODUCTS: "/catalog/global-products",
+  GLOBAL_PRODUCT_DETAILS: "/catalog/global-products/:productId",
+
+  // Catalog - Workspace Products
+  WORKSPACE_PRODUCTS: "/catalog/workspace-products",
+  CREATE_WORKSPACE_PRODUCT: "/catalog/workspace-products/create",
+  EDIT_WORKSPACE_PRODUCT: "/catalog/workspace-products/:productId/edit",
+  WORKSPACE_PRODUCT_DETAILS: "/catalog/workspace-products/:productId",
+  WORKSPACE_PRODUCT_IMPORT: "/catalog/workspace-products/import",
+  WORKSPACE_PRODUCT_SEARCH: "/catalog/workspace-products/search",
+
   // Setup
   SETUP_CENTER: "/setup",
 
@@ -64,9 +74,9 @@ export const ROUTES = {
   // Management
   USERS: "/users",
 
-  // Fallback
-  NOT_FOUND: "*",
-
   // Welcome
   WELCOME: "/welcome",
+
+  // Fallback
+  NOT_FOUND: "*",
 };

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useIsMobile } from "@/hooks";
-import { WORKSPACE_STORAGE_KEY } from "@/constants";
 import { AppConfirmModal } from "@/components";
 
 import useUser from "@/features/user/hooks/useUser";
@@ -12,11 +11,6 @@ import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 
 import MyProfileDesktopPage from "./desktop/MyProfileDesktopPage";
 import MyProfileMobilePage from "./mobile/MyProfileMobilePage";
-
-const normalizeText = (value) =>
-  String(value || "")
-    .trim()
-    .toLowerCase();
 
 const MyProfilePage = () => {
   const isMobile = useIsMobile();
@@ -193,14 +187,9 @@ const MyProfilePage = () => {
 
   const handleAcceptInvitation = async (tokenHashOrRawToken) => {
     try {
-      const result = await acceptIncomingInvitation(tokenHashOrRawToken);
-      if (result?.success || result?.workspaceId) {
-        const targetWorkspaceId = result?.workspaceId || result?.id;
-        if (targetWorkspaceId) {
-          localStorage.setItem(WORKSPACE_STORAGE_KEY, targetWorkspaceId);
-        }
-        window.location.href = "/dashboard";
-      }
+      // The backend should handle context updates and state persistence logic
+      await acceptIncomingInvitation(tokenHashOrRawToken);
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("Critical error accepting profile invitation stream:", err);
     }

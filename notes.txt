@@ -1167,6 +1167,93 @@ AppLayout
 └── index.js
 
 
+src/features/workspace-products/
+│
+├── pages/
+│   ├── WorkspaceProductsPage.jsx
+│   ├── CreateWorkspaceProductPage.jsx
+│   ├── EditWorkspaceProductPage.jsx
+│   ├── WorkspaceProductDetailsPage.jsx
+│   ├── WorkspaceProductImportPage.jsx
+│   ├── WorkspaceProductSearchPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── WorkspaceProductsDesktopPage.jsx
+│   │   ├── CreateWorkspaceProductDesktopPage.jsx
+│   │   ├── EditWorkspaceProductDesktopPage.jsx
+│   │   ├── WorkspaceProductDetailsDesktopPage.jsx
+│   │   ├── WorkspaceProductImportDesktopPage.jsx
+│   │   ├── WorkspaceProductSearchDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── WorkspaceProductsMobilePage.jsx
+│       ├── CreateWorkspaceProductMobilePage.jsx
+│       ├── EditWorkspaceProductMobilePage.jsx
+│       ├── WorkspaceProductDetailsMobilePage.jsx
+│       ├── WorkspaceProductImportMobilePage.jsx
+│       ├── WorkspaceProductSearchMobilePage.jsx
+│       └── index.js
+│
+├── hooks/
+│   ├── useWorkspaceProduct.js
+│   └── index.js
+│
+├── services/
+│   ├── workspaceProductService.js
+│   └── index.js
+│
+├── store/
+│   ├── workspaceProductSlice.js
+│   ├── workspaceProductThunk.js
+│   ├── workspaceProductSelector.js
+│   └── index.js
+│
+├── routes/
+│   ├── workspaceProductRoutes.js
+│   └── index.js
+│
+└── index.js
+
+
+src/features/global-products/
+├── pages/
+│   ├── GlobalProductsPage.jsx
+│   ├── GlobalProductDetailsPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── GlobalProductsDesktopPage.jsx
+│   │   ├── GlobalProductDetailsDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── GlobalProductsMobilePage.jsx
+│       ├── GlobalProductDetailsMobilePage.jsx
+│       └── index.js
+│
+├── hooks/
+│   ├── useGlobalProduct.js
+│   └── index.js
+│
+├── services/
+│   ├── globalProductService.js
+│   └── index.js
+│
+├── store/
+│   ├── globalProductSlice.js
+│   ├── globalProductThunk.js
+│   ├── globalProductSelector.js
+│   └── index.js
+│
+├── routes/
+│   ├── globalProductRoutes.js
+│   └── index.js
+│
+└── index.js
+
+
 You are acting as a senior full-stack React + Redux Toolkit + Node.js + Express + MongoDB architect.
 
 Project Context

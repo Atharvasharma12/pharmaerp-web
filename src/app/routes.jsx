@@ -14,14 +14,20 @@ import { GuestRoute, ProtectedRoute, WorkspaceRequiredRoute } from "@/guards";
 import authRoutes from "@/features/auth/routes/authRoutes";
 import onboardingRoutes from "@/features/onboarding/routes/onboardingRoutes";
 import userRoutes from "@/features/user/routes/userRoutes";
+
 import workspaceRoutes from "@/features/workspace/routes/workspaceRoutes";
 import setupRoutes from "@/features/setup/routes/setupRoutes";
 import dashboardRoutes from "@/features/dashboard/routes/dashboardRoutes";
+
 import companyRoutes from "@/features/company/routes/companyRoutes";
 import branchRoutes from "@/features/branch/routes/branchRoutes";
 import accessControlRoutes from "@/features/access-control/routes/accessControlRoutes";
 
+import globalProductRoutes from "@/features/global-products/routes/globalProductRoutes";
+import workspaceProductRoutes from "@/features/workspace-products/routes/workspaceProductRoutes";
+
 import HomePage from "@/pages/HomePage";
+
 import { LandingPage } from "@/features/landing";
 
 const NotFoundPage = () => {
@@ -41,6 +47,7 @@ const NotFoundPage = () => {
 };
 
 export const router = createBrowserRouter([
+  // Public
   {
     element: (
       <GuestRoute>
@@ -87,6 +94,7 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // Auth
   {
     element: (
       <GuestRoute>
@@ -96,6 +104,7 @@ export const router = createBrowserRouter([
     children: authRoutes,
   },
 
+  // Onboarding
   {
     element: (
       <ProtectedRoute>
@@ -105,6 +114,7 @@ export const router = createBrowserRouter([
     children: onboardingRoutes,
   },
 
+  // Setup + User
   {
     element: (
       <ProtectedRoute>
@@ -114,6 +124,7 @@ export const router = createBrowserRouter([
     children: [...setupRoutes, ...userRoutes],
   },
 
+  // ERP Application
   {
     element: (
       <ProtectedRoute>
@@ -124,13 +135,19 @@ export const router = createBrowserRouter([
     ),
     children: [
       ...dashboardRoutes,
+
       ...workspaceRoutes,
       ...companyRoutes,
       ...branchRoutes,
       ...accessControlRoutes,
+
+      // Catalog
+      ...globalProductRoutes,
+      ...workspaceProductRoutes,
     ],
   },
 
+  // 404
   {
     path: ROUTES.NOT_FOUND,
     element: <NotFoundPage />,

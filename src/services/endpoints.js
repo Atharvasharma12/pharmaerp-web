@@ -73,6 +73,31 @@ export const ENDPOINTS = {
     BY_ID: (branchId) => `/organization/branches/${branchId}`,
   },
 
+  WORKSPACE_PRODUCTS: {
+    // Search before creating a workspace product
+    SEARCH_BEFORE_CREATE: "/catalog/products/search",
+
+    // Create product
+    CREATE: "/catalog/products",
+
+    // List products
+    LIST: "/catalog/products",
+
+    // Get product by id
+    BY_ID: (productId) => `/catalog/products/${productId}`,
+
+    // Get product by code
+    BY_CODE: (productCode) => `/catalog/products/code/${productCode}`,
+  },
+
+  GLOBAL_PRODUCTS: {
+    LIST: "/catalog/global-products",
+
+    BY_ID: (productId) => `/catalog/global-products/${productId}`,
+
+    BY_CODE: (productCode) => `/catalog/global-products/code/${productCode}`,
+  },
+
   ACCESS_CONTROL: {
     // Permissions
     PERMISSIONS: "/core/access-control/permissions",
