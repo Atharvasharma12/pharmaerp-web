@@ -98,6 +98,14 @@ export const ENDPOINTS = {
     BY_CODE: (productCode) => `/catalog/global-products/code/${productCode}`,
   },
 
+  HSN_MASTER: {
+    LIST: "/catalog/hsn-master",
+
+    BY_ID: (hsnId) => `/catalog/hsn-master/${hsnId}`,
+
+    BY_CODE: (hsnCode) => `/catalog/hsn-master/code/${hsnCode}`,
+  },
+
   ACCESS_CONTROL: {
     // Permissions
     PERMISSIONS: "/core/access-control/permissions",

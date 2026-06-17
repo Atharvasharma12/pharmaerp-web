@@ -1,11 +1,10 @@
-// src/features/workspace-products/pages/EditWorkspaceProductPage.jsx
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
 
+import useHsnMaster from "@/features/hsn-master/hooks/useHsnMaster";
 import useWorkspaceProduct from "../hooks/useWorkspaceProduct";
 
 import EditWorkspaceProductDesktopPage from "./desktop/EditWorkspaceProductDesktopPage";
@@ -22,7 +21,7 @@ const INITIAL_FORM_DATA = {
   pack: "",
   qty: "",
   productForm: "",
-  HsnMaster: null,
+  HsnMaster: "", // Mapped string identifier choice path
   notes: "",
   status: "active",
 };
@@ -64,6 +63,9 @@ const EditWorkspaceProductPage = () => {
   const isMobile = useIsMobile();
   const hasFetchedRef = useRef(false);
 
+  // Persistent tracking reference to prevent circular network fetch loops
+  const hsnFetchedRef = useRef(false);
+
   const {
     getWorkspaceProductById,
     updateWorkspaceProduct,
@@ -74,12 +76,17 @@ const EditWorkspaceProductPage = () => {
     clearError,
   } = useWorkspaceProduct();
 
+  // Relational catalog lookup hooks mapping
+  const { hsnMasters, getHsnMastersStatus, getHsnMasters, clearHsnMasters } =
+    useHsnMaster();
+
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
   const [currentStep, setCurrentStep] = useState(1);
 
   const isLoading = updateWorkspaceProductStatus === API_STATUS.LOADING;
   const isFetching = getWorkspaceProductStatus === API_STATUS.LOADING;
+  const isHsnLoading = getHsnMastersStatus === API_STATUS.LOADING;
 
   const loadWorkspaceProductData = useCallback(async () => {
     if (!productId) return;
@@ -95,7 +102,7 @@ const EditWorkspaceProductPage = () => {
           pack: data.pack || "",
           qty: data.qty || "",
           productForm: data.productForm || "",
-          HsnMaster: data.HsnMaster?._id || data.HsnMaster || null,
+          HsnMaster: data.HsnMaster?._id || data.HsnMaster || "",
           notes: data.notes || "",
           status: data.status || "active",
         });
@@ -122,10 +129,56 @@ const EditWorkspaceProductPage = () => {
 
     return () => {
       clearCurrentWorkspaceProduct();
+      clearHsnMasters();
     };
     // Standard initialization rules enforce single initial invocation loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
+
+  // Controlled execution block fetching options cleanly once upon entering step 3
+  useEffect(() => {
+    if (currentStep === 3) {
+      if (!hsnFetchedRef.current) {
+        hsnFetchedRef.current = true;
+        getHsnMasters({
+          isActive: true,
+          page: 1,
+          limit: 100,
+        });
+      }
+    } else {
+      // Reset the fetch guard trail reference if the user steps away from step 3
+      hsnFetchedRef.current = false;
+    }
+  }, [currentStep, getHsnMasters]);
+
+  // Map raw HSN records into cleanly formatted select dropdown items
+  const formattedHsnOptions = useMemo(() => {
+    const baseOptions = [
+      { label: "Select an HSN / SAC Code rule...", value: "" },
+    ];
+
+    if (!Array.isArray(hsnMasters)) return baseOptions;
+
+    const mapped = hsnMasters.map((hsn) => {
+      const rateLabel = hsn.gstRate !== null ? `${hsn.gstRate}% GST` : "Exempt";
+      const descLabel = hsn.description
+        ? ` - ${hsn.description.substring(0, 45)}...`
+        : "";
+      return {
+        label: `Code ${hsn.code} (${rateLabel})${descLabel}`,
+        value: hsn._id,
+      };
+    });
+
+    return [...baseOptions, ...mapped];
+  }, [hsnMasters]);
+
+  // Resolve selected active entity metadata details dynamically for step 5 card preview summary lookups
+  const selectedHsnDetail = useMemo(() => {
+    if (!formData.HsnMaster || !Array.isArray(hsnMasters)) return null;
+    return hsnMasters.find((h) => h._id === formData.HsnMaster) || null;
+  }, [formData.HsnMaster, hsnMasters]);
 
   const handleFieldChange = useCallback(
     (nameOrEvent, maybeValue) => {
@@ -256,9 +309,11 @@ const EditWorkspaceProductPage = () => {
     () => ({
       formData,
       formErrors,
-      isLoading,
+      isLoading: isLoading || isHsnLoading,
       isFetching,
       currentStep,
+      hsnOptions: formattedHsnOptions,
+      selectedHsnDetail,
 
       handleChange: handleFieldChange,
       handleSubmit,
@@ -273,8 +328,11 @@ const EditWorkspaceProductPage = () => {
       formData,
       formErrors,
       isLoading,
+      isHsnLoading,
       isFetching,
       currentStep,
+      formattedHsnOptions,
+      selectedHsnDetail,
       handleFieldChange,
       handleSubmit,
       handleBackStep,

@@ -1,11 +1,10 @@
-// src/features/workspace-products/pages/CreateWorkspaceProductPage.jsx
-
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
 
+import useHsnMaster from "@/features/hsn-master/hooks/useHsnMaster";
 import useWorkspaceProduct from "../hooks/useWorkspaceProduct";
 import { CreateWorkspaceProductMobilePage } from "./mobile";
 import { CreateWorkspaceProductDesktopPage } from "./desktop";
@@ -23,7 +22,7 @@ const INITIAL_FORM_DATA = {
   productForm: "",
 
   // Step 3: Statutory Parameters
-  HsnMaster: null,
+  HsnMaster: "", // Stores selected HSN _id string matching select choices
 
   // Step 4: Notes
   notes: "",
@@ -69,16 +68,22 @@ const CreateWorkspaceProductPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
+  // Persistent tracking reference to prevent circular network fetch bursts
+  const hsnFetchedRef = useRef(false);
+
   const {
     createWorkspaceProduct,
     searchBeforeCreateWorkspaceProduct,
     createWorkspaceProductStatus,
     searchBeforeCreateStatus,
-    searchBeforeCreateResult,
     error: productError,
     clearError,
     clearSearchBeforeCreateResult,
   } = useWorkspaceProduct();
+
+  // Relational catalog lookup hooks mapping
+  const { hsnMasters, getHsnMastersStatus, getHsnMasters, clearHsnMasters } =
+    useHsnMaster();
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
@@ -87,6 +92,52 @@ const CreateWorkspaceProductPage = () => {
 
   const isLoading = createWorkspaceProductStatus === API_STATUS.LOADING;
   const isSearching = searchBeforeCreateStatus === API_STATUS.LOADING;
+  const isHsnLoading = getHsnMastersStatus === API_STATUS.LOADING;
+
+  // Controlled execution block fetching options cleanly once upon entering step 3
+  useEffect(() => {
+    if (currentStep === 3) {
+      if (!hsnFetchedRef.current) {
+        hsnFetchedRef.current = true;
+        getHsnMasters({
+          isActive: true,
+          page: 1,
+          limit: 100,
+        });
+      }
+    } else {
+      // Reset the fetch guard trail reference if the user steps backward or forwards
+      hsnFetchedRef.current = false;
+    }
+  }, [currentStep, getHsnMasters]);
+
+  // Map raw HSN data records into cleanly formatted select dropdown items
+  const formattedHsnOptions = useMemo(() => {
+    const baseOptions = [
+      { label: "Select an HSN / SAC Code rule...", value: "" },
+    ];
+
+    if (!Array.isArray(hsnMasters)) return baseOptions;
+
+    const mapped = hsnMasters.map((hsn) => {
+      const rateLabel = hsn.gstRate !== null ? `${hsn.gstRate}% GST` : "Exempt";
+      const descLabel = hsn.description
+        ? ` - ${hsn.description.substring(0, 45)}...`
+        : "";
+      return {
+        label: `Code ${hsn.code} (${rateLabel})${descLabel}`,
+        value: hsn._id,
+      };
+    });
+
+    return [...baseOptions, ...mapped];
+  }, [hsnMasters]);
+
+  // Resolve selected active entity details dynamically for review preview indicators
+  const selectedHsnDetail = useMemo(() => {
+    if (!formData.HsnMaster || !Array.isArray(hsnMasters)) return null;
+    return hsnMasters.find((h) => h._id === formData.HsnMaster) || null;
+  }, [formData.HsnMaster, hsnMasters]);
 
   const handleFieldChange = useCallback(
     (nameOrEvent, maybeValue) => {
@@ -108,7 +159,7 @@ const CreateWorkspaceProductPage = () => {
         clearError();
       }
     },
-    [clearError, productError, formErrors]
+    [clearError, productError, formErrors],
   );
 
   const handleBackToCatalog = useCallback(() => {
@@ -132,7 +183,7 @@ const CreateWorkspaceProductPage = () => {
       }
       setCurrentStep(step);
     },
-    [currentStep, formData]
+    [currentStep, formData],
   );
 
   const handleContinue = useCallback(async () => {
@@ -160,11 +211,10 @@ const CreateWorkspaceProductPage = () => {
             globalProductName: result.name,
             suggestions: result.suggestions || [],
           });
-          // Direct step execution trajectory hold inside interceptor warning states
           return;
         }
       } catch {
-        // Fallback execution tracking logic parameters
+        // Fallback catch logs block
       }
     }
 
@@ -188,13 +238,15 @@ const CreateWorkspaceProductPage = () => {
   }, [currentStep, handleBackToCatalog]);
 
   const handleResetAndRefresh = useCallback(() => {
+    hsnFetchedRef.current = false;
     setCurrentStep(1);
     setFormErrors({});
     setDuplicateWarning(null);
     setFormData(INITIAL_FORM_DATA);
     clearError();
+    clearHsnMasters();
     clearSearchBeforeCreateResult();
-  }, [clearError, clearSearchBeforeCreateResult]);
+  }, [clearError, clearHsnMasters, clearSearchBeforeCreateResult]);
 
   const handleSubmit = useCallback(
     async (event) => {
@@ -243,20 +295,22 @@ const CreateWorkspaceProductPage = () => {
           submit:
             typeof error === "string"
               ? error
-              : "Unable to create custom product. Please verify Joi parameters and retry.",
+              : "Unable to create custom product. Please verify parameters and retry.",
         });
       }
     },
-    [createWorkspaceProduct, formData, navigate]
+    [createWorkspaceProduct, formData, navigate],
   );
 
   const pageProps = useMemo(
     () => ({
       formData,
       formErrors,
-      isLoading: isLoading || isSearching,
+      isLoading: isLoading || isSearching || isHsnLoading,
       currentStep,
       duplicateWarning,
+      hsnOptions: formattedHsnOptions,
+      selectedHsnDetail,
 
       handleChange: handleFieldChange,
       handleSubmit,
@@ -272,8 +326,11 @@ const CreateWorkspaceProductPage = () => {
       formErrors,
       isLoading,
       isSearching,
+      isHsnLoading,
       currentStep,
       duplicateWarning,
+      formattedHsnOptions,
+      selectedHsnDetail,
       handleFieldChange,
       handleSubmit,
       handleBackStep,
@@ -282,7 +339,7 @@ const CreateWorkspaceProductPage = () => {
       handleBackToCatalog,
       handleResetAndRefresh,
       handleBypassWarning,
-    ]
+    ],
   );
 
   return isMobile ? (

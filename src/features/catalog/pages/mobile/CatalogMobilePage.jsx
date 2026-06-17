@@ -13,14 +13,18 @@ import {
   AppText,
 } from "@/components";
 
+import { HiOutlineCube } from "react-icons/hi2";
+
 const statIcons = {
   global: <FiBox />,
   workspace: <FiBox />,
+  hsnMaster: <HiOutlineCube />,
 };
 
 const overviewIcons = {
   globalProducts: <FiBox />,
   workspaceProducts: <FiBox />,
+  hsnMaster: <HiOutlineCube />,
 };
 
 const CatalogMobilePage = ({

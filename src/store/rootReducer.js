@@ -1,5 +1,3 @@
-// src/store/rootReducer.js
-
 import { combineReducers } from "@reduxjs/toolkit";
 
 import authReducer from "@/features/auth/store/authSlice";
@@ -17,6 +15,7 @@ import subscriptionReducer from "@/features/subscription/subscriptions/store/sub
 // Catalog
 import workspaceProductReducer from "@/features/workspace-products/store/workspaceProductSlice";
 import globalProductReducer from "@/features/global-products/store/globalProductSlice";
+import hsnMasterReducer from "@/features/hsn-master/store/hsnMasterSlice";
 
 // ---------------------
 // App Reducer
@@ -42,6 +41,7 @@ const appReducer = combineReducers({
   // Catalog
   workspaceProduct: workspaceProductReducer,
   globalProduct: globalProductReducer,
+  hsnMaster: hsnMasterReducer,
 });
 
 /**

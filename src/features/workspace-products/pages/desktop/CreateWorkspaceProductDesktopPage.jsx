@@ -1,5 +1,3 @@
-// src/features/workspace-products/pages/desktop/CreateWorkspaceProductDesktopPage.jsx
-
 import { memo } from "react";
 import {
   FiArrowLeft,
@@ -8,14 +6,11 @@ import {
   FiCheck,
   FiCheckCircle,
   FiEdit3,
-  FiGrid,
   FiInfo,
-  FiPlus,
   FiRefreshCw,
   FiLayers,
 } from "react-icons/fi";
 import { HiOutlineCube } from "react-icons/hi2";
-import { BiCategory } from "react-icons/bi";
 
 import {
   AppAlert,
@@ -46,6 +41,8 @@ const CreateWorkspaceProductDesktopPage = memo(
     isLoading = false,
     currentStep = 1,
     duplicateWarning = null,
+    hsnOptions = [],
+    selectedHsnDetail = null,
 
     handleChange,
     handleSubmit,
@@ -170,7 +167,7 @@ const CreateWorkspaceProductDesktopPage = memo(
                 {currentStep === 3 && (
                   <TaxForm
                     formData={formData}
-                    formErrors={formErrors}
+                    hsnOptions={hsnOptions}
                     handleChange={handleChange}
                     handleBack={handleBack}
                     handleContinue={handleContinue}
@@ -190,6 +187,7 @@ const CreateWorkspaceProductDesktopPage = memo(
                 {currentStep === 5 && (
                   <ReviewStep
                     formData={formData}
+                    selectedHsnDetail={selectedHsnDetail}
                     isCreating={isLoading}
                     onBack={handleBack}
                     onSubmit={handleSubmit}
@@ -199,7 +197,7 @@ const CreateWorkspaceProductDesktopPage = memo(
               </AppBox>
             </AppBox>
 
-            <RightSidebarPanel currentStep={currentStep} formData={formData} />
+            <RightSidebarPanel currentStep={currentStep} />
           </div>
         </div>
       </section>
@@ -262,7 +260,9 @@ const TopStepper = memo(({ currentStep, onStepChange }) => {
 
                   <span className="min-w-0 pr-1.5">
                     <span
-                      className={`block text-[11.5px] font-bold ${active || completed ? "text-text" : "text-text-muted"}`}
+                      className={`block text-[11.5px] font-bold ${
+                        active || completed ? "text-text" : "text-text-muted"
+                      }`}
                     >
                       {step.title}
                     </span>
@@ -532,7 +532,16 @@ const PackagingForm = ({
   </AppCard>
 );
 
-const TaxForm = ({ formData, handleChange, handleBack, handleContinue }) => (
+/* ==========================================================================
+    STEP 3: DROPDOWN SELECT OPTION COMPONENT
+   ========================================================================== */
+const TaxForm = ({
+  formData,
+  hsnOptions = [],
+  handleChange,
+  handleBack,
+  handleContinue,
+}) => (
   <AppCard
     variant="default"
     rounded="lg"
@@ -546,18 +555,18 @@ const TaxForm = ({ formData, handleChange, handleBack, handleContinue }) => (
         Statutory Parameters
       </AppHeading>
       <AppText variant="body2" sx={sectionSubtitleSx}>
-        Link the statutory identification key reference. Never hardcode inline
-        parameters; rely strictly on the system relational database.
+        Select the corporate taxation key code ledger option. Inline parameters
+        are locked; align directly against system statutory guidelines.
       </AppText>
     </div>
 
     <div className="mt-5 grid grid-cols-1">
-      <AppInput
-        label="HsnMaster Object ID Reference (Optional)"
+      <AppSelect
+        label="Relational HSN / SAC Code (Optional)"
         name="HsnMaster"
         value={formData.HsnMaster || ""}
         onChange={handleChange}
-        placeholder="Enter valid 24-character hex MongoDB ID string"
+        options={hsnOptions}
         labelSx={labelSx}
         inputSx={inputSx}
       />
@@ -610,9 +619,8 @@ const NotesForm = ({
         Operational Notes
       </AppHeading>
       <AppText variant="body2" sx={sectionSubtitleSx}>
-        Provide basic descriptive details or workspace comments. Regulatory
-        descriptions, safety criteria, or descriptive fields are strictly
-        excluded.
+        Provide basic descriptive details or workspace comments. Descriptive
+        parameters belong strictly to administrative levels.
       </AppText>
     </div>
 
@@ -665,6 +673,7 @@ const NotesForm = ({
 
 const ReviewStep = ({
   formData,
+  selectedHsnDetail,
   isCreating,
   onBack,
   onSubmit,
@@ -770,8 +779,21 @@ const ReviewStep = ({
         />
         <div className="mt-4 space-y-2">
           <ReviewRowData
-            label="HsnMaster ID Link"
-            value={formData.HsnMaster || "Not linked"}
+            label="Linked Code Key"
+            value={
+              selectedHsnDetail?.code
+                ? `HSN ${selectedHsnDetail.code}`
+                : "Not Linked"
+            }
+          />
+          <ReviewRowData
+            label="Assigned Slab Rate"
+            value={
+              selectedHsnDetail?.gstRate !== undefined &&
+              selectedHsnDetail?.gstRate !== null
+                ? `${selectedHsnDetail.gstRate}% GST`
+                : "-"
+            }
           />
         </div>
       </AppCard>
@@ -899,7 +921,7 @@ const RightSidebarPanel = memo(({ currentStep }) => {
     {
       id: 3,
       title: "Tax Reference",
-      text: "HSN master key data structural link",
+      text: "HSN drop-down catalog configurations",
     },
     {
       id: 4,
@@ -968,7 +990,7 @@ const RightSidebarPanel = memo(({ currentStep }) => {
       ],
       pointIcon: <FiCheckCircle />,
     },
-    HELP_SUPPORT_CARD,
+    { ...HELP_SUPPORT_CARD },
   ];
 
   return <PageRightSidebar spacing={4} cards={cards} />;

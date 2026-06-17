@@ -23,14 +23,18 @@ import {
   PageRightSidebar,
 } from "@/components";
 
+import { HiOutlineCube } from "react-icons/hi2";
+
 const statIcons = {
   global: <FiBox />,
   workspace: <FiBox />,
+  hsnMaster: <HiOutlineCube />,
 };
 
 const overviewIcons = {
   globalProducts: <FiBox />,
   workspaceProducts: <FiBox />,
+  hsnMaster: <HiOutlineCube />,
 };
 
 const CatalogDesktopPage = ({
@@ -269,7 +273,7 @@ const CatalogRightSidebar = () => (
           "View global products",
           "Manage workspace-specific inventory",
           "Organize categories (Coming Soon)",
-          "Manage HSN codes (Coming Soon)",
+          "Manage platform HSN codes",
         ],
         pointIcon: <FiCheckCircle />,
       },

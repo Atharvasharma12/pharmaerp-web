@@ -30,6 +30,7 @@ import workspaceProductRoutes from "@/features/workspace-products/routes/workspa
 import HomePage from "@/pages/HomePage";
 
 import { LandingPage } from "@/features/landing";
+import hsnMasterRoutes from "@/features/hsn-master/routes/hsnMasterRoutes";
 
 const NotFoundPage = () => {
   return (
@@ -145,6 +146,7 @@ export const router = createBrowserRouter([
       // Catalog
       ...catalogRoutes,
       ...globalProductRoutes,
+      ...hsnMasterRoutes,
       ...workspaceProductRoutes,
     ],
   },

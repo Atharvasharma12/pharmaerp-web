@@ -1,42 +1,30 @@
 // src/features/workspace-products/pages/mobile/WorkspaceProductsMobilePage.jsx
 
-import { useMemo } from "react";
+import { useState } from "react";
 import {
-  FiChevronLeft,
-  FiChevronRight,
-  FiFilter,
-  FiMoreHorizontal,
-  FiPlus,
-  FiRefreshCw,
   FiSearch,
-  FiUpload,
+  FiFilter,
+  FiChevronRight,
+  FiPlus,
+  FiMoreVertical,
   FiEye,
-  FiEdit2,
-  FiTrash2,
+  FiEdit3,
 } from "react-icons/fi";
 import { HiOutlineCube } from "react-icons/hi2";
-import { BiCheckShield, BiXCircle } from "react-icons/bi";
+import { BiSortAlt2 } from "react-icons/bi";
 
 import {
   AppBox,
   AppButton,
   AppCard,
   AppHeading,
-  AppIconButton,
-  AppMenu,
   AppSearchInput,
-  AppSelect,
   AppStack,
-  AppStatusBadge,
+  AppTablePagination,
   AppTag,
   AppText,
+  AppMenu,
 } from "@/components";
-
-const statIcons = {
-  total_products: <HiOutlineCube />,
-  active_products: <BiCheckShield />,
-  inactive_products: <BiXCircle />,
-};
 
 const statusColorMap = {
   active: "success",
@@ -45,187 +33,97 @@ const statusColorMap = {
 
 const WorkspaceProductsMobilePage = ({
   products = [],
-  dashboardStats = [],
   filters,
-  productTypeOptions = [],
-  totalProducts = 0,
   hasFilteredProducts,
   handleFilterChange,
   handleSearchChange,
   handleClearFilters,
-  handleRefresh,
-  handleCreateProduct,
+  handlePageChange,
+  handlePageSizeChange,
   handleViewProductDetails,
+  handleCreateProduct,
   handleEditProduct,
-  handleDeleteProduct,
-  handleImportWorkspaceProducts,
+  currentPage,
+  pageSize = 10,
+  totalProducts = 0,
+  totalPages,
 }) => {
-  const shouldRenderPagination = hasFilteredProducts && totalProducts > 10;
-
-  const statusOptions = [
-    { label: "All Status", value: "all" },
-    { label: "Active", value: "active" },
-    { label: "Inactive", value: "inactive" },
-  ];
+  const shouldRenderPagination = hasFilteredProducts && totalProducts > 0;
+  const [showFilters, setShowFilters] = useState(false);
 
   return (
     <section className="w-full bg-bg">
+      {/* Root Container flush inside the global app shell layout */}
       <AppBox sx={containerSx}>
-        {/* Expanded Width Title Header Section */}
+        {/* Title block with main "+ Add Product" button in green */}
         <AppBox sx={headerWrapperSx}>
-          <AppStack
-            direction="row"
-            align="center"
-            justify="space-between"
-            gap={1}
-          >
+          <AppStack direction="row" align="center" justify="space-between" sx={{ width: "100%" }}>
             <AppBox sx={{ minWidth: 0, flex: 1 }}>
               <AppHeading level={1} weight={800} sx={pageTitleSx}>
-                Custom Products
+                Workspace Products
               </AppHeading>
-              <AppText variant="body2" weight={600} sx={pageSubtitleSx}>
-                Workspace local product modifications.
+              <AppText variant="body2" sx={pageSubtitleSx}>
+                Manage products within your workspace
               </AppText>
             </AppBox>
-
-            <AppStack
-              direction="row"
-              align="center"
-              gap={0.5}
-              sx={{ flexShrink: 0 }}
+            <AppButton
+              variant="contained"
+              colorVariant="success"
+              rounded="md"
+              startIcon={<FiPlus />}
+              onClick={handleCreateProduct}
+              sx={greenAddProductBtnSx}
             >
-              <AppIconButton
-                icon={<FiRefreshCw />}
-                variant="outlined"
-                colorVariant="neutral"
-                size="small"
-                rounded="md"
-                onClick={handleRefresh}
-                sx={actionHeaderIconBtnSx}
-              />
-              <AppIconButton
-                icon={<FiUpload />}
-                variant="outlined"
-                colorVariant="neutral"
-                size="small"
-                rounded="md"
-                onClick={handleImportWorkspaceProducts}
-                sx={actionHeaderIconBtnSx}
-              />
-              <AppButton
-                variant="contained"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleCreateProduct}
-                sx={addBtnSx}
-              >
-                Create
-              </AppButton>
-            </AppStack>
+              Add Product
+            </AppButton>
           </AppStack>
         </AppBox>
 
-        {/* High-Density Stats Grid Row */}
-        <AppBox sx={statsGridWrapperSx}>
-          <div className="grid grid-cols-3 gap-1.5">
-            {dashboardStats.map((stat) => (
-              <AppCard
-                key={stat.id}
-                variant="default"
-                rounded="md"
-                bordered
-                shadow="none"
-                padding="none"
-                sx={compactStatCardSx}
-              >
-                <AppStack direction="row" align="center" gap={0.5}>
-                  <AppBox
-                    sx={{
-                      ...compactStatIconSx,
-                      bgcolor: `var(--app-color-${stat.colorVariant}-soft)`,
-                      color: `var(--app-color-${stat.colorVariant})`,
-                    }}
-                  >
-                    {statIcons[stat.id] || <HiOutlineCube />}
-                  </AppBox>
-                  <AppBox sx={{ minWidth: 0 }}>
-                    <AppHeading level={3} weight={800} sx={compactStatValueSx}>
-                      {stat.value}
-                    </AppHeading>
-                    <AppText variant="body2" sx={compactStatTitleSx}>
-                      {stat.title.split(" ")[0]}
-                    </AppText>
-                  </AppBox>
-                </AppStack>
-              </AppCard>
-            ))}
-          </div>
+        {/* Search Input (Full Width) */}
+        <AppBox sx={searchWrapperSx}>
+          <AppSearchInput
+            name="search"
+            value={filters.search}
+            onChange={handleSearchChange}
+            placeholder="Search products..."
+            clearable
+            onClear={() => handleSearchChange("")}
+            size="large"
+            variant="bordered"
+            rounded="md"
+            sx={searchBarSx}
+            inputSx={searchInputSx}
+          />
         </AppBox>
 
-        {/* Filter Selection Panel */}
-        <AppBox sx={filterSectionSx}>
-          <div className="grid grid-cols-1 gap-2">
-            <AppSearchInput
-              name="search"
-              value={filters.search}
-              onChange={handleSearchChange}
-              placeholder="Search custom catalog by name..."
-              clearable
-              onClear={() => handleSearchChange("")}
-              size="small"
-              variant="bordered"
-              rounded="md"
-              sx={searchBarSx}
-              inputSx={inputOverrideSx}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <AppSelect
-              name="productType"
-              value={filters.productType}
-              onChange={handleFilterChange}
-              options={productTypeOptions}
-              size="small"
-              variant="bordered"
-              rounded="md"
-              sx={selectInputSx}
-              inputSx={inputOverrideSx}
-            />
-            <AppSelect
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              options={statusOptions}
-              size="small"
-              variant="bordered"
-              rounded="md"
-              sx={selectInputSx}
-              inputSx={inputOverrideSx}
-            />
-          </div>
-        </AppBox>
-
-        {/* Edge-Aligned Counter Info Bar */}
-        <AppBox sx={metaActionRowSx}>
-          <AppText variant="body2" weight={700} sx={countLabelTextSx}>
-            Showing {products.length} of {totalProducts} Products
-          </AppText>
+        {/* Filter and Sort Action Row */}
+        <AppBox sx={filterActionRowSx}>
           <AppButton
-            variant="text"
+            variant="outlined"
             colorVariant="neutral"
             size="small"
-            startIcon={<FiRefreshCw />}
-            onClick={handleClearFilters}
-            sx={resetTextLinkSx}
+            rounded="md"
+            startIcon={<FiFilter />}
+            onClick={() => setShowFilters(!showFilters)}
+            sx={filterToggleBtnSx}
           >
-            Reset
+            Filter
+          </AppButton>
+
+          <AppButton
+            variant="outlined"
+            colorVariant="neutral"
+            size="small"
+            rounded="md"
+            startIcon={<BiSortAlt2 className="text-[14px]" />}
+            endIcon={<FiChevronRight className="rotate-90 text-[14px]" />}
+            sx={sortBtnSx}
+          >
+            Sort: Newest First
           </AppButton>
         </AppBox>
 
-        {/* High-Density Stream Listing */}
+        {/* Product Cards List */}
         <AppBox sx={listingListWrapperSx}>
           {!hasFilteredProducts ? (
             <AppCard
@@ -249,157 +147,186 @@ const WorkspaceProductsMobilePage = ({
                   align="center"
                   sx={{ m: 0, fontSize: "13px", width: "100%" }}
                 >
-                  No products found
+                  No custom products found
                 </AppHeading>
                 <AppText
                   variant="body2"
                   align="center"
                   sx={emptyStateSubTextSx}
                 >
-                  Refine keywords or reset filter choices to load targets.
+                  Refine keywords or filters to inspect workspace catalog.
                 </AppText>
+                {(filters.search ||
+                  filters.productType !== "all" ||
+                  filters.status !== "all") && (
+                  <AppButton
+                    variant="text"
+                    colorVariant="primary"
+                    onClick={handleClearFilters}
+                  >
+                    Clear Filters
+                  </AppButton>
+                )}
               </AppStack>
             </AppCard>
           ) : (
-            <AppStack direction="column" gap={1}>
-              {products.map((product) => (
-                <AppCard
-                  key={product._id}
-                  variant="default"
-                  rounded="lg"
-                  bordered
-                  shadow="none"
-                  padding="none"
-                  onClick={() => handleViewProductDetails(product)}
-                  sx={listingItemCardSx}
-                >
-                  <AppStack
-                    direction="row"
-                    align="flex-start"
-                    justify="space-between"
-                    gap={1}
+            <AppStack direction="column" gap={1.2}>
+              {products.map((product) => {
+                return (
+                  <AppCard
+                    key={product._id}
+                    variant="default"
+                    rounded="lg"
+                    bordered={false}
+                    shadow="sm"
+                    padding="none"
+                    sx={productCardSx}
                   >
-                    <AppStack direction="row" align="center" gap={1}>
-                      <AppBox sx={avatarFrameSx}>
-                        <HiOutlineCube />
-                      </AppBox>
+                    <AppStack direction="row" align="center" gap={1.5} justify="space-between" sx={{ width: "100%" }}>
+                      <AppStack
+                        direction="row"
+                        align="center"
+                        gap={1.5}
+                        sx={{ minWidth: 0, flex: 1, cursor: "pointer" }}
+                        onClick={() => handleViewProductDetails(product)}
+                      >
+                        {/* Left Icon/Avatar Frame */}
+                        <AppBox sx={avatarFrameSx}>
+                          <HiOutlineCube className="text-[24px]" />
+                        </AppBox>
 
-                      <AppBox sx={{ minWidth: 0 }}>
-                        <AppHeading level={2} weight={800} sx={cardTitleTextSx}>
-                          {product.displayName}
-                        </AppHeading>
-                        <AppText variant="body2" sx={cardSubTextSx}>
-                          SKU: {product.displaySku} ·{" "}
-                          {product.displayManufacturer}
-                        </AppText>
-                        {(product.displayDosageForm !== "-" ||
-                          product.displayStrength !== "-") && (
-                          <AppText variant="body2" sx={cardFormTextSx}>
-                            {product.displayDosageForm} ·{" "}
-                            {product.displayStrength}
+                        {/* Center Info Block - Core Workspace Fields */}
+                        <AppBox sx={{ minWidth: 0, flex: 1 }}>
+                          <AppHeading level={3} weight={700} sx={productTitleSx}>
+                            {product.displayName}
+                          </AppHeading>
+                          <AppText variant="body2" sx={productPackSx}>
+                            Pack Qty: {product.pack || "-"}{" "}
+                            {product.qty ? `(${product.qty})` : ""}
                           </AppText>
-                        )}
-                      </AppBox>
+                          <AppText variant="body2" sx={productCategorySx}>
+                            {product.displayCategory} •{" "}
+                            {product.displayDosageForm}
+                          </AppText>
+                        </AppBox>
+                      </AppStack>
+
+                      {/* Right stack containing status/tags and Action dropdown menu */}
+                      <AppStack direction="row" align="center" gap={1} sx={{ flexShrink: 0 }}>
+                        <AppStack
+                          direction="column"
+                          align="flex-end"
+                          gap={0.5}
+                          sx={rightMetadataStackSx}
+                        >
+                          <AppTag
+                            label={product.displayStatus || "inactive"}
+                            variant="soft"
+                            size="small"
+                            rounded="md"
+                            colorVariant={
+                              statusColorMap[product.displayStatus] || "neutral"
+                            }
+                            sx={statusBadgeSx}
+                          />
+
+                          <AppText variant="body2" sx={hsnCodeTextSx}>
+                            HSN: {product.HsnMaster?.code || "-"}
+                          </AppText>
+                        </AppStack>
+
+                        {/* Dropdown Menu Action Button */}
+                        <AppMenu
+                          triggerIcon={<FiMoreVertical />}
+                          items={[
+                            {
+                              label: "View Details",
+                              icon: <FiEye />,
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                handleViewProductDetails(product);
+                              },
+                            },
+                            {
+                              label: "Edit Product",
+                              icon: <FiEdit3 />,
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                handleEditProduct(product);
+                              },
+                            },
+                          ]}
+                          triggerProps={{
+                            size: "small",
+                            sx: {
+                              color: "var(--app-color-text-muted)",
+                              backgroundColor: "transparent",
+                              border: "none",
+                              p: 0.5,
+                              minWidth: 0,
+                              "&:hover": {
+                                backgroundColor: "var(--app-color-surface-hover, #f1f5f9)",
+                              },
+                            },
+                          }}
+                        />
+                      </AppStack>
                     </AppStack>
+                  </AppCard>
+                );
+              })}
 
-                    <AppStack
-                      direction="row"
-                      align="center"
-                      gap={0.25}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                      }}
-                    >
-                      <AppStatusBadge
-                        status={product.displayStatus}
-                        label={product.displayStatus || ""}
-                        variant="soft"
-                        size="small"
-                        rounded="md"
-                        colorVariant={
-                          statusColorMap[product.displayStatus] || "neutral"
-                        }
-                        sx={statusBadgeOverrideSx}
-                      />
-                      <RowActionDropdownTrigger
-                        product={product}
-                        onView={handleViewProductDetails}
-                        onEdit={handleEditProduct}
-                        onDelete={handleDeleteProduct}
-                      />
-                    </AppStack>
-                  </AppStack>
-
-                  <div className="w-full h-[1px] bg-divider my-2" />
-
-                  <AppStack
-                    direction="row"
-                    align="center"
-                    justify="space-between"
-                    gap={1}
-                  >
-                    <AppTag
-                      label={product.displayCategory}
-                      variant="soft"
-                      colorVariant="purple"
-                      rounded="sm"
-                      sx={typeTagOverrideSx}
-                    />
-                    <AppText variant="body2" sx={sourceLabelSx}>
-                      {product.displayAvailability}
+              {/* Workspace Scope Informational Banner */}
+              <AppCard
+                variant="default"
+                rounded="lg"
+                bordered={false}
+                shadow="none"
+                padding="md"
+                sx={scopeBannerSx}
+              >
+                <AppStack direction="row" align="flex-start" gap={1.5}>
+                  <HiOutlineCube className="text-[28px] text-primary" />
+                  <AppBox>
+                    <AppHeading level={3} weight={700} sx={scopeTitleSx}>
+                      Workspace Scope
+                    </AppHeading>
+                    <AppText variant="body2" sx={scopeTextSx}>
+                      These custom products are isolated strictly to this
+                      workspace catalog. Downstream modules link them directly
+                      using unified reference keys.
                     </AppText>
-                  </AppStack>
-                </AppCard>
-              ))}
+                  </AppBox>
+                </AppStack>
+              </AppCard>
             </AppStack>
           )}
         </AppBox>
 
-        {/* Intelligent Pagination Section */}
+        {/* Pagination Block */}
         {shouldRenderPagination && (
           <AppBox sx={paginationFooterWrapperSx}>
-            <AppStack
-              direction="row"
+            <AppTablePagination
+              page={currentPage}
+              pageSize={pageSize}
+              totalItems={totalProducts}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              showPageSize={false}
+              showSummary={true}
+              showFirstLast={false}
+              compact={true}
+              size="small"
               align="center"
-              justify="space-between"
-              gap={1}
-            >
-              <AppSelect
-                name="pageSizeSelect"
-                value="10"
-                options={[{ label: "10 per page", value: "10" }]}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={pageSizeSelectSx}
-                inputSx={paginationInputBoxOverrideSx}
-              />
-
-              <AppStack direction="row" align="center" gap={0.5}>
-                <AppIconButton
-                  icon={<FiChevronLeft />}
-                  variant="outlined"
-                  colorVariant="neutral"
-                  size="small"
-                  rounded="md"
-                  disabled
-                  sx={paginationArrowBtnSx}
-                />
-                <span className="flex h-[30px] min-w-[30px] items-center justify-center rounded-md bg-primary text-[11.5px] font-bold text-text-inverse shadow-sm">
-                  1
-                </span>
-                <AppIconButton
-                  icon={<FiChevronRight />}
-                  variant="outlined"
-                  colorVariant="neutral"
-                  size="small"
-                  rounded="md"
-                  disabled={totalProducts <= 10}
-                  sx={paginationArrowBtnSx}
-                />
-              </AppStack>
-            </AppStack>
+              rounded="md"
+              sx={{ textAlign: "center", alignItems: "center" }}
+              summarySx={{ textAlign: "center", width: "100%", mb: 0.5 }}
+              paginationSx={{
+                justifyContent: "center",
+                width: "100%",
+                "& .MuiPagination-ul": { justifyContent: "center" },
+              }}
+            />
           </AppBox>
         )}
       </AppBox>
@@ -407,58 +334,10 @@ const WorkspaceProductsMobilePage = ({
   );
 };
 
-const RowActionDropdownTrigger = ({ product, onView, onEdit, onDelete }) => {
-  const menuConfigItems = [
-    {
-      id: "view",
-      label: "View Details",
-      icon: <FiEye />,
-      onClick: () => onView?.(product),
-    },
-    {
-      id: "edit",
-      label: "Edit Product",
-      icon: <FiEdit2 />,
-      onClick: () => onEdit?.(product),
-    },
-    { id: "divider_row", type: "divider" },
-    {
-      id: "delete",
-      label: "Delete Product",
-      icon: <FiTrash2 />,
-      danger: true,
-      onClick: () => onDelete?.(product),
-    },
-  ];
+// ----------------------------------------------------------------------
+// Tokenized Design System Dictionaries (sx Objects)
+// ----------------------------------------------------------------------
 
-  return (
-    <AppMenu
-      trigger={
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-          }}
-          className="inline-flex h-7 w-7 items-center justify-center border-0 bg-transparent p-0 text-text-muted transition hover:text-text focus:outline-none"
-        >
-          <FiMoreHorizontal className="text-[17px]" />
-        </button>
-      }
-      triggerProps={{
-        onClick: (e) => {
-          e.stopPropagation();
-          e.preventDefault();
-        },
-      }}
-      items={menuConfigItems}
-      dense
-      minWidth={165}
-    />
-  );
-};
-
-/* Architectural Style Definitions Dictionary */
 const containerSx = {
   position: "relative",
   zIndex: 1,
@@ -469,202 +348,205 @@ const containerSx = {
   pt: 0,
   pb: 0,
 };
-const headerWrapperSx = { pt: 1.5, pb: 1, px: 0.5 };
+
+const headerWrapperSx = {
+  pt: 1,
+  pb: 1.5,
+  px: 0,
+};
+
 const pageTitleSx = {
   m: 0,
   fontSize: "21px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.4px",
+  fontWeight: 800,
   color: "var(--app-color-text)",
+  letterSpacing: "-0.5px",
 };
+
 const pageSubtitleSx = {
-  mt: 0.2,
+  mt: 0.4,
   fontSize: "11.5px",
   color: "var(--app-color-text-muted)",
 };
-const actionHeaderIconBtnSx = {
-  height: 32,
-  width: 32,
-  minWidth: 32,
-  borderColor: "var(--app-color-border)",
-};
-const addBtnSx = {
-  height: 32,
-  fontSize: "11px",
-  fontWeight: 750,
-  px: 1.2,
-  boxShadow: "var(--app-shadow-xs)",
-  "& .MuiButton-startIcon": { marginRight: "4px", fontSize: "12px" },
-};
 
-const statsGridWrapperSx = { px: 0.5, pb: 1.25 };
-const compactStatCardSx = {
-  p: 0.65,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
+const greenAddProductBtnSx = {
+  height: 36,
+  px: 1.6,
+  fontSize: "11.5px",
+  fontWeight: 750,
+  bgcolor: "var(--app-color-success, #10b981)",
+  color: "var(--app-color-text-inverse, #ffffff)",
+  "&:hover": {
+    bgcolor: "color-mix(in_srgb, var(--app-color-success) 90%, black)",
+  },
   boxShadow: "none",
-};
-const compactStatIconSx = {
-  display: "flex",
-  alignItems: "center",
-  justifycontent: "center",
-  width: 24,
-  height: 24,
-  borderRadius: "6px",
-  fontSize: "12px",
   flexShrink: 0,
 };
-const compactStatValueSx = {
-  m: 0,
-  fontSize: "12.5px",
-  lineHeight: 1,
-  color: "var(--app-color-text)",
-};
-const compactStatTitleSx = {
-  fontSize: "9px",
-  fontWeight: 600,
-  color: "var(--app-color-text-muted)",
-  lineHeight: 1,
-  mt: 0.1,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
+
+const searchWrapperSx = {
+  px: 0,
+  py: 0.5,
 };
 
-const filterSectionSx = { px: 0.5, pb: 1.25 };
-const searchBarSx = { width: "100%" };
-const selectInputSx = { width: "100%" };
-const inputOverrideSx = {
-  height: 35,
-  fontSize: "11.5px",
+const searchBarSx = {
+  width: "100%",
+  boxShadow: "none",
+};
+
+const searchInputSx = {
+  height: 42,
+  fontSize: "13px",
   bgcolor: "var(--app-color-surface)",
-  color: "var(--app-color-text)",
 };
 
-const metaActionRowSx = {
+const filterActionRowSx = {
   display: "flex",
   alignItems: "center",
-  justifycontent: "space-between",
-  px: 0.5,
-  py: 0.75,
-  borderTop: "1px solid var(--app-color-divider)",
-  borderBottom: "1px solid var(--app-color-divider)",
-  bgcolor: "var(--app-color-surface-alt)",
+  justifyContent: "space-between",
+  px: 0,
+  py: 1.2,
 };
-const countLabelTextSx = {
-  fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
+
+const filterToggleBtnSx = {
+  height: 36,
+  px: 1.5,
+  fontSize: "12.5px",
+  fontWeight: 600,
+  borderColor: "var(--app-color-border)",
+  bgcolor: "var(--app-color-surface)",
 };
-const resetTextLinkSx = {
-  p: 0,
-  minWidth: "auto",
-  height: "auto",
-  fontSize: "11px",
-  fontWeight: 750,
-  color: "var(--app-color-text)",
-  "& .MuiButton-startIcon": { marginRight: "3px", fontSize: "10.5px" },
+
+const sortBtnSx = {
+  height: 36,
+  px: 1.5,
+  fontSize: "12.5px",
+  fontWeight: 600,
+  borderColor: "var(--app-color-border)",
+  bgcolor: "var(--app-color-surface)",
 };
 
 const listingListWrapperSx = {
-  px: 0.5,
-  py: 1.25,
-  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, transparent)",
-  overflowY: "auto",
-  msOverflowStyle: "none",
-  scrollbarWidth: "none",
-  "&::-webkit-scrollbar": { display: "none", width: 0, height: 0 },
+  px: 0,
+  py: 1,
 };
+
 const emptyCardContainerSx = {
   borderColor: "var(--app-color-border)",
   bgcolor: "var(--app-color-surface)",
   width: "100%",
 };
+
 const emptyStateSubTextSx = {
-  fontSize: "11px",
+  fontSize: "12px",
   color: "var(--app-color-text-muted)",
   px: 2,
   textAlign: "center",
   width: "100%",
 };
 
-const listingItemCardSx = {
-  p: 1.2,
+const productCardSx = {
+  p: 1.5,
   bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-xs)",
-  cursor: "pointer",
+  border: "none",
+  boxShadow:
+    "0 2px 10px color-mix(in_srgb, var(--app-color-text) 5%, transparent)",
+  transition: "all 0.15s ease",
+  "&:active": {
+    transform: "scale(0.99)",
+  },
 };
+
 const avatarFrameSx = {
   display: "flex",
   alignItems: "center",
-  justifycontent: "center",
-  width: 36,
-  height: 36,
-  borderRadius: "50%",
-  fontSize: "15px",
-  flexShrink: 0,
-  bgcolor: "var(--app-color-primary-soft)",
+  justifyContent: "center",
+  width: 46,
+  height: 46,
+  borderRadius: "10px",
+  bgcolor: "color-mix(in_srgb, var(--app-color-primary) 10%, transparent)",
   color: "var(--app-color-primary)",
-};
-const cardTitleTextSx = {
-  m: 0,
-  fontSize: "12.5px",
-  lineHeight: 1.2,
-  color: "var(--app-color-text)",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-};
-const cardSubTextSx = {
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
-  mt: 0.15,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-const cardFormTextSx = {
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
-  mt: 0.05,
+  flexShrink: 0,
 };
 
-const statusBadgeOverrideSx = {
+const productTitleSx = {
+  m: 0,
+  fontSize: "12px",
+  color: "var(--app-color-text)",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: 160,
+};
+
+const productPackSx = {
+  mt: 0.25,
+  fontSize: "10px",
+  color: "var(--app-color-text-muted)",
+};
+
+const productCategorySx = {
+  mt: 0.5,
+  fontSize: "10px",
+  color: "var(--app-color-text-muted)",
+};
+
+const rightMetadataStackSx = {
+  pl: 1.5,
+  borderLeft:
+    "1px solid color-mix(in_srgb, var(--app-color-border) 60%, transparent)",
+  minWidth: { xs: 75, sm: 90 },
+  maxWidth: { xs: 90, sm: 110 },
+  flexShrink: 0,
+};
+
+const statusBadgeSx = {
   height: 18,
-  fontSize: "9px",
+  fontSize: "8.5px",
   fontWeight: 750,
   px: 1,
   textTransform: "capitalize",
 };
-const typeTagOverrideSx = {
-  height: 18,
+
+const hsnCodeTextSx = {
+  mt: 0.25,
   fontSize: "9px",
-  fontWeight: 750,
-  px: 1,
-};
-const sourceLabelSx = {
-  fontSize: "10px",
-  fontWeight: 600,
   color: "var(--app-color-text-muted)",
+  textAlign: "left",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: "100%",
+};
+
+const scopeBannerSx = {
+  mt: 1,
+  mb: 2,
+  bgcolor:
+    "color-mix(in_srgb, var(--app-color-primary) 4%, var(--app-color-surface))",
+};
+
+const scopeTitleSx = {
+  m: 0,
+  fontSize: "12px",
+  color: "var(--app-color-text)",
+};
+
+const scopeTextSx = {
+  mt: 0.5,
+  fontSize: "11px",
+  color: "var(--app-color-text-muted)",
+  lineHeight: 1.4,
 };
 
 const paginationFooterWrapperSx = {
-  px: 0.5,
-  pt: 1.25,
+  px: 0,
+  pt: 2,
   pb: 2,
   borderTop: "1px solid var(--app-color-divider)",
-};
-const pageSizeSelectSx = { width: 112 };
-const paginationInputBoxOverrideSx = {
-  height: 30,
-  fontSize: "11px",
-  bgcolor: "var(--app-color-surface)",
-};
-const paginationArrowBtnSx = {
-  height: 30,
-  width: 30,
-  minWidth: 30,
-  borderColor: "var(--app-color-border)",
+  display: "flex",
+  justifyContent: "center",
+  width: "100%",
+  "& > div": { width: "100%" },
 };
 
 export default WorkspaceProductsMobilePage;

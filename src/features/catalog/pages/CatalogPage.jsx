@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 import useGlobalProduct from "@/features/global-products/hooks/useGlobalProduct";
 import useWorkspaceProduct from "@/features/workspace-products/hooks/useWorkspaceProduct";
+import useHsnMaster from "@/features/hsn-master/hooks/useHsnMaster";
 
 import CatalogDesktopPage from "./desktop/CatalogDesktopPage";
 import CatalogMobilePage from "./mobile/CatalogMobilePage";
@@ -26,9 +27,16 @@ const CatalogPage = () => {
     getWorkspaceProductsStatus,
   } = useWorkspaceProduct();
 
+  const {
+    pagination: hsnPagination,
+    getHsnMasters,
+    getHsnMastersStatus,
+  } = useHsnMaster();
+
   const handleRefresh = () => {
     getGlobalProducts({ page: 1, limit: 1 });
     getWorkspaceProducts({ page: 1, limit: 1 });
+    getHsnMasters({ page: 1, limit: 1 });
   };
 
   useEffect(() => {
@@ -40,11 +48,13 @@ const CatalogPage = () => {
 
   const isLoading =
     getGlobalProductsStatus === API_STATUS.LOADING ||
-    getWorkspaceProductsStatus === API_STATUS.LOADING;
+    getWorkspaceProductsStatus === API_STATUS.LOADING ||
+    getHsnMastersStatus === API_STATUS.LOADING;
 
   const hasError =
     getGlobalProductsStatus === API_STATUS.ERROR ||
-    getWorkspaceProductsStatus === API_STATUS.ERROR;
+    getWorkspaceProductsStatus === API_STATUS.ERROR ||
+    getHsnMastersStatus === API_STATUS.ERROR;
 
   const catalogModules = [
     {
@@ -63,6 +73,14 @@ const CatalogPage = () => {
       actionText: "Manage Products",
       onClick: () => navigate(ROUTES.WORKSPACE_PRODUCTS),
     },
+    {
+      id: "hsnMaster",
+      title: "HSN Master Catalog",
+      description: "Browse official platform taxation keys and regulatory GST slabs.",
+      colorVariant: "info",
+      actionText: "View HSN Codes",
+      onClick: () => navigate(ROUTES.HSN_MASTER),
+    },
   ];
 
   const dashboardStats = [
@@ -79,6 +97,13 @@ const CatalogPage = () => {
       value: workspacePagination?.total || 0,
       description: "Your workspace products",
       colorVariant: "success",
+    },
+    {
+      id: "hsnMaster",
+      title: "HSN Master Codes",
+      value: hsnPagination?.total || 0,
+      description: "Regulatory tax codes",
+      colorVariant: "info",
     },
   ];
 

@@ -62,6 +62,9 @@ export const ROUTES = {
   WORKSPACE_PRODUCT_IMPORT: "/catalog/workspace-products/import",
   WORKSPACE_PRODUCT_SEARCH: "/catalog/workspace-products/search",
 
+  // Catalog - HSN Master (Read-Only Workspace View)
+  HSN_MASTER: "/catalog/hsn-master",
+
   // Setup
   SETUP_CENTER: "/setup",
 

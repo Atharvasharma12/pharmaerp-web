@@ -1,5 +1,3 @@
-// src/features/workspace-products/pages/desktop/EditWorkspaceProductDesktopPage.jsx
-
 import { memo, useCallback } from "react";
 import {
   FiArrowLeft,
@@ -44,6 +42,8 @@ const EditWorkspaceProductDesktopPage = memo(
     isLoading = false,
     isFetching = false,
     currentStep = 1,
+    hsnOptions = [],
+    selectedHsnDetail = null,
 
     handleChange,
     handleSubmit,
@@ -192,6 +192,7 @@ const EditWorkspaceProductDesktopPage = memo(
                     {currentStep === 3 && (
                       <TaxForm
                         formData={formData}
+                        hsnOptions={hsnOptions}
                         handleChange={handleChange}
                         handleBack={handleBack}
                         handleContinue={handleContinue}
@@ -211,6 +212,7 @@ const EditWorkspaceProductDesktopPage = memo(
                     {currentStep === 5 && (
                       <ReviewStep
                         formData={formData}
+                        selectedHsnDetail={selectedHsnDetail}
                         isUpdating={isLoading}
                         onBack={handleBack}
                         onSaveDraft={handleSaveDraft}
@@ -360,16 +362,6 @@ const IdentityForm = ({
         labelSx={labelSx}
         inputSx={inputSx}
       />
-      <div className="col-span-2">
-        <AppInput
-          label="SKU Code (Read Only)"
-          name="workspaceProductCode"
-          value={formData.workspaceProductCode || ""}
-          disabled
-          labelSx={labelSx}
-          inputSx={inputSx}
-        />
-      </div>
     </div>
 
     <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
@@ -491,7 +483,16 @@ const PackagingForm = ({
   </AppCard>
 );
 
-const TaxForm = ({ formData, handleChange, handleBack, handleContinue }) => (
+/* ==========================================================================
+    STEP 3: TAXATION REFERENCE OPTION COMPONENT
+   ========================================================================== */
+const TaxForm = ({
+  formData,
+  hsnOptions = [],
+  handleChange,
+  handleBack,
+  handleContinue,
+}) => (
   <AppCard
     variant="default"
     rounded="lg"
@@ -505,18 +506,18 @@ const TaxForm = ({ formData, handleChange, handleBack, handleContinue }) => (
         Statutory Parameters
       </AppHeading>
       <AppText variant="body2" sx={sectionSubtitleSx}>
-        Link the statutory identification key reference. Never hardcode inline
-        parameters; rely strictly on the system relational database.
+        Select the corporate taxation key code ledger option. Inline parameters
+        are locked; align directly against system statutory guidelines.
       </AppText>
     </div>
 
     <div className="mt-5 grid grid-cols-1">
-      <AppInput
-        label="HsnMaster Object ID Reference (Optional)"
+      <AppSelect
+        label="Relational HSN / SAC Code (Optional)"
         name="HsnMaster"
         value={formData.HsnMaster || ""}
         onChange={handleChange}
-        placeholder="Enter valid 24-character hex MongoDB ID string"
+        options={hsnOptions}
         labelSx={labelSx}
         inputSx={inputSx}
       />
@@ -597,7 +598,7 @@ const NotesForm = ({
         colorVariant="neutral"
         rounded="md"
         size="small"
-        startIcon={<Fi ArrowLeft />}
+        startIcon={<FiArrowLeft />}
         onClick={handleBack}
         sx={secondaryActionBtnSx}
       >
@@ -622,8 +623,9 @@ const NotesForm = ({
     STEP 5: REVIEW AND SAVE ACTION MATRIX
    ========================================================================== */
 
-const ReviewAndCreateStep = ({
+const ReviewStep = ({
   formData,
+  selectedHsnDetail,
   isUpdating,
   onBack,
   onSaveDraft,
@@ -662,16 +664,18 @@ const ReviewAndCreateStep = ({
                 sx={smallReviewTagSx}
               />
             </AppStack>
-            <AppText
-              variant="body2"
-              sx={{
-                mt: 0.6,
-                fontSize: "11px",
-                color: "var(--app-color-text-muted)",
-              }}
-            >
-              SKU Reference: {formData.workspaceProductCode || "-"}
-            </AppText>
+            {formData.workspaceProductCode && (
+              <AppText
+                variant="body2"
+                sx={{
+                  mt: 0.6,
+                  fontSize: "11px",
+                  color: "var(--app-color-text-muted)",
+                }}
+              >
+                SKU Reference: {formData.workspaceProductCode}
+              </AppText>
+            )}
           </div>
         </div>
 
@@ -731,8 +735,21 @@ const ReviewAndCreateStep = ({
         />
         <div className="mt-4 space-y-2">
           <ReviewRowData
-            label="HsnMaster ID Link"
-            value={formData.HsnMaster || "Not linked"}
+            label="Linked Code Key"
+            value={
+              selectedHsnDetail?.code
+                ? `HSN ${selectedHsnDetail.code}`
+                : "Not Linked"
+            }
+          />
+          <ReviewRowData
+            label="Assigned Slab Rate"
+            value={
+              selectedHsnDetail?.gstRate !== undefined &&
+              selectedHsnDetail?.gstRate !== null
+                ? `${selectedHsnDetail.gstRate}% GST`
+                : "-"
+            }
           />
         </div>
       </AppCard>
@@ -873,7 +890,7 @@ const RightSidebarPanel = memo(({ currentStep, formData }) => {
     {
       id: 3,
       title: "Tax Reference",
-      text: "HSN master key data structural link",
+      text: "HSN drop-down catalog configurations",
     },
     {
       id: 4,
@@ -956,10 +973,12 @@ const RightSidebarPanel = memo(({ currentStep, formData }) => {
               <FiGrid />{" "}
               <span className="capitalize">{formData.productType}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <FiFileText />{" "}
-              <span>Code: {formData.workspaceProductCode || "-"}</span>
-            </div>
+            {formData.workspaceProductCode && (
+              <div className="flex items-center gap-2">
+                <FiFileText />{" "}
+                <span>Code: {formData.workspaceProductCode}</span>
+              </div>
+            )}
           </div>
         </div>
       ),
