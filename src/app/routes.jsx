@@ -22,6 +22,7 @@ import dashboardRoutes from "@/features/dashboard/routes/dashboardRoutes";
 import companyRoutes from "@/features/company/routes/companyRoutes";
 import branchRoutes from "@/features/branch/routes/branchRoutes";
 import accessControlRoutes from "@/features/access-control/routes/accessControlRoutes";
+import catalogRoutes from "@/features/catalog/routes/catalogRoutes";
 
 import globalProductRoutes from "@/features/global-products/routes/globalProductRoutes";
 import workspaceProductRoutes from "@/features/workspace-products/routes/workspaceProductRoutes";
@@ -142,6 +143,7 @@ export const router = createBrowserRouter([
       ...accessControlRoutes,
 
       // Catalog
+      ...catalogRoutes,
       ...globalProductRoutes,
       ...workspaceProductRoutes,
     ],

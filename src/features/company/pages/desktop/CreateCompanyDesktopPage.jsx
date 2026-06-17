@@ -260,13 +260,12 @@ const TopStepper = memo(({ currentStep, onStepChange }) => {
                   className="flex shrink-0 items-center gap-1.5 text-left transition outline-none"
                 >
                   <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                      completed
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${completed
                         ? "bg-primary-soft text-primary"
                         : active
                           ? "bg-primary text-text-inverse"
                           : "border border-border bg-surface-alt text-text-muted"
-                    }`}
+                      }`}
                   >
                     {completed ? <FiCheck className="text-[13px]" /> : step.id}
                   </span>
@@ -1224,13 +1223,12 @@ const RightSidebarPanel = memo(({ currentStep, formData }) => {
             return (
               <AppStack key={s.id} direction="row" align="flex-start" gap={1.2}>
                 <span
-                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
-                    completed
+                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${completed
                       ? "bg-success text-text-inverse"
                       : active
                         ? "bg-primary text-text-inverse"
                         : "border border-border text-text-muted"
-                  }`}
+                    }`}
                 >
                   {completed ? <FiCheck className="text-[10px]" /> : s.id}
                 </span>

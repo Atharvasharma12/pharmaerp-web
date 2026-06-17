@@ -49,6 +49,11 @@ const sidebarItems = [
     icon: <FiUsers />,
   },
   {
+    label: "Catalog",
+    path: ROUTES.CATALOG,
+    icon: <FiBox />,
+  },
+  {
     label: "Inventory",
     path: "/inventory",
     icon: <FiBox />,

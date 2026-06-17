@@ -47,6 +47,9 @@ export const ROUTES = {
   EDIT_ACCESS: "/access-control/member-access/:memberId/edit",
   PERMISSIONS: "/access-control/permissions",
 
+  // Catalog
+  CATALOG: "/catalog",
+
   // Catalog - Global Products
   GLOBAL_PRODUCTS: "/catalog/global-products",
   GLOBAL_PRODUCT_DETAILS: "/catalog/global-products/:productId",

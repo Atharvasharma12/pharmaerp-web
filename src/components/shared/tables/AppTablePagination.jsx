@@ -251,10 +251,12 @@ const AppTablePagination = ({
             rounded={rounded}
             compact={compact}
             disabled={disabled || loading}
+            align={align}
+            paginationSx={paginationSx}
             sx={{
               width: "auto",
               justifyContent: { xs: "flex-start", md: "flex-end" },
-              ...paginationSx,
+              ...sx,
             }}
           />
         )}

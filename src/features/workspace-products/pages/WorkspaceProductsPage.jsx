@@ -7,7 +7,8 @@ import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
 
 import useWorkspaceProduct from "../hooks/useWorkspaceProduct";
-import { WorkspaceProductsDesktopPage } from "./desktop";
+import WorkspaceProductsDesktopPage from "./desktop/WorkspaceProductsDesktopPage";
+import WorkspaceProductsMobilePage from "./mobile/WorkspaceProductsMobilePage";
 
 const normalizeText = (value) =>
   String(value || "")
@@ -348,7 +349,7 @@ const WorkspaceProductsPage = () => {
   };
 
   return isMobile ? (
-    <WorkspaceProductsDesktopPage {...pageProps} /> // Will dynamically map onto custom component shell
+    <WorkspaceProductsMobilePage {...pageProps} />
   ) : (
     <WorkspaceProductsDesktopPage {...pageProps} />
   );
