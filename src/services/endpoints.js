@@ -106,6 +106,36 @@ export const ENDPOINTS = {
     BY_CODE: (hsnCode) => `/catalog/hsn-master/code/${hsnCode}`,
   },
 
+  MANUFACTURER_MASTER: {
+    LIST: "/catalog/manufacturer-master",
+
+    BY_ID: (manufacturerId) => `/catalog/manufacturer-master/${manufacturerId}`,
+
+    BY_NAME: (name) =>
+      `/catalog/manufacturer-master/name/${encodeURIComponent(name)}`,
+  },
+
+  UOM_MASTER: {
+    LIST: "/catalog/uom-master",
+
+    BY_ID: (uomId) => `/catalog/uom-master/${uomId}`,
+  },
+
+  CATEGORY_MASTER: {
+    LIST: "/catalog/category-master",
+
+    BY_ID: (categoryId) => `/catalog/category-master/${categoryId}`,
+
+    BY_SLUG: (slug) =>
+      `/catalog/category-master/slug/${encodeURIComponent(slug)}`,
+  },
+
+  PRODUCT_FORM_MASTER: {
+    LIST: "/catalog/product-form-master",
+
+    BY_ID: (formId) => `/catalog/product-form-master/${formId}`,
+  },
+
   ACCESS_CONTROL: {
     // Permissions
     PERMISSIONS: "/core/access-control/permissions",

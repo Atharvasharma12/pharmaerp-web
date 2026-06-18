@@ -16,7 +16,10 @@ import subscriptionReducer from "@/features/subscription/subscriptions/store/sub
 import workspaceProductReducer from "@/features/workspace-products/store/workspaceProductSlice";
 import globalProductReducer from "@/features/global-products/store/globalProductSlice";
 import hsnMasterReducer from "@/features/hsn-master/store/hsnMasterSlice";
-
+import manufacturerMasterReducer from "@/features/manufacturer-master/store/manufacturerMasterSlice";
+import uomMasterReducer from "@/features/uom-master/store/uomMasterSlice";
+import categoryMasterReducer from "@/features/category-master/store/categoryMasterSlice";
+import productFormMasterReducer from "@/features/product-form-master/store/productFormMasterSlice";
 // ---------------------
 // App Reducer
 // ---------------------
@@ -42,6 +45,10 @@ const appReducer = combineReducers({
   workspaceProduct: workspaceProductReducer,
   globalProduct: globalProductReducer,
   hsnMaster: hsnMasterReducer,
+  manufacturerMaster: manufacturerMasterReducer,
+  uomMaster: uomMasterReducer,
+  categoryMaster: categoryMasterReducer,
+  productFormMaster: productFormMasterReducer,
 });
 
 /**

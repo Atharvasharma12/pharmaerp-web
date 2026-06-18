@@ -1253,6 +1253,76 @@ src/features/global-products/
 │
 └── index.js
 
+src/features/hsn-master/
+│
+├── pages/
+│   ├── HsnMastersPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── HsnMastersDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── HsnMastersMobilePage.jsx
+│       └── index.js
+
+src/features/manufacturer-master/
+│
+├── pages/
+│   ├── ManufacturerMastersPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── ManufacturerMastersDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── ManufacturerMastersMobilePage.jsx
+│       └── index.js
+
+src/features/uom-master/
+│
+├── pages/
+│   ├── UomMastersPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── UomMastersDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── UomMastersMobilePage.jsx
+│       └── index.js
+
+src/features/category-master/
+│
+├── pages/
+│   ├── CategoryMastersPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── CategoryMastersDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── CategoryMastersMobilePage.jsx
+│       └── index.js
+
+src/features/product-form-master/
+│
+├── pages/
+│   ├── ProductFormMastersPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── ProductFormMastersDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── ProductFormMastersMobilePage.jsx
+│       └── index.js
+
 
 You are acting as a senior full-stack React + Redux Toolkit + Node.js + Express + MongoDB architect.
 

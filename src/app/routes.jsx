@@ -31,6 +31,10 @@ import HomePage from "@/pages/HomePage";
 
 import { LandingPage } from "@/features/landing";
 import hsnMasterRoutes from "@/features/hsn-master/routes/hsnMasterRoutes";
+import manufacturerMasterRoutes from "@/features/manufacturer-master/routes/manufacturerMasterRoutes";
+import uomMasterRoutes from "@/features/uom-master/routes/uomMasterRoutes";
+import categoryMasterRoutes from "@/features/category-master/routes/categoryMasterRoutes";
+import productFormMasterRoutes from "@/features/product-form-master/routes/productFormMasterRoutes";
 
 const NotFoundPage = () => {
   return (
@@ -145,9 +149,13 @@ export const router = createBrowserRouter([
 
       // Catalog
       ...catalogRoutes,
+      ...workspaceProductRoutes,
       ...globalProductRoutes,
       ...hsnMasterRoutes,
-      ...workspaceProductRoutes,
+      ...manufacturerMasterRoutes,
+      ...uomMasterRoutes,
+      ...categoryMasterRoutes,
+      ...productFormMasterRoutes,
     ],
   },
 

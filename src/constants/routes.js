@@ -65,6 +65,18 @@ export const ROUTES = {
   // Catalog - HSN Master (Read-Only Workspace View)
   HSN_MASTER: "/catalog/hsn-master",
 
+  // Catalog - Manufacturer Master
+  MANUFACTURER_MASTER: "/catalog/manufacturer-master",
+
+  // Catalog - UOM Master
+  UOM_MASTER: "/catalog/uom-master",
+
+  // Catalog - Category Master
+  CATEGORY_MASTER: "/catalog/category-master",
+
+  // Catalog - Product Form Master
+  PRODUCT_FORM_MASTER: "/catalog/product-form-master",
+
   // Setup
   SETUP_CENTER: "/setup",
 
