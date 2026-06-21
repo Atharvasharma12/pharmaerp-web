@@ -10,6 +10,7 @@ import {
   FiRefreshCw,
   FiLayers,
   FiFileText,
+  FiTrash2,
 } from "react-icons/fi";
 import { HiOutlineCube } from "react-icons/hi2";
 
@@ -44,6 +45,16 @@ const EditWorkspaceProductDesktopPage = memo(
     currentStep = 1,
     hsnOptions = [],
     selectedHsnDetail = null,
+    manufacturerOptions = [],
+    categoryOptions = [],
+    uomOptions = [],
+    productFormOptions = [],
+    selectedManufacturerDetail = null,
+    selectedCategoryDetail = null,
+    selectedUomDetail = null,
+    selectedProductFormDetail = null,
+    saltOptions = [],
+    selectedCompositionDetails = [],
 
     handleChange,
     handleSubmit,
@@ -183,6 +194,11 @@ const EditWorkspaceProductDesktopPage = memo(
                       <PackagingForm
                         formData={formData}
                         formErrors={formErrors}
+                        manufacturerOptions={manufacturerOptions}
+                        categoryOptions={categoryOptions}
+                        uomOptions={uomOptions}
+                        productFormOptions={productFormOptions}
+                        saltOptions={saltOptions}
                         handleChange={handleChange}
                         handleBack={handleBack}
                         handleContinue={handleContinue}
@@ -213,6 +229,11 @@ const EditWorkspaceProductDesktopPage = memo(
                       <ReviewStep
                         formData={formData}
                         selectedHsnDetail={selectedHsnDetail}
+                        selectedManufacturerDetail={selectedManufacturerDetail}
+                        selectedCategoryDetail={selectedCategoryDetail}
+                        selectedUomDetail={selectedUomDetail}
+                        selectedProductFormDetail={selectedProductFormDetail}
+                        selectedCompositionDetails={selectedCompositionDetails}
                         isUpdating={isLoading}
                         onBack={handleBack}
                         onSaveDraft={handleSaveDraft}
@@ -393,6 +414,11 @@ const IdentityForm = ({
 const PackagingForm = ({
   formData,
   formErrors,
+  manufacturerOptions = [],
+  categoryOptions = [],
+  uomOptions = [],
+  productFormOptions = [],
+  saltOptions = [],
   handleChange,
   handleBack,
   handleContinue,
@@ -416,14 +442,21 @@ const PackagingForm = ({
     </div>
 
     <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4">
-      <AppInput
-        label="Manufacturer / Marketer Name (Optional)"
+      <AppSelect
+        label="Product Category (Optional)"
+        name="category"
+        value={formData.category || ""}
+        onChange={handleChange}
+        options={categoryOptions}
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppSelect
+        label="Manufacturer / Marketer (Optional)"
         name="manufacturer"
         value={formData.manufacturer || ""}
         onChange={handleChange}
-        placeholder="Enter manufacturer brand path"
-        error={Boolean(formErrors.manufacturer)}
-        helperText={formErrors.manufacturer}
+        options={manufacturerOptions}
         labelSx={labelSx}
         inputSx={inputSx}
       />
@@ -445,15 +478,134 @@ const PackagingForm = ({
         labelSx={labelSx}
         inputSx={inputSx}
       />
-      <AppInput
+      <AppSelect
+        label="Unit of Measure (UOM) (Optional)"
+        name="uom"
+        value={formData.uom || ""}
+        onChange={handleChange}
+        options={uomOptions}
+        labelSx={labelSx}
+        inputSx={inputSx}
+      />
+      <AppSelect
         label="Dosage Form Unit (Optional)"
         name="productForm"
         value={formData.productForm || ""}
         onChange={handleChange}
-        placeholder="e.g. Tablet, Capsule, Syrup"
+        options={productFormOptions}
         labelSx={labelSx}
         inputSx={inputSx}
       />
+
+      {/* Composition / Active Salts Section */}
+      <div className="col-span-2 border-t border-border pt-4 mt-2">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <span className="block text-[13px] font-bold text-text">Composition / Salts</span>
+            <span className="block text-[11px] text-text-muted">Specify the active salts, strength, and unit of measure.</span>
+          </div>
+          <AppButton
+            type="button"
+            variant="outlined"
+            colorVariant="primary"
+            rounded="md"
+            size="small"
+            onClick={() => {
+              const currentComposition = formData.composition || [];
+              handleChange("composition", [...currentComposition, { salt: "", strength: "", unit: "mg" }]);
+            }}
+            sx={{ height: 28, fontSize: "11px", fontWeight: 700 }}
+          >
+            + Add Salt
+          </AppButton>
+        </div>
+
+        {(!formData.composition || formData.composition.length === 0) ? (
+          <div className="text-center py-6 bg-surface-alt rounded-lg border border-dashed border-border">
+            <span className="text-[11.5px] text-text-muted italic">No active salts configured. Click "+ Add Salt" to append one.</span>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {formData.composition.map((item, idx) => (
+              <div key={idx} className="grid grid-cols-[1fr_120px_100px_42px] items-end gap-3 bg-surface-alt p-3 rounded-lg border border-border">
+                <AppSelect
+                  label="Active Salt"
+                  name={`composition.${idx}.salt`}
+                  value={item.salt || ""}
+                  onChange={(e) => {
+                    const newComposition = [...formData.composition];
+                    newComposition[idx] = { ...newComposition[idx], salt: e.target.value };
+                    handleChange("composition", newComposition);
+                  }}
+                  options={saltOptions}
+                  labelSx={labelSx}
+                  inputSx={inputSx}
+                />
+                <AppInput
+                  label="Strength"
+                  type="number"
+                  name={`composition.${idx}.strength`}
+                  value={item.strength === 0 ? "0" : item.strength || ""}
+                  onChange={(e) => {
+                    const newComposition = [...formData.composition];
+                    newComposition[idx] = {
+                      ...newComposition[idx],
+                      strength: e.target.value === "" ? "" : Number(e.target.value),
+                    };
+                    handleChange("composition", newComposition);
+                  }}
+                  placeholder="Strength value"
+                  labelSx={labelSx}
+                  inputSx={inputSx}
+                />
+                <AppSelect
+                  label="Unit"
+                  name={`composition.${idx}.unit`}
+                  value={item.unit || "mg"}
+                  onChange={(e) => {
+                    const newComposition = [...formData.composition];
+                    newComposition[idx] = { ...newComposition[idx], unit: e.target.value };
+                    handleChange("composition", newComposition);
+                  }}
+                  options={[
+                    { label: "mg", value: "mg" },
+                    { label: "g", value: "g" },
+                    { label: "mcg", value: "mcg" },
+                    { label: "ml", value: "ml" },
+                    { label: "%", value: "%" },
+                    { label: "IU", value: "IU" },
+                  ]}
+                  labelSx={labelSx}
+                  inputSx={inputSx}
+                />
+                <AppButton
+                  type="button"
+                  variant="outlined"
+                  colorVariant="danger"
+                  rounded="md"
+                  size="small"
+                  onClick={() => {
+                    const newComposition = formData.composition.filter((_, i) => i !== idx);
+                    handleChange("composition", newComposition);
+                  }}
+                  sx={{
+                    height: 38,
+                    minWidth: 42,
+                    p: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderColor: "var(--app-color-danger-soft)",
+                    color: "var(--app-color-danger)",
+                  }}
+                >
+                  <FiTrash2 className="text-[15px]" />
+                </AppButton>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
 
     <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
@@ -626,6 +778,11 @@ const NotesForm = ({
 const ReviewStep = ({
   formData,
   selectedHsnDetail,
+  selectedManufacturerDetail,
+  selectedCategoryDetail,
+  selectedUomDetail,
+  selectedProductFormDetail,
+  selectedCompositionDetails = [],
   isUpdating,
   onBack,
   onSaveDraft,
@@ -708,14 +865,29 @@ const ReviewStep = ({
         />
         <div className="mt-4 space-y-2">
           <ReviewRowData
+            label="Category"
+            value={selectedCategoryDetail?.name || "-"}
+          />
+          <ReviewRowData
             label="Manufacturer Marketer"
-            value={formData.manufacturer || "-"}
+            value={selectedManufacturerDetail?.name || "-"}
           />
           <ReviewRowData label="Pack Form" value={formData.pack || "-"} />
-          <ReviewRowData label="Measure Strength" value={formData.qty || "-"} />
+          <ReviewRowData
+            label="Composition"
+            value={
+              selectedCompositionDetails && selectedCompositionDetails.length > 0
+                ? selectedCompositionDetails.map((c) => `${c.saltName} ${c.strength}${c.unit}`).join(", ")
+                : "-"
+            }
+          />
+          <ReviewRowData
+            label="Unit of Measure (UOM)"
+            value={selectedUomDetail?.name || "-"}
+          />
           <ReviewRowData
             label="Dosage Unit Form"
-            value={formData.productForm || "-"}
+            value={selectedProductFormDetail?.name || "-"}
           />
         </div>
       </AppCard>

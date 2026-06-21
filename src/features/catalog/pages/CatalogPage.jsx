@@ -10,6 +10,7 @@ import useManufacturerMaster from "@/features/manufacturer-master/hooks/useManuf
 import useUomMaster from "@/features/uom-master/hooks/useUomMaster";
 import useCategoryMaster from "@/features/category-master/hooks/useCategoryMaster";
 import useProductFormMaster from "@/features/product-form-master/hooks/useProductFormMaster";
+import useSaltMaster from "@/features/salt-master/hooks/useSaltMaster";
 
 import CatalogDesktopPage from "./desktop/CatalogDesktopPage";
 import CatalogMobilePage from "./mobile/CatalogMobilePage";
@@ -62,6 +63,12 @@ const CatalogPage = () => {
     getProductFormMastersStatus,
   } = useProductFormMaster();
 
+  const {
+    pagination: saltPagination,
+    getSaltMasters,
+    getSaltMastersStatus,
+  } = useSaltMaster();
+
   const handleRefresh = () => {
     getGlobalProducts({ page: 1, limit: 1 });
     getWorkspaceProducts({ page: 1, limit: 1 });
@@ -70,6 +77,7 @@ const CatalogPage = () => {
     getUomMasters({ page: 1, limit: 1 });
     getCategoryMasters({ page: 1, limit: 1 });
     getProductFormMasters({ page: 1, limit: 1 });
+    getSaltMasters({ page: 1, limit: 1 });
   };
 
   useEffect(() => {
@@ -86,7 +94,8 @@ const CatalogPage = () => {
     getManufacturerMastersStatus === API_STATUS.LOADING ||
     getUomMastersStatus === API_STATUS.LOADING ||
     getCategoryMastersStatus === API_STATUS.LOADING ||
-    getProductFormMastersStatus === API_STATUS.LOADING;
+    getProductFormMastersStatus === API_STATUS.LOADING ||
+    getSaltMastersStatus === API_STATUS.LOADING;
 
   const hasError =
     getGlobalProductsStatus === API_STATUS.ERROR ||
@@ -95,7 +104,8 @@ const CatalogPage = () => {
     getManufacturerMastersStatus === API_STATUS.ERROR ||
     getUomMastersStatus === API_STATUS.ERROR ||
     getCategoryMastersStatus === API_STATUS.ERROR ||
-    getProductFormMastersStatus === API_STATUS.ERROR;
+    getProductFormMastersStatus === API_STATUS.ERROR ||
+    getSaltMastersStatus === API_STATUS.ERROR;
 
   const catalogModules = useMemo(() => {
     return [
@@ -155,6 +165,14 @@ const CatalogPage = () => {
         onClick: () => navigate(ROUTES.PRODUCT_FORM_MASTER),
         countText: `${productFormPagination?.total !== undefined ? Number(productFormPagination.total).toLocaleString() : "68"} Product Forms`,
       },
+      {
+        id: "saltMaster",
+        title: "Salt Master",
+        description: "Browse different active salt chemical ingredients.",
+        colorVariant: "saltMaster",
+        onClick: () => navigate(ROUTES.SALT_MASTER),
+        countText: `${saltPagination?.total !== undefined ? Number(saltPagination.total).toLocaleString() : "145"} Salts`,
+      },
     ];
   }, [
     globalPagination,
@@ -164,6 +182,7 @@ const CatalogPage = () => {
     uomPagination,
     categoryPagination,
     productFormPagination,
+    saltPagination,
     navigate,
   ]);
 

@@ -47,6 +47,7 @@ const WorkspaceProductDetailsDesktopPage = ({
   handleTabChange,
   handleBack,
   handleRefresh,
+  handleBackToCatalog,
   handleEditProduct,
   handleDeleteProduct,
 }) => {
@@ -456,6 +457,41 @@ const OverviewTabSection = ({ product }) => {
         </AppCard>
 
         <div className="space-y-4">
+          {/* Box E-alt: Composition Details Card */}
+          <AppCard
+            variant="default"
+            rounded="lg"
+            bordered
+            padding="none"
+            sx={sectionCardSx}
+          >
+            <SectionHeader title="Composition / Active Salts" />
+            <div className="p-4 space-y-3">
+              {(!product?.composition || product.composition.length === 0) ? (
+                <span className="block text-[12.5px] text-text-muted italic">No active salts configured.</span>
+              ) : (
+                product.composition.map((item, index) => {
+                  const saltName = item.salt?.name || (typeof item.salt === "object" && item.salt !== null ? item.salt.name : "Unknown Salt");
+                  return (
+                    <div key={index} className="flex items-center justify-between border-b border-border/40 pb-2 last:border-0 last:pb-0">
+                      <div>
+                        <span className="block text-[12.5px] font-bold text-text">{saltName}</span>
+                        <span className="block text-[10.5px] text-text-muted">Active Ingredient</span>
+                      </div>
+                      <AppTag
+                        label={`${item.strength} ${item.unit}`}
+                        colorVariant="primary"
+                        variant="soft"
+                        rounded="md"
+                        sx={{ height: 20, fontSize: "11px", fontWeight: 750 }}
+                      />
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </AppCard>
+
           {/* Box E: Packaging Spatial Sizing Panel */}
           <AppCard
             variant="default"
@@ -475,6 +511,14 @@ const OverviewTabSection = ({ product }) => {
                 <StatusTrackingRow
                   label="Unit Type"
                   value={product?.displayForm || "Tablet"}
+                />
+                <StatusTrackingRow
+                  label="Unit of Measure (UOM)"
+                  value={product?.displayUomName || "-"}
+                />
+                <StatusTrackingRow
+                  label="Product Category"
+                  value={product?.displayCategoryName || "-"}
                 />
                 <StatusTrackingRow label="Inner Pack" value="1 Bottle" />
                 <StatusTrackingRow label="Outer Pack" value="30 Bottles" />

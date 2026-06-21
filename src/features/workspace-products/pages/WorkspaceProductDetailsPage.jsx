@@ -32,11 +32,16 @@ const buildWorkspaceProductDetails = (product) => {
     displayName: product.name || "Calcium Tablet",
     displayType: formatProductType(product.productType),
     displayCode: product.workspaceProductCode || "CAT-WS-001",
-    displayManufacturer: formatTextValue(
-      product.manufacturer || "MedPlus Pharma",
-    ),
-    displayForm: formatTextValue(product.productForm || "Tablet"),
-    displayStrength: formatTextValue(product.qty || "500 mg"),
+    displayManufacturer: product.manufacturer?.name || formatTextValue(product.manufacturer),
+    displayForm: product.productForm?.name || formatTextValue(product.productForm),
+    displayCategoryName: product.category?.name || "-",
+    displayUomName: product.uom?.name || "-",
+    displayStrength: Array.isArray(product.composition) && product.composition.length > 0
+      ? product.composition.map((c) => {
+          const saltName = c.salt?.name || (typeof c.salt === "object" && c.salt !== null ? c.salt.name : "Unknown");
+          return `${saltName} ${c.strength}${c.unit}`;
+        }).join(", ")
+      : "-",
     displayPack: formatTextValue(product.pack || "60 Tablets"),
     displayNotes: formatTextValue(product.notes),
 

@@ -5,6 +5,11 @@ import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
 
 import useHsnMaster from "@/features/hsn-master/hooks/useHsnMaster";
+import useCategoryMaster from "@/features/category-master/hooks/useCategoryMaster";
+import useManufacturerMaster from "@/features/manufacturer-master/hooks/useManufacturerMaster";
+import useUomMaster from "@/features/uom-master/hooks/useUomMaster";
+import useProductFormMaster from "@/features/product-form-master/hooks/useProductFormMaster";
+import useSaltMaster from "@/features/salt-master/hooks/useSaltMaster";
 import useWorkspaceProduct from "../hooks/useWorkspaceProduct";
 
 import EditWorkspaceProductDesktopPage from "./desktop/EditWorkspaceProductDesktopPage";
@@ -18,8 +23,10 @@ const INITIAL_FORM_DATA = {
   // Mutable Fields (Allowed parameters per Joi Update Schema)
   name: "",
   manufacturer: "",
+  category: "",
   pack: "",
-  qty: "",
+  composition: [],
+  uom: "",
   productForm: "",
   HsnMaster: "", // Mapped string identifier choice path
   notes: "",
@@ -79,6 +86,11 @@ const EditWorkspaceProductPage = () => {
   // Relational catalog lookup hooks mapping
   const { hsnMasters, getHsnMastersStatus, getHsnMasters, clearHsnMasters } =
     useHsnMaster();
+  const { categoryMasters, getCategoryMasters, clearCategoryMasters } = useCategoryMaster();
+  const { manufacturerMasters, getManufacturerMasters, clearManufacturerMasters } = useManufacturerMaster();
+  const { uomMasters, getUomMasters, clearUomMasters } = useUomMaster();
+  const { productFormMasters, getProductFormMasters, clearProductFormMasters } = useProductFormMaster();
+  const { saltMasters, getSaltMasters, clearSaltMasters } = useSaltMaster();
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
@@ -87,6 +99,8 @@ const EditWorkspaceProductPage = () => {
   const isLoading = updateWorkspaceProductStatus === API_STATUS.LOADING;
   const isFetching = getWorkspaceProductStatus === API_STATUS.LOADING;
   const isHsnLoading = getHsnMastersStatus === API_STATUS.LOADING;
+
+  const step2FetchedRef = useRef(false);
 
   const loadWorkspaceProductData = useCallback(async () => {
     if (!productId) return;
@@ -98,10 +112,16 @@ const EditWorkspaceProductPage = () => {
           productType: data.productType || "medicine",
           workspaceProductCode: data.workspaceProductCode || "",
           name: data.name || "",
-          manufacturer: data.manufacturer || "",
+          manufacturer: data.manufacturer?._id || data.manufacturer || "",
+          category: data.category?._id || data.category || "",
           pack: data.pack || "",
-          qty: data.qty || "",
-          productForm: data.productForm || "",
+          composition: (data.composition || []).map((c) => ({
+            salt: c.salt?._id || c.salt || "",
+            strength: c.strength !== undefined && c.strength !== null ? c.strength : "",
+            unit: c.unit || "mg",
+          })),
+          uom: data.uom?._id || data.uom || "",
+          productForm: data.productForm?._id || data.productForm || "",
           HsnMaster: data.HsnMaster?._id || data.HsnMaster || "",
           notes: data.notes || "",
           status: data.status || "active",
@@ -130,10 +150,31 @@ const EditWorkspaceProductPage = () => {
     return () => {
       clearCurrentWorkspaceProduct();
       clearHsnMasters();
+      clearCategoryMasters();
+      clearManufacturerMasters();
+      clearUomMasters();
+      clearProductFormMasters();
+      clearSaltMasters();
     };
     // Standard initialization rules enforce single initial invocation loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
+
+  // Controlled execution block fetching options cleanly once upon entering step 2
+  useEffect(() => {
+    if (currentStep === 2) {
+      if (!step2FetchedRef.current) {
+        step2FetchedRef.current = true;
+        getCategoryMasters({ isActive: true, page: 1, limit: 100 });
+        getManufacturerMasters({ isActive: true, page: 1, limit: 100 });
+        getUomMasters({ isActive: true, page: 1, limit: 100 });
+        getProductFormMasters({ isActive: true, page: 1, limit: 100 });
+        getSaltMasters({ isActive: true, page: 1, limit: 100 });
+      }
+    } else {
+      step2FetchedRef.current = false;
+    }
+  }, [currentStep, getCategoryMasters, getManufacturerMasters, getUomMasters, getProductFormMasters, getSaltMasters]);
 
   // Controlled execution block fetching options cleanly once upon entering step 3
   useEffect(() => {
@@ -174,11 +215,90 @@ const EditWorkspaceProductPage = () => {
     return [...baseOptions, ...mapped];
   }, [hsnMasters]);
 
+  // Options arrays for Step 2
+  const formattedManufacturerOptions = useMemo(() => {
+    const baseOptions = [{ label: "Select a Manufacturer...", value: "" }];
+    if (!Array.isArray(manufacturerMasters)) return baseOptions;
+    return [
+      ...baseOptions,
+      ...manufacturerMasters.map((m) => ({ label: m.name, value: m._id })),
+    ];
+  }, [manufacturerMasters]);
+
+  const formattedCategoryOptions = useMemo(() => {
+    const baseOptions = [{ label: "Select a Category...", value: "" }];
+    if (!Array.isArray(categoryMasters)) return baseOptions;
+    return [
+      ...baseOptions,
+      ...categoryMasters.map((c) => ({ label: `${c.name} (${c.level})`, value: c._id })),
+    ];
+  }, [categoryMasters]);
+
+  const formattedUomOptions = useMemo(() => {
+    const baseOptions = [{ label: "Select a Unit of Measure...", value: "" }];
+    if (!Array.isArray(uomMasters)) return baseOptions;
+    return [
+      ...baseOptions,
+      ...uomMasters.map((u) => ({ label: `${u.name} (${u.abbreviation})`, value: u._id })),
+    ];
+  }, [uomMasters]);
+
+  const formattedProductFormOptions = useMemo(() => {
+    const baseOptions = [{ label: "Select a Product Form...", value: "" }];
+    if (!Array.isArray(productFormMasters)) return baseOptions;
+    return [
+      ...baseOptions,
+      ...productFormMasters.map((f) => ({ label: f.name, value: f._id })),
+    ];
+  }, [productFormMasters]);
+
+  const formattedSaltOptions = useMemo(() => {
+    const baseOptions = [{ label: "Select a Salt...", value: "" }];
+    if (!Array.isArray(saltMasters)) return baseOptions;
+    return [
+      ...baseOptions,
+      ...saltMasters.map((s) => ({ label: s.name, value: s._id })),
+    ];
+  }, [saltMasters]);
+
+  const selectedCompositionDetails = useMemo(() => {
+    if (!Array.isArray(formData.composition) || !Array.isArray(saltMasters)) return [];
+    return formData.composition.map((item) => {
+      const saltObj = saltMasters.find((s) => s._id === item.salt);
+      return {
+        salt: item.salt,
+        saltName: saltObj ? saltObj.name : "Unknown Salt",
+        strength: item.strength,
+        unit: item.unit,
+      };
+    });
+  }, [formData.composition, saltMasters]);
+
   // Resolve selected active entity metadata details dynamically for step 5 card preview summary lookups
   const selectedHsnDetail = useMemo(() => {
     if (!formData.HsnMaster || !Array.isArray(hsnMasters)) return null;
     return hsnMasters.find((h) => h._id === formData.HsnMaster) || null;
   }, [formData.HsnMaster, hsnMasters]);
+
+  const selectedManufacturerDetail = useMemo(() => {
+    if (!formData.manufacturer || !Array.isArray(manufacturerMasters)) return null;
+    return manufacturerMasters.find((m) => m._id === formData.manufacturer) || null;
+  }, [formData.manufacturer, manufacturerMasters]);
+
+  const selectedCategoryDetail = useMemo(() => {
+    if (!formData.category || !Array.isArray(categoryMasters)) return null;
+    return categoryMasters.find((c) => c._id === formData.category) || null;
+  }, [formData.category, categoryMasters]);
+
+  const selectedUomDetail = useMemo(() => {
+    if (!formData.uom || !Array.isArray(uomMasters)) return null;
+    return uomMasters.find((u) => u._id === formData.uom) || null;
+  }, [formData.uom, uomMasters]);
+
+  const selectedProductFormDetail = useMemo(() => {
+    if (!formData.productForm || !Array.isArray(productFormMasters)) return null;
+    return productFormMasters.find((f) => f._id === formData.productForm) || null;
+  }, [formData.productForm, productFormMasters]);
 
   const handleFieldChange = useCallback(
     (nameOrEvent, maybeValue) => {
@@ -282,10 +402,16 @@ const EditWorkspaceProductPage = () => {
       try {
         const payload = {
           name: normalizeText(formData.name),
-          manufacturer: normalizeText(formData.manufacturer) || null,
+          manufacturer: formData.manufacturer || null,
+          category: formData.category || null,
           pack: normalizeText(formData.pack) || null,
-          qty: normalizeText(formData.qty) || null,
-          productForm: normalizeText(formData.productForm) || null,
+          composition: (formData.composition || []).map((c) => ({
+            salt: c.salt,
+            strength: Number(c.strength),
+            unit: c.unit,
+          })),
+          uom: formData.uom || null,
+          productForm: formData.productForm || null,
           HsnMaster: formData.HsnMaster || null,
           notes: normalizeText(formData.notes) || null,
           status: formData.status || "active",
@@ -314,6 +440,16 @@ const EditWorkspaceProductPage = () => {
       currentStep,
       hsnOptions: formattedHsnOptions,
       selectedHsnDetail,
+      manufacturerOptions: formattedManufacturerOptions,
+      categoryOptions: formattedCategoryOptions,
+      uomOptions: formattedUomOptions,
+      productFormOptions: formattedProductFormOptions,
+      saltOptions: formattedSaltOptions,
+      selectedManufacturerDetail,
+      selectedCategoryDetail,
+      selectedUomDetail,
+      selectedProductFormDetail,
+      selectedCompositionDetails,
 
       handleChange: handleFieldChange,
       handleSubmit,
@@ -333,6 +469,16 @@ const EditWorkspaceProductPage = () => {
       currentStep,
       formattedHsnOptions,
       selectedHsnDetail,
+      formattedManufacturerOptions,
+      formattedCategoryOptions,
+      formattedUomOptions,
+      formattedProductFormOptions,
+      formattedSaltOptions,
+      selectedManufacturerDetail,
+      selectedCategoryDetail,
+      selectedUomDetail,
+      selectedProductFormDetail,
+      selectedCompositionDetails,
       handleFieldChange,
       handleSubmit,
       handleBackStep,

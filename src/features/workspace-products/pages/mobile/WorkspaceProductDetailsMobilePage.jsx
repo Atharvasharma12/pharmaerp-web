@@ -45,6 +45,7 @@ const WorkspaceProductDetailsMobilePage = ({
   handleTabChange,
   handleBack,
   handleRefresh,
+  handleBackToCatalog,
   handleEditProduct,
   handleDeleteProduct,
 }) => {
@@ -323,6 +324,16 @@ const WorkspaceProductDetailsMobilePage = ({
                   label="Dosage Form"
                   icon={<FiBox />}
                   value={safeProduct.displayForm || "Tablet"}
+                />
+                <InfoRow
+                  label="Category"
+                  icon={<FiTag />}
+                  value={safeProduct.displayCategoryName || "-"}
+                />
+                <InfoRow
+                  label="Unit of Measure (UOM)"
+                  icon={<FiHash />}
+                  value={safeProduct.displayUomName || "-"}
                 />
                 <InfoRow
                   label="Unit"

@@ -314,6 +314,10 @@ const GlobalProductsPage = () => {
     fetchGlobalCatalogData(currentPage, pageSize, filters);
   }, [currentPage, pageSize, filters, fetchGlobalCatalogData]);
 
+  const handleBackToCatalog = useCallback(() => {
+    navigate("/catalog");
+  }, [navigate]);
+
   const handlePageChange = useCallback(
     (newPage) => {
       const boundedPage = Math.max(1, newPage);
@@ -381,6 +385,7 @@ const GlobalProductsPage = () => {
     handleViewProductDetails,
     handleExportCatalog,
     handleViewImportHistory,
+    handleBackToCatalog,
     clearMessage,
   };
 

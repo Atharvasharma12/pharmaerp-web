@@ -136,6 +136,14 @@ export const ENDPOINTS = {
     BY_ID: (formId) => `/catalog/product-form-master/${formId}`,
   },
 
+  SALT_MASTER: {
+    LIST: "/catalog/salt-master",
+
+    BY_ID: (saltId) => `/catalog/salt-master/${saltId}`,
+
+    BY_NAME: (name) => `/catalog/salt-master/name/${encodeURIComponent(name)}`,
+  },
+
   ACCESS_CONTROL: {
     // Permissions
     PERMISSIONS: "/core/access-control/permissions",

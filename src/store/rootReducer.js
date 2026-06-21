@@ -20,6 +20,7 @@ import manufacturerMasterReducer from "@/features/manufacturer-master/store/manu
 import uomMasterReducer from "@/features/uom-master/store/uomMasterSlice";
 import categoryMasterReducer from "@/features/category-master/store/categoryMasterSlice";
 import productFormMasterReducer from "@/features/product-form-master/store/productFormMasterSlice";
+import saltMasterReducer from "@/features/salt-master/store/saltMasterSlice";
 // ---------------------
 // App Reducer
 // ---------------------
@@ -49,6 +50,7 @@ const appReducer = combineReducers({
   uomMaster: uomMasterReducer,
   categoryMaster: categoryMasterReducer,
   productFormMaster: productFormMasterReducer,
+  saltMaster: saltMasterReducer,
 });
 
 /**

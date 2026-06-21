@@ -48,6 +48,7 @@ const GlobalProductDetailsMobilePage = ({
   handleTabChange,
   handleBack,
   handleRefresh,
+  handleBackToCatalog,
 }) => {
   const [isDescExpanded, setIsDescExpanded] = useState(false);
 

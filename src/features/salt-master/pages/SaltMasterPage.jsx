@@ -4,78 +4,71 @@ import { useNavigate } from "react-router-dom";
 import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
 
-import useHsnMaster from "../hooks/useHsnMaster";
+import useSaltMaster from "../hooks/useSaltMaster";
 
-import HsnMasterDesktopPage from "./desktop/HsnMasterDesktopPage";
-import HsnMasterMobilePage from "./mobile/HsnMasterMobilePage.jsx";
+import SaltMasterDesktopPage from "./desktop/SaltMasterDesktopPage";
+import SaltMasterMobilePage from "./mobile/SaltMasterMobilePage.jsx";
 
 const normalizeText = (value) =>
   String(value || "")
     .trim()
     .toLowerCase();
 
-const formatGSTLabel = (rate) => {
-  if (rate === null || rate === undefined) return "-";
-  return `${rate}% GST`;
-};
-
-const mapHsnForView = (hsn) => {
-  const code = hsn?.code ? String(hsn.code) : "-";
-  const description = hsn?.description || "No description provided.";
-  const gstRate = hsn?.gstRate ?? null;
-  const isActive = hsn?.isActive !== false;
+const mapSaltForView = (salt) => {
+  const name = salt?.name || "-";
+  const description = salt?.description || "No description provided.";
+  const isActive = salt?.isActive !== false;
 
   return {
-    ...hsn,
-    displayName: `HSN ${code}`,
-    displaySku: code,
-    displayCategory: formatGSTLabel(gstRate),
+    ...salt,
+    displayName: name,
+    displaySku: name,
+    displayCategory: "Salt",
     displayManufacturer: description,
-    displayDosageForm: hsn?.description
+    displayDosageForm: salt?.description
       ? "Description Available"
       : "No Details",
-    displayStrength: gstRate !== null ? `${gstRate}%` : "-",
+    displayStrength: "-",
     displayStatus: isActive ? "active" : "inactive",
     displayAvailability: "Global",
   };
 };
 
-const HsnMasterPage = () => {
+const SaltMasterPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const hasFetchedRef = useRef(false);
 
   const [filters, setFilters] = useState({
     search: "",
-    category: "all", // maps to gstRate filter selection
+    category: "all",
     manufacturer: "all",
     productForm: "all",
-    status: "all", // maps to isActive filter selection
+    status: "all",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   const {
-    hsnMasters,
+    saltMasters,
     pagination,
-    getHsnMastersStatus,
-    getHsnMasterStatus,
+    getSaltMastersStatus,
+    getSaltMasterStatus,
     error,
     message,
-    getHsnMasters,
+    getSaltMasters,
     clearError,
     clearMessage,
-    clearCurrentHsnMaster,
-  } = useHsnMaster();
+    clearCurrentSaltMaster,
+  } = useSaltMaster();
 
-  const isLoadingList = getHsnMastersStatus === API_STATUS.LOADING;
-  const isLoadingItem = getHsnMasterStatus === API_STATUS.LOADING;
+  const isLoadingList = getSaltMastersStatus === API_STATUS.LOADING;
+  const isLoadingItem = getSaltMasterStatus === API_STATUS.LOADING;
   const isLoading = isLoadingList || isLoadingItem;
-  const hasError = getHsnMastersStatus === API_STATUS.ERROR;
+  const hasError = getSaltMastersStatus === API_STATUS.ERROR;
 
-  // Unified data loader matching backend filter definitions
-  const fetchHsnCatalogData = useCallback(
+  const fetchSaltCatalogData = useCallback(
     async (pageVal = currentPage, sizeVal = pageSize, filterVal = filters) => {
       try {
         const apiParams = {
@@ -89,32 +82,27 @@ const HsnMasterPage = () => {
         if (filterVal.status !== "all") {
           apiParams.isActive = filterVal.status;
         }
-        if (filterVal.category !== "all") {
-          apiParams.gstRate = filterVal.category;
-        }
 
-        await getHsnMasters(apiParams);
+        await getSaltMasters(apiParams);
       } catch {
-        // Gracefully handled via state machine slice definitions
+        // Handled via Redux slice
       }
     },
-    [getHsnMasters],
+    [getSaltMasters],
   );
 
-  // Page initialization guard matching layout standard rules
   useEffect(() => {
     clearError();
-    clearCurrentHsnMaster();
+    clearCurrentSaltMaster();
 
     if (!hasFetchedRef.current) {
       hasFetchedRef.current = true;
-      fetchHsnCatalogData(currentPage, pageSize, filters);
+      fetchSaltCatalogData(currentPage, pageSize, filters);
     }
 
     return () => {
       clearError();
     };
-    // Standard initialization rules enforce single initial invocation
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -128,35 +116,30 @@ const HsnMasterPage = () => {
     return () => window.clearTimeout(timer);
   }, [clearMessage, message]);
 
-  const mappedHsnRecords = useMemo(() => {
-    return (Array.isArray(hsnMasters) ? hsnMasters : []).map(mapHsnForView);
-  }, [hsnMasters]);
+  const mappedRecords = useMemo(() => {
+    return (Array.isArray(saltMasters) ? saltMasters : []).map(
+      mapSaltForView,
+    );
+  }, [saltMasters]);
 
-  // Client-side local filtering for real-time adjustments matching view tokens
-  const filteredHsnRecords = useMemo(() => {
+  const filteredRecords = useMemo(() => {
     const searchToken = normalizeText(filters.search);
 
-    return mappedHsnRecords.filter((hsn) => {
+    return mappedRecords.filter((salt) => {
       const matchesSearch =
         !searchToken ||
-        normalizeText(hsn.displaySku).includes(searchToken) ||
-        normalizeText(hsn.displayManufacturer).includes(searchToken);
+        normalizeText(salt.displayName).includes(searchToken) ||
+        normalizeText(salt.displayManufacturer).includes(searchToken);
 
       return matchesSearch;
     });
-  }, [filters, mappedHsnRecords]);
+  }, [filters, mappedRecords]);
 
   const activeFilterChips = useMemo(() => {
     const chips = [];
 
     if (filters.search) {
       chips.push({ key: "search", label: `Search: ${filters.search}` });
-    }
-    if (filters.category !== "all") {
-      chips.push({
-        key: "category",
-        label: `Tax Slab: ${filters.category}%`,
-      });
     }
     if (filters.status !== "all") {
       chips.push({
@@ -168,52 +151,37 @@ const HsnMasterPage = () => {
     return chips;
   }, [filters]);
 
-  const gstRateOptions = useMemo(() => {
-    return [
-      { label: "All Tax Rates", value: "all" },
-      { label: "0% Slab", value: 0 },
-      { label: "5% Slab", value: 5 },
-      { label: "12% Slab", value: 12 },
-      { label: "18% Slab", value: 18 },
-      { label: "28% Slab", value: 28 },
-    ];
-  }, []);
-
   const dashboardStats = useMemo(() => {
-    const totalHsnItems = pagination?.total || filteredHsnRecords.length;
+    const totalItems = pagination?.total || filteredRecords.length;
 
-    const activeHsnCount = mappedHsnRecords.filter(
-      (h) => h.displayStatus === "active",
+    const activeCount = mappedRecords.filter(
+      (salt) => salt.displayStatus === "active",
     ).length;
-
-    const distinctRatesCount = new Set(
-      mappedHsnRecords.map((h) => h.gstRate).filter((r) => r !== null),
-    ).size;
 
     return [
       {
-        id: "total_products", // matches layout component lookups mapping
-        title: "Total Master HSN Codes",
-        value: totalHsnItems,
+        id: "total_products",
+        title: "Total Salts",
+        value: totalItems,
         description: "Across global catalog database",
         colorVariant: "success",
       },
       {
         id: "categories",
-        title: "Active Codes",
-        value: activeHsnCount,
+        title: "Active Salts",
+        value: activeCount,
         description: "Currently usable records",
         colorVariant: "purple",
       },
       {
         id: "manufacturers",
-        title: "Active GST Slabs",
-        value: distinctRatesCount || 5,
-        description: "Distinct tax rules mapped",
+        title: "Database Scope",
+        value: "Global",
+        description: "Central platform control",
         colorVariant: "info",
       },
     ];
-  }, [pagination, filteredHsnRecords, mappedHsnRecords]);
+  }, [pagination, filteredRecords, mappedRecords]);
 
   const handleFilterChange = useCallback(
     (eventOrValue) => {
@@ -228,9 +196,9 @@ const HsnMasterPage = () => {
 
       setFilters(updatedFilters);
       setCurrentPage(1);
-      fetchHsnCatalogData(1, pageSize, updatedFilters);
+      fetchSaltCatalogData(1, pageSize, updatedFilters);
     },
-    [filters, pageSize, fetchHsnCatalogData],
+    [filters, pageSize, fetchSaltCatalogData],
   );
 
   const handleSearchChange = useCallback(
@@ -240,9 +208,9 @@ const HsnMasterPage = () => {
 
       setFilters(updatedFilters);
       setCurrentPage(1);
-      fetchHsnCatalogData(1, pageSize, updatedFilters);
+      fetchSaltCatalogData(1, pageSize, updatedFilters);
     },
-    [filters, pageSize, fetchHsnCatalogData],
+    [filters, pageSize, fetchSaltCatalogData],
   );
 
   const handleRemoveFilter = useCallback(
@@ -251,9 +219,9 @@ const HsnMasterPage = () => {
 
       setFilters(updatedFilters);
       setCurrentPage(1);
-      fetchHsnCatalogData(1, pageSize, updatedFilters);
+      fetchSaltCatalogData(1, pageSize, updatedFilters);
     },
-    [filters, pageSize, fetchHsnCatalogData],
+    [filters, pageSize, fetchSaltCatalogData],
   );
 
   const handleClearFilters = useCallback(() => {
@@ -266,55 +234,52 @@ const HsnMasterPage = () => {
     };
     setFilters(cleared);
     setCurrentPage(1);
-    fetchHsnCatalogData(1, pageSize, cleared);
-  }, [pageSize, fetchHsnCatalogData]);
+    fetchSaltCatalogData(1, pageSize, cleared);
+  }, [pageSize, fetchSaltCatalogData]);
 
   const handleRefresh = useCallback(() => {
-    fetchHsnCatalogData(currentPage, pageSize, filters);
-  }, [currentPage, pageSize, filters, fetchHsnCatalogData]);
+    fetchSaltCatalogData(currentPage, pageSize, filters);
+  }, [currentPage, pageSize, filters, fetchSaltCatalogData]);
   const handleBackToCatalog = useCallback(() => {
     navigate('/catalog');
   }, [navigate]);
-
 
   const handlePageChange = useCallback(
     (newPage) => {
       const boundedPage = Math.max(1, newPage);
       setCurrentPage(boundedPage);
-      fetchHsnCatalogData(boundedPage, pageSize, filters);
+      fetchSaltCatalogData(boundedPage, pageSize, filters);
     },
-    [pageSize, filters, fetchHsnCatalogData],
+    [pageSize, filters, fetchSaltCatalogData],
   );
 
   const handlePageSizeChange = useCallback(
     (size) => {
       setPageSize(size);
       setCurrentPage(1);
-      fetchHsnCatalogData(1, size, filters);
+      fetchSaltCatalogData(1, size, filters);
     },
-    [filters, fetchHsnCatalogData],
+    [filters, fetchSaltCatalogData],
   );
 
   const handleViewProductDetails = useCallback(
-    (hsn) => {
-      if (!hsn?._id) return;
-      navigate(`/catalog/hsn-master/${hsn._id}`);
+    (salt) => {
+      if (!salt?._id) return;
+      navigate(`/catalog/salt-master/${salt._id}`);
     },
     [navigate],
   );
 
-
-
   const handleExportCatalog = useCallback(() => {
-    // Structural architectural pipeline trigger point
+    // Stub
   }, []);
 
   const pageProps = {
-    products: filteredHsnRecords, // generic layout key compatibility
+    products: filteredRecords,
     dashboardStats,
     filters,
     activeFilterChips,
-    categoryOptions: gstRateOptions,
+    categoryOptions: [],
     dosageFormOptions: [{ label: "All Records", value: "all" }],
 
     isLoading,
@@ -322,30 +287,32 @@ const HsnMasterPage = () => {
     error,
     message,
 
-    totalProducts: pagination?.total || filteredHsnRecords.length,
+    totalProducts: pagination?.total || filteredRecords.length,
     currentPage: pagination?.page || currentPage,
     totalPages: pagination?.totalPages || 1,
     pageSize,
 
-    hasProducts: mappedHsnRecords.length > 0,
-    hasFilteredProducts: filteredHsnRecords.length > 0,
+    hasProducts: mappedRecords.length > 0,
+    hasFilteredProducts: filteredRecords.length > 0,
 
+    handleFilterChange,
+    handleSearchChange,
     handleRemoveFilter,
     handleClearFilters,
     handleRefresh,
+    handleBackToCatalog,
     handlePageChange,
     handlePageSizeChange,
     handleViewProductDetails,
     handleExportCatalog,
-    handleBackToCatalog,
     clearMessage,
   };
 
   return isMobile ? (
-    <HsnMasterMobilePage {...pageProps} />
+    <SaltMasterMobilePage {...pageProps} />
   ) : (
-    <HsnMasterDesktopPage {...pageProps} />
+    <SaltMasterDesktopPage {...pageProps} />
   );
 };
 
-export default HsnMasterPage;
+export default SaltMasterPage;

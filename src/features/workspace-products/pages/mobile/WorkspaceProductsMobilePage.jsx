@@ -202,7 +202,7 @@ const WorkspaceProductsMobilePage = ({
                           </AppHeading>
                           <AppText variant="body2" sx={productPackSx}>
                             Pack Qty: {product.pack || "-"}{" "}
-                            {product.qty ? `(${product.qty})` : ""}
+                            {product.displayStrength && product.displayStrength !== "-" ? `(${product.displayStrength})` : ""}
                           </AppText>
                           <AppText variant="body2" sx={productCategorySx}>
                             {product.displayCategory} •{" "}

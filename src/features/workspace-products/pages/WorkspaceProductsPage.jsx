@@ -30,10 +30,15 @@ const mapWorkspaceProductForView = (product) => {
     ...product,
     displayName: product?.name || "-",
     displaySku: product?.workspaceProductCode || "-",
-    displayCategory: formatStringTitle(product?.productType || "Custom"),
-    displayManufacturer: product?.manufacturer || "-",
-    displayDosageForm: formatStringTitle(product?.productForm || "-"),
-    displayStrength: product?.qty || "-",
+    displayCategory: product?.category?.name || formatStringTitle(product?.productType || "Custom"),
+    displayManufacturer: product?.manufacturer?.name || product?.manufacturer || "-",
+    displayDosageForm: product?.productForm?.name || product?.productForm || "-",
+    displayStrength: Array.isArray(product?.composition) && product.composition.length > 0
+      ? product.composition.map((c) => {
+          const saltName = c.salt?.name || (typeof c.salt === "object" && c.salt !== null ? c.salt.name : "Unknown");
+          return `${saltName} ${c.strength}${c.unit}`;
+        }).join(", ")
+      : "-",
     displayStatus: product?.status || "inactive",
     displayAvailability: "Workspace",
   };
@@ -254,6 +259,10 @@ const WorkspaceProductsPage = () => {
     fetchWorkspaceCatalogData(currentPage, pageSize, filters);
   }, [currentPage, pageSize, filters, fetchWorkspaceCatalogData]);
 
+  const handleBackToCatalog = useCallback(() => {
+    navigate("/catalog");
+  }, [navigate]);
+
   const handlePageChange = useCallback(
     (newPage) => {
       const boundedPage = Math.max(1, newPage);
@@ -345,6 +354,7 @@ const WorkspaceProductsPage = () => {
     handleEditProduct,
     handleDeleteProduct,
     handleImportWorkspaceProducts,
+    handleBackToCatalog,
     clearMessage,
   };
 

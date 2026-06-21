@@ -155,6 +155,10 @@ const GlobalProductDetailsPage = () => {
     clearError();
     fetchProduct();
   }, [clearError, fetchProduct]);
+  const handleBackToCatalog = useCallback(() => {
+    navigate('/catalog');
+  }, [navigate]);
+
 
   const pageProps = useMemo(
     () => ({

@@ -11,6 +11,7 @@ import {
   FiRefreshCw,
   FiLayers,
   FiShield,
+  FiTrash2,
 } from "react-icons/fi";
 import { HiOutlineCube } from "react-icons/hi2";
 
@@ -40,6 +41,16 @@ const CreateWorkspaceProductMobilePage = memo(
     duplicateWarning = null,
     hsnOptions = [],
     selectedHsnDetail = null,
+    manufacturerOptions = [],
+    categoryOptions = [],
+    uomOptions = [],
+    productFormOptions = [],
+    selectedManufacturerDetail = null,
+    selectedCategoryDetail = null,
+    selectedUomDetail = null,
+    selectedProductFormDetail = null,
+    saltOptions = [],
+    selectedCompositionDetails = [],
 
     handleChange,
     handleSubmit,
@@ -111,6 +122,11 @@ const CreateWorkspaceProductMobilePage = memo(
               <MobileStepPackaging
                 formData={formData}
                 formErrors={formErrors}
+                manufacturerOptions={manufacturerOptions}
+                categoryOptions={categoryOptions}
+                uomOptions={uomOptions}
+                productFormOptions={productFormOptions}
+                saltOptions={saltOptions}
                 handleChange={handleChange}
                 isLoading={isLoading}
               />
@@ -138,6 +154,11 @@ const CreateWorkspaceProductMobilePage = memo(
               <MobileStepReviewAndCreate
                 formData={formData}
                 selectedHsnDetail={selectedHsnDetail}
+                selectedManufacturerDetail={selectedManufacturerDetail}
+                selectedCategoryDetail={selectedCategoryDetail}
+                selectedUomDetail={selectedUomDetail}
+                selectedProductFormDetail={selectedProductFormDetail}
+                selectedCompositionDetails={selectedCompositionDetails}
                 onEditSection={handleStepChange}
               />
             )}
@@ -477,6 +498,11 @@ const MobileStepIdentity = ({
 const MobileStepPackaging = ({
   formData,
   formErrors,
+  manufacturerOptions = [],
+  categoryOptions = [],
+  uomOptions = [],
+  productFormOptions = [],
+  saltOptions = [],
   handleChange,
   isLoading,
 }) => (
@@ -497,15 +523,24 @@ const MobileStepPackaging = ({
     </AppText>
 
     <AppStack direction="column" gap={1.4} sx={{ mt: 1.8 }}>
-      <AppInput
-        label="Manufacturer / Marketer Name (Optional)"
+      <AppSelect
+        label="Product Category (Optional)"
+        name="category"
+        value={formData.category || ""}
+        onChange={handleChange}
+        options={categoryOptions}
+        disabled={isLoading}
+        labelSx={mobileLabelSx}
+        inputSx={mobileInputSx}
+      />
+
+      <AppSelect
+        label="Manufacturer / Marketer (Optional)"
         name="manufacturer"
         value={formData.manufacturer || ""}
         onChange={handleChange}
+        options={manufacturerOptions}
         disabled={isLoading}
-        placeholder="Enter manufacturer brand path"
-        error={Boolean(formErrors.manufacturer)}
-        helperText={formErrors.manufacturer}
         labelSx={mobileLabelSx}
         inputSx={mobileInputSx}
       />
@@ -521,27 +556,133 @@ const MobileStepPackaging = ({
         inputSx={mobileInputSx}
       />
 
-      <AppInput
-        label="Quantity / Measure Strength (Optional)"
-        name="qty"
-        value={formData.qty || ""}
+      <AppSelect
+        label="Unit of Measure (UOM) (Optional)"
+        name="uom"
+        value={formData.uom || ""}
         onChange={handleChange}
+        options={uomOptions}
         disabled={isLoading}
-        placeholder="e.g. 650 mg / 500 ml"
         labelSx={mobileLabelSx}
         inputSx={mobileInputSx}
       />
 
-      <AppInput
+      <AppSelect
         label="Dosage Form Unit (Optional)"
         name="productForm"
         value={formData.productForm || ""}
         onChange={handleChange}
+        options={productFormOptions}
         disabled={isLoading}
-        placeholder="e.g. Tablet, Capsule, Syrup"
         labelSx={mobileLabelSx}
         inputSx={mobileInputSx}
       />
+
+      {/* Composition / Active Salts Section */}
+      <div className="border-t border-border pt-4 mt-3">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <span className="block text-[13px] font-bold text-text">Composition / Salts</span>
+            <span className="block text-[11px] text-text-muted">Specify active salts, strength and unit.</span>
+          </div>
+          <AppButton
+            type="button"
+            variant="outlined"
+            colorVariant="primary"
+            rounded="md"
+            size="small"
+            onClick={() => {
+              const currentComposition = formData.composition || [];
+              handleChange("composition", [...currentComposition, { salt: "", strength: "", unit: "mg" }]);
+            }}
+            sx={{ height: 28, fontSize: "11px", fontWeight: 700 }}
+          >
+            + Add Salt
+          </AppButton>
+        </div>
+
+        {(!formData.composition || formData.composition.length === 0) ? (
+          <div className="text-center py-4 bg-surface-alt rounded-lg border border-dashed border-border">
+            <span className="text-[11.5px] text-text-muted italic">No active salts configured.</span>
+          </div>
+        ) : (
+          <div className="space-y-3.5">
+            {formData.composition.map((item, idx) => (
+              <div key={idx} className="bg-surface-alt p-3 rounded-lg border border-border space-y-3">
+                <AppSelect
+                  label="Active Salt"
+                  name={`composition.${idx}.salt`}
+                  value={item.salt || ""}
+                  onChange={(e) => {
+                    const newComposition = [...formData.composition];
+                    newComposition[idx] = { ...newComposition[idx], salt: e.target.value };
+                    handleChange("composition", newComposition);
+                  }}
+                  options={saltOptions}
+                  labelSx={mobileLabelSx}
+                  inputSx={mobileInputSx}
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <AppInput
+                    label="Strength"
+                    type="number"
+                    name={`composition.${idx}.strength`}
+                    value={item.strength === 0 ? "0" : item.strength || ""}
+                    onChange={(e) => {
+                      const newComposition = [...formData.composition];
+                      newComposition[idx] = {
+                        ...newComposition[idx],
+                        strength: e.target.value === "" ? "" : Number(e.target.value),
+                      };
+                      handleChange("composition", newComposition);
+                    }}
+                    placeholder="e.g. 500"
+                    labelSx={mobileLabelSx}
+                    inputSx={mobileInputSx}
+                  />
+                  <AppSelect
+                    label="Unit"
+                    name={`composition.${idx}.unit`}
+                    value={item.unit || "mg"}
+                    onChange={(e) => {
+                      const newComposition = [...formData.composition];
+                      newComposition[idx] = { ...newComposition[idx], unit: e.target.value };
+                      handleChange("composition", newComposition);
+                    }}
+                    options={[
+                      { label: "mg", value: "mg" },
+                      { label: "g", value: "g" },
+                      { label: "mcg", value: "mcg" },
+                      { label: "ml", value: "ml" },
+                      { label: "%", value: "%" },
+                      { label: "IU", value: "IU" },
+                    ]}
+                    labelSx={mobileLabelSx}
+                    inputSx={mobileInputSx}
+                  />
+                </div>
+                <div className="flex justify-end pt-1">
+                  <AppButton
+                    type="button"
+                    variant="outlined"
+                    colorVariant="danger"
+                    rounded="md"
+                    size="small"
+                    startIcon={<FiTrash2 />}
+                    onClick={() => {
+                      const newComposition = formData.composition.filter((_, i) => i !== idx);
+                      handleChange("composition", newComposition);
+                    }}
+                    sx={{ height: 28, fontSize: "11px", fontWeight: 700 }}
+                  >
+                    Delete
+                  </AppButton>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </AppStack>
   </AppCard>
 );
@@ -625,6 +766,11 @@ const MobileStepNotes = ({ formData, formErrors, handleChange, isLoading }) => (
 const MobileStepReviewAndCreate = ({
   formData,
   selectedHsnDetail,
+  selectedManufacturerDetail,
+  selectedCategoryDetail,
+  selectedUomDetail,
+  selectedProductFormDetail,
+  selectedCompositionDetails = [],
   onEditSection,
 }) => {
   return (
@@ -688,17 +834,17 @@ const MobileStepReviewAndCreate = ({
               label="Warning Check"
               value={
                 <AppTag
-                  label="Bypassed Duplicate Check"
-                  variant="soft"
-                  colorVariant="warning"
-                  rounded="md"
-                  sx={{
-                    height: 18,
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    px: 0.6,
-                  }}
-                />
+                   label="Bypassed Duplicate Check"
+                   variant="soft"
+                   colorVariant="warning"
+                   rounded="md"
+                   sx={{
+                     height: 18,
+                     fontSize: "10px",
+                     fontWeight: 700,
+                     px: 0.6,
+                   }}
+                 />
               }
             />
           )}
@@ -717,14 +863,29 @@ const MobileStepReviewAndCreate = ({
         </AppStack>
         <AppStack direction="column" gap={0.8}>
           <ReviewGridRow
+            label="Category"
+            value={selectedCategoryDetail?.name || "-"}
+          />
+          <ReviewGridRow
             label="Manufacturer"
-            value={formData.manufacturer || "-"}
+            value={selectedManufacturerDetail?.name || "-"}
           />
           <ReviewGridRow label="Pack Form" value={formData.pack || "-"} />
-          <ReviewGridRow label="Measure Strength" value={formData.qty || "-"} />
+          <ReviewGridRow
+            label="Composition"
+            value={
+              selectedCompositionDetails && selectedCompositionDetails.length > 0
+                ? selectedCompositionDetails.map((c) => `${c.saltName} ${c.strength}${c.unit}`).join(", ")
+                : "-"
+            }
+          />
+          <ReviewGridRow
+            label="Unit of Measure (UOM)"
+            value={selectedUomDetail?.name || "-"}
+          />
           <ReviewGridRow
             label="Dosage Form"
-            value={formData.productForm || "-"}
+            value={selectedProductFormDetail?.name || "-"}
           />
         </AppStack>
       </AppBox>

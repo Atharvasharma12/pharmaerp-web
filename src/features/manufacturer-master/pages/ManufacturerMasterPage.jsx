@@ -240,6 +240,10 @@ const ManufacturerMasterPage = () => {
   const handleRefresh = useCallback(() => {
     fetchManufacturerCatalogData(currentPage, pageSize, filters);
   }, [currentPage, pageSize, filters, fetchManufacturerCatalogData]);
+  const handleBackToCatalog = useCallback(() => {
+    navigate('/catalog');
+  }, [navigate]);
+
 
   const handlePageChange = useCallback(
     (newPage) => {
@@ -297,6 +301,7 @@ const ManufacturerMasterPage = () => {
     handleRemoveFilter,
     handleClearFilters,
     handleRefresh,
+    handleBackToCatalog,
     handlePageChange,
     handlePageSizeChange,
     handleViewProductDetails,

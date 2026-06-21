@@ -263,6 +263,10 @@ const CategoryMasterPage = () => {
   const handleRefresh = useCallback(() => {
     fetchCategoryCatalogData(currentPage, pageSize, filters);
   }, [currentPage, pageSize, filters, fetchCategoryCatalogData]);
+  const handleBackToCatalog = useCallback(() => {
+    navigate('/catalog');
+  }, [navigate]);
+
 
   const handlePageChange = useCallback(
     (newPage) => {
@@ -320,6 +324,7 @@ const CategoryMasterPage = () => {
     handleRemoveFilter,
     handleClearFilters,
     handleRefresh,
+    handleBackToCatalog,
     handlePageChange,
     handlePageSizeChange,
     handleViewProductDetails,

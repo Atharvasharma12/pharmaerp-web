@@ -77,6 +77,9 @@ export const ROUTES = {
   // Catalog - Product Form Master
   PRODUCT_FORM_MASTER: "/catalog/product-form-master",
 
+  // Catalog - Salt Master
+  SALT_MASTER: "/catalog/salt-master",
+
   // Setup
   SETUP_CENTER: "/setup",
 

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  FiArrowLeft,
   FiChevronLeft,
   FiChevronRight,
   FiDownload,
@@ -69,6 +70,7 @@ const CategoryMasterDesktopPage = ({
   handleRemoveFilter,
   handleClearFilters,
   handleRefresh,
+  handleBackToCatalog,
   handlePageChange,
   handlePageSizeChange,
   handleExportCatalog,
@@ -218,8 +220,8 @@ const CategoryMasterDesktopPage = ({
               size="small"
               variant="text"
               items={[
-                { label: "Dashboard" },
-                { label: "Catalog" },
+                { label: "Dashboard", href: "/" },
+                { label: "Catalog", href: "/catalog" },
                 { label: "Category Master", current: true },
               ]}
               sx={breadcrumbSx}
@@ -235,6 +237,18 @@ const CategoryMasterDesktopPage = ({
             gap={1.1}
             sx={{ flexShrink: 0 }}
           >
+                        <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              startIcon={<FiArrowLeft />}
+              onClick={handleBackToCatalog}
+              sx={secondaryButtonSx}
+            >
+              Back
+            </AppButton>
             <AppButton
               type="button"
               variant="outlined"

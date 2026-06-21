@@ -240,6 +240,10 @@ const UomMasterPage = () => {
   const handleRefresh = useCallback(() => {
     fetchUomCatalogData(currentPage, pageSize, filters);
   }, [currentPage, pageSize, filters, fetchUomCatalogData]);
+  const handleBackToCatalog = useCallback(() => {
+    navigate('/catalog');
+  }, [navigate]);
+
 
   const handlePageChange = useCallback(
     (newPage) => {
@@ -297,6 +301,7 @@ const UomMasterPage = () => {
     handleRemoveFilter,
     handleClearFilters,
     handleRefresh,
+    handleBackToCatalog,
     handlePageChange,
     handlePageSizeChange,
     handleViewProductDetails,

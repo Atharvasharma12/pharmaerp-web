@@ -35,6 +35,7 @@ import manufacturerMasterRoutes from "@/features/manufacturer-master/routes/manu
 import uomMasterRoutes from "@/features/uom-master/routes/uomMasterRoutes";
 import categoryMasterRoutes from "@/features/category-master/routes/categoryMasterRoutes";
 import productFormMasterRoutes from "@/features/product-form-master/routes/productFormMasterRoutes";
+import saltMasterRoutes from "@/features/salt-master/routes/saltMasterRoutes";
 
 const NotFoundPage = () => {
   return (
@@ -156,6 +157,7 @@ export const router = createBrowserRouter([
       ...uomMasterRoutes,
       ...categoryMasterRoutes,
       ...productFormMasterRoutes,
+      ...saltMasterRoutes,
     ],
   },
 

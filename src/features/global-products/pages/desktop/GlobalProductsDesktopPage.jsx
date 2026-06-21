@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import {
+  FiArrowLeft,
   FiChevronLeft,
   FiChevronRight,
   FiDownload,
@@ -71,6 +72,7 @@ const GlobalProductsDesktopPage = ({
   handleRemoveFilter,
   handleClearFilters,
   handleRefresh,
+  handleBackToCatalog,
   handlePageChange,
   handlePageSizeChange,
   handleViewProductDetails,
@@ -236,8 +238,8 @@ const GlobalProductsDesktopPage = ({
               size="small"
               variant="text"
               items={[
-                { label: "Dashboard" },
-                { label: "Products" },
+                { label: "Dashboard", href: "/" },
+                { label: "Catalog", href: "/catalog" },
                 { label: "Global Products", current: true },
               ]}
               sx={breadcrumbSx}
@@ -253,6 +255,18 @@ const GlobalProductsDesktopPage = ({
             gap={1.1}
             sx={{ flexShrink: 0 }}
           >
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              startIcon={<FiArrowLeft />}
+              onClick={handleBackToCatalog}
+              sx={secondaryButtonSx}
+            >
+              Back
+            </AppButton>
             <AppButton
               type="button"
               variant="outlined"

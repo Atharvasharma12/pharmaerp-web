@@ -6,13 +6,14 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Link as MuiLink,
 } from "@mui/material";
 import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
 import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getThemeTokens } from "@/theme/getThemeTokens";
-import { Link } from "react-router-dom";
+import { Link as RouterLink } from "react-router-dom";
 
 const AppBreadcrumb = ({
   items = [],
@@ -357,17 +358,23 @@ const AppBreadcrumb = ({
       );
     }
 
+    const linkComponent = item.href ? RouterLink : "span";
+    const linkProps = item.href ? { to: item.href } : {};
+
     return (
-      <Link
-        component={Link}
-        to={item.href}
+      <MuiLink
+        component={linkComponent}
         underline="none"
         color="inherit"
         onClick={item.onClick}
-        sx={commonSx}
+        sx={{
+          ...commonSx,
+          ...(!item.href && item.onClick ? { cursor: "pointer" } : {}),
+        }}
+        {...linkProps}
       >
         {renderItemContent(item)}
-      </Link>
+      </MuiLink>
     );
   };
 

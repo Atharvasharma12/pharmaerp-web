@@ -240,6 +240,10 @@ const ProductFormMasterPage = () => {
   const handleRefresh = useCallback(() => {
     fetchProductFormCatalogData(currentPage, pageSize, filters);
   }, [currentPage, pageSize, filters, fetchProductFormCatalogData]);
+  const handleBackToCatalog = useCallback(() => {
+    navigate('/catalog');
+  }, [navigate]);
+
 
   const handlePageChange = useCallback(
     (newPage) => {
@@ -297,6 +301,7 @@ const ProductFormMasterPage = () => {
     handleRemoveFilter,
     handleClearFilters,
     handleRefresh,
+    handleBackToCatalog,
     handlePageChange,
     handlePageSizeChange,
     handleViewProductDetails,

@@ -28,6 +28,7 @@ const moduleIcons = {
   uomMaster: <BiRuler className="text-[22px]" />,
   categoryMaster: <FiTag className="text-[22px]" />,
   productFormMaster: <HiOutlineBeaker className="text-[22px]" />,
+  saltMaster: <HiOutlineBeaker className="text-[22px]" />,
 };
 
 const overviewColors = {
@@ -38,6 +39,7 @@ const overviewColors = {
   uomMaster: { bg: "#f0fdfa", text: "#0d9488" },
   categoryMaster: { bg: "#fff1f2", text: "#e11d48" },
   productFormMaster: { bg: "#f0f9ff", text: "#0284c7" },
+  saltMaster: { bg: "#fdf2f8", text: "#db2777" },
 };
 
 const getStatIcon = (id) => {

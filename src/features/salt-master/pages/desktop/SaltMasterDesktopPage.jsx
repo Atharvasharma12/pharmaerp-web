@@ -45,7 +45,7 @@ const statusColorMap = {
   inactive: "neutral",
 };
 
-const ProductFormMasterDesktopPage = ({
+const SaltMasterDesktopPage = ({
   products = [],
   dashboardStats = [],
   filters,
@@ -78,25 +78,25 @@ const ProductFormMasterDesktopPage = ({
 
   // Dialog / Modal Local States
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedProductForm, setSelectedProductForm] = useState(null);
+  const [selectedSalt, setSelectedSalt] = useState(null);
 
-  const handleOpenDetails = (form) => {
-    setSelectedProductForm(form);
+  const handleOpenDetails = (salt) => {
+    setSelectedSalt(salt);
     setIsDialogOpen(true);
   };
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
-    setSelectedProductForm(null);
+    setSelectedSalt(null);
   };
 
   const columns = [
     {
-      id: "productFormName",
+      id: "saltName",
       key: "displayName",
-      label: "Product Form Name",
+      label: "Salt Name",
       minWidth: 240,
-      render: (_, form) => (
+      render: (_, salt) => (
         <div className="flex items-center gap-3 min-w-0 h-full">
           <div className="flex items-center justify-center shrink-0">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-alt border border-border">
@@ -105,7 +105,7 @@ const ProductFormMasterDesktopPage = ({
           </div>
           <div className="flex flex-col min-w-0 justify-center">
             <AppHeading level={3} weight={700} sx={productNameSx}>
-              {form?.displayName || "-"}
+              {salt?.displayName || "-"}
             </AppHeading>
           </div>
         </div>
@@ -116,9 +116,9 @@ const ProductFormMasterDesktopPage = ({
       key: "displayManufacturer",
       label: "Description",
       minWidth: 450,
-      render: (_, form) => (
+      render: (_, salt) => (
         <AppText variant="body2" sx={descriptionSx}>
-          {form?.displayManufacturer || "-"}
+          {salt?.displayManufacturer || "-"}
         </AppText>
       ),
     },
@@ -127,14 +127,14 @@ const ProductFormMasterDesktopPage = ({
       key: "displayStatus",
       label: "Status",
       width: 120,
-      render: (_, form) => (
+      render: (_, salt) => (
         <AppStatusBadge
-          status={form?.displayStatus || "inactive"}
-          label={form?.displayStatus || "inactive"}
+          status={salt?.displayStatus || "inactive"}
+          label={salt?.displayStatus || "inactive"}
           variant="soft"
           size="small"
           rounded="md"
-          colorVariant={statusColorMap[form?.displayStatus] || "neutral"}
+          colorVariant={statusColorMap[salt?.displayStatus] || "neutral"}
           sx={statusBadgeSx}
         />
       ),
@@ -144,9 +144,9 @@ const ProductFormMasterDesktopPage = ({
       key: "displayAvailability",
       label: "Scope",
       width: 120,
-      render: (_, form) => (
+      render: (_, salt) => (
         <AppText variant="body2" sx={tableValueMutedSx}>
-          {form?.displayAvailability || "Global"}
+          {salt?.displayAvailability || "Global"}
         </AppText>
       ),
     },
@@ -156,14 +156,14 @@ const ProductFormMasterDesktopPage = ({
       label: "Actions",
       align: "right",
       width: 80,
-      render: (_, form) => (
+      render: (_, salt) => (
         <AppIconButton
           icon={<FiEye />}
           variant="text"
           colorVariant="neutral"
           size="small"
           rounded="md"
-          onClick={() => handleOpenDetails(form)}
+          onClick={() => handleOpenDetails(salt)}
           sx={actionButtonSx}
         />
       ),
@@ -183,10 +183,10 @@ const ProductFormMasterDesktopPage = ({
         >
           <AppBox sx={pageHeaderContentSx}>
             <AppHeading level={1} weight={650}>
-              Product Form Master Catalog
+              Salt Master Catalog
             </AppHeading>
             <AppText variant="body2" sx={pageHeaderSubtitleSx}>
-              Browse and inspect platform product dosage forms linked across inventories.
+              Browse and inspect platform active salt chemical ingredients linked across products.
             </AppText>
             <AppBreadcrumb
               size="small"
@@ -194,7 +194,7 @@ const ProductFormMasterDesktopPage = ({
               items={[
                 { label: "Dashboard", href: "/" },
                 { label: "Catalog", href: "/catalog" },
-                { label: "Product Form Master", current: true },
+                { label: "Salt Master", current: true },
               ]}
               sx={breadcrumbSx}
               itemSx={breadcrumbItemSx}
@@ -209,7 +209,7 @@ const ProductFormMasterDesktopPage = ({
             gap={1.1}
             sx={{ flexShrink: 0 }}
           >
-                        <AppButton
+            <AppButton
               type="button"
               variant="outlined"
               colorVariant="neutral"
@@ -284,7 +284,7 @@ const ProductFormMasterDesktopPage = ({
 
           {hasError ? (
             <AppErrorState
-              title="Unable to load product forms"
+              title="Unable to load salt records"
               description={
                 error || "Please check network logs and retry data sync."
               }
@@ -297,8 +297,8 @@ const ProductFormMasterDesktopPage = ({
             <AppTableSkeleton rows={8} columns={5} showHeader={false} />
           ) : !hasProducts ? (
             <AppEmptyState
-              title="No Product Form Records Listed"
-              description="The centralized product form ledger is currently empty."
+              title="No Salt Records Listed"
+              description="The centralized salt ledger is currently empty."
               icon={<HiOutlineCube />}
               size="page"
               sx={stateSx}
@@ -372,7 +372,7 @@ const ProductFormMasterDesktopPage = ({
               </span>
               <AppBox>
                 <AppHeading level={2} weight={750} sx={dialogTitleSx}>
-                  Product Form Detailed Record
+                  Salt Master Detailed Record
                 </AppHeading>
                 <AppText
                   variant="body2"
@@ -394,14 +394,14 @@ const ProductFormMasterDesktopPage = ({
             />
           </div>
 
-          {selectedProductForm && (
+          {selectedSalt && (
             <div className="mt-5 space-y-4">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
-                  Product Form Name
+                  Salt Name
                 </span>
                 <AppHeading level={3} weight={700} sx={dialogValueCodeSx}>
-                  {selectedProductForm.displayName}
+                  {selectedSalt.displayName}
                 </AppHeading>
               </div>
 
@@ -421,8 +421,8 @@ const ProductFormMasterDesktopPage = ({
                   }}
                 >
                   <AppText variant="body2" sx={dialogDescTextSx}>
-                    {selectedProductForm.description ||
-                      "No specific description provided for this product form master record."}
+                    {selectedSalt.description ||
+                      "No specific description provided for this salt master record."}
                   </AppText>
                 </AppCard>
               </div>
@@ -434,12 +434,12 @@ const ProductFormMasterDesktopPage = ({
                   </span>
                   <div className="mt-1">
                     <span
-                      className={`inline-flex items-center gap-1.5 text-[12px] font-bold capitalize ${selectedProductForm.displayStatus === "active" ? "text-success" : "text-text-muted"}`}
+                      className={`inline-flex items-center gap-1.5 text-[12px] font-bold capitalize ${selectedSalt.displayStatus === "active" ? "text-success" : "text-text-muted"}`}
                     >
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${selectedProductForm.displayStatus === "active" ? "bg-success" : "bg-text-muted"}`}
+                        className={`h-1.5 w-1.5 rounded-full ${selectedSalt.displayStatus === "active" ? "bg-success" : "bg-text-muted"}`}
                       />
-                      {selectedProductForm.displayStatus}
+                      {selectedSalt.displayStatus}
                     </span>
                   </div>
                 </div>
@@ -456,7 +456,7 @@ const ProductFormMasterDesktopPage = ({
                       color: "var(--app-color-text)",
                     }}
                   >
-                    {selectedProductForm.displayAvailability} System
+                    {selectedSalt.displayAvailability} System
                   </AppText>
                 </div>
                 <div>
@@ -474,7 +474,7 @@ const ProductFormMasterDesktopPage = ({
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {selectedProductForm._id}
+                    {selectedSalt._id}
                   </AppText>
                 </div>
               </div>
@@ -531,7 +531,7 @@ const TableToolbar = ({
         name="search"
         value={filters.search}
         onChange={handleSearchChange}
-        placeholder="Query product form catalog by name or description segment string..."
+        placeholder="Query salt catalog by name or description segment string..."
         clearable
         onClear={() => handleSearchChange("")}
         size="small"
@@ -803,13 +803,13 @@ const dialogValueCodeSx = {
   m: 0,
   fontSize: "20px",
   color: "var(--app-color-text)",
-  letterSpacing: "-0.3px",
-  mt: 0.25,
+  letterSpacing: "-0.4px",
+  mt: 0.15,
 };
 const dialogDescTextSx = {
   fontSize: "12.5px",
-  lineHeight: "20px",
-  color: "var(--app-color-text)",
+  lineHeight: "19px",
+  color: "var(--app-color-text-muted)",
 };
 
-export default ProductFormMasterDesktopPage;
+export default SaltMasterDesktopPage;

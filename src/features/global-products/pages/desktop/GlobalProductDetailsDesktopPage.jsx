@@ -43,6 +43,7 @@ const GlobalProductDetailsDesktopPage = ({
   handleTabChange,
   handleBack,
   handleRefresh,
+  handleBackToCatalog,
 }) => {
   if (isLoading && !product) {
     return (
