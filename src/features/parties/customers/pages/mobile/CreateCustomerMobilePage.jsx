@@ -215,11 +215,12 @@ const CreateCustomerMobilePage = memo(
                   variant="outlined"
                   colorVariant="neutral"
                   rounded="md"
-                  onClick={handleCancel}
+                  startIcon={currentStep > 1 ? <FiArrowLeft /> : undefined}
+                  onClick={currentStep > 1 ? handleBack : handleCancel}
                   disabled={isLoading}
                   sx={actionButtonCancelSx}
                 >
-                  Cancel
+                  {currentStep > 1 ? "Back" : "Cancel"}
                 </AppButton>
                 <AppButton
                   variant="contained"

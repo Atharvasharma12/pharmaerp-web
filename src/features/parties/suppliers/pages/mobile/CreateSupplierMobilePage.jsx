@@ -215,11 +215,12 @@ const CreateSupplierMobilePage = memo(
                   variant="outlined"
                   colorVariant="neutral"
                   rounded="md"
-                  onClick={handleCancel}
+                  startIcon={currentStep > 1 ? <FiArrowLeft /> : undefined}
+                  onClick={currentStep > 1 ? handleBack : handleCancel}
                   disabled={isLoading}
                   sx={actionButtonCancelSx}
                 >
-                  Cancel
+                  {currentStep > 1 ? "Back" : "Cancel"}
                 </AppButton>
                 <AppButton
                   variant="contained"
@@ -712,7 +713,7 @@ const MobileStepReviewAndCreate = ({
   };
 
   return (
-    <AppStack direction="column" gap={1.5} sx={{ pb: 10 }}>
+    <AppStack direction="column" gap={1.5} sx={{ pb: 2 }}>
       {/* Step 1 Profile Review */}
       <AppCard
         variant="default"
@@ -998,7 +999,7 @@ const submitErrorTextSx = {
 
 const securityFooterBannerSx = {
   mt: 1.5,
-  mb: 10,
+  mb: 1.5,
   mx: 0.5,
   p: 1.25,
   bgcolor: "color-mix(in_srgb, var(--app-color-success) 4%, var(--app-color-surface))",
@@ -1017,20 +1018,9 @@ const securityBannerDescSx = {
 };
 
 const bottomStickyActionBarSx = {
-  position: "fixed",
-  bottom: 0,
-  left: 0,
-  right: 0,
-  zIndex: 100,
+  mt: 2.2,
+  mb: 1.5,
   width: "100%",
-  maxWidth: { xs: 430, sm: 460 },
-  mx: "auto",
-  bgcolor: "var(--app-color-surface)",
-  borderTop: "1px solid var(--app-color-border)",
-  px: 1.5,
-  py: 1,
-  boxShadow: "0 -4px 12px color-mix(in_srgb, var(--app-color-text) 5%, transparent)",
-  display: "flex",
 };
 
 const actionButtonLeftSx = {

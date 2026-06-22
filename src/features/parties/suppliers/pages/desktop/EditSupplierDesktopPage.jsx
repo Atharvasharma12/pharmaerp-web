@@ -1023,24 +1023,40 @@ const ReviewAndCreateStep = ({
             colorVariant="neutral"
             rounded="md"
             size="small"
-            onClick={onSaveDraft}
+            startIcon={<FiArrowLeft />}
+            disabled={isUpdating}
+            onClick={onBack}
             sx={secondaryActionBtnSx}
           >
-            Cancel
+            Back
           </AppButton>
-          <AppButton
-            variant="contained"
-            colorVariant="success"
-            rounded="md"
-            size="small"
-            startIcon={<FiCheckCircle />}
-            onClick={onSubmit}
-            loading={isUpdating}
-            disabled={isUpdating}
-            sx={primaryActionBtnSx}
-          >
-            Save Changes
-          </AppButton>
+
+          <AppStack direction="row" align="center" gap={1.2}>
+            <AppButton
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              disabled={isUpdating}
+              onClick={onSaveDraft}
+              sx={secondaryActionBtnSx}
+            >
+              Cancel
+            </AppButton>
+            <AppButton
+              variant="contained"
+              colorVariant="success"
+              rounded="md"
+              size="small"
+              startIcon={<FiCheckCircle />}
+              onClick={onSubmit}
+              loading={isUpdating}
+              disabled={isUpdating}
+              sx={primaryActionBtnSx}
+            >
+              Save Changes
+            </AppButton>
+          </AppStack>
         </AppStack>
       </AppCard>
     </AppStack>

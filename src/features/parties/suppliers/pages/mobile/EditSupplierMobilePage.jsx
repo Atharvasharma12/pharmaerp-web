@@ -239,11 +239,12 @@ const EditSupplierMobilePage = memo(
                   variant="outlined"
                   colorVariant="neutral"
                   rounded="md"
-                  onClick={handleCancel}
+                  startIcon={currentStep > 1 ? <FiArrowLeft /> : undefined}
+                  onClick={currentStep > 1 ? handleBack : handleCancel}
                   disabled={isLoading || isFetching}
                   sx={actionButtonCancelSx}
                 >
-                  Cancel
+                  {currentStep > 1 ? "Back" : "Cancel"}
                 </AppButton>
                 <AppButton
                   variant="contained"
@@ -736,7 +737,7 @@ const MobileStepReviewAndCreate = ({
   };
 
   return (
-    <AppStack direction="column" gap={1.5} sx={{ pb: 10 }}>
+    <AppStack direction="column" gap={1.5} sx={{ pb: 2 }}>
       {/* Step 1 Profile Review */}
       <AppCard
         variant="default"
@@ -923,7 +924,7 @@ const containerSx = {
   mx: "auto",
   px: 0.5,
   pt: 0,
-  pb: 8,
+  pb: 0,
 };
 
 const headerTitleBlockSx = {
@@ -1043,18 +1044,9 @@ const securityBannerDescSx = {
 };
 
 const bottomStickyActionBarSx = {
-  position: "fixed",
-  bottom: 0,
-  left: 0,
-  right: 0,
-  bgcolor: "var(--app-color-surface)",
-  borderTop: "1px solid var(--app-color-border)",
-  p: 1.25,
-  zIndex: 100,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  boxShadow: "0 -2px 10px rgba(0, 0, 0, 0.05)",
+  mt: 2.2,
+  mb: 1.5,
+  width: "100%",
 };
 
 const actionButtonLeftSx = {
