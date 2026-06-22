@@ -1,7 +1,967 @@
-import React from "react";
+// src/features/parties/suppliers/pages/desktop/SuppliersDesktopPage.jsx
 
-const SuppliersDesktopPage = () => {
-  return <div>SuppliersDesktopPage</div>;
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  FiArrowLeft,
+  FiChevronLeft,
+  FiChevronRight,
+  FiPlus,
+  FiRefreshCw,
+  FiSearch,
+  FiUsers,
+  FiEye,
+  FiEdit2,
+  FiTrash2,
+  FiUserCheck,
+  FiUserMinus,
+  FiUserX,
+  FiMoreHorizontal,
+} from "react-icons/fi";
+import { LuStore } from "react-icons/lu";
+import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
+
+import {
+  AppAlert,
+  AppBox,
+  AppBreadcrumb,
+  AppButton,
+  AppCard,
+  AppEmptyState,
+  AppErrorState,
+  AppHeading,
+  AppIconButton,
+  AppMenu,
+  AppSearchInput,
+  AppSelect,
+  AppStack,
+  AppStatusBadge,
+  AppTable,
+  AppTableSkeleton,
+  AppTag,
+  AppText,
+  HELP_SUPPORT_CARD,
+  PageRightSidebar,
+} from "@/components";
+
+const typeColorMap = {
+  manufacturer: "purple",
+  distributor: "success",
+  wholesaler: "primary",
+  local_vendor: "warning",
+  other: "neutral",
+};
+
+const statusColorMap = {
+  active: "success",
+  inactive: "neutral",
+  blocked: "danger",
+};
+
+const getCategoryIcon = (type = "") => {
+  const normType = String(type).toLowerCase();
+  if (normType === "manufacturer") {
+    return <HiOutlineBuildingOffice2 />;
+  }
+  return <LuStore />;
+};
+
+const SuppliersDesktopPage = ({
+  suppliers = [],
+  stats,
+  typeDistribution = [],
+  filters,
+  activeFilterChips = [],
+  isLoading,
+  hasError,
+  error,
+  message,
+  totalSuppliers = 0,
+  filteredSuppliersCount = 0,
+  hasSuppliers,
+  hasFilteredSuppliers,
+
+  handleFilterChange,
+  handleSearchChange,
+  handleRemoveFilter,
+  handleClearFilters,
+
+  handleCreateSupplier,
+  handleViewSupplier,
+  handleEditSupplier,
+  handleDeleteSupplier,
+  handleRefresh,
+
+  clearMessage,
+}) => {
+  const showInitialSkeleton = isLoading && !hasSuppliers;
+  const navigate = useNavigate();
+
+  const columns = useMemo(
+    () => [
+      {
+        id: "supplierName",
+        key: "displayName",
+        label: "Supplier Name",
+        minWidth: 220,
+        render: (_, supplier) => (
+          <div className="flex items-center gap-3 min-w-0 h-full">
+            <div className="flex items-center justify-center shrink-0">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-alt border border-border text-text-muted">
+                {getCategoryIcon(supplier.supplierType || supplier.type)}
+              </span>
+            </div>
+            <div className="flex flex-col min-w-0 justify-center">
+              <AppHeading level={3} weight={700} sx={supplierNameSx}>
+                {supplier?.displayName || "-"}
+              </AppHeading>
+              {supplier?.displayEmail && (
+                <AppText variant="body2" sx={supplierSubTextSx}>
+                  {supplier.displayEmail}
+                </AppText>
+              )}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: "supplierType",
+        key: "displayType",
+        label: "Supplier Type",
+        width: 140,
+        render: (_, supplier) => (
+          <AppTag
+            label={supplier.displayType || "Distributor"}
+            variant="soft"
+            colorVariant={
+              typeColorMap[
+                String(supplier.supplierType || supplier.type).toLowerCase()
+              ] || "neutral"
+            }
+            rounded="md"
+            sx={roleTagSx}
+          />
+        ),
+      },
+      {
+        id: "mobile",
+        key: "displayMobile",
+        label: "Mobile",
+        width: 140,
+        render: (_, supplier) => (
+          <AppText variant="body2" sx={tableValueMutedSx}>
+            {supplier.displayMobile || "-"}
+          </AppText>
+        ),
+      },
+      {
+        id: "email",
+        key: "displayEmail",
+        label: "Email",
+        width: 180,
+        render: (_, supplier) => (
+          <AppText variant="body2" sx={tableValueMutedSx}>
+            {supplier.displayEmail || "—"}
+          </AppText>
+        ),
+      },
+      {
+        id: "creditDays",
+        key: "creditDays",
+        label: "Credit Days",
+        width: 150,
+        render: (_, supplier) => (
+          <AppText variant="body2" sx={{ fontSize: "12px", fontWeight: 700 }}>
+            {supplier.creditDays || 0} Days
+          </AppText>
+        ),
+      },
+      {
+        id: "status",
+        key: "displayStatus",
+        label: "Status",
+        width: 120,
+        render: (_, supplier) => (
+          <AppStatusBadge
+            status={String(supplier.displayStatus).toLowerCase()}
+            label={supplier.displayStatus || ""}
+            variant="soft"
+            size="small"
+            rounded="md"
+            colorVariant={
+              statusColorMap[String(supplier.displayStatus).toLowerCase()] ||
+              "neutral"
+            }
+            sx={statusBadgeSx}
+          />
+        ),
+      },
+      {
+        id: "actions",
+        key: "actions",
+        label: "Actions",
+        align: "right",
+        width: 80,
+        render: (_, supplier) => (
+          <SupplierActions
+            supplier={supplier}
+            onView={handleViewSupplier}
+            onEdit={handleEditSupplier}
+            onDelete={handleDeleteSupplier}
+          />
+        ),
+      },
+    ],
+    [handleViewSupplier, handleEditSupplier, handleDeleteSupplier],
+  );
+
+  return (
+    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
+      {message ? <TopToast message={message} onClose={clearMessage} /> : null}
+
+      <div className="mx-auto w-full max-w-[1500px]">
+        <AppBox
+          display="flex"
+          alignItems="flex-start"
+          justifyContent="space-between"
+          sx={pageHeaderSx}
+        >
+          <AppBox sx={pageHeaderContentSx}>
+            <AppHeading level={1} weight={650}>
+              Suppliers
+            </AppHeading>
+            <AppText variant="body2" sx={pageHeaderSubtitleSx}>
+              View and manage all your supplier records.
+            </AppText>
+            <AppBreadcrumb
+              size="small"
+              variant="text"
+              items={[
+                { label: "Dashboard", onClick: () => navigate("/") },
+                { label: "Parties", onClick: () => navigate("/parties") },
+                { label: "Suppliers", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
+            />
+          </AppBox>
+
+          <AppStack
+            direction="row"
+            align="center"
+            justify="flex-end"
+            gap={1.1}
+            sx={{ flexShrink: 0 }}
+          >
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              startIcon={<FiArrowLeft />}
+              onClick={() => navigate("/parties")}
+              sx={secondaryButtonSx}
+            >
+              Back
+            </AppButton>
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              startIcon={<FiRefreshCw />}
+              onClick={handleRefresh}
+              loading={isLoading}
+              disabled={isLoading}
+              sx={secondaryButtonSx}
+            >
+              Refresh
+            </AppButton>
+            <AppButton
+              type="button"
+              variant="contained"
+              colorVariant="success"
+              rounded="md"
+              size="small"
+              startIcon={<FiPlus />}
+              onClick={handleCreateSupplier}
+              sx={primaryButtonSx}
+            >
+              Add Supplier
+            </AppButton>
+          </AppStack>
+        </AppBox>
+
+        {error && !hasError ? (
+          <AppAlert
+            severity="error"
+            variant="soft"
+            title="Something went wrong"
+            closable
+            onClose={handleRefresh}
+            sx={alertSx}
+          >
+            {error}
+          </AppAlert>
+        ) : null}
+
+        <div className="mt-5 grid grid-cols-[minmax(0,1fr)_290px] gap-5">
+          <AppCard
+            variant="default"
+            rounded="lg"
+            bordered
+            shadow="sm"
+            padding="none"
+            sx={tableCardSx}
+          >
+            <TableToolbar
+              filters={filters}
+              activeFilterChips={activeFilterChips}
+              handleFilterChange={handleFilterChange}
+              handleSearchChange={handleSearchChange}
+              handleRemoveFilter={handleRemoveFilter}
+              handleClearFilters={handleClearFilters}
+            />
+
+            {hasError ? (
+              <AppErrorState
+                title="Unable to load suppliers list"
+                description={error || "Please refresh and try again."}
+                actionText="Refresh"
+                onRetry={handleRefresh}
+                size="page"
+                sx={stateSx}
+              />
+            ) : showInitialSkeleton ? (
+              <AppTableSkeleton rows={8} columns={7} showHeader={false} />
+            ) : !hasSuppliers ? (
+              <AppEmptyState
+                title="No suppliers configured yet"
+                description="Add supplier profiles to start recording purchases and credit cycles."
+                icon={<FiUsers />}
+                action={
+                  <AppButton
+                    variant="contained"
+                    colorVariant="success"
+                    rounded="md"
+                    startIcon={<FiPlus />}
+                    onClick={handleCreateSupplier}
+                  >
+                    Add Supplier
+                  </AppButton>
+                }
+                size="page"
+                sx={stateSx}
+              />
+            ) : !hasFilteredSuppliers ? (
+              <AppEmptyState
+                title="No supplier records match"
+                description="Try changing your search keywords or filter dropdown definitions."
+                icon={<FiSearch />}
+                action={
+                  <AppButton
+                    variant="outlined"
+                    colorVariant="neutral"
+                    rounded="md"
+                    onClick={handleClearFilters}
+                  >
+                    Reset Filters
+                  </AppButton>
+                }
+                size="page"
+                sx={stateSx}
+              />
+            ) : (
+              <AppTable
+                columns={columns}
+                rows={suppliers}
+                getRowId={(row) => row.id || row._id}
+                dense
+                bordered={false}
+                rounded={false}
+                hover
+                stickyHeader
+                minWidth={980}
+                maxHeight="calc(100vh - 340px)"
+                sx={tableSx}
+                headSx={tableHeadSx}
+                cellSx={tableCellSx}
+              />
+            )}
+
+            {hasSuppliers && totalSuppliers > 10 ? (
+              <TableFooter
+                totalSuppliers={totalSuppliers}
+                filteredSuppliersCount={filteredSuppliersCount}
+                handleClearFilters={handleClearFilters}
+              />
+            ) : null}
+          </AppCard>
+
+          <SuppliersRightSidebar
+            stats={stats}
+            typeDistribution={typeDistribution}
+          />
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const TopToast = ({ message, onClose }) => (
+  <div className="fixed left-1/2 top-4 z-[1400] w-[calc(100%-32px)] max-w-md -translate-x-1/2">
+    <AppAlert
+      severity="success"
+      variant="filled"
+      title={message}
+      closable
+      onClose={onClose}
+      sx={toastSx}
+    />
+  </div>
+);
+
+const TableToolbar = ({
+  filters,
+  activeFilterChips,
+  handleFilterChange,
+  handleSearchChange,
+  handleRemoveFilter,
+  handleClearFilters,
+}) => (
+  <div className="border-b border-border px-3.5 py-3">
+    <div className="grid grid-cols-[minmax(300px,1fr)_128px_150px_104px] items-center gap-3">
+      <AppSearchInput
+        name="search"
+        value={filters.search}
+        onChange={handleSearchChange}
+        placeholder="Search suppliers..."
+        clearable
+        onClear={() => handleSearchChange("")}
+        size="small"
+        variant="bordered"
+        rounded="md"
+        sx={searchSx}
+        inputSx={filterInputSx}
+      />
+
+      <AppSelect
+        name="status"
+        value={filters.status}
+        onChange={handleFilterChange}
+        placeholder="Status"
+        options={[
+          { label: "Status: All", value: "all" },
+          { label: "Active", value: "active" },
+          { label: "Inactive", value: "inactive" },
+          { label: "Blocked", value: "blocked" },
+        ]}
+        size="small"
+        variant="bordered"
+        rounded="md"
+        sx={selectSx}
+        inputSx={filterInputSx}
+      />
+
+      <AppSelect
+        name="type"
+        value={filters.type}
+        onChange={handleFilterChange}
+        placeholder="Supplier Type"
+        options={[
+          { label: "Type: All", value: "all" },
+          { label: "Manufacturer", value: "manufacturer" },
+          { label: "Distributor", value: "distributor" },
+          { label: "Wholesaler", value: "wholesaler" },
+          { label: "Local Vendor", value: "local_vendor" },
+          { label: "Other", value: "other" },
+        ]}
+        size="small"
+        variant="bordered"
+        rounded="md"
+        sx={selectSx}
+        inputSx={filterInputSx}
+      />
+
+      <AppButton
+        type="button"
+        variant="outlined"
+        colorVariant="neutral"
+        rounded="md"
+        size="small"
+        startIcon={<FiRefreshCw />}
+        onClick={handleClearFilters}
+        sx={clearButtonSx}
+      >
+        Reset
+      </AppButton>
+    </div>
+
+    {activeFilterChips.length ? (
+      <AppStack direction="row" align="center" gap={0.7} sx={chipsRowSx}>
+        {activeFilterChips.map((chip) => (
+          <button
+            key={chip.key}
+            type="button"
+            onClick={() => handleRemoveFilter(chip.key)}
+            className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-alt px-2 py-1 text-[11px] font-semibold text-text-muted transition hover:bg-surface-hover"
+          >
+            {chip.label}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          onClick={handleClearFilters}
+          className="text-[11px] font-semibold text-primary"
+        >
+          Clear all
+        </button>
+      </AppStack>
+    ) : null}
+  </div>
+);
+
+const SupplierActions = ({ supplier, onView, onEdit, onDelete }) => {
+  const items = [
+    {
+      id: "view",
+      label: "View Details",
+      icon: <FiEye />,
+      onClick: () => onView?.(supplier),
+    },
+    {
+      id: "edit",
+      label: "Edit Supplier",
+      icon: <FiEdit2 />,
+      onClick: () => onEdit?.(supplier),
+    },
+    { id: "divider", type: "divider" },
+    {
+      id: "remove",
+      label: "Remove Profile",
+      icon: <FiTrash2 />,
+      danger: true,
+      onClick: () => onDelete?.(supplier),
+    },
+  ];
+
+  return (
+    <AppMenu
+      trigger={
+        <button
+          type="button"
+          aria-label="Supplier actions list trigger"
+          className="inline-flex h-auto w-auto items-center justify-center border-0 bg-transparent p-0 text-text-muted shadow-none outline-none transition hover:bg-transparent hover:text-primary focus:bg-transparent active:bg-transparent"
+        >
+          <FiMoreHorizontal className="text-[18px]" />
+        </button>
+      }
+      items={items}
+      dense
+      minWidth={170}
+    />
+  );
+};
+
+const TableFooter = ({
+  totalSuppliers,
+  filteredSuppliersCount,
+  handleClearFilters,
+}) => (
+  <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
+    <AppText variant="body2" sx={footerTextSx}>
+      Showing {filteredSuppliersCount > 0 ? 1 : 0} to {filteredSuppliersCount}{" "}
+      of {totalSuppliers} suppliers
+    </AppText>
+
+    <AppStack direction="row" align="center" gap={1}>
+      <AppButton
+        type="button"
+        variant="outlined"
+        colorVariant="neutral"
+        rounded="md"
+        size="small"
+        endIcon={<FiChevronRight className="rotate-90" />}
+        sx={pageSizeButtonSx}
+      >
+        10 per page
+      </AppButton>
+
+      <AppIconButton
+        icon={<FiChevronLeft />}
+        variant="outlined"
+        colorVariant="neutral"
+        size="small"
+        rounded="md"
+        disabled
+      />
+
+      <span className="flex h-[31px] min-w-[31px] items-center justify-center rounded-md bg-primary px-2 text-[12px] font-bold text-text-inverse">
+        1
+      </span>
+
+      <AppIconButton
+        icon={<FiChevronRight />}
+        variant="outlined"
+        colorVariant="neutral"
+        size="small"
+        rounded="md"
+        onClick={handleClearFilters}
+        disabled={totalSuppliers <= 10}
+      />
+    </AppStack>
+  </div>
+);
+
+const SuppliersRightSidebar = ({ stats, typeDistribution = [] }) => {
+  return (
+    <PageRightSidebar
+      spacing={4}
+      cards={[
+        {
+          title: "Suppliers Summary",
+          icon: null,
+          colorVariant: "success",
+          variant: "default",
+          custom: <SuppliersSummaryWidget stats={stats} />,
+        },
+        {
+          title: "Supplier Type",
+          icon: null,
+          colorVariant: "primary",
+          variant: "default",
+          custom: <TypeDistributionList typeDistribution={typeDistribution} />,
+        },
+        {
+          title: "Quick Actions",
+          icon: null,
+          colorVariant: "primary",
+          variant: "default",
+          custom: <SidebarQuickActions />,
+        },
+        HELP_SUPPORT_CARD,
+      ]}
+    />
+  );
+};
+
+const SuppliersSummaryWidget = ({ stats }) => {
+  return (
+    <div className="space-y-3.5">
+      {/* Total */}
+      <AppStack direction="row" align="center" justify="space-between">
+        <AppStack direction="row" align="center" gap={1.2}>
+          <IconBox icon={<FiUsers />} colorVariant="success" small />
+          <div>
+            <AppText variant="body2" sx={sidebarRowTitleSx}>
+              Total Suppliers
+            </AppText>
+            <AppText variant="body2" sx={sidebarRowDescSx}>
+              Total supplier records
+            </AppText>
+          </div>
+        </AppStack>
+        <AppText variant="body2" sx={sidebarRowValueSx}>
+          {stats.total.toLocaleString()}
+        </AppText>
+      </AppStack>
+
+      {/* Active */}
+      <AppStack direction="row" align="center" justify="space-between">
+        <AppStack direction="row" align="center" gap={1.2}>
+          <IconBox icon={<FiUserCheck />} colorVariant="success" small />
+          <div>
+            <AppText variant="body2" sx={sidebarRowTitleSx}>
+              Active Suppliers
+            </AppText>
+            <AppText variant="body2" sx={sidebarRowDescSx}>
+              Active suppliers logs
+            </AppText>
+          </div>
+        </AppStack>
+        <AppText variant="body2" sx={sidebarRowValueActiveSx}>
+          {stats.active.toLocaleString()}
+        </AppText>
+      </AppStack>
+
+      {/* Inactive */}
+      <AppStack direction="row" align="center" justify="space-between">
+        <AppStack direction="row" align="center" gap={1.2}>
+          <IconBox icon={<FiUserMinus />} colorVariant="neutral" small />
+          <div>
+            <AppText variant="body2" sx={sidebarRowTitleSx}>
+              Inactive Suppliers
+            </AppText>
+            <AppText variant="body2" sx={sidebarRowDescSx}>
+              Dormant partner logs
+            </AppText>
+          </div>
+        </AppStack>
+        <AppText variant="body2" sx={sidebarRowValueMutedSx}>
+          {stats.inactive.toLocaleString()}
+        </AppText>
+      </AppStack>
+
+      {/* Blocked */}
+      <AppStack direction="row" align="center" justify="space-between">
+        <AppStack direction="row" align="center" gap={1.2}>
+          <IconBox icon={<FiUserX />} colorVariant="danger" small />
+          <div>
+            <AppText variant="body2" sx={sidebarRowTitleSx}>
+              Blocked Suppliers
+            </AppText>
+            <AppText variant="body2" sx={sidebarRowDescSx}>
+              Suspended supply terms
+            </AppText>
+          </div>
+        </AppStack>
+        <AppText variant="body2" sx={sidebarRowValueDangerSx}>
+          {stats.blocked.toLocaleString()}
+        </AppText>
+      </AppStack>
+    </div>
+  );
+};
+
+const TypeDistributionList = ({ typeDistribution = [] }) => (
+  <div className="space-y-2.5">
+    {typeDistribution.map((item) => (
+      <div
+        key={item.name}
+        className="flex items-center justify-between text-[11.5px] font-semibold text-text"
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className="h-2 w-2 rounded-full inline-block"
+            style={{ backgroundColor: item.color }}
+          />
+          <span>{item.name}</span>
+        </div>
+        <span className="text-text-muted font-bold">
+          {item.count.toLocaleString()}
+        </span>
+      </div>
+    ))}
+  </div>
+);
+
+const SidebarQuickActions = () => (
+  <div className="space-y-3">
+    <QuickActionItem text="Import Suppliers" />
+    <QuickActionItem text="Export Suppliers" />
+    <QuickActionItem text="Supplier Groups" />
+    <QuickActionItem text="Merge Profiles" />
+  </div>
+);
+
+const QuickActionItem = ({ text }) => (
+  <button
+    type="button"
+    className="flex w-full items-center gap-2 text-left text-[12px] font-semibold text-text-muted transition hover:text-primary"
+  >
+    <span className="text-[14px] text-text-muted/80">+</span>
+    {text}
+  </button>
+);
+
+const IconBox = ({ icon, colorVariant = "primary", small = false }) => (
+  <AppBox
+    display="flex"
+    alignItems="center"
+    justifyContent="center"
+    sx={{
+      width: small ? 32 : 44,
+      height: small ? 32 : 44,
+      minWidth: small ? 32 : 44,
+      borderRadius: small ? "9px" : "12px",
+      bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
+      color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
+      fontSize: small ? "15px" : "22px",
+    }}
+  >
+    {icon}
+  </AppBox>
+);
+
+// Style definitions
+const pageHeaderSx = { width: "100%" };
+const pageHeaderSubtitleSx = {
+  mt: 0.55,
+  fontSize: "13px",
+  lineHeight: "20px",
+  color: "var(--app-color-text-muted)",
+};
+const pageHeaderContentSx = {
+  minWidth: 0,
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
+};
+const breadcrumbSx = { mb: 1 };
+const breadcrumbItemSx = {
+  fontSize: "12px",
+  color: "var(--app-color-text-muted)",
+};
+const breadcrumbCurrentSx = {
+  fontSize: "12px",
+  fontWeight: 650,
+  color: "var(--app-color-text)",
+};
+
+const secondaryButtonSx = {
+  height: 36,
+  minWidth: 86,
+  px: 1.5,
+  fontSize: "12px",
+  fontWeight: 650,
+};
+const primaryButtonSx = {
+  height: 36,
+  minWidth: 124,
+  px: 1.7,
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
+const tableCardSx = {
+  overflow: "hidden",
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+};
+const tableSx = {
+  "& .MuiTableContainer-root": {
+    borderRadius: 0,
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+    "&::-webkit-scrollbar": { display: "none" },
+  },
+};
+const tableHeadSx = {
+  bgcolor: "var(--app-color-surface-alt)",
+  "& .MuiTableCell-root": {
+    fontSize: "11.2px",
+    fontWeight: 750,
+    color: "var(--app-color-text-muted)",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+  },
+};
+const tableCellSx = {
+  py: 1.2,
+  fontSize: "12px",
+  borderColor: "var(--app-color-border)",
+};
+const tableValueMutedSx = {
+  fontSize: "12px",
+  fontWeight: 550,
+  color: "var(--app-color-text-muted)",
+};
+const alertSx = { mt: 3 };
+const searchSx = { width: "100%" };
+const selectSx = { width: "100%" };
+const filterInputSx = {
+  minHeight: 36,
+  fontSize: "12px",
+  bgcolor: "var(--app-color-surface)",
+};
+const clearButtonSx = {
+  height: 36,
+  minWidth: 88,
+  px: 1.2,
+  fontSize: "12px",
+  fontWeight: 650,
+};
+const chipsRowSx = { mt: 1.2, flexWrap: "wrap" };
+
+const supplierNameSx = {
+  m: 0,
+  fontSize: "12.5px",
+  fontWeight: 700,
+  color: "var(--app-color-text)",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+};
+const supplierSubTextSx = {
+  fontSize: "11px",
+  color: "var(--app-color-text-muted)",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+};
+const roleTagSx = {
+  height: 22,
+  px: 1.2,
+  fontSize: "10.5px",
+  fontWeight: 700,
+};
+const statusBadgeSx = {
+  height: 22,
+  px: 1.2,
+  fontSize: "10.5px",
+  fontWeight: 700,
+  textTransform: "capitalize",
+};
+
+const footerTextSx = {
+  fontSize: "12px",
+  color: "var(--app-color-text-muted)",
+};
+const pageSizeButtonSx = {
+  height: 31,
+  fontSize: "11.5px",
+  borderColor: "var(--app-color-border)",
+  color: "var(--app-color-text-muted)",
+  "& .MuiButton-endIcon": {
+    marginLeft: "4px",
+  },
+};
+
+const stateSx = {
+  minHeight: 390,
+};
+
+const sidebarRowTitleSx = {
+  fontSize: "12px",
+  fontWeight: 700,
+  color: "var(--app-color-text)",
+  lineHeight: 1.2,
+};
+const sidebarRowDescSx = {
+  fontSize: "10.5px",
+  color: "var(--app-color-text-muted)",
+  mt: 0.15,
+};
+const sidebarRowValueSx = {
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "var(--app-color-text)",
+};
+const sidebarRowValueActiveSx = {
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "var(--app-color-success)",
+};
+const sidebarRowValueMutedSx = {
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "var(--app-color-text-muted)",
+};
+const sidebarRowValueDangerSx = {
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "var(--app-color-danger)",
+};
+const toastSx = {
+  boxShadow: "var(--app-shadow-lg)",
 };
 
 export default SuppliersDesktopPage;

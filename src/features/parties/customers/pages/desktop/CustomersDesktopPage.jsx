@@ -1,7 +1,9 @@
 // src/features/parties/customers/pages/desktop/CustomersDesktopPage.jsx
 
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
+  FiArrowLeft,
   FiChevronLeft,
   FiChevronRight,
   FiDownload,
@@ -37,11 +39,11 @@ import {
   AppSelect,
   AppStack,
   AppStatusBadge,
+  AppTable,
   AppTableSkeleton,
   AppTag,
   AppText,
   HELP_SUPPORT_CARD,
-  PageHeader,
   PageRightSidebar,
 } from "@/components";
 
@@ -97,68 +99,201 @@ const CustomersDesktopPage = ({
   clearMessage,
 }) => {
   const showInitialSkeleton = isLoading && !hasCustomers;
+  const navigate = useNavigate();
+
+  const columns = useMemo(
+    () => [
+      {
+        id: "customerName",
+        key: "displayName",
+        label: "Customer Name",
+        minWidth: 220,
+        render: (_, customer) => (
+          <div className="flex items-center gap-3 min-w-0 h-full">
+            <div className="flex items-center justify-center shrink-0">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-alt border border-border text-text-muted">
+                {getCategoryIcon(customer.customerType || customer.type)}
+              </span>
+            </div>
+            <div className="flex flex-col min-w-0 justify-center">
+              <AppHeading level={3} weight={700} sx={customerNameSx}>
+                {customer?.displayName || "-"}
+              </AppHeading>
+              {customer?.displayEmail && (
+                <AppText variant="body2" sx={customerSubTextSx}>
+                  {customer.displayEmail}
+                </AppText>
+              )}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: "customerType",
+        key: "displayType",
+        label: "Customer Type",
+        width: 140,
+        render: (_, customer) => (
+          <AppTag
+            label={customer.displayType || "Retail"}
+            variant="soft"
+            colorVariant={typeColorMap[String(customer.customerType || customer.type).toLowerCase()] || "neutral"}
+            rounded="md"
+            sx={roleTagSx}
+          />
+        ),
+      },
+      {
+        id: "mobile",
+        key: "displayMobile",
+        label: "Mobile",
+        width: 140,
+        render: (_, customer) => (
+          <AppText variant="body2" sx={tableValueMutedSx}>
+            {customer.displayMobile || "-"}
+          </AppText>
+        ),
+      },
+      {
+        id: "email",
+        key: "displayEmail",
+        label: "Email",
+        width: 180,
+        render: (_, customer) => (
+          <AppText variant="body2" sx={tableValueMutedSx}>
+            {customer.displayEmail || "—"}
+          </AppText>
+        ),
+      },
+      {
+        id: "creditLimit",
+        key: "displayCreditLimit",
+        label: "Credit Limit",
+        width: 150,
+        render: (_, customer) => (
+          <AppText variant="body2" sx={{ fontSize: "12px", fontWeight: 700 }}>
+            ₹ {customer.displayCreditLimit.toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </AppText>
+        ),
+      },
+      {
+        id: "status",
+        key: "displayStatus",
+        label: "Status",
+        width: 120,
+        render: (_, customer) => (
+          <AppStatusBadge
+            status={String(customer.displayStatus).toLowerCase()}
+            label={customer.displayStatus || ""}
+            variant="soft"
+            size="small"
+            rounded="md"
+            colorVariant={statusColorMap[String(customer.displayStatus).toLowerCase()] || "neutral"}
+            sx={statusBadgeSx}
+          />
+        ),
+      },
+      {
+        id: "actions",
+        key: "actions",
+        label: "Actions",
+        align: "right",
+        width: 80,
+        render: (_, customer) => (
+          <CustomerActions
+            customer={customer}
+            onView={handleViewCustomer}
+            onEdit={handleEditCustomer}
+            onDelete={handleDeleteCustomer}
+          />
+        ),
+      },
+    ],
+    [handleViewCustomer, handleEditCustomer, handleDeleteCustomer],
+  );
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
       {message ? <TopToast message={message} onClose={clearMessage} /> : null}
 
       <div className="mx-auto w-full max-w-[1500px]">
-        <PageHeader
-          title="Customers"
-          subtitle="View and manage all your customer records."
-          extra={
+        <AppBox
+          display="flex"
+          alignItems="flex-start"
+          justifyContent="space-between"
+          sx={pageHeaderSx}
+        >
+          <AppBox sx={pageHeaderContentSx}>
+            <AppHeading level={1} weight={650}>
+              Customers
+            </AppHeading>
+            <AppText variant="body2" sx={pageHeaderSubtitleSx}>
+              View and manage all your customer records.
+            </AppText>
             <AppBreadcrumb
               size="small"
               variant="text"
               items={[
-                { label: "Dashboard" },
-                { label: "Parties" },
+                { label: "Dashboard", onClick: () => navigate("/") },
+                { label: "Parties", onClick: () => navigate("/parties") },
                 { label: "Customers", current: true },
               ]}
               sx={breadcrumbSx}
               itemSx={breadcrumbItemSx}
               currentItemSx={breadcrumbCurrentSx}
             />
-          }
-          actions={
-            <AppStack
-              direction="row"
-              align="center"
-              justify="flex-end"
-              gap={1.1}
-              sx={{ flexShrink: 0 }}
-            >
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="neutral"
-                rounded="md"
-                size="small"
-                startIcon={<FiDownload />}
-                sx={secondaryButtonSx}
-              >
-                Export
-              </AppButton>
+          </AppBox>
 
-              <AppButton
-                type="button"
-                variant="contained"
-                colorVariant="success"
-                rounded="md"
-                size="small"
-                startIcon={<FiPlus />}
-                onClick={handleCreateCustomer}
-                sx={primaryButtonSx}
-              >
-                Add Customer
-              </AppButton>
-            </AppStack>
-          }
-          align="flex-start"
-          justify="space-between"
-          sx={pageHeaderSx}
-          contentSx={pageHeaderContentSx}
-        />
+          <AppStack
+            direction="row"
+            align="center"
+            justify="flex-end"
+            gap={1.1}
+            sx={{ flexShrink: 0 }}
+          >
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              startIcon={<FiArrowLeft />}
+              onClick={() => navigate("/parties")}
+              sx={secondaryButtonSx}
+            >
+              Back
+            </AppButton>
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              startIcon={<FiRefreshCw />}
+              onClick={handleRefresh}
+              loading={isLoading}
+              disabled={isLoading}
+              sx={secondaryButtonSx}
+            >
+              Refresh
+            </AppButton>
+            <AppButton
+              type="button"
+              variant="contained"
+              colorVariant="success"
+              rounded="md"
+              size="small"
+              startIcon={<FiPlus />}
+              onClick={handleCreateCustomer}
+              sx={primaryButtonSx}
+            >
+              Add Customer
+            </AppButton>
+          </AppStack>
+        </AppBox>
 
         {error && !hasError ? (
           <AppAlert
@@ -240,11 +375,20 @@ const CustomersDesktopPage = ({
                 sx={stateSx}
               />
             ) : (
-              <CustomersTable
-                customers={customers}
-                onView={handleViewCustomer}
-                onEdit={handleEditCustomer}
-                onDelete={handleDeleteCustomer}
+              <AppTable
+                columns={columns}
+                rows={customers}
+                getRowId={(row) => row.id || row._id}
+                dense
+                bordered={false}
+                rounded={false}
+                hover
+                stickyHeader
+                minWidth={980}
+                maxHeight="calc(100vh - 340px)"
+                sx={tableSx}
+                headSx={tableHeadSx}
+                cellSx={tableCellSx}
               />
             )}
 
@@ -378,117 +522,6 @@ const TableToolbar = ({
   </div>
 );
 
-const CustomersTable = ({ customers, onView, onEdit, onDelete }) => (
-  <div className="w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-    <div className="min-w-[980px]">
-      <div className="grid grid-cols-[1.1fr_1.5fr_1.1fr_1.1fr_1.5fr_1.2fr_1fr_54px] border-b border-border bg-surface-alt px-3.5 py-2.5">
-        <HeaderCell>Customer Code</HeaderCell>
-        <HeaderCell>Customer Name</HeaderCell>
-        <HeaderCell>Customer Type</HeaderCell>
-        <HeaderCell>Mobile</HeaderCell>
-        <HeaderCell>Email</HeaderCell>
-        <HeaderCell>Credit Limit</HeaderCell>
-        <HeaderCell>Status</HeaderCell>
-        <HeaderCell align="right">Actions</HeaderCell>
-      </div>
-
-      <div className="divide-y divide-border">
-        {customers.map((customer) => (
-          <CustomerRow
-            key={customer.id}
-            customer={customer}
-            onView={onView}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
-const HeaderCell = ({ children, align = "left" }) => (
-  <div
-    className={`text-[11.2px] font-bold leading-5 text-text-muted ${align === "right" ? "text-right" : "text-left"}`}
-  >
-    {children}
-  </div>
-);
-
-const CustomerRow = ({ customer, onView, onEdit, onDelete }) => (
-  <div className="grid min-h-[58px] grid-cols-[1.1fr_1.5fr_1.1fr_1.1fr_1.5fr_1.2fr_1fr_54px] items-center px-3.5 py-2 transition hover:bg-surface-hover/60">
-    <div className="font-semibold text-text-muted">
-      {customer.displayCode || "-"}
-    </div>
-
-    <div className="flex items-center gap-3 min-w-0 h-full">
-      <div className="flex items-center justify-center shrink-0">
-        <IconBox
-          icon={getCategoryIcon(customer.customerType || customer.type)}
-          colorVariant={typeColorMap[String(customer.customerType || customer.type).toLowerCase()] || "primary"}
-          small
-        />
-      </div>
-      <div className="flex flex-col min-w-0 justify-center">
-        <AppHeading level={3} weight={700} sx={customerNameSx}>
-          {customer.displayName || "-"}
-        </AppHeading>
-        {customer.displayEmail && (
-          <AppText variant="body2" sx={customerSubTextSx}>
-            {customer.displayEmail}
-          </AppText>
-        )}
-      </div>
-    </div>
-
-    <div>
-      <AppTag
-        label={customer.displayType || "Retail"}
-        variant="soft"
-        colorVariant={typeColorMap[String(customer.customerType || customer.type).toLowerCase()] || "neutral"}
-        rounded="md"
-        sx={roleTagSx}
-      />
-    </div>
-
-    <div className="text-text-muted font-medium">
-      {customer.displayMobile || "-"}
-    </div>
-
-    <div className="text-text-muted font-medium truncate max-w-[140px]">
-      {customer.displayEmail || "—"}
-    </div>
-
-    <div className="text-text font-bold">
-      ₹ {customer.displayCreditLimit.toLocaleString("en-IN", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}
-    </div>
-
-    <div>
-      <AppStatusBadge
-        status={String(customer.displayStatus).toLowerCase()}
-        label={customer.displayStatus || ""}
-        variant="soft"
-        size="small"
-        rounded="md"
-        colorVariant={statusColorMap[String(customer.displayStatus).toLowerCase()] || "neutral"}
-        sx={statusBadgeSx}
-      />
-    </div>
-
-    <div className="flex justify-end">
-      <CustomerActions
-        customer={customer}
-        onView={onView}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
-    </div>
-  </div>
-);
-
 const CustomerActions = ({ customer, onView, onEdit, onDelete }) => {
   const items = [
     { id: "view", label: "View Details", icon: <FiEye />, onClick: () => onView?.(customer) },
@@ -520,6 +553,8 @@ const CustomerActions = ({ customer, onView, onEdit, onDelete }) => {
     />
   );
 };
+
+
 
 const TableFooter = ({
   totalCustomers,
@@ -737,6 +772,12 @@ const IconBox = ({ icon, colorVariant = "primary", small = false }) => (
 
 // Style definitions
 const pageHeaderSx = { width: "100%" };
+const pageHeaderSubtitleSx = {
+  mt: 0.55,
+  fontSize: "13px",
+  lineHeight: "20px",
+  color: "var(--app-color-text-muted)",
+};
 const pageHeaderContentSx = {
   minWidth: 0,
   "& h1, & h2, & h3, & h4": {
@@ -773,12 +814,40 @@ const primaryButtonSx = {
   fontWeight: 700,
 };
 
-const alertSx = { mt: 3 };
 const tableCardSx = {
   overflow: "hidden",
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
+const tableSx = {
+  "& .MuiTableContainer-root": {
+    borderRadius: 0,
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+    "&::-webkit-scrollbar": { display: "none" },
+  },
+};
+const tableHeadSx = {
+  bgcolor: "var(--app-color-surface-alt)",
+  "& .MuiTableCell-root": {
+    fontSize: "11.2px",
+    fontWeight: 750,
+    color: "var(--app-color-text-muted)",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+  },
+};
+const tableCellSx = {
+  py: 1.2,
+  fontSize: "12px",
+  borderColor: "var(--app-color-border)",
+};
+const tableValueMutedSx = {
+  fontSize: "12px",
+  fontWeight: 550,
+  color: "var(--app-color-text-muted)",
+};
+const alertSx = { mt: 3 };
 const searchSx = { width: "100%" };
 const selectSx = { width: "100%" };
 const filterInputSx = {

@@ -1,12 +1,10 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   FiArrowRight,
-  FiChevronDown,
   FiInfo,
-  FiSearch,
-  FiSliders,
   FiUsers,
   FiTruck,
+  FiRefreshCw,
 } from "react-icons/fi";
 
 import {
@@ -15,241 +13,194 @@ import {
   AppButton,
   AppCard,
   AppHeading,
-  AppSearchInput,
-  AppStack,
   AppText,
+  PageHeader,
 } from "@/components";
 
 const PartiesDesktopPage = ({
-  searchQuery,
-  setSearchQuery,
   partiesData,
+  isLoading,
+  handleRefresh,
   handleViewCustomers,
   handleViewSuppliers,
 }) => {
-  const filteredTypes = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return ["customers", "suppliers"];
-    
-    const matched = [];
-    if ("customers".includes(query) || "customer".includes(query)) {
-      matched.push("customers");
-    }
-    if ("suppliers".includes(query) || "supplier".includes(query)) {
-      matched.push("suppliers");
-    }
-    return matched;
-  }, [searchQuery]);
-
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
       <div className="mx-auto w-full max-w-[1400px]">
-        {/* Breadcrumbs */}
-        <div className="flex items-center justify-between">
-          <AppBreadcrumb
-            size="small"
-            variant="text"
-            items={[
-              { label: "Dashboard" },
-              { label: "Parties", current: true },
-            ]}
-            sx={breadcrumbSx}
-            itemSx={breadcrumbItemSx}
-            currentItemSx={breadcrumbCurrentSx}
-          />
-        </div>
-
         {/* Page Header */}
-        <div className="mt-2.5">
-          <AppHeading level={1} weight={700} sx={pageTitleSx}>
-            Parties
-          </AppHeading>
-          <AppText variant="body2" sx={pageSubtitleSx}>
-            Manage all your customers and suppliers in one place. View party details and navigate to respective sections.
-          </AppText>
-        </div>
-
-        {/* Search & Filter Toolbar */}
-        <div className="mt-5 flex items-center justify-between gap-4">
-          <div className="w-[380px]">
-            <AppSearchInput
-              name="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search parties..."
-              clearable
-              onClear={() => setSearchQuery("")}
+        <PageHeader
+          title="Parties"
+          subtitle="Manage all your customers and suppliers in one place. View party details and navigate to respective sections."
+          extra={
+            <AppBreadcrumb
               size="small"
-              variant="bordered"
-              rounded="md"
-              sx={searchSx}
-              inputSx={searchInputSx}
+              variant="text"
+              items={[
+                { label: "Dashboard" },
+                { label: "Parties", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
             />
-          </div>
-
-          <AppButton
-            type="button"
-            variant="outlined"
-            colorVariant="neutral"
-            rounded="md"
-            size="small"
-            startIcon={<FiSliders />}
-            endIcon={<FiChevronDown />}
-            sx={filterButtonSx}
-          >
-            More Filters
-          </AppButton>
-        </div>
+          }
+          actions={
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              startIcon={<FiRefreshCw />}
+              onClick={handleRefresh}
+              loading={isLoading}
+              disabled={isLoading}
+              sx={secondaryButtonSx}
+            >
+              Refresh
+            </AppButton>
+          }
+          align="flex-start"
+          justify="space-between"
+          sx={pageHeaderSx}
+          contentSx={pageHeaderContentSx}
+        />
 
         {/* Highlight Cards Grid */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-          {filteredTypes.includes("customers") && (
-            <AppCard
-              variant="default"
-              rounded="xl"
-              bordered
-              shadow="sm"
-              padding="none"
-              sx={customerCardSx}
-            >
-              <div className="relative p-5 overflow-hidden h-full flex flex-col justify-between min-h-[175px]">
-                {/* Faded background icon */}
-                <FiUsers className="absolute -right-4 -bottom-4 text-[130px] text-success/5 pointer-events-none" />
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <AppCard
+            variant="default"
+            rounded="xl"
+            bordered
+            shadow="sm"
+            padding="none"
+            sx={customerCardSx}
+          >
+            <div className="relative p-4 overflow-hidden h-full flex flex-col justify-between min-h-[120px]">
+              {/* Faded background icon */}
+              <FiUsers className="absolute -right-3 -bottom-3 text-[90px] text-success/5 pointer-events-none" />
 
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    {/* Left Icon block */}
-                    <AppBox
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 48,
-                        height: 48,
-                        borderRadius: "12px",
-                        bgcolor: "var(--app-color-success-soft)",
-                        color: "var(--app-color-success)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <FiUsers className="text-[22px]" />
-                    </AppBox>
-
-                    {/* Content */}
-                    <div>
-                      <AppHeading level={3} weight={700} sx={cardTitleSx}>
-                        Customers
-                      </AppHeading>
-                      <AppText variant="body2" sx={cardDescSx}>
-                        View and manage all your customer records.
-                      </AppText>
-                    </div>
-                  </div>
-
-                  {/* Top-right small icon decoration */}
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success-soft/30 text-success text-[15px]">
-                    <FiUsers />
-                  </div>
-                </div>
-
-                <div className="mt-5 flex items-end justify-between z-10">
-                  <div>
-                    <span className="block text-[28px] font-bold text-success leading-none">
-                      {partiesData.customers.total.toLocaleString()}
-                    </span>
-                    <span className="mt-1 block text-[11px] font-semibold text-text-muted">
-                      Total Customers
-                    </span>
-                  </div>
-
-                  <AppButton
-                    variant="outlined"
-                    colorVariant="success"
-                    size="small"
-                    onClick={handleViewCustomers}
-                    endIcon={<FiArrowRight />}
-                    sx={viewBtnSx}
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  {/* Left Icon block */}
+                  <AppBox
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 38,
+                      height: 38,
+                      borderRadius: "10px",
+                      bgcolor: "var(--app-color-success-soft)",
+                      color: "var(--app-color-success)",
+                      flexShrink: 0,
+                    }}
                   >
-                    View Customers
-                  </AppButton>
+                    <FiUsers className="text-[18px]" />
+                  </AppBox>
+
+                  {/* Content */}
+                  <div>
+                    <AppHeading level={3} weight={700} sx={cardTitleSx}>
+                      Customers
+                    </AppHeading>
+                    <AppText variant="body2" sx={cardDescSx}>
+                      View and manage all your customer records.
+                    </AppText>
+                  </div>
                 </div>
               </div>
-            </AppCard>
-          )}
 
-          {filteredTypes.includes("suppliers") && (
-            <AppCard
-              variant="default"
-              rounded="xl"
-              bordered
-              shadow="sm"
-              padding="none"
-              sx={supplierCardSx}
-            >
-              <div className="relative p-5 overflow-hidden h-full flex flex-col justify-between min-h-[175px]">
-                {/* Faded background icon */}
-                <FiTruck className="absolute -right-4 -bottom-4 text-[130px] text-info/5 pointer-events-none" />
-
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    {/* Left Icon block */}
-                    <AppBox
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 48,
-                        height: 48,
-                        borderRadius: "12px",
-                        bgcolor: "var(--app-color-info-soft)",
-                        color: "var(--app-color-info)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <FiTruck className="text-[22px]" />
-                    </AppBox>
-
-                    {/* Content */}
-                    <div>
-                      <AppHeading level={3} weight={700} sx={cardTitleSx}>
-                        Suppliers
-                      </AppHeading>
-                      <AppText variant="body2" sx={cardDescSx}>
-                        View and manage all your supplier records.
-                      </AppText>
-                    </div>
-                  </div>
-
-                  {/* Top-right small icon decoration */}
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-info-soft/30 text-info text-[15px]">
-                    <FiTruck />
-                  </div>
+              <div className="mt-3 flex items-end justify-between z-10">
+                <div>
+                  <span className="block text-[22px] font-bold text-success leading-none">
+                    {partiesData.customers.total.toLocaleString()}
+                  </span>
+                  <span className="mt-1 block text-[10px] font-semibold text-text-muted">
+                    Total Customers
+                  </span>
                 </div>
 
-                <div className="mt-5 flex items-end justify-between z-10">
-                  <div>
-                    <span className="block text-[28px] font-bold text-info leading-none">
-                      {partiesData.suppliers.total.toLocaleString()}
-                    </span>
-                    <span className="mt-1 block text-[11px] font-semibold text-text-muted">
-                      Total Suppliers
-                    </span>
-                  </div>
+                <AppButton
+                  variant="outlined"
+                  colorVariant="success"
+                  size="small"
+                  onClick={handleViewCustomers}
+                  endIcon={<FiArrowRight />}
+                  sx={viewBtnSx}
+                >
+                  View Customers
+                </AppButton>
+              </div>
+            </div>
+          </AppCard>
 
-                  <AppButton
-                    variant="outlined"
-                    colorVariant="info"
-                    size="small"
-                    onClick={handleViewSuppliers}
-                    endIcon={<FiArrowRight />}
-                    sx={viewBtnSx}
+          <AppCard
+            variant="default"
+            rounded="xl"
+            bordered
+            shadow="sm"
+            padding="none"
+            sx={supplierCardSx}
+          >
+            <div className="relative p-4 overflow-hidden h-full flex flex-col justify-between min-h-[120px]">
+              {/* Faded background icon */}
+              <FiTruck className="absolute -right-3 -bottom-3 text-[90px] text-info/5 pointer-events-none" />
+
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  {/* Left Icon block */}
+                  <AppBox
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 38,
+                      height: 38,
+                      borderRadius: "10px",
+                      bgcolor: "var(--app-color-info-soft)",
+                      color: "var(--app-color-info)",
+                      flexShrink: 0,
+                    }}
                   >
-                    View Suppliers
-                  </AppButton>
+                    <FiTruck className="text-[18px]" />
+                  </AppBox>
+
+                  {/* Content */}
+                  <div>
+                    <AppHeading level={3} weight={700} sx={cardTitleSx}>
+                      Suppliers
+                    </AppHeading>
+                    <AppText variant="body2" sx={cardDescSx}>
+                      View and manage all your supplier records.
+                    </AppText>
+                  </div>
                 </div>
               </div>
-            </AppCard>
-          )}
+
+              <div className="mt-3 flex items-end justify-between z-10">
+                <div>
+                  <span className="block text-[22px] font-bold text-info leading-none">
+                    {partiesData.suppliers.total.toLocaleString()}
+                  </span>
+                  <span className="mt-1 block text-[10px] font-semibold text-text-muted">
+                    Total Suppliers
+                  </span>
+                </div>
+
+                <AppButton
+                  variant="outlined"
+                  colorVariant="info"
+                  size="small"
+                  onClick={handleViewSuppliers}
+                  endIcon={<FiArrowRight />}
+                  sx={viewBtnSx}
+                >
+                  View Suppliers
+                </AppButton>
+              </div>
+            </div>
+          </AppCard>
         </div>
 
         {/* Parties Summary Section */}
@@ -280,62 +231,58 @@ const PartiesDesktopPage = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-[12.5px] font-medium text-text">
-                {filteredTypes.includes("customers") && (
-                  <tr className="hover:bg-surface-hover/30 transition">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-success-soft text-success text-[15px]">
-                          <FiUsers />
-                        </span>
-                        <span className="font-bold text-text">Customers</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">{partiesData.customers.total.toLocaleString()}</td>
-                    <td className="px-5 py-4 text-success font-bold">{partiesData.customers.active.toLocaleString()}</td>
-                    <td className="px-5 py-4 text-danger font-bold">{partiesData.customers.inactive.toLocaleString()}</td>
-                    <td className="px-5 py-4 text-text-muted">{partiesData.customers.recent}</td>
-                    <td className="px-5 py-4 text-right">
-                      <AppButton
-                        variant="outlined"
-                        colorVariant="success"
-                        size="small"
-                        onClick={handleViewCustomers}
-                        endIcon={<FiArrowRight />}
-                        sx={tableActionBtnSx}
-                      >
-                        View Customers
-                      </AppButton>
-                    </td>
-                  </tr>
-                )}
-                {filteredTypes.includes("suppliers") && (
-                  <tr className="hover:bg-surface-hover/30 transition">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-info-soft text-info text-[15px]">
-                          <FiTruck />
-                        </span>
-                        <span className="font-bold text-text">Suppliers</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">{partiesData.suppliers.total.toLocaleString()}</td>
-                    <td className="px-5 py-4 text-success font-bold">{partiesData.suppliers.active.toLocaleString()}</td>
-                    <td className="px-5 py-4 text-danger font-bold">{partiesData.suppliers.inactive.toLocaleString()}</td>
-                    <td className="px-5 py-4 text-text-muted">{partiesData.suppliers.recent}</td>
-                    <td className="px-5 py-4 text-right">
-                      <AppButton
-                        variant="outlined"
-                        colorVariant="info"
-                        size="small"
-                        onClick={handleViewSuppliers}
-                        endIcon={<FiArrowRight />}
-                        sx={tableActionBtnSx}
-                      >
-                        View Suppliers
-                      </AppButton>
-                    </td>
-                  </tr>
-                )}
+                <tr className="hover:bg-surface-hover/30 transition">
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-success-soft text-success text-[15px]">
+                        <FiUsers />
+                      </span>
+                      <span className="font-bold text-text">Customers</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">{partiesData.customers.total.toLocaleString()}</td>
+                  <td className="px-5 py-4 text-success font-bold">{partiesData.customers.active.toLocaleString()}</td>
+                  <td className="px-5 py-4 text-danger font-bold">{partiesData.customers.inactive.toLocaleString()}</td>
+                  <td className="px-5 py-4 text-text-muted">{partiesData.customers.recent}</td>
+                  <td className="px-5 py-4 text-right">
+                    <AppButton
+                      variant="outlined"
+                      colorVariant="success"
+                      size="small"
+                      onClick={handleViewCustomers}
+                      endIcon={<FiArrowRight />}
+                      sx={tableActionBtnSx}
+                    >
+                      View Customers
+                    </AppButton>
+                  </td>
+                </tr>
+                <tr className="hover:bg-surface-hover/30 transition">
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-info-soft text-info text-[15px]">
+                        <FiTruck />
+                      </span>
+                      <span className="font-bold text-text">Suppliers</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">{partiesData.suppliers.total.toLocaleString()}</td>
+                  <td className="px-5 py-4 text-success font-bold">{partiesData.suppliers.active.toLocaleString()}</td>
+                  <td className="px-5 py-4 text-danger font-bold">{partiesData.suppliers.inactive.toLocaleString()}</td>
+                  <td className="px-5 py-4 text-text-muted">{partiesData.suppliers.recent}</td>
+                  <td className="px-5 py-4 text-right">
+                    <AppButton
+                      variant="outlined"
+                      colorVariant="info"
+                      size="small"
+                      onClick={handleViewSuppliers}
+                      endIcon={<FiArrowRight />}
+                      sx={tableActionBtnSx}
+                    >
+                      View Suppliers
+                    </AppButton>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -365,34 +312,31 @@ const breadcrumbCurrentSx = {
   color: "var(--app-color-text)",
 };
 
-const pageTitleSx = {
-  m: 0,
-  fontSize: "25px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.45px",
-  color: "var(--app-color-text)",
+const pageHeaderSx = {
+  width: "100%",
 };
 
-const pageSubtitleSx = {
-  mt: 0.55,
-  fontSize: "13px",
-  lineHeight: "20px",
-  color: "var(--app-color-text-muted)",
+const pageHeaderContentSx = {
+  minWidth: 0,
+
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
 };
 
-const searchSx = { width: "100%" };
-const searchInputSx = {
+const secondaryButtonSx = {
   height: 36,
-  fontSize: "12.5px",
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const filterButtonSx = {
-  height: 36,
+  minWidth: 110,
   px: 1.5,
   fontSize: "12px",
   fontWeight: 650,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const customerCardSx = {
@@ -417,7 +361,7 @@ const supplierCardSx = {
 
 const cardTitleSx = {
   m: 0,
-  fontSize: "16px",
+  fontSize: "15px",
   color: "var(--app-color-text)",
 };
 
@@ -436,7 +380,7 @@ const viewBtnSx = {
 };
 
 const summaryCardSx = {
-  mt: 6,
+  mt: 3.5,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
   overflow: "hidden",
@@ -455,3 +399,4 @@ const tableActionBtnSx = {
 };
 
 export default PartiesDesktopPage;
+
