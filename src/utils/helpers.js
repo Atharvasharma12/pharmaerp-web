@@ -27,3 +27,24 @@ export const getErrorMessage = (error) => {
 export const sleep = (ms = 500) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
+
+export const formatDate = (value) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+export const formatCurrency = (value = 0) => {
+  const number = Number(value);
+  if (Number.isNaN(number)) return "₹0.00";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+  }).format(number);
+};
+

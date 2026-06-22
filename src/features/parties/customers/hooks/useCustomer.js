@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -94,30 +95,30 @@ const useCustomer = () => {
   |--------------------------------------------------------------------------
   */
 
-  const submitCreateCustomer = (payload) => {
+  const submitCreateCustomer = useCallback((payload) => {
     return dispatch(createCustomer(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchCustomers = (params = {}) => {
+  const fetchCustomers = useCallback((params = {}) => {
     return dispatch(getCustomers(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchCustomerById = (customerId) => {
+  const fetchCustomerById = useCallback((customerId) => {
     return dispatch(getCustomerById(customerId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitUpdateCustomer = (customerId, payload) => {
+  const submitUpdateCustomer = useCallback((customerId, payload) => {
     return dispatch(
       updateCustomer({
         customerId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitDeleteCustomer = (customerId) => {
+  const submitDeleteCustomer = useCallback((customerId) => {
     return dispatch(deleteCustomer(customerId)).unwrap();
-  };
+  }, [dispatch]);
 
   /*
   |--------------------------------------------------------------------------
@@ -125,9 +126,9 @@ const useCustomer = () => {
   |--------------------------------------------------------------------------
   */
 
-  const fetchCustomerLedger = (customerId) => {
+  const fetchCustomerLedger = useCallback((customerId) => {
     return dispatch(getCustomerLedger(customerId)).unwrap();
-  };
+  }, [dispatch]);
 
   /*
   |--------------------------------------------------------------------------
@@ -135,9 +136,9 @@ const useCustomer = () => {
   |--------------------------------------------------------------------------
   */
 
-  const fetchCustomerOutstanding = (customerId) => {
+  const fetchCustomerOutstanding = useCallback((customerId) => {
     return dispatch(getCustomerOutstanding(customerId)).unwrap();
-  };
+  }, [dispatch]);
 
   /*
   |--------------------------------------------------------------------------
@@ -145,9 +146,9 @@ const useCustomer = () => {
   |--------------------------------------------------------------------------
   */
 
-  const fetchCustomerSales = (customerId) => {
+  const fetchCustomerSales = useCallback((customerId) => {
     return dispatch(getCustomerSales(customerId)).unwrap();
-  };
+  }, [dispatch]);
 
   /*
   |--------------------------------------------------------------------------
@@ -155,9 +156,9 @@ const useCustomer = () => {
   |--------------------------------------------------------------------------
   */
 
-  const fetchCustomerPayments = (customerId) => {
+  const fetchCustomerPayments = useCallback((customerId) => {
     return dispatch(getCustomerPayments(customerId)).unwrap();
-  };
+  }, [dispatch]);
 
   /*
   |--------------------------------------------------------------------------
@@ -165,37 +166,37 @@ const useCustomer = () => {
   |--------------------------------------------------------------------------
   */
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearCustomerError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearCustomerMessage());
-  };
+  }, [dispatch]);
 
-  const saveCurrentCustomer = (payload) => {
+  const saveCurrentCustomer = useCallback((payload) => {
     dispatch(setCurrentCustomer(payload));
-  };
+  }, [dispatch]);
 
-  const removeCurrentCustomer = () => {
+  const removeCurrentCustomer = useCallback(() => {
     dispatch(clearCurrentCustomer());
-  };
+  }, [dispatch]);
 
-  const removeCustomerLedger = () => {
+  const removeCustomerLedger = useCallback(() => {
     dispatch(clearCustomerLedger());
-  };
+  }, [dispatch]);
 
-  const removeCustomerOutstanding = () => {
+  const removeCustomerOutstanding = useCallback(() => {
     dispatch(clearCustomerOutstanding());
-  };
+  }, [dispatch]);
 
-  const removeCustomerSales = () => {
+  const removeCustomerSales = useCallback(() => {
     dispatch(clearCustomerSales());
-  };
+  }, [dispatch]);
 
-  const removeCustomerPayments = () => {
+  const removeCustomerPayments = useCallback(() => {
     dispatch(clearCustomerPayments());
-  };
+  }, [dispatch]);
 
   return {
     customers,

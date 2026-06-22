@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -96,30 +97,30 @@ const useSupplier = () => {
   |--------------------------------------------------------------------------
   */
 
-  const submitCreateSupplier = (payload) => {
+  const submitCreateSupplier = useCallback((payload) => {
     return dispatch(createSupplier(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchSuppliers = (params = {}) => {
+  const fetchSuppliers = useCallback((params = {}) => {
     return dispatch(getSuppliers(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchSupplierById = (supplierId) => {
+  const fetchSupplierById = useCallback((supplierId) => {
     return dispatch(getSupplierById(supplierId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitUpdateSupplier = (supplierId, payload) => {
+  const submitUpdateSupplier = useCallback((supplierId, payload) => {
     return dispatch(
       updateSupplier({
         supplierId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitDeleteSupplier = (supplierId) => {
+  const submitDeleteSupplier = useCallback((supplierId) => {
     return dispatch(deleteSupplier(supplierId)).unwrap();
-  };
+  }, [dispatch]);
 
   /*
   |--------------------------------------------------------------------------
@@ -127,21 +128,21 @@ const useSupplier = () => {
   |--------------------------------------------------------------------------
   */
 
-  const fetchSupplierLedger = (supplierId) => {
+  const fetchSupplierLedger = useCallback((supplierId) => {
     return dispatch(getSupplierLedger(supplierId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchSupplierOutstanding = (supplierId) => {
+  const fetchSupplierOutstanding = useCallback((supplierId) => {
     return dispatch(getSupplierOutstanding(supplierId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchSupplierPurchases = (supplierId) => {
+  const fetchSupplierPurchases = useCallback((supplierId) => {
     return dispatch(getSupplierPurchases(supplierId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchSupplierPayments = (supplierId) => {
+  const fetchSupplierPayments = useCallback((supplierId) => {
     return dispatch(getSupplierPayments(supplierId)).unwrap();
-  };
+  }, [dispatch]);
 
   /*
   |--------------------------------------------------------------------------
@@ -149,37 +150,37 @@ const useSupplier = () => {
   |--------------------------------------------------------------------------
   */
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearSupplierError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearSupplierMessage());
-  };
+  }, [dispatch]);
 
-  const saveCurrentSupplier = (payload) => {
+  const saveCurrentSupplier = useCallback((payload) => {
     dispatch(setCurrentSupplier(payload));
-  };
+  }, [dispatch]);
 
-  const removeCurrentSupplier = () => {
+  const removeCurrentSupplier = useCallback(() => {
     dispatch(clearCurrentSupplier());
-  };
+  }, [dispatch]);
 
-  const removeSupplierLedger = () => {
+  const removeSupplierLedger = useCallback(() => {
     dispatch(clearSupplierLedger());
-  };
+  }, [dispatch]);
 
-  const removeSupplierOutstanding = () => {
+  const removeSupplierOutstanding = useCallback(() => {
     dispatch(clearSupplierOutstanding());
-  };
+  }, [dispatch]);
 
-  const removeSupplierPurchases = () => {
+  const removeSupplierPurchases = useCallback(() => {
     dispatch(clearSupplierPurchases());
-  };
+  }, [dispatch]);
 
-  const removeSupplierPayments = () => {
+  const removeSupplierPayments = useCallback(() => {
     dispatch(clearSupplierPayments());
-  };
+  }, [dispatch]);
 
   return {
     suppliers,
