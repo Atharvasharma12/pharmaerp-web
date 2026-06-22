@@ -140,7 +140,7 @@ const WorkspaceProductDetailsPage = () => {
   );
 
   const handleBack = useCallback(() => {
-    navigate("/catalog/workspace-products");
+    navigate("/workspace-products");
   }, [navigate]);
 
   const handleRefresh = useCallback(() => {
@@ -157,7 +157,7 @@ const WorkspaceProductDetailsPage = () => {
     if (!productId) return;
     try {
       await deleteWorkspaceProduct(productId);
-      navigate("/catalog/workspace-products", { replace: true });
+      navigate("/workspace-products", { replace: true });
     } catch {
       // Trace handled elegantly by slice metrics panels
     }

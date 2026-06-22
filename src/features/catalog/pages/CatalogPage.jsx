@@ -4,13 +4,13 @@ import { API_STATUS, ROUTES } from "@/constants";
 import { useNavigate } from "react-router-dom";
 
 import useGlobalProduct from "@/features/global-products/hooks/useGlobalProduct";
-import useWorkspaceProduct from "@/features/workspace-products/hooks/useWorkspaceProduct";
 import useHsnMaster from "@/features/hsn-master/hooks/useHsnMaster";
 import useManufacturerMaster from "@/features/manufacturer-master/hooks/useManufacturerMaster";
 import useUomMaster from "@/features/uom-master/hooks/useUomMaster";
 import useCategoryMaster from "@/features/category-master/hooks/useCategoryMaster";
 import useProductFormMaster from "@/features/product-form-master/hooks/useProductFormMaster";
 import useSaltMaster from "@/features/salt-master/hooks/useSaltMaster";
+import useBankMaster from "@/features/bank-master/hooks/useBankMaster";
 
 import CatalogDesktopPage from "./desktop/CatalogDesktopPage";
 import CatalogMobilePage from "./mobile/CatalogMobilePage";
@@ -26,12 +26,6 @@ const CatalogPage = () => {
     getGlobalProducts,
     getGlobalProductsStatus,
   } = useGlobalProduct();
-
-  const {
-    pagination: workspacePagination,
-    getWorkspaceProducts,
-    getWorkspaceProductsStatus,
-  } = useWorkspaceProduct();
 
   const {
     pagination: hsnPagination,
@@ -69,15 +63,21 @@ const CatalogPage = () => {
     getSaltMastersStatus,
   } = useSaltMaster();
 
+  const {
+    pagination: bankPagination,
+    getBankMasters,
+    getBankMastersStatus,
+  } = useBankMaster();
+
   const handleRefresh = () => {
     getGlobalProducts({ page: 1, limit: 1 });
-    getWorkspaceProducts({ page: 1, limit: 1 });
     getHsnMasters({ page: 1, limit: 1 });
     getManufacturerMasters({ page: 1, limit: 1 });
     getUomMasters({ page: 1, limit: 1 });
     getCategoryMasters({ page: 1, limit: 1 });
     getProductFormMasters({ page: 1, limit: 1 });
     getSaltMasters({ page: 1, limit: 1 });
+    getBankMasters({ page: 1, limit: 1 });
   };
 
   useEffect(() => {
@@ -89,23 +89,23 @@ const CatalogPage = () => {
 
   const isLoading =
     getGlobalProductsStatus === API_STATUS.LOADING ||
-    getWorkspaceProductsStatus === API_STATUS.LOADING ||
     getHsnMastersStatus === API_STATUS.LOADING ||
     getManufacturerMastersStatus === API_STATUS.LOADING ||
     getUomMastersStatus === API_STATUS.LOADING ||
     getCategoryMastersStatus === API_STATUS.LOADING ||
     getProductFormMastersStatus === API_STATUS.LOADING ||
-    getSaltMastersStatus === API_STATUS.LOADING;
+    getSaltMastersStatus === API_STATUS.LOADING ||
+    getBankMastersStatus === API_STATUS.LOADING;
 
   const hasError =
     getGlobalProductsStatus === API_STATUS.ERROR ||
-    getWorkspaceProductsStatus === API_STATUS.ERROR ||
     getHsnMastersStatus === API_STATUS.ERROR ||
     getManufacturerMastersStatus === API_STATUS.ERROR ||
     getUomMastersStatus === API_STATUS.ERROR ||
     getCategoryMastersStatus === API_STATUS.ERROR ||
     getProductFormMastersStatus === API_STATUS.ERROR ||
-    getSaltMastersStatus === API_STATUS.ERROR;
+    getSaltMastersStatus === API_STATUS.ERROR ||
+    getBankMastersStatus === API_STATUS.ERROR;
 
   const catalogModules = useMemo(() => {
     return [
@@ -116,14 +116,6 @@ const CatalogPage = () => {
         colorVariant: "globalProducts",
         onClick: () => navigate(ROUTES.GLOBAL_PRODUCTS),
         countText: `${globalPagination?.total !== undefined ? Number(globalPagination.total).toLocaleString() : "3,842"} Products`,
-      },
-      {
-        id: "workspaceProducts",
-        title: "Workspace Products",
-        description: "View products created within your workspace.",
-        colorVariant: "workspaceProducts",
-        onClick: () => navigate(ROUTES.WORKSPACE_PRODUCTS),
-        countText: `${workspacePagination?.total !== undefined ? Number(workspacePagination.total).toLocaleString() : "1,245"} Products`,
       },
       {
         id: "hsnMaster",
@@ -173,16 +165,24 @@ const CatalogPage = () => {
         onClick: () => navigate(ROUTES.SALT_MASTER),
         countText: `${saltPagination?.total !== undefined ? Number(saltPagination.total).toLocaleString() : "145"} Salts`,
       },
+      {
+        id: "bankMaster",
+        title: "Bank Master",
+        description: "Browse different banks and financial institutions.",
+        colorVariant: "bankMaster",
+        onClick: () => navigate(ROUTES.BANK_MASTER),
+        countText: `${bankPagination?.total !== undefined ? Number(bankPagination.total).toLocaleString() : "18"} Banks`,
+      },
     ];
   }, [
     globalPagination,
-    workspacePagination,
     hsnPagination,
     manufacturerPagination,
     uomPagination,
     categoryPagination,
     productFormPagination,
     saltPagination,
+    bankPagination,
     navigate,
   ]);
 
@@ -191,8 +191,8 @@ const CatalogPage = () => {
     if (!query) return catalogModules;
     return catalogModules.filter(
       (m) =>
-        m.title.toLowerCase().includes(query) ||
-        m.description.toLowerCase().includes(query)
+          m.title.toLowerCase().includes(query) ||
+          m.description.toLowerCase().includes(query)
     );
   }, [searchQuery, catalogModules]);
 
@@ -213,4 +213,3 @@ const CatalogPage = () => {
 };
 
 export default CatalogPage;
-

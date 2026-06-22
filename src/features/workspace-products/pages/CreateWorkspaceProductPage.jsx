@@ -269,7 +269,7 @@ const CreateWorkspaceProductPage = () => {
   );
 
   const handleBackToCatalog = useCallback(() => {
-    navigate("/catalog/workspace-products");
+    navigate("/workspace-products");
   }, [navigate]);
 
   const handleStepChange = useCallback(
@@ -412,7 +412,7 @@ const CreateWorkspaceProductPage = () => {
         };
 
         await createWorkspaceProduct(payload);
-        navigate("/catalog/workspace-products", { replace: true });
+        navigate("/workspace-products", { replace: true });
       } catch (error) {
         setFormErrors({
           submit:

@@ -36,6 +36,10 @@ import uomMasterRoutes from "@/features/uom-master/routes/uomMasterRoutes";
 import categoryMasterRoutes from "@/features/category-master/routes/categoryMasterRoutes";
 import productFormMasterRoutes from "@/features/product-form-master/routes/productFormMasterRoutes";
 import saltMasterRoutes from "@/features/salt-master/routes/saltMasterRoutes";
+import bankMasterRoutes from "@/features/bank-master/routes/bankMasterRoutes";
+import partiesRoutes from "@/features/parties/routes/partiesRoutes";
+import customerRoutes from "@/features/parties/customers/routes/customerRoutes";
+import supplierRoutes from "@/features/parties/suppliers/routes/supplierRoutes";
 
 const NotFoundPage = () => {
   return (
@@ -147,6 +151,9 @@ export const router = createBrowserRouter([
       ...companyRoutes,
       ...branchRoutes,
       ...accessControlRoutes,
+      ...partiesRoutes,
+      ...customerRoutes,
+      ...supplierRoutes,
 
       // Catalog
       ...catalogRoutes,
@@ -158,6 +165,7 @@ export const router = createBrowserRouter([
       ...categoryMasterRoutes,
       ...productFormMasterRoutes,
       ...saltMasterRoutes,
+      ...bankMasterRoutes,
     ],
   },
 

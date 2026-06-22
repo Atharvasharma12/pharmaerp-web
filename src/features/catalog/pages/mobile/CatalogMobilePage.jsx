@@ -6,6 +6,7 @@ import {
   FiFileText,
   FiTag,
   FiUsers,
+  FiCreditCard,
 } from "react-icons/fi";
 import { HiOutlineCube, HiOutlineBeaker } from "react-icons/hi2";
 import { BiBuildingHouse, BiRuler } from "react-icons/bi";
@@ -28,6 +29,7 @@ const moduleIcons = {
   categoryMaster: <FiTag className="text-[20px]" />,
   productFormMaster: <HiOutlineBeaker className="text-[20px]" />,
   saltMaster: <HiOutlineBeaker className="text-[20px]" />,
+  bankMaster: <FiCreditCard className="text-[20px]" />,
 };
 
 const overviewColors = {
@@ -39,6 +41,7 @@ const overviewColors = {
   categoryMaster: { bg: "#fff1f2", text: "#e11d48" },
   productFormMaster: { bg: "#f0f9ff", text: "#0284c7" },
   saltMaster: { bg: "#fdf2f8", text: "#db2777" },
+  bankMaster: { bg: "#e0e7ff", text: "#4f46e5" },
 };
 
 const getStatIcon = (id) => {

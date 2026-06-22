@@ -49,6 +49,11 @@ const sidebarItems = [
     icon: <FiUsers />,
   },
   {
+    label: "Products",
+    path: ROUTES.WORKSPACE_PRODUCTS,
+    icon: <FiBox />,
+  },
+  {
     label: "Catalog",
     path: ROUTES.CATALOG,
     icon: <FiBox />,
@@ -82,6 +87,11 @@ const sidebarItems = [
     label: "Expenses",
     path: "/expenses",
     icon: <FiCreditCard />,
+  },
+  {
+    label: "Parties",
+    path: ROUTES.PARTIES,
+    icon: <FiUsers />,
   },
   {
     label: "Settings",

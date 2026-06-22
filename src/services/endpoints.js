@@ -73,6 +73,38 @@ export const ENDPOINTS = {
     BY_ID: (branchId) => `/organization/branches/${branchId}`,
   },
 
+  CUSTOMER: {
+    CREATE: "/parties/customers",
+
+    LIST: "/parties/customers",
+
+    BY_ID: (customerId) => `/parties/customers/${customerId}`,
+
+    LEDGER: (customerId) => `/parties/customers/${customerId}/ledger`,
+
+    OUTSTANDING: (customerId) => `/parties/customers/${customerId}/outstanding`,
+
+    SALES: (customerId) => `/parties/customers/${customerId}/sales`,
+
+    PAYMENTS: (customerId) => `/parties/customers/${customerId}/payments`,
+  },
+
+  SUPPLIER: {
+    CREATE: "/parties/suppliers",
+
+    LIST: "/parties/suppliers",
+
+    BY_ID: (supplierId) => `/parties/suppliers/${supplierId}`,
+
+    LEDGER: (supplierId) => `/parties/suppliers/${supplierId}/ledger`,
+
+    OUTSTANDING: (supplierId) => `/parties/suppliers/${supplierId}/outstanding`,
+
+    PURCHASES: (supplierId) => `/parties/suppliers/${supplierId}/purchases`,
+
+    PAYMENTS: (supplierId) => `/parties/suppliers/${supplierId}/payments`,
+  },
+
   WORKSPACE_PRODUCTS: {
     // Search before creating a workspace product
     SEARCH_BEFORE_CREATE: "/catalog/products/search",
@@ -142,6 +174,14 @@ export const ENDPOINTS = {
     BY_ID: (saltId) => `/catalog/salt-master/${saltId}`,
 
     BY_NAME: (name) => `/catalog/salt-master/name/${encodeURIComponent(name)}`,
+  },
+
+  BANK_MASTER: {
+    LIST: "/catalog/bank-master",
+
+    BY_ID: (bankId) => `/catalog/bank-master/${bankId}`,
+
+    BY_NAME: (name) => `/catalog/bank-master/name/${encodeURIComponent(name)}`,
   },
 
   ACCESS_CONTROL: {

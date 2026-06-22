@@ -133,7 +133,7 @@ const EditWorkspaceProductPage = () => {
           "Unable to retrieve database record files. Returning to summary catalog.",
       });
       setTimeout(() => {
-        navigate("/catalog/workspace-products");
+        navigate("/workspace-products");
       }, 2500);
     }
   }, [productId, getWorkspaceProductById, navigate]);
@@ -324,7 +324,7 @@ const EditWorkspaceProductPage = () => {
   );
 
   const handleBackToCatalog = useCallback(() => {
-    navigate("/catalog/workspace-products");
+    navigate("/workspace-products");
   }, [navigate]);
 
   const handleStepChange = useCallback(
@@ -370,7 +370,7 @@ const EditWorkspaceProductPage = () => {
 
   const handleSaveDraft = useCallback(() => {
     setFormErrors({});
-    navigate("/catalog/workspace-products");
+    navigate("/workspace-products");
   }, [navigate]);
 
   const handleSubmit = useCallback(
@@ -418,7 +418,7 @@ const EditWorkspaceProductPage = () => {
         };
 
         await updateWorkspaceProduct(productId, payload);
-        navigate("/catalog/workspace-products", { replace: true });
+        navigate("/workspace-products", { replace: true });
       } catch (error) {
         setFormErrors({
           submit:

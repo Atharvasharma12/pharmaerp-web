@@ -1324,6 +1324,51 @@ src/features/product-form-master/
 │       └── index.js
 
 
+src/
+└── features/
+    └── parties/
+        └── customers/
+            │
+            ├── pages/
+            │   ├── CustomersPage.jsx
+            │   ├── CreateCustomerPage.jsx
+            │   ├── EditCustomerPage.jsx
+            │   ├── CustomerDetailsPage.jsx
+            │   │
+            │   ├── desktop/
+            │   │   ├── CustomersDesktopPage.jsx
+            │   │   ├── CreateCustomerDesktopPage.jsx
+            │   │   ├── EditCustomerDesktopPage.jsx
+            │   │   ├── CustomerDetailsDesktopPage.jsx
+            │   │   └── index.js
+            │   │
+            │   ├── mobile/
+            │   │   ├── CustomersMobilePage.jsx
+            │   │   ├── CreateCustomerMobilePage.jsx
+            │   │   ├── EditCustomerMobilePage.jsx
+            │   │   ├── CustomerDetailsMobilePage.jsx
+            │   │   └── index.js
+            │   │
+            │   └── index.js
+            │
+            ├── hooks/
+            │   ├── useCustomer.js
+            │   └── index.js
+            │
+            ├── routes/
+            │   └── customerRoutes.jsx
+            │
+            ├── services/
+            │   └── customerService.js
+            │
+            ├── store/
+            │   ├── customerSlice.js
+            │   ├── customerThunk.js
+            │   ├── customerSelector.js
+            │   └── index.js
+            │
+            └── index.js
+
 You are acting as a senior full-stack React + Redux Toolkit + Node.js + Express + MongoDB architect.
 
 Project Context

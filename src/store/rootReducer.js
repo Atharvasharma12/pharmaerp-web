@@ -9,6 +9,9 @@ import branchReducer from "@/features/branch/store/branchSlice";
 
 import accessControlReducer from "@/features/access-control/store/accessControlSlice";
 
+import customerReducer from "@/features/parties/customers/store/customerSlice";
+import supplierReducer from "@/features/parties/suppliers/store/supplierSlice";
+
 import planReducer from "@/features/subscription/plans/store/planSlice";
 import subscriptionReducer from "@/features/subscription/subscriptions/store/subscriptionSlice";
 
@@ -21,6 +24,7 @@ import uomMasterReducer from "@/features/uom-master/store/uomMasterSlice";
 import categoryMasterReducer from "@/features/category-master/store/categoryMasterSlice";
 import productFormMasterReducer from "@/features/product-form-master/store/productFormMasterSlice";
 import saltMasterReducer from "@/features/salt-master/store/saltMasterSlice";
+import bankMasterReducer from "@/features/bank-master/store/bankMasterSlice";
 // ---------------------
 // App Reducer
 // ---------------------
@@ -38,6 +42,10 @@ const appReducer = combineReducers({
   // Access Control
   accessControl: accessControlReducer,
 
+  // Parties
+  customer: customerReducer,
+  supplier: supplierReducer,
+
   // Subscription
   plan: planReducer,
   subscription: subscriptionReducer,
@@ -51,6 +59,7 @@ const appReducer = combineReducers({
   categoryMaster: categoryMasterReducer,
   productFormMaster: productFormMasterReducer,
   saltMaster: saltMasterReducer,
+  bankMaster: bankMasterReducer,
 });
 
 /**

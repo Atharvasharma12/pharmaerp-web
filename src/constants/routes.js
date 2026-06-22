@@ -47,6 +47,31 @@ export const ROUTES = {
   EDIT_ACCESS: "/access-control/member-access/:memberId/edit",
   PERMISSIONS: "/access-control/permissions",
 
+  // Parties
+  PARTIES: "/parties",
+
+  // Parties - Customers
+  CUSTOMERS: "/parties/customers",
+
+  CREATE_CUSTOMER: "/parties/customers/create",
+
+  CUSTOMER_DETAILS: (customerId = ":customerId") =>
+    `/parties/customers/${customerId}`,
+
+  EDIT_CUSTOMER: (customerId = ":customerId") =>
+    `/parties/customers/${customerId}/edit`,
+
+  // Parties - Suppliers
+  SUPPLIERS: "/parties/suppliers",
+
+  CREATE_SUPPLIER: "/parties/suppliers/create",
+
+  SUPPLIER_DETAILS: (supplierId = ":supplierId") =>
+    `/parties/suppliers/${supplierId}`,
+
+  EDIT_SUPPLIER: (supplierId = ":supplierId") =>
+    `/parties/suppliers/${supplierId}/edit`,
+
   // Catalog
   CATALOG: "/catalog",
 
@@ -55,12 +80,12 @@ export const ROUTES = {
   GLOBAL_PRODUCT_DETAILS: "/catalog/global-products/:productId",
 
   // Catalog - Workspace Products
-  WORKSPACE_PRODUCTS: "/catalog/workspace-products",
-  CREATE_WORKSPACE_PRODUCT: "/catalog/workspace-products/create",
-  EDIT_WORKSPACE_PRODUCT: "/catalog/workspace-products/:productId/edit",
-  WORKSPACE_PRODUCT_DETAILS: "/catalog/workspace-products/:productId",
-  WORKSPACE_PRODUCT_IMPORT: "/catalog/workspace-products/import",
-  WORKSPACE_PRODUCT_SEARCH: "/catalog/workspace-products/search",
+  WORKSPACE_PRODUCTS: "/workspace-products",
+  CREATE_WORKSPACE_PRODUCT: "/workspace-products/create",
+  EDIT_WORKSPACE_PRODUCT: "/workspace-products/:productId/edit",
+  WORKSPACE_PRODUCT_DETAILS: "/workspace-products/:productId",
+  WORKSPACE_PRODUCT_IMPORT: "/workspace-products/import",
+  WORKSPACE_PRODUCT_SEARCH: "/workspace-products/search",
 
   // Catalog - HSN Master (Read-Only Workspace View)
   HSN_MASTER: "/catalog/hsn-master",
@@ -79,6 +104,8 @@ export const ROUTES = {
 
   // Catalog - Salt Master
   SALT_MASTER: "/catalog/salt-master",
+
+  BANK_MASTER: "/catalog/bank-master",
 
   // Setup
   SETUP_CENTER: "/setup",
