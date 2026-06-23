@@ -16,6 +16,7 @@ import {
   FiExternalLink,
   FiEye,
   FiCheckCircle,
+  FiEdit2,
 } from "react-icons/fi";
 
 import {
@@ -32,6 +33,7 @@ import {
   AppTable,
   AppText,
   PageHeader,
+  AppMenu,
 } from "@/components";
 
 // Map status to badge color
@@ -267,24 +269,21 @@ const AccountGroupsDesktopPage = ({
       width: 90,
       render: (_, row) => (
         <AppStack direction="row" align="center" justify="flex-end" gap={0.5}>
-          {/* Action buttons styled with transparent backgrounds as per design requirements */}
-          <AppIconButton
-            icon={<FiEye />}
-            variant="text"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-            onClick={() => handleViewGroup(row._id)}
-            sx={actionIconButtonSx}
-          />
-          <AppIconButton
-            icon={<FiMoreHorizontal />}
-            variant="text"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-            onClick={() => handleEditGroup(row._id)}
-            sx={actionIconButtonSx}
+          <AppMenu
+            trigger={
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text focus:outline-none"
+              >
+                <FiMoreHorizontal className="text-[16px]" />
+              </button>
+            }
+            items={[
+              { id: "view", label: "View Details", icon: <FiEye />, onClick: () => handleViewGroup(row._id) },
+              { id: "edit", label: "Edit Group", icon: <FiEdit2 />, onClick: () => handleEditGroup(row._id) },
+            ]}
+            dense
+            minWidth={140}
           />
         </AppStack>
       ),

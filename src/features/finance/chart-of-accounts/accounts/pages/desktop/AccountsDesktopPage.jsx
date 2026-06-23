@@ -15,6 +15,7 @@ import {
   FiMoreHorizontal,
   FiExternalLink,
   FiEye,
+  FiEdit2,
 } from "react-icons/fi";
 
 import {
@@ -32,6 +33,7 @@ import {
   AppTag,
   AppText,
   PageHeader,
+  AppMenu,
 } from "@/components";
 
 // Map colors
@@ -296,24 +298,21 @@ const AccountsDesktopPage = ({
       width: 90,
       render: (_, row) => (
         <AppStack direction="row" align="center" justify="flex-end" gap={0.5}>
-          {/* Action buttons styled with transparent backgrounds as per design requirements */}
-          <AppIconButton
-            icon={<FiEye />}
-            variant="text"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-            onClick={() => handleViewAccount(row._id)}
-            sx={actionIconButtonSx}
-          />
-          <AppIconButton
-            icon={<FiMoreHorizontal />}
-            variant="text"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-            onClick={() => handleEditAccount(row._id)}
-            sx={actionIconButtonSx}
+          <AppMenu
+            trigger={
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text focus:outline-none"
+              >
+                <FiMoreHorizontal className="text-[16px]" />
+              </button>
+            }
+            items={[
+              { id: "view", label: "View Details", icon: <FiEye />, onClick: () => handleViewAccount(row._id) },
+              { id: "edit", label: "Edit Account", icon: <FiEdit2 />, onClick: () => handleEditAccount(row._id) },
+            ]}
+            dense
+            minWidth={140}
           />
         </AppStack>
       ),

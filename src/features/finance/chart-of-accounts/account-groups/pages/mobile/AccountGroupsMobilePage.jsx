@@ -11,6 +11,7 @@ import {
   FiEye,
   FiPlus,
   FiArrowLeft,
+  FiEdit2,
 } from "react-icons/fi";
 
 import {
@@ -23,6 +24,7 @@ import {
   AppStack,
   AppStatusBadge,
   AppText,
+  AppMenu,
 } from "@/components";
 
 // Map stats color/icon variants
@@ -255,23 +257,21 @@ const AccountGroupsMobilePage = ({
                       </td>
                       <td className="py-2 px-3 text-right">
                         <div className="flex justify-end gap-1">
-                          <AppIconButton
-                            icon={<FiEye />}
-                            variant="text"
-                            colorVariant="neutral"
-                            size="small"
-                            rounded="md"
-                            sx={actionIconButtonSx}
-                            onClick={() => handleViewGroup(row._id)}
-                          />
-                          <AppIconButton
-                            icon={<FiMoreHorizontal />}
-                            variant="text"
-                            colorVariant="neutral"
-                            size="small"
-                            rounded="md"
-                            sx={actionIconButtonSx}
-                            onClick={() => handleEditGroup(row._id)}
+                          <AppMenu
+                            trigger={
+                              <button
+                                type="button"
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text focus:outline-none"
+                              >
+                                <FiMoreHorizontal className="text-[14px]" />
+                              </button>
+                            }
+                            items={[
+                              { id: "view", label: "View Details", icon: <FiEye />, onClick: () => handleViewGroup(row._id) },
+                              { id: "edit", label: "Edit Group", icon: <FiEdit2 />, onClick: () => handleEditGroup(row._id) },
+                            ]}
+                            dense
+                            minWidth={130}
                           />
                         </div>
                       </td>
