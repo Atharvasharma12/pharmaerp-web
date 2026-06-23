@@ -40,6 +40,10 @@ import bankMasterRoutes from "@/features/bank-master/routes/bankMasterRoutes";
 import partiesRoutes from "@/features/parties/routes/partiesRoutes";
 import customerRoutes from "@/features/parties/customers/routes/customerRoutes";
 import supplierRoutes from "@/features/parties/suppliers/routes/supplierRoutes";
+import financeRoutes from "@/features/finance/routes/financeRoutes";
+import chartOfAccountsRoutes from "@/features/finance/chart-of-accounts/routes/chartOfAccountsRoutes";
+import accountGroupRoutes from "@/features/finance/chart-of-accounts/account-groups/routes/accountGroupRoutes";
+import accountRoutes from "@/features/finance/chart-of-accounts/accounts/routes/accountRoutes";
 
 const NotFoundPage = () => {
   return (
@@ -154,6 +158,11 @@ export const router = createBrowserRouter([
       ...partiesRoutes,
       ...customerRoutes,
       ...supplierRoutes,
+
+      ...financeRoutes,
+      ...chartOfAccountsRoutes,
+      ...accountGroupRoutes,
+      ...accountRoutes,
 
       // Catalog
       ...catalogRoutes,

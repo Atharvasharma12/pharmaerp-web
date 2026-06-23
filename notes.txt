@@ -1369,6 +1369,226 @@ src/
             │
             └── index.js
 
+src/features/
+└── finance/
+    │
+    ├── chart-of-accounts/
+    │
+    ├── ledger-accounts/
+    │
+    ├── opening-balances/
+    │
+    ├── financial-periods/
+    │
+    ├── journal-vouchers/
+    │
+    ├── receipts/
+    │
+    ├── payments/
+    │
+    ├── contra-vouchers/
+    │
+    ├── treasury/
+    │   ├── bank-management/
+    │   ├── cash-management/
+    │   └── payment-management/
+    │
+    └── reports/
+
+
+src/features/finance/
+│
+├── pages/
+│   ├── FinancePage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── FinanceDesktopPage.jsx
+│   │   ├── index.js
+│   │
+│   └── mobile/
+│       ├── FinanceMobilePage.jsx
+│       └── index.js
+│
+└── index.js
+
+src/features/finance/
+└── chart-of-accounts/
+    │
+    ├── pages/
+    │   ├── ChartOfAccountsPage.jsx
+    │   ├── index.js
+    │   │
+    │   ├── desktop/
+    │   │   ├── ChartOfAccountsDesktopPage.jsx
+    │   │   └── index.js
+    │   │
+    │   └── mobile/
+    │       ├── ChartOfAccountsMobilePage.jsx
+    │       └── index.js
+
+src/features/finance/
+│
+├── chart-of-accounts/
+│   │
+│   ├── pages/
+│   │   ├── AccountGroupsPage.jsx
+│   │   ├── CreateAccountGroupPage.jsx
+│   │   ├── EditAccountGroupPage.jsx
+│   │   ├── AccountGroupDetailsPage.jsx
+│   │   │
+│   │   ├── AccountsPage.jsx
+│   │   ├── CreateAccountPage.jsx
+│   │   ├── EditAccountPage.jsx
+│   │   ├── AccountDetailsPage.jsx
+│   │   │
+│   │   ├── desktop/
+│   │   │   ├── AccountGroupsDesktopPage.jsx
+│   │   │   ├── CreateAccountGroupDesktopPage.jsx
+│   │   │   ├── EditAccountGroupDesktopPage.jsx
+│   │   │   ├── AccountGroupDetailsDesktopPage.jsx
+│   │   │   │
+│   │   │   ├── AccountsDesktopPage.jsx
+│   │   │   ├── CreateAccountDesktopPage.jsx
+│   │   │   ├── EditAccountDesktopPage.jsx
+│   │   │   ├── AccountDetailsDesktopPage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── mobile/
+│   │   │   ├── AccountGroupsMobilePage.jsx
+│   │   │   ├── CreateAccountGroupMobilePage.jsx
+│   │   │   ├── EditAccountGroupMobilePage.jsx
+│   │   │   ├── AccountGroupDetailsMobilePage.jsx
+│   │   │   │
+│   │   │   ├── AccountsMobilePage.jsx
+│   │   │   ├── CreateAccountMobilePage.jsx
+│   │   │   ├── EditAccountMobilePage.jsx
+│   │   │   ├── AccountDetailsMobilePage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── opening-balances/
+│   │
+│   ├── pages/
+│   │   ├── OpeningBalancesPage.jsx
+│   │   ├── CreateOpeningBalancePage.jsx
+│   │   ├── EditOpeningBalancePage.jsx
+│   │   ├── OpeningBalanceDetailsPage.jsx
+│   │   │
+│   │   ├── desktop/
+│   │   │   ├── OpeningBalancesDesktopPage.jsx
+│   │   │   ├── CreateOpeningBalanceDesktopPage.jsx
+│   │   │   ├── EditOpeningBalanceDesktopPage.jsx
+│   │   │   ├── OpeningBalanceDetailsDesktopPage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── mobile/
+│   │   │   ├── OpeningBalancesMobilePage.jsx
+│   │   │   ├── CreateOpeningBalanceMobilePage.jsx
+│   │   │   ├── EditOpeningBalanceMobilePage.jsx
+│   │   │   ├── OpeningBalanceDetailsMobilePage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── financial-periods/
+│   │
+│   ├── pages/
+│   │   ├── FinancialPeriodsPage.jsx
+│   │   ├── CreateFinancialPeriodPage.jsx
+│   │   ├── EditFinancialPeriodPage.jsx
+│   │   ├── FinancialPeriodDetailsPage.jsx
+│   │   │
+│   │   ├── desktop/
+│   │   │   ├── FinancialPeriodsDesktopPage.jsx
+│   │   │   ├── CreateFinancialPeriodDesktopPage.jsx
+│   │   │   ├── EditFinancialPeriodDesktopPage.jsx
+│   │   │   ├── FinancialPeriodDetailsDesktopPage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── mobile/
+│   │   │   ├── FinancialPeriodsMobilePage.jsx
+│   │   │   ├── CreateFinancialPeriodMobilePage.jsx
+│   │   │   ├── EditFinancialPeriodMobilePage.jsx
+│   │   │   ├── FinancialPeriodDetailsMobilePage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── journal-vouchers/
+│   │
+│   ├── pages/
+│   │   ├── JournalVouchersPage.jsx
+│   │   ├── CreateJournalVoucherPage.jsx
+│   │   ├── EditJournalVoucherPage.jsx
+│   │   ├── JournalVoucherDetailsPage.jsx
+│   │   │
+│   │   ├── desktop/
+│   │   │   ├── JournalVouchersDesktopPage.jsx
+│   │   │   ├── CreateJournalVoucherDesktopPage.jsx
+│   │   │   ├── EditJournalVoucherDesktopPage.jsx
+│   │   │   ├── JournalVoucherDetailsDesktopPage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── mobile/
+│   │   │   ├── JournalVouchersMobilePage.jsx
+│   │   │   ├── CreateJournalVoucherMobilePage.jsx
+│   │   │   ├── EditJournalVoucherMobilePage.jsx
+│   │   │   ├── JournalVoucherDetailsMobilePage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+└── index.js
+
+src/features/finance/
+│
+├── chart-of-accounts/
+│   │
+│   ├── account-groups/
+│   │   ├── hooks/
+│   │   │   └── useAccountGroup.js
+│   │   │
+│   │   ├── services/
+│   │   │   └── accountGroupService.js
+│   │   │
+│   │   ├── store/
+│   │   │   ├── accountGroupSlice.js
+│   │   │   ├── accountGroupThunk.js
+│   │   │   └── accountGroupSelector.js
+│   │   │
+│   │   └── index.js
+│   │
+│   ├── accounts/
+│   │   ├── hooks/
+│   │   │   └── useAccount.js
+│   │   │
+│   │   ├── services/
+│   │   │   └── accountService.js
+│   │   │
+│   │   ├── store/
+│   │   │   ├── accountSlice.js
+│   │   │   ├── accountThunk.js
+│   │   │   └── accountSelector.js
+│   │   │
+│   │   └── index.js
+│   │
+│   ├── pages/
+│   │   └── ...
+│   │
+│   └── index.js
+│
+└── index.js
+
 You are acting as a senior full-stack React + Redux Toolkit + Node.js + Express + MongoDB architect.
 
 Project Context

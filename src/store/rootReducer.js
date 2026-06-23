@@ -12,6 +12,9 @@ import accessControlReducer from "@/features/access-control/store/accessControlS
 import customerReducer from "@/features/parties/customers/store/customerSlice";
 import supplierReducer from "@/features/parties/suppliers/store/supplierSlice";
 
+import accountGroupReducer from "@/features/finance/chart-of-accounts/account-groups/store/accountGroupSlice";
+import accountReducer from "@/features/finance/chart-of-accounts/accounts/store/accountSlice";
+
 import planReducer from "@/features/subscription/plans/store/planSlice";
 import subscriptionReducer from "@/features/subscription/subscriptions/store/subscriptionSlice";
 
@@ -25,6 +28,7 @@ import categoryMasterReducer from "@/features/category-master/store/categoryMast
 import productFormMasterReducer from "@/features/product-form-master/store/productFormMasterSlice";
 import saltMasterReducer from "@/features/salt-master/store/saltMasterSlice";
 import bankMasterReducer from "@/features/bank-master/store/bankMasterSlice";
+
 // ---------------------
 // App Reducer
 // ---------------------
@@ -45,6 +49,10 @@ const appReducer = combineReducers({
   // Parties
   customer: customerReducer,
   supplier: supplierReducer,
+
+  // Finance
+  accountGroup: accountGroupReducer,
+  account: accountReducer,
 
   // Subscription
   plan: planReducer,

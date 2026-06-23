@@ -105,6 +105,23 @@ export const ENDPOINTS = {
     PAYMENTS: (supplierId) => `/parties/suppliers/${supplierId}/payments`,
   },
 
+  ACCOUNT_GROUP: {
+    CREATE: "/finance/chart-of-accounts/account-groups",
+
+    LIST: "/finance/chart-of-accounts/account-groups",
+
+    BY_ID: (accountGroupId) =>
+      `/finance/chart-of-accounts/account-groups/${accountGroupId}`,
+  },
+
+  ACCOUNT: {
+    CREATE: "/finance/chart-of-accounts/accounts",
+
+    LIST: "/finance/chart-of-accounts/accounts",
+
+    BY_ID: (accountId) => `/finance/chart-of-accounts/accounts/${accountId}`,
+  },
+
   WORKSPACE_PRODUCTS: {
     // Search before creating a workspace product
     SEARCH_BEFORE_CREATE: "/catalog/products/search",

@@ -1,0 +1,163 @@
+import React, { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { ROUTES } from "@/constants";
+import { useIsMobile } from "@/hooks";
+
+import FinanceDesktopPage from "./desktop/FinanceDesktopPage";
+import FinanceMobilePage from "./mobile/FinanceMobilePage";
+
+const FinancePage = () => {
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Mock data representing financial metrics
+  const financeStats = useMemo(() => {
+    return [
+      {
+        id: "totalAccounts",
+        title: "Total Accounts",
+        value: "1,248",
+        description: "Chart of Accounts",
+        colorVariant: "success",
+      },
+      {
+        id: "ledgerAccounts",
+        title: "Ledger Accounts",
+        value: "1,086",
+        description: "Active Ledgers",
+        colorVariant: "info",
+      },
+      {
+        id: "openingBalance",
+        title: "Opening Balance",
+        value: "₹ 12,45,680.00",
+        description: "Total Balance",
+        colorVariant: "purple",
+      },
+      {
+        id: "currentPeriod",
+        title: "Current Period",
+        value: "May 2024 - 25",
+        description: "01 May 2024 - 31 Mar 2025",
+        colorVariant: "warning",
+      },
+      {
+        id: "totalTransactions",
+        title: "Total Transactions",
+        value: "3,245",
+        description: "This Financial Year",
+        colorVariant: "success",
+      },
+    ];
+  }, []);
+
+  // List of active modules within Finance & Accounting
+  const financeModules = useMemo(() => {
+    return [
+      {
+        id: "chartOfAccounts",
+        title: "Chart Of Accounts",
+        description: "Create and manage your chart of accounts",
+        colorVariant: "success",
+        path: ROUTES.CHART_OF_ACCOUNTS,
+      },
+      {
+        id: "ledgerAccounts",
+        title: "Ledger Accounts",
+        description: "Manage all ledger accounts and their details",
+        colorVariant: "info",
+        path: "/finance/ledger-accounts",
+      },
+      {
+        id: "openingBalances",
+        title: "Opening Balances",
+        description: "Set and manage opening balances for accounts",
+        colorVariant: "purple",
+        path: "/finance/opening-balances",
+      },
+      {
+        id: "financialPeriods",
+        title: "Financial Periods",
+        description: "Define and manage your financial periods",
+        colorVariant: "warning",
+        path: "/finance/financial-periods",
+      },
+      {
+        id: "journalVouchers",
+        title: "Journal Vouchers",
+        description: "Record general journal entries and adjustments",
+        colorVariant: "info",
+        path: "/finance/journal-vouchers",
+      },
+      {
+        id: "receipts",
+        title: "Receipts",
+        description: "Record and manage receipt transactions",
+        colorVariant: "success",
+        path: "/finance/receipts",
+      },
+      {
+        id: "payments",
+        title: "Payments",
+        description: "Record and manage payment transactions",
+        colorVariant: "danger",
+        path: "/finance/payments",
+      },
+      {
+        id: "contraVouchers",
+        title: "Contra Vouchers",
+        description: "Record fund transfers between accounts",
+        colorVariant: "purple",
+        path: "/finance/contra-vouchers",
+      },
+      {
+        id: "treasury",
+        title: "Treasury",
+        description: "Manage your banks, cash and payment methods",
+        colorVariant: "success", // teal-green style
+        path: "/finance/treasury",
+      },
+      {
+        id: "reports",
+        title: "Reports",
+        description: "View financial reports and statements",
+        colorVariant: "warning",
+        path: "/finance/reports",
+      },
+    ];
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+  }, []);
+
+  const handleModuleClick = useCallback(
+    (module) => {
+      if (module.path) {
+        navigate(module.path);
+      }
+    },
+    [navigate],
+  );
+
+  const pageProps = {
+    stats: financeStats,
+    modules: financeModules,
+    isLoading,
+    handleRefresh,
+    handleModuleClick,
+  };
+
+  return isMobile ? (
+    <FinanceMobilePage {...pageProps} />
+  ) : (
+    <FinanceDesktopPage {...pageProps} />
+  );
+};
+
+export default FinancePage;

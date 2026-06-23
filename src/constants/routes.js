@@ -72,6 +72,36 @@ export const ROUTES = {
   EDIT_SUPPLIER: (supplierId = ":supplierId") =>
     `/parties/suppliers/${supplierId}/edit`,
 
+  // Finance
+  FINANCE: "/finance",
+
+  // Finance - Chart Of Accounts
+  CHART_OF_ACCOUNTS: "/finance/chart-of-accounts",
+
+  // Finance - Chart Of Accounts - Account Groups
+
+  ACCOUNT_GROUPS: "/finance/chart-of-accounts/account-groups",
+
+  CREATE_ACCOUNT_GROUP: "/finance/chart-of-accounts/account-groups/create",
+
+  ACCOUNT_GROUP_DETAILS: (groupId = ":groupId") =>
+    `/finance/chart-of-accounts/account-groups/${groupId}`,
+
+  EDIT_ACCOUNT_GROUP: (groupId = ":groupId") =>
+    `/finance/chart-of-accounts/account-groups/${groupId}/edit`,
+
+  // Finance - Chart Of Accounts - Accounts
+
+  ACCOUNTS: "/finance/chart-of-accounts/accounts",
+
+  CREATE_ACCOUNT: "/finance/chart-of-accounts/accounts/create",
+
+  ACCOUNT_DETAILS: (accountId = ":accountId") =>
+    `/finance/chart-of-accounts/accounts/${accountId}`,
+
+  EDIT_ACCOUNT: (accountId = ":accountId") =>
+    `/finance/chart-of-accounts/accounts/${accountId}/edit`,
+
   // Catalog
   CATALOG: "/catalog",
 

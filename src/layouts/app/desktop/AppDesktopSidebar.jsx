@@ -8,6 +8,7 @@ import {
   FiBox,
   FiBriefcase,
   FiCreditCard,
+  FiDollarSign,
   FiFileText,
   FiHelpCircle,
   FiHome,
@@ -62,6 +63,11 @@ const sidebarItems = [
     label: "Catalog",
     path: ROUTES.CATALOG,
     icon: <FiBox />,
+  },
+  {
+    label: "Finance & Accounting",
+    path: ROUTES.FINANCE,
+    icon: <FiDollarSign />,
   },
   {
     label: "Inventory",
