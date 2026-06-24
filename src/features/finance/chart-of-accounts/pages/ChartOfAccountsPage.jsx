@@ -211,6 +211,16 @@ const ChartOfAccountsPage = () => {
       navigate(ROUTES.CREATE_ACCOUNT_GROUP);
     } else if (actionId === "add_account") {
       navigate(ROUTES.CREATE_ACCOUNT);
+    } else if (actionId.startsWith("view_group_")) {
+      const groupId = actionId.replace("view_group_", "");
+      if (typeof ROUTES.ACCOUNT_GROUP_DETAILS === "function") {
+        navigate(ROUTES.ACCOUNT_GROUP_DETAILS(groupId));
+      }
+    } else if (actionId.startsWith("view_account_")) {
+      const accountId = actionId.replace("view_account_", "");
+      if (typeof ROUTES.ACCOUNT_DETAILS === "function") {
+        navigate(ROUTES.ACCOUNT_DETAILS(accountId));
+      }
     } else {
       console.log(`Action executed: ${actionId}`);
     }

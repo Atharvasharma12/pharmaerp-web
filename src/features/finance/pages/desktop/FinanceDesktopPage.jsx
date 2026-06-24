@@ -1,7 +1,6 @@
 import React from "react";
 import {
   FiArrowRight,
-  FiBookOpen,
   FiCalendar,
   FiFileText,
   FiGitBranch,
@@ -28,7 +27,6 @@ import {
 // Map statistic IDs to react-icons
 const statIcons = {
   totalAccounts: <FaRupeeSign />,
-  ledgerAccounts: <FiBookOpen />,
   openingBalance: <LuScale />,
   currentPeriod: <FiCalendar />,
   totalTransactions: <FiFileText />,
@@ -37,7 +35,6 @@ const statIcons = {
 // Map module IDs to react-icons
 const moduleIcons = {
   chartOfAccounts: <FiGitBranch />,
-  ledgerAccounts: <FiBookOpen />,
   openingBalances: <LuScale />,
   financialPeriods: <FiCalendar />,
   journalVouchers: <FiFileText />,
@@ -98,7 +95,7 @@ const FinanceDesktopPage = ({
         />
 
         {/* Top Statistics Row */}
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {stats.map((stat) => (
             <AppCard
               key={stat.id}

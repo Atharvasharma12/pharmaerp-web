@@ -122,6 +122,47 @@ export const ENDPOINTS = {
     BY_ID: (accountId) => `/finance/chart-of-accounts/accounts/${accountId}`,
   },
 
+  OPENING_BALANCE: {
+    ACCOUNT: "/finance/opening-balances/account",
+
+    CUSTOMER: "/finance/opening-balances/customer",
+
+    SUPPLIER: "/finance/opening-balances/supplier",
+  },
+
+  ACCOUNT_BALANCE: {
+    LIST: "/finance/account-balances",
+
+    BY_ACCOUNT_ID: (accountId) => `/finance/account-balances/${accountId}`,
+
+    RECALCULATE: (accountId) =>
+      `/finance/account-balances/${accountId}/recalculate`,
+  },
+
+  BANK_ACCOUNT: {
+    CREATE: "/finance/treasury/bank-accounts",
+
+    LIST: "/finance/treasury/bank-accounts",
+
+    BY_ID: (bankAccountId) =>
+      `/finance/treasury/bank-accounts/${bankAccountId}`,
+
+    SET_PRIMARY: (bankAccountId) =>
+      `/finance/treasury/bank-accounts/${bankAccountId}/set-primary`,
+  },
+
+  CASH_ACCOUNT: {
+    CREATE: "/finance/treasury/cash-accounts",
+
+    LIST: "/finance/treasury/cash-accounts",
+
+    BY_ID: (cashAccountId) =>
+      `/finance/treasury/cash-accounts/${cashAccountId}`,
+
+    SET_PRIMARY: (cashAccountId) =>
+      `/finance/treasury/cash-accounts/${cashAccountId}/set-primary`,
+  },
+
   WORKSPACE_PRODUCTS: {
     // Search before creating a workspace product
     SEARCH_BEFORE_CREATE: "/catalog/products/search",

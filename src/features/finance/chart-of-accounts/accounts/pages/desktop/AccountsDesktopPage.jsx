@@ -55,7 +55,6 @@ const AccountsTableToolbar = ({
   filters,
   accountTypeOptions,
   statusOptions,
-  accountGroupOptions,
   handleFilterChange,
   handleCreateAccount,
 }) => (
@@ -94,17 +93,6 @@ const AccountsTableToolbar = ({
         variant="bordered"
         rounded="md"
         sx={{ width: 110 }}
-        inputSx={filterInputSx}
-      />
-      <AppSelect
-        name="group"
-        value={filters.group}
-        onChange={(e) => handleFilterChange("group", e.target.value)}
-        options={accountGroupOptions}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={{ width: 180 }}
         inputSx={filterInputSx}
       />
     </div>
@@ -198,7 +186,6 @@ const AccountsDesktopPage = ({
   filters = {},
   accountTypeOptions = [],
   statusOptions = [],
-  accountGroupOptions = [],
   isLoading = false,
   handleFilterChange,
   handleCreateAccount,
@@ -308,8 +295,18 @@ const AccountsDesktopPage = ({
               </button>
             }
             items={[
-              { id: "view", label: "View Details", icon: <FiEye />, onClick: () => handleViewAccount(row._id) },
-              { id: "edit", label: "Edit Account", icon: <FiEdit2 />, onClick: () => handleEditAccount(row._id) },
+              {
+                id: "view",
+                label: "View Details",
+                icon: <FiEye />,
+                onClick: () => handleViewAccount(row._id),
+              },
+              {
+                id: "edit",
+                label: "Edit Account",
+                icon: <FiEdit2 />,
+                onClick: () => handleEditAccount(row._id),
+              },
             ]}
             dense
             minWidth={140}
@@ -379,7 +376,6 @@ const AccountsDesktopPage = ({
                 filters={filters}
                 accountTypeOptions={accountTypeOptions}
                 statusOptions={statusOptions}
-                accountGroupOptions={accountGroupOptions}
                 handleFilterChange={handleFilterChange}
                 handleCreateAccount={handleCreateAccount}
               />
@@ -429,25 +425,43 @@ const AccountsDesktopPage = ({
               </div>
               <div className="p-4 space-y-3.5">
                 <div className="flex justify-between items-center text-[12.5px]">
-                  <span className="text-text-muted font-medium">Total Accounts</span>
-                  <span className="font-bold text-text">{stats.totalAccounts}</span>
+                  <span className="text-text-muted font-medium">
+                    Total Accounts
+                  </span>
+                  <span className="font-bold text-text">
+                    {stats.totalAccounts}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center text-[12.5px]">
-                  <span className="text-text-muted font-medium">Active Accounts</span>
-                  <span className="font-bold text-success">{stats.activeAccounts}</span>
+                  <span className="text-text-muted font-medium">
+                    Active Accounts
+                  </span>
+                  <span className="font-bold text-success">
+                    {stats.activeAccounts}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center text-[12.5px]">
-                  <span className="text-text-muted font-medium">Inactive Accounts</span>
-                  <span className="font-bold text-text-muted">{stats.inactiveAccounts}</span>
+                  <span className="text-text-muted font-medium">
+                    Inactive Accounts
+                  </span>
+                  <span className="font-bold text-text-muted">
+                    {stats.inactiveAccounts}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center text-[12.5px]">
-                  <span className="text-text-muted font-medium">Inactive Groups</span>
-                  <span className="font-bold text-text-muted">{stats.inactiveGroups}</span>
+                  <span className="text-text-muted font-medium">
+                    Inactive Groups
+                  </span>
+                  <span className="font-bold text-text-muted">
+                    {stats.inactiveGroups}
+                  </span>
                 </div>
                 <div className="my-2 h-[1px] bg-divider" />
                 <div className="flex justify-between items-center text-[11px]">
                   <span className="text-text-muted">Last Updated</span>
-                  <span className="text-text font-semibold">{stats.lastUpdated}</span>
+                  <span className="text-text font-semibold">
+                    {stats.lastUpdated}
+                  </span>
                 </div>
               </div>
             </AppCard>
@@ -512,7 +526,8 @@ const AccountsDesktopPage = ({
                   Help & Support
                 </AppHeading>
                 <AppText variant="body2" sx={helpDescSx}>
-                  Accounts represent the actual financial ledgers under the groups where transactions are posted.
+                  Accounts represent the actual financial ledgers under the
+                  groups where transactions are posted.
                 </AppText>
                 <button
                   type="button"
@@ -545,7 +560,8 @@ const AccountsDesktopPage = ({
                     Chart of Accounts Setup
                   </AppHeading>
                   <AppText variant="body2" sx={bannerDescSx}>
-                    Ensure your accounts are mapped correctly to parent groups to enable precise financial statements generation.
+                    Ensure your accounts are mapped correctly to parent groups
+                    to enable precise financial statements generation.
                   </AppText>
                 </div>
               </div>

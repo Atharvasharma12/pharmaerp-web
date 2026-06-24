@@ -23,13 +23,6 @@ const FinancePage = () => {
         colorVariant: "success",
       },
       {
-        id: "ledgerAccounts",
-        title: "Ledger Accounts",
-        value: "1,086",
-        description: "Active Ledgers",
-        colorVariant: "info",
-      },
-      {
         id: "openingBalance",
         title: "Opening Balance",
         value: "₹ 12,45,680.00",
@@ -62,13 +55,6 @@ const FinancePage = () => {
         description: "Create and manage your chart of accounts",
         colorVariant: "success",
         path: ROUTES.CHART_OF_ACCOUNTS,
-      },
-      {
-        id: "ledgerAccounts",
-        title: "Ledger Accounts",
-        description: "Manage all ledger accounts and their details",
-        colorVariant: "info",
-        path: "/finance/ledger-accounts",
       },
       {
         id: "openingBalances",

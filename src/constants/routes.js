@@ -102,6 +102,33 @@ export const ROUTES = {
   EDIT_ACCOUNT: (accountId = ":accountId") =>
     `/finance/chart-of-accounts/accounts/${accountId}/edit`,
 
+  // Treasury
+  TREASURY: "/finance/treasury",
+
+  // Finance - Treasury - Bank Accounts
+
+  BANK_ACCOUNTS: "/finance/treasury/bank-accounts",
+
+  CREATE_BANK_ACCOUNT: "/finance/treasury/bank-accounts/create",
+
+  BANK_ACCOUNT_DETAILS: (bankAccountId = ":bankAccountId") =>
+    `/finance/treasury/bank-accounts/${bankAccountId}`,
+
+  EDIT_BANK_ACCOUNT: (bankAccountId = ":bankAccountId") =>
+    `/finance/treasury/bank-accounts/${bankAccountId}/edit`,
+
+  // Finance - Treasury - Cash Accounts
+
+  CASH_ACCOUNTS: "/finance/treasury/cash-accounts",
+
+  CREATE_CASH_ACCOUNT: "/finance/treasury/cash-accounts/create",
+
+  CASH_ACCOUNT_DETAILS: (cashAccountId = ":cashAccountId") =>
+    `/finance/treasury/cash-accounts/${cashAccountId}`,
+
+  EDIT_CASH_ACCOUNT: (cashAccountId = ":cashAccountId") =>
+    `/finance/treasury/cash-accounts/${cashAccountId}/edit`,
+
   // Catalog
   CATALOG: "/catalog",
 

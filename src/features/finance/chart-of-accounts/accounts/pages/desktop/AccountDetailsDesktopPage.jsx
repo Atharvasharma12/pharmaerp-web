@@ -75,11 +75,7 @@ const AccountDetailsDesktopPage = ({
 
   const safeAccount = account || {};
 
-  const tabs = [
-    { value: "overview", label: "Overview" },
-    { value: "financial", label: "Financial Info" },
-    { value: "timeline", label: "Timeline" },
-  ];
+// Tabs removed; sections will be displayed sequentially.
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
@@ -199,39 +195,10 @@ const AccountDetailsDesktopPage = ({
           </AppStack>
         </div>
 
-        {/* Tab Bar */}
-        <div className="mt-4 flex border-b border-border overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {tabs.map((tab) => {
-            const isActive = currentTab === tab.value;
-            return (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => handleTabChange(tab.value)}
-                className={`border-b-2 px-4 pb-2.5 text-[12.5px] font-bold transition whitespace-nowrap outline-none ${
-                  isActive
-                    ? "border-primary text-primary"
-                    : "border-transparent text-text-muted hover:text-text"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Tab Content */}
-        <div className="mt-5">
-          {currentTab === "overview" && (
-            <OverviewTab account={safeAccount} onEdit={handleEdit} navigate={navigate} />
-          )}
-          {currentTab === "financial" && (
-            <FinancialTab account={safeAccount} />
-          )}
-          {currentTab === "timeline" && (
-            <TimelineTab account={safeAccount} />
-          )}
-        </div>
+        {/* Render all sections sequentially without tabs */}
+        <OverviewTab account={safeAccount} onEdit={handleEdit} navigate={navigate} />
+        <FinancialTab account={safeAccount} />
+        <TimelineTab account={safeAccount} />
       </div>
     </section>
   );

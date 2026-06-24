@@ -44,6 +44,9 @@ import financeRoutes from "@/features/finance/routes/financeRoutes";
 import chartOfAccountsRoutes from "@/features/finance/chart-of-accounts/routes/chartOfAccountsRoutes";
 import accountGroupRoutes from "@/features/finance/chart-of-accounts/account-groups/routes/accountGroupRoutes";
 import accountRoutes from "@/features/finance/chart-of-accounts/accounts/routes/accountRoutes";
+import treasuryRoutes from "@/features/finance/treasury/routes/treasuryRoutes";
+import bankAccountRoutes from "@/features/finance/treasury/bank-management/bank-accounts/routes/bankAccountRoutes";
+import cashAccountRoutes from "@/features/finance/treasury/cash-management/cash-accounts/routes/cashAccountRoutes";
 
 const NotFoundPage = () => {
   return (
@@ -163,6 +166,10 @@ export const router = createBrowserRouter([
       ...chartOfAccountsRoutes,
       ...accountGroupRoutes,
       ...accountRoutes,
+
+      ...treasuryRoutes,
+      ...bankAccountRoutes,
+      ...cashAccountRoutes,
 
       // Catalog
       ...catalogRoutes,

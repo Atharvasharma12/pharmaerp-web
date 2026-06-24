@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ROUTES, API_STATUS } from "@/constants";
@@ -13,20 +19,19 @@ const initialFilters = {
   search: "",
   type: "all",
   status: "all",
-  group: "all",
 };
 
-const normalizeText = (val) => String(val || "").trim().toLowerCase();
+const normalizeText = (val) =>
+  String(val || "")
+    .trim()
+    .toLowerCase();
 
 const AccountsPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const hasFetchedRef = useRef(false);
 
-  const {
-    accountGroups = [],
-    getAccountGroups,
-  } = useAccountGroup();
+  const { accountGroups = [], getAccountGroups } = useAccountGroup();
 
   const {
     accounts = [],
@@ -45,10 +50,7 @@ const AccountsPage = () => {
 
   const fetchAccountsAndGroups = useCallback(async () => {
     try {
-      await Promise.all([
-        getAccountGroups(),
-        getAccounts(),
-      ]);
+      await Promise.all([getAccountGroups(), getAccounts()]);
     } catch (err) {
       console.error("Failed to load accounts page data:", err);
     }
@@ -65,18 +67,23 @@ const AccountsPage = () => {
     setCurrentPage(1);
   }, [filters]);
 
-  const isLoading =
-    getAccountsStatus === API_STATUS.LOADING;
+  const isLoading = getAccountsStatus === API_STATUS.LOADING;
 
   const hasError = getAccountsStatus === API_STATUS.ERROR;
 
   // Helper to map account group name
-  const getGroupName = useCallback((accountGroupId) => {
-    const parentIdStr = typeof accountGroupId === "object" ? accountGroupId?._id : accountGroupId;
-    if (!parentIdStr) return "-";
-    const group = accountGroups.find((g) => g._id === parentIdStr);
-    return group ? group.groupName : "-";
-  }, [accountGroups]);
+  const getGroupName = useCallback(
+    (accountGroupId) => {
+      const parentIdStr =
+        typeof accountGroupId === "object"
+          ? accountGroupId?._id
+          : accountGroupId;
+      if (!parentIdStr) return "-";
+      const group = accountGroups.find((g) => g._id === parentIdStr);
+      return group ? group.groupName : "-";
+    },
+    [accountGroups],
+  );
 
   // Format nature string
   const formatNature = (nature) => {
@@ -95,7 +102,10 @@ const AccountsPage = () => {
         name: acc.accountName,
         code: acc.accountCode,
         underGroup: getGroupName(acc.accountGroupId),
-        type: acc.accountNature ? (acc.accountNature.charAt(0) + acc.accountNature.slice(1).toLowerCase()) : "Asset",
+        type: acc.accountNature
+          ? acc.accountNature.charAt(0) +
+            acc.accountNature.slice(1).toLowerCase()
+          : "Asset",
         nature: formatNature(acc.openingBalanceType),
         status: acc.status || "active",
       };
@@ -107,7 +117,6 @@ const AccountsPage = () => {
     const searchVal = normalizeText(filters.search);
     const typeVal = normalizeText(filters.type);
     const statusVal = normalizeText(filters.status);
-    const groupVal = filters.group;
 
     return mappedAccounts.filter((acc) => {
       const matchesSearch =
@@ -116,19 +125,12 @@ const AccountsPage = () => {
         normalizeText(acc.code).includes(searchVal);
 
       const matchesType =
-        typeVal === "all" ||
-        normalizeText(acc.type) === typeVal;
+        typeVal === "all" || normalizeText(acc.type) === typeVal;
 
       const matchesStatus =
-        statusVal === "all" ||
-        normalizeText(acc.status) === statusVal;
+        statusVal === "all" || normalizeText(acc.status) === statusVal;
 
-      const parentIdStr = typeof acc.accountGroupId === "object" ? acc.accountGroupId?._id : acc.accountGroupId;
-      const matchesGroup =
-        groupVal === "all" ||
-        parentIdStr === groupVal;
-
-      return matchesSearch && matchesType && matchesStatus && matchesGroup;
+      return matchesSearch && matchesType && matchesStatus;
     });
   }, [mappedAccounts, filters]);
 
@@ -150,8 +152,12 @@ const AccountsPage = () => {
   const stats = useMemo(() => {
     const totalAccounts = accounts.length;
     const activeAccounts = accounts.filter((a) => a.status === "active").length;
-    const inactiveAccounts = accounts.filter((a) => a.status === "inactive").length;
-    const inactiveGroups = accountGroups.filter((g) => g.status === "inactive").length;
+    const inactiveAccounts = accounts.filter(
+      (a) => a.status === "inactive",
+    ).length;
+    const inactiveGroups = accountGroups.filter(
+      (g) => g.status === "inactive",
+    ).length;
 
     return {
       totalAccounts,
@@ -177,12 +183,8 @@ const AccountsPage = () => {
     if (filters.status !== "all") {
       chips.push({ key: "status", label: `Status: ${filters.status}` });
     }
-    if (filters.group !== "all") {
-      const group = accountGroups.find((g) => g._id === filters.group);
-      chips.push({ key: "group", label: `Group: ${group ? group.groupName : filters.group}` });
-    }
     return chips;
-  }, [filters, accountGroups]);
+  }, [filters]);
 
   const handleFilterChange = useCallback((name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -200,53 +202,60 @@ const AccountsPage = () => {
     navigate(ROUTES.CREATE_ACCOUNT);
   }, [navigate]);
 
-  const handleViewAccount = useCallback((accountId) => {
-    if (typeof ROUTES.ACCOUNT_DETAILS === "function") {
-      navigate(ROUTES.ACCOUNT_DETAILS(accountId));
-    }
-  }, [navigate]);
+  const handleViewAccount = useCallback(
+    (accountId) => {
+      if (typeof ROUTES.ACCOUNT_DETAILS === "function") {
+        navigate(ROUTES.ACCOUNT_DETAILS(accountId));
+      }
+    },
+    [navigate],
+  );
 
-  const handleEditAccount = useCallback((accountId) => {
-    if (typeof ROUTES.EDIT_ACCOUNT === "function") {
-      navigate(ROUTES.EDIT_ACCOUNT(accountId));
-    }
-  }, [navigate]);
+  const handleEditAccount = useCallback(
+    (accountId) => {
+      if (typeof ROUTES.EDIT_ACCOUNT === "function") {
+        navigate(ROUTES.EDIT_ACCOUNT(accountId));
+      }
+    },
+    [navigate],
+  );
 
-  const handleDeleteAccount = useCallback(async (accountId) => {
-    try {
-      await deleteAccount(accountId);
-      fetchAccountsAndGroups();
-    } catch (err) {
-      console.error(err);
-    }
-  }, [deleteAccount, fetchAccountsAndGroups]);
+  const handleDeleteAccount = useCallback(
+    async (accountId) => {
+      try {
+        await deleteAccount(accountId);
+        fetchAccountsAndGroups();
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [deleteAccount, fetchAccountsAndGroups],
+  );
 
   const handleRefresh = useCallback(() => {
     fetchAccountsAndGroups();
   }, [fetchAccountsAndGroups]);
 
-  const accountTypeOptions = useMemo(() => [
-    { label: "Account Type: All", value: "all" },
-    { label: "Asset", value: "asset" },
-    { label: "Liability", value: "liability" },
-    { label: "Equity", value: "equity" },
-    { label: "Income", value: "income" },
-    { label: "Expense", value: "expense" },
-  ], []);
+  const accountTypeOptions = useMemo(
+    () => [
+      { label: "Account Type: All", value: "all" },
+      { label: "Asset", value: "asset" },
+      { label: "Liability", value: "liability" },
+      { label: "Equity", value: "equity" },
+      { label: "Income", value: "income" },
+      { label: "Expense", value: "expense" },
+    ],
+    [],
+  );
 
-  const statusOptions = useMemo(() => [
-    { label: "Status: All", value: "all" },
-    { label: "Active", value: "active" },
-    { label: "Inactive", value: "inactive" },
-  ], []);
-
-  const accountGroupOptions = useMemo(() => {
-    const opts = [{ label: "Account Group: All", value: "all" }];
-    accountGroups.forEach((g) => {
-      opts.push({ label: g.groupName, value: g._id });
-    });
-    return opts;
-  }, [accountGroups]);
+  const statusOptions = useMemo(
+    () => [
+      { label: "Status: All", value: "all" },
+      { label: "Active", value: "active" },
+      { label: "Inactive", value: "inactive" },
+    ],
+    [],
+  );
 
   const pageProps = {
     accounts: paginatedAccounts,
@@ -264,7 +273,6 @@ const AccountsPage = () => {
     activeFilterChips,
     accountTypeOptions,
     statusOptions,
-    accountGroupOptions,
     isLoading,
     hasError,
     error,

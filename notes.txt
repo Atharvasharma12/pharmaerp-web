@@ -1395,6 +1395,26 @@ src/features/
     │
     └── reports/
 
+treasury/
+│
+├── bank-accounts/
+│
+├── cash-accounts/
+│
+├── fund-transfers/
+│
+├── bank-transactions/
+│
+├── cash-transactions/
+│
+├── cheque-management/
+│
+├── payment-qr/
+│
+├── bank-slips/
+│
+└── cash-denominations/
+
 
 src/features/finance/
 │
@@ -1426,6 +1446,70 @@ src/features/finance/
     │   └── mobile/
     │       ├── ChartOfAccountsMobilePage.jsx
     │       └── index.js
+
+    src/features/finance/
+└── treasury/
+    │
+    ├── pages/
+    │   ├── TreasuryPage.jsx
+    │   ├── index.js
+    │   │
+    │   ├── desktop/
+    │   │   ├── TreasuryDesktopPage.jsx
+    │   │   └── index.js
+    │   │
+    │   └── mobile/
+    │       ├── TreasuryMobilePage.jsx
+    │       └── index.js
+    │
+    └── index.js
+
+src/features/finance/
+│
+└── treasury/
+    │
+    └── cash-management/
+        │
+        └── cash-accounts/
+            │
+            ├── hooks/
+            │   └── useCashAccount.js
+            │
+            ├── services/
+            │   └── cashAccountService.js
+            │
+            ├── store/
+            │   ├── cashAccountSlice.js
+            │   ├── cashAccountThunk.js
+            │   └── cashAccountSelector.js
+            │
+            ├── pages/
+            │   ├── CashAccountsPage.jsx
+            │   ├── CreateCashAccountPage.jsx
+            │   ├── EditCashAccountPage.jsx
+            │   ├── CashAccountDetailsPage.jsx
+            │   │
+            │   ├── desktop/
+            │   │   ├── CashAccountsDesktopPage.jsx
+            │   │   ├── CreateCashAccountDesktopPage.jsx
+            │   │   ├── EditCashAccountDesktopPage.jsx
+            │   │   ├── CashAccountDetailsDesktopPage.jsx
+            │   │   └── index.js
+            │   │
+            │   ├── mobile/
+            │   │   ├── CashAccountsMobilePage.jsx
+            │   │   ├── CreateCashAccountMobilePage.jsx
+            │   │   ├── EditCashAccountMobilePage.jsx
+            │   │   ├── CashAccountDetailsMobilePage.jsx
+            │   │   └── index.js
+            │   │
+            │   └── index.js
+            │
+            ├── routes/
+            │   └── cashAccountRoutes.jsx
+            │
+            └── index.js
+
 
 src/features/finance/
 │
@@ -1549,6 +1633,36 @@ src/features/finance/
 │   └── index.js
 │
 └── index.js
+
+
+src/features/finance/
+└── treasury/
+    │
+    └── bank-management/
+        │
+        └── bank-accounts/
+            │
+            ├── pages/
+            │   ├── BankAccountsPage.jsx
+            │   ├── CreateBankAccountPage.jsx
+            │   ├── EditBankAccountPage.jsx
+            │   ├── BankAccountDetailsPage.jsx
+            │   │
+            │   ├── desktop/
+            │   │   ├── BankAccountsDesktopPage.jsx
+            │   │   ├── CreateBankAccountDesktopPage.jsx
+            │   │   ├── EditBankAccountDesktopPage.jsx
+            │   │   ├── BankAccountDetailsDesktopPage.jsx
+            │   │   └── index.js
+            │   │
+            │   ├── mobile/
+            │   │   ├── BankAccountsMobilePage.jsx
+            │   │   ├── CreateBankAccountMobilePage.jsx
+            │   │   ├── EditBankAccountMobilePage.jsx
+            │   │   ├── BankAccountDetailsMobilePage.jsx
+            │   │   └── index.js
+            │   │
+            │   └── index.js
 
 src/features/finance/
 │

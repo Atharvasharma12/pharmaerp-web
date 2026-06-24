@@ -1,7 +1,6 @@
 // src/features/finance/chart-of-accounts/account-groups/pages/desktop/AccountGroupDetailsDesktopPage.jsx
 
 import {
-  FiArrowLeft,
   FiEdit3,
   FiMoreHorizontal,
   FiCalendar,
@@ -11,9 +10,12 @@ import {
   FiInfo,
   FiRefreshCw,
   FiFileText,
-  FiClock,
   FiTag,
   FiTrendingUp,
+  FiHome,
+  FiUsers,
+  FiPieChart,
+  FiList,
 } from "react-icons/fi";
 import { HiOutlineRectangleStack } from "react-icons/hi2";
 
@@ -39,12 +41,9 @@ import { useNavigate } from "react-router-dom";
 
 const AccountGroupDetailsDesktopPage = ({
   group,
-  groupId,
-  currentTab,
   isLoading,
   hasError,
   error,
-  handleTabChange,
   handleBack,
   handleEdit,
   handleRefresh,
@@ -75,15 +74,16 @@ const AccountGroupDetailsDesktopPage = ({
 
   const safeGroup = group || {};
 
-  const tabs = [
-    { value: "overview", label: "Overview" },
-    { value: "accounts", label: "Accounts" },
-    { value: "timeline", label: "Timeline" },
-  ];
+  const parentGroupLabel =
+    safeGroup.parentGroupId && typeof safeGroup.parentGroupId === "object"
+      ? safeGroup.parentGroupId?.groupName || "Current Assets"
+      : safeGroup.parentGroupName || "Current Assets";
+
+  const rootGroupLabel = safeGroup.rootGroupName || "Assets (GRP-001)";
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
-      <div className="mx-auto w-full max-w-[1500px]">
+      <div className="mx-auto w-full max-w-375">
         {/* Breadcrumb */}
         <div className="flex items-center justify-between">
           <AppBreadcrumb
@@ -105,14 +105,14 @@ const AccountGroupDetailsDesktopPage = ({
         </div>
 
         {/* Header Row */}
-        <div className="mt-2 flex w-full items-start justify-between border-b border-border-strong bg-surface rounded-xl border p-4 shadow-xs">
+        <div className="mt-2 flex w-full items-start justify-between rounded-xl border border-border-strong bg-surface p-4 shadow-xs">
           <AppStack direction="row" align="center" gap={1.2}>
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary text-[28px]">
               <HiOutlineRectangleStack />
             </div>
             <AppBox>
               <AppStack direction="row" align="center" gap={0.8}>
-                <AppHeading level={1} weight={700} sx={pageTitleSx}>
+                <AppHeading level={1} weight={600} sx={pageTitleSx}>
                   {safeGroup.groupName || "—"}
                 </AppHeading>
                 <AppStatusBadge
@@ -129,7 +129,7 @@ const AccountGroupDetailsDesktopPage = ({
                 </span>
               </AppText>
 
-              <div className="mt-2 flex flex-wrap items-center gap-4 text-[11px] font-semibold text-text-muted">
+              <div className="mt-2 flex flex-wrap items-center gap-4 text-[10.5px] font-medium text-text-muted">
                 <span className="flex items-center gap-1.5">
                   <FiCalendar className="text-primary text-[13px]" />
                   Created on{" "}
@@ -194,318 +194,387 @@ const AccountGroupDetailsDesktopPage = ({
           </AppStack>
         </div>
 
-        {/* Tab Bar */}
-        <div className="mt-4 flex border-b border-border overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {tabs.map((tab) => {
-            const isActive = currentTab === tab.value;
-            return (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => handleTabChange(tab.value)}
-                className={`border-b-2 px-4 pb-2.5 text-[12.5px] font-bold transition whitespace-nowrap outline-none ${
-                  isActive
-                    ? "border-primary text-primary"
-                    : "border-transparent text-text-muted hover:text-text"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        {/* Compact Overview */}
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_300px] gap-4 items-start">
+          <div className="space-y-4">
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              padding="none"
+              sx={sectionCardSx}
+            >
+              <div className="border-b border-border px-4 py-2.5 bg-surface-alt/20">
+                <AppHeading level={2} weight={600} sx={cardHeaderTitleSx}>
+                  Group Information
+                </AppHeading>
+              </div>
+              <div className="p-4 grid grid-cols-2 gap-x-5 gap-y-2">
+                <InfoRow
+                  label="Group Name"
+                  value={safeGroup.groupName || "—"}
+                />
+                <InfoRow
+                  label="Group Code"
+                  value={safeGroup.groupCode || "—"}
+                />
+                <InfoRow label="Parent Group" value={parentGroupLabel} />
+                <InfoRow
+                  label="Group Level"
+                  value={`Level ${safeGroup.level || 1}`}
+                />
+                <InfoRow
+                  label="Nature"
+                  value={
+                    safeGroup.nature ? (
+                      <AppTag
+                        label={safeGroup.nature}
+                        colorVariant={
+                          safeGroup.nature === "ASSET"
+                            ? "primary"
+                            : safeGroup.nature === "LIABILITY"
+                              ? "warning"
+                              : safeGroup.nature === "INCOME"
+                                ? "success"
+                                : safeGroup.nature === "EXPENSE"
+                                  ? "danger"
+                                  : "neutral"
+                        }
+                        variant="soft"
+                        rounded="md"
+                        sx={{
+                          height: 20,
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          textTransform: "capitalize",
+                        }}
+                      />
+                    ) : (
+                      "—"
+                    )
+                  }
+                />
+                <InfoRow
+                  label="Status"
+                  value={
+                    <AppTag
+                      label={safeGroup.status || "active"}
+                      colorVariant={
+                        safeGroup.status === "active" ? "success" : "warning"
+                      }
+                      variant="soft"
+                      rounded="md"
+                      sx={{
+                        height: 20,
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        textTransform: "capitalize",
+                      }}
+                    />
+                  }
+                />
+                <div className="col-span-2">
+                  <InfoRow
+                    label="Description"
+                    value={safeGroup.description || "—"}
+                    vertical
+                  />
+                </div>
+              </div>
+            </AppCard>
 
-        {/* Tab Content */}
-        <div className="mt-5">
-          {currentTab === "overview" && (
-            <OverviewTab group={safeGroup} onEdit={handleEdit} />
-          )}
-          {currentTab === "accounts" && (
-            <AccountsTab group={safeGroup} navigate={navigate} />
-          )}
-          {currentTab === "timeline" && (
-            <TimelineTab group={safeGroup} />
-          )}
+            <div className="grid grid-cols-2 gap-4">
+              <AppCard
+                variant="default"
+                rounded="lg"
+                bordered
+                padding="none"
+                sx={sectionCardSx}
+              >
+                <div className="border-b border-border px-4 py-3 bg-surface-alt/20">
+                  <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
+                    Hierarchy Information
+                  </AppHeading>
+                </div>
+                <div className="p-4">
+                  <div className="space-y-4 border-l border-border pl-4">
+                    <HierarchyStep
+                      icon={<FiHome />}
+                      label="Level 0 (Root)"
+                      value={rootGroupLabel}
+                      accent="text-success bg-success-soft"
+                    />
+                    <HierarchyStep
+                      icon={<FiLayers />}
+                      label="Level 1"
+                      value={parentGroupLabel}
+                      accent="text-warning bg-warning-soft"
+                    />
+                    <HierarchyStep
+                      icon={<HiOutlineRectangleStack />}
+                      label={`Level ${safeGroup.level || 2} (Current)`}
+                      value={safeGroup.groupName || "—"}
+                      accent="text-primary bg-primary-soft"
+                      active
+                      badge="This Group"
+                    />
+                  </div>
+                </div>
+              </AppCard>
+
+              <AppCard
+                variant="default"
+                rounded="lg"
+                bordered
+                padding="none"
+                sx={sectionCardSx}
+              >
+                <div className="border-b border-border px-4 py-3 bg-surface-alt/20">
+                  <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
+                    Group Summary
+                  </AppHeading>
+                </div>
+                <div className="p-4 space-y-3">
+                  <SummaryItem
+                    label="Group Code"
+                    value={safeGroup.groupCode || "—"}
+                    icon={<FiTag />}
+                    color="text-primary bg-primary-soft"
+                  />
+                  <SummaryItem
+                    label="Group Level"
+                    value={`Level ${safeGroup.level || 1}`}
+                    icon={<FiLayers />}
+                    color="text-warning bg-warning-soft"
+                  />
+                  <SummaryItem
+                    label="Parent Group"
+                    value={parentGroupLabel}
+                    icon={<FiGitBranch />}
+                    color="text-text-muted bg-surface-alt"
+                  />
+                  <SummaryItem
+                    label="Nature"
+                    value={safeGroup.nature || "—"}
+                    icon={<FiPieChart />}
+                    color="text-success bg-success-soft"
+                  />
+                  <SummaryItem
+                    label="Status"
+                    value={safeGroup.status || "active"}
+                    icon={<FiCheckCircle />}
+                    color="text-success bg-success-soft"
+                  />
+                  <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] text-text-muted font-medium">
+                    <span>Created On</span>
+                    <span className="font-semibold text-text">
+                      {safeGroup.createdAt
+                        ? formatDate(safeGroup.createdAt)
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-text-muted font-medium">
+                    <span>Last Updated</span>
+                    <span className="font-semibold text-text">
+                      {safeGroup.updatedAt
+                        ? formatDate(safeGroup.updatedAt)
+                        : "—"}
+                    </span>
+                  </div>
+                </div>
+              </AppCard>
+            </div>
+
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              padding="none"
+              sx={sectionCardSx}
+            >
+              <div className="border-b border-border px-4 py-3 bg-surface-alt/20">
+                <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
+                  Accounts in This Group
+                </AppHeading>
+              </div>
+              <div className="p-4">
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <div className="grid grid-cols-[1.7fr_.7fr_.7fr_.7fr] gap-0 border-b border-border bg-surface-alt/20 px-3 py-2 text-[10.5px] font-bold uppercase tracking-wide text-text-muted">
+                    <span>Account Name</span>
+                    <span>Account Code</span>
+                    <span>Account Type</span>
+                    <span>Status</span>
+                  </div>
+                  <div className="divide-y divide-border">
+                    <CompactAccountRow
+                      name="HDFC Bank A/C"
+                      code="1002"
+                      type="Asset"
+                      status="Active"
+                    />
+                    <CompactAccountRow
+                      name="SBI Current A/C"
+                      code="1003"
+                      type="Asset"
+                      status="Active"
+                    />
+                    <CompactAccountRow
+                      name="ICICI Bank A/C"
+                      code="1004"
+                      type="Asset"
+                      status="Active"
+                    />
+                    <CompactAccountRow
+                      name="Axis Bank A/C"
+                      code="1005"
+                      type="Asset"
+                      status="Inactive"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate("/finance/chart-of-accounts/accounts")
+                  }
+                  className="mt-3 text-[11px] font-bold text-success transition hover:text-success/80"
+                >
+                  View all accounts in this group →
+                </button>
+              </div>
+            </AppCard>
+          </div>
+
+          <div className="space-y-4">
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              padding="none"
+              sx={sectionCardSx}
+            >
+              <div className="border-b border-border px-4 py-3 bg-surface-alt/20">
+                <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
+                  Quick Actions
+                </AppHeading>
+              </div>
+              <div className="p-3 space-y-2">
+                <QuickActionButton
+                  label="Edit Account Group"
+                  icon={<FiEdit3 />}
+                  onClick={handleEdit}
+                />
+                <QuickActionButton
+                  label="Add Sub Group"
+                  icon={<FiGitBranch />}
+                />
+                <QuickActionButton label="Add Account" icon={<FiUsers />} />
+                <QuickActionButton
+                  label="View Group Hierarchy"
+                  icon={<FiHome />}
+                />
+                <QuickActionButton
+                  label="Refresh Group"
+                  icon={<FiRefreshCw />}
+                  onClick={handleRefresh}
+                />
+              </div>
+            </AppCard>
+
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              padding="none"
+              sx={sectionCardSx}
+            >
+              <div className="border-b border-border px-4 py-3 bg-surface-alt/20">
+                <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
+                  About Account Groups
+                </AppHeading>
+              </div>
+              <div className="p-4 space-y-2">
+                <div className="flex gap-2 text-[11.5px] text-text-muted leading-relaxed">
+                  <FiInfo className="text-primary mt-0.5 shrink-0" />
+                  <span>
+                    Account groups classify accounts into categories like
+                    Assets, Liabilities, Income, and Expenses for systematic
+                    financial reporting.
+                  </span>
+                </div>
+                <div className="flex gap-2 text-[11.5px] text-text-muted leading-relaxed">
+                  <FiGitBranch className="text-success mt-0.5 shrink-0" />
+                  <span>
+                    Groups can be nested hierarchically, so child groups inherit
+                    structure from their parent group.
+                  </span>
+                </div>
+              </div>
+            </AppCard>
+
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              padding="none"
+              sx={sectionCardSx}
+            >
+              <div className="border-b border-border px-4 py-3 bg-surface-alt/20">
+                <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
+                  Help & Support
+                </AppHeading>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex gap-2 text-[11.5px] text-text-muted leading-relaxed">
+                  <FiInfo className="mt-0.5 shrink-0 text-primary" />
+                  <span>
+                    Learn more about account groups and organizing your chart of
+                    accounts.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 text-[11px] font-bold text-success transition hover:text-success/80"
+                >
+                  View User Guide →
+                </button>
+              </div>
+            </AppCard>
+          </div>
         </div>
       </div>
     </section>
   );
 };
 
-/* ==========================================================================
-   1. OVERVIEW TAB
-   ========================================================================== */
-const OverviewTab = ({ group, onEdit }) => (
-  <div className="grid grid-cols-[1fr_340px] gap-4 items-start">
-    {/* Left Column */}
-    <div className="space-y-4">
-      {/* Basic Information */}
-      <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
-        <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-surface-alt/20">
-          <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
-            Group Information
-          </AppHeading>
-          <AppButton
-            variant="outlined"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-            startIcon={<FiEdit3 />}
-            onClick={onEdit}
-            sx={{ height: 28, fontSize: "11px" }}
-          >
-            Edit
-          </AppButton>
-        </div>
-        <div className="p-4 grid grid-cols-2 gap-x-6 gap-y-3.5">
-          <InfoRow label="Group Code" value={group.groupCode || "—"} />
-          <InfoRow label="Group Name" value={group.groupName || "—"} />
-          <InfoRow
-            label="Nature"
-            value={
-              group.nature ? (
-                <AppTag
-                  label={group.nature}
-                  colorVariant={
-                    group.nature === "ASSET"
-                      ? "primary"
-                      : group.nature === "LIABILITY"
-                      ? "warning"
-                      : group.nature === "INCOME"
-                      ? "success"
-                      : group.nature === "EXPENSE"
-                      ? "danger"
-                      : "neutral"
-                  }
-                  variant="soft"
-                  rounded="md"
-                  sx={{ height: 20, fontSize: "10.5px", fontWeight: 700, textTransform: "capitalize" }}
-                />
-              ) : (
-                "—"
-              )
-            }
-          />
-          <InfoRow label="Hierarchy Level" value={`Level ${group.level || 1}`} />
-          <InfoRow
-            label="Parent Group"
-            value={
-              group.parentGroupId
-                ? typeof group.parentGroupId === "object"
-                  ? group.parentGroupId?.groupName
-                  : "Parent Group"
-                : "Root Group (No Parent)"
-            }
-          />
-          <InfoRow
-            label="Status"
-            value={
-              <AppTag
-                label={group.status || "active"}
-                colorVariant={group.status === "active" ? "success" : "warning"}
-                variant="soft"
-                rounded="md"
-                sx={{ height: 20, fontSize: "10.5px", fontWeight: 700, textTransform: "capitalize" }}
-              />
-            }
-          />
-          <div className="col-span-2">
-            <InfoRow label="Description" value={group.description || "—"} vertical />
-          </div>
-        </div>
-      </AppCard>
-
-      {/* Timestamps */}
-      <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
-        <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-surface-alt/20">
-          <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
-            Audit Timestamps
-          </AppHeading>
-        </div>
-        <div className="p-4 grid grid-cols-2 gap-x-6 gap-y-3.5">
-          <InfoRow
-            label="Created At"
-            value={group.createdAt ? formatDate(group.createdAt) : "—"}
-          />
-          <InfoRow
-            label="Updated At"
-            value={group.updatedAt ? formatDate(group.updatedAt) : "—"}
-          />
-        </div>
-      </AppCard>
-    </div>
-
-    {/* Right Column */}
-    <div className="space-y-4">
-      {/* Summary Card */}
-      <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
-        <div className="border-b border-border px-4 py-3 bg-surface-alt/20">
-          <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
-            Group Summary
-          </AppHeading>
-        </div>
-        <div className="p-4 space-y-4">
-          <SummaryItem
-            label="Nature / Account Type"
-            value={group.nature || "—"}
-            icon={<FiTag />}
-            color="text-primary bg-primary-soft"
-          />
-          <SummaryItem
-            label="Hierarchy Level"
-            value={`Level ${group.level || 1}`}
-            icon={<FiLayers />}
-            color="text-warning bg-warning-soft"
-          />
-          <SummaryItem
-            label="Status"
-            value={group.status || "active"}
-            icon={<FiCheckCircle />}
-            color="text-success bg-success-soft"
-          />
-          <div className="pt-2 border-t border-border flex justify-between text-[11px] text-text-muted font-medium">
-            <span>Last Modified</span>
-            <span className="font-bold text-text">
-              {group.updatedAt ? formatDate(group.updatedAt) : "Never"}
-            </span>
-          </div>
-        </div>
-      </AppCard>
-
-      {/* Quick Actions */}
-      <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
-        <div className="border-b border-border px-4 py-3 bg-surface-alt/20">
-          <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
-            Quick Actions
-          </AppHeading>
-        </div>
-        <div className="p-3 space-y-2">
-          <QuickActionButton
-            label="Edit Account Group"
-            icon={<FiEdit3 />}
-            onClick={onEdit}
-          />
-          <QuickActionButton
-            label="View Child Accounts"
-            icon={<FiTrendingUp />}
-          />
-          <QuickActionButton
-            label="View Timeline"
-            icon={<FiClock />}
-          />
-        </div>
-      </AppCard>
-
-      {/* Info Card */}
-      <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
-        <div className="border-b border-border px-4 py-3 bg-surface-alt/20">
-          <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
-            About Account Groups
-          </AppHeading>
-        </div>
-        <div className="p-4 space-y-2">
-          <div className="flex gap-2 text-[11.5px] text-text-muted leading-relaxed">
-            <FiInfo className="text-primary mt-0.5 shrink-0" />
-            <span>
-              Account groups classify accounts into categories like Assets, Liabilities, Income, and Expenses for systematic financial reporting.
-            </span>
-          </div>
-          <div className="flex gap-2 text-[11.5px] text-text-muted leading-relaxed">
-            <FiGitBranch className="text-success mt-0.5 shrink-0" />
-            <span>
-              Groups can be nested hierarchically — a child group inherits the nature from its parent.
-            </span>
-          </div>
-        </div>
-      </AppCard>
-    </div>
-  </div>
-);
-
-/* ==========================================================================
-   2. ACCOUNTS TAB
-   ========================================================================== */
-const AccountsTab = ({ group, navigate }) => (
-  <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
-    <div className="border-b border-border px-4 py-3.5 bg-surface-alt/10">
-      <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
-        Accounts Under This Group
-      </AppHeading>
-      <span className="block text-[11px] text-text-muted mt-0.5">
-        Individual ledger accounts that belong to this account group.
-      </span>
-    </div>
-    <div className="p-6 flex flex-col items-center justify-center gap-3 text-center">
-      <FiFileText className="text-[36px] text-text-muted/50" />
-      <AppHeading level={3} weight={700} sx={{ m: 0, fontSize: "13px" }}>
-        No Accounts Linked
-      </AppHeading>
-      <span className="text-[12px] text-text-muted max-w-[300px]">
-        Navigate to the Accounts listing page to view all accounts under this group.
-      </span>
-      <AppButton
-        variant="contained"
-        colorVariant="primary"
-        rounded="md"
-        size="small"
-        onClick={() => navigate("/finance/chart-of-accounts/accounts")}
-        sx={{ mt: 1, height: 34, fontSize: "12px", fontWeight: 700 }}
-      >
-        Go to Accounts
-      </AppButton>
-    </div>
-  </AppCard>
-);
-
-/* ==========================================================================
-   3. TIMELINE TAB
-   ========================================================================== */
-const TimelineTab = ({ group }) => (
-  <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
-    <div className="border-b border-border px-4 py-3.5 bg-surface-alt/10">
-      <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>
-        Audit Log Timeline
-      </AppHeading>
-      <span className="block text-[11px] text-text-muted mt-0.5">
-        Chronological history of changes to this account group.
-      </span>
-    </div>
-    <div className="p-6 max-w-[600px] space-y-6">
-      <TimelineItem
-        title="Account Group Created"
-        desc={`Group "${group.groupName || "—"}" was registered in the chart of accounts.`}
-        time={group.createdAt ? formatDate(group.createdAt) : "—"}
-        active
-      />
-      {group.updatedAt && group.updatedAt !== group.createdAt && (
-        <TimelineItem
-          title="Account Group Updated"
-          desc="Group details were modified."
-          time={formatDate(group.updatedAt)}
-        />
-      )}
-    </div>
-  </AppCard>
-);
-
-/* ==========================================================================
+/* ========================================================================== 
    PRESENTATIONAL HELPERS
    ========================================================================== */
 const InfoRow = ({ label, value, vertical = false }) => (
-  <div className={`text-[12px] ${vertical ? "flex flex-col gap-1" : "grid grid-cols-[140px_1fr] gap-2 items-start"}`}>
-    <span className="font-bold text-text-muted leading-tight">{label}</span>
-    <span className="font-semibold text-text break-words leading-tight">{value || "—"}</span>
+  <div
+    className={`text-[11.5px] ${vertical ? "flex flex-col gap-0.5" : "grid grid-cols-[128px_1fr] gap-2 items-start"}`}
+  >
+    <span className="font-semibold text-text-muted leading-tight">{label}</span>
+    <span className="font-medium text-text wrap-break-word leading-tight">
+      {value || "—"}
+    </span>
   </div>
 );
 
 const SummaryItem = ({ label, value, icon, color }) => (
-  <div className="flex items-center gap-3">
-    <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-[16px] shrink-0 ${color}`}>
+  <div className="flex items-center gap-2.5">
+    <div
+      className={`h-8 w-8 rounded-lg flex items-center justify-center text-[15px] shrink-0 ${color}`}
+    >
       {icon}
     </div>
     <div className="min-w-0 flex-1">
-      <span className="block text-[10.5px] font-bold text-text-muted leading-tight capitalize">{label}</span>
-      <span className="block text-[14px] font-black text-text mt-0.5 leading-tight capitalize">{value}</span>
+      <span className="block text-[10px] font-semibold text-text-muted leading-tight capitalize">
+        {label}
+      </span>
+      <span className="block text-[13px] font-bold text-text mt-0.5 leading-tight capitalize">
+        {value}
+      </span>
     </div>
   </div>
 );
@@ -514,37 +583,114 @@ const QuickActionButton = ({ label, icon, onClick }) => (
   <button
     type="button"
     onClick={onClick}
-    className="w-full flex items-center gap-2 px-3 py-2 border border-border rounded-lg bg-surface text-[12px] font-bold text-text hover:bg-surface-alt/30 transition text-left"
+    className="w-full flex items-center gap-2 px-3 py-2 border border-border rounded-lg bg-surface text-[11.5px] font-semibold text-text hover:bg-surface-alt/30 transition text-left"
   >
-    <span className="text-[13px] text-primary">{icon}</span>
+    <span className="text-[12.5px] text-primary">{icon}</span>
     {label}
   </button>
 );
 
-const TimelineItem = ({ title, desc, time, active = false }) => (
-  <div className="flex gap-4">
-    <div className="flex flex-col items-center shrink-0">
-      <div className={`h-4.5 w-4.5 rounded-full border-2 flex items-center justify-center ${active ? "border-primary bg-primary-soft text-primary" : "border-border bg-surface text-text-muted"}`}>
-        <div className="h-1.5 w-1.5 rounded-full bg-current" />
-      </div>
-      <div className="w-[1.5px] flex-1 bg-border my-1" />
+const CompactAccountRow = ({ name, code, type, status }) => (
+  <div className="grid grid-cols-[1.7fr_.7fr_.7fr_.7fr] gap-0 px-3 py-2 text-[11px] items-center">
+    <span className="font-semibold text-text">{name}</span>
+    <span className="font-semibold text-text-muted">{code}</span>
+    <span>
+      <AppTag
+        label={type}
+        colorVariant="primary"
+        variant="soft"
+        rounded="md"
+        sx={{
+          height: 18,
+          fontSize: "9.5px",
+          fontWeight: 600,
+          textTransform: "capitalize",
+        }}
+      />
+    </span>
+    <span>
+      <AppTag
+        label={status}
+        colorVariant={status === "Active" ? "success" : "danger"}
+        variant="soft"
+        rounded="md"
+        sx={{
+          height: 18,
+          fontSize: "9.5px",
+          fontWeight: 600,
+          textTransform: "capitalize",
+        }}
+      />
+    </span>
+  </div>
+);
+
+const HierarchyStep = ({
+  icon,
+  label,
+  value,
+  accent,
+  active = false,
+  badge,
+}) => (
+  <div className="flex gap-3">
+    <div
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[15px] ${accent}`}
+    >
+      {icon}
     </div>
-    <div className="pb-4 min-w-0">
-      <span className="block text-[12.5px] font-bold text-text leading-tight">{title}</span>
-      <span className="block text-[11px] text-text-muted mt-1 leading-relaxed">{desc}</span>
-      <span className="block text-[10px] text-text-muted/80 mt-1 font-semibold">{time}</span>
+    <div className="min-w-0 flex-1 pb-2.5">
+      <span className="block text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+        {label}
+      </span>
+      <span className="block text-[12px] font-semibold text-text leading-tight">
+        {value}
+      </span>
+      {badge ? (
+        <span
+          className={`mt-1 inline-flex rounded-md px-1.5 py-0.5 text-[9px] font-semibold ${active ? "bg-success-soft text-success" : "bg-surface-alt text-text-muted"}`}
+        >
+          {badge}
+        </span>
+      ) : null}
     </div>
   </div>
 );
 
 /* Styles */
 const breadcrumbSx = { mb: 1 };
-const breadcrumbItemSx = { fontSize: "11px", fontWeight: 700 };
-const breadcrumbCurrentSx = { fontSize: "11px", fontWeight: 700 };
-const pageTitleSx = { fontSize: "20px", fontWeight: 800, m: 0, color: "var(--app-color-text)", letterSpacing: "-0.4px" };
-const subHeaderMetaDataSx = { mt: 0.15, fontSize: "11px", color: "var(--app-color-text-muted)" };
-const secondaryButtonSx = { height: 32, fontSize: "11.5px", fontWeight: 700, borderColor: "var(--app-color-border-strong)" };
-const sectionCardSx = { bgcolor: "var(--app-color-surface)", borderColor: "var(--app-color-border)", boxShadow: "var(--app-shadow-xs)" };
-const cardHeaderTitleSx = { m: 0, fontSize: "12.5px", fontWeight: 800, color: "var(--app-color-text)", textTransform: "uppercase", letterSpacing: "0.2px" };
+const breadcrumbItemSx = { fontSize: "11px", fontWeight: 600 };
+const breadcrumbCurrentSx = { fontSize: "11px", fontWeight: 600 };
+const pageTitleSx = {
+  fontSize: "17px",
+  fontWeight: 700,
+  m: 0,
+  color: "var(--app-color-text)",
+  letterSpacing: "-0.4px",
+};
+const subHeaderMetaDataSx = {
+  mt: 0.15,
+  fontSize: "10.5px",
+  color: "var(--app-color-text-muted)",
+};
+const secondaryButtonSx = {
+  height: 32,
+  fontSize: "11.5px",
+  fontWeight: 600,
+  borderColor: "var(--app-color-border-strong)",
+};
+const sectionCardSx = {
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+  boxShadow: "var(--app-shadow-xs)",
+};
+const cardHeaderTitleSx = {
+  m: 0,
+  fontSize: "11px",
+  fontWeight: 700,
+  color: "var(--app-color-text)",
+  textTransform: "uppercase",
+  letterSpacing: "0.2px",
+};
 
 export default AccountGroupDetailsDesktopPage;

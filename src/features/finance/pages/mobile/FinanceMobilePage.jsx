@@ -1,7 +1,6 @@
 import React from "react";
 import {
   FiArrowRight,
-  FiBookOpen,
   FiCalendar,
   FiFileText,
   FiGitBranch,
@@ -26,7 +25,6 @@ import {
 // Map statistics to icons
 const statIcons = {
   totalAccounts: <FaRupeeSign />,
-  ledgerAccounts: <FiBookOpen />,
   openingBalance: <LuScale />,
   currentPeriod: <FiCalendar />,
 };
@@ -34,7 +32,6 @@ const statIcons = {
 // Map modules to icons
 const moduleIcons = {
   chartOfAccounts: <FiGitBranch />,
-  ledgerAccounts: <FiBookOpen />,
   openingBalances: <LuScale />,
   financialPeriods: <FiCalendar />,
   journalVouchers: <FiFileText />,
@@ -52,7 +49,7 @@ const FinanceMobilePage = ({
   handleRefresh,
   handleModuleClick,
 }) => {
-  // Mobile displays the first 4 stats cards (Total Accounts, Ledger Accounts, Opening Balance, Current Period)
+  // Mobile displays the first 4 stats cards
   const mobileStats = stats.slice(0, 4);
 
   return (

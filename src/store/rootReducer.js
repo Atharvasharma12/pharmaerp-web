@@ -14,6 +14,10 @@ import supplierReducer from "@/features/parties/suppliers/store/supplierSlice";
 
 import accountGroupReducer from "@/features/finance/chart-of-accounts/account-groups/store/accountGroupSlice";
 import accountReducer from "@/features/finance/chart-of-accounts/accounts/store/accountSlice";
+import openingBalanceReducer from "@/features/finance/opening-balances/store/openingBalanceSlice";
+import accountBalanceReducer from "@/features/finance/account-balances/store/accountBalanceSlice";
+import bankAccountReducer from "@/features/finance/treasury/bank-management/bank-accounts/store/bankAccountSlice";
+import cashAccountReducer from "@/features/finance/treasury/cash-management/cash-accounts/store/cashAccountSlice";
 
 import planReducer from "@/features/subscription/plans/store/planSlice";
 import subscriptionReducer from "@/features/subscription/subscriptions/store/subscriptionSlice";
@@ -53,6 +57,12 @@ const appReducer = combineReducers({
   // Finance
   accountGroup: accountGroupReducer,
   account: accountReducer,
+  openingBalance: openingBalanceReducer,
+  accountBalance: accountBalanceReducer,
+
+  // Treasury
+  bankAccount: bankAccountReducer,
+  cashAccount: cashAccountReducer,
 
   // Subscription
   plan: planReducer,

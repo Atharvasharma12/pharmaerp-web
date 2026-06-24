@@ -9,7 +9,6 @@ import {
   FiXCircle,
   FiRefreshCw,
   FiChevronRight,
-  FiMoreHorizontal,
   FiEye,
   FiFilter,
   FiPlus,
@@ -208,15 +207,6 @@ const ChartOfAccountsMobilePage = ({
                             sx={{ p: 0, height: 22, width: 22, minWidth: 22 }}
                             onClick={() => handleAction(`view_group_${row._id}`)}
                           />
-                          <AppIconButton
-                            icon={<FiMoreHorizontal />}
-                            variant="text"
-                            colorVariant="neutral"
-                            size="small"
-                            rounded="md"
-                            sx={{ p: 0, height: 22, width: 22, minWidth: 22 }}
-                            onClick={() => handleAction(`menu_group_${row._id}`)}
-                          />
                         </div>
                       </td>
                     </tr>
@@ -320,15 +310,6 @@ const ChartOfAccountsMobilePage = ({
                             rounded="md"
                             sx={{ p: 0, height: 22, width: 22, minWidth: 22 }}
                             onClick={() => handleAction(`view_account_${row._id}`)}
-                          />
-                          <AppIconButton
-                            icon={<FiMoreHorizontal />}
-                            variant="text"
-                            colorVariant="neutral"
-                            size="small"
-                            rounded="md"
-                            sx={{ p: 0, height: 22, width: 22, minWidth: 22 }}
-                            onClick={() => handleAction(`menu_account_${row._id}`)}
                           />
                         </div>
                       </td>

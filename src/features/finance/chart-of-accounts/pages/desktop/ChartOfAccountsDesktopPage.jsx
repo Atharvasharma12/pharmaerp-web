@@ -14,7 +14,6 @@ import {
   FiBookOpen,
   FiChevronRight,
   FiChevronLeft,
-  FiMoreHorizontal,
   FiExternalLink,
   FiEye,
   FiFilter,
@@ -317,14 +316,6 @@ const ChartOfAccountsDesktopPage = ({
             rounded="md"
             onClick={() => handleAction(`view_group_${row._id}`)}
           />
-          <AppIconButton
-            icon={<FiMoreHorizontal />}
-            variant="text"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-            onClick={() => handleAction(`menu_group_${row._id}`)}
-          />
         </AppStack>
       ),
     },
@@ -427,14 +418,6 @@ const ChartOfAccountsDesktopPage = ({
             size="small"
             rounded="md"
             onClick={() => handleAction(`view_account_${row._id}`)}
-          />
-          <AppIconButton
-            icon={<FiMoreHorizontal />}
-            variant="text"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-            onClick={() => handleAction(`menu_account_${row._id}`)}
           />
         </AppStack>
       ),
