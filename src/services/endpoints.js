@@ -139,6 +139,42 @@ export const ENDPOINTS = {
       `/finance/account-balances/${accountId}/recalculate`,
   },
 
+  FINANCIAL_PERIOD: {
+    CREATE: "/finance/financial-periods",
+
+    LIST: "/finance/financial-periods",
+
+    CURRENT: "/finance/financial-periods/current",
+
+    UPDATE_STATUS: (periodId) =>
+      `/finance/financial-periods/${periodId}/status`,
+  },
+
+  LEDGER: {
+    LIST: "/finance/ledger",
+
+    RECALCULATE: "/finance/ledger/recalculate",
+  },
+
+  JOURNAL_VOUCHER: {
+    CREATE: "/finance/journal-vouchers",
+
+    LIST: "/finance/journal-vouchers",
+
+    BY_ID: (voucherId) => `/finance/journal-vouchers/${voucherId}`,
+
+    POST: (voucherId) => `/finance/journal-vouchers/${voucherId}/post`,
+
+    CANCEL: (voucherId) => `/finance/journal-vouchers/${voucherId}/cancel`,
+
+    SUBMIT_APPROVAL: (voucherId) =>
+      `/finance/journal-vouchers/${voucherId}/submit-approval`,
+
+    APPROVE: (voucherId) => `/finance/journal-vouchers/${voucherId}/approve`,
+
+    REVERSE: (voucherId) => `/finance/journal-vouchers/${voucherId}/reverse`,
+  },
+
   BANK_ACCOUNT: {
     CREATE: "/finance/treasury/bank-accounts",
 
@@ -151,6 +187,35 @@ export const ENDPOINTS = {
       `/finance/treasury/bank-accounts/${bankAccountId}/set-primary`,
   },
 
+  BANK_TRANSACTION: {
+    CREATE: "/finance/treasury/bank-transactions",
+
+    LIST: "/finance/treasury/bank-transactions",
+
+    BY_ID: (bankTransactionId) =>
+      `/finance/treasury/bank-transactions/${bankTransactionId}`,
+
+    CANCEL: (bankTransactionId) =>
+      `/finance/treasury/bank-transactions/${bankTransactionId}/cancel`,
+  },
+
+  BANK_SLIP: {
+    CREATE: "/finance/treasury/bank-slips",
+
+    LIST: "/finance/treasury/bank-slips",
+
+    BY_ID: (bankSlipId) => `/finance/treasury/bank-slips/${bankSlipId}`,
+
+    SUBMIT: (bankSlipId) => `/finance/treasury/bank-slips/${bankSlipId}/submit`,
+
+    CONFIRM: (bankSlipId) =>
+      `/finance/treasury/bank-slips/${bankSlipId}/confirm`,
+
+    REJECT: (bankSlipId) => `/finance/treasury/bank-slips/${bankSlipId}/reject`,
+
+    CANCEL: (bankSlipId) => `/finance/treasury/bank-slips/${bankSlipId}/cancel`,
+  },
+
   CASH_ACCOUNT: {
     CREATE: "/finance/treasury/cash-accounts",
 
@@ -161,6 +226,72 @@ export const ENDPOINTS = {
 
     SET_PRIMARY: (cashAccountId) =>
       `/finance/treasury/cash-accounts/${cashAccountId}/set-primary`,
+  },
+
+  CASH_TRANSACTION: {
+    CREATE: "/finance/treasury/cash-transactions",
+
+    LIST: "/finance/treasury/cash-transactions",
+
+    BY_ID: (cashTransactionId) =>
+      `/finance/treasury/cash-transactions/${cashTransactionId}`,
+
+    CANCEL: (cashTransactionId) =>
+      `/finance/treasury/cash-transactions/${cashTransactionId}/cancel`,
+  },
+
+  CASH_DENOMINATION: {
+    CREATE: "/finance/treasury/cash-denominations",
+
+    LIST: "/finance/treasury/cash-denominations",
+
+    BY_ID: (cashDenominationId) =>
+      `/finance/treasury/cash-denominations/${cashDenominationId}`,
+
+    CONFIRM: (cashDenominationId) =>
+      `/finance/treasury/cash-denominations/${cashDenominationId}/confirm`,
+
+    CANCEL: (cashDenominationId) =>
+      `/finance/treasury/cash-denominations/${cashDenominationId}/cancel`,
+  },
+
+  FUND_TRANSFER: {
+    CREATE: "/finance/treasury/fund-transfers",
+
+    LIST: "/finance/treasury/fund-transfers",
+
+    BY_ID: (fundTransferId) =>
+      `/finance/treasury/fund-transfers/${fundTransferId}`,
+
+    CANCEL: (fundTransferId) =>
+      `/finance/treasury/fund-transfers/${fundTransferId}/cancel`,
+  },
+
+  PAYMENT_QR: {
+    CREATE: "/finance/treasury/payment-qr",
+
+    LIST: "/finance/treasury/payment-qr",
+
+    BY_ID: (paymentQrId) => `/finance/treasury/payment-qr/${paymentQrId}`,
+
+    SET_PRIMARY: (paymentQrId) =>
+      `/finance/treasury/payment-qr/${paymentQrId}/set-primary`,
+  },
+
+  CHEQUE: {
+    CREATE: "/finance/treasury/cheques",
+
+    LIST: "/finance/treasury/cheques",
+
+    BY_ID: (chequeId) => `/finance/treasury/cheques/${chequeId}`,
+
+    DEPOSIT: (chequeId) => `/finance/treasury/cheques/${chequeId}/deposit`,
+
+    CLEAR: (chequeId) => `/finance/treasury/cheques/${chequeId}/clear`,
+
+    BOUNCE: (chequeId) => `/finance/treasury/cheques/${chequeId}/bounce`,
+
+    CANCEL: (chequeId) => `/finance/treasury/cheques/${chequeId}/cancel`,
   },
 
   WORKSPACE_PRODUCTS: {

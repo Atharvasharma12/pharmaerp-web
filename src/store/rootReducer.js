@@ -16,8 +16,21 @@ import accountGroupReducer from "@/features/finance/chart-of-accounts/account-gr
 import accountReducer from "@/features/finance/chart-of-accounts/accounts/store/accountSlice";
 import openingBalanceReducer from "@/features/finance/opening-balances/store/openingBalanceSlice";
 import accountBalanceReducer from "@/features/finance/account-balances/store/accountBalanceSlice";
+import financialPeriodReducer from "@/features/finance/financial-periods/store/financialPeriodSlice";
+import ledgerReducer from "@/features/finance/ledger/store/ledgerSlice";
+import journalVoucherReducer from "@/features/finance/journal-vouchers/store/journalVoucherSlice";
+
 import bankAccountReducer from "@/features/finance/treasury/bank-management/bank-accounts/store/bankAccountSlice";
+import bankTransactionReducer from "@/features/finance/treasury/bank-management/bank-transactions/store/bankTransactionSlice";
+import bankSlipReducer from "@/features/finance/treasury/bank-management/bank-slips/store/bankSlipSlice";
+
 import cashAccountReducer from "@/features/finance/treasury/cash-management/cash-accounts/store/cashAccountSlice";
+import cashTransactionReducer from "@/features/finance/treasury/cash-management/cash-transactions/store/cashTransactionSlice";
+import cashDenominationReducer from "@/features/finance/treasury/cash-management/cash-denominations/store/cashDenominationSlice";
+
+import fundTransferReducer from "@/features/finance/treasury/fund-transfers/store/fundTransferSlice";
+import paymentQrReducer from "@/features/finance/treasury/payment-qr/store/paymentQrSlice";
+import chequeReducer from "@/features/finance/treasury/cheque-management/store/chequeSlice";
 
 import planReducer from "@/features/subscription/plans/store/planSlice";
 import subscriptionReducer from "@/features/subscription/subscriptions/store/subscriptionSlice";
@@ -59,10 +72,22 @@ const appReducer = combineReducers({
   account: accountReducer,
   openingBalance: openingBalanceReducer,
   accountBalance: accountBalanceReducer,
+  financialPeriod: financialPeriodReducer,
+  ledger: ledgerReducer,
+  journalVoucher: journalVoucherReducer,
 
   // Treasury
   bankAccount: bankAccountReducer,
+  bankTransaction: bankTransactionReducer,
+  bankSlip: bankSlipReducer,
+
   cashAccount: cashAccountReducer,
+  cashTransaction: cashTransactionReducer,
+  cashDenomination: cashDenominationReducer,
+
+  fundTransfer: fundTransferReducer,
+  paymentQr: paymentQrReducer,
+  cheque: chequeReducer,
 
   // Subscription
   plan: planReducer,
