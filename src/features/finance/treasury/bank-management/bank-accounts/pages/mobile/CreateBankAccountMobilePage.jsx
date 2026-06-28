@@ -1,11 +1,15 @@
 import React from "react";
-import { FiChevronLeft } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiInfo,
+} from "react-icons/fi";
 
 import {
   AppBox,
-  AppButton,
   AppCard,
   AppHeading,
+  AppIconButton,
+  AppInput,
   AppSelect,
   AppStack,
   AppText,
@@ -13,20 +17,21 @@ import {
 
 import { BANK_ACCOUNT_TYPE } from "../../constants/bankAccount.constant";
 
-const accountTypeOptions = [
-  { label: "Select Account Type", value: "" },
-  ...Object.values(BANK_ACCOUNT_TYPE).map((type) => ({
-    label: type === "CURRENT" ? "Current Account" : type === "SAVINGS" ? "Savings Account" : type,
-    value: type,
-  })),
+const accountTypeOptions = Object.values(BANK_ACCOUNT_TYPE).map((type) => ({
+  label: type === "CURRENT" ? "Current Account" : type === "SAVINGS" ? "Savings Account" : type.replace(/_/g, " "),
+  value: type,
+}));
+
+const booleanOptions = [
+  { label: "Yes", value: "true" },
+  { label: "No", value: "false" },
 ];
 
 const CreateBankAccountMobilePage = ({
   formData,
-  formErrors,
-  isLoading,
-  bankMasterOptions,
-  ledgerAccountOptions,
+  formErrors = {},
+  isLoading = false,
+  bankOptions = [],
   handleFieldChange,
   handleCancel,
   handleSubmit,
@@ -34,327 +39,288 @@ const CreateBankAccountMobilePage = ({
   clearError,
 }) => {
   return (
-    <section className="w-full bg-bg">
+    <section className="w-full bg-bg pb-6">
       <AppBox sx={containerSx}>
-        {/* Back and Title Bar */}
+        {/* Mobile Page Header */}
         <AppBox sx={headerWrapperSx}>
           <AppStack direction="row" align="center" gap={1}>
-            <button
-              type="button"
+            <AppIconButton
+              icon={<FiArrowLeft />}
+              variant="outlined"
+              colorVariant="neutral"
+              size="small"
+              rounded="md"
               onClick={handleCancel}
-              className="p-1 rounded-md border border-border bg-surface text-text-muted hover:text-text cursor-pointer"
-            >
-              <FiChevronLeft className="text-[18px]" />
-            </button>
-            <AppBox>
+              sx={actionHeaderIconBtnSx}
+            />
+            <AppBox sx={{ minWidth: 0, flex: 1 }}>
               <AppHeading level={1} weight={700} sx={pageTitleSx}>
-                Create Bank Account
+                Add Bank Account
               </AppHeading>
+              <AppText variant="body2" sx={pageSubtitleSx}>
+                Add a new corporate bank account
+              </AppText>
             </AppBox>
           </AppStack>
         </AppBox>
 
-        {/* Form Container */}
-        <form onSubmit={handleSubmit} className="mt-3 px-3.5 pb-8 space-y-4">
-          {/* Server error if any */}
-          {serverError && (
-            <div className="p-3 bg-danger-soft text-danger text-[12px] font-semibold rounded-md flex items-center justify-between">
-              <span>{serverError}</span>
-              <button
-                type="button"
-                onClick={clearError}
-                className="text-danger hover:underline font-bold"
-              >
-                Dismiss
-              </button>
+        {/* Content stack */}
+        <div className="px-2 space-y-4">
+          <AppCard
+            variant="default"
+            rounded="lg"
+            bordered
+            shadow="none"
+            padding="none"
+            sx={formCardSx}
+          >
+            <div className="p-3.5 border-b border-border">
+              <AppHeading level={2} weight={700} sx={cardTitleSx}>
+                Bank Account Details
+              </AppHeading>
             </div>
-          )}
 
-          {/* Submit error if any */}
-          {formErrors.submit && (
-            <div className="p-3 bg-danger-soft text-danger text-[12px] font-semibold rounded-md">
-              {formErrors.submit}
-            </div>
-          )}
+            <form onSubmit={handleSubmit} className="p-3.5 space-y-4">
+              {/* Server error if any */}
+              {serverError && (
+                <div className="p-3 bg-danger-soft text-danger text-[11.5px] font-semibold rounded-md flex items-center justify-between">
+                  <span>{serverError}</span>
+                  <button
+                    type="button"
+                    onClick={clearError}
+                    className="text-danger hover:underline font-bold"
+                  >
+                    OK
+                  </button>
+                </div>
+              )}
 
-          {/* Account Name */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1">
-              <label className="text-[12px] font-bold text-text">Account Name</label>
-              <span className="text-danger">*</span>
-            </div>
-            <input
-              type="text"
-              name="accountName"
-              value={formData.accountName}
-              onChange={(e) => handleFieldChange("accountName", e.target.value)}
-              placeholder="e.g. HDFC Current A/C"
-              className={`w-full px-3 py-2 text-[12.5px] rounded-md border bg-surface text-text placeholder-text-muted focus:outline-none ${
-                formErrors.accountName ? "border-danger" : "border-border"
-              }`}
-            />
-            {formErrors.accountName && (
-              <span className="text-[10.5px] text-danger font-semibold">{formErrors.accountName}</span>
-            )}
-          </div>
+              {/* Submit errors */}
+              {formErrors.submit && (
+                <div className="p-3 bg-danger-soft text-danger text-[11.5px] font-semibold rounded-md">
+                  {formErrors.submit}
+                </div>
+              )}
 
-          {/* Account Holder Name */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1">
-              <label className="text-[12px] font-bold text-text">Account Holder Name</label>
-              <span className="text-danger">*</span>
-            </div>
-            <input
-              type="text"
-              name="accountHolderName"
-              value={formData.accountHolderName}
-              onChange={(e) => handleFieldChange("accountHolderName", e.target.value)}
-              placeholder="e.g. MedPlus Pharmacy"
-              className={`w-full px-3 py-2 text-[12.5px] rounded-md border bg-surface text-text placeholder-text-muted focus:outline-none ${
-                formErrors.accountHolderName ? "border-danger" : "border-border"
-              }`}
-            />
-            {formErrors.accountHolderName && (
-              <span className="text-[10.5px] text-danger font-semibold">{formErrors.accountHolderName}</span>
-            )}
-          </div>
-
-          {/* Bank */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1">
-              <label className="text-[12px] font-bold text-text">Bank</label>
-              <span className="text-danger">*</span>
-            </div>
-            <AppSelect
-              name="bankMasterId"
-              value={formData.bankMasterId}
-              onChange={(e) => handleFieldChange("bankMasterId", e.target.value)}
-              options={bankMasterOptions}
-              size="medium"
-              variant="bordered"
-              rounded="md"
-              sx={selectFieldSx}
-              inputSx={selectInputSx}
-            />
-            {formErrors.bankMasterId && (
-              <span className="text-[10.5px] text-danger font-semibold">{formErrors.bankMasterId}</span>
-            )}
-          </div>
-
-          {/* Account Type */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1">
-              <label className="text-[12px] font-bold text-text">Account Type</label>
-              <span className="text-danger">*</span>
-            </div>
-            <AppSelect
-              name="accountType"
-              value={formData.accountType}
-              onChange={(e) => handleFieldChange("accountType", e.target.value)}
-              options={accountTypeOptions}
-              size="medium"
-              variant="bordered"
-              rounded="md"
-              sx={selectFieldSx}
-              inputSx={selectInputSx}
-            />
-          </div>
-
-          {/* Account Number */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1">
-              <label className="text-[12px] font-bold text-text">Account Number</label>
-              <span className="text-danger">*</span>
-            </div>
-            <input
-              type="text"
-              name="accountNumber"
-              value={formData.accountNumber}
-              onChange={(e) => handleFieldChange("accountNumber", e.target.value)}
-              placeholder="Enter bank account number"
-              className={`w-full px-3 py-2 text-[12.5px] rounded-md border bg-surface text-text placeholder-text-muted focus:outline-none ${
-                formErrors.accountNumber ? "border-danger" : "border-border"
-              }`}
-            />
-            {formErrors.accountNumber && (
-              <span className="text-[10.5px] text-danger font-semibold">{formErrors.accountNumber}</span>
-            )}
-          </div>
-
-          {/* IFSC Code */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1">
-              <label className="text-[12px] font-bold text-text">IFSC Code</label>
-              <span className="text-danger">*</span>
-            </div>
-            <input
-              type="text"
-              name="ifscCode"
-              value={formData.ifscCode}
-              onChange={(e) => handleFieldChange("ifscCode", e.target.value.toUpperCase())}
-              placeholder="e.g. HDFC0001234"
-              className={`w-full px-3 py-2 text-[12.5px] rounded-md border bg-surface text-text placeholder-text-muted focus:outline-none ${
-                formErrors.ifscCode ? "border-danger" : "border-border"
-              }`}
-            />
-            {formErrors.ifscCode && (
-              <span className="text-[10.5px] text-danger font-semibold">{formErrors.ifscCode}</span>
-            )}
-          </div>
-
-          {/* Branch Name */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1">
-              <label className="text-[12px] font-bold text-text">Branch Name</label>
-              <span className="text-danger">*</span>
-            </div>
-            <input
-              type="text"
-              name="branchName"
-              value={formData.branchName}
-              onChange={(e) => handleFieldChange("branchName", e.target.value)}
-              placeholder="e.g. Koramangala Branch"
-              className={`w-full px-3 py-2 text-[12.5px] rounded-md border bg-surface text-text placeholder-text-muted focus:outline-none ${
-                formErrors.branchName ? "border-danger" : "border-border"
-              }`}
-            />
-            {formErrors.branchName && (
-              <span className="text-[10.5px] text-danger font-semibold">{formErrors.branchName}</span>
-            )}
-          </div>
-
-          {/* Registered Mobile */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[12px] font-bold text-text">Registered Mobile (Optional)</label>
-            <input
-              type="text"
-              name="registeredMobile"
-              value={formData.registeredMobile}
-              onChange={(e) => handleFieldChange("registeredMobile", e.target.value)}
-              placeholder="e.g. +91 9876543210"
-              className="w-full px-3 py-2 text-[12.5px] rounded-md border border-border bg-surface text-text placeholder-text-muted focus:outline-none"
-            />
-          </div>
-
-          {/* Branch Address */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[12px] font-bold text-text">Branch Address (Optional)</label>
-            <textarea
-              name="branchAddress"
-              value={formData.branchAddress}
-              onChange={(e) => handleFieldChange("branchAddress", e.target.value)}
-              placeholder="Enter branch address"
-              rows={2}
-              className="w-full px-3 py-2 text-[12.5px] rounded-md border border-border bg-surface text-text placeholder-text-muted focus:outline-none resize-none"
-            />
-          </div>
-
-          {/* Ledger Account Mapping */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1">
-              <label className="text-[12px] font-bold text-text">Ledger Account mapping</label>
-              <span className="text-danger">*</span>
-            </div>
-            <AppSelect
-              name="ledgerAccountId"
-              value={formData.ledgerAccountId}
-              onChange={(e) => handleFieldChange("ledgerAccountId", e.target.value)}
-              options={ledgerAccountOptions}
-              size="medium"
-              variant="bordered"
-              rounded="md"
-              sx={selectFieldSx}
-              inputSx={selectInputSx}
-            />
-            {formErrors.ledgerAccountId && (
-              <span className="text-[10.5px] text-danger font-semibold">{formErrors.ledgerAccountId}</span>
-            )}
-          </div>
-
-          {/* Options */}
-          <div className="py-2 space-y-3">
-            <label className="flex items-center gap-2.5 select-none">
-              <input
-                type="checkbox"
-                name="isPrimary"
-                checked={formData.isPrimary}
-                onChange={(e) => handleFieldChange("isPrimary", e.target.checked)}
-                className="accent-primary h-4.5 w-4.5"
+              {/* Bank Master Selection */}
+              <AppSelect
+                label="Select Bank"
+                name="bankMasterId"
+                value={formData.bankMasterId}
+                onChange={(e) => handleFieldChange("bankMasterId", e.target.value)}
+                options={bankOptions}
+                size="small"
+                variant="bordered"
+                rounded="md"
+                required
+                inputSx={compactFilterInputSx}
+                error={Boolean(formErrors.bankMasterId)}
+                helperText={formErrors.bankMasterId || "Select the bank from global list"}
+                labelSx={labelSx}
               />
-              <div>
-                <span className="text-[12.5px] font-bold text-text block">Set as Primary Account</span>
-              </div>
-            </label>
 
-            <div className="border-t border-border pt-3">
-              <span className="text-[12px] font-bold text-text block mb-2">Status</span>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 select-none">
-                  <input
-                    type="radio"
-                    name="isActive"
-                    value="true"
-                    checked={formData.isActive === true}
-                    onChange={() => handleFieldChange("isActive", true)}
-                    className="accent-success h-4 w-4"
-                  />
-                  <span className="text-[12.5px] font-bold text-text">Active</span>
-                </label>
-                <label className="flex items-center gap-2 select-none">
-                  <input
-                    type="radio"
-                    name="isActive"
-                    value="false"
-                    checked={formData.isActive === false}
-                    onChange={() => handleFieldChange("isActive", false)}
-                    className="accent-neutral h-4 w-4"
-                  />
-                  <span className="text-[12.5px] font-bold text-text">Inactive</span>
-                </label>
+              {/* Account Nickname */}
+              <AppInput
+                label="Account Nickname"
+                name="accountName"
+                value={formData.accountName}
+                onChange={(e) => handleFieldChange("accountName", e.target.value)}
+                placeholder="e.g. HDFC Current Account"
+                required
+                error={Boolean(formErrors.accountName)}
+                helperText={formErrors.accountName}
+                labelSx={labelSx}
+                inputSx={inputSx}
+              />
+
+              {/* Account Holder Name */}
+              <AppInput
+                label="Account Holder Name"
+                name="accountHolderName"
+                value={formData.accountHolderName}
+                onChange={(e) => handleFieldChange("accountHolderName", e.target.value)}
+                placeholder="Enter registered name"
+                required
+                error={Boolean(formErrors.accountHolderName)}
+                helperText={formErrors.accountHolderName}
+                labelSx={labelSx}
+                inputSx={inputSx}
+              />
+
+              {/* Account Number */}
+              <AppInput
+                label="Account Number"
+                name="accountNumber"
+                value={formData.accountNumber}
+                onChange={(e) => handleFieldChange("accountNumber", e.target.value)}
+                placeholder="Enter account number"
+                required
+                error={Boolean(formErrors.accountNumber)}
+                helperText={formErrors.accountNumber}
+                labelSx={labelSx}
+                inputSx={inputSx}
+              />
+
+              {/* IFSC Code */}
+              <AppInput
+                label="IFSC Code"
+                name="ifscCode"
+                value={formData.ifscCode}
+                onChange={(e) => handleFieldChange("ifscCode", e.target.value.toUpperCase())}
+                placeholder="e.g. HDFC0001234"
+                required
+                error={Boolean(formErrors.ifscCode)}
+                helperText={formErrors.ifscCode}
+                labelSx={labelSx}
+                inputSx={inputSx}
+              />
+
+              {/* Branch Name */}
+              <AppInput
+                label="Branch Name"
+                name="branchName"
+                value={formData.branchName}
+                onChange={(e) => handleFieldChange("branchName", e.target.value)}
+                placeholder="Enter branch name"
+                required
+                error={Boolean(formErrors.branchName)}
+                helperText={formErrors.branchName}
+                labelSx={labelSx}
+                inputSx={inputSx}
+              />
+
+              {/* Account Type */}
+              <AppSelect
+                label="Account Type"
+                name="accountType"
+                value={formData.accountType}
+                onChange={(e) => handleFieldChange("accountType", e.target.value)}
+                options={accountTypeOptions}
+                size="small"
+                variant="bordered"
+                rounded="md"
+                required
+                inputSx={compactFilterInputSx}
+                labelSx={labelSx}
+              />
+
+              {/* Registered Mobile */}
+              <AppInput
+                label="Registered Mobile (Optional)"
+                name="registeredMobile"
+                value={formData.registeredMobile || ""}
+                onChange={(e) => handleFieldChange("registeredMobile", e.target.value)}
+                placeholder="Linked phone number"
+                labelSx={labelSx}
+                inputSx={inputSx}
+              />
+
+              {/* Branch Address */}
+              <AppInput
+                label="Branch Address (Optional)"
+                name="branchAddress"
+                value={formData.branchAddress || ""}
+                onChange={(e) => handleFieldChange("branchAddress", e.target.value.slice(0, 500))}
+                placeholder="Street details"
+                multiline
+                rows={2}
+                labelSx={labelSx}
+                inputSx={inputSx}
+              />
+
+              {/* Primary Flag */}
+              <AppSelect
+                label="Primary Account"
+                name="isPrimary"
+                value={formData.isPrimary ? "true" : "false"}
+                onChange={(e) => handleFieldChange("isPrimary", e.target.value === "true")}
+                options={booleanOptions}
+                size="small"
+                variant="bordered"
+                rounded="md"
+                inputSx={compactFilterInputSx}
+                labelSx={labelSx}
+              />
+
+              {/* Active Flag */}
+              <AppSelect
+                label="Active Status"
+                name="isActive"
+                value={formData.isActive ? "true" : "false"}
+                onChange={(e) => handleFieldChange("isActive", e.target.value === "true")}
+                options={booleanOptions}
+                size="small"
+                variant="bordered"
+                rounded="md"
+                inputSx={compactFilterInputSx}
+                labelSx={labelSx}
+              />
+
+              {/* Action Buttons */}
+              <div className="pt-3 flex gap-2 w-full">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                  className="flex-1 py-2 text-[12px] font-bold border border-border bg-surface hover:bg-surface-hover/20 transition rounded-md text-text"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 py-2 text-[12px] font-bold bg-success hover:bg-success/90 transition text-surface rounded-md"
+                >
+                  {isLoading ? "Saving..." : "Create Account"}
+                </button>
+              </div>
+            </form>
+          </AppCard>
+
+          {/* Help Tips */}
+          <AppCard
+            variant="default"
+            rounded="lg"
+            bordered
+            shadow="none"
+            padding="none"
+            sx={formCardSx}
+          >
+            <div className="p-3.5 border-b border-border flex items-center gap-1.5">
+              <FiInfo className="text-success text-[14px]" />
+              <AppHeading level={2} weight={700} sx={cardTitleSx}>
+                Help & Tips
+              </AppHeading>
+            </div>
+            <div className="p-3.5 space-y-3.5 text-[11px] leading-relaxed">
+              <div>
+                <span className="font-bold text-text block">Bank Master</span>
+                <span className="text-text-muted mt-0.5 block">
+                  Choose a standard bank master record. This displays standard details and assets.
+                </span>
+              </div>
+              <div>
+                <span className="font-bold text-text block">IFSC Code</span>
+                <span className="text-text-muted mt-0.5 block">
+                  Alpha-numeric code used for bank-to-bank validations.
+                </span>
               </div>
             </div>
-          </div>
-
-          {/* Actions */}
-          <div className="pt-4 flex gap-3">
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="large"
-              onClick={handleCancel}
-              disabled={isLoading}
-              sx={actionBtnSx}
-            >
-              Cancel
-            </AppButton>
-            <AppButton
-              type="submit"
-              variant="contained"
-              colorVariant="success"
-              rounded="md"
-              size="large"
-              loading={isLoading}
-              disabled={isLoading}
-              sx={actionBtnSx}
-            >
-              Create Account
-            </AppButton>
-          </div>
-        </form>
+          </AppCard>
+        </div>
       </AppBox>
     </section>
   );
 };
 
+// MUI style configurations
 const containerSx = {
   position: "relative",
   zIndex: 1,
   width: "100%",
   maxWidth: { xs: 430, sm: 460 },
   mx: "auto",
-  px: 0,
+  px: 0.5,
   pt: 0,
   pb: 0,
 };
@@ -362,32 +328,60 @@ const containerSx = {
 const headerWrapperSx = {
   pt: 1.5,
   pb: 1,
-  px: 3.5,
-  borderBottom: "1px solid var(--app-color-border)",
+  px: 0.5,
 };
 
 const pageTitleSx = {
   m: 0,
-  fontSize: "18px",
-  color: "var(--app-color-text)",
+  fontSize: "18.5px",
+  lineHeight: 1.15,
   letterSpacing: "-0.3px",
+  color: "var(--app-color-text)",
 };
 
-const selectFieldSx = {
-  width: "100%",
+const pageSubtitleSx = {
+  mt: 0.2,
+  fontSize: "11px",
+  lineHeight: "15px",
+  color: "var(--app-color-text-muted)",
 };
 
-const selectInputSx = {
-  height: 40,
-  fontSize: "13px",
+const actionHeaderIconBtnSx = {
+  height: 32,
+  width: 32,
+  minWidth: 32,
+  borderColor: "var(--app-color-border)",
+};
+
+const formCardSx = {
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+  overflow: "hidden",
+};
+
+const cardTitleSx = {
+  m: 0,
+  fontSize: "12px",
+  color: "var(--app-color-text)",
+};
+
+const compactFilterInputSx = {
+  height: 32,
+  fontSize: "11px",
   bgcolor: "var(--app-color-surface)",
 };
 
-const actionBtnSx = {
-  flex: 1,
-  height: 40,
-  fontSize: "12.5px",
-  fontWeight: 600,
+const labelSx = {
+  fontSize: "11.5px",
+  fontWeight: 700,
+  color: "var(--app-color-text)",
+  mb: 0.5,
+};
+
+const inputSx = {
+  minHeight: 35,
+  fontSize: "12.0px",
+  bgcolor: "var(--app-color-surface)",
 };
 
 export default CreateBankAccountMobilePage;

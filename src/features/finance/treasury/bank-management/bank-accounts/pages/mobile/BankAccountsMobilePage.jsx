@@ -10,6 +10,7 @@ import {
   FiEye,
   FiCopy,
   FiCheck,
+  FiRefreshCw,
 } from "react-icons/fi";
 import { LuBuilding2 } from "react-icons/lu";
 
@@ -130,11 +131,13 @@ const BankAccountsMobilePage = ({
   handleViewDetails,
   handleSetPrimary,
   handleDeleteAccount,
+  handleRefresh,
+  isLoading = false,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
 
-  const shouldRenderPagination = hasFilteredAccounts && totalAccounts > 0;
+  const shouldRenderPagination = hasFilteredAccounts && totalAccounts > pageSize;
 
   const handleCopyNumber = (accountNumber, id) => {
     navigator.clipboard.writeText(accountNumber);
@@ -154,7 +157,7 @@ const BankAccountsMobilePage = ({
         {/* Header Block */}
         <AppBox sx={headerWrapperSx}>
           <AppStack direction="row" align="center" justify="space-between">
-            <AppBox>
+            <AppBox sx={{ minWidth: 0, flex: 1, pr: 1.5 }}>
               <AppHeading level={1} weight={700} sx={pageTitleSx}>
                 Bank Accounts
               </AppHeading>
@@ -162,15 +165,27 @@ const BankAccountsMobilePage = ({
                 Manage all your bank accounts in one place.
               </AppText>
             </AppBox>
-            <AppIconButton
-              icon={<FiPlus />}
-              variant="filled"
-              colorVariant="success"
-              size="medium"
-              rounded="full"
-              onClick={handleAddAccount}
-              sx={addAccountBtnSx}
-            />
+            <AppStack direction="row" gap={1} align="center">
+              <AppIconButton
+                icon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
+                variant="outlined"
+                colorVariant="neutral"
+                size="medium"
+                rounded="full"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                sx={refreshMobileBtnSx}
+              />
+              <AppIconButton
+                icon={<FiPlus />}
+                variant="filled"
+                colorVariant="success"
+                size="medium"
+                rounded="full"
+                onClick={handleAddAccount}
+                sx={addAccountBtnSx}
+              />
+            </AppStack>
           </AppStack>
         </AppBox>
 
@@ -288,58 +303,80 @@ const BankAccountsMobilePage = ({
                   padding="none"
                   sx={accountCardSx}
                 >
-                  {/* Top segment with Bank logo and title info */}
-                  <AppStack direction="row" align="flex-start" gap={1.2}>
-                    <BankLogo bankName={account.displayBank} />
-
-                    <AppBox sx={{ minWidth: 0, flex: 1 }}>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <AppHeading level={3} weight={700} sx={accountTitleSx}>
-                          {account.displayName}
-                        </AppHeading>
-                        {account.isPrimary && (
-                          <span className="inline-flex items-center rounded bg-[#e6fcf5] px-1.5 py-0.2 text-[8px] font-bold text-[#0ca678] uppercase tracking-wide">
-                            Primary
-                          </span>
-                        )}
-                      </div>
-                      <AppText variant="body2" sx={branchTextSx}>
-                        {account.displayBank} • {account.displayBranch}
-                      </AppText>
-
-                      {/* Account details */}
-                      <AppStack direction="row" align="center" gap={1.5} sx={{ mt: 1 }}>
-                        <div className="flex items-center gap-1">
-                          <AppText variant="body2" sx={accountNumSx}>
-                            {account.displayAccountNumber}
-                          </AppText>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopyNumber(account.displayAccountNumber, account._id);
-                            }}
-                            className="text-text-muted hover:text-primary transition p-1 hover:bg-surface-hover rounded cursor-pointer"
-                          >
-                            {copiedId === account._id ? (
-                              <FiCheck className="text-[11px] text-success" />
-                            ) : (
-                              <FiCopy className="text-[11px]" />
-                            )}
-                          </button>
+                  {/* Top segment with Bank logo, title info, and balance */}
+                  <div className="p-3.5 flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <BankLogo bankName={account.displayBank} />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <AppHeading level={3} weight={700} sx={accountTitleSx}>
+                            {account.displayName}
+                          </AppHeading>
+                          {account.isPrimary && (
+                            <span className="inline-flex items-center rounded bg-[#e6fcf5] px-1.5 py-0.2 text-[8px] font-bold text-[#0ca678] uppercase tracking-wide">
+                              Primary
+                            </span>
+                          )}
                         </div>
-                      </AppStack>
-
-                      {/* Balance section */}
-                      <div className="mt-2.5">
-                        <span className="text-[11px] text-text-muted">Balance: </span>
-                        <span className="text-[13px] font-bold text-text">
-                          ₹ {account.balance?.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
+                        <AppText variant="body2" sx={branchTextSx}>
+                          {account.displayBank} • {account.displayBranch}
+                        </AppText>
                       </div>
-                    </AppBox>
+                    </div>
 
-                    <AppStack direction="column" align="flex-end" gap={0.5} sx={{ flexShrink: 0 }}>
-                      <div className="flex items-center gap-1">
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] text-text-muted block">Balance</span>
+                      <span className="text-[13.5px] font-extrabold text-text block mt-0.5">
+                        ₹{account.balance?.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Mid Info Grid Section */}
+                  <div className="px-3.5 pb-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[11px] border-t border-dashed border-border/80 pt-3">
+                    <div>
+                      <span className="text-text-muted block font-semibold">Account No.</span>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="font-mono font-bold text-text">{account.displayAccountNumber}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyNumber(account.displayAccountNumber, account._id);
+                          }}
+                          className="text-text-muted hover:text-primary transition p-0.5 hover:bg-surface-hover rounded cursor-pointer"
+                        >
+                          {copiedId === account._id ? (
+                            <FiCheck className="text-[10px] text-success" />
+                          ) : (
+                            <FiCopy className="text-[10px]" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-text-muted block font-semibold">Registered Mobile</span>
+                      <span className="font-semibold text-text block mt-0.5">
+                        {account.registeredMobile || "-"}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-text-muted block font-semibold">Account Type</span>
+                      <div className="mt-0.5">
+                        <AppTag
+                          label={account.displayType}
+                          variant="soft"
+                          colorVariant={account.accountType === "SAVINGS" ? "success" : "primary"}
+                          rounded="md"
+                          sx={typeTagSx}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-start">
+                      <span className="text-text-muted block font-semibold">Status</span>
+                      <div className="flex items-center gap-1 mt-0.5">
                         <span className={`w-1.5 h-1.5 rounded-full ${account.displayStatus === "active" ? "bg-success" : "bg-danger"}`}></span>
                         <span
                           className={`text-[10px] font-bold capitalize ${
@@ -349,18 +386,11 @@ const BankAccountsMobilePage = ({
                           {account.displayStatus}
                         </span>
                       </div>
-                      <AppTag
-                        label={account.displayType}
-                        variant="soft"
-                        colorVariant={account.accountType === "SAVINGS" ? "success" : "primary"}
-                        rounded="md"
-                        sx={typeTagSx}
-                      />
-                    </AppStack>
-                  </AppStack>
+                    </div>
+                  </div>
 
                   {/* Actions segment at the bottom of the card */}
-                  <div className="flex items-center justify-between border-t border-border mt-3.5 pt-2.5">
+                  <div className="flex items-center justify-between border-t border-border px-3.5 py-2.5 bg-surface-alt/10 rounded-b-lg">
                     <div>
                       {account.displayIfsc && (
                         <span className="text-[10px] font-mono text-text-muted bg-surface-alt px-1.5 py-0.5 rounded border border-border">
@@ -371,7 +401,7 @@ const BankAccountsMobilePage = ({
                     <AppStack direction="row" gap={1} align="center">
                       {!account.isPrimary && (
                         <AppIconButton
-                          icon={<FiStar className="text-[14px]" />}
+                          icon={<FiStar className="text-[13px]" />}
                           variant="text"
                           colorVariant="warning"
                           size="small"
@@ -380,7 +410,7 @@ const BankAccountsMobilePage = ({
                         />
                       )}
                       <AppIconButton
-                        icon={<FiEye className="text-[14px]" />}
+                        icon={<FiEye className="text-[13px]" />}
                         variant="text"
                         colorVariant="neutral"
                         size="small"
@@ -388,7 +418,7 @@ const BankAccountsMobilePage = ({
                         onClick={() => handleViewDetails(account)}
                       />
                       <AppIconButton
-                        icon={<FiEdit2 className="text-[14px]" />}
+                        icon={<FiEdit2 className="text-[13px]" />}
                         variant="text"
                         colorVariant="neutral"
                         size="small"
@@ -396,7 +426,7 @@ const BankAccountsMobilePage = ({
                         onClick={() => handleEditAccount(account)}
                       />
                       <AppIconButton
-                        icon={<FiTrash2 className="text-[14px]" />}
+                        icon={<FiTrash2 className="text-[13px]" />}
                         variant="text"
                         colorVariant="danger"
                         size="small"
@@ -476,6 +506,12 @@ const addAccountBtnSx = {
   bgcolor: "#00b85c",
   color: "white",
   "&:hover": { bgcolor: "#009e4f" },
+};
+
+const refreshMobileBtnSx = {
+  borderColor: "var(--app-color-border)",
+  color: "var(--app-color-text-muted)",
+  bgcolor: "var(--app-color-surface)",
 };
 
 const searchWrapperSx = {

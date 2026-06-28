@@ -102,6 +102,18 @@ export const ROUTES = {
   EDIT_ACCOUNT: (accountId = ":accountId") =>
     `/finance/chart-of-accounts/accounts/${accountId}/edit`,
 
+  // Finance - Journal Vouchers
+
+  JOURNAL_VOUCHERS: "/finance/journal-vouchers",
+
+  CREATE_JOURNAL_VOUCHER: "/finance/journal-vouchers/create",
+
+  JOURNAL_VOUCHER_DETAILS: (voucherId = ":voucherId") =>
+    `/finance/journal-vouchers/${voucherId}`,
+
+  EDIT_JOURNAL_VOUCHER: (voucherId = ":voucherId") =>
+    `/finance/journal-vouchers/${voucherId}/edit`,
+
   // Treasury
   TREASURY: "/finance/treasury",
 
@@ -128,6 +140,45 @@ export const ROUTES = {
 
   EDIT_CASH_ACCOUNT: (cashAccountId = ":cashAccountId") =>
     `/finance/treasury/cash-accounts/${cashAccountId}/edit`,
+
+  // Finance - Treasury - Payment QR
+
+  PAYMENT_QRS: "/finance/treasury/payment-qrs",
+
+  CREATE_PAYMENT_QR: "/finance/treasury/payment-qrs/create",
+
+  PAYMENT_QR_DETAILS: (paymentQrId = ":paymentQrId") =>
+    `/finance/treasury/payment-qrs/${paymentQrId}`,
+
+  EDIT_PAYMENT_QR: (paymentQrId = ":paymentQrId") =>
+    `/finance/treasury/payment-qrs/${paymentQrId}/edit`,
+
+  // Finance - Treasury - Bank Slips
+
+  BANK_SLIPS: "/finance/treasury/bank-slips",
+
+  CREATE_BANK_SLIP: "/finance/treasury/bank-slips/create",
+
+  BANK_SLIP_DETAILS: (bankSlipId = ":bankSlipId") =>
+    `/finance/treasury/bank-slips/${bankSlipId}`,
+
+  // Finance - Treasury - Bank Transactions
+
+  BANK_TRANSACTIONS: "/finance/treasury/bank-transactions",
+
+  CREATE_BANK_TRANSACTION: "/finance/treasury/bank-transactions/create",
+
+  BANK_TRANSACTION_DETAILS: (bankTransactionId = ":bankTransactionId") =>
+    `/finance/treasury/bank-transactions/${bankTransactionId}`,
+
+  // Finance - Treasury - Cash Transactions
+
+  CASH_TRANSACTIONS: "/finance/treasury/cash-transactions",
+
+  CREATE_CASH_TRANSACTION: "/finance/treasury/cash-transactions/create",
+
+  CASH_TRANSACTION_DETAILS: (cashTransactionId = ":cashTransactionId") =>
+    `/finance/treasury/cash-transactions/${cashTransactionId}`,
 
   // Catalog
   CATALOG: "/catalog",

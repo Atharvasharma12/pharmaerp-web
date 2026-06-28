@@ -6,7 +6,7 @@ import { useIsMobile } from "@/hooks";
 
 import useBankAccount from "../hooks/useBankAccount";
 import useBankMaster from "@/features/bank-master/hooks/useBankMaster";
-import useAccount from "@/features/finance/chart-of-accounts/accounts/hooks/useAccount";
+
 import CreateBankAccountDesktopPage from "./desktop/CreateBankAccountDesktopPage";
 import CreateBankAccountMobilePage from "./mobile/CreateBankAccountMobilePage";
 
@@ -20,10 +20,11 @@ const INITIAL_FORM_DATA = {
   registeredMobile: "",
   accountType: "CURRENT",
   bankMasterId: "",
-  ledgerAccountId: "",
   isPrimary: false,
   isActive: true,
 };
+
+const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 
 const CreateBankAccountPage = () => {
   const isMobile = useIsMobile();
@@ -33,10 +34,8 @@ const CreateBankAccountPage = () => {
   const {
     createBankAccount,
     createBankAccountStatus,
-    error: bankAccountError,
-    message: bankAccountMessage,
-    clearError: clearBankAccountError,
-    clearMessage: clearBankAccountMessage,
+    error: serverError,
+    clearError,
   } = useBankAccount();
 
   const {
@@ -44,33 +43,25 @@ const CreateBankAccountPage = () => {
     getBankMasters,
   } = useBankMaster();
 
-  const {
-    accounts = [],
-    getAccounts,
-  } = useAccount();
-
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     if (hasFetchedRef.current) return;
     hasFetchedRef.current = true;
-
-    // Fetch dependencies
-    getBankMasters({ limit: 500 }).catch((err) => {
+    
+    // Fetch bank masters for dropdown list
+    getBankMasters({ page: 1, limit: 100 }).catch((err) => {
       console.error("Failed to load bank masters:", err);
     });
-    getAccounts({ limit: 500 }).catch((err) => {
-      console.error("Failed to load ledger accounts:", err);
-    });
-  }, [getBankMasters, getAccounts]);
+  }, [getBankMasters]);
 
+  // Clean up errors on unmount
   useEffect(() => {
     return () => {
-      clearBankAccountError();
-      clearBankAccountMessage();
+      clearError();
     };
-  }, [clearBankAccountError, clearBankAccountMessage]);
+  }, [clearError]);
 
   const isLoading = createBankAccountStatus === API_STATUS.LOADING;
 
@@ -79,11 +70,11 @@ const CreateBankAccountPage = () => {
       setFormData((prev) => {
         const nextData = { ...prev, [name]: value };
 
-        // If bank master changes, we can try to pre-fill the branch name or ifsc prefix if bankMasterId holds default codes
+        // If bank master changes, autofill account name if it's empty
         if (name === "bankMasterId" && value) {
           const selectedBank = bankMasters.find((b) => b._id === value);
-          if (selectedBank) {
-            // Auto fill bank details if applicable
+          if (selectedBank && !prev.accountName) {
+            nextData.accountName = `${selectedBank.name} Account`;
           }
         }
         return nextData;
@@ -92,9 +83,9 @@ const CreateBankAccountPage = () => {
       if (formErrors[name]) {
         setFormErrors((prev) => ({ ...prev, [name]: "" }));
       }
-      clearBankAccountError();
+      clearError();
     },
-    [bankMasters, formErrors, clearBankAccountError]
+    [bankMasters, formErrors, clearError]
   );
 
   const handleCancel = useCallback(() => {
@@ -105,14 +96,18 @@ const CreateBankAccountPage = () => {
     async (e) => {
       if (e) e.preventDefault();
 
+      console.log("[CreateBankAccountPage] handleSubmit triggered. Current formData:", formData);
+
       const errors = {};
       const accName = String(formData.accountName || "").trim();
       const holderName = String(formData.accountHolderName || "").trim();
       const accNumber = String(formData.accountNumber || "").trim();
       const ifsc = String(formData.ifscCode || "").trim().toUpperCase();
       const branch = String(formData.branchName || "").trim();
-      const bankMaster = formData.bankMasterId;
-      const ledgerAccount = formData.ledgerAccountId;
+      const branchAddr = String(formData.branchAddress || "").trim();
+      const regMobile = String(formData.registeredMobile || "").trim();
+      const accType = formData.accountType;
+      const bankId = formData.bankMasterId;
 
       if (!accName) {
         errors.accountName = "Account name is required";
@@ -125,41 +120,44 @@ const CreateBankAccountPage = () => {
       }
       if (!ifsc) {
         errors.ifscCode = "IFSC code is required";
+      } else if (!IFSC_REGEX.test(ifsc)) {
+        errors.ifscCode = "Invalid IFSC code format (e.g. HDFC0001234)";
       }
       if (!branch) {
         errors.branchName = "Branch name is required";
       }
-      if (!bankMaster) {
-        errors.bankMasterId = "Bank is required";
-      }
-      if (!ledgerAccount) {
-        errors.ledgerAccountId = "Ledger account mapping is required";
+      if (!bankId) {
+        errors.bankMasterId = "Bank selection is required";
       }
 
       if (Object.keys(errors).length > 0) {
+        console.warn("[CreateBankAccountPage] Validation failed with errors:", errors);
         setFormErrors(errors);
         return;
       }
 
       const payload = {
+        bankMasterId: bankId,
         accountName: accName,
         accountHolderName: holderName,
         accountNumber: accNumber,
         ifscCode: ifsc,
         branchName: branch,
-        branchAddress: String(formData.branchAddress || "").trim() || null,
-        registeredMobile: String(formData.registeredMobile || "").trim() || null,
-        accountType: formData.accountType,
-        bankMasterId: bankMaster,
-        ledgerAccountId: ledgerAccount,
+        branchAddress: branchAddr || null,
+        registeredMobile: regMobile || null,
+        accountType: accType,
         isPrimary: Boolean(formData.isPrimary),
         isActive: Boolean(formData.isActive),
       };
 
+      console.log("[CreateBankAccountPage] Validation passed. Dispatching createBankAccount thunk with payload:", payload);
+
       try {
-        await createBankAccount(payload);
+        const result = await createBankAccount(payload);
+        console.log("[CreateBankAccountPage] Thunk succeeded. Result:", result);
         navigate(ROUTES.BANK_ACCOUNTS, { replace: true });
       } catch (err) {
+        console.error("[CreateBankAccountPage] Thunk failed with error:", err);
         setFormErrors({
           submit: typeof err === "string" ? err : "Failed to create bank account. Please try again.",
         });
@@ -168,53 +166,26 @@ const CreateBankAccountPage = () => {
     [formData, createBankAccount, navigate]
   );
 
-  const bankMasterOptions = useMemo(() => {
+  const bankOptions = useMemo(() => {
     const opts = [{ label: "Select Bank", value: "" }];
-    const list = bankMasters.length > 0 ? bankMasters : [
-      { _id: "60c72b2f9b1d8b2bad9d8c01", bankName: "HDFC Bank", name: "HDFC Bank" },
-      { _id: "60c72b2f9b1d8b2bad9d8c02", bankName: "ICICI Bank", name: "ICICI Bank" },
-      { _id: "60c72b2f9b1d8b2bad9d8c03", bankName: "Axis Bank", name: "Axis Bank" },
-      { _id: "60c72b2f9b1d8b2bad9d8c04", bankName: "State Bank of India", name: "State Bank of India" },
-      { _id: "60c72b2f9b1d8b2bad9d8c05", bankName: "Yes Bank", name: "Yes Bank" },
-      { _id: "60c72b2f9b1d8b2bad9d8c06", bankName: "Kotak Mahindra Bank", name: "Kotak Mahindra Bank" },
-      { _id: "60c72b2f9b1d8b2bad9d8c07", bankName: "Canara Bank", name: "Canara Bank" },
-      { _id: "60c72b2f9b1d8b2bad9d8c08", bankName: "Bank of Baroda", name: "Bank of Baroda" },
-    ];
-    list.forEach((b) => {
-      opts.push({ label: b.bankName || b.name, value: b._id });
+    bankMasters.forEach((bm) => {
+      if (bm.isActive !== false) {
+        opts.push({ label: bm.name, value: bm._id });
+      }
     });
     return opts;
   }, [bankMasters]);
-
-  const ledgerAccountOptions = useMemo(() => {
-    const opts = [{ label: "Select Ledger Account", value: "" }];
-    const list = accounts.length > 0 ? accounts : [
-      { _id: "60c72b2f9b1d8b2bad9d8d01", accountName: "HDFC Bank A/C Ledger", accountCode: "120101" },
-      { _id: "60c72b2f9b1d8b2bad9d8d02", accountName: "ICICI Bank A/C Ledger", accountCode: "120102" },
-      { _id: "60c72b2f9b1d8b2bad9d8d03", accountName: "Axis Bank A/C Ledger", accountCode: "120103" },
-      { _id: "60c72b2f9b1d8b2bad9d8d04", accountName: "SBI Bank A/C Ledger", accountCode: "120104" },
-      { _id: "60c72b2f9b1d8b2bad9d8d05", accountName: "Cash In Hand Ledger", accountCode: "120201" },
-      { _id: "60c72b2f9b1d8b2bad9d8d06", accountName: "Petty Cash Ledger", accountCode: "120202" },
-      { _id: "60c72b2f9b1d8b2bad9d8d07", accountName: "Share Capital Ledger", accountCode: "310101" },
-      { _id: "60c72b2f9b1d8b2bad9d8d08", accountName: "Retained Earnings Ledger", accountCode: "310201" },
-    ];
-    list.forEach((a) => {
-      opts.push({ label: `${a.accountName} (${a.accountCode})`, value: a._id });
-    });
-    return opts;
-  }, [accounts]);
 
   const pageProps = {
     formData,
     formErrors,
     isLoading,
-    bankMasterOptions,
-    ledgerAccountOptions,
+    bankOptions,
     handleFieldChange,
     handleCancel,
     handleSubmit,
-    serverError: bankAccountError,
-    clearError: clearBankAccountError,
+    serverError,
+    clearError,
   };
 
   return isMobile ? (

@@ -139,7 +139,7 @@ const TreasuryPage = () => {
         title: "Payment QR / UPI",
         description: "Manage UPI QR codes and digital payments",
         colorVariant: "success",
-        path: "/finance/treasury/payment-qr-upi",
+        path: "/finance/treasury/payment-qrs",
       },
       {
         id: "bankSlips",
@@ -258,7 +258,7 @@ const TreasuryPage = () => {
         navigate(item.path);
       }
     },
-    [navigate]
+    [navigate],
   );
 
   const handleQuickActionClick = useCallback(
@@ -267,7 +267,7 @@ const TreasuryPage = () => {
         navigate(action.path);
       }
     },
-    [navigate]
+    [navigate],
   );
 
   const pageProps = {

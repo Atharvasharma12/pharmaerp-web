@@ -254,13 +254,13 @@ const BankAccountsDesktopPage = ({
       ),
     },
     {
-      id: "ifscCode",
-      key: "displayIfsc",
-      label: "IFSC Code",
-      minWidth: 120,
+      id: "registeredMobile",
+      key: "registeredMobile",
+      label: "Registered Mobile",
+      minWidth: 140,
       render: (_, account) => (
-        <AppText variant="body2" sx={ifscSx}>
-          {account?.displayIfsc || "-"}
+        <AppText variant="body2" sx={mobileSx}>
+          {account?.registeredMobile || "-"}
         </AppText>
       ),
     },
@@ -416,10 +416,12 @@ const BankAccountsDesktopPage = ({
               colorVariant="neutral"
               rounded="md"
               size="small"
-              startIcon={<FiUpload />}
+              startIcon={<FiRefreshCw />}
+              onClick={handleRefresh}
+              loading={isLoading}
               sx={importButtonSx}
             >
-              Import Accounts
+              Refresh
             </AppButton>
             <AppButton
               type="button"
@@ -476,14 +478,15 @@ const BankAccountsDesktopPage = ({
           ) : (
             <AppTable
               columns={columns}
-              data={pagedAccounts}
+              rows={pagedAccounts}
+              getRowId={(row) => row._id}
               sx={tableSx}
               headSx={tableHeadSx}
               cellSx={tableCellSx}
             />
           )}
 
-          {hasFilteredAccounts ? (
+          {hasFilteredAccounts && totalAccounts > pageSize ? (
             <TableFooter
               totalAccounts={totalAccounts}
               currentPage={currentPage}
@@ -878,6 +881,12 @@ const ifscSx = {
   fontSize: "12.5px",
   fontWeight: 600,
   fontFamily: "monospace",
+  color: "var(--app-color-text)",
+};
+
+const mobileSx = {
+  fontSize: "12.5px",
+  fontWeight: 600,
   color: "var(--app-color-text)",
 };
 

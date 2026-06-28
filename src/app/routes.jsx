@@ -42,11 +42,16 @@ import customerRoutes from "@/features/parties/customers/routes/customerRoutes";
 import supplierRoutes from "@/features/parties/suppliers/routes/supplierRoutes";
 import financeRoutes from "@/features/finance/routes/financeRoutes";
 import chartOfAccountsRoutes from "@/features/finance/chart-of-accounts/routes/chartOfAccountsRoutes";
+import journalVoucherRoutes from "@/features/finance/journal-vouchers/routes/journalVoucherRoutes";
 import accountGroupRoutes from "@/features/finance/chart-of-accounts/account-groups/routes/accountGroupRoutes";
 import accountRoutes from "@/features/finance/chart-of-accounts/accounts/routes/accountRoutes";
 import treasuryRoutes from "@/features/finance/treasury/routes/treasuryRoutes";
 import bankAccountRoutes from "@/features/finance/treasury/bank-management/bank-accounts/routes/bankAccountRoutes";
 import cashAccountRoutes from "@/features/finance/treasury/cash-management/cash-accounts/routes/cashAccountRoutes";
+import paymentQrRoutes from "@/features/finance/treasury/payment-qr/routes/paymentQrRoutes";
+import bankSlipRoutes from "@/features/finance/treasury/bank-management/bank-slips/routes/bankSlipRoutes";
+import bankTransactionRoutes from "@/features/finance/treasury/bank-management/bank-transactions/routes/bankTransactionRoutes";
+import cashTransactionRoutes from "@/features/finance/treasury/cash-management/cash-transactions/routes/cashTransactionRoutes";
 
 const NotFoundPage = () => {
   return (
@@ -164,12 +169,17 @@ export const router = createBrowserRouter([
 
       ...financeRoutes,
       ...chartOfAccountsRoutes,
+      ...journalVoucherRoutes,
       ...accountGroupRoutes,
       ...accountRoutes,
 
       ...treasuryRoutes,
       ...bankAccountRoutes,
       ...cashAccountRoutes,
+      ...paymentQrRoutes,
+      ...bankSlipRoutes,
+      ...bankTransactionRoutes,
+      ...cashTransactionRoutes,
 
       // Catalog
       ...catalogRoutes,
