@@ -45,13 +45,19 @@ import chartOfAccountsRoutes from "@/features/finance/chart-of-accounts/routes/c
 import journalVoucherRoutes from "@/features/finance/journal-vouchers/routes/journalVoucherRoutes";
 import accountGroupRoutes from "@/features/finance/chart-of-accounts/account-groups/routes/accountGroupRoutes";
 import accountRoutes from "@/features/finance/chart-of-accounts/accounts/routes/accountRoutes";
+import accountBalanceRoutes from "@/features/finance/account-balances/routes/accountBalanceRoutes";
 import treasuryRoutes from "@/features/finance/treasury/routes/treasuryRoutes";
+import fundTransferRoutes from "@/features/finance/treasury/fund-transfers/routes/fundTransferRoutes";
+import chequeRoutes from "@/features/finance/treasury/cheque-management/routes/chequeRoutes";
 import bankAccountRoutes from "@/features/finance/treasury/bank-management/bank-accounts/routes/bankAccountRoutes";
 import cashAccountRoutes from "@/features/finance/treasury/cash-management/cash-accounts/routes/cashAccountRoutes";
 import paymentQrRoutes from "@/features/finance/treasury/payment-qr/routes/paymentQrRoutes";
 import bankSlipRoutes from "@/features/finance/treasury/bank-management/bank-slips/routes/bankSlipRoutes";
 import bankTransactionRoutes from "@/features/finance/treasury/bank-management/bank-transactions/routes/bankTransactionRoutes";
 import cashTransactionRoutes from "@/features/finance/treasury/cash-management/cash-transactions/routes/cashTransactionRoutes";
+import cashDenominationRoutes from "@/features/finance/treasury/cash-management/cash-denominations/routes/cashDenominationRoutes";
+import financialPeriodRoutes from "@/features/finance/financial-periods/routes/financialPeriodRoutes";
+import ledgerRoutes from "@/features/finance/ledger/routes/ledgerRoutes";
 
 const NotFoundPage = () => {
   return (
@@ -172,14 +178,20 @@ export const router = createBrowserRouter([
       ...journalVoucherRoutes,
       ...accountGroupRoutes,
       ...accountRoutes,
+      ...accountBalanceRoutes,
+      ...financialPeriodRoutes,
+      ...ledgerRoutes,
 
       ...treasuryRoutes,
+      ...fundTransferRoutes,
+      ...chequeRoutes,
       ...bankAccountRoutes,
       ...cashAccountRoutes,
       ...paymentQrRoutes,
       ...bankSlipRoutes,
       ...bankTransactionRoutes,
       ...cashTransactionRoutes,
+      ...cashDenominationRoutes,
 
       // Catalog
       ...catalogRoutes,

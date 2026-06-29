@@ -42,6 +42,8 @@ const moduleIcons = {
   payments: <FiArrowUpCircle />,
   contraVouchers: <FiRepeat />,
   treasury: <LuBuilding2 />,
+  ledger: <FiFileText />,
+  accountBalances: <LuScale />,
   reports: <FiBarChart2 />,
 };
 

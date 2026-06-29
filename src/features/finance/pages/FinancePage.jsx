@@ -23,8 +23,8 @@ const FinancePage = () => {
         colorVariant: "success",
       },
       {
-        id: "openingBalance",
-        title: "Opening Balance",
+        id: "totalBalance",
+        title: "Total Balance",
         value: "₹ 12,45,680.00",
         description: "Total Balance",
         colorVariant: "purple",
@@ -55,13 +55,6 @@ const FinancePage = () => {
         description: "Create and manage your chart of accounts",
         colorVariant: "success",
         path: ROUTES.CHART_OF_ACCOUNTS,
-      },
-      {
-        id: "openingBalances",
-        title: "Opening Balances",
-        description: "Set and manage opening balances for accounts",
-        colorVariant: "purple",
-        path: "/finance/opening-balances",
       },
       {
         id: "financialPeriods",
@@ -104,6 +97,20 @@ const FinancePage = () => {
         description: "Manage your banks, cash and payment methods",
         colorVariant: "success", // teal-green style
         path: "/finance/treasury",
+      },
+      {
+        id: "ledger",
+        title: "General Ledger",
+        description: "View account statement balances and posting ledgers",
+        colorVariant: "primary",
+        path: ROUTES.LEDGER,
+      },
+      {
+        id: "accountBalances",
+        title: "Account Balances",
+        description: "View and recalculate chart of account balances",
+        colorVariant: "success",
+        path: ROUTES.ACCOUNT_BALANCES,
       },
       {
         id: "reports",

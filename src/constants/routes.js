@@ -75,6 +75,9 @@ export const ROUTES = {
   // Finance
   FINANCE: "/finance",
 
+  // Finance - Ledger
+  LEDGER: "/finance/ledger",
+
   // Finance - Chart Of Accounts
   CHART_OF_ACCOUNTS: "/finance/chart-of-accounts",
 
@@ -102,6 +105,11 @@ export const ROUTES = {
   EDIT_ACCOUNT: (accountId = ":accountId") =>
     `/finance/chart-of-accounts/accounts/${accountId}/edit`,
 
+  // Finance - Account Balances
+  ACCOUNT_BALANCES: "/finance/account-balances",
+  ACCOUNT_BALANCE_DETAILS: (accountId = ":accountId") =>
+    `/finance/account-balances/${accountId}`,
+
   // Finance - Journal Vouchers
 
   JOURNAL_VOUCHERS: "/finance/journal-vouchers",
@@ -113,6 +121,10 @@ export const ROUTES = {
 
   EDIT_JOURNAL_VOUCHER: (voucherId = ":voucherId") =>
     `/finance/journal-vouchers/${voucherId}/edit`,
+
+  // Finance - Financial Periods
+  FINANCIAL_PERIODS: "/finance/financial-periods",
+  CREATE_FINANCIAL_PERIOD: "/finance/financial-periods/create",
 
   // Treasury
   TREASURY: "/finance/treasury",
@@ -179,6 +191,24 @@ export const ROUTES = {
 
   CASH_TRANSACTION_DETAILS: (cashTransactionId = ":cashTransactionId") =>
     `/finance/treasury/cash-transactions/${cashTransactionId}`,
+
+  // Finance - Treasury - Cash Denominations
+  CASH_DENOMINATIONS: "/finance/treasury/cash-denominations",
+  CREATE_CASH_DENOMINATION: "/finance/treasury/cash-denominations/create",
+  CASH_DENOMINATION_DETAILS: (cashDenominationId = ":cashDenominationId") =>
+    `/finance/treasury/cash-denominations/${cashDenominationId}`,
+
+  // Finance - Treasury - Fund Transfers
+  FUND_TRANSFERS: "/finance/treasury/fund-transfers",
+  CREATE_FUND_TRANSFER: "/finance/treasury/fund-transfers/create",
+  FUND_TRANSFER_DETAILS: (fundTransferId = ":fundTransferId") =>
+    `/finance/treasury/fund-transfers/${fundTransferId}`,
+
+  // Finance - Treasury - Cheques
+  CHEQUES: "/finance/treasury/cheque-management",
+  CREATE_CHEQUE: "/finance/treasury/cheque-management/create",
+  CHEQUE_DETAILS: (chequeId = ":chequeId") =>
+    `/finance/treasury/cheque-management/${chequeId}`,
 
   // Catalog
   CATALOG: "/catalog",
