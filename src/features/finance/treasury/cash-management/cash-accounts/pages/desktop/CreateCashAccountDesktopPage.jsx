@@ -25,6 +25,7 @@ const CreateCashAccountDesktopPage = ({
   formData,
   formErrors = {},
   isLoading = false,
+  branchOptions = [],
   handleFieldChange,
   handleCancel,
   handleSubmit,
@@ -148,7 +149,21 @@ const CreateCashAccountDesktopPage = ({
                       labelSx={labelSx}
                     />
 
-                    <div></div>
+                    {/* Branch selection */}
+                    <AppSelect
+                      label="Linked Branch (Optional)"
+                      name="branchId"
+                      value={formData.branchId || ""}
+                      onChange={(e) => handleFieldChange("branchId", e.target.value)}
+                      options={branchOptions}
+                      size="medium"
+                      variant="bordered"
+                      rounded="md"
+                      sx={selectFieldSx}
+                      inputSx={selectInputSx}
+                      helperText="Assigns this cash drawer to a specific branch location"
+                      labelSx={labelSx}
+                    />
                   </div>
 
                   {/* Description */}

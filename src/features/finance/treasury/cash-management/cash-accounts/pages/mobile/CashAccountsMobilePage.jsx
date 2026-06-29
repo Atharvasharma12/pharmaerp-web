@@ -300,6 +300,11 @@ const CashAccountsMobilePage = ({
                               Primary
                             </span>
                           )}
+                          {account.branchId && (
+                            <span className="inline-flex items-center rounded bg-[#f1f3f5] px-1.5 py-0.2 text-[8px] font-bold text-[#495057] uppercase tracking-wide font-mono">
+                              {account.branchId.name || "Branch"}
+                            </span>
+                          )}
                         </div>
                         <AppText variant="body2" sx={descriptionTextSx}>
                           {account.displayDescription}

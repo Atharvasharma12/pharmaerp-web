@@ -24,6 +24,7 @@ const CreateCashAccountMobilePage = ({
   formData,
   formErrors = {},
   isLoading = false,
+  branchOptions = [],
   handleFieldChange,
   handleCancel,
   handleSubmit,
@@ -129,6 +130,20 @@ const CreateCashAccountMobilePage = ({
                 value={formData.isPrimary ? "true" : "false"}
                 onChange={(e) => handleFieldChange("isPrimary", e.target.value === "true")}
                 options={booleanOptions}
+                size="small"
+                variant="bordered"
+                rounded="md"
+                inputSx={compactFilterInputSx}
+                labelSx={labelSx}
+              />
+
+              {/* Branch selection */}
+              <AppSelect
+                label="Linked Branch (Optional)"
+                name="branchId"
+                value={formData.branchId || ""}
+                onChange={(e) => handleFieldChange("branchId", e.target.value)}
+                options={branchOptions}
                 size="small"
                 variant="bordered"
                 rounded="md"

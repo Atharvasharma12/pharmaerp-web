@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
+import useBranch from "@/features/branch/hooks/useBranch";
 import { ROUTES, API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
-
 import useCashAccount from "../hooks/useCashAccount";
 import CreateCashAccountDesktopPage from "./desktop/CreateCashAccountDesktopPage";
 import CreateCashAccountMobilePage from "./mobile/CreateCashAccountMobilePage";
@@ -13,6 +13,7 @@ const INITIAL_FORM_DATA = {
   openingBalance: 0,
   description: "",
   isPrimary: false,
+  branchId: "",
 };
 
 const CreateCashAccountPage = () => {
@@ -27,8 +28,19 @@ const CreateCashAccountPage = () => {
     clearMessage,
   } = useCashAccount();
 
+  const { branches = [], getCompanyBranches } = useBranch();
+
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
+  const hasFetchedBranchesRef = React.useRef(false);
+
+  useEffect(() => {
+    if (hasFetchedBranchesRef.current) return;
+    hasFetchedBranchesRef.current = true;
+    getCompanyBranches().catch((err) =>
+      console.error("Failed to load branches:", err)
+    );
+  }, [getCompanyBranches]);
 
   // Clean up notifications/errors on unmount
   useEffect(() => {
@@ -85,6 +97,7 @@ const CreateCashAccountPage = () => {
         openingBalance: openBal,
         description: desc || null,
         isPrimary: Boolean(formData.isPrimary),
+        branchId: formData.branchId || null,
       };
 
       try {
@@ -99,10 +112,21 @@ const CreateCashAccountPage = () => {
     [formData, createCashAccount, navigate]
   );
 
+  const branchOptions = useMemo(() => {
+    return [
+      { label: "None / Shared (Central Office)", value: "" },
+      ...branches.map((b) => ({
+        label: b.name || "Branch",
+        value: b._id,
+      })),
+    ];
+  }, [branches]);
+
   const pageProps = {
     formData,
     formErrors,
     isLoading,
+    branchOptions,
     handleFieldChange,
     handleCancel,
     handleSubmit,
