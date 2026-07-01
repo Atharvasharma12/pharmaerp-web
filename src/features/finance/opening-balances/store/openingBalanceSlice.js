@@ -6,6 +6,8 @@ import {
   setAccountOpeningBalance,
   setCustomerOpeningBalance,
   setSupplierOpeningBalance,
+  setBankAccountOpeningBalance,
+  setCashAccountOpeningBalance,
 } from "./openingBalanceThunk";
 
 const initialState = {
@@ -18,6 +20,8 @@ const initialState = {
   setAccountOpeningBalanceStatus: API_STATUS.IDLE,
   setCustomerOpeningBalanceStatus: API_STATUS.IDLE,
   setSupplierOpeningBalanceStatus: API_STATUS.IDLE,
+  setBankAccountOpeningBalanceStatus: API_STATUS.IDLE,
+  setCashAccountOpeningBalanceStatus: API_STATUS.IDLE,
 };
 
 const setPending = (state) => {
@@ -99,6 +103,40 @@ const openingBalanceSlice = createSlice({
         state.setSupplierOpeningBalanceStatus = API_STATUS.ERROR;
         state.error =
           action.payload || "Failed to set supplier opening balance";
+      })
+
+      // BANK ACCOUNT OPENING BALANCE
+      .addCase(setBankAccountOpeningBalance.pending, (state) => {
+        state.setBankAccountOpeningBalanceStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(setBankAccountOpeningBalance.fulfilled, (state, action) => {
+        state.setBankAccountOpeningBalanceStatus = API_STATUS.SUCCESS;
+        state.result = action.payload || null;
+        state.message = "Bank Account opening balance set successfully";
+      })
+      .addCase(setBankAccountOpeningBalance.rejected, (state, action) => {
+        state.setBankAccountOpeningBalanceStatus = API_STATUS.ERROR;
+        state.error =
+          action.payload || "Failed to set bank account opening balance";
+      })
+
+      // CASH ACCOUNT OPENING BALANCE
+      .addCase(setCashAccountOpeningBalance.pending, (state) => {
+        state.setCashAccountOpeningBalanceStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(setCashAccountOpeningBalance.fulfilled, (state, action) => {
+        state.setCashAccountOpeningBalanceStatus = API_STATUS.SUCCESS;
+        state.result = action.payload || null;
+        state.message = "Cash Account opening balance set successfully";
+      })
+      .addCase(setCashAccountOpeningBalance.rejected, (state, action) => {
+        state.setCashAccountOpeningBalanceStatus = API_STATUS.ERROR;
+        state.error =
+          action.payload || "Failed to set cash account opening balance";
       });
   },
 });

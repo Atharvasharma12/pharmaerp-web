@@ -159,7 +159,7 @@ const CashAccountDetailsDesktopPage = ({
               <div className="border-t border-border p-4 text-center">
                 <span className="text-[12px] text-text-muted block">Available Balance</span>
                 <span className="text-[24px] font-extrabold text-text block mt-1">
-                  ₹ {account.openingBalance?.toLocaleString("en-IN", { minimumFractionDigits: 2 }) || "0.00"}
+                  ₹ {account.ledgerAccountId?.openingBalance?.toLocaleString("en-IN", { minimumFractionDigits: 2 }) || "0.00"}
                 </span>
               </div>
             </AppCard>
@@ -204,7 +204,7 @@ const CashAccountDetailsDesktopPage = ({
                   <div>
                     <span className="text-text-muted block font-semibold">Opening Balance</span>
                     <span className="font-semibold text-text block mt-1">
-                      ₹ {account.openingBalance?.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      ₹ {account.ledgerAccountId?.openingBalance?.toLocaleString("en-IN", { minimumFractionDigits: 2 })} {account.ledgerAccountId?.openingBalanceType ? `(${account.ledgerAccountId.openingBalanceType.toUpperCase()})` : ""}
                     </span>
                   </div>
                 </div>
@@ -219,6 +219,67 @@ const CashAccountDetailsDesktopPage = ({
             </AppCard>
           </div>
         </div>
+
+        {/* Latest Physical Cash Count Snapshot */}
+        {account.latestCashCount?.countNumber && (
+          <div className="mt-5">
+            <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={rightCardSx}>
+              <div className="px-5 py-4 border-b border-border bg-surface-alt/5 flex items-center justify-between">
+                <AppHeading level={3} weight={700} sx={cardTitleSx}>
+                  Latest Physical Cash Audit Count (Count #{account.latestCashCount.countNumber})
+                </AppHeading>
+                <span className="text-[12px] text-text-muted font-semibold">
+                  Count Date: {new Date(account.latestCashCount.countDate).toLocaleDateString("en-IN")}
+                </span>
+              </div>
+              <div className="p-5 grid grid-cols-[1fr_2fr] gap-6">
+                {/* Summary */}
+                <div className="space-y-4 text-[13px] border-r border-border pr-6">
+                  <div>
+                    <span className="text-text-muted block font-semibold">Total Physical Counted</span>
+                    <span className="text-[20px] font-black text-text block mt-1 font-mono">
+                      ₹ {account.latestCashCount.physicalTotal?.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  {account.latestCashCount.cashDenominationId && (
+                    <div>
+                      <span className="text-text-muted block font-semibold">Audit Record Status</span>
+                      <span className="inline-flex items-center rounded bg-[#e6fcf5] px-2 py-0.5 text-[10.5px] font-bold text-[#0ca678] uppercase mt-1">
+                        {account.latestCashCount.cashDenominationId.status || "CONFIRMED"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {/* Denominations table */}
+                <div>
+                  <span className="text-text-muted block font-semibold mb-3">Denominations Breakdown</span>
+                  <table className="w-full text-left border-collapse text-[12px]">
+                    <thead>
+                      <tr className="border-b border-border text-text-muted">
+                        <th className="py-1.5 px-2 font-semibold">Denomination</th>
+                        <th className="py-1.5 px-2 font-semibold text-center">×</th>
+                        <th className="py-1.5 px-2 font-semibold">Quantity</th>
+                        <th className="py-1.5 px-2 font-semibold text-right">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {account.latestCashCount.denominations?.map((d) => (
+                        <tr key={d.denomination} className="border-b border-border/40 hover:bg-surface-hover/10 transition">
+                          <td className="py-1.5 px-2 font-bold text-text font-mono">₹ {d.denomination}</td>
+                          <td className="py-1.5 px-2 text-center text-text-muted font-mono">×</td>
+                          <td className="py-1.5 px-2 font-mono">{d.quantity}</td>
+                          <td className="py-1.5 px-2 text-right font-extrabold text-text font-mono">
+                            ₹ {d.subtotal?.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </AppCard>
+          </div>
+        )}
       </div>
     </section>
   );

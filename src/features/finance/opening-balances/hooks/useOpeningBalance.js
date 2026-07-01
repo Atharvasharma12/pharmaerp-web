@@ -4,6 +4,8 @@ import {
   setAccountOpeningBalance,
   setCustomerOpeningBalance,
   setSupplierOpeningBalance,
+  setBankAccountOpeningBalance,
+  setCashAccountOpeningBalance,
 } from "../store/openingBalanceThunk";
 
 import {
@@ -20,6 +22,8 @@ import {
   selectSetAccountOpeningBalanceStatus,
   selectSetCustomerOpeningBalanceStatus,
   selectSetSupplierOpeningBalanceStatus,
+  selectSetBankAccountOpeningBalanceStatus,
+  selectSetCashAccountOpeningBalanceStatus,
 } from "../store/openingBalanceSelector";
 
 const useOpeningBalance = () => {
@@ -43,6 +47,14 @@ const useOpeningBalance = () => {
     selectSetSupplierOpeningBalanceStatus,
   );
 
+  const setBankAccountOpeningBalanceStatus = useSelector(
+    selectSetBankAccountOpeningBalanceStatus,
+  );
+
+  const setCashAccountOpeningBalanceStatus = useSelector(
+    selectSetCashAccountOpeningBalanceStatus,
+  );
+
   const submitAccountOpeningBalance = (payload) => {
     return dispatch(setAccountOpeningBalance(payload)).unwrap();
   };
@@ -53,6 +65,14 @@ const useOpeningBalance = () => {
 
   const submitSupplierOpeningBalance = (payload) => {
     return dispatch(setSupplierOpeningBalance(payload)).unwrap();
+  };
+
+  const submitBankAccountOpeningBalance = (payload) => {
+    return dispatch(setBankAccountOpeningBalance(payload)).unwrap();
+  };
+
+  const submitCashAccountOpeningBalance = (payload) => {
+    return dispatch(setCashAccountOpeningBalance(payload)).unwrap();
   };
 
   const clearError = () => {
@@ -77,10 +97,14 @@ const useOpeningBalance = () => {
     setAccountOpeningBalanceStatus,
     setCustomerOpeningBalanceStatus,
     setSupplierOpeningBalanceStatus,
+    setBankAccountOpeningBalanceStatus,
+    setCashAccountOpeningBalanceStatus,
 
     setAccountOpeningBalance: submitAccountOpeningBalance,
     setCustomerOpeningBalance: submitCustomerOpeningBalance,
     setSupplierOpeningBalance: submitSupplierOpeningBalance,
+    setBankAccountOpeningBalance: submitBankAccountOpeningBalance,
+    setCashAccountOpeningBalance: submitCashAccountOpeningBalance,
 
     clearError,
     clearMessage,

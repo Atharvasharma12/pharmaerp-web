@@ -10,6 +10,18 @@ import useFundTransfer from "../hooks/useFundTransfer";
 import CreateFundTransferDesktopPage from "./desktop/CreateFundTransferDesktopPage";
 import CreateFundTransferMobilePage from "./mobile/CreateFundTransferMobilePage";
 
+const INITIAL_DENOMINATIONS = [
+  { denomination: 500, quantity: 0 },
+  { denomination: 200, quantity: 0 },
+  { denomination: 100, quantity: 0 },
+  { denomination: 50, quantity: 0 },
+  { denomination: 20, quantity: 0 },
+  { denomination: 10, quantity: 0 },
+  { denomination: 5, quantity: 0 },
+  { denomination: 2, quantity: 0 },
+  { denomination: 1, quantity: 0 },
+];
+
 const INITIAL_FORM_DATA = {
   transferDate: new Date().toISOString().split("T")[0],
   fromAccountType: "BANK",
@@ -38,8 +50,32 @@ const CreateFundTransferPage = () => {
   const { cashAccounts = [], getCashAccounts } = useCashAccount();
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [fromDenominations, setFromDenominations] = useState(INITIAL_DENOMINATIONS);
+  const [toDenominations, setToDenominations] = useState(INITIAL_DENOMINATIONS);
   const [formErrors, setFormErrors] = useState({});
   const [actionError, setActionError] = useState("");
+
+  const handleFromQtyChange = useCallback((denomValue, qty) => {
+    const cleanQty = Math.max(0, parseInt(qty) || 0);
+    setFromDenominations((prev) =>
+      prev.map((d) => (d.denomination === denomValue ? { ...d, quantity: cleanQty } : d))
+    );
+  }, []);
+
+  const handleToQtyChange = useCallback((denomValue, qty) => {
+    const cleanQty = Math.max(0, parseInt(qty) || 0);
+    setToDenominations((prev) =>
+      prev.map((d) => (d.denomination === denomValue ? { ...d, quantity: cleanQty } : d))
+    );
+  }, []);
+
+  const fromPhysicalTotal = useMemo(() => {
+    return fromDenominations.reduce((acc, curr) => acc + curr.denomination * curr.quantity, 0);
+  }, [fromDenominations]);
+
+  const toPhysicalTotal = useMemo(() => {
+    return toDenominations.reduce((acc, curr) => acc + curr.denomination * curr.quantity, 0);
+  }, [toDenominations]);
 
   const hasFetchedBanksRef = useRef(false);
   const hasFetchedCashRef = useRef(false);
@@ -107,7 +143,10 @@ const CreateFundTransferPage = () => {
     }));
   }, [formData.toAccountType, bankAccounts, cashAccounts]);
 
-  const validateForm = () => {
+  const handleSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setActionError("");
+
     const errors = {};
     if (!formData.transferDate) errors.transferDate = "Transfer date is required";
     if (!formData.fromAccountId) errors.fromAccountId = "Source account is required";
@@ -126,15 +165,46 @@ const CreateFundTransferPage = () => {
       errors.toAccountId = "Destination account must be different from source account";
     }
 
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+    // Validate fromDenominations if source is CASH and any quantities are entered
+    let filteredFromDenoms = [];
+    if (formData.fromAccountType === "CASH" && !isNaN(parsedAmount) && parsedAmount > 0) {
+      const hasFromDenoms = fromDenominations.some((d) => d.quantity > 0);
+      if (hasFromDenoms) {
+        filteredFromDenoms = fromDenominations
+          .filter((d) => d.quantity > 0)
+          .map((d) => ({
+            denomination: Number(d.denomination),
+            quantity: Number(d.quantity),
+          }));
+        const total = filteredFromDenoms.reduce((sum, d) => sum + d.denomination * d.quantity, 0);
+        if (total !== parsedAmount) {
+          errors.fromDenominations = `Source denomination total (₹${total}) must match transfer amount (₹${parsedAmount})`;
+        }
+      }
+    }
 
-  const handleSubmit = async (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    setActionError("");
+    // Validate toDenominations if destination is CASH and any quantities are entered
+    let filteredToDenoms = [];
+    if (formData.toAccountType === "CASH" && !isNaN(parsedAmount) && parsedAmount > 0) {
+      const hasToDenoms = toDenominations.some((d) => d.quantity > 0);
+      if (hasToDenoms) {
+        filteredToDenoms = toDenominations
+          .filter((d) => d.quantity > 0)
+          .map((d) => ({
+            denomination: Number(d.denomination),
+            quantity: Number(d.quantity),
+          }));
+        const total = filteredToDenoms.reduce((sum, d) => sum + d.denomination * d.quantity, 0);
+        if (total !== parsedAmount) {
+          errors.toDenominations = `Destination denomination total (₹${total}) must match transfer amount (₹${parsedAmount})`;
+        }
+      }
+    }
 
-    if (!validateForm()) return;
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
 
     try {
       const payload = {
@@ -143,7 +213,9 @@ const CreateFundTransferPage = () => {
         fromAccountId: formData.fromAccountId,
         toAccountType: formData.toAccountType,
         toAccountId: formData.toAccountId,
-        amount: parseFloat(formData.amount),
+        amount: parsedAmount,
+        fromDenominations: filteredFromDenoms.length > 0 ? filteredFromDenoms : undefined,
+        toDenominations: filteredToDenoms.length > 0 ? filteredToDenoms : undefined,
         referenceNumber: formData.referenceNumber || undefined,
         narration: formData.narration || undefined,
       };
@@ -166,6 +238,12 @@ const CreateFundTransferPage = () => {
     formErrors,
     sourceOptions,
     destinationOptions,
+    fromDenominations,
+    toDenominations,
+    fromPhysicalTotal,
+    toPhysicalTotal,
+    handleFromQtyChange,
+    handleToQtyChange,
     isSubmitting,
     error: error || actionError,
     message,

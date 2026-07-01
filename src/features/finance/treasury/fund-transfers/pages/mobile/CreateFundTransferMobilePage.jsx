@@ -22,6 +22,12 @@ const CreateFundTransferMobilePage = ({
   formErrors,
   sourceOptions = [],
   destinationOptions = [],
+  fromDenominations = [],
+  toDenominations = [],
+  fromPhysicalTotal = 0,
+  toPhysicalTotal = 0,
+  handleFromQtyChange,
+  handleToQtyChange,
   isSubmitting = false,
   error,
   message,
@@ -166,6 +172,103 @@ const CreateFundTransferMobilePage = ({
                   />
                 </div>
               </div>
+
+              {/* Denomination Sheets for Cash sides */}
+              {((formData.fromAccountType === "CASH" && formData.fromAccountId) || (formData.toAccountType === "CASH" && formData.toAccountId)) ? (
+                <div className="border-t border-border/50 pt-3 space-y-3">
+                  {/* From CASH Denominations */}
+                  {formData.fromAccountType === "CASH" && formData.fromAccountId && (
+                    <div className="border border-border rounded-md overflow-hidden bg-surface-alt/5 text-[11px]">
+                      <div className="px-3 py-2 border-b border-border bg-surface-alt/10 flex flex-col gap-0.5">
+                        <span className="font-bold text-text">
+                          Source Chest Denominations
+                        </span>
+                        {formErrors.fromDenominations ? (
+                          <span className="text-[10.5px] text-danger font-semibold">
+                            {formErrors.fromDenominations}
+                          </span>
+                        ) : (
+                          <span className="text-[9.5px] text-text-muted">
+                            Matches transfer amount: ₹{Number(formData.amount || 0).toLocaleString("en-IN")}
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-2 space-y-2">
+                        {fromDenominations.map((d) => {
+                          const subTotal = d.denomination * d.quantity;
+                          return (
+                            <div key={d.denomination} className="flex items-center justify-between py-1 border-b border-border/40 last:border-b-0">
+                              <span className="font-bold text-text font-mono w-[60px]">₹ {d.denomination}</span>
+                              <span className="text-text-muted font-mono">×</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={d.quantity || ""}
+                                onChange={(e) => handleFromQtyChange(d.denomination, e.target.value)}
+                                placeholder="0"
+                                className="w-[60px] px-1 py-0.5 border border-border rounded bg-surface text-text font-bold font-mono text-center focus:outline-none focus:border-primary"
+                              />
+                              <span className="font-extrabold text-text font-mono w-[90px] text-right">₹{subTotal.toLocaleString("en-IN")}</span>
+                            </div>
+                          );
+                        })}
+                        <div className="bg-surface-alt/10 p-2 rounded flex justify-between items-center font-bold text-text mt-2">
+                          <span>Total:</span>
+                          <span className={`font-black font-mono text-[12px] ${
+                            formData.amount && fromPhysicalTotal !== Number(formData.amount) && fromPhysicalTotal > 0 ? "text-danger" : "text-text"
+                          }`}>₹{fromPhysicalTotal.toLocaleString("en-IN")}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* To CASH Denominations */}
+                  {formData.toAccountType === "CASH" && formData.toAccountId && (
+                    <div className="border border-border rounded-md overflow-hidden bg-surface-alt/5 text-[11px]">
+                      <div className="px-3 py-2 border-b border-border bg-surface-alt/10 flex flex-col gap-0.5">
+                        <span className="font-bold text-text">
+                          Destination Chest Denominations
+                        </span>
+                        {formErrors.toDenominations ? (
+                          <span className="text-[10.5px] text-danger font-semibold">
+                            {formErrors.toDenominations}
+                          </span>
+                        ) : (
+                          <span className="text-[9.5px] text-text-muted">
+                            Matches transfer amount: ₹{Number(formData.amount || 0).toLocaleString("en-IN")}
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-2 space-y-2">
+                        {toDenominations.map((d) => {
+                          const subTotal = d.denomination * d.quantity;
+                          return (
+                            <div key={d.denomination} className="flex items-center justify-between py-1 border-b border-border/40 last:border-b-0">
+                              <span className="font-bold text-text font-mono w-[60px]">₹ {d.denomination}</span>
+                              <span className="text-text-muted font-mono">×</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={d.quantity || ""}
+                                onChange={(e) => handleToQtyChange(d.denomination, e.target.value)}
+                                placeholder="0"
+                                className="w-[60px] px-1 py-0.5 border border-border rounded bg-surface text-text font-bold font-mono text-center focus:outline-none focus:border-primary"
+                              />
+                              <span className="font-extrabold text-text font-mono w-[90px] text-right">₹{subTotal.toLocaleString("en-IN")}</span>
+                            </div>
+                          );
+                        })}
+                        <div className="bg-surface-alt/10 p-2 rounded flex justify-between items-center font-bold text-text mt-2">
+                          <span>Total:</span>
+                          <span className={`font-black font-mono text-[12px] ${
+                            formData.amount && toPhysicalTotal !== Number(formData.amount) && toPhysicalTotal > 0 ? "text-danger" : "text-text"
+                          }`}>₹{toPhysicalTotal.toLocaleString("en-IN")}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
 
               {/* Ref & Narration */}
               <div className="border-t border-border/50 pt-3 space-y-3">

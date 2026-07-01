@@ -19,3 +19,9 @@ export const selectSetCustomerOpeningBalanceStatus = (state) =>
 
 export const selectSetSupplierOpeningBalanceStatus = (state) =>
   state.openingBalance.setSupplierOpeningBalanceStatus;
+
+export const selectSetBankAccountOpeningBalanceStatus = (state) =>
+  state.openingBalance.setBankAccountOpeningBalanceStatus;
+
+export const selectSetCashAccountOpeningBalanceStatus = (state) =>
+  state.openingBalance.setCashAccountOpeningBalanceStatus;

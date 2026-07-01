@@ -22,6 +22,8 @@ const INITIAL_FORM_DATA = {
   bankMasterId: "",
   isPrimary: false,
   isActive: true,
+  openingBalance: 0,
+  openingBalanceType: "dr",
 };
 
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
@@ -130,6 +132,11 @@ const CreateBankAccountPage = () => {
         errors.bankMasterId = "Bank selection is required";
       }
 
+      const openingBalance = Number(formData.openingBalance);
+      if (isNaN(openingBalance) || openingBalance < 0) {
+        errors.openingBalance = "Opening balance must be a non-negative number";
+      }
+
       if (Object.keys(errors).length > 0) {
         console.warn("[CreateBankAccountPage] Validation failed with errors:", errors);
         setFormErrors(errors);
@@ -148,6 +155,8 @@ const CreateBankAccountPage = () => {
         accountType: accType,
         isPrimary: Boolean(formData.isPrimary),
         isActive: Boolean(formData.isActive),
+        openingBalance: openingBalance || 0,
+        openingBalanceType: formData.openingBalanceType || "dr",
       };
 
       console.log("[CreateBankAccountPage] Validation passed. Dispatching createBankAccount thunk with payload:", payload);

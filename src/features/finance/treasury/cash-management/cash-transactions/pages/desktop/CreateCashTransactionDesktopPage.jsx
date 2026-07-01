@@ -34,10 +34,13 @@ const statusOptions = [
 const CreateCashTransactionDesktopPage = ({
   formData,
   formErrors = {},
+  denominations = [],
+  physicalTotal = 0,
+  isLoading = false,
   cashAccounts = [],
   accounts = [],
-  isLoading = false,
   handleFieldChange,
+  handleQtyChange,
   handleCancel,
   handleSubmit,
   serverError,
@@ -324,6 +327,80 @@ const CreateCashTransactionDesktopPage = ({
                   </div>
                 )}
               </AppBox>
+
+              {/* Optional Denomination breakdown for cash transactions */}
+              {formData.cashAccountId && (
+                <AppBox sx={{ gridColumn: "span 2" }}>
+                  <div className="border border-border rounded-md overflow-hidden bg-surface-alt/5 mt-2">
+                    <div className="px-4 py-3 border-b border-border bg-surface-alt/10 flex items-center justify-between">
+                      <span className="text-[12.5px] font-bold text-text">
+                        Transaction Cash Denomination Breakdown (Optional)
+                      </span>
+                      {formErrors.denominations ? (
+                        <span className="text-[11.5px] text-danger font-semibold">
+                          {formErrors.denominations}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-text-muted">
+                          Ensure total denominations matches the transaction amount: ₹ {Number(formData.amount || 0).toLocaleString("en-IN")}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <table className="w-full text-left border-collapse text-[12px]">
+                        <thead>
+                          <tr className="border-b border-border text-text-muted">
+                            <th className="py-1.5 px-3 font-semibold w-[120px]">Denomination</th>
+                            <th className="py-1.5 px-3 font-semibold w-[50px] text-center">Multiplier</th>
+                            <th className="py-1.5 px-3 font-semibold w-[180px]">Quantity</th>
+                            <th className="py-1.5 px-3 font-semibold text-right">Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {denominations.map((d) => {
+                            const subTotal = d.denomination * d.quantity;
+                            return (
+                              <tr key={d.denomination} className="border-b border-border/40 hover:bg-surface-hover/10 transition">
+                                <td className="py-1.5 px-3 font-bold text-text font-mono">
+                                  ₹ {d.denomination}
+                                </td>
+                                <td className="py-1.5 px-3 text-center text-text-muted font-mono">
+                                  ×
+                                </td>
+                                <td className="py-1.5 px-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={d.quantity || ""}
+                                    onChange={(e) => handleQtyChange(d.denomination, e.target.value)}
+                                    placeholder="0"
+                                    className="w-full max-w-[100px] px-2 py-0.5 text-[12px] border border-border rounded bg-surface text-text font-bold font-mono text-center focus:outline-none focus:border-primary"
+                                  />
+                                </td>
+                                <td className="py-1.5 px-3 text-right font-extrabold text-text font-mono">
+                                  ₹ {subTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-surface-alt/10 font-bold">
+                            <td colSpan="3" className="py-2.5 px-3 text-[12.5px] text-text font-bold">
+                              Total Physical Counted:
+                            </td>
+                            <td className={`py-2.5 px-3 text-right font-black text-[14px] font-mono ${
+                              formData.amount && physicalTotal !== Number(formData.amount) && physicalTotal > 0 ? "text-danger" : "text-text"
+                            }`}>
+                              ₹ {physicalTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                </AppBox>
+              )}
 
               {/* Narration */}
               <AppBox sx={{ gridColumn: "span 2" }}>

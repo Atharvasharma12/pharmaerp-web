@@ -23,9 +23,12 @@ const booleanOptions = [
 const CreateCashAccountMobilePage = ({
   formData,
   formErrors = {},
+  denominations = [],
+  physicalTotal = 0,
   isLoading = false,
   branchOptions = [],
   handleFieldChange,
+  handleQtyChange,
   handleCancel,
   handleSubmit,
   serverError,
@@ -109,19 +112,37 @@ const CreateCashAccountMobilePage = ({
                 inputSx={inputSx}
               />
 
-              {/* Opening Balance */}
-              <AppInput
-                label="Opening Balance (₹)"
-                name="openingBalance"
-                type="number"
-                value={formData.openingBalance}
-                onChange={(e) => handleFieldChange("openingBalance", Number(e.target.value))}
-                placeholder="0.00"
-                error={Boolean(formErrors.openingBalance)}
-                helperText={formErrors.openingBalance}
-                labelSx={labelSx}
-                inputSx={inputSx}
-              />
+              <div className="grid grid-cols-[1fr_90px] gap-2">
+                {/* Opening Balance */}
+                <AppInput
+                  label="Opening Balance (₹)"
+                  name="openingBalance"
+                  type="number"
+                  value={formData.openingBalance}
+                  onChange={(e) => handleFieldChange("openingBalance", Number(e.target.value))}
+                  placeholder="0.00"
+                  error={Boolean(formErrors.openingBalance)}
+                  helperText={formErrors.openingBalance}
+                  labelSx={labelSx}
+                  inputSx={inputSx}
+                />
+                {/* Balance Type */}
+                <AppSelect
+                  label="Type"
+                  name="openingBalanceType"
+                  value={formData.openingBalanceType}
+                  onChange={(e) => handleFieldChange("openingBalanceType", e.target.value)}
+                  options={[
+                    { label: "Dr", value: "dr" },
+                    { label: "Cr", value: "cr" },
+                  ]}
+                  size="small"
+                  variant="bordered"
+                  rounded="md"
+                  inputSx={compactFilterInputSx}
+                  labelSx={labelSx}
+                />
+              </div>
 
               {/* Primary Flag */}
               <AppSelect
@@ -150,6 +171,54 @@ const CreateCashAccountMobilePage = ({
                 inputSx={compactFilterInputSx}
                 labelSx={labelSx}
               />
+
+              {/* Denomination breakdown sheet (Optional for opening balance) */}
+              {Number(formData.openingBalance) > 0 && (
+                <div className="border border-border rounded-md overflow-hidden bg-surface-alt/5 text-[11.5px] mt-2">
+                  <div className="px-3 py-2 border-b border-border bg-surface-alt/10 flex flex-col gap-1">
+                    <span className="font-bold text-text">
+                      Opening Balance Denominations (Optional)
+                    </span>
+                    {formErrors.denominations && (
+                      <span className="text-[11px] text-danger font-semibold">
+                        {formErrors.denominations}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-2 space-y-2">
+                    {denominations.map((d) => {
+                      const subTotal = d.denomination * d.quantity;
+                      return (
+                        <div key={d.denomination} className="flex items-center justify-between py-1 border-b border-border/40 last:border-b-0">
+                          <span className="font-bold text-text font-mono w-[60px]">
+                            ₹ {d.denomination}
+                          </span>
+                          <span className="text-text-muted font-mono">
+                            ×
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={d.quantity || ""}
+                            onChange={(e) => handleQtyChange(d.denomination, e.target.value)}
+                            placeholder="0"
+                            className="w-[70px] px-1.5 py-0.5 border border-border rounded bg-surface text-text font-bold font-mono text-center focus:outline-none focus:border-primary"
+                          />
+                          <span className="font-extrabold text-text font-mono w-[100px] text-right">
+                            ₹ {subTotal.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    <div className="bg-surface-alt/10 p-2 rounded flex justify-between items-center font-bold text-text mt-2">
+                      <span>Total Value:</span>
+                      <span className="font-black font-mono text-[13px]">
+                        ₹ {physicalTotal.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Description */}
               <AppInput

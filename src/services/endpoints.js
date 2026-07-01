@@ -128,6 +128,10 @@ export const ENDPOINTS = {
     CUSTOMER: "/finance/opening-balances/customer",
 
     SUPPLIER: "/finance/opening-balances/supplier",
+
+    BANK_ACCOUNT: "/finance/opening-balances/bank-account",
+
+    CASH_ACCOUNT: "/finance/opening-balances/cash-account",
   },
 
   ACCOUNT_BALANCE: {

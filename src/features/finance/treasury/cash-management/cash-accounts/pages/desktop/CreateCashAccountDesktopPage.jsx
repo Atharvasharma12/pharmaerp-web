@@ -24,9 +24,12 @@ const booleanOptions = [
 const CreateCashAccountDesktopPage = ({
   formData,
   formErrors = {},
+  denominations = [],
+  physicalTotal = 0,
   isLoading = false,
   branchOptions = [],
   handleFieldChange,
+  handleQtyChange,
   handleCancel,
   handleSubmit,
   serverError,
@@ -117,19 +120,38 @@ const CreateCashAccountDesktopPage = ({
                       inputSx={inputSx}
                     />
 
-                    {/* Opening Balance */}
-                    <AppInput
-                      label="Opening Balance (₹)"
-                      name="openingBalance"
-                      type="number"
-                      value={formData.openingBalance}
-                      onChange={(e) => handleFieldChange("openingBalance", Number(e.target.value))}
-                      placeholder="0.00"
-                      error={Boolean(formErrors.openingBalance)}
-                      helperText={formErrors.openingBalance || "Starting cash amount in hand"}
-                      labelSx={labelSx}
-                      inputSx={inputSx}
-                    />
+                    <div className="grid grid-cols-[1fr_120px] gap-3">
+                      {/* Opening Balance */}
+                      <AppInput
+                        label="Opening Balance (₹)"
+                        name="openingBalance"
+                        type="number"
+                        value={formData.openingBalance}
+                        onChange={(e) => handleFieldChange("openingBalance", Number(e.target.value))}
+                        placeholder="0.00"
+                        error={Boolean(formErrors.openingBalance)}
+                        helperText={formErrors.openingBalance || "Starting cash amount in hand"}
+                        labelSx={labelSx}
+                        inputSx={inputSx}
+                      />
+                      {/* Balance Type */}
+                      <AppSelect
+                        label="Type"
+                        name="openingBalanceType"
+                        value={formData.openingBalanceType}
+                        onChange={(e) => handleFieldChange("openingBalanceType", e.target.value)}
+                        options={[
+                          { label: "Debit (Dr)", value: "dr" },
+                          { label: "Credit (Cr)", value: "cr" },
+                        ]}
+                        size="medium"
+                        variant="bordered"
+                        rounded="md"
+                        sx={selectFieldSx}
+                        inputSx={selectInputSx}
+                        labelSx={labelSx}
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-5">
@@ -165,6 +187,72 @@ const CreateCashAccountDesktopPage = ({
                       labelSx={labelSx}
                     />
                   </div>
+
+                  {/* Denomination breakdown sheet (Optional for opening balance) */}
+                  {Number(formData.openingBalance) > 0 && (
+                    <div className="border border-border rounded-md overflow-hidden bg-surface-alt/5">
+                      <div className="px-4 py-3 border-b border-border bg-surface-alt/10 flex items-center justify-between">
+                        <span className="text-[12.5px] font-bold text-text">
+                          Opening Balance Denomination Breakdown (Optional)
+                        </span>
+                        {formErrors.denominations && (
+                          <span className="text-[11.5px] text-danger font-semibold">
+                            {formErrors.denominations}
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <table className="w-full text-left border-collapse text-[12px]">
+                          <thead>
+                            <tr className="border-b border-border text-text-muted">
+                              <th className="py-1.5 px-3 font-semibold w-[120px]">Denomination</th>
+                              <th className="py-1.5 px-3 font-semibold w-[50px] text-center">Multiplier</th>
+                              <th className="py-1.5 px-3 font-semibold w-[180px]">Quantity</th>
+                              <th className="py-1.5 px-3 font-semibold text-right">Subtotal</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {denominations.map((d) => {
+                              const subTotal = d.denomination * d.quantity;
+                              return (
+                                <tr key={d.denomination} className="border-b border-border/40 hover:bg-surface-hover/10 transition">
+                                  <td className="py-1.5 px-3 font-bold text-text font-mono">
+                                    ₹ {d.denomination}
+                                  </td>
+                                  <td className="py-1.5 px-3 text-center text-text-muted font-mono">
+                                    ×
+                                  </td>
+                                  <td className="py-1.5 px-3">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={d.quantity || ""}
+                                      onChange={(e) => handleQtyChange(d.denomination, e.target.value)}
+                                      placeholder="0"
+                                      className="w-full max-w-[100px] px-2 py-0.5 text-[12px] border border-border rounded bg-surface text-text font-bold font-mono text-center focus:outline-none focus:border-primary"
+                                    />
+                                  </td>
+                                  <td className="py-1.5 px-3 text-right font-extrabold text-text font-mono">
+                                    ₹ {subTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-surface-alt/10 font-bold">
+                              <td colSpan="3" className="py-2.5 px-3 text-[12.5px] text-text font-bold">
+                                Total Denomination Value:
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-black text-text text-[14px] font-mono">
+                                ₹ {physicalTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Description */}
                   <AppInput

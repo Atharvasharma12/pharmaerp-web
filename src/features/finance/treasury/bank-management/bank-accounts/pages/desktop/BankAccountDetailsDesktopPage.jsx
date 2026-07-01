@@ -373,6 +373,22 @@ const BankAccountDetailsDesktopPage = ({
                   </span>
                 </div>
 
+                <div>
+                  <span className="text-text-muted block font-semibold">
+                    Opening Balance
+                  </span>
+                  <span className="font-bold text-text block mt-1">
+                    ₹{" "}
+                    {(account.ledgerAccountId?.openingBalance || 0).toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    {account.ledgerAccountId?.openingBalanceType
+                      ? String(account.ledgerAccountId.openingBalanceType).toUpperCase()
+                      : "DR"}
+                  </span>
+                </div>
+
                 <div className="col-span-2">
                   <span className="text-text-muted block font-semibold">
                     Branch Address

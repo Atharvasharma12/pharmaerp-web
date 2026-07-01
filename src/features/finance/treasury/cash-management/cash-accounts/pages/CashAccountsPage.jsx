@@ -27,7 +27,7 @@ const mapCashAccountForView = (account) => {
     displayName: account.accountName || "Unnamed Cash Account",
     displayStatus: account.status ? String(account.status).toLowerCase() : "active",
     displayDescription: account.description || "-",
-    balance: account.openingBalance || 0,
+    balance: account.ledgerAccountId?.openingBalance || 0,
   };
 };
 

@@ -85,13 +85,6 @@ const FinancePage = () => {
         path: "/finance/payments",
       },
       {
-        id: "contraVouchers",
-        title: "Contra Vouchers",
-        description: "Record fund transfers between accounts",
-        colorVariant: "purple",
-        path: "/finance/contra-vouchers",
-      },
-      {
         id: "treasury",
         title: "Treasury",
         description: "Manage your banks, cash and payment methods",

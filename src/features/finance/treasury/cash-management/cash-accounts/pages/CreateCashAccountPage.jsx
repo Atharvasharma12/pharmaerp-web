@@ -8,9 +8,22 @@ import useCashAccount from "../hooks/useCashAccount";
 import CreateCashAccountDesktopPage from "./desktop/CreateCashAccountDesktopPage";
 import CreateCashAccountMobilePage from "./mobile/CreateCashAccountMobilePage";
 
+const INITIAL_DENOMINATIONS = [
+  { denomination: 500, quantity: 0 },
+  { denomination: 200, quantity: 0 },
+  { denomination: 100, quantity: 0 },
+  { denomination: 50, quantity: 0 },
+  { denomination: 20, quantity: 0 },
+  { denomination: 10, quantity: 0 },
+  { denomination: 5, quantity: 0 },
+  { denomination: 2, quantity: 0 },
+  { denomination: 1, quantity: 0 },
+];
+
 const INITIAL_FORM_DATA = {
   accountName: "",
   openingBalance: 0,
+  openingBalanceType: "dr",
   description: "",
   isPrimary: false,
   branchId: "",
@@ -31,8 +44,20 @@ const CreateCashAccountPage = () => {
   const { branches = [], getCompanyBranches } = useBranch();
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [denominations, setDenominations] = useState(INITIAL_DENOMINATIONS);
   const [formErrors, setFormErrors] = useState({});
   const hasFetchedBranchesRef = React.useRef(false);
+
+  const handleQtyChange = useCallback((denomValue, qty) => {
+    const cleanQty = Math.max(0, parseInt(qty) || 0);
+    setDenominations((prev) =>
+      prev.map((d) => (d.denomination === denomValue ? { ...d, quantity: cleanQty } : d))
+    );
+  }, []);
+
+  const physicalTotal = useMemo(() => {
+    return denominations.reduce((acc, curr) => acc + curr.denomination * curr.quantity, 0);
+  }, [denominations]);
 
   useEffect(() => {
     if (hasFetchedBranchesRef.current) return;
@@ -87,6 +112,23 @@ const CreateCashAccountPage = () => {
         errors.openingBalance = "Opening balance cannot be negative";
       }
 
+      let filteredDenoms = [];
+      if (openBal > 0) {
+        filteredDenoms = denominations
+          .filter((d) => d.quantity > 0)
+          .map((d) => ({
+            denomination: Number(d.denomination),
+            quantity: Number(d.quantity),
+          }));
+
+        if (filteredDenoms.length > 0) {
+          const totalDenom = filteredDenoms.reduce((sum, d) => sum + d.denomination * d.quantity, 0);
+          if (totalDenom !== openBal) {
+            errors.denominations = `Denomination total (₹${totalDenom}) does not match opening balance (₹${openBal})`;
+          }
+        }
+      }
+
       if (Object.keys(errors).length > 0) {
         setFormErrors(errors);
         return;
@@ -95,6 +137,8 @@ const CreateCashAccountPage = () => {
       const payload = {
         accountName: accName,
         openingBalance: openBal,
+        openingBalanceType: formData.openingBalanceType || "dr",
+        denominations: filteredDenoms.length > 0 ? filteredDenoms : undefined,
         description: desc || null,
         isPrimary: Boolean(formData.isPrimary),
         branchId: formData.branchId || null,
@@ -109,7 +153,7 @@ const CreateCashAccountPage = () => {
         });
       }
     },
-    [formData, createCashAccount, navigate]
+    [formData, denominations, createCashAccount, navigate]
   );
 
   const branchOptions = useMemo(() => {
@@ -125,9 +169,12 @@ const CreateCashAccountPage = () => {
   const pageProps = {
     formData,
     formErrors,
+    denominations,
+    physicalTotal,
     isLoading,
     branchOptions,
     handleFieldChange,
+    handleQtyChange,
     handleCancel,
     handleSubmit,
     serverError,

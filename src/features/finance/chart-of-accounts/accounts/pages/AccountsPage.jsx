@@ -50,7 +50,7 @@ const AccountsPage = () => {
 
   const fetchAccountsAndGroups = useCallback(async () => {
     try {
-      await Promise.all([getAccountGroups(), getAccounts()]);
+      await Promise.all([getAccountGroups(), getAccounts({ all: true })]);
     } catch (err) {
       console.error("Failed to load accounts page data:", err);
     }

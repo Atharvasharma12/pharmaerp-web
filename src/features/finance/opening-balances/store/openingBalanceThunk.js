@@ -48,3 +48,33 @@ export const setSupplierOpeningBalance = createAsyncThunk(
     }
   },
 );
+
+// Bank Account Opening Balance
+export const setBankAccountOpeningBalance = createAsyncThunk(
+  "openingBalance/setBankAccountOpeningBalance",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response =
+        await openingBalanceService.setBankAccountOpeningBalance(payload);
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+// Cash Account Opening Balance
+export const setCashAccountOpeningBalance = createAsyncThunk(
+  "openingBalance/setCashAccountOpeningBalance",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response =
+        await openingBalanceService.setCashAccountOpeningBalance(payload);
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);

@@ -134,7 +134,7 @@ const CashAccountDetailsMobilePage = ({
             <div className="border-t border-border/60 p-4 bg-surface-alt/5 rounded-b-lg">
               <span className="text-[10px] text-text-muted block">Available Balance</span>
               <span className="text-[18px] font-extrabold text-text block mt-0.5">
-                ₹ {account.openingBalance?.toLocaleString("en-IN", { minimumFractionDigits: 2 }) || "0.00"}
+                ₹ {account.ledgerAccountId?.openingBalance?.toLocaleString("en-IN", { minimumFractionDigits: 2 }) || "0.00"}
               </span>
             </div>
           </AppCard>
@@ -158,7 +158,7 @@ const CashAccountDetailsMobilePage = ({
               <div>
                 <span className="text-text-muted block font-semibold">Opening Balance</span>
                 <span className="font-semibold text-text block mt-0.5">
-                  ₹ {account.openingBalance?.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  ₹ {account.ledgerAccountId?.openingBalance?.toLocaleString("en-IN", { minimumFractionDigits: 2 })} {account.ledgerAccountId?.openingBalanceType ? `(${account.ledgerAccountId.openingBalanceType.toUpperCase()})` : ""}
                 </span>
               </div>
 
@@ -179,6 +179,49 @@ const CashAccountDetailsMobilePage = ({
               </div>
             </div>
           </AppCard>
+
+          {/* Latest Cash Count Snapshot Card */}
+          {account.latestCashCount?.countNumber && (
+            <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={formCardSx}>
+              <div className="p-3.5 border-b border-border bg-surface-alt/5 flex flex-col gap-1">
+                <AppHeading level={2} weight={700} sx={cardTitleSx}>
+                  Latest Audit Count #{account.latestCashCount.countNumber}
+                </AppHeading>
+                <span className="text-[10px] text-text-muted font-semibold">
+                  Counted on: {new Date(account.latestCashCount.countDate).toLocaleDateString("en-IN")}
+                </span>
+              </div>
+              <div className="p-3.5 space-y-3.5 text-[12px]">
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-semibold">Total Counted:</span>
+                  <span className="font-black font-mono text-[13px] text-text">
+                    ₹ {account.latestCashCount.physicalTotal?.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                {account.latestCashCount.cashDenominationId && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted font-semibold">Audit Status:</span>
+                    <span className="inline-flex items-center rounded bg-[#e6fcf5] px-1.5 py-0.2 text-[8.5px] font-bold text-[#0ca678] uppercase tracking-wide">
+                      {account.latestCashCount.cashDenominationId.status || "CONFIRMED"}
+                    </span>
+                  </div>
+                )}
+                <div className="border-t border-border pt-3">
+                  <span className="text-text-muted block font-semibold mb-2">Denominations Breakdown:</span>
+                  {account.latestCashCount.denominations?.map((d) => (
+                    <div key={d.denomination} className="flex justify-between items-center py-1.5 border-b border-border/40 last:border-b-0">
+                      <span className="font-bold text-text font-mono text-[11px]">₹ {d.denomination}</span>
+                      <span className="text-text-muted font-mono text-[10px]">×</span>
+                      <span className="font-mono text-[11px]">{d.quantity}</span>
+                      <span className="font-extrabold text-text font-mono text-[11.5px] w-[100px] text-right">
+                        ₹ {d.subtotal?.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </AppCard>
+          )}
         </div>
       </AppBox>
     </section>

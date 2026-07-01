@@ -278,6 +278,19 @@ const BankAccountDetailsMobilePage = ({
               </div>
 
               <div>
+                <span className="text-text-muted block font-semibold">Opening Balance</span>
+                <span className="font-bold text-text block mt-0.5">
+                  ₹ {(account.ledgerAccountId?.openingBalance || 0).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  {account.ledgerAccountId?.openingBalanceType
+                    ? String(account.ledgerAccountId.openingBalanceType).toUpperCase()
+                    : "DR"}
+                </span>
+              </div>
+
+              <div>
                 <span className="text-text-muted block font-semibold">Branch Address</span>
                 <span className="text-text block mt-0.5 leading-relaxed text-[11.5px]">
                   {account.branchAddress || "-"}

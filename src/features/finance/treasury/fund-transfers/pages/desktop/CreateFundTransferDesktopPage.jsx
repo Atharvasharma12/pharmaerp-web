@@ -23,6 +23,12 @@ const CreateFundTransferDesktopPage = ({
   formErrors,
   sourceOptions = [],
   destinationOptions = [],
+  fromDenominations = [],
+  toDenominations = [],
+  fromPhysicalTotal = 0,
+  toPhysicalTotal = 0,
+  handleFromQtyChange,
+  handleToQtyChange,
   isSubmitting = false,
   error,
   message,
@@ -176,6 +182,129 @@ const CreateFundTransferDesktopPage = ({
                 </div>
               </div>
             </div>
+
+            {/* Denomination Sheets for Cash sides */}
+            {((formData.fromAccountType === "CASH" && formData.fromAccountId) || (formData.toAccountType === "CASH" && formData.toAccountId)) ? (
+              <div className="border-t border-border pt-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* From CASH Denominations */}
+                  {formData.fromAccountType === "CASH" && formData.fromAccountId && (
+                    <div className="border border-border rounded-md overflow-hidden bg-surface-alt/5 col-span-2 md:col-span-1">
+                      <div className="px-3 py-2 border-b border-border bg-surface-alt/10 flex items-center justify-between">
+                        <span className="text-[12.5px] font-bold text-text">
+                          Source Chest Denominations (Optional)
+                        </span>
+                        {formErrors.fromDenominations && (
+                          <span className="text-[11.5px] text-danger font-semibold">
+                            {formErrors.fromDenominations}
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <table className="w-full text-left border-collapse text-[11.5px]">
+                          <thead>
+                            <tr className="border-b border-border text-text-muted">
+                              <th className="py-1 px-2 font-semibold">Denom</th>
+                              <th className="py-1 px-2 font-semibold text-center">×</th>
+                              <th className="py-1 px-2 font-semibold">Qty</th>
+                              <th className="py-1 px-2 font-semibold text-right">Subtotal</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {fromDenominations.map((d) => {
+                              const subTotal = d.denomination * d.quantity;
+                              return (
+                                <tr key={d.denomination} className="border-b border-border/40 hover:bg-surface-hover/10 transition">
+                                  <td className="py-1 px-2 font-bold text-text font-mono">₹{d.denomination}</td>
+                                  <td className="py-1 px-2 text-center text-text-muted font-mono">×</td>
+                                  <td className="py-1 px-2">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={d.quantity || ""}
+                                      onChange={(e) => handleFromQtyChange(d.denomination, e.target.value)}
+                                      placeholder="0"
+                                      className="w-[70px] px-1.5 py-0.2 text-[11.5px] border border-border rounded bg-surface text-text font-bold font-mono text-center focus:outline-none focus:border-primary"
+                                    />
+                                  </td>
+                                  <td className="py-1 px-2 text-right font-extrabold text-text font-mono">₹{subTotal.toLocaleString("en-IN")}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-surface-alt/10 font-bold">
+                              <td colSpan="3" className="py-1.5 px-2 text-[12px] text-text font-bold">Total:</td>
+                              <td className={`py-1.5 px-2 text-right font-black font-mono ${
+                                formData.amount && fromPhysicalTotal !== Number(formData.amount) && fromPhysicalTotal > 0 ? "text-danger" : "text-text"
+                              }`}>₹{fromPhysicalTotal.toLocaleString("en-IN")}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* To CASH Denominations */}
+                  {formData.toAccountType === "CASH" && formData.toAccountId && (
+                    <div className="border border-border rounded-md overflow-hidden bg-surface-alt/5 col-span-2 md:col-span-1">
+                      <div className="px-3 py-2 border-b border-border bg-surface-alt/10 flex items-center justify-between">
+                        <span className="text-[12.5px] font-bold text-text">
+                          Destination Chest Denominations (Optional)
+                        </span>
+                        {formErrors.toDenominations && (
+                          <span className="text-[11.5px] text-danger font-semibold">
+                            {formErrors.toDenominations}
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <table className="w-full text-left border-collapse text-[11.5px]">
+                          <thead>
+                            <tr className="border-b border-border text-text-muted">
+                              <th className="py-1 px-2 font-semibold">Denom</th>
+                              <th className="py-1 px-2 font-semibold text-center">×</th>
+                              <th className="py-1 px-2 font-semibold">Qty</th>
+                              <th className="py-1 px-2 font-semibold text-right">Subtotal</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {toDenominations.map((d) => {
+                              const subTotal = d.denomination * d.quantity;
+                              return (
+                                <tr key={d.denomination} className="border-b border-border/40 hover:bg-surface-hover/10 transition">
+                                  <td className="py-1 px-2 font-bold text-text font-mono">₹{d.denomination}</td>
+                                  <td className="py-1 px-2 text-center text-text-muted font-mono">×</td>
+                                  <td className="py-1 px-2">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={d.quantity || ""}
+                                      onChange={(e) => handleToQtyChange(d.denomination, e.target.value)}
+                                      placeholder="0"
+                                      className="w-[70px] px-1.5 py-0.2 text-[11.5px] border border-border rounded bg-surface text-text font-bold font-mono text-center focus:outline-none focus:border-primary"
+                                    />
+                                  </td>
+                                  <td className="py-1 px-2 text-right font-extrabold text-text font-mono">₹{subTotal.toLocaleString("en-IN")}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-surface-alt/10 font-bold">
+                              <td colSpan="3" className="py-1.5 px-2 text-[12px] text-text font-bold">Total:</td>
+                              <td className={`py-1.5 px-2 text-right font-black font-mono ${
+                                formData.amount && toPhysicalTotal !== Number(formData.amount) && toPhysicalTotal > 0 ? "text-danger" : "text-text"
+                              }`}>₹{toPhysicalTotal.toLocaleString("en-IN")}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
 
             {/* Notes & Audit */}
             <div className="border-t border-border pt-4 grid grid-cols-3 gap-4">

@@ -228,6 +228,37 @@ const CreateBankAccountMobilePage = ({
                 inputSx={inputSx}
               />
 
+              {/* Opening Balance */}
+              <AppInput
+                label="Opening Balance"
+                name="openingBalance"
+                type="number"
+                value={formData.openingBalance}
+                onChange={(e) => handleFieldChange("openingBalance", e.target.value)}
+                placeholder="e.g. 10000"
+                error={Boolean(formErrors.openingBalance)}
+                helperText={formErrors.openingBalance}
+                labelSx={labelSx}
+                inputSx={inputSx}
+              />
+
+              {/* Opening Balance Type */}
+              <AppSelect
+                label="Opening Balance Type"
+                name="openingBalanceType"
+                value={formData.openingBalanceType || "dr"}
+                onChange={(e) => handleFieldChange("openingBalanceType", e.target.value)}
+                options={[
+                  { label: "Debit (Dr)", value: "dr" },
+                  { label: "Credit (Cr)", value: "cr" },
+                ]}
+                size="small"
+                variant="bordered"
+                rounded="md"
+                inputSx={compactFilterInputSx}
+                labelSx={labelSx}
+              />
+
               {/* Primary Flag */}
               <AppSelect
                 label="Primary Account"

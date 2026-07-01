@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ROUTES, API_STATUS } from "@/constants";
@@ -9,6 +15,18 @@ import useCashAccount from "@/features/finance/treasury/cash-management/cash-acc
 import useAccount from "@/features/finance/chart-of-accounts/accounts/hooks/useAccount";
 import CreateCashTransactionDesktopPage from "./desktop/CreateCashTransactionDesktopPage";
 import CreateCashTransactionMobilePage from "./mobile/CreateCashTransactionMobilePage";
+
+const INITIAL_DENOMINATIONS = [
+  { denomination: 500, quantity: 0 },
+  { denomination: 200, quantity: 0 },
+  { denomination: 100, quantity: 0 },
+  { denomination: 50, quantity: 0 },
+  { denomination: 20, quantity: 0 },
+  { denomination: 10, quantity: 0 },
+  { denomination: 5, quantity: 0 },
+  { denomination: 2, quantity: 0 },
+  { denomination: 1, quantity: 0 },
+];
 
 const INITIAL_FORM_DATA = {
   transactionDate: new Date().toISOString().split("T")[0],
@@ -40,7 +58,24 @@ const CreateCashTransactionPage = () => {
   const { accounts, getAccounts } = useAccount();
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [denominations, setDenominations] = useState(INITIAL_DENOMINATIONS);
   const [formErrors, setFormErrors] = useState({});
+
+  const handleQtyChange = useCallback((denomValue, qty) => {
+    const cleanQty = Math.max(0, parseInt(qty) || 0);
+    setDenominations((prev) =>
+      prev.map((d) =>
+        d.denomination === denomValue ? { ...d, quantity: cleanQty } : d,
+      ),
+    );
+  }, []);
+
+  const physicalTotal = useMemo(() => {
+    return denominations.reduce(
+      (acc, curr) => acc + curr.denomination * curr.quantity,
+      0,
+    );
+  }, [denominations]);
 
   // Fetch active cash accounts on mount
   useEffect(() => {
@@ -48,7 +83,7 @@ const CreateCashTransactionPage = () => {
     hasFetchedCashRef.current = true;
 
     getCashAccounts({ all: true }).catch((err) =>
-      console.error("Failed to load cash accounts for transaction:", err)
+      console.error("Failed to load cash accounts for transaction:", err),
     );
   }, [getCashAccounts]);
 
@@ -58,7 +93,7 @@ const CreateCashTransactionPage = () => {
     hasFetchedAccountsRef.current = true;
 
     getAccounts({ all: true }).catch((err) =>
-      console.error("Failed to load chart of accounts for transaction:", err)
+      console.error("Failed to load chart of accounts for transaction:", err),
     );
   }, [getAccounts]);
 
@@ -133,6 +168,24 @@ const CreateCashTransactionPage = () => {
         errors.counterpartyAccountId = `Counterparty account is required for transaction type: ${formData.transactionType}`;
       }
 
+      let filteredDenoms = [];
+      const hasDenoms = denominations.some((d) => d.quantity > 0);
+      if (hasDenoms) {
+        filteredDenoms = denominations
+          .filter((d) => d.quantity > 0)
+          .map((d) => ({
+            denomination: Number(d.denomination),
+            quantity: Number(d.quantity),
+          }));
+        const total = filteredDenoms.reduce(
+          (sum, d) => sum + d.denomination * d.quantity,
+          0,
+        );
+        if (total !== amtVal) {
+          errors.denominations = `Denomination total (₹${total}) must match transaction amount (₹${amtVal})`;
+        }
+      }
+
       if (Object.keys(errors).length > 0) {
         setFormErrors(errors);
         return;
@@ -144,9 +197,12 @@ const CreateCashTransactionPage = () => {
         transactionType: formData.transactionType,
         direction: formData.direction,
         amount: amtVal,
+        denominations: filteredDenoms.length > 0 ? filteredDenoms : undefined,
         referenceNumber: String(formData.referenceNumber || "").trim() || null,
         narration: String(formData.narration || "").trim() || null,
-        counterpartyAccountId: requiresCounterparty ? formData.counterpartyAccountId : null,
+        counterpartyAccountId: requiresCounterparty
+          ? formData.counterpartyAccountId
+          : null,
         status: formData.status,
       };
 
@@ -155,16 +211,22 @@ const CreateCashTransactionPage = () => {
         navigate(ROUTES.CASH_TRANSACTIONS);
       } catch (err) {
         setFormErrors({
-          submit: typeof err === "string" ? err : "Failed to record Cash Transaction.",
+          submit:
+            typeof err === "string"
+              ? err
+              : "Failed to record Cash Transaction.",
         });
       }
     },
-    [formData, createCashTransaction, navigate]
+    [formData, denominations, createCashTransaction, navigate],
   );
 
   const pageProps = {
     formData,
     formErrors,
+    denominations,
+    physicalTotal,
+    handleQtyChange,
     cashAccounts: cashAccounts || [],
     accounts: accounts || [],
     isLoading,
