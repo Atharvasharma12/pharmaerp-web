@@ -77,6 +77,10 @@ const CreateCashTransactionPage = () => {
     );
   }, [denominations]);
 
+  const selectedCashAccount = useMemo(() => {
+    return cashAccounts.find((c) => c._id === formData.cashAccountId);
+  }, [cashAccounts, formData.cashAccountId]);
+
   // Fetch active cash accounts on mount
   useEffect(() => {
     if (hasFetchedCashRef.current) return;
@@ -177,6 +181,22 @@ const CreateCashTransactionPage = () => {
             denomination: Number(d.denomination),
             quantity: Number(d.quantity),
           }));
+
+        // Outflow sufficiency check
+        if (formData.direction === "DEBIT") {
+          const selectedCashAccount = cashAccounts.find((c) => c._id === formData.cashAccountId);
+          for (const fd of filteredDenoms) {
+            const availableDenom = selectedCashAccount?.denominationBalance?.denominations?.find(
+              (ad) => ad.denomination === fd.denomination
+            );
+            const availableQty = availableDenom ? availableDenom.quantity : 0;
+            if (fd.quantity > availableQty) {
+              errors.denominations = `Cannot allocate more ₹${fd.denomination} notes than available in chest (${availableQty} available)`;
+              break;
+            }
+          }
+        }
+
         const total = filteredDenoms.reduce(
           (sum, d) => sum + d.denomination * d.quantity,
           0,
@@ -198,11 +218,9 @@ const CreateCashTransactionPage = () => {
         direction: formData.direction,
         amount: amtVal,
         denominations: filteredDenoms.length > 0 ? filteredDenoms : undefined,
-        referenceNumber: String(formData.referenceNumber || "").trim() || null,
-        narration: String(formData.narration || "").trim() || null,
-        counterpartyAccountId: requiresCounterparty
-          ? formData.counterpartyAccountId
-          : null,
+        referenceNumber: formData.referenceNumber || null,
+        narration: formData.narration || null,
+        counterpartyAccountId: requiresCounterparty ? formData.counterpartyAccountId : undefined,
         status: formData.status,
       };
 
@@ -214,27 +232,44 @@ const CreateCashTransactionPage = () => {
           submit:
             typeof err === "string"
               ? err
-              : "Failed to record Cash Transaction.",
+              : "Failed to record transaction.",
         });
       }
     },
-    [formData, denominations, createCashTransaction, navigate],
+    [formData, denominations, createCashTransaction, navigate, cashAccounts],
   );
+
+  const filterAccounts = useMemo(() => {
+    return accounts.map((acc) => ({
+      label: `${acc.accountName} (${acc.accountCode})`,
+      value: acc._id,
+    }));
+  }, [accounts]);
+
+  const cashAccountOptions = useMemo(() => {
+    return cashAccounts.map((c) => ({
+      label: c.accountName || "Cash Account",
+      value: c._id,
+    }));
+  }, [cashAccounts]);
 
   const pageProps = {
     formData,
     formErrors,
     denominations,
     physicalTotal,
-    handleQtyChange,
-    cashAccounts: cashAccounts || [],
-    accounts: accounts || [],
     isLoading,
+    cashAccounts,
+    accounts,
+    cashAccountOptions,
+    filterAccounts,
     handleFieldChange,
+    handleQtyChange,
     handleCancel,
     handleSubmit,
     serverError,
     clearError,
+    selectedCashAccount,
   };
 
   return isMobile ? (

@@ -120,38 +120,19 @@ const CreateCashAccountDesktopPage = ({
                       inputSx={inputSx}
                     />
 
-                    <div className="grid grid-cols-[1fr_120px] gap-3">
-                      {/* Opening Balance */}
-                      <AppInput
-                        label="Opening Balance (₹)"
-                        name="openingBalance"
-                        type="number"
-                        value={formData.openingBalance}
-                        onChange={(e) => handleFieldChange("openingBalance", Number(e.target.value))}
-                        placeholder="0.00"
-                        error={Boolean(formErrors.openingBalance)}
-                        helperText={formErrors.openingBalance || "Starting cash amount in hand"}
-                        labelSx={labelSx}
-                        inputSx={inputSx}
-                      />
-                      {/* Balance Type */}
-                      <AppSelect
-                        label="Type"
-                        name="openingBalanceType"
-                        value={formData.openingBalanceType}
-                        onChange={(e) => handleFieldChange("openingBalanceType", e.target.value)}
-                        options={[
-                          { label: "Debit (Dr)", value: "dr" },
-                          { label: "Credit (Cr)", value: "cr" },
-                        ]}
-                        size="medium"
-                        variant="bordered"
-                        rounded="md"
-                        sx={selectFieldSx}
-                        inputSx={selectInputSx}
-                        labelSx={labelSx}
-                      />
-                    </div>
+                    {/* Opening Balance */}
+                    <AppInput
+                      label="Opening Balance (₹)"
+                      name="openingBalance"
+                      type="number"
+                      value={formData.openingBalance}
+                      onChange={(e) => handleFieldChange("openingBalance", Number(e.target.value))}
+                      placeholder="0.00"
+                      error={Boolean(formErrors.openingBalance)}
+                      helperText={formErrors.openingBalance || "Starting cash amount in hand"}
+                      labelSx={labelSx}
+                      inputSx={inputSx}
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-5">

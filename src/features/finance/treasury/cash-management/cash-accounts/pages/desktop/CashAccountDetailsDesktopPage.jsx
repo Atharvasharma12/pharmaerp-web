@@ -158,8 +158,8 @@ const CashAccountDetailsDesktopPage = ({
 
               <div className="border-t border-border p-4 text-center">
                 <span className="text-[12px] text-text-muted block">Available Balance</span>
-                <span className="text-[24px] font-extrabold text-text block mt-1">
-                  ₹ {account.ledgerAccountId?.openingBalance?.toLocaleString("en-IN", { minimumFractionDigits: 2 }) || "0.00"}
+                <span className="text-[24px] font-extrabold text-text block mt-1 font-mono">
+                  ₹ {(account.denominationBalance?.totalBalance !== undefined ? account.denominationBalance.totalBalance : (account.ledgerAccountId?.openingBalance || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </AppCard>
@@ -220,39 +220,36 @@ const CashAccountDetailsDesktopPage = ({
           </div>
         </div>
 
-        {/* Latest Physical Cash Count Snapshot */}
-        {account.latestCashCount?.countNumber && (
+        {/* Current Chest Denomination Balances */}
+        {account.denominationBalance?.denominations?.length > 0 && (
           <div className="mt-5">
             <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={rightCardSx}>
               <div className="px-5 py-4 border-b border-border bg-surface-alt/5 flex items-center justify-between">
                 <AppHeading level={3} weight={700} sx={cardTitleSx}>
-                  Latest Physical Cash Audit Count (Count #{account.latestCashCount.countNumber})
+                  Current Chest Denomination Balances
                 </AppHeading>
-                <span className="text-[12px] text-text-muted font-semibold">
-                  Count Date: {new Date(account.latestCashCount.countDate).toLocaleDateString("en-IN")}
-                </span>
+                {account.denominationBalance.lastUpdatedAt && (
+                  <span className="text-[12px] text-text-muted font-semibold">
+                    Last Updated: {new Date(account.denominationBalance.lastUpdatedAt).toLocaleString("en-IN")}
+                  </span>
+                )}
               </div>
               <div className="p-5 grid grid-cols-[1fr_2fr] gap-6">
                 {/* Summary */}
                 <div className="space-y-4 text-[13px] border-r border-border pr-6">
                   <div>
-                    <span className="text-text-muted block font-semibold">Total Physical Counted</span>
+                    <span className="text-text-muted block font-semibold">Total Running Balance</span>
                     <span className="text-[20px] font-black text-text block mt-1 font-mono">
-                      ₹ {account.latestCashCount.physicalTotal?.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      ₹ {account.denominationBalance.totalBalance?.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
-                  {account.latestCashCount.cashDenominationId && (
-                    <div>
-                      <span className="text-text-muted block font-semibold">Audit Record Status</span>
-                      <span className="inline-flex items-center rounded bg-[#e6fcf5] px-2 py-0.5 text-[10.5px] font-bold text-[#0ca678] uppercase mt-1">
-                        {account.latestCashCount.cashDenominationId.status || "CONFIRMED"}
-                      </span>
-                    </div>
-                  )}
+                  <div className="text-text-muted leading-relaxed text-[11px]">
+                    This breakdown represents the running physical denomination counts inside this chest, adjusted automatically by cash transactions, fund transfers, and verified audits.
+                  </div>
                 </div>
                 {/* Denominations table */}
                 <div>
-                  <span className="text-text-muted block font-semibold mb-3">Denominations Breakdown</span>
+                  <span className="text-text-muted block font-semibold mb-3">Chest Denominations Breakdown</span>
                   <table className="w-full text-left border-collapse text-[12px]">
                     <thead>
                       <tr className="border-b border-border text-text-muted">
@@ -263,7 +260,7 @@ const CashAccountDetailsDesktopPage = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {account.latestCashCount.denominations?.map((d) => (
+                      {account.denominationBalance.denominations?.map((d) => (
                         <tr key={d.denomination} className="border-b border-border/40 hover:bg-surface-hover/10 transition">
                           <td className="py-1.5 px-2 font-bold text-text font-mono">₹ {d.denomination}</td>
                           <td className="py-1.5 px-2 text-center text-text-muted font-mono">×</td>

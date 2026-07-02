@@ -206,6 +206,30 @@ const CashTransactionDetailsMobilePage = ({
             </div>
           </AppCard>
 
+          {/* Denominations Card */}
+          {transaction.denominations?.length > 0 && (
+            <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={formCardSx}>
+              <div className="p-3.5 border-b border-border">
+                <span className="text-[11.5px] font-bold text-text">Physical Denomination Breakdown</span>
+              </div>
+              <div className="p-3.5 space-y-2 text-[12px]">
+                {transaction.denominations.map((d) => {
+                  const subTotal = d.denomination * d.quantity;
+                  return (
+                    <div key={d.denomination} className="flex justify-between items-center py-1 border-b border-border/40 last:border-b-0">
+                      <span className="font-bold text-text font-mono">₹ {d.denomination}</span>
+                      <span className="text-text-muted font-mono">×</span>
+                      <span className="font-mono">{d.quantity}</span>
+                      <span className="font-extrabold text-text font-mono w-[100px] text-right">
+                        ₹ {subTotal.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </AppCard>
+          )}
+          
           {/* Audit trail card */}
           <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={formCardSx}>
             <div className="p-3.5 border-b border-border">

@@ -45,6 +45,7 @@ const CreateCashTransactionDesktopPage = ({
   handleSubmit,
   serverError,
   clearError,
+  selectedCashAccount,
 }) => {
   const cashAccountOptions = useMemo(() => {
     return [
@@ -351,6 +352,7 @@ const CreateCashTransactionDesktopPage = ({
                         <thead>
                           <tr className="border-b border-border text-text-muted">
                             <th className="py-1.5 px-3 font-semibold w-[120px]">Denomination</th>
+                            <th className="py-1.5 px-3 font-semibold w-[150px]">Available in Chest</th>
                             <th className="py-1.5 px-3 font-semibold w-[50px] text-center">Multiplier</th>
                             <th className="py-1.5 px-3 font-semibold w-[180px]">Quantity</th>
                             <th className="py-1.5 px-3 font-semibold text-right">Subtotal</th>
@@ -359,10 +361,17 @@ const CreateCashTransactionDesktopPage = ({
                         <tbody>
                           {denominations.map((d) => {
                             const subTotal = d.denomination * d.quantity;
+                            const availableDenom = selectedCashAccount?.denominationBalance?.denominations?.find(
+                              (ad) => ad.denomination === d.denomination
+                            );
+                            const availableQty = availableDenom ? availableDenom.quantity : 0;
                             return (
                               <tr key={d.denomination} className="border-b border-border/40 hover:bg-surface-hover/10 transition">
                                 <td className="py-1.5 px-3 font-bold text-text font-mono">
                                   ₹ {d.denomination}
+                                </td>
+                                <td className="py-1.5 px-3 text-text-muted font-mono">
+                                  {availableQty} notes (₹{(availableQty * d.denomination).toLocaleString("en-IN")})
                                 </td>
                                 <td className="py-1.5 px-3 text-center text-text-muted font-mono">
                                   ×
@@ -371,8 +380,16 @@ const CreateCashTransactionDesktopPage = ({
                                   <input
                                     type="number"
                                     min="0"
+                                    max={formData.direction === "DEBIT" ? availableQty : undefined}
                                     value={d.quantity || ""}
-                                    onChange={(e) => handleQtyChange(d.denomination, e.target.value)}
+                                    onChange={(e) => {
+                                      const val = parseInt(e.target.value) || 0;
+                                      if (formData.direction === "DEBIT" && val > availableQty) {
+                                        handleQtyChange(d.denomination, availableQty);
+                                      } else {
+                                        handleQtyChange(d.denomination, e.target.value);
+                                      }
+                                    }}
                                     placeholder="0"
                                     className="w-full max-w-[100px] px-2 py-0.5 text-[12px] border border-border rounded bg-surface text-text font-bold font-mono text-center focus:outline-none focus:border-primary"
                                   />
@@ -386,7 +403,7 @@ const CreateCashTransactionDesktopPage = ({
                         </tbody>
                         <tfoot>
                           <tr className="bg-surface-alt/10 font-bold">
-                            <td colSpan="3" className="py-2.5 px-3 text-[12.5px] text-text font-bold">
+                            <td colSpan="4" className="py-2.5 px-3 text-[12.5px] text-text font-bold">
                               Total Physical Counted:
                             </td>
                             <td className={`py-2.5 px-3 text-right font-black text-[14px] font-mono ${

@@ -35,6 +35,7 @@ const CreateFundTransferMobilePage = ({
   handleInputChange,
   handleSubmit,
   handleCancel,
+  selectedFromCashAccount,
 }) => {
   return (
     <section className="w-full bg-bg pb-20">
@@ -196,19 +197,36 @@ const CreateFundTransferMobilePage = ({
                       <div className="p-2 space-y-2">
                         {fromDenominations.map((d) => {
                           const subTotal = d.denomination * d.quantity;
+                          const availableDenom = selectedFromCashAccount?.denominationBalance?.denominations?.find(
+                            (ad) => ad.denomination === d.denomination
+                          );
+                          const availableQty = availableDenom ? availableDenom.quantity : 0;
                           return (
-                            <div key={d.denomination} className="flex items-center justify-between py-1 border-b border-border/40 last:border-b-0">
-                              <span className="font-bold text-text font-mono w-[60px]">₹ {d.denomination}</span>
-                              <span className="text-text-muted font-mono">×</span>
-                              <input
-                                type="number"
-                                min="0"
-                                value={d.quantity || ""}
-                                onChange={(e) => handleFromQtyChange(d.denomination, e.target.value)}
-                                placeholder="0"
-                                className="w-[60px] px-1 py-0.5 border border-border rounded bg-surface text-text font-bold font-mono text-center focus:outline-none focus:border-primary"
-                              />
-                              <span className="font-extrabold text-text font-mono w-[90px] text-right">₹{subTotal.toLocaleString("en-IN")}</span>
+                            <div key={d.denomination} className="flex flex-col py-1 border-b border-border/40 last:border-b-0 gap-1">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-text font-mono w-[60px]">₹ {d.denomination}</span>
+                                <span className="text-text-muted font-mono">×</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={availableQty}
+                                  value={d.quantity || ""}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    if (val > availableQty) {
+                                      handleFromQtyChange(d.denomination, availableQty);
+                                    } else {
+                                      handleFromQtyChange(d.denomination, e.target.value);
+                                    }
+                                  }}
+                                  placeholder="0"
+                                  className="w-[60px] px-1 py-0.5 border border-border rounded bg-surface text-text font-bold font-mono text-center focus:outline-none focus:border-primary"
+                                />
+                                <span className="font-extrabold text-text font-mono w-[90px] text-right">₹{subTotal.toLocaleString("en-IN")}</span>
+                              </div>
+                              <div className="text-[9px] text-text-muted font-semibold text-right">
+                                Available: {availableQty} notes
+                              </div>
                             </div>
                           );
                         })}

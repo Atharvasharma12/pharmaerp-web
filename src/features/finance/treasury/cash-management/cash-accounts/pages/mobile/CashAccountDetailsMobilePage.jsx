@@ -133,8 +133,8 @@ const CashAccountDetailsMobilePage = ({
 
             <div className="border-t border-border/60 p-4 bg-surface-alt/5 rounded-b-lg">
               <span className="text-[10px] text-text-muted block">Available Balance</span>
-              <span className="text-[18px] font-extrabold text-text block mt-0.5">
-                ₹ {account.ledgerAccountId?.openingBalance?.toLocaleString("en-IN", { minimumFractionDigits: 2 }) || "0.00"}
+              <span className="text-[18px] font-extrabold text-text block mt-0.5 font-mono">
+                ₹ {(account.denominationBalance?.totalBalance !== undefined ? account.denominationBalance.totalBalance : (account.ledgerAccountId?.openingBalance || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </span>
             </div>
           </AppCard>
@@ -180,35 +180,29 @@ const CashAccountDetailsMobilePage = ({
             </div>
           </AppCard>
 
-          {/* Latest Cash Count Snapshot Card */}
-          {account.latestCashCount?.countNumber && (
+          {/* Current Chest Denomination Balances */}
+          {account.denominationBalance?.denominations?.length > 0 && (
             <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={formCardSx}>
               <div className="p-3.5 border-b border-border bg-surface-alt/5 flex flex-col gap-1">
                 <AppHeading level={2} weight={700} sx={cardTitleSx}>
-                  Latest Audit Count #{account.latestCashCount.countNumber}
+                  Current Chest Balances
                 </AppHeading>
-                <span className="text-[10px] text-text-muted font-semibold">
-                  Counted on: {new Date(account.latestCashCount.countDate).toLocaleDateString("en-IN")}
-                </span>
+                {account.denominationBalance.lastUpdatedAt && (
+                  <span className="text-[10px] text-text-muted font-semibold">
+                    Last Updated: {new Date(account.denominationBalance.lastUpdatedAt).toLocaleString("en-IN")}
+                  </span>
+                )}
               </div>
               <div className="p-3.5 space-y-3.5 text-[12px]">
                 <div className="flex justify-between items-center">
-                  <span className="text-text-muted font-semibold">Total Counted:</span>
+                  <span className="text-text-muted font-semibold">Total Balance:</span>
                   <span className="font-black font-mono text-[13px] text-text">
-                    ₹ {account.latestCashCount.physicalTotal?.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    ₹ {account.denominationBalance.totalBalance?.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
-                {account.latestCashCount.cashDenominationId && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-text-muted font-semibold">Audit Status:</span>
-                    <span className="inline-flex items-center rounded bg-[#e6fcf5] px-1.5 py-0.2 text-[8.5px] font-bold text-[#0ca678] uppercase tracking-wide">
-                      {account.latestCashCount.cashDenominationId.status || "CONFIRMED"}
-                    </span>
-                  </div>
-                )}
                 <div className="border-t border-border pt-3">
                   <span className="text-text-muted block font-semibold mb-2">Denominations Breakdown:</span>
-                  {account.latestCashCount.denominations?.map((d) => (
+                  {account.denominationBalance.denominations?.map((d) => (
                     <div key={d.denomination} className="flex justify-between items-center py-1.5 border-b border-border/40 last:border-b-0">
                       <span className="font-bold text-text font-mono text-[11px]">₹ {d.denomination}</span>
                       <span className="text-text-muted font-mono text-[10px]">×</span>

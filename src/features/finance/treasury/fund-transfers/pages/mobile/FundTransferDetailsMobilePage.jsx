@@ -198,6 +198,41 @@ const FundTransferDetailsMobilePage = ({
                 </p>
               </div>
 
+              {/* Denomination Sheets for Cash sides */}
+              {((transferDetails.fromDenominations?.length > 0) || (transferDetails.toDenominations?.length > 0)) && (
+                <div className="border-t border-border/50 pt-3 space-y-3">
+                  {/* From CASH Denominations */}
+                  {transferDetails.fromDenominations?.length > 0 && (
+                    <div className="border border-border rounded bg-surface-alt/5 p-2 text-[11px]">
+                      <span className="font-bold text-text block mb-1">Source Denominations</span>
+                      {transferDetails.fromDenominations.map((d) => (
+                        <div key={d.denomination} className="flex justify-between items-center py-1 border-b border-border/40 last:border-b-0">
+                          <span className="font-bold text-text font-mono">₹{d.denomination}</span>
+                          <span className="text-text-muted font-mono">×</span>
+                          <span className="font-mono">{d.quantity}</span>
+                          <span className="font-extrabold text-text font-mono text-right w-[80px]">₹{(d.denomination * d.quantity).toLocaleString("en-IN")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* To CASH Denominations */}
+                  {transferDetails.toDenominations?.length > 0 && (
+                    <div className="border border-border rounded bg-surface-alt/5 p-2 text-[11px]">
+                      <span className="font-bold text-text block mb-1">Destination Denominations</span>
+                      {transferDetails.toDenominations.map((d) => (
+                        <div key={d.denomination} className="flex justify-between items-center py-1 border-b border-border/40 last:border-b-0">
+                          <span className="font-bold text-text font-mono">₹{d.denomination}</span>
+                          <span className="text-text-muted font-mono">×</span>
+                          <span className="font-mono">{d.quantity}</span>
+                          <span className="font-extrabold text-text font-mono text-right w-[80px]">₹{(d.denomination * d.quantity).toLocaleString("en-IN")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Cancellation Info if cancelled */}
               {isCancelled && (
                 <div className="border-t border-border/50 pt-3 p-3 bg-danger-soft/10 border border-danger/20 rounded space-y-2">

@@ -203,6 +203,77 @@ const FundTransferDetailsDesktopPage = ({
               </p>
             </div>
 
+            {/* Denomination breakdown sheets if cash is involved and has denominations */}
+            {((transferDetails.fromDenominations?.length > 0) || (transferDetails.toDenominations?.length > 0)) && (
+              <div className="grid grid-cols-2 gap-5 border-b border-border pb-5">
+                {/* Source Denominations */}
+                <div>
+                  <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block mb-2">
+                    Source Chest Denominations
+                  </span>
+                  {transferDetails.fromDenominations?.length > 0 ? (
+                    <table className="w-full text-left border-collapse text-[11.5px]">
+                      <thead>
+                        <tr className="border-b border-border text-text-muted">
+                          <th className="py-1 px-1 font-semibold">Denomination</th>
+                          <th className="py-1 px-1 font-semibold text-center">×</th>
+                          <th className="py-1 px-1 font-semibold">Quantity</th>
+                          <th className="py-1 px-1 font-semibold text-right">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {transferDetails.fromDenominations.map((d) => (
+                          <tr key={d.denomination} className="border-b border-border/30">
+                            <td className="py-1 px-1 font-bold text-text font-mono">₹{d.denomination}</td>
+                            <td className="py-1 px-1 text-center text-text-muted">×</td>
+                            <td className="py-1 px-1 font-mono">{d.quantity}</td>
+                            <td className="py-1 px-1 text-right font-extrabold text-text font-mono">
+                              ₹{(d.denomination * d.quantity).toLocaleString("en-IN")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <span className="text-[12px] text-text-muted italic">No denominations count recorded.</span>
+                  )}
+                </div>
+
+                {/* Destination Denominations */}
+                <div>
+                  <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block mb-2">
+                    Destination Chest Denominations
+                  </span>
+                  {transferDetails.toDenominations?.length > 0 ? (
+                    <table className="w-full text-left border-collapse text-[11.5px]">
+                      <thead>
+                        <tr className="border-b border-border text-text-muted">
+                          <th className="py-1 px-1 font-semibold">Denomination</th>
+                          <th className="py-1 px-1 font-semibold text-center">×</th>
+                          <th className="py-1 px-1 font-semibold">Quantity</th>
+                          <th className="py-1 px-1 font-semibold text-right">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {transferDetails.toDenominations.map((d) => (
+                          <tr key={d.denomination} className="border-b border-border/30">
+                            <td className="py-1 px-1 font-bold text-text font-mono">₹{d.denomination}</td>
+                            <td className="py-1 px-1 text-center text-text-muted">×</td>
+                            <td className="py-1 px-1 font-mono">{d.quantity}</td>
+                            <td className="py-1 px-1 text-right font-extrabold text-text font-mono">
+                              ₹{(d.denomination * d.quantity).toLocaleString("en-IN")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <span className="text-[12px] text-text-muted italic">No denominations count recorded.</span>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Cancellation info if applicable */}
             {isCancelled && (
               <div className="p-4 bg-danger-soft/10 border border-danger/20 rounded-md space-y-2">

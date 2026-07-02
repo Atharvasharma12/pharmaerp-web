@@ -36,6 +36,7 @@ const CreateFundTransferDesktopPage = ({
   handleInputChange,
   handleSubmit,
   handleCancel,
+  selectedFromCashAccount,
 }) => {
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
@@ -205,6 +206,7 @@ const CreateFundTransferDesktopPage = ({
                           <thead>
                             <tr className="border-b border-border text-text-muted">
                               <th className="py-1 px-2 font-semibold">Denom</th>
+                              <th className="py-1 px-2 font-semibold">Available</th>
                               <th className="py-1 px-2 font-semibold text-center">×</th>
                               <th className="py-1 px-2 font-semibold">Qty</th>
                               <th className="py-1 px-2 font-semibold text-right">Subtotal</th>
@@ -213,16 +215,31 @@ const CreateFundTransferDesktopPage = ({
                           <tbody>
                             {fromDenominations.map((d) => {
                               const subTotal = d.denomination * d.quantity;
+                              const availableDenom = selectedFromCashAccount?.denominationBalance?.denominations?.find(
+                                (ad) => ad.denomination === d.denomination
+                              );
+                              const availableQty = availableDenom ? availableDenom.quantity : 0;
                               return (
                                 <tr key={d.denomination} className="border-b border-border/40 hover:bg-surface-hover/10 transition">
                                   <td className="py-1 px-2 font-bold text-text font-mono">₹{d.denomination}</td>
+                                  <td className="py-1 px-2 text-text-muted font-mono text-[10.5px]">
+                                    {availableQty}
+                                  </td>
                                   <td className="py-1 px-2 text-center text-text-muted font-mono">×</td>
                                   <td className="py-1 px-2">
                                     <input
                                       type="number"
                                       min="0"
+                                      max={availableQty}
                                       value={d.quantity || ""}
-                                      onChange={(e) => handleFromQtyChange(d.denomination, e.target.value)}
+                                      onChange={(e) => {
+                                        const val = parseInt(e.target.value) || 0;
+                                        if (val > availableQty) {
+                                          handleFromQtyChange(d.denomination, availableQty);
+                                        } else {
+                                          handleFromQtyChange(d.denomination, e.target.value);
+                                        }
+                                      }}
                                       placeholder="0"
                                       className="w-[70px] px-1.5 py-0.2 text-[11.5px] border border-border rounded bg-surface text-text font-bold font-mono text-center focus:outline-none focus:border-primary"
                                     />
@@ -234,7 +251,7 @@ const CreateFundTransferDesktopPage = ({
                           </tbody>
                           <tfoot>
                             <tr className="bg-surface-alt/10 font-bold">
-                              <td colSpan="3" className="py-1.5 px-2 text-[12px] text-text font-bold">Total:</td>
+                              <td colSpan="4" className="py-1.5 px-2 text-[12px] text-text font-bold">Total:</td>
                               <td className={`py-1.5 px-2 text-right font-black font-mono ${
                                 formData.amount && fromPhysicalTotal !== Number(formData.amount) && fromPhysicalTotal > 0 ? "text-danger" : "text-text"
                               }`}>₹{fromPhysicalTotal.toLocaleString("en-IN")}</td>

@@ -278,6 +278,44 @@ const CashTransactionDetailsDesktopPage = ({
               </div>
             </AppCard>
 
+            {/* Denomination Count details */}
+            {transaction.denominations?.length > 0 && (
+              <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={rightCardSx}>
+                <div className="px-5 py-4 border-b border-border">
+                  <AppHeading level={3} weight={700} sx={cardTitleSx}>
+                    Physical Cash Denomination Count
+                  </AppHeading>
+                </div>
+                <div className="p-5">
+                  <table className="w-full text-left border-collapse text-[12px]">
+                    <thead>
+                      <tr className="border-b border-border text-text-muted">
+                        <th className="py-1.5 px-2 font-semibold">Denomination</th>
+                        <th className="py-1.5 px-2 font-semibold text-center">×</th>
+                        <th className="py-1.5 px-2 font-semibold">Quantity</th>
+                        <th className="py-1.5 px-2 font-semibold text-right">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transaction.denominations.map((d) => {
+                        const subTotal = d.denomination * d.quantity;
+                        return (
+                          <tr key={d.denomination} className="border-b border-border/40 hover:bg-surface-hover/10 transition">
+                            <td className="py-1.5 px-2 font-bold text-text font-mono">₹ {d.denomination}</td>
+                            <td className="py-1.5 px-2 text-center text-text-muted font-mono">×</td>
+                            <td className="py-1.5 px-2 font-mono">{d.quantity}</td>
+                            <td className="py-1.5 px-2 text-right font-extrabold text-text font-mono">
+                              ₹ {subTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </AppCard>
+            )}
+
             {/* Audit Trail Card */}
             <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={rightCardSx}>
               <div className="px-5 py-4 border-b border-border">

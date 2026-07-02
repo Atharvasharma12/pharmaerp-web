@@ -176,6 +176,20 @@ const CreateFundTransferPage = () => {
             denomination: Number(d.denomination),
             quantity: Number(d.quantity),
           }));
+
+        // Outflow sufficiency check
+        const selectedFromCashAccount = cashAccounts.find((c) => c._id === formData.fromAccountId);
+        for (const fd of filteredFromDenoms) {
+          const availableDenom = selectedFromCashAccount?.denominationBalance?.denominations?.find(
+            (ad) => ad.denomination === fd.denomination
+          );
+          const availableQty = availableDenom ? availableDenom.quantity : 0;
+          if (fd.quantity > availableQty) {
+            errors.fromDenominations = `Cannot allocate more ₹${fd.denomination} notes than available in source chest (${availableQty} available)`;
+            break;
+          }
+        }
+
         const total = filteredFromDenoms.reduce((sum, d) => sum + d.denomination * d.quantity, 0);
         if (total !== parsedAmount) {
           errors.fromDenominations = `Source denomination total (₹${total}) must match transfer amount (₹${parsedAmount})`;
@@ -233,6 +247,11 @@ const CreateFundTransferPage = () => {
 
   const isSubmitting = createFundTransferStatus === API_STATUS.LOADING;
 
+  const selectedFromCashAccount = useMemo(() => {
+    if (formData.fromAccountType !== "CASH") return null;
+    return cashAccounts.find((c) => c._id === formData.fromAccountId);
+  }, [cashAccounts, formData.fromAccountType, formData.fromAccountId]);
+
   const pageProps = {
     formData,
     formErrors,
@@ -255,6 +274,7 @@ const CreateFundTransferPage = () => {
     handleInputChange,
     handleSubmit,
     handleCancel,
+    selectedFromCashAccount,
   };
 
   return isMobile ? (
