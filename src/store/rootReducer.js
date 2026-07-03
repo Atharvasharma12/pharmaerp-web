@@ -19,6 +19,7 @@ import accountBalanceReducer from "@/features/finance/account-balances/store/acc
 import financialPeriodReducer from "@/features/finance/financial-periods/store/financialPeriodSlice";
 import ledgerReducer from "@/features/finance/ledger/store/ledgerSlice";
 import journalVoucherReducer from "@/features/finance/journal-vouchers/store/journalVoucherSlice";
+import reportsReducer from "@/features/finance/reports/store/reportsSlice";
 
 import bankAccountReducer from "@/features/finance/treasury/bank-management/bank-accounts/store/bankAccountSlice";
 import bankTransactionReducer from "@/features/finance/treasury/bank-management/bank-transactions/store/bankTransactionSlice";
@@ -75,6 +76,7 @@ const appReducer = combineReducers({
   financialPeriod: financialPeriodReducer,
   ledger: ledgerReducer,
   journalVoucher: journalVoucherReducer,
+  reports: reportsReducer,
 
   // Treasury
   bankAccount: bankAccountReducer,

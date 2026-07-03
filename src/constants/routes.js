@@ -78,6 +78,10 @@ export const ROUTES = {
   // Finance - Ledger
   LEDGER: "/finance/ledger",
 
+  // Finance - Reports
+  REPORTS: "/finance/reports",
+  REPORT_VIEWER: "/finance/reports/:reportType",
+
   // Finance - Chart Of Accounts
   CHART_OF_ACCOUNTS: "/finance/chart-of-accounts",
 

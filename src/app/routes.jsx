@@ -58,6 +58,7 @@ import cashTransactionRoutes from "@/features/finance/treasury/cash-management/c
 import cashDenominationRoutes from "@/features/finance/treasury/cash-management/cash-denominations/routes/cashDenominationRoutes";
 import financialPeriodRoutes from "@/features/finance/financial-periods/routes/financialPeriodRoutes";
 import ledgerRoutes from "@/features/finance/ledger/routes/ledgerRoutes";
+import reportsRoutes from "@/features/finance/reports/routes/reportsRoutes";
 
 const NotFoundPage = () => {
   return (
@@ -181,6 +182,7 @@ export const router = createBrowserRouter([
       ...accountBalanceRoutes,
       ...financialPeriodRoutes,
       ...ledgerRoutes,
+      ...reportsRoutes,
 
       ...treasuryRoutes,
       ...fundTransferRoutes,

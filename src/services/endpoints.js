@@ -160,6 +160,18 @@ export const ENDPOINTS = {
     RECALCULATE: "/finance/ledger/recalculate",
   },
 
+  REPORTS: {
+    TRIAL_BALANCE: "/finance/reports/trial-balance",
+    GENERAL_LEDGER: "/finance/reports/general-ledger",
+    CUSTOMER_LEDGER: "/finance/reports/customer-ledger",
+    SUPPLIER_LEDGER: "/finance/reports/supplier-ledger",
+    CASH_BOOK: "/finance/reports/cash-book",
+    BANK_BOOK: "/finance/reports/bank-book",
+    PROFIT_LOSS: "/finance/reports/profit-loss",
+    BALANCE_SHEET: "/finance/reports/balance-sheet",
+    GST_REPORT: "/finance/reports/gst-report",
+  },
+
   JOURNAL_VOUCHER: {
     CREATE: "/finance/journal-vouchers",
 
