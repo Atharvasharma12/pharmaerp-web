@@ -55,8 +55,6 @@ const ledgerSlice = createSlice({
         state.getLedgerStatus = API_STATUS.SUCCESS;
 
         state.ledgerEntries = action.payload?.entries || [];
-
-        state.message = "Ledger entries fetched successfully";
       })
       .addCase(getLedger.rejected, (state, action) => {
         setRejected(state, action);

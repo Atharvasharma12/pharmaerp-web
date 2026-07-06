@@ -55,7 +55,7 @@ const ProductFormMasterMobilePage = ({
   };
 
   return (
-    <section className="w-full bg-bg px-4">
+    <section className="w-full bg-bg">
       <AppBox sx={containerSx}>
         {/* Header Block */}
         <AppBox sx={headerWrapperSx}>
@@ -508,7 +508,7 @@ const emptyStateSubTextSx = {
 const productCardSx = {
   p: 1.5,
   bgcolor: "var(--app-color-surface)",
-  border: "none",
+  border: "1px solid var(--app-color-border)",
   boxShadow:
     "0 2px 10px color-mix(in_srgb, var(--app-color-text) 5%, transparent)",
   cursor: "pointer",

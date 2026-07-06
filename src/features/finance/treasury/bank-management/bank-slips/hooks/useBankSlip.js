@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -64,61 +65,61 @@ const useBankSlip = () => {
 
   const cancelBankSlipStatus = useSelector(selectCancelBankSlipStatus);
 
-  const submitCreateBankSlip = (payload) => {
+  const submitCreateBankSlip = useCallback((payload) => {
     return dispatch(createBankSlip(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchBankSlips = (params = {}) => {
+  const fetchBankSlips = useCallback((params = {}) => {
     return dispatch(getBankSlips(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchBankSlipById = (bankSlipId) => {
+  const fetchBankSlipById = useCallback((bankSlipId) => {
     return dispatch(getBankSlipById(bankSlipId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitSubmitBankSlip = (bankSlipId, payload) => {
+  const submitSubmitBankSlip = useCallback((bankSlipId, payload) => {
     return dispatch(
       submitBankSlip({
         bankSlipId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitConfirmBankSlip = (bankSlipId, payload) => {
+  const submitConfirmBankSlip = useCallback((bankSlipId, payload) => {
     return dispatch(
       confirmBankSlip({
         bankSlipId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitRejectBankSlip = (bankSlipId, payload) => {
+  const submitRejectBankSlip = useCallback((bankSlipId, payload) => {
     return dispatch(
       rejectBankSlip({
         bankSlipId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitCancelBankSlip = (bankSlipId, payload) => {
+  const submitCancelBankSlip = useCallback((bankSlipId, payload) => {
     return dispatch(
       cancelBankSlip({
         bankSlipId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearBankSlipError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearBankSlipMessage());
-  };
+  }, [dispatch]);
 
   const saveCurrentBankSlip = (payload) => {
     dispatch(setCurrentBankSlip(payload));

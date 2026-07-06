@@ -100,8 +100,6 @@ const fundTransferSlice = createSlice({
         state.getFundTransfersStatus = API_STATUS.SUCCESS;
 
         state.fundTransfers = action.payload?.fundTransfers || [];
-
-        state.message = "Fund transfers fetched successfully";
       })
       .addCase(getFundTransfers.rejected, (state, action) => {
         state.getFundTransfersStatus = API_STATUS.ERROR;

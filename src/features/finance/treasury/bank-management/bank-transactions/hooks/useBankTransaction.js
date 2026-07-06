@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -58,34 +59,34 @@ const useBankTransaction = () => {
     selectCancelBankTransactionStatus,
   );
 
-  const submitCreateBankTransaction = (payload) => {
+  const submitCreateBankTransaction = useCallback((payload) => {
     return dispatch(createBankTransaction(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchBankTransactions = (params = {}) => {
+  const fetchBankTransactions = useCallback((params = {}) => {
     return dispatch(getBankTransactions(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchBankTransactionById = (bankTransactionId) => {
+  const fetchBankTransactionById = useCallback((bankTransactionId) => {
     return dispatch(getBankTransactionById(bankTransactionId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitCancelBankTransaction = (bankTransactionId, payload) => {
+  const submitCancelBankTransaction = useCallback((bankTransactionId, payload) => {
     return dispatch(
       cancelBankTransaction({
         bankTransactionId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearBankTransactionError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearBankTransactionMessage());
-  };
+  }, [dispatch]);
 
   const saveCurrentBankTransaction = (payload) => {
     dispatch(setCurrentBankTransaction(payload));

@@ -1,5 +1,5 @@
-import React from "react";
-import { FiArrowLeft, FiClock, FiCheck, FiAlertTriangle, FiSlash, FiFolderMinus, FiTrendingUp } from "react-icons/fi";
+import React, { useState } from "react";
+import { FiArrowLeft, FiClock, FiCheck, FiAlertTriangle, FiSlash, FiFolderMinus, FiTrendingUp, FiInfo } from "react-icons/fi";
 
 import {
   AppBreadcrumb,
@@ -10,6 +10,12 @@ import {
   AppText,
 } from "@/components";
 import { formatDate } from "@/utils";
+
+import {
+  ClearChequeModal,
+  BounceChequeModal,
+  CancelChequeModal,
+} from "../../components/ChequeActionModals";
 
 const ChequeDetailsDesktopPage = ({
   chequeDetails = null,
@@ -24,6 +30,10 @@ const ChequeDetailsDesktopPage = ({
   handleCancel,
   handleBack,
 }) => {
+  const [clearModalOpen, setClearModalOpen] = useState(false);
+  const [bounceModalOpen, setBounceModalOpen] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+
   if (isLoading && !chequeDetails) {
     return (
       <div className="flex flex-col items-center justify-center py-20 min-h-[calc(100vh-58px)] bg-bg">
@@ -66,13 +76,8 @@ const ChequeDetailsDesktopPage = ({
     }
   };
 
-  const getBankName = () => {
-    return chequeDetails.bankAccountId?.bankName || "Unknown Bank";
-  };
-
-  const getAccountName = () => {
-    return chequeDetails.counterpartyAccountId?.name || "Unknown Account";
-  };
+  const getBankName = () => chequeDetails.bankAccountId?.bankName || "Unknown Bank";
+  const getAccountName = () => chequeDetails.counterpartyAccountId?.name || "Unknown Account";
 
   const isReceived = chequeDetails.chequeType === "RECEIVED";
   const isPending = chequeDetails.status === "PENDING";
@@ -85,8 +90,65 @@ const ChequeDetailsDesktopPage = ({
     ? `${chequeDetails.createdBy.firstName || ""} ${chequeDetails.createdBy.lastName || ""}`.trim()
     : "System";
 
+  // ─── Contextual next-step hint ───────────────────────────────────────────
+  const getStatusHint = () => {
+    if (isCleared || isBounced || isCancelled) return null;
+    if (isReceived && isPending)
+      return { text: "Waiting to be deposited into the bank. Click 'Deposit Cheque' once submitted.", color: "warning" };
+    if (isReceived && isDeposited)
+      return { text: "Cheque is in transit. Awaiting bank confirmation — clear or bounce once confirmed.", color: "primary" };
+    if (!isReceived && isPending)
+      return { text: "Cheque has been issued to the vendor. Clear once the vendor cashes it, or bounce if returned.", color: "warning" };
+    return null;
+  };
+
+  const hint = getStatusHint();
+
+  // ─── Modal submit handlers ────────────────────────────────────────────────
+  const onClearSubmit = async (payload) => {
+    await handleClear(payload.clearDate || "", payload.narration || "");
+    setClearModalOpen(false);
+  };
+
+  const onBounceSubmit = async (payload) => {
+    await handleBounce(payload.reason, payload.bounceCharges);
+    setBounceModalOpen(false);
+  };
+
+  const onCancelSubmit = async (payload) => {
+    await handleCancel(payload.reason || "");
+    setCancelModalOpen(false);
+  };
+
+  const canClear = (isReceived && isDeposited) || (!isReceived && isPending);
+  const canBounce = (isReceived && isDeposited) || (!isReceived && isPending);
+  const canCancel = !isCleared && !isBounced && !isCancelled;
+  const canDeposit = isReceived && isPending;
+
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
+      {/* ── Modals ── */}
+      <ClearChequeModal
+        open={clearModalOpen}
+        onClose={() => setClearModalOpen(false)}
+        onConfirm={onClearSubmit}
+        isLoading={isTransitioning}
+        chequeType={chequeDetails.chequeType}
+      />
+      <BounceChequeModal
+        open={bounceModalOpen}
+        onClose={() => setBounceModalOpen(false)}
+        onConfirm={onBounceSubmit}
+        isLoading={isTransitioning}
+        chequeType={chequeDetails.chequeType}
+      />
+      <CancelChequeModal
+        open={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        onConfirm={onCancelSubmit}
+        isLoading={isTransitioning}
+      />
+
       <div className="mx-auto w-full max-w-[800px]">
         {/* Page Header */}
         <div className="flex items-start justify-between">
@@ -112,6 +174,20 @@ const ChequeDetailsDesktopPage = ({
             currentItemSx={breadcrumbCurrentSx}
           />
         </div>
+
+        {/* Status hint banner */}
+        {hint && (
+          <div
+            className={`mt-4 p-3 rounded-lg border flex items-start gap-2.5 text-[12px] font-semibold ${
+              hint.color === "warning"
+                ? "bg-warning-soft/20 border-warning/20 text-warning"
+                : "bg-primary-soft/20 border-primary/20 text-primary"
+            }`}
+          >
+            <FiInfo className="mt-0.5 shrink-0" size={14} />
+            <span>{hint.text}</span>
+          </div>
+        )}
 
         {/* Feedback Alert */}
         {(error || message) && (
@@ -177,7 +253,7 @@ const ChequeDetailsDesktopPage = ({
               <div>
                 <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Cheque Type</span>
                 <span className="text-[13px] font-bold text-text mt-1 block">
-                  {chequeDetails.chequeType === "RECEIVED" ? "Received from Customer" : "Issued to Vendor"}
+                  {isReceived ? "Received from Customer" : "Issued to Vendor"}
                 </span>
               </div>
 
@@ -304,7 +380,8 @@ const ChequeDetailsDesktopPage = ({
           </AppButton>
 
           <AppStack direction="row" gap={1} align="center">
-            {isReceived && isPending && (
+            {/* RECEIVED + PENDING → Deposit */}
+            {canDeposit && (
               <AppButton
                 variant="contained"
                 colorVariant="primary"
@@ -318,53 +395,45 @@ const ChequeDetailsDesktopPage = ({
               </AppButton>
             )}
 
-            {((isReceived && isDeposited) || (!isReceived && isPending)) && (
-              <>
-                <AppButton
-                  variant="contained"
-                  colorVariant="success"
-                  size="small"
-                  rounded="md"
-                  startIcon={<FiCheck />}
-                  onClick={() => {
-                    const date = prompt("Enter clearance date (YYYY-MM-DD) or leave empty:");
-                    if (date !== null) handleClear(date);
-                  }}
-                  disabled={isTransitioning}
-                >
-                  Clear
-                </AppButton>
-                <AppButton
-                  variant="outlined"
-                  colorVariant="error"
-                  size="small"
-                  rounded="md"
-                  startIcon={<FiAlertTriangle />}
-                  onClick={() => {
-                    const reason = prompt("Enter bounce reason:");
-                    if (reason) {
-                      const charges = prompt("Enter bounce charges (INR):", "0");
-                      handleBounce(reason, Number(charges) || 0);
-                    }
-                  }}
-                  disabled={isTransitioning}
-                >
-                  Bounce
-                </AppButton>
-              </>
+            {/* Clear button */}
+            {canClear && (
+              <AppButton
+                variant="contained"
+                colorVariant="success"
+                size="small"
+                rounded="md"
+                startIcon={<FiCheck />}
+                onClick={() => setClearModalOpen(true)}
+                disabled={isTransitioning}
+              >
+                Clear
+              </AppButton>
             )}
 
-            {!isCleared && !isBounced && !isCancelled && (
+            {/* Bounce button */}
+            {canBounce && (
+              <AppButton
+                variant="outlined"
+                colorVariant="error"
+                size="small"
+                rounded="md"
+                startIcon={<FiAlertTriangle />}
+                onClick={() => setBounceModalOpen(true)}
+                disabled={isTransitioning}
+              >
+                Bounce
+              </AppButton>
+            )}
+
+            {/* Cancel button */}
+            {canCancel && (
               <AppButton
                 variant="outlined"
                 colorVariant="error"
                 size="small"
                 rounded="md"
                 startIcon={<FiSlash />}
-                onClick={() => {
-                  const reason = prompt("Enter cancellation reason:");
-                  if (reason !== null) handleCancel(reason);
-                }}
+                onClick={() => setCancelModalOpen(true)}
                 disabled={isTransitioning}
               >
                 Cancel Cheque

@@ -100,6 +100,10 @@ const AccountBalancesPage = () => {
     return accountBalances?.length || 0;
   }, [accountBalances]);
 
+  const handleRefresh = useCallback(() => {
+    executeQuery();
+  }, [executeQuery]);
+
   const pageProps = {
     accountBalances: accountBalances || [],
     searchParams,
@@ -122,6 +126,7 @@ const AccountBalancesPage = () => {
     handlePageSizeChange,
     handleRecalculate,
     handleViewDetails,
+    handleRefresh,
   };
 
   return isMobile ? (

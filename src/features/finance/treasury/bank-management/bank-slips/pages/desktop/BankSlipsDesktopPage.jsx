@@ -4,8 +4,11 @@ import {
   FiPlus,
   FiSearch,
   FiEye,
-  FiLayers,
+  FiClock,
   FiInbox,
+  FiTrendingUp,
+  FiMoreVertical,
+  FiRefreshCw,
 } from "react-icons/fi";
 
 import {
@@ -19,6 +22,8 @@ import {
   AppStack,
   AppTablePagination,
   AppText,
+  AppTable,
+  AppMenu,
   PageHeader,
 } from "@/components";
 import { ROUTES } from "@/constants";
@@ -53,6 +58,7 @@ const BankSlipsDesktopPage = ({
   handleFilterChange,
   handlePageChange,
   handlePageSizeChange,
+  handleRefresh,
 }) => {
   const navigate = useNavigate();
 
@@ -115,8 +121,97 @@ const BankSlipsDesktopPage = ({
     );
   };
 
-  const showPagination = bankSlips.length > 0;
-  const totalPages = Math.ceil(totalSlips / pageSize) || 1;
+  const columns = useMemo(() => [
+    {
+      id: "slipNumber",
+      label: "Slip Number",
+      minWidth: 150,
+      render: (_, slip) => (
+        <AppText variant="body2" sx={tableValueMonoSx}>
+          {slip.slipNumber}
+        </AppText>
+      ),
+    },
+    {
+      id: "slipType",
+      label: "Slip Type",
+      minWidth: 130,
+      render: (_, slip) => getTypeBadge(slip.slipType),
+    },
+    {
+      id: "linkedAccount",
+      label: "Linked Account",
+      minWidth: 200,
+      render: (_, slip) => {
+        const bank = slip.bankAccountId;
+        return (
+          <AppText variant="body2" sx={tableValueSx}>
+            {bank ? `${bank.bankName || "Bank"} - *${String(bank.accountNumber || "").slice(-4)}` : "-"}
+          </AppText>
+        );
+      },
+    },
+    {
+      id: "slipDate",
+      label: "Slip Date",
+      minWidth: 130,
+      render: (_, slip) => (
+        <AppText variant="body2" sx={tableValueMutedSx}>
+          {formatDate(slip.slipDate)}
+        </AppText>
+      ),
+    },
+    {
+      id: "amount",
+      label: "Amount",
+      minWidth: 130,
+      align: "right",
+      render: (_, slip) => (
+        <span className="text-[12.5px] font-black text-text">
+          {formatCurrency(slip.amount)}
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      label: "Status",
+      align: "center",
+      minWidth: 110,
+      render: (_, slip) => getStatusBadge(slip.status),
+    },
+    {
+      id: "actions",
+      label: "Actions",
+      align: "right",
+      width: 80,
+      render: (_, slip) => (
+        <AppStack direction="row" gap={0.5} justify="flex-end" align="center">
+          <AppMenu
+            trigger={
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text hover:bg-surface-hover focus:outline-none cursor-pointer"
+              >
+                <FiMoreVertical className="text-[16px]" />
+              </button>
+            }
+            items={[
+              {
+                id: "view",
+                label: "View Details",
+                icon: <FiEye />,
+                onClick: () => handleRowClick(slip._id),
+              },
+            ]}
+            dense
+            minWidth={140}
+          />
+        </AppStack>
+      ),
+    },
+  ], []);
+
+  const showPagination = totalSlips > pageSize;
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
@@ -131,9 +226,9 @@ const BankSlipsDesktopPage = ({
                 size="small"
                 variant="text"
                 items={[
-                  { label: "Dashboard" },
-                  { label: "Finance & Accounting" },
-                  { label: "Treasury" },
+                  { label: "Dashboard", onClick: () => navigate(ROUTES.DASHBOARD) },
+                  { label: "Finance & Accounting", onClick: () => navigate(ROUTES.FINANCE) },
+                  { label: "Treasury", onClick: () => navigate(ROUTES.TREASURY) },
                   { label: "Bank Slips", current: true },
                 ]}
                 sx={breadcrumbSx}
@@ -141,15 +236,27 @@ const BankSlipsDesktopPage = ({
                 currentItemSx={breadcrumbCurrentSx}
               />
               <AppButton
-                variant="contained"
-                colorVariant="primary"
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                rounded="md"
+                startIcon={<FiRefreshCw />}
+                onClick={handleRefresh}
+                loading={isLoading}
+                sx={importButtonSx}
+              >
+                Refresh
+              </AppButton>
+              <AppButton
+                variant="filled"
+                colorVariant="success"
                 size="small"
                 rounded="md"
                 startIcon={<FiPlus />}
                 onClick={handleCreate}
-                sx={createBtnSx}
+                sx={primaryButtonSx}
               >
-                Create Bank Slip
+                New Slip
               </AppButton>
             </AppStack>
           }
@@ -164,11 +271,11 @@ const BankSlipsDesktopPage = ({
           <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
             <div className="p-4 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Total Deposits</span>
-                <span className="text-[20px] font-extrabold text-text mt-1 block">{stats.deposits}</span>
+                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Deposits Count</span>
+                <span className="text-[20px] font-extrabold text-[#2b8a3e] mt-1 block">{stats.deposits}</span>
               </div>
               <div className="w-10 h-10 rounded-lg bg-[#ebfbee] text-[#2b8a3e] flex items-center justify-center border border-[#c3fae8]">
-                <FiPlus className="text-[18px]" />
+                <FiTrendingUp className="text-[18px]" />
               </div>
             </div>
           </AppCard>
@@ -176,11 +283,11 @@ const BankSlipsDesktopPage = ({
           <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
             <div className="p-4 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Total Withdrawals</span>
-                <span className="text-[20px] font-extrabold text-text mt-1 block">{stats.withdrawals}</span>
+                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Withdrawals Count</span>
+                <span className="text-[20px] font-extrabold text-[#d6336c] mt-1 block">{stats.withdrawals}</span>
               </div>
               <div className="w-10 h-10 rounded-lg bg-[#fff0f6] text-[#d6336c] flex items-center justify-center border border-[#fcc2d7]">
-                <FiLayers className="text-[18px]" />
+                <FiTrendingUp className="text-[18px]" />
               </div>
             </div>
           </AppCard>
@@ -188,11 +295,11 @@ const BankSlipsDesktopPage = ({
           <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
             <div className="p-4 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Pending Slips</span>
+                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Pending Approval</span>
                 <span className="text-[20px] font-extrabold text-[#f08c00] mt-1 block">{stats.pending}</span>
               </div>
               <div className="w-10 h-10 rounded-lg bg-[#fff9db] text-[#f08c00] flex items-center justify-center border border-[#ffe066]">
-                <FiLayers className="text-[18px]" />
+                <FiClock className="text-[18px]" />
               </div>
             </div>
           </AppCard>
@@ -200,15 +307,23 @@ const BankSlipsDesktopPage = ({
           <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
             <div className="p-4 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Confirmed Slips</span>
-                <span className="text-[20px] font-extrabold text-[#2b8a3e] mt-1 block">{stats.confirmed}</span>
+                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Confirmed Postings</span>
+                <span className="text-[20px] font-extrabold text-text mt-1 block">{stats.confirmed}</span>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-[#ebfbee] text-[#2b8a3e] flex items-center justify-center border border-[#c3fae8]">
-                <FiLayers className="text-[18px]" />
+              <div className="w-10 h-10 rounded-lg bg-surface-alt text-text flex items-center justify-center border border-border">
+                <FiClock className="text-[18px]" />
               </div>
             </div>
           </AppCard>
         </div>
+
+        {/* Feedback alerts */}
+        {error && (
+          <div className="mt-4 p-3 text-[12.5px] font-semibold bg-danger-soft text-danger rounded-md flex justify-between items-center">
+            <span>{error}</span>
+            <button onClick={clearError} className="font-bold hover:underline text-danger">Dismiss</button>
+          </div>
+        )}
 
         {/* Main Content Card */}
         <AppCard
@@ -220,58 +335,61 @@ const BankSlipsDesktopPage = ({
           sx={mainCardSx}
         >
           {/* Filters Toolbar */}
-          <div className="p-4 border-b border-border bg-surface-hover/20 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <AppInput
-                name="search"
-                value={searchParams.search}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search slip number or narration..."
-                startIcon={<FiSearch />}
+          <div className="p-4 border-b border-border bg-surface-hover/20 flex items-center justify-between gap-4">
+            {/* Left side: Search input */}
+            <AppInput
+              name="search"
+              value={searchParams.search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search slip number or narration..."
+              startIcon={<FiSearch />}
+              size="small"
+              sx={searchFieldSx}
+              inputSx={searchFieldInputSx}
+            />
+
+            {/* Right side: Dropdown filters */}
+            <div className="flex items-center gap-2">
+              <AppSelect
+                name="slipType"
+                value={searchParams.slipType}
+                onChange={(e) => handleFilterChange("slipType", e.target.value)}
+                options={typeOptions}
                 size="small"
-                sx={searchFieldSx}
-                inputSx={searchFieldInputSx}
+                variant="bordered"
+                rounded="md"
+                sx={{ width: 145, minWidth: 145 }}
+                inputSx={compactFilterInputSx}
               />
 
-              <div className="flex items-center gap-2">
-                <AppSelect
-                  name="slipType"
-                  value={searchParams.slipType}
-                  onChange={(e) => handleFilterChange("slipType", e.target.value)}
-                  options={typeOptions}
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  inputSx={compactFilterInputSx}
-                />
+              <AppSelect
+                name="status"
+                value={searchParams.status}
+                onChange={(e) => handleFilterChange("status", e.target.value)}
+                options={statusOptions}
+                size="small"
+                variant="bordered"
+                rounded="md"
+                sx={{ width: 145, minWidth: 145 }}
+                inputSx={compactFilterInputSx}
+              />
 
-                <AppSelect
-                  name="status"
-                  value={searchParams.status}
-                  onChange={(e) => handleFilterChange("status", e.target.value)}
-                  options={statusOptions}
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  inputSx={compactFilterInputSx}
-                />
-
-                <AppSelect
-                  name="bankAccountId"
-                  value={searchParams.bankAccountId}
-                  onChange={(e) => handleFilterChange("bankAccountId", e.target.value)}
-                  options={bankAccountOptions}
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  inputSx={compactFilterInputSx}
-                />
-              </div>
+              <AppSelect
+                name="bankAccountId"
+                value={searchParams.bankAccountId}
+                onChange={(e) => handleFilterChange("bankAccountId", e.target.value)}
+                options={bankAccountOptions}
+                size="small"
+                variant="bordered"
+                rounded="md"
+                sx={{ width: 220, minWidth: 220 }}
+                inputSx={compactFilterInputSx}
+              />
             </div>
           </div>
 
           {/* Table Container */}
-          <div className="overflow-x-auto w-full relative">
+          <div className="w-full relative">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20">
                 <AppText variant="body1" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
@@ -282,74 +400,21 @@ const BankSlipsDesktopPage = ({
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <FiInbox className="text-[40px] text-text-muted/40 mb-3" />
                 <AppHeading level={3} weight={600} sx={{ m: 0, fontSize: "14px", color: "var(--app-color-text)" }}>
-                  No Bank Slips Found
+                  No Slips Found
                 </AppHeading>
                 <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>
-                  Try adjusting your search criteria or create a new bank slip entry.
+                  Adjust search filters or record a new bank pay-in slip.
                 </AppText>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-[12.5px]">
-                <thead>
-                  <tr className="border-b border-border bg-surface-alt/10 text-text-muted font-bold">
-                    <th className="py-3 px-4 font-bold">Slip Number</th>
-                    <th className="py-3 px-4 font-bold">Type</th>
-                    <th className="py-3 px-4 font-bold">Linked Bank</th>
-                    <th className="py-3 px-4 font-bold">Slip Date</th>
-                    <th className="py-3 px-4 font-bold">Amount</th>
-                    <th className="py-3 px-4 font-bold">Reference No.</th>
-                    <th className="py-3 px-4 font-bold">Status</th>
-                    <th className="py-3 px-4 text-center font-bold">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bankSlips.map((slip) => {
-                    const linkedBank = slip.bankAccountId;
-                    const bankLabel = linkedBank
-                      ? `${linkedBank.bankName || "Bank"} - *${String(linkedBank.accountNumber || "").slice(-4)}`
-                      : "-";
-
-                    return (
-                      <tr
-                        key={slip._id}
-                        onClick={() => handleRowClick(slip._id)}
-                        className="border-b border-border hover:bg-surface-hover/20 transition cursor-pointer"
-                      >
-                        <td className="py-3.5 px-4 font-bold text-primary hover:underline">
-                          {slip.slipNumber}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {getTypeBadge(slip.slipType)}
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-text">
-                          {bankLabel}
-                        </td>
-                        <td className="py-3.5 px-4 text-text-muted">
-                          {formatDate(slip.slipDate)}
-                        </td>
-                        <td className="py-3.5 px-4 font-extrabold text-text">
-                          {formatCurrency(slip.amount)}
-                        </td>
-                        <td className="py-3.5 px-4 text-text-muted font-mono">
-                          {slip.bankSlipReference || "-"}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {getStatusBadge(slip.status)}
-                        </td>
-                        <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleRowClick(slip._id)}
-                            className="p-1.5 text-text-muted hover:text-primary hover:bg-surface-hover/40 rounded transition cursor-pointer"
-                            title="View Details"
-                          >
-                            <FiEye className="text-[14px]" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <AppTable
+                columns={columns}
+                rows={bankSlips}
+                getRowId={(row) => row._id}
+                sx={tableSx}
+                headSx={tableHeadSx}
+                cellSx={tableCellSx}
+              />
             )}
           </div>
 
@@ -361,6 +426,7 @@ const BankSlipsDesktopPage = ({
                 pageSize={pageSize}
                 totalItems={totalSlips}
                 onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
               />
             </AppBox>
           )}
@@ -396,12 +462,26 @@ const pageHeaderContentSx = {
   },
 };
 
-const createBtnSx = {
-  height: 32,
-  fontSize: "11.5px",
-  fontWeight: 600,
-  bgcolor: "var(--app-color-primary)",
-  "&:hover": { bgcolor: "var(--app-color-primary-hover)" },
+const primaryButtonSx = {
+  height: 38,
+  px: 2.5,
+  fontSize: "12.5px",
+  fontWeight: 700,
+  bgcolor: "#00b85c",
+  color: "white",
+  whiteSpace: "nowrap",
+  "&:hover": { bgcolor: "#009e4f" },
+};
+
+const importButtonSx = {
+  height: 38,
+  px: 2.5,
+  fontSize: "12.5px",
+  fontWeight: 650,
+  borderColor: "var(--app-color-border)",
+  color: "var(--app-color-text)",
+  bgcolor: "white",
+  whiteSpace: "nowrap",
 };
 
 const statCardSx = {
@@ -431,15 +511,61 @@ const compactFilterInputSx = {
   bgcolor: "var(--app-color-surface)",
 };
 
+const tableSx = {
+  width: "100%",
+  "& .MuiTable-root": {
+    width: "100%",
+  },
+};
+
+const tableHeadSx = {
+  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, var(--app-color-surface))",
+  "& th": {
+    fontSize: "11px",
+    fontWeight: 750,
+    textTransform: "uppercase",
+    color: "var(--app-color-text-muted)",
+    py: 1.5,
+    borderBottom: "1px solid var(--app-color-divider)",
+  },
+};
+
+const tableCellSx = {
+  py: 1.5,
+  fontSize: "12.5px",
+  borderBottom: "1px solid var(--app-color-divider)",
+};
+
+const tableValueSx = {
+  fontSize: "12.5px",
+  fontWeight: 650,
+  color: "var(--app-color-text)",
+};
+
+const tableValueMutedSx = {
+  fontSize: "12.5px",
+  fontWeight: 650,
+  color: "var(--app-color-text-muted)",
+};
+
+const tableValueMonoSx = {
+  fontSize: "12px",
+  fontFamily: "var(--font-mono, monospace)",
+  fontWeight: 750,
+  color: "var(--app-color-text)",
+};
+
 const paginationFooterWrapperSx = {
   px: 2,
-  pt: 2,
-  pb: 2,
+  py: 2,
   borderTop: "1px solid var(--app-color-divider)",
   display: "flex",
-  justifyContent: "center",
+  justifyContent: "flex-end",
+  alignItems: "center",
   width: "100%",
-  "& > div": { width: "100%" },
+  "& > div": {
+    width: "auto",
+  },
 };
 
 export default BankSlipsDesktopPage;

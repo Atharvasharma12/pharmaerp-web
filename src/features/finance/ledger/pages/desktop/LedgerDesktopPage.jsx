@@ -1,28 +1,30 @@
 import React, { useMemo } from "react";
 import {
-  FiSearch,
   FiRefreshCw,
   FiCalendar,
   FiBookOpen,
   FiTrendingUp,
   FiTrendingDown,
 } from "react-icons/fi";
-import { FaRupeeSign } from "react-icons/fa";
-
 import {
   AppBox,
   AppBreadcrumb,
   AppButton,
   AppCard,
   AppHeading,
-  AppInput,
   AppSelect,
   AppStack,
-  AppTablePagination,
   AppText,
-  PageHeader,
+  AppTable,
+  AppTableSkeleton,
+  AppTag,
+  AppStatCard,
+  AppEmptyState,
+  AppAlert,
+  AppIconButton,
+  AppMenu,
 } from "@/components";
-import { formatDate } from "@/utils";
+import { formatDate, formatCurrency } from "@/utils";
 
 const LedgerDesktopPage = ({
   ledgerEntries = [],
@@ -41,6 +43,7 @@ const LedgerDesktopPage = ({
   handlePageChange,
   handlePageSizeChange,
   handleRecalculate,
+  handleRefresh,
 }) => {
   // Compute total debit/credit sums
   const sums = useMemo(() => {
@@ -53,114 +56,224 @@ const LedgerDesktopPage = ({
     return { debit, credit };
   }, [ledgerEntries]);
 
-  const showPagination = ledgerEntries.length > 0;
+  const statsList = useMemo(() => {
+    if (!selectedAccountDetails) return [];
+    return [
+      {
+        id: "account_nature",
+        title: "Account Nature",
+        value: selectedAccountDetails.accountNature || "-",
+        description: "Classification of account",
+        colorVariant: "primary",
+        icon: <FiBookOpen />,
+      },
+      {
+        id: "opening_balance",
+        title: "Opening Balance",
+        value: `${formatCurrency(selectedAccountDetails.openingBalance || 0)} ${selectedAccountDetails.openingBalanceType || ""}`,
+        description: "Starting balance sheet value",
+        colorVariant: "neutral",
+        icon: <FiCalendar />,
+      },
+      {
+        id: "total_debits",
+        title: "Total Debits",
+        value: formatCurrency(sums.debit),
+        description: "Aggregated ledger debits",
+        colorVariant: "success",
+        icon: <FiTrendingUp />,
+      },
+      {
+        id: "total_credits",
+        title: "Total Credits",
+        value: formatCurrency(sums.credit),
+        description: "Aggregated ledger credits",
+        colorVariant: "error",
+        icon: <FiTrendingDown />,
+      },
+    ];
+  }, [selectedAccountDetails, sums]);
+
+  const columns = useMemo(
+    () => [
+      {
+        id: "voucherDate",
+        key: "voucherDate",
+        label: "Voucher Date",
+        minWidth: 130,
+        render: (_, e) => (
+          <AppText variant="body2" sx={tableValueSx}>
+            {formatDate(e.voucherDate)}
+          </AppText>
+        ),
+      },
+      {
+        id: "voucherNumber",
+        key: "voucherNumber",
+        label: "Voucher No.",
+        minWidth: 140,
+        render: (_, e) => (
+          <AppText variant="body2" sx={tableValueMonoSx}>
+            {e.voucherNumber || "OP-BAL"}
+          </AppText>
+        ),
+      },
+      {
+        id: "narration",
+        key: "narration",
+        label: "Narration",
+        minWidth: 320,
+        render: (_, e) => (
+          <AppText variant="body2" sx={narrationSx}>
+            {e.narration || "-"}
+          </AppText>
+        ),
+      },
+      {
+        id: "debit",
+        key: "debit",
+        label: "Debit (Dr)",
+        minWidth: 150,
+        align: "right",
+        render: (_, e) => (
+          <AppText variant="body2" sx={debitAmountSx}>
+            {e.debit > 0 ? formatCurrency(e.debit) : "-"}
+          </AppText>
+        ),
+      },
+      {
+        id: "credit",
+        key: "credit",
+        label: "Credit (Cr)",
+        minWidth: 150,
+        align: "right",
+        render: (_, e) => (
+          <AppText variant="body2" sx={creditAmountSx}>
+            {e.credit > 0 ? formatCurrency(e.credit) : "-"}
+          </AppText>
+        ),
+      },
+      {
+        id: "runningBalance",
+        key: "runningBalance",
+        label: "Running Balance",
+        minWidth: 180,
+        align: "right",
+        render: (_, e) => {
+          const isDebitBal = e.runningBalance >= 0;
+          return (
+            <AppStack
+              direction="row"
+              align="center"
+              justify="flex-end"
+              gap={0.8}
+            >
+              <AppText variant="body2" sx={balanceAmountSx}>
+                {formatCurrency(Math.abs(e.runningBalance))}
+              </AppText>
+              <AppTag
+                label={isDebitBal ? "DR" : "CR"}
+                variant="soft"
+                size="small"
+                rounded="md"
+                colorVariant={isDebitBal ? "success" : "error"}
+                sx={tagSx}
+              />
+            </AppStack>
+          );
+        },
+      },
+    ],
+    [],
+  );
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
-      <div className="mx-auto w-full max-w-[1400px]">
+    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
+      <div className="mx-auto w-full max-w-[1500px]">
         {/* Page Header */}
-        <PageHeader
-          title="General Ledger"
-          subtitle="Audit transaction posting trails, verify debits and credits, and view real-time running balances."
-          extra={
+        <AppBox
+          display="flex"
+          alignItems="flex-start"
+          justifyContent="space-between"
+          sx={pageHeaderSx}
+        >
+          <AppBox sx={pageHeaderContentSx}>
+            <AppHeading level={1} weight={650}>
+              General Ledger
+            </AppHeading>
+            <AppText variant="body2" sx={pageHeaderSubtitleSx}>
+              Audit transaction posting trails, verify debits and credits, and
+              view real-time running balances.
+            </AppText>
             <AppBreadcrumb
               size="small"
               variant="text"
               items={[
-                { label: "Dashboard" },
-                { label: "Finance & Accounting" },
+                { label: "Dashboard", href: "/" },
+                { label: "Finance & Accounting", href: "/finance" },
                 { label: "General Ledger", current: true },
               ]}
               sx={breadcrumbSx}
               itemSx={breadcrumbItemSx}
               currentItemSx={breadcrumbCurrentSx}
             />
-          }
-          align="flex-start"
-          justify="space-between"
-          sx={pageHeaderSx}
-          contentSx={pageHeaderContentSx}
-        />
+          </AppBox>
+
+          <AppStack
+            direction="row"
+            align="center"
+            justify="flex-end"
+            gap={1.1}
+            sx={{ flexShrink: 0 }}
+          >
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              startIcon={<FiRefreshCw />}
+              onClick={handleRefresh}
+              loading={isLoading}
+              disabled={isLoading}
+              sx={secondaryButtonSx}
+            >
+              Refresh
+            </AppButton>
+          </AppStack>
+        </AppBox>
 
         {/* Selected Account Overview Stats */}
         {selectedAccountDetails && (
-          <div className="mt-5 grid grid-cols-4 gap-4">
-            <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-              <div className="p-4 flex items-center justify-between">
-                <div>
-                  <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Account Nature</span>
-                  <span className="text-[16px] font-extrabold text-primary mt-1 block">
-                    {selectedAccountDetails.accountNature}
-                  </span>
-                </div>
-                <div className="w-10 h-10 rounded-lg bg-primary-soft text-primary flex items-center justify-center border border-primary/20">
-                  <FiBookOpen className="text-[18px]" />
-                </div>
-              </div>
-            </AppCard>
-
-            <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-              <div className="p-4 flex items-center justify-between">
-                <div>
-                  <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Opening Balance</span>
-                  <span className="text-[16px] font-extrabold text-text mt-1 block">
-                    ₹ {Number(selectedAccountDetails.openingBalance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    <span className="text-[11px] font-black uppercase text-text-muted ml-1">
-                      {selectedAccountDetails.openingBalanceType}
-                    </span>
-                  </span>
-                </div>
-                <div className="w-10 h-10 rounded-lg bg-surface-alt text-text flex items-center justify-center border border-border">
-                  <FaRupeeSign className="text-[16px]" />
-                </div>
-              </div>
-            </AppCard>
-
-            <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-              <div className="p-4 flex items-center justify-between">
-                <div>
-                  <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Total Debits</span>
-                  <span className="text-[16px] font-extrabold text-[#2b8a3e] mt-1 block">
-                    ₹ {sums.debit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="w-10 h-10 rounded-lg bg-[#ebfbee] text-[#2b8a3e] flex items-center justify-center border border-[#c3fae8]">
-                  <FiTrendingUp className="text-[18px]" />
-                </div>
-              </div>
-            </AppCard>
-
-            <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-              <div className="p-4 flex items-center justify-between">
-                <div>
-                  <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Total Credits</span>
-                  <span className="text-[16px] font-extrabold text-[#c92a2a] mt-1 block">
-                    ₹ {sums.credit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="w-10 h-10 rounded-lg bg-[#fff5f5] text-[#c92a2a] flex items-center justify-center border border-[#ffc9c9]">
-                  <FiTrendingDown className="text-[18px]" />
-                </div>
-              </div>
-            </AppCard>
+          <div className="mt-4 grid grid-cols-4 gap-3">
+            {statsList.map((stat) => (
+              <AppStatCard
+                key={stat.id}
+                title={stat.title}
+                value={stat.value}
+                subtitle={stat.description}
+                icon={stat.icon}
+                colorVariant={stat.colorVariant}
+                variant="default"
+                sx={statCardSx}
+                iconSx={statIconSx}
+              />
+            ))}
           </div>
         )}
 
-        {/* Feedback messages */}
+        {/* Feedback alerts */}
         {(error || message) && (
-          <div
-            className={`mt-4 p-3 text-[12.5px] font-semibold rounded-md flex justify-between items-center ${
-              error ? "bg-danger-soft text-danger" : "bg-success-soft text-success"
-            }`}
+          <AppAlert
+            severity={error ? "error" : "success"}
+            variant="soft"
+            title={error ? "Something went wrong" : "Success"}
+            closable
+            onClose={clearFeedback}
+            sx={alertSx}
           >
-            <span>{error || message}</span>
-            <button
-              onClick={clearFeedback}
-              className={`font-bold hover:underline ${error ? "text-danger" : "text-success"}`}
-            >
-              Dismiss
-            </button>
-          </div>
+            {error || message}
+          </AppAlert>
         )}
 
         {/* Table & Filters Card */}
@@ -170,170 +283,237 @@ const LedgerDesktopPage = ({
           bordered
           shadow="sm"
           padding="none"
-          sx={mainCardSx}
+          sx={tableCardSx}
         >
           {/* Filters Toolbar */}
-          <div className="p-4 border-b border-border bg-surface-hover/20 flex items-end justify-between gap-4">
-            <div className="flex items-end gap-4">
-              <AppSelect
-                label="Select Account"
-                name="accountId"
-                value={filters.accountId}
-                onChange={(e) => handleFilterChange("accountId", e.target.value)}
-                options={accountOptions}
+          <div className="border-b border-border px-3.5 py-3">
+            <div className="flex items-end justify-between gap-3">
+              <div className="flex items-end gap-3 flex-wrap">
+                <AppSelect
+                  label="Select Account"
+                  name="accountId"
+                  value={filters.accountId}
+                  onChange={(e) =>
+                    handleFilterChange("accountId", e.target.value)
+                  }
+                  options={accountOptions}
+                  size="small"
+                  variant="bordered"
+                  rounded="md"
+                  formControlSx={{ width: 480, mr: 3 }}
+                  inputSx={filterInputSx}
+                  labelSx={filterLabelSx}
+                />
+
+                <AppBox
+                  sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
+                >
+                  <AppText sx={filterLabelSx}>From Date</AppText>
+                  <input
+                    type="date"
+                    name="startDate"
+                    value={filters.startDate}
+                    onChange={(e) =>
+                      handleFilterChange("startDate", e.target.value)
+                    }
+                    className="h-[36px] px-3 border border-border rounded-md text-[12px] bg-surface text-text focus:outline-none focus:border-primary w-[160px]"
+                  />
+                </AppBox>
+
+                <AppBox
+                  sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
+                >
+                  <AppText sx={filterLabelSx}>To Date</AppText>
+                  <input
+                    type="date"
+                    name="endDate"
+                    value={filters.endDate}
+                    onChange={(e) =>
+                      handleFilterChange("endDate", e.target.value)
+                    }
+                    className="h-[36px] px-3 border border-border rounded-md text-[12px] bg-surface text-text focus:outline-none focus:border-primary w-[160px]"
+                  />
+                </AppBox>
+              </div>
+
+              <AppButton
+                variant="outlined"
+                colorVariant="primary"
                 size="small"
-                variant="bordered"
                 rounded="md"
-                fullWidth={false}
-                formControlSx={{ width: 280 }}
-                inputSx={compactFilterInputSx}
-                labelSx={filterLabelSx}
-              />
-
-              <AppInput
-                type="date"
-                label="From Date"
-                name="startDate"
-                value={filters.startDate}
-                onChange={(e) => handleFilterChange("startDate", e.target.value)}
-                size="small"
-                fullWidth={false}
-                formControlSx={{ width: 160 }}
-                inputSx={compactFilterInputSx}
-                labelSx={filterLabelSx}
-              />
-
-              <AppInput
-                type="date"
-                label="To Date"
-                name="endDate"
-                value={filters.endDate}
-                onChange={(e) => handleFilterChange("endDate", e.target.value)}
-                size="small"
-                fullWidth={false}
-                formControlSx={{ width: 160 }}
-                inputSx={compactFilterInputSx}
-                labelSx={filterLabelSx}
-              />
+                startIcon={<FiRefreshCw />}
+                onClick={handleRecalculate}
+                disabled={isRecalculating || !filters.accountId || isLoading}
+                loading={isRecalculating}
+                sx={recalcBtnSx}
+              >
+                Recalculate Balance
+              </AppButton>
             </div>
-
-            <AppButton
-              variant="outlined"
-              colorVariant="primary"
-              size="small"
-              rounded="md"
-              startIcon={<FiRefreshCw />}
-              onClick={handleRecalculate}
-              disabled={isRecalculating || !filters.accountId || isLoading}
-              loading={isRecalculating}
-              sx={recalcBtnSx}
-            >
-              Recalculate Balance
-            </AppButton>
           </div>
 
           {/* Table Container */}
-          <div className="overflow-x-auto w-full relative">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <AppText variant="body1" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
-                  Retrieving ledger data...
-                </AppText>
-              </div>
-            ) : !filters.accountId ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <FiBookOpen className="text-[40px] text-text-muted/40 mb-3" />
-                <AppHeading level={3} weight={600} sx={{ m: 0, fontSize: "14px", color: "var(--app-color-text)" }}>
-                  No Account Selected
-                </AppHeading>
-                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>
-                  Choose an account from the dropdown selector to audit its posting ledger.
-                </AppText>
-              </div>
-            ) : ledgerEntries.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <FiCalendar className="text-[40px] text-text-muted/40 mb-3" />
-                <AppHeading level={3} weight={600} sx={{ m: 0, fontSize: "14px", color: "var(--app-color-text)" }}>
-                  No Posting History Found
-                </AppHeading>
-                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>
-                  There are no posting records for this account within the selected dates.
-                </AppText>
-              </div>
-            ) : (
-              <table className="w-full text-left border-collapse text-[12.5px]">
-                <thead>
-                  <tr className="border-b border-border bg-surface-alt/10 text-text-muted font-bold">
-                    <th className="py-3 px-4 font-bold">Voucher Date</th>
-                    <th className="py-3 px-4 font-bold">Voucher No.</th>
-                    <th className="py-3 px-4 font-bold">Narration</th>
-                    <th className="py-3 px-4 text-right font-bold">Debit (Dr)</th>
-                    <th className="py-3 px-4 text-right font-bold">Credit (Cr)</th>
-                    <th className="py-3 px-4 text-right font-bold">Running Balance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ledgerEntries.map((e) => {
-                    const isDebitBal = e.runningBalance >= 0;
-
-                    return (
-                      <tr
-                        key={e._id}
-                        className="border-b border-border hover:bg-surface-hover/20 transition"
-                      >
-                        <td className="py-3.5 px-4 text-text-muted">
-                          {formatDate(e.voucherDate)}
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-text font-mono">
-                          {e.voucherNumber || "OP-BAL"}
-                        </td>
-                        <td className="py-3.5 px-4 text-text max-w-[350px] truncate" title={e.narration}>
-                          {e.narration || "-"}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-semibold text-[#2b8a3e]">
-                          {e.debit > 0 ? `₹ ${e.debit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "-"}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-semibold text-[#c92a2a]">
-                          {e.credit > 0 ? `₹ ${e.credit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "-"}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-bold text-text">
-                          ₹ {Math.abs(e.runningBalance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                          <span className="text-[9.5px] text-text-muted font-black ml-1 uppercase">
-                            {isDebitBal ? "dr" : "cr"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+          {isLoading ? (
+            <AppTableSkeleton rows={8} columns={6} showHeader={false} />
+          ) : !filters.accountId ? (
+            <AppEmptyState
+              title="No Account Selected"
+              description="Choose an account from the dropdown selector to audit its posting ledger."
+              icon={<FiBookOpen />}
+              size="page"
+              sx={stateSx}
+            />
+          ) : ledgerEntries.length === 0 ? (
+            <AppEmptyState
+              title="No Posting History Found"
+              description="There are no posting records for this account within the selected dates."
+              icon={<FiCalendar />}
+              size="page"
+              sx={stateSx}
+            />
+          ) : (
+            <AppTable
+              columns={columns}
+              rows={ledgerEntries}
+              getRowId={(row) => row._id}
+              dense
+              bordered={false}
+              rounded={false}
+              hover
+              stickyHeader
+              minWidth={1100}
+              maxHeight="calc(100vh - 340px)"
+              sx={tableSx}
+              headSx={tableHeadSx}
+              cellSx={tableCellSx}
+            />
+          )}
 
           {/* Table Footer */}
-          {showPagination && (
-            <AppBox sx={paginationFooterWrapperSx}>
-              <AppTablePagination
-                page={currentPage}
-                pageSize={pageSize}
-                totalItems={totalEntries}
-                onPageChange={handlePageChange}
-              />
-            </AppBox>
-          )}
+          {totalEntries > pageSize ? (
+            <TableFooter
+              totalEntries={totalEntries}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              handlePageChange={handlePageChange}
+              handlePageSizeChange={handlePageSizeChange}
+            />
+          ) : null}
         </AppCard>
       </div>
     </section>
   );
 };
 
+const TableFooter = ({
+  totalEntries,
+  currentPage,
+  pageSize,
+  handlePageChange,
+  handlePageSizeChange,
+}) => {
+  const startEntry = (currentPage - 1) * pageSize + 1;
+  const endEntry = Math.min(currentPage * pageSize, totalEntries);
+  const totalPages = Math.ceil(totalEntries / pageSize) || 1;
+
+  return (
+    <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
+      <AppText variant="body2" sx={footerTextSx}>
+        Showing {startEntry} to {endEntry} of {totalEntries} ledger entries
+      </AppText>
+
+      <AppStack direction="row" align="center" gap={1}>
+        <AppMenu
+          trigger={
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              endIcon={<FiChevronRight className="rotate-90" />}
+              sx={pageSizeButtonSx}
+            >
+              {pageSize} per page
+            </AppButton>
+          }
+          items={[
+            {
+              id: "10",
+              label: "10 per page",
+              onClick: () => handlePageSizeChange(10),
+            },
+            {
+              id: "25",
+              label: "25 per page",
+              onClick: () => handlePageSizeChange(25),
+            },
+            {
+              id: "50",
+              label: "50 per page",
+              onClick: () => handlePageSizeChange(50),
+            },
+            {
+              id: "100",
+              label: "100 per page",
+              onClick: () => handlePageSizeChange(100),
+            },
+          ]}
+          dense
+          minWidth={120}
+        />
+
+        <AppIconButton
+          icon={<FiChevronLeft />}
+          variant="outlined"
+          colorVariant="neutral"
+          size="small"
+          rounded="md"
+          disabled={currentPage === 1}
+          onClick={() => handlePageChange(currentPage - 1)}
+        />
+
+        <span className="flex h-[31px] min-w-[31px] items-center justify-center rounded-md bg-primary px-2 text-[12px] font-bold text-text-inverse">
+          {currentPage}
+        </span>
+
+        <AppIconButton
+          icon={<FiChevronRight />}
+          variant="outlined"
+          colorVariant="neutral"
+          size="small"
+          rounded="md"
+          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(currentPage + 1)}
+        />
+      </AppStack>
+    </div>
+  );
+};
+
 // Styling variables
-const breadcrumbSx = { mt: 0 };
+const pageHeaderSx = { width: "100%" };
+const pageHeaderSubtitleSx = {
+  mt: 0.55,
+  fontSize: "13px",
+  lineHeight: "20px",
+  color: "var(--app-color-text-muted)",
+};
+const pageHeaderContentSx = {
+  minWidth: 0,
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
+};
+
+const breadcrumbSx = { mt: 1 };
 const breadcrumbItemSx = {
   fontSize: "12px",
   color: "var(--app-color-text-muted)",
-  cursor: "pointer",
-  "&:hover": { color: "var(--app-color-primary)" },
 };
 const breadcrumbCurrentSx = {
   fontSize: "12px",
@@ -341,32 +521,43 @@ const breadcrumbCurrentSx = {
   color: "var(--app-color-text)",
 };
 
-const pageHeaderSx = { width: "100%" };
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "23px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.4px",
-    color: "var(--app-color-text)",
-  },
+const secondaryButtonSx = {
+  height: 36,
+  minWidth: 92,
+  px: 1.4,
+  fontSize: "12px",
+  fontWeight: 650,
 };
+
+const alertSx = { mt: 3 };
 
 const statCardSx = {
+  minHeight: 88,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
+  p: 1.5,
+  "& p:first-of-type": { fontSize: "11px" },
+  "& h1, & h2, & h3, & h4": { fontSize: "18px" },
+  "& p:last-of-type": { fontSize: "11px" },
+};
+const statIconSx = {
+  width: 38,
+  height: 38,
+  minWidth: 38,
+  borderRadius: "11px",
 };
 
-const mainCardSx = {
-  mt: 5,
+const tableCardSx = {
+  mt: 3,
+  overflow: "hidden",
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
+  "& > div": { minWidth: 0 },
 };
 
-const compactFilterInputSx = {
-  height: 32,
-  fontSize: "11.5px",
+const filterInputSx = {
+  height: 36,
+  fontSize: "12px",
   bgcolor: "var(--app-color-surface)",
 };
 
@@ -378,20 +569,121 @@ const filterLabelSx = {
 };
 
 const recalcBtnSx = {
-  height: 32,
-  fontSize: "11px",
-  fontWeight: 600,
+  height: 36,
+  px: 1.5,
+  fontSize: "12px",
+  fontWeight: 650,
 };
 
-const paginationFooterWrapperSx = {
-  px: 2,
-  pt: 2,
-  pb: 2,
-  borderTop: "1px solid var(--app-color-divider)",
-  display: "flex",
-  justifyContent: "center",
-  width: "100%",
-  "& > div": { width: "100%" },
+const tableSx = {
+  "& .MuiTableContainer-root": {
+    borderRadius: 0,
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+    "&::-webkit-scrollbar": { display: "none" },
+  },
 };
+const tableHeadSx = {
+  bgcolor: "var(--app-color-surface-alt)",
+  "& .MuiTableCell-root": {
+    fontSize: "11.2px",
+    fontWeight: 750,
+    color: "var(--app-color-text-muted)",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+  },
+};
+const tableCellSx = {
+  py: 1.2,
+  fontSize: "12px",
+  borderColor: "var(--app-color-border)",
+};
+
+const tableValueSx = {
+  fontSize: "12px",
+  fontWeight: 650,
+  color: "var(--app-color-text)",
+};
+const tableValueMonoSx = {
+  fontSize: "12px",
+  fontWeight: 700,
+  fontFamily: "var(--font-mono, monospace)",
+  color: "var(--app-color-text)",
+};
+const narrationSx = {
+  fontSize: "12px",
+  fontWeight: 550,
+  color: "var(--app-color-text)",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: 320,
+};
+const debitAmountSx = {
+  fontSize: "12px",
+  fontWeight: 700,
+  color: "var(--app-color-success)",
+};
+const creditAmountSx = {
+  fontSize: "12px",
+  fontWeight: 700,
+  color: "var(--app-color-error)",
+};
+const balanceAmountSx = {
+  fontSize: "12px",
+  fontWeight: 750,
+  color: "var(--app-color-text)",
+};
+
+const tagSx = {
+  width: "fit-content",
+  height: 22,
+  px: 1,
+  fontSize: "10.5px",
+  fontWeight: 700,
+};
+
+const footerTextSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
+const pageSizeButtonSx = {
+  height: 34,
+  minWidth: 122,
+  px: 1.2,
+  fontSize: "12px",
+  fontWeight: 600,
+};
+const stateSx = { minHeight: 430 };
+
+const FiChevronRight = (props) => (
+  <svg
+    stroke="currentColor"
+    fill="none"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    height="1em"
+    width="1em"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <polyline points="9 18 15 12 9 6"></polyline>
+  </svg>
+);
+const FiChevronLeft = (props) => (
+  <svg
+    stroke="currentColor"
+    fill="none"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    height="1em"
+    width="1em"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <polyline points="15 18 9 12 15 6"></polyline>
+  </svg>
+);
 
 export default LedgerDesktopPage;

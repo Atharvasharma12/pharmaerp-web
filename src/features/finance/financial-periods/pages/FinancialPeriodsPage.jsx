@@ -93,6 +93,21 @@ const FinancialPeriodsPage = () => {
     [updateFinancialPeriodStatus, getFinancialPeriods, currentPage, pageSize, searchParams]
   );
 
+  const handleRefresh = useCallback(async () => {
+    try {
+      const query = {
+        page: currentPage,
+        limit: pageSize,
+        search: searchParams.search || undefined,
+        periodType: searchParams.periodType === "all" ? undefined : searchParams.periodType,
+        status: searchParams.status === "all" ? undefined : searchParams.status,
+      };
+      await getFinancialPeriods(query);
+    } catch (err) {
+      console.error("Failed to refresh financial periods:", err);
+    }
+  }, [getFinancialPeriods, currentPage, pageSize, searchParams]);
+
   const handleCreate = useCallback(() => {
     navigate(ROUTES.CREATE_FINANCIAL_PERIOD);
   }, [navigate]);
@@ -123,6 +138,7 @@ const FinancialPeriodsPage = () => {
     handlePageSizeChange,
     handleUpdateStatus,
     handleCreate,
+    handleRefresh,
   };
 
   return isMobile ? (

@@ -100,8 +100,6 @@ const bankTransactionSlice = createSlice({
         state.getBankTransactionsStatus = API_STATUS.SUCCESS;
 
         state.bankTransactions = action.payload?.bankTransactions || [];
-
-        state.message = "Bank transactions fetched successfully";
       })
       .addCase(getBankTransactions.rejected, (state, action) => {
         state.getBankTransactionsStatus = API_STATUS.ERROR;

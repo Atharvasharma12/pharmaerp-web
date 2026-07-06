@@ -7,27 +7,36 @@ import {
   FiBookOpen,
   FiRefreshCw,
   FiEye,
+  FiMoreVertical,
+  FiInbox,
 } from "react-icons/fi";
 
 import {
   AppBox,
   AppCard,
   AppHeading,
-  AppInput,
+  AppIconButton,
   AppSelect,
   AppStack,
   AppText,
   AppTablePagination,
+  AppMenu,
+  AppSearchInput,
+  AppTag,
   AppButton,
-  AppIconButton,
 } from "@/components";
-import { formatDate } from "@/utils";
+import { formatDate, formatCurrency } from "@/utils";
 
 const balanceTypeOptions = [
   { label: "All Balance Types", value: "all" },
   { label: "Debit Balances (DR)", value: "dr" },
   { label: "Credit Balances (CR)", value: "cr" },
 ];
+
+const balanceTypeColorMap = {
+  DR: "success",
+  CR: "error",
+};
 
 const AccountBalancesMobilePage = ({
   accountBalances = [],
@@ -46,30 +55,61 @@ const AccountBalancesMobilePage = ({
   handlePageSizeChange,
   handleRecalculate,
   handleViewDetails,
+  handleRefresh,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
 
-  const shouldRenderPagination = accountBalances.length > 0;
+  const getBalanceTypeBadge = (type) => {
+    const raw = String(type || "").toUpperCase();
+    return (
+      <AppTag
+        label={raw}
+        variant="soft"
+        size="small"
+        rounded="md"
+        colorVariant={balanceTypeColorMap[raw] || "neutral"}
+        sx={typeBadgeSx}
+      />
+    );
+  };
+
+  const shouldRenderPagination = totalBalances > pageSize;
 
   return (
     <section className="w-full bg-bg pb-6">
       <AppBox sx={containerSx}>
         {/* Mobile Page Header */}
         <AppBox sx={headerWrapperSx}>
-          <AppBox sx={{ minWidth: 0, flex: 1 }}>
-            <AppHeading level={1} weight={700} sx={pageTitleSx}>
-              Account Balances
-            </AppHeading>
-            <AppText variant="body2" sx={pageSubtitleSx}>
-              Audit aggregate chart of account balances
-            </AppText>
-          </AppBox>
+          <AppStack direction="row" align="center" justify="space-between" gap={1}>
+            <AppBox sx={{ minWidth: 0, flex: 1 }}>
+              <AppHeading level={1} weight={800} sx={pageTitleSx}>
+                Account Balances
+              </AppHeading>
+              <AppText variant="body2" sx={pageSubtitleSx}>
+                Audit aggregate chart of account balances
+              </AppText>
+            </AppBox>
+
+            <AppStack direction="row" align="center" gap={1}>
+              <AppIconButton
+                icon={<FiRefreshCw />}
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                rounded="md"
+                onClick={handleRefresh}
+                loading={isLoading}
+                disabled={isLoading}
+                sx={refreshIconBtnSx}
+              />
+            </AppStack>
+          </AppStack>
         </AppBox>
 
         {/* Feedback alerts */}
         {(error || message) && (
           <div
-            className={`mx-2 mb-3 p-3 text-[11.5px] font-semibold rounded-md flex justify-between items-center ${
+            className={`mx-0 mb-3 p-3 text-[11.5px] font-semibold rounded-md flex justify-between items-center ${
               error ? "bg-danger-soft text-danger" : "bg-success-soft text-success"
             }`}
           >
@@ -83,36 +123,40 @@ const AccountBalancesMobilePage = ({
           </div>
         )}
 
-        {/* Filters Toolbar */}
-        <div className="px-2 mb-3">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <AppInput
-                name="search"
-                value={searchParams.search}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search account name..."
-                startIcon={<FiSearch />}
-                size="small"
-                inputSx={compactFilterInputSx}
-              />
-            </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`px-3 py-1.5 border rounded-md flex items-center gap-1.5 text-[11.5px] font-bold transition ${
-                showFilters
-                  ? "bg-primary-soft border-primary/40 text-primary"
-                  : "bg-surface border-border text-text"
-              }`}
-            >
-              <FiFilter />
-              <span>Filters</span>
-              {showFilters ? <FiChevronUp /> : <FiChevronDown />}
-            </button>
-          </div>
+        {/* Search & Filter Row */}
+        <AppBox sx={searchFilterRowSx}>
+          <AppBox sx={{ flex: 1, minWidth: 0 }}>
+            <AppSearchInput
+              name="search"
+              value={searchParams.search}
+              onChange={handleSearchChange}
+              placeholder="Search account name..."
+              clearable
+              onClear={() => handleSearchChange("")}
+              size="large"
+              variant="bordered"
+              rounded="md"
+              sx={searchBarSx}
+              inputSx={searchInputSx}
+            />
+          </AppBox>
 
-          {/* Collapsible Panel */}
-          {showFilters && (
+          <AppButton
+            variant="outlined"
+            colorVariant="neutral"
+            size="medium"
+            rounded="md"
+            startIcon={<FiFilter />}
+            onClick={() => setShowFilters(!showFilters)}
+            sx={filterBtnSx}
+          >
+            Filter
+          </AppButton>
+        </AppBox>
+
+        {/* Collapsible Panel */}
+        {showFilters && (
+          <div className="px-0 mb-3">
             <AppCard
               variant="default"
               rounded="md"
@@ -136,11 +180,11 @@ const AccountBalancesMobilePage = ({
                 />
               </div>
             </AppCard>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Content list */}
-        <div className="px-2 space-y-3">
+        <div className="px-0">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
@@ -148,98 +192,186 @@ const AccountBalancesMobilePage = ({
               </AppText>
             </div>
           ) : accountBalances.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <FiBookOpen className="text-[40px] text-text-muted/40 mb-2" />
-              <AppHeading level={3} weight={600} sx={{ m: 0, fontSize: "13px", color: "var(--app-color-text)" }}>
-                No Balances Found
-              </AppHeading>
-              <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>
-                There are no balances matching your criteria.
-              </AppText>
-            </div>
-          ) : (
-            accountBalances.map((b) => {
-              const accName = b.accountId?.accountName || "Unknown Account";
-              const accCode = b.accountId?.accountCode || "-";
-
-              return (
-                <AppCard
-                  key={b._id}
-                  variant="default"
-                  rounded="lg"
-                  bordered
-                  shadow="none"
-                  padding="none"
-                  sx={balanceCardSx}
+            <AppCard
+              variant="default"
+              rounded="md"
+              bordered
+              padding="md"
+              sx={emptyCardContainerSx}
+            >
+              <AppStack
+                direction="column"
+                align="center"
+                justify="center"
+                gap={1}
+                sx={{ py: 4, width: "100%" }}
+              >
+                <FiInbox className="text-[28px] text-text-muted/60" />
+                <AppHeading
+                  level={3}
+                  weight={700}
+                  align="center"
+                  sx={{ m: 0, fontSize: "13px", width: "100%" }}
                 >
-                  <div className="p-3.5 space-y-2.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <span className="text-[10px] text-text-muted font-bold block tracking-wider font-mono">
-                          {accCode}
-                        </span>
-                        <span className="font-extrabold text-text text-[12.5px] mt-0.5 block">
-                          {accName}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[9.5px] text-text-muted font-normal block">Balance</span>
-                        <strong className="text-text font-extrabold text-[12px]">
-                          ₹{Number(b.balance || 0).toLocaleString("en-IN")}
-                          <span className="text-[8.5px] text-text-muted font-black ml-0.5 uppercase">
-                            {b.balanceType}
-                          </span>
-                        </strong>
-                      </div>
-                    </div>
+                  No balances found
+                </AppHeading>
+                <AppText variant="body2" align="center" sx={emptyStateSubTextSx}>
+                  Verify your filter settings or search query.
+                </AppText>
+              </AppStack>
+            </AppCard>
+          ) : (
+            <AppStack direction="column" gap={1.2}>
+              {accountBalances.map((b) => {
+                const accName = b.accountId?.accountName || "Unknown Account";
+                const accCode = b.accountId?.accountCode || "-";
 
-                    <div className="border-t border-border/50 pt-2 flex items-center justify-between text-[11px] text-text-muted">
-                      <div>
-                        <span>Debits: ₹{Number(b.debitTotal || 0).toLocaleString("en-IN")}</span>
-                        <span className="mx-1">|</span>
-                        <span>Credits: ₹{Number(b.creditTotal || 0).toLocaleString("en-IN")}</span>
-                      </div>
-                    </div>
-
-                    {/* Touch Action Controls */}
-                    <div className="border-t border-border/50 pt-2 flex gap-2 justify-end">
-                      <AppIconButton
-                        icon={<FiEye />}
-                        variant="outlined"
-                        colorVariant="neutral"
-                        size="small"
+                return (
+                  <AppCard
+                    key={b._id}
+                    variant="default"
+                    rounded="lg"
+                    bordered={false}
+                    shadow="sm"
+                    padding="none"
+                    sx={balanceCardSx}
+                  >
+                    <AppStack direction="row" align="center" gap={1.5} justify="space-between" sx={{ width: "100%" }}>
+                      {/* Left Info Block */}
+                      <AppStack
+                        direction="row"
+                        align="center"
+                        gap={1.5}
+                        sx={{ minWidth: 0, flex: 1, cursor: "pointer" }}
                         onClick={() => handleViewDetails(b.accountId?._id || b.accountId)}
-                        title="View Details"
-                      />
-                      <AppButton
-                        size="tiny"
-                        variant="text"
-                        colorVariant="neutral"
-                        startIcon={<FiRefreshCw />}
-                        onClick={() => handleRecalculate(b.accountId?._id || b.accountId)}
-                        disabled={isRecalculating}
                       >
-                        Recalculate
-                      </AppButton>
-                    </div>
-                  </div>
-                </AppCard>
-              );
-            })
-          )}
+                        {/* Left Icon Avatar Frame */}
+                        <AppBox sx={avatarFrameSx}>
+                          <FiBookOpen className="text-[24px]" />
+                        </AppBox>
 
-          {/* Conditional Pagination Footer */}
-          {shouldRenderPagination && (
-            <AppBox sx={paginationFooterWrapperSx}>
-              <AppTablePagination
-                page={currentPage}
-                pageSize={pageSize}
-                totalItems={totalBalances}
-                onPageChange={handlePageChange}
-              />
-            </AppBox>
+                        {/* Center Info Block */}
+                        <AppBox sx={{ minWidth: 0, flex: 1 }}>
+                          <AppHeading level={3} weight={700} sx={accountTitleSx}>
+                            {accName}
+                          </AppHeading>
+                          <AppText variant="body2" sx={accountCodeSx}>
+                            {accCode}
+                          </AppText>
+                          <AppText variant="body2" sx={debitCreditSummarySx}>
+                            Dr: {formatCurrency(b.debitTotal || 0)} | Cr: {formatCurrency(b.creditTotal || 0)}
+                          </AppText>
+                        </AppBox>
+                      </AppStack>
+
+                      {/* Right Stack */}
+                      <AppStack direction="row" align="center" gap={1} sx={{ flexShrink: 0 }}>
+                        <AppStack
+                          direction="column"
+                          align="flex-end"
+                          gap={0.5}
+                          sx={rightMetadataStackSx}
+                        >
+                          {getBalanceTypeBadge(b.balanceType)}
+                          <AppText variant="body2" sx={balanceValueSx}>
+                            {formatCurrency(b.balance || 0)}
+                          </AppText>
+                        </AppStack>
+
+                        {/* Dropdown Action Menu */}
+                        <AppMenu
+                          triggerIcon={<FiMoreVertical />}
+                          items={[
+                            {
+                              label: "View Details",
+                              icon: <FiEye />,
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                handleViewDetails(b.accountId?._id || b.accountId);
+                              },
+                            },
+                            {
+                              label: "Recalculate",
+                              icon: <FiRefreshCw />,
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                handleRecalculate(b.accountId?._id || b.accountId);
+                              },
+                              disabled: isRecalculating,
+                            },
+                          ]}
+                          triggerProps={{
+                            size: "small",
+                            sx: {
+                              color: "var(--app-color-text-muted)",
+                              backgroundColor: "transparent",
+                              border: "none",
+                              p: 0.5,
+                              minWidth: 0,
+                              "&:hover": {
+                                backgroundColor: "var(--app-color-surface-hover, #f1f5f9)",
+                              },
+                            },
+                          }}
+                        />
+                      </AppStack>
+                    </AppStack>
+                  </AppCard>
+                );
+              })}
+            </AppStack>
           )}
         </div>
+
+        {/* Conditional Pagination Footer */}
+        {shouldRenderPagination && (
+          <AppBox sx={paginationFooterWrapperSx}>
+            <AppTablePagination
+              page={currentPage}
+              pageSize={pageSize}
+              totalItems={totalBalances}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              showPageSize={false}
+              showSummary={true}
+              showFirstLast={false}
+              compact={true}
+              size="small"
+              align="center"
+              rounded="md"
+              sx={{
+                width: "100%",
+                justifyContent: "center !important",
+                alignItems: "center",
+                textAlign: "center",
+                "& .MuiPagination-root": {
+                  display: "flex !important",
+                  justifyContent: "center !important",
+                  width: "100%",
+                },
+                "& .MuiPagination-ul": {
+                  justifyContent: "center !important",
+                  width: "100%",
+                },
+              }}
+              summarySx={{
+                textAlign: "center",
+                width: "100%",
+                mb: 0.5,
+              }}
+              paginationSx={{
+                display: "flex !important",
+                justifyContent: "center !important",
+                alignItems: "center",
+                width: "100%",
+                "& .MuiPagination-ul": {
+                  justifyContent: "center !important",
+                  width: "100%",
+                },
+              }}
+            />
+          </AppBox>
+        )}
       </AppBox>
     </section>
   );
@@ -252,40 +384,177 @@ const containerSx = {
   width: "100%",
   maxWidth: { xs: 430, sm: 460 },
   mx: "auto",
-  px: 0.5,
+  px: 0,
   pt: 0,
   pb: 0,
 };
 
 const headerWrapperSx = {
-  pt: 1.5,
-  pb: 1,
-  px: 0.5,
+  pt: 1,
+  pb: 1.5,
+  px: 0,
 };
 
 const pageTitleSx = {
   m: 0,
-  fontSize: "18.5px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.3px",
+  fontSize: "21px",
+  fontWeight: 800,
   color: "var(--app-color-text)",
+  letterSpacing: "-0.5px",
 };
 
 const pageSubtitleSx = {
-  mt: 0.2,
-  fontSize: "11px",
-  lineHeight: "15px",
+  mt: 0.4,
+  fontSize: "11.5px",
   color: "var(--app-color-text-muted)",
 };
 
-const compactFilterInputSx = {
-  height: 32,
-  fontSize: "11.5px",
+const refreshIconBtnSx = {
+  height: 36,
+  width: 36,
+  minWidth: 36,
+  p: 0,
+};
+
+const searchFilterRowSx = {
+  display: "flex",
+  alignItems: "center",
+  gap: 1,
+  px: 0,
+  py: 0.5,
+};
+
+const filterBtnSx = {
+  height: 42,
+  px: 2,
+  fontSize: "13px",
+  fontWeight: 650,
+  borderColor: "var(--app-color-border)",
+  bgcolor: "var(--app-color-surface)",
+  flexShrink: 0,
+};
+
+const searchBarSx = {
+  width: "100%",
+  boxShadow: "none",
+};
+
+const searchInputSx = {
+  height: 42,
+  fontSize: "13px",
   bgcolor: "var(--app-color-surface)",
 };
 
+const emptyCardContainerSx = {
+  borderColor: "var(--app-color-border)",
+  bgcolor: "var(--app-color-surface)",
+  width: "100%",
+};
+
+const emptyStateSubTextSx = {
+  fontSize: "12px",
+  color: "var(--app-color-text-muted)",
+  px: 2,
+  textAlign: "center",
+  width: "100%",
+};
+
+const balanceCardSx = {
+  p: 1.5,
+  bgcolor: "var(--app-color-surface)",
+  border: "1px solid var(--app-color-border)",
+  boxShadow:
+    "0 2px 10px color-mix(in_srgb, var(--app-color-text) 5%, transparent)",
+  transition: "all 0.15s ease",
+  "&:active": {
+    transform: "scale(0.99)",
+  },
+};
+
+const avatarFrameSx = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 46,
+  height: 46,
+  borderRadius: "10px",
+  bgcolor: "color-mix(in_srgb, var(--app-color-primary) 10%, transparent)",
+  color: "var(--app-color-primary)",
+  flexShrink: 0,
+};
+
+const accountTitleSx = {
+  m: 0,
+  fontSize: "12px",
+  color: "var(--app-color-text)",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: 160,
+};
+
+const accountCodeSx = {
+  mt: 0.25,
+  fontSize: "10px",
+  fontFamily: "var(--font-mono, monospace)",
+  fontWeight: 700,
+  color: "var(--app-color-text-muted)",
+};
+
+const debitCreditSummarySx = {
+  mt: 0.5,
+  fontSize: "9.5px",
+  color: "var(--app-color-text-muted)",
+};
+
+const rightMetadataStackSx = {
+  pl: 1.5,
+  borderLeft:
+    "1px solid color-mix(in_srgb, var(--app-color-border) 60%, transparent)",
+  minWidth: { xs: 85, sm: 100 },
+  maxWidth: { xs: 100, sm: 120 },
+  flexShrink: 0,
+};
+
+const typeBadgeSx = {
+  height: 18,
+  fontSize: "8.5px",
+  fontWeight: 750,
+  px: 1,
+  textTransform: "uppercase",
+};
+
+const balanceValueSx = {
+  mt: 0.5,
+  fontSize: "11.5px",
+  fontWeight: 800,
+  color: "var(--app-color-text)",
+};
+
+const paginationFooterWrapperSx = {
+  px: 0,
+  pt: 2,
+  pb: 2,
+  borderTop: "1px solid var(--app-color-divider)",
+  display: "flex",
+  justifyContent: "center",
+  width: "100%",
+  "& > div": {
+    width: "100%",
+    display: "flex !important",
+    justifyContent: "center !important",
+    alignItems: "center",
+    "& .MuiPagination-ul": {
+      justifyContent: "center !important",
+    },
+    "& .MuiPagination-root": {
+      display: "flex !important",
+      justifyContent: "center !important",
+    },
+  },
+};
+
 const filterCardSx = {
-  mt: 1.5,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
@@ -297,18 +566,10 @@ const labelSx = {
   mb: 0.5,
 };
 
-const balanceCardSx = {
+const compactFilterInputSx = {
+  height: 32,
+  fontSize: "11.5px",
   bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const paginationFooterWrapperSx = {
-  pt: 2,
-  pb: 2,
-  display: "flex",
-  justifyContent: "center",
-  width: "100%",
-  "& > div": { width: "100%" },
 };
 
 export default AccountBalancesMobilePage;

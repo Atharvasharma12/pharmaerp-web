@@ -1,4 +1,6 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants";
 import {
   FiSearch,
   FiPlus,
@@ -11,6 +13,7 @@ import {
   FiAlertCircle,
   FiChevronLeft,
   FiChevronRight,
+  FiMoreVertical,
 } from "react-icons/fi";
 import { LuWallet, LuTrendingUp, LuActivity } from "react-icons/lu";
 
@@ -28,6 +31,7 @@ import {
   AppTag,
   AppText,
   PageHeader,
+  AppMenu,
 } from "@/components";
 
 const statusFilterOptions = [
@@ -63,6 +67,7 @@ const CashAccountsDesktopPage = ({
   clearError,
   clearMessage,
 }) => {
+  const navigate = useNavigate();
   const columns = [
     {
       id: "accountName",
@@ -142,50 +147,58 @@ const CashAccountsDesktopPage = ({
     {
       id: "actions",
       label: "Actions",
-      minWidth: 160,
+      minWidth: 80,
       align: "right",
-      render: (_, account) => (
-        <AppStack direction="row" gap={0.5} justify="flex-end" align="center">
-          {!account?.isPrimary && (
-            <AppIconButton
-              icon={<FiStar className="text-[14px]" />}
-              variant="text"
-              colorVariant="warning"
-              size="small"
-              rounded="md"
-              onClick={() => handleSetPrimary(account)}
-              title="Set as Primary"
+      render: (_, account) => {
+        const menuItems = [
+          {
+            id: "view",
+            label: "View Details",
+            icon: <FiEye />,
+            onClick: () => handleViewDetails(account),
+          },
+          {
+            id: "edit",
+            label: "Edit Account",
+            icon: <FiEdit2 />,
+            onClick: () => handleEditAccount(account),
+          },
+          {
+            id: "delete",
+            label: "Delete Account",
+            icon: <FiTrash2 />,
+            danger: true,
+            onClick: () => handleDeleteAccount(account),
+          },
+        ];
+
+        if (!account?.isPrimary) {
+          menuItems.unshift({
+            id: "set-primary",
+            label: "Set as Primary",
+            icon: <FiStar className="text-warning" />,
+            onClick: () => handleSetPrimary(account),
+          });
+        }
+
+        return (
+          <AppStack direction="row" gap={0.5} justify="flex-end" align="center">
+            <AppMenu
+              trigger={
+                <button
+                  type="button"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text hover:bg-surface-hover focus:outline-none cursor-pointer"
+                >
+                  <FiMoreVertical className="text-[16px]" />
+                </button>
+              }
+              items={menuItems}
+              dense
+              minWidth={150}
             />
-          )}
-          <AppIconButton
-            icon={<FiEye className="text-[14px]" />}
-            variant="text"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-            onClick={() => handleViewDetails(account)}
-            title="View Details"
-          />
-          <AppIconButton
-            icon={<FiEdit2 className="text-[14px]" />}
-            variant="text"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-            onClick={() => handleEditAccount(account)}
-            title="Edit"
-          />
-          <AppIconButton
-            icon={<FiTrash2 className="text-[14px]" />}
-            variant="text"
-            colorVariant="danger"
-            size="small"
-            rounded="md"
-            onClick={() => handleDeleteAccount(account)}
-            title="Delete"
-          />
-        </AppStack>
-      ),
+          </AppStack>
+        );
+      },
     },
   ];
 
@@ -203,9 +216,9 @@ const CashAccountsDesktopPage = ({
               size="small"
               variant="text"
               items={[
-                { label: "Dashboard" },
-                { label: "Finance & Accounting" },
-                { label: "Treasury" },
+                { label: "Dashboard", onClick: () => navigate(ROUTES.DASHBOARD) },
+                { label: "Finance & Accounting", onClick: () => navigate(ROUTES.FINANCE) },
+                { label: "Treasury", onClick: () => navigate(ROUTES.TREASURY) },
                 { label: "Cash Accounts", current: true },
               ]}
               sx={breadcrumbSx}

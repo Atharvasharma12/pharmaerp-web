@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -64,56 +65,56 @@ const useCheque = () => {
 
   const cancelChequeStatus = useSelector(selectCancelChequeStatus);
 
-  const submitCreateCheque = (payload) => {
+  const submitCreateCheque = useCallback((payload) => {
     return dispatch(createCheque(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchCheques = (params = {}) => {
+  const fetchCheques = useCallback((params = {}) => {
     return dispatch(getCheques(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchChequeById = (chequeId) => {
+  const fetchChequeById = useCallback((chequeId) => {
     return dispatch(getChequeById(chequeId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitDepositCheque = (chequeId) => {
+  const submitDepositCheque = useCallback((chequeId) => {
     return dispatch(depositCheque(chequeId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitClearCheque = (chequeId, payload = {}) => {
+  const submitClearCheque = useCallback((chequeId, payload = {}) => {
     return dispatch(
       clearCheque({
         chequeId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitBounceCheque = (chequeId, payload = {}) => {
+  const submitBounceCheque = useCallback((chequeId, payload = {}) => {
     return dispatch(
       bounceCheque({
         chequeId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitCancelCheque = (chequeId, payload = {}) => {
+  const submitCancelCheque = useCallback((chequeId, payload = {}) => {
     return dispatch(
       cancelCheque({
         chequeId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearChequeError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearChequeMessage());
-  };
+  }, [dispatch]);
 
   const saveCurrentCheque = (payload) => {
     dispatch(setCurrentCheque(payload));

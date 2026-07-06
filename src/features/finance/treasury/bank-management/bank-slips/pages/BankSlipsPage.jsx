@@ -43,25 +43,29 @@ const BankSlipsPage = () => {
   const [pageSize, setPageSize] = useState(10);
 
   // Fetch list when pagination or filters change
+  const fetchBankSlipsData = useCallback(async () => {
+    try {
+      const query = {
+        page: currentPage,
+        limit: pageSize,
+        search: searchParams.search || undefined,
+        status: searchParams.status === "all" ? undefined : searchParams.status,
+        slipType: searchParams.slipType === "all" ? undefined : searchParams.slipType,
+        bankAccountId: searchParams.bankAccountId === "all" ? undefined : searchParams.bankAccountId,
+      };
+      await getBankSlips(query);
+    } catch (err) {
+      console.error("Failed to query bank slips list:", err);
+    }
+  }, [currentPage, pageSize, searchParams, getBankSlips]);
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const query = {
-          page: currentPage,
-          limit: pageSize,
-          search: searchParams.search || undefined,
-          status: searchParams.status === "all" ? undefined : searchParams.status,
-          slipType: searchParams.slipType === "all" ? undefined : searchParams.slipType,
-          bankAccountId: searchParams.bankAccountId === "all" ? undefined : searchParams.bankAccountId,
-        };
-        await getBankSlips(query);
-      } catch (err) {
-        console.error("Failed to query bank slips list:", err);
-      }
-    };
-    loadData();
-    // getBankSlips is excluded from dependencies to prevent infinite dispatch rendering loops
-  }, [currentPage, pageSize, searchParams]);
+    fetchBankSlipsData();
+  }, [fetchBankSlipsData]);
+
+  const handleRefresh = useCallback(() => {
+    fetchBankSlipsData();
+  }, [fetchBankSlipsData]);
 
   const handleSearchChange = useCallback((value) => {
     setSearchParams((prev) => ({ ...prev, search: value }));
@@ -103,6 +107,7 @@ const BankSlipsPage = () => {
     handleFilterChange,
     handlePageChange,
     handlePageSizeChange,
+    handleRefresh,
   };
 
   return isMobile ? (

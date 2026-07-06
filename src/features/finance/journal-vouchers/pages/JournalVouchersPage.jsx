@@ -66,6 +66,21 @@ const JournalVouchersPage = () => {
     setCurrentPage(1);
   }, []);
 
+  const handleRefresh = useCallback(async () => {
+    try {
+      const query = {
+        page: currentPage,
+        limit: pageSize,
+        search: searchParams.search || undefined,
+        status: searchParams.status === "all" ? undefined : searchParams.status,
+        voucherType: searchParams.voucherType === "all" ? undefined : searchParams.voucherType,
+      };
+      await getJournalVouchers(query);
+    } catch (err) {
+      console.error("Failed to refresh journal vouchers:", err);
+    }
+  }, [getJournalVouchers, currentPage, pageSize, searchParams]);
+
   const totalVouchers = useMemo(() => {
     return journalVouchers?.length || 0;
   }, [journalVouchers]);
@@ -85,6 +100,7 @@ const JournalVouchersPage = () => {
     handleFilterChange,
     handlePageChange,
     handlePageSizeChange,
+    handleRefresh,
   };
 
   return isMobile ? (

@@ -102,8 +102,6 @@ const cashDenominationSlice = createSlice({
         state.getCashDenominationsStatus = API_STATUS.SUCCESS;
 
         state.cashDenominations = action.payload?.cashDenominations || [];
-
-        state.message = "Cash denominations fetched successfully";
       })
       .addCase(getCashDenominations.rejected, (state, action) => {
         state.getCashDenominationsStatus = API_STATUS.ERROR;

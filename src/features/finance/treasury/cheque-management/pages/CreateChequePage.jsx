@@ -84,7 +84,7 @@ const CreateChequePage = () => {
 
   const accountOptions = useMemo(() => {
     return accounts.map((a) => ({
-      label: `${a.name} (${a.code || ""})`,
+      label: `${a.accountName} (${a.accountCode || ""})`,
       value: a._id,
     }));
   }, [accounts]);

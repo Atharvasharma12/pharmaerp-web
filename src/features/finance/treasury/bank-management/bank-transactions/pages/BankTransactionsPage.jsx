@@ -43,25 +43,29 @@ const BankTransactionsPage = () => {
   const [pageSize, setPageSize] = useState(10);
 
   // Trigger query list fetch
+  const fetchTransactionsData = useCallback(async () => {
+    try {
+      const query = {
+        page: currentPage,
+        limit: pageSize,
+        search: searchParams.search || undefined,
+        status: searchParams.status === "all" ? undefined : searchParams.status,
+        transactionType: searchParams.transactionType === "all" ? undefined : searchParams.transactionType,
+        bankAccountId: searchParams.bankAccountId === "all" ? undefined : searchParams.bankAccountId,
+      };
+      await getBankTransactions(query);
+    } catch (err) {
+      console.error("Failed to query bank transactions list:", err);
+    }
+  }, [currentPage, pageSize, searchParams, getBankTransactions]);
+
   useEffect(() => {
-    const executeQuery = async () => {
-      try {
-        const query = {
-          page: currentPage,
-          limit: pageSize,
-          search: searchParams.search || undefined,
-          status: searchParams.status === "all" ? undefined : searchParams.status,
-          transactionType: searchParams.transactionType === "all" ? undefined : searchParams.transactionType,
-          bankAccountId: searchParams.bankAccountId === "all" ? undefined : searchParams.bankAccountId,
-        };
-        await getBankTransactions(query);
-      } catch (err) {
-        console.error("Failed to query bank transactions list:", err);
-      }
-    };
-    executeQuery();
-    // Exclude getBankTransactions from dependencies to avoid infinite dispatch re-fetches
-  }, [currentPage, pageSize, searchParams]);
+    fetchTransactionsData();
+  }, [fetchTransactionsData]);
+
+  const handleRefresh = useCallback(() => {
+    fetchTransactionsData();
+  }, [fetchTransactionsData]);
 
   const handleSearchChange = useCallback((value) => {
     setSearchParams((prev) => ({ ...prev, search: value }));
@@ -102,6 +106,7 @@ const BankTransactionsPage = () => {
     handleFilterChange,
     handlePageChange,
     handlePageSizeChange,
+    handleRefresh,
   };
 
   return isMobile ? (

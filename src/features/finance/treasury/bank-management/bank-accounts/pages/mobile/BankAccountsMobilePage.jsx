@@ -11,6 +11,7 @@ import {
   FiCopy,
   FiCheck,
   FiRefreshCw,
+  FiMoreVertical,
 } from "react-icons/fi";
 import { LuBuilding2 } from "react-icons/lu";
 
@@ -25,22 +26,10 @@ import {
   AppTag,
   AppText,
   AppIconButton,
-  AppStatusBadge,
+  AppMenu,
 } from "@/components";
 
 import { BANK_ACCOUNT_TYPE } from "../../constants/bankAccount.constant";
-
-const statusColorMap = {
-  active: "success",
-  inactive: "neutral",
-};
-
-const typeColorMap = {
-  CURRENT: "primary",
-  SAVINGS: "success",
-  OVERDRAFT: "warning",
-  CASH_CREDIT: "purple",
-};
 
 // Dynamic CSS-based Bank Brand Logos
 const BankLogo = ({ bankName }) => {
@@ -152,17 +141,17 @@ const BankAccountsMobilePage = ({
   }, [accounts, currentPage, pageSize]);
 
   return (
-    <section className="w-full bg-bg">
+    <section className="w-full bg-bg pb-6">
       <AppBox sx={containerSx}>
         {/* Header Block */}
         <AppBox sx={headerWrapperSx}>
           <AppStack direction="row" align="center" justify="space-between">
             <AppBox sx={{ minWidth: 0, flex: 1, pr: 1.5 }}>
-              <AppHeading level={1} weight={700} sx={pageTitleSx}>
+              <AppHeading level={1} weight={800} sx={pageTitleSx}>
                 Bank Accounts
               </AppHeading>
               <AppText variant="body2" sx={pageSubtitleSx}>
-                Manage all your bank accounts in one place.
+                Manage all your bank accounts in one place
               </AppText>
             </AppBox>
             <AppStack direction="row" gap={1} align="center">
@@ -170,8 +159,8 @@ const BankAccountsMobilePage = ({
                 icon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
                 variant="outlined"
                 colorVariant="neutral"
-                size="medium"
-                rounded="full"
+                size="small"
+                rounded="md"
                 onClick={handleRefresh}
                 disabled={isLoading}
                 sx={refreshMobileBtnSx}
@@ -180,8 +169,8 @@ const BankAccountsMobilePage = ({
                 icon={<FiPlus />}
                 variant="filled"
                 colorVariant="success"
-                size="medium"
-                rounded="full"
+                size="small"
+                rounded="md"
                 onClick={handleAddAccount}
                 sx={addAccountBtnSx}
               />
@@ -189,93 +178,81 @@ const BankAccountsMobilePage = ({
           </AppStack>
         </AppBox>
 
-        {/* Search Row */}
-        <AppBox sx={searchWrapperSx}>
-          <AppSearchInput
-            name="search"
-            value={filters.search}
-            onChange={handleSearchChange}
-            placeholder="Search bank accounts by name, code..."
-            clearable
-            onClear={() => handleSearchChange("")}
-            size="large"
-            variant="bordered"
-            rounded="md"
-            sx={searchBarSx}
-            inputSx={searchInputSx}
-          />
-        </AppBox>
+        {/* Search & Filter Row */}
+        <AppBox sx={searchFilterRowSx}>
+          <AppBox sx={{ flex: 1, minWidth: 0 }}>
+            <AppSearchInput
+              name="search"
+              value={filters.search}
+              onChange={handleSearchChange}
+              placeholder="Search bank accounts..."
+              clearable
+              onClear={() => handleSearchChange("")}
+              size="large"
+              variant="bordered"
+              rounded="md"
+              sx={searchBarSx}
+              inputSx={searchInputSx}
+            />
+          </AppBox>
 
-        {/* Filter Trigger Row */}
-        <AppBox sx={filterActionRowSx}>
           <AppButton
             variant="outlined"
             colorVariant="neutral"
-            size="small"
+            size="medium"
             rounded="md"
             startIcon={<FiFilter />}
             onClick={() => setShowFilters(!showFilters)}
-            sx={filterToggleBtnSx}
+            sx={filterBtnSx}
           >
-            {showFilters ? "Hide Filters" : "Show Filters"}
+            Filter
           </AppButton>
-
-          <AppText variant="body2" sx={accountCountTextSx}>
-            {totalAccounts} Accounts found
-          </AppText>
         </AppBox>
 
         {/* Expandable local filters */}
         {showFilters && (
-          <AppCard variant="default" rounded="md" bordered sx={filtersCardSx}>
-            <AppStack direction="column" gap={1.5}>
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-bold text-text-muted uppercase">Account Type</label>
-                <select
-                  name="accountType"
-                  value={filters.accountType}
-                  onChange={handleFilterChange}
-                  className="w-full h-9 px-2 text-[12.5px] border border-border rounded-md bg-surface"
-                >
-                  <option value="all">All Types</option>
-                  {Object.values(BANK_ACCOUNT_TYPE).map((t) => (
-                    <option key={t} value={t}>
-                      {t === "CURRENT" ? "Current Account" : t === "SAVINGS" ? "Savings Account" : t}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div className="px-0 mb-3">
+            <AppCard variant="default" rounded="md" bordered padding="none" sx={filtersCardSx}>
+              <div className="p-3.5 space-y-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-bold text-text-muted uppercase">Account Type</label>
+                  <select
+                    name="accountType"
+                    value={filters.accountType}
+                    onChange={handleFilterChange}
+                    className="w-full h-[36px] px-2 text-[12.5px] border border-border rounded-md bg-surface text-text"
+                  >
+                    <option value="all">All Types</option>
+                    {Object.values(BANK_ACCOUNT_TYPE).map((t) => (
+                      <option key={t} value={t}>
+                        {t === "CURRENT" ? "Current Account" : t === "SAVINGS" ? "Savings Account" : t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-bold text-text-muted uppercase">Status</label>
-                <select
-                  name="status"
-                  value={filters.status}
-                  onChange={handleFilterChange}
-                  className="w-full h-9 px-2 text-[12.5px] border border-border rounded-md bg-surface"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-bold text-text-muted uppercase">Status</label>
+                  <select
+                    name="status"
+                    value={filters.status}
+                    onChange={handleFilterChange}
+                    className="w-full h-[36px] px-2 text-[12.5px] border border-border rounded-md bg-surface text-text"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
               </div>
-
-              <AppButton
-                variant="text"
-                colorVariant="primary"
-                onClick={handleClearFilters}
-                sx={{ alignSelf: "flex-end", fontSize: "11.5px", p: 0.5 }}
-              >
-                Clear All Filters
-              </AppButton>
-            </AppStack>
-          </AppCard>
+            </AppCard>
+          </div>
         )}
 
         {/* Bank Account Cards List */}
-        <AppBox sx={listingListWrapperSx}>
+        <div className="px-0">
           {!hasFilteredAccounts ? (
-            <AppCard variant="default" rounded="md" bordered padding="md" sx={emptyCardContainerSx}>
+            <AppCard variant="default" rounded="lg" bordered padding="md" sx={emptyCardContainerSx}>
               <AppStack direction="column" align="center" justify="center" gap={1} sx={{ py: 4, width: "100%" }}>
                 <FiSearch className="text-[28px] text-text-muted/60" />
                 <AppHeading level={3} weight={700} align="center" sx={{ m: 0, fontSize: "13px", width: "100%" }}>
@@ -298,14 +275,20 @@ const BankAccountsMobilePage = ({
                   key={account._id}
                   variant="default"
                   rounded="lg"
-                  bordered={false}
+                  bordered
                   shadow="sm"
                   padding="none"
                   sx={accountCardSx}
                 >
-                  {/* Top segment with Bank logo, title info, and balance */}
-                  <div className="p-3.5 flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
+                  <AppStack direction="row" align="center" gap={1.5} justify="space-between" sx={{ width: "100%", p: 1.5 }}>
+                    {/* Left Info Block */}
+                    <AppStack
+                      direction="row"
+                      align="center"
+                      gap={1.5}
+                      sx={{ minWidth: 0, flex: 1, cursor: "pointer" }}
+                      onClick={() => handleViewDetails(account)}
+                    >
                       <BankLogo bankName={account.displayBank} />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -322,15 +305,76 @@ const BankAccountsMobilePage = ({
                           {account.displayBank} • {account.displayBranch}
                         </AppText>
                       </div>
-                    </div>
+                    </AppStack>
 
-                    <div className="text-right shrink-0">
-                      <span className="text-[10px] text-text-muted block">Balance</span>
-                      <span className="text-[13.5px] font-extrabold text-text block mt-0.5">
-                        ₹{account.balance?.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  </div>
+                    {/* Right Stack */}
+                    <AppStack direction="row" align="center" gap={1} sx={{ flexShrink: 0 }}>
+                      <AppStack
+                        direction="column"
+                        align="flex-end"
+                        gap={0.5}
+                        sx={rightMetadataStackSx}
+                      >
+                        <span className="text-[9.5px] text-text-muted block">Balance</span>
+                        <span className="text-[12.5px] font-extrabold text-text block mt-0.5">
+                          ₹{account.balance?.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </AppStack>
+
+                      {/* Dropdown Action Menu */}
+                      <AppMenu
+                        triggerIcon={<FiMoreVertical />}
+                        items={[
+                          !account.isPrimary && {
+                            label: "Set as Primary",
+                            icon: <FiStar className="text-warning" />,
+                            onClick: (e) => {
+                              e.stopPropagation();
+                              handleSetPrimary(account);
+                            },
+                          },
+                          {
+                            label: "View Details",
+                            icon: <FiEye />,
+                            onClick: (e) => {
+                              e.stopPropagation();
+                              handleViewDetails(account);
+                            },
+                          },
+                          {
+                            label: "Edit Account",
+                            icon: <FiEdit2 />,
+                            onClick: (e) => {
+                              e.stopPropagation();
+                              handleEditAccount(account);
+                            },
+                          },
+                          {
+                            label: "Delete Account",
+                            icon: <FiTrash2 />,
+                            danger: true,
+                            onClick: (e) => {
+                              e.stopPropagation();
+                              handleDeleteAccount(account);
+                            },
+                          },
+                        ].filter(Boolean)}
+                        triggerProps={{
+                          size: "small",
+                          sx: {
+                            color: "var(--app-color-text-muted)",
+                            backgroundColor: "transparent",
+                            border: "none",
+                            p: 0.5,
+                            minWidth: 0,
+                            "&:hover": {
+                              backgroundColor: "var(--app-color-surface-hover, #f1f5f9)",
+                            },
+                          },
+                        }}
+                      />
+                    </AppStack>
+                  </AppStack>
 
                   {/* Mid Info Grid Section */}
                   <div className="px-3.5 pb-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[11px] border-t border-dashed border-border/80 pt-3">
@@ -355,6 +399,13 @@ const BankAccountsMobilePage = ({
                     </div>
 
                     <div>
+                      <span className="text-text-muted block font-semibold">IFSC Code</span>
+                      <span className="font-mono font-bold text-text block mt-0.5">
+                        {account.displayIfsc || "-"}
+                      </span>
+                    </div>
+
+                    <div>
                       <span className="text-text-muted block font-semibold">Registered Mobile</span>
                       <span className="font-semibold text-text block mt-0.5">
                         {account.registeredMobile || "-"}
@@ -373,74 +424,14 @@ const BankAccountsMobilePage = ({
                         />
                       </div>
                     </div>
-
-                    <div className="flex flex-col items-start">
-                      <span className="text-text-muted block font-semibold">Status</span>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${account.displayStatus === "active" ? "bg-success" : "bg-danger"}`}></span>
-                        <span
-                          className={`text-[10px] font-bold capitalize ${
-                            account.displayStatus === "active" ? "text-success" : "text-danger"
-                          }`}
-                        >
-                          {account.displayStatus}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions segment at the bottom of the card */}
-                  <div className="flex items-center justify-between border-t border-border px-3.5 py-2.5 bg-surface-alt/10 rounded-b-lg">
-                    <div>
-                      {account.displayIfsc && (
-                        <span className="text-[10px] font-mono text-text-muted bg-surface-alt px-1.5 py-0.5 rounded border border-border">
-                          IFSC: {account.displayIfsc}
-                        </span>
-                      )}
-                    </div>
-                    <AppStack direction="row" gap={1} align="center">
-                      {!account.isPrimary && (
-                        <AppIconButton
-                          icon={<FiStar className="text-[13px]" />}
-                          variant="text"
-                          colorVariant="warning"
-                          size="small"
-                          rounded="md"
-                          onClick={() => handleSetPrimary(account)}
-                        />
-                      )}
-                      <AppIconButton
-                        icon={<FiEye className="text-[13px]" />}
-                        variant="text"
-                        colorVariant="neutral"
-                        size="small"
-                        rounded="md"
-                        onClick={() => handleViewDetails(account)}
-                      />
-                      <AppIconButton
-                        icon={<FiEdit2 className="text-[13px]" />}
-                        variant="text"
-                        colorVariant="neutral"
-                        size="small"
-                        rounded="md"
-                        onClick={() => handleEditAccount(account)}
-                      />
-                      <AppIconButton
-                        icon={<FiTrash2 className="text-[13px]" />}
-                        variant="text"
-                        colorVariant="danger"
-                        size="small"
-                        rounded="md"
-                        onClick={() => handleDeleteAccount(account)}
-                      />
-                    </AppStack>
                   </div>
                 </AppCard>
               ))}
             </AppStack>
           )}
-        </AppBox>
+        </div>
 
+        {/* Conditional Pagination Footer */}
         {shouldRenderPagination && (
           <AppBox sx={paginationFooterWrapperSx}>
             <AppTablePagination
@@ -456,12 +447,35 @@ const BankAccountsMobilePage = ({
               size="small"
               align="center"
               rounded="md"
-              sx={{ textAlign: "center", alignItems: "center" }}
-              summarySx={{ textAlign: "center", width: "100%", mb: 0.5 }}
-              paginationSx={{
-                justifyContent: "center",
+              sx={{
                 width: "100%",
-                "& .MuiPagination-ul": { justifyContent: "center" },
+                justifyContent: "center !important",
+                alignItems: "center",
+                textAlign: "center",
+                "& .MuiPagination-root": {
+                  display: "flex !important",
+                  justifyContent: "center !important",
+                  width: "100%",
+                },
+                "& .MuiPagination-ul": {
+                  justifyContent: "center !important",
+                  width: "100%",
+                },
+              }}
+              summarySx={{
+                textAlign: "center",
+                width: "100%",
+                mb: 0.5,
+              }}
+              paginationSx={{
+                display: "flex !important",
+                justifyContent: "center !important",
+                alignItems: "center",
+                width: "100%",
+                "& .MuiPagination-ul": {
+                  justifyContent: "center !important",
+                  width: "100%",
+                },
               }}
             />
           </AppBox>
@@ -471,6 +485,7 @@ const BankAccountsMobilePage = ({
   );
 };
 
+// MUI style configurations
 const containerSx = {
   position: "relative",
   zIndex: 1,
@@ -484,39 +499,54 @@ const containerSx = {
 
 const headerWrapperSx = {
   pt: 1,
-  pb: 1,
+  pb: 1.5,
   px: 0,
 };
 
 const pageTitleSx = {
   m: 0,
-  fontSize: "19px",
+  fontSize: "21px",
+  fontWeight: 800,
   color: "var(--app-color-text)",
-  letterSpacing: "-0.3px",
+  letterSpacing: "-0.5px",
 };
 
 const pageSubtitleSx = {
-  mt: 0.5,
-  fontSize: "12px",
+  mt: 0.4,
+  fontSize: "11.5px",
   color: "var(--app-color-text-muted)",
-};
-
-const addAccountBtnSx = {
-  boxShadow: "var(--app-shadow-md)",
-  bgcolor: "#00b85c",
-  color: "white",
-  "&:hover": { bgcolor: "#009e4f" },
 };
 
 const refreshMobileBtnSx = {
-  borderColor: "var(--app-color-border)",
-  color: "var(--app-color-text-muted)",
-  bgcolor: "var(--app-color-surface)",
+  height: 36,
+  width: 36,
+  minWidth: 36,
+  p: 0,
 };
 
-const searchWrapperSx = {
+const addAccountBtnSx = {
+  height: 36,
+  width: 36,
+  minWidth: 36,
+  p: 0,
+};
+
+const searchFilterRowSx = {
+  display: "flex",
+  alignItems: "center",
+  gap: 1,
   px: 0,
-  py: 1,
+  py: 0.5,
+};
+
+const filterBtnSx = {
+  height: 42,
+  px: 2,
+  fontSize: "13px",
+  fontWeight: 650,
+  borderColor: "var(--app-color-border)",
+  bgcolor: "var(--app-color-surface)",
+  flexShrink: 0,
 };
 
 const searchBarSx = {
@@ -528,41 +558,6 @@ const searchInputSx = {
   height: 42,
   fontSize: "13px",
   bgcolor: "var(--app-color-surface)",
-};
-
-const filterActionRowSx = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  px: 0,
-  py: 1.5,
-};
-
-const filterToggleBtnSx = {
-  height: 36,
-  px: 1.5,
-  fontSize: "12.5px",
-  fontWeight: 600,
-  borderColor: "var(--app-color-border)",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const accountCountTextSx = {
-  fontSize: "12px",
-  fontWeight: 600,
-  color: "var(--app-color-text-muted)",
-};
-
-const filtersCardSx = {
-  p: 1.5,
-  mb: 2.5,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const listingListWrapperSx = {
-  px: 0,
-  py: 1,
 };
 
 const emptyCardContainerSx = {
@@ -580,10 +575,10 @@ const emptyStateSubTextSx = {
 };
 
 const accountCardSx = {
-  p: 1.5,
   bgcolor: "var(--app-color-surface)",
-  border: "none",
-  boxShadow: "0 2px 8px color-mix(in_srgb, var(--app-color-text) 5%, transparent)",
+  border: "1px solid var(--app-color-border)",
+  boxShadow:
+    "0 2px 10px color-mix(in_srgb, var(--app-color-text) 5%, transparent)",
   transition: "all 0.15s ease",
   "&:active": {
     transform: "scale(0.99)",
@@ -592,7 +587,7 @@ const accountCardSx = {
 
 const accountTitleSx = {
   m: 0,
-  fontSize: "13px",
+  fontSize: "12px",
   color: "var(--app-color-text)",
   whiteSpace: "nowrap",
   overflow: "hidden",
@@ -602,27 +597,17 @@ const accountTitleSx = {
 
 const branchTextSx = {
   mt: 0.25,
-  fontSize: "10.5px",
+  fontSize: "10px",
   color: "var(--app-color-text-muted)",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  maxWidth: 220,
 };
 
-const accountNumSx = {
-  fontSize: "11.5px",
-  fontWeight: 650,
-  fontFamily: "monospace",
-  color: "var(--app-color-text)",
-};
-
-const statusBadgeSx = {
-  height: 18,
-  fontSize: "8.5px",
-  fontWeight: 750,
-  px: 1,
-  textTransform: "capitalize",
+const rightMetadataStackSx = {
+  pl: 1.5,
+  borderLeft:
+    "1px solid color-mix(in_srgb, var(--app-color-border) 60%, transparent)",
+  minWidth: { xs: 85, sm: 100 },
+  maxWidth: { xs: 100, sm: 120 },
+  flexShrink: 0,
 };
 
 const typeTagSx = {
@@ -630,6 +615,7 @@ const typeTagSx = {
   fontSize: "8.5px",
   fontWeight: 750,
   px: 1,
+  textTransform: "uppercase",
 };
 
 const paginationFooterWrapperSx = {
@@ -640,7 +626,24 @@ const paginationFooterWrapperSx = {
   display: "flex",
   justifyContent: "center",
   width: "100%",
-  "& > div": { width: "100%" },
+  "& > div": {
+    width: "100%",
+    display: "flex !important",
+    justifyContent: "center !important",
+    alignItems: "center",
+    "& .MuiPagination-ul": {
+      justifyContent: "center !important",
+    },
+    "& .MuiPagination-root": {
+      display: "flex !important",
+      justifyContent: "center !important",
+    },
+  },
+};
+
+const filtersCardSx = {
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
 };
 
 export default BankAccountsMobilePage;

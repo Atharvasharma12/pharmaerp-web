@@ -119,6 +119,10 @@ const LedgerPage = () => {
     return accounts.find((acc) => acc._id === filters.accountId) || null;
   }, [filters.accountId, accounts]);
 
+  const handleRefresh = useCallback(() => {
+    executeQuery();
+  }, [executeQuery]);
+
   const pageProps = {
     ledgerEntries: ledgerEntries || [],
     accountOptions,
@@ -141,6 +145,7 @@ const LedgerPage = () => {
     handlePageChange,
     handlePageSizeChange,
     handleRecalculate,
+    handleRefresh,
   };
 
   return isMobile ? (

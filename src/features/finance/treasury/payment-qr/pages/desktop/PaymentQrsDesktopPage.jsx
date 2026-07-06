@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiSearch,
   FiPlus,
@@ -10,10 +11,9 @@ import {
   FiInbox,
   FiAlertCircle,
   FiCopy,
-  FiChevronLeft,
-  FiChevronRight,
+  FiMoreVertical,
 } from "react-icons/fi";
-import { LuQrCode, LuTrendingUp, LuActivity } from "react-icons/lu";
+import { LuQrCode } from "react-icons/lu";
 
 import {
   AppBox,
@@ -28,8 +28,11 @@ import {
   AppTable,
   AppTag,
   AppText,
+  AppMenu,
   PageHeader,
+  AppTablePagination,
 } from "@/components";
+import { ROUTES } from "@/constants";
 
 const providerOptions = [
   { label: "All Providers", value: "all" },
@@ -74,6 +77,7 @@ const PaymentQrsDesktopPage = ({
   clearError,
   clearMessage,
 }) => {
+  const navigate = useNavigate();
   const hasFilteredQrs = pagedQrs.length > 0;
 
   const handleCopyUpiId = (upiId) => {
@@ -102,19 +106,17 @@ const PaymentQrsDesktopPage = ({
     () => [
       {
         id: "provider",
-        key: "provider",
         label: "Provider",
         minWidth: 100,
         render: (_, row) => getProviderBadge(row.provider),
       },
       {
         id: "upiId",
-        key: "upiId",
         label: "UPI Address",
         minWidth: 200,
         render: (_, row) => (
           <div className="flex items-center gap-1.5 group">
-            <AppText variant="body2" sx={{ fontWeight: 650, color: "var(--app-color-text)" }}>
+            <AppText variant="body2" sx={{ fontWeight: 650, color: "var(--app-color-text)", fontFamily: "var(--font-mono, monospace)" }}>
               {row.upiId}
             </AppText>
             <AppIconButton
@@ -131,18 +133,16 @@ const PaymentQrsDesktopPage = ({
       },
       {
         id: "label",
-        key: "label",
         label: "Label / Name",
         minWidth: 150,
         render: (_, row) => (
-          <AppText variant="body2" sx={{ color: "var(--app-color-text)" }}>
+          <AppText variant="body2" sx={{ color: "var(--app-color-text)", fontWeight: 600 }}>
             {row.label || "-"}
           </AppText>
         ),
       },
       {
         id: "bankAccount",
-        key: "bankAccountId",
         label: "Linked Bank",
         minWidth: 200,
         render: (_, row) => {
@@ -162,15 +162,14 @@ const PaymentQrsDesktopPage = ({
       },
       {
         id: "status",
-        key: "status",
         label: "Status",
         minWidth: 110,
         render: (_, row) => {
           const isActive = String(row.status || "").toUpperCase() === "ACTIVE";
           return (
             <div className="flex items-center">
-              <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isActive ? "bg-success" : "bg-danger"}`} />
-              <AppText variant="body2" sx={{ textTransform: "capitalize", fontWeight: 650, color: isActive ? "var(--app-color-success)" : "var(--app-color-danger)" }}>
+              <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isActive ? "bg-[#2b8a3e]" : "bg-[#fa5252]"}`} />
+              <AppText variant="body2" sx={{ textTransform: "capitalize", fontWeight: 650, color: isActive ? "#2b8a3e" : "#fa5252" }}>
                 {String(row.status || "").toLowerCase()}
               </AppText>
             </div>
@@ -179,56 +178,74 @@ const PaymentQrsDesktopPage = ({
       },
       {
         id: "primary",
-        key: "isPrimary",
         label: "Primary",
         minWidth: 80,
         align: "center",
         render: (_, row) => (
-          <AppIconButton
-            icon={<FiStar className={row.isPrimary ? "fill-warning text-warning" : "text-text-muted"} />}
-            variant="text"
-            colorVariant={row.isPrimary ? "warning" : "neutral"}
-            size="small"
-            onClick={() => handleSetPrimary(row._id)}
-            disabled={row.isPrimary}
-          />
+          <FiStar className={row.isPrimary ? "fill-warning text-warning" : "text-text-muted/40"} />
         ),
       },
       {
         id: "actions",
-        key: "actions",
         label: "Actions",
-        minWidth: 120,
+        minWidth: 100,
         align: "right",
-        render: (_, row) => (
-          <AppStack direction="row" gap={0.5} justify="flex-end">
-            <AppIconButton
-              icon={<FiEye className="text-[13px]" />}
-              variant="outlined"
-              colorVariant="neutral"
-              size="small"
-              onClick={() => handleViewDetails(row._id)}
-            />
-            <AppIconButton
-              icon={<FiEdit2 className="text-[13px]" />}
-              variant="outlined"
-              colorVariant="neutral"
-              size="small"
-              onClick={() => handleEditQr(row._id)}
-            />
-            <AppIconButton
-              icon={<FiTrash2 className="text-[13px]" />}
-              variant="outlined"
-              colorVariant="danger"
-              size="small"
-              onClick={() => handleDeleteQr(row._id)}
-            />
-          </AppStack>
-        ),
+        render: (_, row) => {
+          const menuItems = [
+            {
+              id: "view",
+              label: "View Details",
+              icon: <FiEye />,
+              onClick: () => handleViewDetails(row._id),
+            },
+            {
+              id: "edit",
+              label: "Edit",
+              icon: <FiEdit2 />,
+              onClick: () => handleEditQr(row._id),
+            },
+          ];
+
+          if (!row.isPrimary) {
+            menuItems.push({
+              id: "set-primary",
+              label: "Set As Primary",
+              icon: <FiStar />,
+              onClick: () => handleSetPrimary(row._id),
+            });
+          }
+
+          menuItems.push({
+            id: "delete",
+            label: "Delete",
+            icon: <FiTrash2 />,
+            onClick: () => handleDeleteQr(row._id),
+          });
+
+          return (
+            <AppStack direction="row" gap={0.5} justify="flex-end" align="center">
+              <AppMenu
+                trigger={
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text hover:bg-surface-hover focus:outline-none cursor-pointer"
+                  >
+                    <FiMoreVertical className="text-[16px]" />
+                  </button>
+                }
+                items={menuItems}
+                dense
+                minWidth={150}
+              />
+            </AppStack>
+          );
+        },
       },
     ],
     [handleSetPrimary, handleViewDetails, handleEditQr, handleDeleteQr]
   );
+
+  const showPagination = totalQrs > pageSize;
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
@@ -238,51 +255,50 @@ const PaymentQrsDesktopPage = ({
           title="Payment QR & UPI"
           subtitle="Manage store payment receiver QR codes and linked settlement bank accounts."
           extra={
-            <AppBreadcrumb
-              size="small"
-              variant="text"
-              items={[
-                { label: "Dashboard" },
-                { label: "Finance & Accounting" },
-                { label: "Treasury" },
-                { label: "Payment QR & UPI", current: true },
-              ]}
-              sx={breadcrumbSx}
-              itemSx={breadcrumbItemSx}
-              currentItemSx={breadcrumbCurrentSx}
-            />
+            <AppStack direction="row" gap={2} align="center">
+              <AppBreadcrumb
+                size="small"
+                variant="text"
+                items={[
+                  { label: "Dashboard", onClick: () => navigate(ROUTES.DASHBOARD) },
+                  { label: "Finance & Accounting", onClick: () => navigate(ROUTES.FINANCE) },
+                  { label: "Treasury", onClick: () => navigate(ROUTES.TREASURY) },
+                  { label: "Payment QR & UPI", current: true },
+                ]}
+                sx={breadcrumbSx}
+                itemSx={breadcrumbItemSx}
+                currentItemSx={breadcrumbCurrentSx}
+              />
+              <AppButton
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                rounded="md"
+                startIcon={<FiRefreshCw />}
+                onClick={handleRefresh}
+                loading={isLoading}
+                sx={importButtonSx}
+              >
+                Refresh
+              </AppButton>
+              <AppButton
+                variant="filled"
+                colorVariant="success"
+                size="small"
+                rounded="md"
+                startIcon={<FiPlus />}
+                onClick={handleCreateQr}
+                sx={primaryButtonSx}
+              >
+                Add UPI QR
+              </AppButton>
+            </AppStack>
           }
           align="flex-start"
           justify="space-between"
           sx={pageHeaderSx}
           contentSx={pageHeaderContentSx}
         />
-
-        {/* Header Toolbar */}
-        <div className="mt-4 flex items-center justify-between">
-          <div></div>
-          <AppStack direction="row" gap={1.5} align="center">
-            <AppIconButton
-              icon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
-              variant="outlined"
-              colorVariant="neutral"
-              size="small"
-              onClick={handleRefresh}
-              disabled={isLoading}
-              sx={refreshBtnSx}
-            />
-            <AppButton
-              variant="contained"
-              colorVariant="primary"
-              size="small"
-              startIcon={<FiPlus />}
-              onClick={handleCreateQr}
-              sx={addQrBtnSx}
-            >
-              Add UPI QR
-            </AppButton>
-          </AppStack>
-        </div>
 
         {/* Server Success / Failure Banner Notifications */}
         {serverError && (
@@ -309,75 +325,58 @@ const PaymentQrsDesktopPage = ({
         {/* Dashboard Statistics Overview */}
         <div className="mt-5 grid grid-cols-3 gap-5">
           <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-4">
               <div>
                 <span className="text-[11.5px] text-text-muted font-bold block uppercase tracking-wider">Total UPI QRs</span>
                 <span className="text-[20px] font-extrabold text-text block mt-1">{stats.totalCount}</span>
               </div>
-              <div className="w-10 h-10 rounded-full bg-primary-soft flex items-center justify-center text-primary shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-surface-alt text-text flex items-center justify-center border border-border">
                 <LuQrCode className="text-[20px]" />
               </div>
             </div>
           </AppCard>
 
           <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-4">
               <div>
-                <span className="text-[11.5px] text-text-muted font-bold block uppercase tracking-wider">Active Receivers</span>
-                <span className="text-[20px] font-extrabold text-success block mt-1">{stats.activeCount}</span>
+                <span className="text-[11.5px] text-text-muted font-bold block uppercase tracking-wider">Active Codes</span>
+                <span className="text-[20px] font-extrabold text-[#2b8a3e] block mt-1">{stats.activeCount}</span>
               </div>
-              <div className="w-10 h-10 rounded-full bg-success-soft flex items-center justify-center text-success shrink-0">
-                <LuActivity className="text-[20px]" />
+              <div className="w-10 h-10 rounded-lg bg-[#ebfbee] text-[#2b8a3e] flex items-center justify-center border border-[#c3fae8]">
+                <LuQrCode className="text-[20px]" />
               </div>
             </div>
           </AppCard>
 
           <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-4">
               <div>
-                <span className="text-[11.5px] text-text-muted font-bold block uppercase tracking-wider">Primary QR Registers</span>
-                <span className="text-[20px] font-extrabold text-warning block mt-1">{stats.primaryCount}</span>
+                <span className="text-[11.5px] text-text-muted font-bold block uppercase tracking-wider">Primary Channel</span>
+                <span className="text-[20px] font-extrabold text-[#f08c00] block mt-1">{stats.primaryCount}</span>
               </div>
-              <div className="w-10 h-10 rounded-full bg-warning-soft flex items-center justify-center text-warning shrink-0">
-                <FiStar className="text-[20px]" />
+              <div className="w-10 h-10 rounded-lg bg-[#fff9db] text-[#f08c00] flex items-center justify-center border border-[#ffe066]">
+                <LuQrCode className="text-[20px]" />
               </div>
             </div>
           </AppCard>
         </div>
 
-        {/* Filters Toolbar */}
-        <AppCard variant="default" rounded="lg" bordered shadow="none" padding="none" sx={filterCardSx}>
-          <div className="p-4 flex items-center gap-4 justify-between">
-            <AppStack direction="row" gap={3} align="center" sx={{ flex: 1 }}>
-              {/* Search text input */}
-              <AppInput
-                placeholder="Search by UPI address or label..."
-                name="search"
-                value={filters.search}
-                onChange={(e) => handleFilterChange("search", e.target.value)}
-                size="small"
-                startIcon={<FiSearch className="text-text-muted text-[15px]" />}
-                inputSx={filterSearchInputSx}
-                sx={{ maxWidth: 320 }}
-              />
+        {/* Main Content Table & Filters block */}
+        <AppCard variant="default" rounded="lg" bordered shadow="sm" padding="none" sx={mainCardSx}>
+          <div className="p-4 border-b border-border bg-surface-hover/20 flex items-center justify-between gap-4">
+            <AppInput
+              placeholder="Search UPI Address or label..."
+              name="search"
+              value={filters.search}
+              onChange={(e) => handleFilterChange("search", e.target.value)}
+              size="small"
+              startIcon={<FiSearch />}
+              sx={{ width: 280 }}
+              inputSx={compactFilterInputSx}
+            />
 
-              {/* Status filter dropdown */}
+            <div className="flex items-center gap-2">
               <AppSelect
-                label=""
-                name="status"
-                value={filters.status}
-                onChange={(e) => handleFilterChange("status", e.target.value)}
-                options={statusFilterOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                inputSx={filterSelectInputSx}
-                sx={{ minWidth: 150 }}
-              />
-
-              {/* Provider filter dropdown */}
-              <AppSelect
-                label=""
                 name="provider"
                 value={filters.provider}
                 onChange={(e) => handleFilterChange("provider", e.target.value)}
@@ -385,16 +384,33 @@ const PaymentQrsDesktopPage = ({
                 size="small"
                 variant="bordered"
                 rounded="md"
-                inputSx={filterSelectInputSx}
-                sx={{ minWidth: 150 }}
+                sx={{ width: 155, minWidth: 155 }}
+                inputSx={compactFilterInputSx}
               />
-            </AppStack>
+
+              <AppSelect
+                name="status"
+                value={filters.status}
+                onChange={(e) => handleFilterChange("status", e.target.value)}
+                options={statusFilterOptions}
+                size="small"
+                variant="bordered"
+                rounded="md"
+                sx={{ width: 145, minWidth: 145 }}
+                inputSx={compactFilterInputSx}
+              />
+
+              {activeFilterChips.length > 0 && (
+                <AppButton variant="text" colorVariant="primary" size="small" onClick={handleClearFilters}>
+                  Clear Filters
+                </AppButton>
+              )}
+            </div>
           </div>
 
-          {/* Filter chips container */}
+          {/* Filter Chips row */}
           {activeFilterChips.length > 0 && (
-            <div className="px-4 pb-3 flex items-center gap-2 flex-wrap border-t border-border/40 pt-3">
-              <span className="text-[11px] text-text-muted font-semibold mr-1">Active Filters:</span>
+            <div className="px-4 py-2 border-b border-border/40 flex items-center gap-1.5 flex-wrap">
               {activeFilterChips.map((chip) => (
                 <AppTag
                   key={chip.key}
@@ -407,76 +423,52 @@ const PaymentQrsDesktopPage = ({
                   sx={filterChipSx}
                 />
               ))}
-              <AppButton variant="text" colorVariant="primary" size="small" onClick={handleClearFilters} sx={clearAllBtnSx}>
-                Clear All
-              </AppButton>
             </div>
+          )}
+
+          {/* Table Container block */}
+          <div className="w-full relative">
+            {isLoading && !hasFilteredQrs ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <AppText variant="body1" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
+                  Retrieving QR codes...
+                </AppText>
+              </div>
+            ) : !hasFilteredQrs ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <FiInbox className="text-[40px] text-text-muted/40 mb-3" />
+                <AppHeading level={3} weight={600} sx={{ m: 0, fontSize: "14px", color: "var(--app-color-text)" }}>
+                  No UPI QRs Found
+                </AppHeading>
+                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>
+                  Add a new UPI QR register or adjust search filters.
+                </AppText>
+              </div>
+            ) : (
+              <AppTable
+                columns={columns}
+                rows={pagedQrs}
+                getRowId={(row) => row._id}
+                sx={tableSx}
+                headSx={tableHeadSx}
+                cellSx={tableCellSx}
+              />
+            )}
+          </div>
+
+          {/* Table Footer Pagination */}
+          {showPagination && (
+            <AppBox sx={paginationFooterWrapperSx}>
+              <AppTablePagination
+                page={currentPage}
+                pageSize={pageSize}
+                totalItems={totalQrs}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
+            </AppBox>
           )}
         </AppCard>
-
-        {/* Data Table */}
-        <div className="mt-5">
-          {isLoading && !hasFilteredQrs ? (
-            <AppCard variant="default" rounded="lg" bordered shadow="none" sx={emptyCardSx}>
-              <div className="flex flex-col items-center justify-center py-10 space-y-2">
-                <FiRefreshCw className="text-[28px] text-primary animate-spin" />
-                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
-                  Fetching UPI QR codes database...
-                </AppText>
-              </div>
-            </AppCard>
-          ) : !hasFilteredQrs ? (
-            <AppCard variant="default" rounded="lg" bordered shadow="none" sx={emptyCardSx}>
-              <div className="flex flex-col items-center justify-center text-center w-full py-12 px-4">
-                <FiInbox className="text-[40px] text-text-muted/40 mb-3" />
-                <AppHeading
-                  level={3}
-                  weight={700}
-                  align="center"
-                  sx={{
-                    m: 0,
-                    fontSize: "14px",
-                    width: "100%",
-                    color: "var(--app-color-text)",
-                    mb: 1,
-                  }}
-                >
-                  No Payment QRs Found
-                </AppHeading>
-                <AppText variant="body2" align="center" sx={emptyStateSubTextSx}>
-                  Add a new UPI QR register or clear your filter criteria to inspect the database.
-                </AppText>
-                {activeFilterChips.length > 0 && (
-                  <AppButton
-                    variant="text"
-                    colorVariant="primary"
-                    size="small"
-                    onClick={handleClearFilters}
-                    sx={{ mt: 2 }}
-                  >
-                    Clear Filters
-                  </AppButton>
-                )}
-              </div>
-            </AppCard>
-          ) : (
-            <div className="border border-border rounded-lg bg-surface overflow-hidden shadow-sm">
-              <AppTable rows={pagedQrs} columns={columns} getRowId={(row) => row._id} />
-            </div>
-          )}
-
-          {/* Conditional Pagination Footer */}
-          {hasFilteredQrs && totalQrs > pageSize ? (
-            <TableFooter
-              totalAccounts={totalQrs}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              pageSize={pageSize}
-              handlePageChange={handlePageChange}
-              handlePageSizeChange={handlePageSizeChange}
-            />
-          ) : null}
-        </div>
       </div>
     </section>
   );
@@ -508,19 +500,26 @@ const pageHeaderContentSx = {
   },
 };
 
-const refreshBtnSx = {
-  height: 34,
-  width: 34,
-  minWidth: 34,
-  borderColor: "var(--app-color-border)",
+const primaryButtonSx = {
+  height: 38,
+  px: 2.5,
+  fontSize: "12.5px",
+  fontWeight: 700,
+  bgcolor: "#00b85c",
+  color: "white",
+  whiteSpace: "nowrap",
+  "&:hover": { bgcolor: "#009e4f" },
 };
 
-const addQrBtnSx = {
-  height: 34,
-  fontSize: "11.5px",
-  fontWeight: 600,
-  bgcolor: "var(--app-color-primary)",
-  "&:hover": { bgcolor: "var(--app-color-primary-hover)" },
+const importButtonSx = {
+  height: 38,
+  px: 2.5,
+  fontSize: "12.5px",
+  fontWeight: 650,
+  borderColor: "var(--app-color-border)",
+  color: "var(--app-color-text)",
+  bgcolor: "white",
+  whiteSpace: "nowrap",
 };
 
 const statCardSx = {
@@ -528,120 +527,62 @@ const statCardSx = {
   borderColor: "var(--app-color-border)",
 };
 
-const filterCardSx = {
+const mainCardSx = {
   mt: 5,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
 
-const filterSearchInputSx = {
+const compactFilterInputSx = {
   height: 32,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const filterSelectInputSx = {
-  height: 32,
-  fontSize: "12px",
+  fontSize: "11.5px",
   bgcolor: "var(--app-color-surface)",
 };
 
 const filterChipSx = {
-  height: 24,
-  fontSize: "11px",
+  height: 22,
+  fontSize: "10px",
   bgcolor: "var(--app-color-surface-hover)",
   border: "1px solid var(--app-color-border)",
-  "& svg": { fontSize: "11px" },
+  "& svg": { fontSize: "10px" },
 };
 
-const clearAllBtnSx = {
-  fontSize: "11.5px",
-  fontWeight: 600,
-  height: 24,
-  p: "0 6px",
+const tableSx = {
+  width: "100%",
+  "& .MuiTable-root": {
+    width: "100%",
+  },
 };
 
-const emptyCardSx = {
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
+const tableHeadSx = {
+  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, var(--app-color-surface))",
+  "& th": {
+    fontSize: "11px",
+    fontWeight: 750,
+    textTransform: "uppercase",
+    color: "var(--app-color-text-muted)",
+    py: 1.5,
+    borderBottom: "1px solid var(--app-color-divider)",
+  },
 };
 
-const emptyStateSubTextSx = {
-  color: "var(--app-color-text-muted)",
+const tableCellSx = {
+  py: 1.5,
   fontSize: "12.5px",
-  maxWidth: 380,
-  mt: 0.5,
-  lineHeight: 1.5,
+  borderBottom: "1px solid var(--app-color-divider)",
 };
 
-const TableFooter = ({
-  totalAccounts,
-  currentPage,
-  totalPages,
-  pageSize,
-  handlePageChange,
-  handlePageSizeChange,
-}) => {
-  const startEntry = (currentPage - 1) * pageSize + 1;
-  const endEntry = Math.min(currentPage * pageSize, totalAccounts);
-
-  return (
-    <div className="flex items-center justify-between border-t border-border px-4 py-3.5 bg-white">
-      <AppText variant="body2" sx={footerTextSx}>
-        Showing {startEntry} to {endEntry} of {totalAccounts} records
-      </AppText>
-
-      <AppStack direction="row" align="center" gap={1}>
-        <AppButton
-          type="button"
-          variant="outlined"
-          colorVariant="neutral"
-          rounded="md"
-          size="small"
-          endIcon={<FiChevronRight className="rotate-90" />}
-          sx={pageSizeButtonSx}
-        >
-          {pageSize} / page
-        </AppButton>
-
-        <AppIconButton
-          icon={<FiChevronLeft />}
-          variant="outlined"
-          colorVariant="neutral"
-          size="small"
-          rounded="md"
-          disabled={currentPage === 1}
-          onClick={() => handlePageChange(currentPage - 1)}
-        />
-
-        <span className="flex h-[31px] min-w-[31px] items-center justify-center rounded-md border border-[#00b85c] bg-[#e6fcf5] px-2 text-[12px] font-bold text-[#00b85c]">
-          {currentPage}
-        </span>
-
-        <AppIconButton
-          icon={<FiChevronRight />}
-          variant="outlined"
-          colorVariant="neutral"
-          size="small"
-          rounded="md"
-          disabled={currentPage === totalPages}
-          onClick={() => handlePageChange(currentPage + 1)}
-        />
-      </AppStack>
-    </div>
-  );
-};
-
-const footerTextSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-
-const pageSizeButtonSx = {
-  height: 31,
-  fontSize: "12px",
-  fontWeight: 650,
-  p: "0 10px",
+const paginationFooterWrapperSx = {
+  px: 2,
+  py: 2,
+  borderTop: "1px solid var(--app-color-divider)",
+  display: "flex",
+  justifyContent: "flex-end",
+  alignItems: "center",
+  width: "100%",
+  "& > div": {
+    width: "auto",
+  },
 };
 
 export default PaymentQrsDesktopPage;

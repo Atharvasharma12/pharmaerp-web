@@ -38,7 +38,7 @@ const ChequesPage = () => {
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
 
-  const executeQuery = useCallback(async () => {
+  const fetchChequesData = useCallback(async () => {
     try {
       const query = {
         page: currentPage,
@@ -54,8 +54,12 @@ const ChequesPage = () => {
   }, [currentPage, pageSize, searchParams, getCheques]);
 
   useEffect(() => {
-    executeQuery();
-  }, [currentPage, pageSize, searchParams]);
+    fetchChequesData();
+  }, [fetchChequesData]);
+
+  const handleRefresh = useCallback(() => {
+    fetchChequesData();
+  }, [fetchChequesData]);
 
   useEffect(() => {
     return () => {
@@ -90,12 +94,12 @@ const ChequesPage = () => {
       try {
         await depositCheque(chequeId);
         setActionMessage("Cheque deposited to bank successfully.");
-        executeQuery();
+        fetchChequesData();
       } catch (err) {
         setActionError(typeof err === "string" ? err : "Failed to deposit cheque.");
       }
     },
-    [depositCheque, executeQuery]
+    [depositCheque, fetchChequesData]
   );
 
   const handleClear = useCallback(
@@ -105,12 +109,12 @@ const ChequesPage = () => {
       try {
         await clearCheque(chequeId, { clearDate: clearDate || undefined });
         setActionMessage("Cheque cleared by the bank successfully.");
-        executeQuery();
+        fetchChequesData();
       } catch (err) {
         setActionError(typeof err === "string" ? err : "Failed to clear cheque.");
       }
     },
-    [clearCheque, executeQuery]
+    [clearCheque, fetchChequesData]
   );
 
   const handleBounce = useCallback(
@@ -120,12 +124,12 @@ const ChequesPage = () => {
       try {
         await bounceCheque(chequeId, { reason, bounceCharges: Number(bounceCharges) || 0 });
         setActionMessage("Cheque marked as bounced successfully.");
-        executeQuery();
+        fetchChequesData();
       } catch (err) {
         setActionError(typeof err === "string" ? err : "Failed to bounce cheque.");
       }
     },
-    [bounceCheque, executeQuery]
+    [bounceCheque, fetchChequesData]
   );
 
   const handleCancel = useCallback(
@@ -135,12 +139,12 @@ const ChequesPage = () => {
       try {
         await cancelCheque(chequeId, { reason });
         setActionMessage("Cheque cancelled successfully.");
-        executeQuery();
+        fetchChequesData();
       } catch (err) {
         setActionError(typeof err === "string" ? err : "Failed to cancel cheque.");
       }
     },
-    [cancelCheque, executeQuery]
+    [cancelCheque, fetchChequesData]
   );
 
   const handleViewDetails = useCallback(
@@ -185,6 +189,7 @@ const ChequesPage = () => {
     handleCancel,
     handleViewDetails,
     handleCreateNew,
+    handleRefresh,
   };
 
   return isMobile ? (

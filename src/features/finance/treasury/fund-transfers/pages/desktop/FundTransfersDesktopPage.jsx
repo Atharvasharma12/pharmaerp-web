@@ -1,4 +1,6 @@
 import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants";
 import {
   FiSearch,
   FiPlus,
@@ -7,8 +9,9 @@ import {
   FiCheckCircle,
   FiClock,
   FiTrendingUp,
+  FiMoreVertical,
+  FiRefreshCw,
 } from "react-icons/fi";
-import { FaRupeeSign } from "react-icons/fa";
 
 import {
   AppBox,
@@ -19,9 +22,9 @@ import {
   AppInput,
   AppSelect,
   AppStack,
-  AppTablePagination,
+  AppTable,
   AppText,
-  AppIconButton,
+  AppMenu,
   PageHeader,
 } from "@/components";
 import { formatDate } from "@/utils";
@@ -59,7 +62,10 @@ const FundTransfersDesktopPage = ({
   handleCancelTransfer,
   handleViewDetails,
   handleCreateNew,
+  handleRefresh,
 }) => {
+  const navigate = useNavigate();
+
   // Aggregate stats
   const stats = useMemo(() => {
     let totalAmt = 0;
@@ -78,7 +84,7 @@ const FundTransfersDesktopPage = ({
     return { totalAmt, drafts, posted, count: totalTransfers };
   }, [fundTransfers, totalTransfers]);
 
-  const showPagination = fundTransfers.length > 0;
+  const showPagination = totalTransfers > pageSize;
 
   const getTransferTypeLabel = (type) => {
     switch (type) {
@@ -97,14 +103,22 @@ const FundTransfersDesktopPage = ({
 
   const getSourceAccountName = (t) => {
     if (t.fromAccountType === "BANK") {
-      return t.fromBankAccountId?.accountName || t.fromBankAccountId?.bankName || "Bank Account";
+      return (
+        t.fromBankAccountId?.accountName ||
+        t.fromBankAccountId?.bankName ||
+        "Bank Account"
+      );
     }
     return t.fromCashAccountId?.accountName || "Cash Account";
   };
 
   const getDestAccountName = (t) => {
     if (t.toAccountType === "BANK") {
-      return t.toBankAccountId?.accountName || t.toBankAccountId?.bankName || "Bank Account";
+      return (
+        t.toBankAccountId?.accountName ||
+        t.toBankAccountId?.bankName ||
+        "Bank Account"
+      );
     }
     return t.toCashAccountId?.accountName || "Cash Account";
   };
@@ -120,6 +134,150 @@ const FundTransfersDesktopPage = ({
     }
   };
 
+  const columns = useMemo(
+    () => [
+      {
+        id: "transferNumber",
+        key: "transferNumber",
+        label: "Transfer Number",
+        minWidth: 150,
+        render: (_, t) => (
+          <AppText variant="body2" sx={tableValueMonoSx}>
+            {t.transferNumber}
+          </AppText>
+        ),
+      },
+      {
+        id: "transferDate",
+        key: "transferDate",
+        label: "Transfer Date",
+        minWidth: 120,
+        render: (_, t) => (
+          <AppText variant="body2" sx={tableValueSx}>
+            {formatDate(t.transferDate)}
+          </AppText>
+        ),
+      },
+      {
+        id: "transferType",
+        key: "transferType",
+        label: "Transfer Type",
+        minWidth: 180,
+        render: (_, t) => (
+          <AppText variant="body2" sx={tableValueMutedSx}>
+            {getTransferTypeLabel(t.transferType)}
+          </AppText>
+        ),
+      },
+      {
+        id: "sourceAccount",
+        key: "sourceAccount",
+        label: "Source Account",
+        minWidth: 180,
+        render: (_, t) => (
+          <AppText variant="body2" sx={tableValueSx}>
+            {getSourceAccountName(t)}
+          </AppText>
+        ),
+      },
+      {
+        id: "destAccount",
+        key: "destAccount",
+        label: "Destination Account",
+        minWidth: 180,
+        render: (_, t) => (
+          <AppText variant="body2" sx={tableValueSx}>
+            {getDestAccountName(t)}
+          </AppText>
+        ),
+      },
+      {
+        id: "amount",
+        key: "amount",
+        label: "Amount",
+        align: "right",
+        minWidth: 130,
+        render: (_, t) => (
+          <AppText variant="body2" sx={balanceSx}>
+            ₹{" "}
+            {Number(t.amount || 0).toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+            })}
+          </AppText>
+        ),
+      },
+      {
+        id: "status",
+        key: "status",
+        label: "Status",
+        align: "center",
+        minWidth: 120,
+        render: (_, t) => (
+          <span
+            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${getStatusBadgeClass(t.status)}`}
+          >
+            {t.status}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        label: "Actions",
+        align: "right",
+        width: 80,
+        render: (_, t) => {
+          const menuItems = [
+            {
+              id: "view",
+              label: "View Details",
+              icon: <FiEye />,
+              onClick: () => handleViewDetails(t._id),
+            },
+          ];
+
+          if (t.status !== "CANCELLED") {
+            menuItems.push({
+              id: "cancel",
+              label: "Cancel Transfer",
+              icon: <FiSlash />,
+              danger: true,
+              onClick: () => {
+                const reason = prompt("Enter cancellation reason:");
+                if (reason !== null) {
+                  handleCancelTransfer(t._id, reason);
+                }
+              },
+            });
+          }
+
+          return (
+            <AppStack
+              direction="row"
+              gap={0.5}
+              justify="flex-end"
+              align="center"
+            >
+              <AppMenu
+                trigger={
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text hover:bg-surface-hover focus:outline-none cursor-pointer"
+                  >
+                    <FiMoreVertical className="text-[16px]" />
+                  </button>
+                }
+                items={menuItems}
+                dense
+                minWidth={150}
+              />
+            </AppStack>
+          );
+        },
+      },
+    ],
+    [handleViewDetails, handleCancelTransfer],
+  );
+
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
       <div className="mx-auto w-full max-w-[1400px]">
@@ -133,9 +291,18 @@ const FundTransfersDesktopPage = ({
                 size="small"
                 variant="text"
                 items={[
-                  { label: "Dashboard" },
-                  { label: "Finance & Accounting" },
-                  { label: "Treasury" },
+                  {
+                    label: "Dashboard",
+                    onClick: () => navigate(ROUTES.DASHBOARD),
+                  },
+                  {
+                    label: "Finance & Accounting",
+                    onClick: () => navigate(ROUTES.FINANCE),
+                  },
+                  {
+                    label: "Treasury",
+                    onClick: () => navigate(ROUTES.TREASURY),
+                  },
                   { label: "Fund Transfers", current: true },
                 ]}
                 sx={breadcrumbSx}
@@ -143,12 +310,25 @@ const FundTransfersDesktopPage = ({
                 currentItemSx={breadcrumbCurrentSx}
               />
               <AppButton
-                variant="contained"
-                colorVariant="primary"
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                rounded="md"
+                startIcon={<FiRefreshCw />}
+                onClick={handleRefresh}
+                loading={isLoading}
+                sx={importButtonSx}
+              >
+                Refresh
+              </AppButton>
+              <AppButton
+                variant="filled"
+                colorVariant="success"
                 size="small"
                 rounded="md"
                 startIcon={<FiPlus />}
                 onClick={handleCreateNew}
+                sx={primaryButtonSx}
               >
                 New Transfer
               </AppButton>
@@ -162,11 +342,21 @@ const FundTransfersDesktopPage = ({
 
         {/* Stats Grid */}
         <div className="mt-5 grid grid-cols-3 gap-4">
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
+          <AppCard
+            variant="default"
+            rounded="lg"
+            bordered
+            shadow="sm"
+            sx={statCardSx}
+          >
             <div className="p-4 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Transfers Count</span>
-                <span className="text-[20px] font-extrabold text-text mt-1 block">{stats.count}</span>
+                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">
+                  Transfers Count
+                </span>
+                <span className="text-[20px] font-extrabold text-text mt-1 block">
+                  {stats.count}
+                </span>
               </div>
               <div className="w-10 h-10 rounded-lg bg-surface-alt text-text flex items-center justify-center border border-border">
                 <FiClock className="text-[18px]" />
@@ -174,12 +364,23 @@ const FundTransfersDesktopPage = ({
             </div>
           </AppCard>
 
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
+          <AppCard
+            variant="default"
+            rounded="lg"
+            bordered
+            shadow="sm"
+            sx={statCardSx}
+          >
             <div className="p-4 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Posted Volume</span>
+                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">
+                  Posted Volume
+                </span>
                 <span className="text-[20px] font-extrabold text-[#2b8a3e] mt-1 block">
-                  ₹ {Number(stats.totalAmt).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  ₹{" "}
+                  {Number(stats.totalAmt).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                  })}
                 </span>
               </div>
               <div className="w-10 h-10 rounded-lg bg-[#ebfbee] text-[#2b8a3e] flex items-center justify-center border border-[#c3fae8]">
@@ -188,11 +389,21 @@ const FundTransfersDesktopPage = ({
             </div>
           </AppCard>
 
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
+          <AppCard
+            variant="default"
+            rounded="lg"
+            bordered
+            shadow="sm"
+            sx={statCardSx}
+          >
             <div className="p-4 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Draft Items</span>
-                <span className="text-[20px] font-extrabold text-warning mt-1 block">{stats.drafts}</span>
+                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">
+                  Draft Items
+                </span>
+                <span className="text-[20px] font-extrabold text-warning mt-1 block">
+                  {stats.drafts}
+                </span>
               </div>
               <div className="w-10 h-10 rounded-lg bg-warning-soft text-warning flex items-center justify-center border border-warning/20">
                 <FiCheckCircle className="text-[18px]" />
@@ -205,7 +416,9 @@ const FundTransfersDesktopPage = ({
         {(error || message) && (
           <div
             className={`mt-4 p-3 text-[12.5px] font-semibold rounded-md flex justify-between items-center ${
-              error ? "bg-danger-soft text-danger" : "bg-success-soft text-success"
+              error
+                ? "bg-danger-soft text-danger"
+                : "bg-success-soft text-success"
             }`}
           >
             <span>{error || message}</span>
@@ -248,7 +461,9 @@ const FundTransfersDesktopPage = ({
                 label="Transfer Type"
                 name="transferType"
                 value={searchParams.transferType}
-                onChange={(e) => handleFilterChange("transferType", e.target.value)}
+                onChange={(e) =>
+                  handleFilterChange("transferType", e.target.value)
+                }
                 options={transferTypeOptions}
                 size="small"
                 variant="bordered"
@@ -277,103 +492,46 @@ const FundTransfersDesktopPage = ({
           </div>
 
           {/* Table Container */}
-          <div className="overflow-x-auto w-full relative">
+          <div className="w-full relative">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20">
-                <AppText variant="body1" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
+                <AppText
+                  variant="body1"
+                  sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}
+                >
                   Retrieving transfers history...
                 </AppText>
               </div>
             ) : fundTransfers.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <FiClock className="text-[40px] text-text-muted/40 mb-3" />
-                <AppHeading level={3} weight={600} sx={{ m: 0, fontSize: "14px", color: "var(--app-color-text)" }}>
+                <AppHeading
+                  level={3}
+                  weight={600}
+                  sx={{
+                    m: 0,
+                    fontSize: "14px",
+                    color: "var(--app-color-text)",
+                  }}
+                >
                   No Fund Transfers Found
                 </AppHeading>
-                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>
+                <AppText
+                  variant="body2"
+                  sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}
+                >
                   There are no internal transfers recorded for this company.
                 </AppText>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-[12.5px]">
-                <thead>
-                  <tr className="border-b border-border bg-surface-alt/10 text-text-muted font-bold">
-                    <th className="py-3 px-4 font-bold">Transfer Number</th>
-                    <th className="py-3 px-4 font-bold">Transfer Date</th>
-                    <th className="py-3 px-4 font-bold">Transfer Type</th>
-                    <th className="py-3 px-4 font-bold">Source Account</th>
-                    <th className="py-3 px-4 font-bold">Destination Account</th>
-                    <th className="py-3 px-4 text-right font-bold">Amount</th>
-                    <th className="py-3 px-4 text-center font-bold">Status</th>
-                    <th className="py-3 px-4 text-center font-bold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fundTransfers.map((t) => {
-                    const isCancelled = t.status === "CANCELLED";
-
-                    return (
-                      <tr
-                        key={t._id}
-                        className="border-b border-border hover:bg-surface-hover/20 transition"
-                      >
-                        <td className="py-3.5 px-4 font-bold text-text font-mono">
-                          {t.transferNumber}
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-text">
-                          {formatDate(t.transferDate)}
-                        </td>
-                        <td className="py-3.5 px-4 text-text-muted font-semibold">
-                          {getTransferTypeLabel(t.transferType)}
-                        </td>
-                        <td className="py-3.5 px-4 text-text">
-                          {getSourceAccountName(t)}
-                        </td>
-                        <td className="py-3.5 px-4 text-text">
-                          {getDestAccountName(t)}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-extrabold text-text">
-                          ₹ {Number(t.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${getStatusBadgeClass(t.status)}`}>
-                            {t.status}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <AppStack direction="row" gap={1} justify="center" align="center">
-                            <AppIconButton
-                              icon={<FiEye />}
-                              variant="outlined"
-                              colorVariant="primary"
-                              size="small"
-                              onClick={() => handleViewDetails(t._id)}
-                              title="View Details"
-                            />
-                            {!isCancelled && (
-                              <AppButton
-                                size="tiny"
-                                variant="text"
-                                colorVariant="error"
-                                startIcon={<FiSlash />}
-                                onClick={() => {
-                                  const reason = prompt("Enter cancellation reason:");
-                                  if (reason !== null) {
-                                    handleCancelTransfer(t._id, reason);
-                                  }
-                                }}
-                                disabled={isCancelling}
-                              >
-                                Cancel
-                              </AppButton>
-                            )}
-                          </AppStack>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <AppTable
+                columns={columns}
+                rows={fundTransfers}
+                getRowId={(row) => row._id}
+                sx={tableSx}
+                headSx={tableHeadSx}
+                cellSx={tableCellSx}
+              />
             )}
           </div>
 
@@ -385,6 +543,7 @@ const FundTransfersDesktopPage = ({
                 pageSize={pageSize}
                 totalItems={totalTransfers}
                 onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
               />
             </AppBox>
           )}
@@ -394,30 +553,19 @@ const FundTransfersDesktopPage = ({
   );
 };
 
-// Styling variables
-const breadcrumbSx = { mt: 0 };
+// MUI style variables
+const pageHeaderSx = { mb: 3 };
+const pageHeaderContentSx = { flex: 1 };
+const breadcrumbSx = { mt: 0.5 };
 const breadcrumbItemSx = {
   fontSize: "12px",
+  fontWeight: 650,
   color: "var(--app-color-text-muted)",
-  cursor: "pointer",
-  "&:hover": { color: "var(--app-color-primary)" },
 };
 const breadcrumbCurrentSx = {
   fontSize: "12px",
-  fontWeight: 650,
+  fontWeight: 700,
   color: "var(--app-color-text)",
-};
-
-const pageHeaderSx = { width: "100%" };
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "23px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.4px",
-    color: "var(--app-color-text)",
-  },
 };
 
 const statCardSx = {
@@ -426,33 +574,108 @@ const statCardSx = {
 };
 
 const mainCardSx = {
-  mt: 5,
+  mt: 3,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
 
 const compactFilterInputSx = {
-  height: 32,
-  fontSize: "11.5px",
+  height: 36,
+  fontSize: "12.5px",
   bgcolor: "var(--app-color-surface)",
 };
 
 const filterLabelSx = {
-  fontSize: "11px",
+  fontSize: "11.5px",
   fontWeight: 700,
   color: "var(--app-color-text-muted)",
   mb: 0.5,
 };
 
+const tableSx = {
+  width: "100%",
+  "& .MuiTable-root": {
+    width: "100%",
+  },
+};
+
+const tableHeadSx = {
+  bgcolor:
+    "color-mix(in_srgb, var(--app-color-surface-alt) 25%, var(--app-color-surface))",
+  "& th": {
+    fontSize: "11px",
+    fontWeight: 750,
+    textTransform: "uppercase",
+    color: "var(--app-color-text-muted)",
+    py: 1.5,
+    borderBottom: "1px solid var(--app-color-divider)",
+  },
+};
+
+const tableCellSx = {
+  py: 1.5,
+  fontSize: "12.5px",
+  borderBottom: "1px solid var(--app-color-divider)",
+};
+
+const tableValueSx = {
+  fontSize: "12.5px",
+  fontWeight: 650,
+  color: "var(--app-color-text)",
+};
+
+const tableValueMutedSx = {
+  fontSize: "12.5px",
+  fontWeight: 650,
+  color: "var(--app-color-text-muted)",
+};
+
+const tableValueMonoSx = {
+  fontSize: "12px",
+  fontFamily: "var(--font-mono, monospace)",
+  fontWeight: 750,
+  color: "var(--app-color-text)",
+};
+
+const balanceSx = {
+  fontSize: "12.5px",
+  fontWeight: 800,
+  color: "var(--app-color-text)",
+};
+
 const paginationFooterWrapperSx = {
   px: 2,
-  pt: 2,
-  pb: 2,
+  py: 2,
   borderTop: "1px solid var(--app-color-divider)",
   display: "flex",
-  justifyContent: "center",
+  justifyContent: "flex-end",
+  alignItems: "center",
   width: "100%",
-  "& > div": { width: "100%" },
+  "& > div": {
+    width: "auto",
+  },
+};
+
+const primaryButtonSx = {
+  height: 38,
+  px: 2.5,
+  fontSize: "12.5px",
+  fontWeight: 700,
+  bgcolor: "#00b85c",
+  color: "white",
+  whiteSpace: "nowrap",
+  "&:hover": { bgcolor: "#009e4f" },
+};
+
+const importButtonSx = {
+  height: 38,
+  px: 2.5,
+  fontSize: "12.5px",
+  fontWeight: 650,
+  borderColor: "var(--app-color-border)",
+  color: "var(--app-color-text)",
+  bgcolor: "white",
+  whiteSpace: "nowrap",
 };
 
 export default FundTransfersDesktopPage;

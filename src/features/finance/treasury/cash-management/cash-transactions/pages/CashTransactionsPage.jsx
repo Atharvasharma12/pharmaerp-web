@@ -43,24 +43,29 @@ const CashTransactionsPage = () => {
   const [pageSize, setPageSize] = useState(10);
 
   // Trigger query list fetch
+  const fetchTransactionsData = useCallback(async () => {
+    try {
+      const query = {
+        page: currentPage,
+        limit: pageSize,
+        search: searchParams.search || undefined,
+        status: searchParams.status === "all" ? undefined : searchParams.status,
+        transactionType: searchParams.transactionType === "all" ? undefined : searchParams.transactionType,
+        cashAccountId: searchParams.cashAccountId === "all" ? undefined : searchParams.cashAccountId,
+      };
+      await getCashTransactions(query);
+    } catch (err) {
+      console.error("Failed to query cash transactions list:", err);
+    }
+  }, [currentPage, pageSize, searchParams, getCashTransactions]);
+
   useEffect(() => {
-    const executeQuery = async () => {
-      try {
-        const query = {
-          page: currentPage,
-          limit: pageSize,
-          search: searchParams.search || undefined,
-          status: searchParams.status === "all" ? undefined : searchParams.status,
-          transactionType: searchParams.transactionType === "all" ? undefined : searchParams.transactionType,
-          cashAccountId: searchParams.cashAccountId === "all" ? undefined : searchParams.cashAccountId,
-        };
-        await getCashTransactions(query);
-      } catch (err) {
-        console.error("Failed to query cash transactions list:", err);
-      }
-    };
-    executeQuery();
-  }, [currentPage, pageSize, searchParams]);
+    fetchTransactionsData();
+  }, [fetchTransactionsData]);
+
+  const handleRefresh = useCallback(() => {
+    fetchTransactionsData();
+  }, [fetchTransactionsData]);
 
   const handleSearchChange = useCallback((value) => {
     setSearchParams((prev) => ({ ...prev, search: value }));
@@ -101,6 +106,7 @@ const CashTransactionsPage = () => {
     handleFilterChange,
     handlePageChange,
     handlePageSizeChange,
+    handleRefresh,
   };
 
   return isMobile ? (

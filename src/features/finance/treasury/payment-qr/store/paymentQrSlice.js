@@ -104,8 +104,6 @@ const paymentQrSlice = createSlice({
         state.getPaymentQrsStatus = API_STATUS.SUCCESS;
 
         state.paymentQrs = action.payload?.paymentQrs || [];
-
-        state.message = "Payment QRs fetched successfully";
       })
       .addCase(getPaymentQrs.rejected, (state, action) => {
         state.getPaymentQrsStatus = API_STATUS.ERROR;

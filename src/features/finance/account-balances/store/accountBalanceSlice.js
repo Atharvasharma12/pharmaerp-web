@@ -69,8 +69,6 @@ const accountBalanceSlice = createSlice({
         state.getAccountBalancesStatus = API_STATUS.SUCCESS;
 
         state.accountBalances = action.payload?.balances || [];
-
-        state.message = "Account balances fetched successfully";
       })
       .addCase(getAccountBalances.rejected, (state, action) => {
         state.getAccountBalancesStatus = API_STATUS.ERROR;

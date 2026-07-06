@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiSearch,
   FiPlus,
@@ -8,8 +9,9 @@ import {
   FiAlertTriangle,
   FiSlash,
   FiTrendingUp,
+  FiMoreVertical,
+  FiRefreshCw,
 } from "react-icons/fi";
-import { FaRupeeSign } from "react-icons/fa";
 
 import {
   AppBox,
@@ -22,10 +24,12 @@ import {
   AppStack,
   AppTablePagination,
   AppText,
-  AppIconButton,
+  AppTable,
+  AppMenu,
   PageHeader,
 } from "@/components";
-import { formatDate } from "@/utils";
+import { ROUTES } from "@/constants";
+import { formatCurrency, formatDate } from "@/utils";
 
 const chequeTypeOptions = [
   { label: "All Cheque Types", value: "all" },
@@ -62,7 +66,10 @@ const ChequesDesktopPage = ({
   handleCancel,
   handleViewDetails,
   handleCreateNew,
+  handleRefresh,
 }) => {
+  const navigate = useNavigate();
+
   // Aggregate stats
   const stats = useMemo(() => {
     let pendingAmt = 0;
@@ -79,26 +86,188 @@ const ChequesDesktopPage = ({
     return { pendingAmt, bouncedCount, count: totalCheques };
   }, [cheques, totalCheques]);
 
-  const showPagination = cheques.length > 0;
+  const getStatusBadge = (status) => {
+    const raw = String(status || "").toUpperCase();
+    let bg = "bg-[#fff9db] text-[#f08c00] border-[#ffe066]";
 
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case "CLEARED":
-        return "bg-success-soft text-success border border-success/20";
-      case "BOUNCED":
-        return "bg-danger-soft text-danger border border-danger/20";
-      case "CANCELLED":
-        return "bg-neutral-soft text-text-muted border border-border";
-      case "DEPOSITED":
-        return "bg-primary-soft text-primary border border-primary/20";
-      default:
-        return "bg-warning-soft text-warning border border-warning/20";
-    }
+    if (raw === "CLEARED") bg = "bg-[#ebfbee] text-[#2b8a3e] border-[#c3fae8]";
+    else if (raw === "BOUNCED") bg = "bg-[#fff5f5] text-[#fa5252] border-[#ffc9c9]";
+    else if (raw === "CANCELLED") bg = "bg-[#f1f3f5] text-[#868e96] border-[#e9ecef]";
+    else if (raw === "DEPOSITED") bg = "bg-[#e8f0fe] text-[#1a73e8] border-[#adcdfc]";
+
+    return (
+      <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[9.5px] font-bold uppercase border ${bg}`}>
+        {raw}
+      </span>
+    );
   };
 
-  const getBankName = (c) => {
-    return c.bankAccountId?.bankName || "Unknown Bank";
+  const getChequeTypeBadge = (type) => {
+    const isReceived = type === "RECEIVED";
+    const bg = isReceived ? "bg-primary-soft text-primary border border-primary/20" : "bg-purple-soft text-purple border border-purple/20";
+    return (
+      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[9.5px] font-bold uppercase border ${bg}`}>
+        {type}
+      </span>
+    );
   };
+
+  const columns = useMemo(() => [
+    {
+      id: "chequeNumber",
+      label: "Cheque Number",
+      minWidth: 130,
+      render: (_, c) => (
+        <AppText variant="body2" sx={tableValueMonoSx}>
+          {c.chequeNumber}
+        </AppText>
+      ),
+    },
+    {
+      id: "chequeDate",
+      label: "Cheque Date",
+      minWidth: 120,
+      render: (_, c) => (
+        <AppText variant="body2" sx={tableValueMutedSx}>
+          {formatDate(c.chequeDate)}
+        </AppText>
+      ),
+    },
+    {
+      id: "chequeType",
+      label: "Type",
+      minWidth: 110,
+      render: (_, c) => getChequeTypeBadge(c.chequeType),
+    },
+    {
+      id: "drawnBank",
+      label: "Drawn Bank Account",
+      minWidth: 180,
+      render: (_, c) => (
+        <AppText variant="body2" sx={tableValueMutedSx}>
+          {c.bankAccountId?.bankName || "Unknown Bank"}
+        </AppText>
+      ),
+    },
+    {
+      id: "partyName",
+      label: "Party / Payee Name",
+      minWidth: 160,
+      render: (_, c) => (
+        <AppText variant="body2" sx={tableValueSx}>
+          {c.partyName}
+        </AppText>
+      ),
+    },
+    {
+      id: "amount",
+      label: "Amount",
+      minWidth: 120,
+      align: "right",
+      render: (_, c) => (
+        <span className="text-[12.5px] font-black text-text">
+          {formatCurrency(c.amount)}
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      label: "Status",
+      align: "center",
+      minWidth: 110,
+      render: (_, c) => getStatusBadge(c.status),
+    },
+    {
+      id: "actions",
+      label: "Actions",
+      align: "right",
+      width: 100,
+      render: (_, c) => {
+        const isReceived = c.chequeType === "RECEIVED";
+        const isPending = c.status === "PENDING";
+        const isDeposited = c.status === "DEPOSITED";
+        const isCleared = c.status === "CLEARED";
+        const isBounced = c.status === "BOUNCED";
+        const isCancelled = c.status === "CANCELLED";
+
+        const menuItems = [
+          {
+            id: "view",
+            label: "View Details",
+            icon: <FiEye />,
+            onClick: () => handleViewDetails(c._id),
+          },
+        ];
+
+        // Deposit: received + pending
+        if (isReceived && isPending) {
+          menuItems.push({
+            id: "deposit",
+            label: "Deposit Cheque",
+            icon: <FiCheckCircle />,
+            onClick: () => handleDeposit(c._id),
+          });
+        }
+
+        // Clear & Bounce: deposited received or pending issued
+        if ((isReceived && isDeposited) || (!isReceived && isPending)) {
+          menuItems.push({
+            id: "clear",
+            label: "Clear Cheque",
+            icon: <FiCheckCircle />,
+            onClick: () => {
+              const date = prompt("Enter clearance date (YYYY-MM-DD) or leave empty:");
+              if (date !== null) handleClear(c._id, date);
+            },
+          }, {
+            id: "bounce",
+            label: "Bounce Cheque",
+            icon: <FiAlertTriangle />,
+            onClick: () => {
+              const reason = prompt("Enter bounce reason:");
+              if (reason) {
+                const charges = prompt("Enter bounce charges (INR):", "0");
+                handleBounce(c._id, reason, Number(charges) || 0);
+              }
+            },
+          });
+        }
+
+        // Cancel: not cleared, bounced, cancelled
+        if (!isCleared && !isBounced && !isCancelled) {
+          menuItems.push({
+            id: "cancel",
+            label: "Cancel Cheque",
+            icon: <FiSlash />,
+            onClick: () => {
+              const reason = prompt("Enter cancellation reason:");
+              if (reason !== null) handleCancel(c._id, reason);
+            },
+          });
+        }
+
+        return (
+          <AppStack direction="row" gap={0.5} justify="flex-end" align="center">
+            <AppMenu
+              trigger={
+                <button
+                  type="button"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text hover:bg-surface-hover focus:outline-none cursor-pointer"
+                >
+                  <FiMoreVertical className="text-[16px]" />
+                </button>
+              }
+              items={menuItems}
+              dense
+              minWidth={160}
+            />
+          </AppStack>
+        );
+      },
+    },
+  ], [handleViewDetails, handleDeposit, handleClear, handleBounce, handleCancel]);
+
+  const showPagination = totalCheques > pageSize;
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
@@ -113,9 +282,9 @@ const ChequesDesktopPage = ({
                 size="small"
                 variant="text"
                 items={[
-                  { label: "Dashboard" },
-                  { label: "Finance & Accounting" },
-                  { label: "Treasury" },
+                  { label: "Dashboard", onClick: () => navigate(ROUTES.DASHBOARD) },
+                  { label: "Finance & Accounting", onClick: () => navigate(ROUTES.FINANCE) },
+                  { label: "Treasury", onClick: () => navigate(ROUTES.TREASURY) },
                   { label: "Cheques", current: true },
                 ]}
                 sx={breadcrumbSx}
@@ -123,12 +292,25 @@ const ChequesDesktopPage = ({
                 currentItemSx={breadcrumbCurrentSx}
               />
               <AppButton
-                variant="contained"
-                colorVariant="primary"
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                rounded="md"
+                startIcon={<FiRefreshCw />}
+                onClick={handleRefresh}
+                loading={isLoading}
+                sx={importButtonSx}
+              >
+                Refresh
+              </AppButton>
+              <AppButton
+                variant="filled"
+                colorVariant="success"
                 size="small"
                 rounded="md"
                 startIcon={<FiPlus />}
                 onClick={handleCreateNew}
+                sx={primaryButtonSx}
               >
                 New Cheque
               </AppButton>
@@ -159,7 +341,7 @@ const ChequesDesktopPage = ({
               <div>
                 <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">In Clearance Pipeline</span>
                 <span className="text-[20px] font-extrabold text-[#2b8a3e] mt-1 block">
-                  ₹ {Number(stats.pendingAmt).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  {formatCurrency(stats.pendingAmt)}
                 </span>
               </div>
               <div className="w-10 h-10 rounded-lg bg-[#ebfbee] text-[#2b8a3e] flex items-center justify-center border border-[#c3fae8]">
@@ -172,9 +354,9 @@ const ChequesDesktopPage = ({
             <div className="p-4 flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Bounced Items</span>
-                <span className="text-[20px] font-extrabold text-danger mt-1 block">{stats.bouncedCount}</span>
+                <span className="text-[20px] font-extrabold text-[#fa5252] mt-1 block">{stats.bouncedCount}</span>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-danger-soft text-danger flex items-center justify-center border border-danger/20">
+              <div className="w-10 h-10 rounded-lg bg-[#fff5f5] text-[#fa5252] flex items-center justify-center border border-[#ffc9c9]">
                 <FiAlertTriangle className="text-[18px]" />
               </div>
             </div>
@@ -257,7 +439,7 @@ const ChequesDesktopPage = ({
           </div>
 
           {/* Table Container */}
-          <div className="overflow-x-auto w-full relative">
+          <div className="w-full relative">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20">
                 <AppText variant="body1" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
@@ -275,137 +457,14 @@ const ChequesDesktopPage = ({
                 </AppText>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-[12.5px]">
-                <thead>
-                  <tr className="border-b border-border bg-surface-alt/10 text-text-muted font-bold">
-                    <th className="py-3 px-4 font-bold">Cheque Number</th>
-                    <th className="py-3 px-4 font-bold">Cheque Date</th>
-                    <th className="py-3 px-4 font-bold">Cheque Type</th>
-                    <th className="py-3 px-4 font-bold">Drawn Bank Account</th>
-                    <th className="py-3 px-4 font-bold">Party / Payee Name</th>
-                    <th className="py-3 px-4 text-right font-bold">Amount</th>
-                    <th className="py-3 px-4 text-center font-bold">Status</th>
-                    <th className="py-3 px-4 text-center font-bold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cheques.map((c) => {
-                    const isReceived = c.chequeType === "RECEIVED";
-                    const isPending = c.status === "PENDING";
-                    const isDeposited = c.status === "DEPOSITED";
-                    const isCleared = c.status === "CLEARED";
-                    const isBounced = c.status === "BOUNCED";
-                    const isCancelled = c.status === "CANCELLED";
-
-                    return (
-                      <tr
-                        key={c._id}
-                        className="border-b border-border hover:bg-surface-hover/20 transition"
-                      >
-                        <td className="py-3.5 px-4 font-bold text-text font-mono">
-                          {c.chequeNumber}
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-text">
-                          {formatDate(c.chequeDate)}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${
-                            isReceived
-                              ? "bg-primary-soft text-primary border border-primary/20"
-                              : "bg-purple-soft text-purple border border-purple/20"
-                          }`}>
-                            {c.chequeType}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-text">
-                          {getBankName(c)}
-                        </td>
-                        <td className="py-3.5 px-4 text-text font-semibold">
-                          {c.partyName}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-extrabold text-text">
-                          ₹ {Number(c.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${getStatusBadgeClass(c.status)}`}>
-                            {c.status}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <AppStack direction="row" gap={1} justify="center" align="center">
-                            <AppIconButton
-                              icon={<FiEye />}
-                              variant="outlined"
-                              colorVariant="primary"
-                              size="small"
-                              onClick={() => handleViewDetails(c._id)}
-                              title="Details"
-                            />
-
-                            {/* received + pending -> deposit */}
-                            {isReceived && isPending && (
-                              <AppButton
-                                size="tiny"
-                                variant="text"
-                                colorVariant="primary"
-                                onClick={() => handleDeposit(c._id)}
-                              >
-                                Deposit
-                              </AppButton>
-                            )}
-
-                            {/* deposited (received) or pending (issued) -> clear & bounce */}
-                            {((isReceived && isDeposited) || (!isReceived && isPending)) && (
-                              <>
-                                <AppButton
-                                  size="tiny"
-                                  variant="text"
-                                  colorVariant="success"
-                                  onClick={() => {
-                                    const date = prompt("Enter clearance date (YYYY-MM-DD) or leave empty:");
-                                    if (date !== null) handleClear(c._id, date);
-                                  }}
-                                >
-                                  Clear
-                                </AppButton>
-                                <AppButton
-                                  size="tiny"
-                                  variant="text"
-                                  colorVariant="error"
-                                  onClick={() => {
-                                    const reason = prompt("Enter bounce reason:");
-                                    if (reason) {
-                                      const charges = prompt("Enter bounce charges (INR):", "0");
-                                      handleBounce(c._id, reason, Number(charges) || 0);
-                                    }
-                                  }}
-                                >
-                                  Bounce
-                                </AppButton>
-                              </>
-                            )}
-
-                            {/* cancelable if not cleared, bounced or cancelled */}
-                            {!isCleared && !isBounced && !isCancelled && (
-                              <AppIconButton
-                                icon={<FiSlash />}
-                                variant="outlined"
-                                colorVariant="neutral"
-                                size="small"
-                                onClick={() => {
-                                  const reason = prompt("Enter cancellation reason:");
-                                  if (reason !== null) handleCancel(c._id, reason);
-                                }}
-                                title="Cancel Cheque"
-                              />
-                            )}
-                          </AppStack>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <AppTable
+                columns={columns}
+                rows={cheques}
+                getRowId={(row) => row._id}
+                sx={tableSx}
+                headSx={tableHeadSx}
+                cellSx={tableCellSx}
+              />
             )}
           </div>
 
@@ -417,6 +476,7 @@ const ChequesDesktopPage = ({
                 pageSize={pageSize}
                 totalItems={totalCheques}
                 onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
               />
             </AppBox>
           )}
@@ -452,6 +512,28 @@ const pageHeaderContentSx = {
   },
 };
 
+const primaryButtonSx = {
+  height: 38,
+  px: 2.5,
+  fontSize: "12.5px",
+  fontWeight: 700,
+  bgcolor: "#00b85c",
+  color: "white",
+  whiteSpace: "nowrap",
+  "&:hover": { bgcolor: "#009e4f" },
+};
+
+const importButtonSx = {
+  height: 38,
+  px: 2.5,
+  fontSize: "12.5px",
+  fontWeight: 650,
+  borderColor: "var(--app-color-border)",
+  color: "var(--app-color-text)",
+  bgcolor: "white",
+  whiteSpace: "nowrap",
+};
+
 const statCardSx = {
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
@@ -476,15 +558,61 @@ const filterLabelSx = {
   mb: 0.5,
 };
 
+const tableSx = {
+  width: "100%",
+  "& .MuiTable-root": {
+    width: "100%",
+  },
+};
+
+const tableHeadSx = {
+  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, var(--app-color-surface))",
+  "& th": {
+    fontSize: "11px",
+    fontWeight: 750,
+    textTransform: "uppercase",
+    color: "var(--app-color-text-muted)",
+    py: 1.5,
+    borderBottom: "1px solid var(--app-color-divider)",
+  },
+};
+
+const tableCellSx = {
+  py: 1.5,
+  fontSize: "12.5px",
+  borderBottom: "1px solid var(--app-color-divider)",
+};
+
+const tableValueSx = {
+  fontSize: "12.5px",
+  fontWeight: 650,
+  color: "var(--app-color-text)",
+};
+
+const tableValueMutedSx = {
+  fontSize: "12.5px",
+  fontWeight: 650,
+  color: "var(--app-color-text-muted)",
+};
+
+const tableValueMonoSx = {
+  fontSize: "12px",
+  fontFamily: "var(--font-mono, monospace)",
+  fontWeight: 750,
+  color: "var(--app-color-text)",
+};
+
 const paginationFooterWrapperSx = {
   px: 2,
-  pt: 2,
-  pb: 2,
+  py: 2,
   borderTop: "1px solid var(--app-color-divider)",
   display: "flex",
-  justifyContent: "center",
+  justifyContent: "flex-end",
+  alignItems: "center",
   width: "100%",
-  "& > div": { width: "100%" },
+  "& > div": {
+    width: "auto",
+  },
 };
 
 export default ChequesDesktopPage;

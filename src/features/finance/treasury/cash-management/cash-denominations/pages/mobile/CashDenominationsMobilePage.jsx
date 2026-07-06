@@ -1,5 +1,15 @@
 import React, { useState } from "react";
-import { FiSearch, FiPlus, FiEye, FiSliders, FiClock, FiInbox } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import {
+  FiSearch,
+  FiPlus,
+  FiFilter,
+  FiEye,
+  FiMoreVertical,
+  FiRefreshCw,
+  FiInbox,
+} from "react-icons/fi";
+import { LuWallet } from "react-icons/lu";
 
 import {
   AppBox,
@@ -11,8 +21,10 @@ import {
   AppStack,
   AppTablePagination,
   AppText,
+  AppMenu,
 } from "@/components";
-import { formatDate } from "@/utils";
+import { ROUTES } from "@/constants";
+import { formatCurrency, formatDate } from "@/utils";
 
 const statusFilterOptions = [
   { label: "All Statuses", value: "all" },
@@ -39,62 +51,82 @@ const CashDenominationsMobilePage = ({
   handlePageSizeChange,
   handleCreateNew,
   handleViewDetails,
+  handleRefresh,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
-  const showPagination = denominations.length > 0;
+  const hasFilteredDenominations = denominations.length > 0;
+  const shouldRenderPagination =
+    hasFilteredDenominations && totalItems > pageSize;
 
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case "CONFIRMED":
-        return "bg-success-soft text-success border border-success/20";
-      case "CANCELLED":
-        return "bg-danger-soft text-danger border border-danger/20";
-      default:
-        return "bg-warning-soft text-warning border border-warning/20";
-    }
+  const handleCardClick = (id) => {
+    handleViewDetails(id);
   };
 
-  const getRegisterName = (d) => {
-    return d.cashAccountId?.accountName || "Unknown Register";
-  };
+  const getStatusBadge = (status) => {
+    const raw = String(status || "").toUpperCase();
+    let bg = "bg-[#f8f9fa] text-[#495057] border-[#dee2e6]";
 
-  const getBranchName = (d) => {
-    return d.branchId?.name || d.cashAccountId?.branchId?.name || "Central Office";
+    if (raw === "DRAFT") bg = "bg-[#fff9db] text-[#f08c00] border-[#ffe066]";
+    else if (raw === "CONFIRMED")
+      bg = "bg-[#ebfbee] text-[#2b8a3e] border-[#c3fae8]";
+    else if (raw === "CANCELLED")
+      bg = "bg-[#fff5f5] text-[#fa5252] border-[#ffc9c9]";
+
+    return (
+      <span
+        className={`inline-flex items-center rounded px-1.5 py-0.2 text-[8.5px] font-bold uppercase border ${bg}`}
+      >
+        {raw}
+      </span>
+    );
   };
 
   return (
-    <section className="w-full bg-bg pb-20">
+    <section className="w-full bg-bg pb-6">
       <AppBox sx={containerSx}>
         {/* Mobile Page Header */}
         <AppBox sx={headerWrapperSx}>
-          <AppStack direction="row" align="center" justify="space-between" gap={1}>
-            <AppBox sx={{ minWidth: 0, flex: 1 }}>
-              <AppHeading level={1} weight={700} sx={pageTitleSx}>
+          <AppStack
+            direction="row"
+            align="center"
+            justify="space-between"
+            gap={1}
+          >
+            <AppBox sx={{ minWidth: 0, flex: 1, pr: 1.5 }}>
+              <AppHeading level={1} weight={800} sx={pageTitleSx}>
                 Physical Counts
               </AppHeading>
               <AppText variant="body2" sx={pageSubtitleSx}>
-                Verify drawer physical balances
+                Verify cash registers physical balance count audits
               </AppText>
             </AppBox>
 
-            <AppStack direction="row" gap={0.8} align="center">
+            <AppStack
+              direction="row"
+              gap={1}
+              align="center"
+              sx={{ flexShrink: 0, display: "flex", alignItems: "center" }}
+            >
               <AppIconButton
-                icon={<FiSliders />}
+                icon={
+                  <FiRefreshCw className={isLoading ? "animate-spin" : ""} />
+                }
                 variant="outlined"
                 colorVariant="neutral"
                 size="small"
                 rounded="md"
-                onClick={() => setShowFilters(!showFilters)}
-                sx={actionHeaderIconBtnSx}
+                onClick={handleRefresh}
+                disabled={isLoading}
+                sx={refreshMobileBtnSx}
               />
               <AppIconButton
                 icon={<FiPlus />}
-                variant="contained"
-                colorVariant="primary"
+                variant="filled"
+                colorVariant="success"
                 size="small"
                 rounded="md"
                 onClick={handleCreateNew}
-                sx={actionHeaderIconBtnSx}
+                sx={createNewBtnSx}
               />
             </AppStack>
           </AppStack>
@@ -103,8 +135,10 @@ const CashDenominationsMobilePage = ({
         {/* Feedback Alert */}
         {(error || message) && (
           <div
-            className={`mx-2 mb-3 p-3 text-[11px] font-semibold rounded-md flex justify-between items-center ${
-              error ? "bg-danger-soft text-danger" : "bg-success-soft text-success"
+            className={`mb-3 p-3 text-[11px] font-semibold rounded-md flex justify-between items-center ${
+              error
+                ? "bg-danger-soft text-danger"
+                : "bg-success-soft text-success"
             }`}
           >
             <span className="flex-1">{error || message}</span>
@@ -117,198 +151,447 @@ const CashDenominationsMobilePage = ({
           </div>
         )}
 
-        {/* Search & Collapse Filters */}
-        <div className="px-2 mb-3 space-y-2">
+        {/* Search & Filters Toolbar */}
+        <div className="px-0 mb-3 flex gap-2">
           <AppInput
             value={filters.search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search counts, notes..."
+            placeholder="Search counts..."
             startIcon={<FiSearch />}
             size="small"
+            inputSx={searchMobileInputSx}
+            sx={{ flex: 1 }}
           />
 
-          {showFilters && (
-            <div className="p-3 bg-surface rounded-md border border-border space-y-2">
-              <AppSelect
-                label="Cash Register"
-                name="cashAccountId"
-                value={filters.cashAccountId}
-                onChange={(e) => handleFilterChange("cashAccountId", e.target.value)}
-                options={cashAccountOptions}
-                size="small"
-              />
-
-              <AppSelect
-                label="Linked Branch"
-                name="branchId"
-                value={filters.branchId}
-                onChange={(e) => handleFilterChange("branchId", e.target.value)}
-                options={branchOptions}
-                size="small"
-              />
-
-              <AppSelect
-                label="Status"
-                name="status"
-                value={filters.status}
-                onChange={(e) => handleFilterChange("status", e.target.value)}
-                options={statusFilterOptions}
-                size="small"
-              />
-            </div>
-          )}
+          <AppIconButton
+            icon={<FiFilter />}
+            variant={showFilters ? "filled" : "outlined"}
+            colorVariant={showFilters ? "primary" : "neutral"}
+            size="medium"
+            rounded="md"
+            onClick={() => setShowFilters(!showFilters)}
+            sx={filterBtnSx}
+          />
         </div>
 
-        {/* Cards list */}
-        <div className="px-2 space-y-2.5">
-          {isLoading ? (
-            <div className="py-12 text-center text-text-muted font-bold text-[12px]">
-              Loading cash counts...
-            </div>
-          ) : denominations.length === 0 ? (
-            <div className="py-12 text-center bg-surface rounded-md border border-border">
-              <FiInbox className="mx-auto text-[32px] text-text-muted/30 mb-2" />
-              <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", fontWeight: 600 }}>
-                No Counts Recorded
-              </AppText>
-            </div>
-          ) : (
-            denominations.map((d) => {
-              const varianceVal = d.variance || 0;
-              const isShort = varianceVal < 0;
-              const isExcess = varianceVal > 0;
+        {/* Collapsible Panel */}
+        {showFilters && (
+          <div className="px-0 mb-3">
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              shadow="none"
+              padding="none"
+              sx={filterCardSx}
+            >
+              <div className="p-3.5 space-y-3.5">
+                <AppSelect
+                  label="Cash Register"
+                  name="cashAccountId"
+                  value={filters.cashAccountId}
+                  onChange={(e) =>
+                    handleFilterChange("cashAccountId", e.target.value)
+                  }
+                  options={cashAccountOptions}
+                  size="small"
+                  variant="bordered"
+                  rounded="md"
+                  inputSx={compactFilterInputSx}
+                  labelSx={labelSx}
+                />
 
-              return (
-                <AppCard
-                  key={d._id}
-                  variant="default"
-                  rounded="lg"
-                  bordered
-                  shadow="none"
-                  padding="none"
-                  sx={countCardSx}
-                >
-                  <div className="p-3 border-b border-border bg-surface-alt/10 flex justify-between items-center">
-                    <span className="text-[11.5px] font-black font-mono text-text">
-                      {d.countNumber}
-                    </span>
-                    <span className="text-[10px] text-text-muted font-semibold font-mono">
-                      {getBranchName(d)}
-                    </span>
-                  </div>
+                <AppSelect
+                  label="Linked Branch"
+                  name="branchId"
+                  value={filters.branchId}
+                  onChange={(e) =>
+                    handleFilterChange("branchId", e.target.value)
+                  }
+                  options={branchOptions}
+                  size="small"
+                  variant="bordered"
+                  rounded="md"
+                  inputSx={compactFilterInputSx}
+                  labelSx={labelSx}
+                />
 
-                  <div className="p-3 space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <strong className="text-[12px] text-text block font-bold">
-                          {getRegisterName(d)}
-                        </strong>
-                        <span className="text-[9.5px] text-text-muted block mt-0.5 font-mono">
-                          Date: {formatDate(d.countDate)}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <strong className="text-[12.5px] text-text font-black block">
-                          ₹{Number(d.physicalTotal || 0).toLocaleString("en-IN")}
-                        </strong>
-                        <span className={`text-[9.5px] font-bold block mt-0.5 ${
-                          isShort ? "text-danger" : isExcess ? "text-success" : "text-text-muted"
-                        }`}>
-                          Var: {isExcess ? "+" : ""}₹{Number(varianceVal).toLocaleString("en-IN")}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center border-t border-border/50 pt-2.5 mt-1">
-                      <span className={`inline-flex items-center rounded px-1.5 py-0.2 text-[8px] font-bold uppercase ${getStatusBadgeClass(d.status)}`}>
-                        {d.status}
-                      </span>
-
-                      <AppIconButton
-                        icon={<FiEye />}
-                        variant="outlined"
-                        colorVariant="primary"
-                        size="small"
-                        onClick={() => handleViewDetails(d._id)}
-                        title="View Details"
-                        sx={cardIconButtonSx}
-                      />
-                    </div>
-                  </div>
-                </AppCard>
-              );
-            })
-          )}
-        </div>
-
-        {/* Mobile Pagination */}
-        {showPagination && (
-          <div className="px-2 py-4">
-            <AppTablePagination
-              page={currentPage}
-              pageSize={pageSize}
-              totalItems={totalItems}
-              onPageChange={handlePageChange}
-            />
+                <AppSelect
+                  label="Post Status"
+                  name="status"
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange("status", e.target.value)}
+                  options={statusFilterOptions}
+                  size="small"
+                  variant="bordered"
+                  rounded="md"
+                  inputSx={compactFilterInputSx}
+                  labelSx={labelSx}
+                />
+              </div>
+            </AppCard>
           </div>
         )}
+
+        {/* Content list */}
+        <div className="px-0 space-y-3">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <AppText
+                variant="body2"
+                sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}
+              >
+                Querying cash counts...
+              </AppText>
+            </div>
+          ) : denominations.length === 0 ? (
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              padding="md"
+              sx={emptyCardSx}
+            >
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <FiInbox className="text-[40px] text-text-muted/40 mb-2" />
+                <AppHeading
+                  level={3}
+                  weight={600}
+                  sx={{
+                    m: 0,
+                    fontSize: "13px",
+                    color: "var(--app-color-text)",
+                  }}
+                >
+                  No Audits Found
+                </AppHeading>
+                <AppText
+                  variant="body2"
+                  sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}
+                >
+                  Adjust filters or record a new cash count.
+                </AppText>
+              </div>
+            </AppCard>
+          ) : (
+            <AppStack direction="column" gap={1.2}>
+              {denominations.map((item) => {
+                const registerLabel =
+                  item.cashAccountId?.accountName || "Unknown Register";
+                const branchLabel =
+                  item.branchId?.name ||
+                  item.cashAccountId?.branchId?.name ||
+                  "Central Office";
+
+                return (
+                  <AppCard
+                    key={item._id}
+                    variant="default"
+                    rounded="lg"
+                    bordered
+                    shadow="sm"
+                    padding="none"
+                    sx={denominationCardSx}
+                  >
+                    <AppStack
+                      direction="row"
+                      align="center"
+                      gap={1.5}
+                      justify="space-between"
+                      sx={{ width: "100%", p: 1.5 }}
+                    >
+                      {/* Left Side Clickable details wrapper */}
+                      <AppStack
+                        direction="row"
+                        align="center"
+                        gap={1.5}
+                        sx={{ minWidth: 0, flex: 1, cursor: "pointer" }}
+                        onClick={() => handleCardClick(item._id)}
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-primary-soft flex items-center justify-center text-primary shrink-0 shadow-sm border border-primary/10">
+                          <LuWallet className="text-[20px]" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <AppHeading level={3} weight={700} sx={txTitleSx}>
+                              {item.countNumber || "Count Record"}
+                            </AppHeading>
+                            <span className="shrink-0">
+                              {getStatusBadge(item.status)}
+                            </span>
+                          </div>
+                          <AppText variant="body2" sx={descriptionTextSx}>
+                            {registerLabel} ({branchLabel})
+                          </AppText>
+                        </div>
+                      </AppStack>
+
+                      {/* Right Side Stack */}
+                      <AppStack
+                        direction="row"
+                        align="center"
+                        gap={1}
+                        sx={{ flexShrink: 0 }}
+                      >
+                        <AppStack
+                          direction="column"
+                          align="flex-end"
+                          gap={0.5}
+                          sx={rightMetadataStackSx}
+                        >
+                          <span className="text-[9.5px] text-text-muted block">
+                            Total Count
+                          </span>
+                          <span className="text-[12.5px] font-extrabold block mt-0.5 text-text">
+                            {formatCurrency(item.physicalTotal)}
+                          </span>
+                        </AppStack>
+
+                        <AppMenu
+                          triggerIcon={<FiMoreVertical />}
+                          items={[
+                            {
+                              label: "View Details",
+                              icon: <FiEye />,
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                handleCardClick(item._id);
+                              },
+                            },
+                          ]}
+                          triggerProps={{
+                            size: "small",
+                            sx: {
+                              color: "var(--app-color-text-muted)",
+                              backgroundColor: "transparent",
+                              border: "none",
+                              p: 0.5,
+                              minWidth: 0,
+                              "&:hover": {
+                                backgroundColor:
+                                  "var(--app-color-surface-hover, #f1f5f9)",
+                              },
+                            },
+                          }}
+                        />
+                      </AppStack>
+                    </AppStack>
+
+                    {/* Metadata Drawer details */}
+                    <div className="px-3.5 pb-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[11px] border-t border-dashed border-border/80 pt-3">
+                      <div>
+                        <span className="text-text-muted block font-semibold">
+                          Count Date
+                        </span>
+                        <span className="font-bold text-text block mt-0.5">
+                          {formatDate(item.countDate)}
+                        </span>
+                      </div>
+                    </div>
+                  </AppCard>
+                );
+              })}
+            </AppStack>
+          )}
+
+          {/* Conditional Pagination Footer */}
+          {shouldRenderPagination && (
+            <AppBox sx={paginationFooterWrapperSx}>
+              <AppTablePagination
+                page={currentPage}
+                pageSize={pageSize}
+                totalItems={totalItems}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+                showPageSize={false}
+                showSummary={true}
+                showFirstLast={false}
+                compact={true}
+                size="small"
+                align="center"
+                rounded="md"
+                sx={{
+                  width: "100%",
+                  justifyContent: "center !important",
+                  alignItems: "center",
+                  textAlign: "center",
+                  "& .MuiPagination-root": {
+                    display: "flex !important",
+                    justifyContent: "center !important",
+                    width: "100%",
+                  },
+                  "& .MuiPagination-ul": {
+                    justifyContent: "center !important",
+                    width: "100%",
+                  },
+                }}
+                summarySx={{
+                  textAlign: "center",
+                  width: "100%",
+                  mb: 0.5,
+                }}
+                paginationSx={{
+                  display: "flex !important",
+                  justifyContent: "center !important",
+                  alignItems: "center",
+                  width: "100%",
+                  "& .MuiPagination-ul": {
+                    justifyContent: "center !important",
+                    width: "100%",
+                  },
+                }}
+              />
+            </AppBox>
+          )}
+        </div>
       </AppBox>
     </section>
   );
 };
 
-// Layout variables
+// MUI style configurations
 const containerSx = {
   position: "relative",
   zIndex: 1,
   width: "100%",
   maxWidth: { xs: 430, sm: 460 },
   mx: "auto",
-  px: 0.5,
+  px: 0,
   pt: 0,
   pb: 0,
 };
 
 const headerWrapperSx = {
-  pt: 1.5,
+  pt: 1,
   pb: 1.5,
-  px: 0.5,
+  px: 0,
 };
 
 const pageTitleSx = {
   m: 0,
-  fontSize: "18.5px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.3px",
+  fontSize: "21px",
+  fontWeight: 800,
   color: "var(--app-color-text)",
+  letterSpacing: "-0.5px",
 };
 
 const pageSubtitleSx = {
-  mt: 0.2,
-  fontSize: "11px",
-  lineHeight: "15px",
+  mt: 0.4,
+  fontSize: "11.5px",
   color: "var(--app-color-text-muted)",
 };
 
-const actionHeaderIconBtnSx = {
-  height: 32,
-  width: 32,
-  minWidth: 32,
-  borderColor: "var(--app-color-border)",
+const createNewBtnSx = {
+  height: 36,
+  width: 36,
+  minWidth: 36,
+  p: 0,
 };
 
-const countCardSx = {
+const refreshMobileBtnSx = {
+  height: 36,
+  width: 36,
+  minWidth: 36,
+  p: 0,
+};
+
+const searchMobileInputSx = {
+  height: 42,
+  fontSize: "13px",
+  bgcolor: "var(--app-color-surface)",
+};
+
+const filterBtnSx = {
+  height: 42,
+  width: 42,
+  minWidth: 42,
+  p: 0,
+  borderColor: "var(--app-color-border)",
+  bgcolor: "var(--app-color-surface)",
+  flexShrink: 0,
+};
+
+const filterCardSx = {
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
-  overflow: "hidden",
 };
 
-const cardIconButtonSx = {
-  height: 24,
-  width: 24,
-  minWidth: 24,
-  p: 0,
-  "& svg": { fontSize: "12px" },
+const labelSx = {
+  fontSize: "11px",
+  fontWeight: 700,
+  color: "var(--app-color-text-muted)",
+  mb: 0.5,
+};
+
+const compactFilterInputSx = {
+  height: 32,
+  fontSize: "11.5px",
+  bgcolor: "var(--app-color-surface)",
+};
+
+const denominationCardSx = {
+  bgcolor: "var(--app-color-surface)",
+  border: "1px solid var(--app-color-border)",
+  boxShadow:
+    "0 2px 10px color-mix(in_srgb, var(--app-color-text) 5%, transparent)",
+  transition: "all 0.15s ease",
+  "&:active": {
+    transform: "scale(0.99)",
+  },
+};
+
+const txTitleSx = {
+  m: 0,
+  fontSize: "12px",
+  color: "var(--app-color-text)",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: 110,
+};
+
+const descriptionTextSx = {
+  mt: 0.25,
+  fontSize: "10.5px",
+  color: "var(--app-color-text-muted)",
+};
+
+const rightMetadataStackSx = {
+  pl: 1.5,
+  borderLeft:
+    "1px solid color-mix(in_srgb, var(--app-color-border) 60%, transparent)",
+  minWidth: { xs: 85, sm: 100 },
+  maxWidth: { xs: 100, sm: 120 },
+  flexShrink: 0,
+};
+
+const emptyCardSx = {
+  borderColor: "var(--app-color-border)",
+  bgcolor: "var(--app-color-surface)",
+  width: "100%",
+};
+
+const paginationFooterWrapperSx = {
+  px: 0,
+  pt: 2,
+  pb: 2,
+  borderTop: "1px solid var(--app-color-divider)",
+  display: "flex",
+  justifyContent: "center",
+  width: "100%",
+  "& > div": {
+    width: "100%",
+    display: "flex !important",
+    justifyContent: "center !important",
+    alignItems: "center",
+    "& .MuiPagination-ul": {
+      justifyContent: "center !important",
+    },
+    "& .MuiPagination-root": {
+      display: "flex !important",
+      justifyContent: "center !important",
+    },
+  },
 };
 
 export default CashDenominationsMobilePage;

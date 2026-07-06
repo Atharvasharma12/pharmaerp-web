@@ -1,5 +1,14 @@
-import React from "react";
-import { FiSearch, FiPlus, FiEye, FiClock, FiInbox } from "react-icons/fi";
+import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  FiPlus,
+  FiSearch,
+  FiEye,
+  FiClock,
+  FiInbox,
+  FiMoreVertical,
+  FiRefreshCw,
+} from "react-icons/fi";
 
 import {
   AppBox,
@@ -9,13 +18,15 @@ import {
   AppHeading,
   AppInput,
   AppSelect,
+  AppStack,
   AppTablePagination,
   AppText,
-  AppIconButton,
+  AppTable,
+  AppMenu,
   PageHeader,
-  AppStack,
 } from "@/components";
-import { formatDate } from "@/utils";
+import { ROUTES } from "@/constants";
+import { formatDate, formatCurrency } from "@/utils";
 
 const statusFilterOptions = [
   { label: "All Statuses", value: "all" },
@@ -42,29 +53,117 @@ const CashDenominationsDesktopPage = ({
   handlePageSizeChange,
   handleCreateNew,
   handleViewDetails,
+  handleRefresh,
 }) => {
-  const showPagination = denominations.length > 0;
+  const navigate = useNavigate();
 
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case "CONFIRMED":
-        return "bg-success-soft text-success border border-success/20";
-      case "CANCELLED":
-        return "bg-danger-soft text-danger border border-danger/20";
-      default:
-        return "bg-warning-soft text-warning border border-warning/20";
-    }
-  };
+  const getStatusBadge = (status) => {
+    const raw = String(status || "").toUpperCase();
+    let bg = "bg-[#f8f9fa] text-[#495057] border-[#dee2e6]";
 
-  const getRegisterName = (d) => {
-    return d.cashAccountId?.accountName || "Unknown Cash Register";
-  };
+    if (raw === "DRAFT") bg = "bg-[#fff9db] text-[#f08c00] border-[#ffe066]";
+    else if (raw === "CONFIRMED") bg = "bg-[#ebfbee] text-[#2b8a3e] border-[#c3fae8]";
+    else if (raw === "CANCELLED") bg = "bg-[#fff5f5] text-[#fa5252] border-[#ffc9c9]";
 
-  const getBranchName = (d) => {
     return (
-      d.branchId?.name || d.cashAccountId?.branchId?.name || "Central Office"
+      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[9.5px] font-bold uppercase border ${bg}`}>
+        {raw}
+      </span>
     );
   };
+
+  const columns = useMemo(() => [
+    {
+      id: "countNumber",
+      label: "Count Number",
+      minWidth: 150,
+      render: (_, item) => (
+        <AppText variant="body2" sx={tableValueMonoSx}>
+          {item.countNumber || "-"}
+        </AppText>
+      ),
+    },
+    {
+      id: "countDate",
+      label: "Count Date",
+      minWidth: 130,
+      render: (_, item) => (
+        <AppText variant="body2" sx={tableValueMutedSx}>
+          {formatDate(item.countDate)}
+        </AppText>
+      ),
+    },
+    {
+      id: "cashAccount",
+      label: "Cash Register",
+      minWidth: 180,
+      render: (_, item) => (
+        <AppText variant="body2" sx={tableValueSx}>
+          {item.cashAccountId?.accountName || "Unknown Register"}
+        </AppText>
+      ),
+    },
+    {
+      id: "branch",
+      label: "Branch",
+      minWidth: 160,
+      render: (_, item) => (
+        <AppText variant="body2" sx={tableValueMutedSx}>
+          {item.branchId?.name || item.cashAccountId?.branchId?.name || "Central Office"}
+        </AppText>
+      ),
+    },
+    {
+      id: "physicalTotal",
+      label: "Total Amount",
+      minWidth: 140,
+      align: "right",
+      render: (_, item) => (
+        <span className="text-[12.5px] font-black text-text">
+          {formatCurrency(item.physicalTotal)}
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      label: "Status",
+      align: "center",
+      minWidth: 110,
+      render: (_, item) => getStatusBadge(item.status),
+    },
+    {
+      id: "actions",
+      label: "Actions",
+      align: "right",
+      width: 80,
+      render: (_, item) => (
+        <AppStack direction="row" gap={0.5} justify="flex-end" align="center">
+          <AppMenu
+            trigger={
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text hover:bg-surface-hover focus:outline-none cursor-pointer"
+              >
+                <FiMoreVertical className="text-[16px]" />
+              </button>
+            }
+            items={[
+              {
+                id: "view",
+                label: "View Details",
+                icon: <FiEye />,
+                onClick: () => handleViewDetails(item._id),
+              },
+            ]}
+            dense
+            minWidth={140}
+          />
+        </AppStack>
+      ),
+    },
+  ], []);
+
+  const showPagination = totalItems > pageSize;
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
@@ -79,9 +178,9 @@ const CashDenominationsDesktopPage = ({
                 size="small"
                 variant="text"
                 items={[
-                  { label: "Dashboard" },
-                  { label: "Finance & Accounting" },
-                  { label: "Treasury" },
+                  { label: "Dashboard", onClick: () => navigate(ROUTES.DASHBOARD) },
+                  { label: "Finance & Accounting", onClick: () => navigate(ROUTES.FINANCE) },
+                  { label: "Treasury", onClick: () => navigate(ROUTES.TREASURY) },
                   { label: "Cash Counts", current: true },
                 ]}
                 sx={breadcrumbSx}
@@ -89,12 +188,25 @@ const CashDenominationsDesktopPage = ({
                 currentItemSx={breadcrumbCurrentSx}
               />
               <AppButton
-                variant="contained"
-                colorVariant="primary"
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                rounded="md"
+                startIcon={<FiRefreshCw />}
+                onClick={handleRefresh}
+                loading={isLoading}
+                sx={importButtonSx}
+              >
+                Refresh
+              </AppButton>
+              <AppButton
+                variant="filled"
+                colorVariant="success"
                 size="small"
                 rounded="md"
                 startIcon={<FiPlus />}
                 onClick={handleCreateNew}
+                sx={primaryButtonSx}
               >
                 New Cash Count
               </AppButton>
@@ -110,9 +222,7 @@ const CashDenominationsDesktopPage = ({
         {(error || message) && (
           <div
             className={`mt-4 p-3 text-[12.5px] font-semibold rounded-md flex justify-between items-center ${
-              error
-                ? "bg-danger-soft text-danger"
-                : "bg-success-soft text-success"
+              error ? "bg-danger-soft text-danger" : "bg-success-soft text-success"
             }`}
           >
             <span>{error || message}</span>
@@ -126,50 +236,33 @@ const CashDenominationsDesktopPage = ({
         )}
 
         {/* Table Card */}
-        <AppCard
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="sm"
-          padding="none"
-          sx={mainCardSx}
-        >
-          {/* Filters Toolbar */}
-          <div className="p-4 border-b border-border bg-surface-hover/20 flex items-end justify-between gap-4">
-            <div className="flex items-end gap-4">
-              <AppInput
-                label="Search Counts"
-                name="search"
-                value={filters.search}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search count number, notes..."
-                startIcon={<FiSearch />}
-                size="small"
-                fullWidth={false}
-                formControlSx={{ width: 220 }}
-                inputSx={compactFilterInputSx}
-                labelSx={filterLabelSx}
-              />
+        <AppCard variant="default" rounded="lg" bordered shadow="sm" padding="none" sx={mainCardSx}>
+          <div className="p-4 border-b border-border bg-surface-hover/20 flex items-center justify-between gap-4">
+            <AppInput
+              name="search"
+              value={filters.search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search count number or notes..."
+              startIcon={<FiSearch />}
+              size="small"
+              sx={searchFieldSx}
+              inputSx={searchFieldInputSx}
+            />
 
+            <div className="flex items-center gap-2">
               <AppSelect
-                label="Cash Register"
                 name="cashAccountId"
                 value={filters.cashAccountId}
-                onChange={(e) =>
-                  handleFilterChange("cashAccountId", e.target.value)
-                }
+                onChange={(e) => handleFilterChange("cashAccountId", e.target.value)}
                 options={cashAccountOptions}
                 size="small"
                 variant="bordered"
                 rounded="md"
-                fullWidth={false}
-                formControlSx={{ width: 180 }}
+                sx={{ width: 220, minWidth: 220 }}
                 inputSx={compactFilterInputSx}
-                labelSx={filterLabelSx}
               />
 
               <AppSelect
-                label="Linked Branch"
                 name="branchId"
                 value={filters.branchId}
                 onChange={(e) => handleFilterChange("branchId", e.target.value)}
@@ -177,14 +270,11 @@ const CashDenominationsDesktopPage = ({
                 size="small"
                 variant="bordered"
                 rounded="md"
-                fullWidth={false}
-                formControlSx={{ width: 180 }}
+                sx={{ width: 180, minWidth: 180 }}
                 inputSx={compactFilterInputSx}
-                labelSx={filterLabelSx}
               />
 
               <AppSelect
-                label="Status"
                 name="status"
                 value={filters.status}
                 onChange={(e) => handleFilterChange("status", e.target.value)}
@@ -192,153 +282,53 @@ const CashDenominationsDesktopPage = ({
                 size="small"
                 variant="bordered"
                 rounded="md"
-                fullWidth={false}
-                formControlSx={{ width: 130 }}
+                sx={{ width: 145, minWidth: 145 }}
                 inputSx={compactFilterInputSx}
-                labelSx={filterLabelSx}
               />
             </div>
           </div>
 
-          {/* Table container */}
-          <div className="overflow-x-auto w-full relative">
+          {/* Table Container */}
+          <div className="w-full relative">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20">
-                <AppText
-                  variant="body1"
-                  sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}
-                >
-                  Retrieving physical cash count ledger...
+                <AppText variant="body1" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
+                  Retrieving cash count audits...
                 </AppText>
               </div>
             ) : denominations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <FiInbox className="text-[40px] text-text-muted/40 mb-3" />
-                <AppHeading
-                  level={3}
-                  weight={600}
-                  sx={{
-                    m: 0,
-                    fontSize: "14px",
-                    color: "var(--app-color-text)",
-                  }}
-                >
-                  No Count Records Found
+                <AppHeading level={3} weight={600} sx={{ m: 0, fontSize: "14px", color: "var(--app-color-text)" }}>
+                  No Cash Counts Found
                 </AppHeading>
-                <AppText
-                  variant="body2"
-                  sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}
-                >
-                  Add a new cash audit or adjust filters.
+                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>
+                  Adjust search criteria or create a new physical count record.
                 </AppText>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-[12.5px]">
-                <thead>
-                  <tr className="border-b border-border bg-surface-alt/10 text-text-muted font-bold">
-                    <th className="py-3 px-4 font-bold">Count Number</th>
-                    <th className="py-3 px-4 font-bold">Count Date</th>
-                    <th className="py-3 px-4 font-bold">Cash Register</th>
-                    <th className="py-3 px-4 font-bold">
-                      Linked Location / Branch
-                    </th>
-                    <th className="py-3 px-4 text-right font-bold">
-                      Expected Balance
-                    </th>
-                    <th className="py-3 px-4 text-right font-bold">
-                      Physical Counted
-                    </th>
-                    <th className="py-3 px-4 text-right font-bold">Variance</th>
-                    <th className="py-3 px-4 text-center font-bold">Status</th>
-                    <th className="py-3 px-4 text-center font-bold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {denominations.map((d) => {
-                    const varianceVal = d.variance || 0;
-                    const isShort = varianceVal < 0;
-                    const isExcess = varianceVal > 0;
-
-                    return (
-                      <tr
-                        key={d._id}
-                        className="border-b border-border hover:bg-surface-hover/20 transition"
-                      >
-                        <td className="py-3.5 px-4 font-bold text-text font-mono">
-                          {d.countNumber}
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-text">
-                          {formatDate(d.countDate)}
-                        </td>
-                        <td className="py-3.5 px-4 text-text font-semibold">
-                          {getRegisterName(d)}
-                        </td>
-                        <td className="py-3.5 px-4 text-text font-semibold font-mono">
-                          {getBranchName(d)}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-semibold text-text-muted">
-                          ₹{" "}
-                          {Number(d.expectedBalance || 0).toLocaleString(
-                            "en-IN",
-                            { minimumFractionDigits: 2 },
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-bold text-text">
-                          ₹{" "}
-                          {Number(d.physicalTotal || 0).toLocaleString(
-                            "en-IN",
-                            { minimumFractionDigits: 2 },
-                          )}
-                        </td>
-                        <td
-                          className={`py-3.5 px-4 text-right font-black ${
-                            isShort
-                              ? "text-danger"
-                              : isExcess
-                                ? "text-success"
-                                : "text-text"
-                          }`}
-                        >
-                          {isExcess ? "+" : ""} ₹{" "}
-                          {Number(varianceVal).toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span
-                            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${getStatusBadgeClass(d.status)}`}
-                          >
-                            {d.status}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <AppIconButton
-                            icon={<FiEye />}
-                            variant="outlined"
-                            colorVariant="primary"
-                            size="small"
-                            onClick={() => handleViewDetails(d._id)}
-                            title="View Details"
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <AppTable
+                columns={columns}
+                rows={denominations}
+                getRowId={(row) => row._id}
+                sx={tableSx}
+                headSx={tableHeadSx}
+                cellSx={tableCellSx}
+              />
             )}
           </div>
 
-          {/* Pagination */}
+          {/* Table Footer */}
           {showPagination && (
-            <div className="px-4 py-3 border-t border-divider">
+            <AppBox sx={paginationFooterWrapperSx}>
               <AppTablePagination
                 page={currentPage}
                 pageSize={pageSize}
                 totalItems={totalItems}
                 onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
               />
-            </div>
+            </AppBox>
           )}
         </AppCard>
       </div>
@@ -346,7 +336,7 @@ const CashDenominationsDesktopPage = ({
   );
 };
 
-// Styles variables
+// Styling variables
 const breadcrumbSx = { mt: 0 };
 const breadcrumbItemSx = {
   fontSize: "12px",
@@ -372,10 +362,47 @@ const pageHeaderContentSx = {
   },
 };
 
+const primaryButtonSx = {
+  height: 38,
+  px: 2.5,
+  fontSize: "12.5px",
+  fontWeight: 700,
+  bgcolor: "#00b85c",
+  color: "white",
+  whiteSpace: "nowrap",
+  "&:hover": { bgcolor: "#009e4f" },
+};
+
+const importButtonSx = {
+  height: 38,
+  px: 2.5,
+  fontSize: "12.5px",
+  fontWeight: 650,
+  borderColor: "var(--app-color-border)",
+  color: "var(--app-color-text)",
+  bgcolor: "white",
+  whiteSpace: "nowrap",
+};
+
+const statCardSx = {
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+};
+
 const mainCardSx = {
   mt: 5,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
+};
+
+const searchFieldSx = {
+  width: 250,
+};
+
+const searchFieldInputSx = {
+  height: 32,
+  fontSize: "12px",
+  bgcolor: "var(--app-color-surface)",
 };
 
 const compactFilterInputSx = {
@@ -384,11 +411,61 @@ const compactFilterInputSx = {
   bgcolor: "var(--app-color-surface)",
 };
 
-const filterLabelSx = {
-  fontSize: "11px",
-  fontWeight: 700,
+const tableSx = {
+  width: "100%",
+  "& .MuiTable-root": {
+    width: "100%",
+  },
+};
+
+const tableHeadSx = {
+  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, var(--app-color-surface))",
+  "& th": {
+    fontSize: "11px",
+    fontWeight: 750,
+    textTransform: "uppercase",
+    color: "var(--app-color-text-muted)",
+    py: 1.5,
+    borderBottom: "1px solid var(--app-color-divider)",
+  },
+};
+
+const tableCellSx = {
+  py: 1.5,
+  fontSize: "12.5px",
+  borderBottom: "1px solid var(--app-color-divider)",
+};
+
+const tableValueSx = {
+  fontSize: "12.5px",
+  fontWeight: 650,
+  color: "var(--app-color-text)",
+};
+
+const tableValueMutedSx = {
+  fontSize: "12.5px",
+  fontWeight: 650,
   color: "var(--app-color-text-muted)",
-  mb: 0.5,
+};
+
+const tableValueMonoSx = {
+  fontSize: "12px",
+  fontFamily: "var(--font-mono, monospace)",
+  fontWeight: 750,
+  color: "var(--app-color-text)",
+};
+
+const paginationFooterWrapperSx = {
+  px: 2,
+  py: 2,
+  borderTop: "1px solid var(--app-color-divider)",
+  display: "flex",
+  justifyContent: "flex-end",
+  alignItems: "center",
+  width: "100%",
+  "& > div": {
+    width: "auto",
+  },
 };
 
 export default CashDenominationsDesktopPage;

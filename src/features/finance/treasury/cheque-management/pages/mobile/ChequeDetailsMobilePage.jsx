@@ -1,5 +1,5 @@
-import React from "react";
-import { FiArrowLeft, FiClock, FiCheck, FiAlertTriangle, FiSlash, FiTrendingUp } from "react-icons/fi";
+import React, { useState } from "react";
+import { FiArrowLeft, FiClock, FiCheck, FiAlertTriangle, FiSlash, FiTrendingUp, FiInfo } from "react-icons/fi";
 
 import {
   AppBox,
@@ -10,6 +10,12 @@ import {
   AppText,
 } from "@/components";
 import { formatDate } from "@/utils";
+
+import {
+  ClearChequeModal,
+  BounceChequeModal,
+  CancelChequeModal,
+} from "../../components/ChequeActionModals";
 
 const ChequeDetailsMobilePage = ({
   chequeDetails = null,
@@ -24,6 +30,10 @@ const ChequeDetailsMobilePage = ({
   handleCancel,
   handleBack,
 }) => {
+  const [clearModalOpen, setClearModalOpen] = useState(false);
+  const [bounceModalOpen, setBounceModalOpen] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+
   if (isLoading && !chequeDetails) {
     return (
       <div className="flex flex-col items-center justify-center py-16 bg-bg w-full">
@@ -68,13 +78,8 @@ const ChequeDetailsMobilePage = ({
     }
   };
 
-  const getBankName = () => {
-    return chequeDetails.bankAccountId?.bankName || "Unknown Bank";
-  };
-
-  const getAccountName = () => {
-    return chequeDetails.counterpartyAccountId?.name || "Unknown Account";
-  };
+  const getBankName = () => chequeDetails.bankAccountId?.bankName || "Unknown Bank";
+  const getAccountName = () => chequeDetails.counterpartyAccountId?.name || "Unknown Account";
 
   const isReceived = chequeDetails.chequeType === "RECEIVED";
   const isPending = chequeDetails.status === "PENDING";
@@ -87,8 +92,66 @@ const ChequeDetailsMobilePage = ({
     ? `${chequeDetails.createdBy.firstName || ""} ${chequeDetails.createdBy.lastName || ""}`.trim()
     : "System";
 
+  // Contextual next-step hint
+  const getStatusHint = () => {
+    if (isCleared || isBounced || isCancelled) return null;
+    if (isReceived && isPending)
+      return { text: "Awaiting bank deposit. Tap 'Deposit' once submitted to bank.", color: "warning" };
+    if (isReceived && isDeposited)
+      return { text: "Cheque in transit. Clear once bank confirms, or bounce if returned.", color: "primary" };
+    if (!isReceived && isPending)
+      return { text: "Issued to vendor. Clear once cashed, or bounce if returned.", color: "warning" };
+    return null;
+  };
+
+  const hint = getStatusHint();
+
+  // Action flags
+  const canDeposit = isReceived && isPending;
+  const canClear = (isReceived && isDeposited) || (!isReceived && isPending);
+  const canBounce = (isReceived && isDeposited) || (!isReceived && isPending);
+  const canCancel = !isCleared && !isBounced && !isCancelled;
+
+  // Modal submit handlers
+  const onClearSubmit = async (payload) => {
+    await handleClear(payload.clearDate || "", payload.narration || "");
+    setClearModalOpen(false);
+  };
+
+  const onBounceSubmit = async (payload) => {
+    await handleBounce(payload.reason, payload.bounceCharges);
+    setBounceModalOpen(false);
+  };
+
+  const onCancelSubmit = async (payload) => {
+    await handleCancel(payload.reason || "");
+    setCancelModalOpen(false);
+  };
+
   return (
-    <section className="w-full bg-bg pb-24">
+    <section className="w-full bg-bg pb-28">
+      {/* ── Modals (rendered above everything) ── */}
+      <ClearChequeModal
+        open={clearModalOpen}
+        onClose={() => setClearModalOpen(false)}
+        onConfirm={onClearSubmit}
+        isLoading={isTransitioning}
+        chequeType={chequeDetails.chequeType}
+      />
+      <BounceChequeModal
+        open={bounceModalOpen}
+        onClose={() => setBounceModalOpen(false)}
+        onConfirm={onBounceSubmit}
+        isLoading={isTransitioning}
+        chequeType={chequeDetails.chequeType}
+      />
+      <CancelChequeModal
+        open={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        onConfirm={onCancelSubmit}
+        isLoading={isTransitioning}
+      />
+
       <AppBox sx={containerSx}>
         {/* Mobile Page Header */}
         <AppBox sx={headerWrapperSx}>
@@ -112,6 +175,20 @@ const ChequeDetailsMobilePage = ({
             </AppBox>
           </AppStack>
         </AppBox>
+
+        {/* Status hint */}
+        {hint && (
+          <div
+            className={`mx-2 mb-3 p-3 rounded-lg border flex items-start gap-2 text-[11px] font-semibold ${
+              hint.color === "warning"
+                ? "bg-warning-soft/20 border-warning/20 text-warning"
+                : "bg-primary-soft/20 border-primary/20 text-primary"
+            }`}
+          >
+            <FiInfo className="mt-0.5 shrink-0" size={12} />
+            <span>{hint.text}</span>
+          </div>
+        )}
 
         {/* Feedback Alert */}
         {(error || message) && (
@@ -146,7 +223,7 @@ const ChequeDetailsMobilePage = ({
                   #{chequeDetails.chequeNumber}
                 </span>
                 <span className="text-[11.5px] text-text-muted block mt-0.5 font-semibold">
-                  Type: {chequeDetails.chequeType}
+                  {isReceived ? "Received from Customer" : "Issued to Vendor"}
                 </span>
               </div>
               <span className={`inline-flex items-center rounded px-1.5 py-0.2 text-[8px] font-bold uppercase ${getStatusBadgeClass(chequeDetails.status)}`}>
@@ -262,7 +339,8 @@ const ChequeDetailsMobilePage = ({
           </button>
 
           <div className="flex-1 flex gap-2">
-            {isReceived && isPending && (
+            {/* RECEIVED + PENDING → Deposit */}
+            {canDeposit && (
               <button
                 type="button"
                 disabled={isTransitioning}
@@ -274,46 +352,38 @@ const ChequeDetailsMobilePage = ({
               </button>
             )}
 
-            {((isReceived && isDeposited) || (!isReceived && isPending)) && (
-              <>
-                <button
-                  type="button"
-                  disabled={isTransitioning}
-                  onClick={() => {
-                    const date = prompt("Enter clearance date (YYYY-MM-DD):");
-                    if (date !== null) handleClear(date);
-                  }}
-                  className="flex-1 py-2 text-[11px] font-bold bg-[#2b8a3e] text-surface rounded-md hover:bg-emerald-700 transition flex items-center justify-center gap-1"
-                >
-                  <FiCheck />
-                  <span>Clear</span>
-                </button>
-                <button
-                  type="button"
-                  disabled={isTransitioning}
-                  onClick={() => {
-                    const reason = prompt("Enter bounce reason:");
-                    if (reason) {
-                      const charges = prompt("Charges (INR):", "0");
-                      handleBounce(reason, Number(charges) || 0);
-                    }
-                  }}
-                  className="flex-1 py-2 text-[11px] font-bold bg-danger text-surface rounded-md hover:bg-red-700 transition flex items-center justify-center gap-1"
-                >
-                  <FiAlertTriangle />
-                  <span>Bounce</span>
-                </button>
-              </>
-            )}
-
-            {!isCleared && !isBounced && !isCancelled && (
+            {/* Clear */}
+            {canClear && (
               <button
                 type="button"
                 disabled={isTransitioning}
-                onClick={() => {
-                  const reason = prompt("Enter cancellation reason:");
-                  if (reason !== null) handleCancel(reason);
-                }}
+                onClick={() => setClearModalOpen(true)}
+                className="flex-1 py-2 text-[11px] font-bold bg-[#2b8a3e] text-surface rounded-md hover:bg-emerald-700 transition flex items-center justify-center gap-1"
+              >
+                <FiCheck />
+                <span>Clear</span>
+              </button>
+            )}
+
+            {/* Bounce */}
+            {canBounce && (
+              <button
+                type="button"
+                disabled={isTransitioning}
+                onClick={() => setBounceModalOpen(true)}
+                className="flex-1 py-2 text-[11px] font-bold bg-danger text-surface rounded-md hover:bg-red-700 transition flex items-center justify-center gap-1"
+              >
+                <FiAlertTriangle />
+                <span>Bounce</span>
+              </button>
+            )}
+
+            {/* Cancel */}
+            {canCancel && (
+              <button
+                type="button"
+                disabled={isTransitioning}
+                onClick={() => setCancelModalOpen(true)}
                 className="px-2 py-2 text-[11px] font-bold border border-danger text-danger bg-surface rounded-md hover:bg-danger-soft transition flex items-center justify-center gap-1"
               >
                 <FiSlash />

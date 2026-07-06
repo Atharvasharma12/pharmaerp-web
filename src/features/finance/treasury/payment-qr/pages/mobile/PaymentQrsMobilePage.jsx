@@ -11,6 +11,7 @@ import {
   FiAlertCircle,
   FiFilter,
   FiCopy,
+  FiMoreVertical,
 } from "react-icons/fi";
 import { LuQrCode } from "react-icons/lu";
 
@@ -26,6 +27,7 @@ import {
   AppTag,
   AppText,
   AppTablePagination,
+  AppMenu,
 } from "@/components";
 
 const providerOptions = [
@@ -104,16 +106,16 @@ const PaymentQrsMobilePage = ({
         {/* Mobile Page Header */}
         <AppBox sx={headerWrapperSx}>
           <AppStack direction="row" align="center" gap={1} justify="space-between">
-            <AppBox sx={{ minWidth: 0, flex: 1 }}>
-              <AppHeading level={1} weight={700} sx={pageTitleSx}>
+            <AppBox sx={{ minWidth: 0, flex: 1, pr: 1.5 }}>
+              <AppHeading level={1} weight={850} sx={pageTitleSx}>
                 Payment QRs
               </AppHeading>
               <AppText variant="body2" sx={pageSubtitleSx}>
-                Manage payment QR codes ({stats.totalCount || 0})
+                UPI QR settlement directories ({stats.totalCount || 0})
               </AppText>
             </AppBox>
 
-            <AppStack direction="row" gap={0.8} align="center">
+            <AppStack direction="row" gap={1} align="center" sx={{ flexShrink: 0, display: "flex", alignItems: "center" }}>
               <AppIconButton
                 icon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
                 variant="outlined"
@@ -122,16 +124,7 @@ const PaymentQrsMobilePage = ({
                 rounded="md"
                 onClick={handleRefresh}
                 disabled={isLoading}
-                sx={actionHeaderIconBtnSx}
-              />
-              <AppIconButton
-                icon={<FiFilter className={showFilters ? "text-primary" : ""} />}
-                variant="outlined"
-                colorVariant="neutral"
-                size="small"
-                rounded="md"
-                onClick={() => setShowFilters(!showFilters)}
-                sx={actionHeaderIconBtnSx}
+                sx={refreshMobileBtnSx}
               />
               <AppIconButton
                 icon={<FiPlus />}
@@ -140,14 +133,14 @@ const PaymentQrsMobilePage = ({
                 size="small"
                 rounded="md"
                 onClick={handleCreateQr}
-                sx={addQrMobileBtnSx}
+                sx={createNewBtnSx}
               />
             </AppStack>
           </AppStack>
         </AppBox>
 
         {/* inline Search Field */}
-        <div className="px-2 mb-3">
+        <div className="px-0 mb-3 flex gap-2">
           <AppInput
             placeholder="Search UPI ID or label..."
             name="search"
@@ -155,13 +148,24 @@ const PaymentQrsMobilePage = ({
             onChange={(e) => handleFilterChange("search", e.target.value)}
             size="small"
             startIcon={<FiSearch className="text-text-muted text-[14px]" />}
-            inputSx={searchFieldInputSx}
+            inputSx={searchMobileInputSx}
+            sx={{ flex: 1 }}
+          />
+
+          <AppIconButton
+            icon={<FiFilter />}
+            variant={showFilters ? "filled" : "outlined"}
+            colorVariant={showFilters ? "primary" : "neutral"}
+            size="medium"
+            rounded="md"
+            onClick={() => setShowFilters(!showFilters)}
+            sx={filterBtnSx}
           />
         </div>
 
         {/* Server Success / Failure Banner Notifications */}
         {serverError && (
-          <div className="mx-2 mb-3 p-3 bg-danger-soft text-danger text-[11px] font-semibold rounded-md border border-danger/25 flex items-center justify-between shadow-sm">
+          <div className="mb-3 p-3 bg-danger-soft text-danger text-[11px] font-semibold rounded-md border border-danger/25 flex items-center justify-between shadow-sm">
             <span className="flex items-center gap-1.5">
               <FiAlertCircle />
               {serverError}
@@ -173,7 +177,7 @@ const PaymentQrsMobilePage = ({
         )}
 
         {serverMessage && (
-          <div className="mx-2 mb-3 p-3 bg-success-soft text-success text-[11px] font-semibold rounded-md border border-success/25 flex items-center justify-between shadow-sm">
+          <div className="mb-3 p-3 bg-success-soft text-success text-[11px] font-semibold rounded-md border border-success/25 flex items-center justify-between shadow-sm">
             <span>{serverMessage}</span>
             <button type="button" onClick={clearMessage} className="font-bold hover:underline">
               Dismiss
@@ -183,49 +187,51 @@ const PaymentQrsMobilePage = ({
 
         {/* Collapsible Mobile Filters Dropdown panel */}
         {showFilters && (
-          <AppCard variant="default" rounded="lg" bordered shadow="none" padding="none" sx={expandableFiltersCardSx}>
-            <div className="p-3.5 space-y-3.5">
-              <AppSelect
-                label="Status Filter"
-                name="status"
-                value={filters.status}
-                onChange={(e) => handleFilterChange("status", e.target.value)}
-                options={statusFilterOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                inputSx={compactFilterInputSx}
-                labelSx={labelSx}
-              />
+          <div className="px-0 mb-3">
+            <AppCard variant="default" rounded="lg" bordered shadow="none" padding="none" sx={expandableFiltersCardSx}>
+              <div className="p-3.5 space-y-3.5">
+                <AppSelect
+                  label="Status Filter"
+                  name="status"
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange("status", e.target.value)}
+                  options={statusFilterOptions}
+                  size="small"
+                  variant="bordered"
+                  rounded="md"
+                  inputSx={compactFilterInputSx}
+                  labelSx={labelSx}
+                />
 
-              <AppSelect
-                label="Provider Filter"
-                name="provider"
-                value={filters.provider}
-                onChange={(e) => handleFilterChange("provider", e.target.value)}
-                options={providerOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                inputSx={compactFilterInputSx}
-                labelSx={labelSx}
-              />
+                <AppSelect
+                  label="Provider Filter"
+                  name="provider"
+                  value={filters.provider}
+                  onChange={(e) => handleFilterChange("provider", e.target.value)}
+                  options={providerOptions}
+                  size="small"
+                  variant="bordered"
+                  rounded="md"
+                  inputSx={compactFilterInputSx}
+                  labelSx={labelSx}
+                />
 
-              <div className="flex gap-2 justify-end pt-1">
-                <AppButton variant="text" colorVariant="primary" size="small" onClick={handleClearFilters}>
-                  Clear Filters
-                </AppButton>
-                <AppButton variant="contained" colorVariant="primary" size="small" onClick={() => setShowFilters(false)}>
-                  Close
-                </AppButton>
+                <div className="flex gap-2 justify-end pt-1">
+                  <AppButton variant="text" colorVariant="primary" size="small" onClick={handleClearFilters}>
+                    Clear Filters
+                  </AppButton>
+                  <AppButton variant="contained" colorVariant="primary" size="small" onClick={() => setShowFilters(false)}>
+                    Close
+                  </AppButton>
+                </div>
               </div>
-            </div>
-          </AppCard>
+            </AppCard>
+          </div>
         )}
 
         {/* Filter chips container */}
         {activeFilterChips.length > 0 && (
-          <div className="px-2 pb-3 flex items-center gap-1.5 flex-wrap">
+          <div className="px-0 pb-3 flex items-center gap-1.5 flex-wrap">
             {activeFilterChips.map((chip) => (
               <AppTag
                 key={chip.key}
@@ -242,7 +248,7 @@ const PaymentQrsMobilePage = ({
         )}
 
         {/* Cards Stack */}
-        <div className="space-y-4">
+        <div className="px-0 space-y-3">
           {isLoading && !hasFilteredQrs ? (
             <div className="py-8 flex flex-col items-center justify-center space-y-1 bg-surface rounded-lg border border-border">
               <FiRefreshCw className="text-[20px] text-primary animate-spin" />
@@ -252,7 +258,7 @@ const PaymentQrsMobilePage = ({
             </div>
           ) : !hasFilteredQrs ? (
             <AppCard variant="default" rounded="lg" bordered shadow="none" sx={emptyCardSx}>
-              <div className="flex flex-col items-center justify-center text-center w-full py-10 px-4">
+              <div className="flex flex-col items-center justify-center text-center w-full py-16 px-4">
                 <FiInbox className="text-[32px] text-text-muted/40 mb-2" />
                 <AppHeading level={3} weight={700} align="center" sx={{ m: 0, fontSize: "12.5px", width: "100%", color: "var(--app-color-text)", mb: 0.5 }}>
                   No Payment QRs Found
@@ -271,21 +277,59 @@ const PaymentQrsMobilePage = ({
             <AppStack direction="column" gap={1.2}>
               {pagedQrs.map((qr) => {
                 const isActive = String(qr.status || "").toUpperCase() === "ACTIVE";
+
+                const menuItems = [
+                  {
+                    id: "view",
+                    label: "View Details",
+                    icon: <FiEye />,
+                    onClick: () => handleViewDetails(qr._id),
+                  },
+                  {
+                    id: "edit",
+                    label: "Edit",
+                    icon: <FiEdit2 />,
+                    onClick: () => handleEditQr(qr._id),
+                  },
+                ];
+
+                if (!qr.isPrimary) {
+                  menuItems.push({
+                    id: "set-primary",
+                    label: "Set As Primary",
+                    icon: <FiStar />,
+                    onClick: () => handleSetPrimary(qr._id),
+                  });
+                }
+
+                menuItems.push({
+                  id: "delete",
+                  label: "Delete",
+                  icon: <FiTrash2 />,
+                  onClick: () => handleDeleteQr(qr._id),
+                });
+
                 return (
                   <AppCard
                     key={qr._id}
                     variant="default"
                     rounded="lg"
-                    bordered={false}
+                    bordered
                     shadow="sm"
                     padding="none"
                     sx={qrCardSx}
                   >
-                    {/* Top row with Logo and Primary tag */}
-                    <div className="p-3.5 flex items-start gap-3 justify-between">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-9 h-9 rounded-lg bg-surface-alt flex items-center justify-center text-text shadow-sm border border-border/40 shrink-0">
-                          <LuQrCode className="text-[17px]" />
+                    <AppStack direction="row" align="center" gap={1.5} justify="space-between" sx={{ width: "100%", p: 1.5 }}>
+                      {/* Left Side Clickable details wrapper */}
+                      <AppStack
+                        direction="row"
+                        align="center"
+                        gap={1.5}
+                        sx={{ minWidth: 0, flex: 1, cursor: "pointer" }}
+                        onClick={() => handleViewDetails(qr._id)}
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-primary-soft flex items-center justify-center text-primary shrink-0 shadow-sm border border-primary/10">
+                          <LuQrCode className="text-[20px]" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
@@ -306,29 +350,36 @@ const PaymentQrsMobilePage = ({
                             </span>
                           </div>
                         </div>
-                      </div>
+                      </AppStack>
 
-                      {/* Primary Favorite selector button */}
-                      <AppIconButton
-                        icon={<FiStar className={qr.isPrimary ? "fill-warning text-warning" : "text-text-muted"} />}
-                        variant="text"
-                        colorVariant={qr.isPrimary ? "warning" : "neutral"}
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSetPrimary(qr._id);
-                        }}
-                        disabled={qr.isPrimary}
-                        sx={{ p: "4px" }}
-                      />
-                    </div>
+                      {/* Right Side Stack */}
+                      <AppStack direction="row" align="center" gap={1} sx={{ flexShrink: 0 }}>
+                        <AppMenu
+                          triggerIcon={<FiMoreVertical />}
+                          items={menuItems}
+                          triggerProps={{
+                            size: "small",
+                            sx: {
+                              color: "var(--app-color-text-muted)",
+                              backgroundColor: "transparent",
+                              border: "none",
+                              p: 0.5,
+                              minWidth: 0,
+                              "&:hover": {
+                                backgroundColor: "var(--app-color-surface-hover, #f1f5f9)",
+                              },
+                            },
+                          }}
+                        />
+                      </AppStack>
+                    </AppStack>
 
-                    {/* Middle Info Column Grid */}
+                    {/* Metadata Drawer details */}
                     <div className="px-3.5 pb-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[11px] border-t border-dashed border-border/80 pt-3">
                       <div className="col-span-2">
                         <span className="text-text-muted block font-semibold">UPI ID / Address</span>
                         <div className="flex items-center gap-1 mt-0.5">
-                          <span className="font-bold text-text block break-all">
+                          <span className="font-bold text-text block break-all font-mono">
                             {qr.upiId}
                           </span>
                           <AppIconButton
@@ -351,39 +402,6 @@ const PaymentQrsMobilePage = ({
                         </span>
                       </div>
                     </div>
-
-                    {/* Bottom action triggers row */}
-                    <div className="px-3.5 py-2.5 border-t border-border/50 flex items-center justify-between bg-surface-alt/10">
-                      <div className="flex items-center">
-                        <AppIconButton
-                          icon={<FiTrash2 className="text-[12px]" />}
-                          variant="text"
-                          colorVariant="danger"
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteQr(qr._id);
-                          }}
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleViewDetails(qr._id)}
-                          className="px-2.5 py-1 text-[10.5px] font-bold border border-border bg-surface rounded-md text-text shadow-sm"
-                        >
-                          View
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleEditQr(qr._id)}
-                          className="px-2.5 py-1 text-[10.5px] font-bold bg-primary text-surface rounded-md shadow-sm"
-                        >
-                          Edit
-                        </button>
-                      </div>
-                    </div>
                   </AppCard>
                 );
               })}
@@ -398,6 +416,44 @@ const PaymentQrsMobilePage = ({
                 pageSize={pageSize}
                 totalItems={totalQrs}
                 onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+                showPageSize={false}
+                showSummary={true}
+                showFirstLast={false}
+                compact={true}
+                size="small"
+                align="center"
+                rounded="md"
+                sx={{
+                  width: "100%",
+                  justifyContent: "center !important",
+                  alignItems: "center",
+                  textAlign: "center",
+                  "& .MuiPagination-root": {
+                    display: "flex !important",
+                    justifyContent: "center !important",
+                    width: "100%",
+                  },
+                  "& .MuiPagination-ul": {
+                    justifyContent: "center !important",
+                    width: "100%",
+                  },
+                }}
+                summarySx={{
+                  textAlign: "center",
+                  width: "100%",
+                  mb: 0.5,
+                }}
+                paginationSx={{
+                  display: "flex !important",
+                  justifyContent: "center !important",
+                  alignItems: "center",
+                  width: "100%",
+                  "& .MuiPagination-ul": {
+                    justifyContent: "center !important",
+                    width: "100%",
+                  },
+                }}
               />
             </AppBox>
           )}
@@ -420,48 +476,56 @@ const containerSx = {
 };
 
 const headerWrapperSx = {
-  pt: 1.5,
+  pt: 1,
   pb: 1.5,
-  px: 2,
+  px: 0,
 };
 
 const pageTitleSx = {
   m: 0,
-  fontSize: "19px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.4px",
+  fontSize: "21px",
+  fontWeight: 800,
   color: "var(--app-color-text)",
+  letterSpacing: "-0.5px",
 };
 
 const pageSubtitleSx = {
-  mt: 0.2,
-  fontSize: "11px",
-  lineHeight: "15px",
+  mt: 0.4,
+  fontSize: "11.5px",
   color: "var(--app-color-text-muted)",
 };
 
-const actionHeaderIconBtnSx = {
-  height: 32,
-  width: 32,
-  minWidth: 32,
-  borderColor: "var(--app-color-border)",
+const createNewBtnSx = {
+  height: 36,
+  width: 36,
+  minWidth: 36,
+  p: 0,
 };
 
-const addQrMobileBtnSx = {
-  height: 32,
-  fontSize: "11px",
-  fontWeight: 650,
+const refreshMobileBtnSx = {
+  height: 36,
+  width: 36,
+  minWidth: 36,
+  p: 0,
 };
 
-const searchFieldInputSx = {
-  height: 34,
-  fontSize: "12px",
+const searchMobileInputSx = {
+  height: 42,
+  fontSize: "13px",
   bgcolor: "var(--app-color-surface)",
 };
 
+const filterBtnSx = {
+  height: 42,
+  width: 42,
+  minWidth: 42,
+  p: 0,
+  borderColor: "var(--app-color-border)",
+  bgcolor: "var(--app-color-surface)",
+  flexShrink: 0,
+};
+
 const expandableFiltersCardSx = {
-  mx: 2,
-  mb: 3,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
@@ -487,25 +551,15 @@ const filterChipSx = {
   "& svg": { fontSize: "10px" },
 };
 
-const emptyCardSx = {
-  mx: 2,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const emptyStateSubTextSx = {
-  color: "var(--app-color-text-muted)",
-  fontSize: "11.5px",
-  maxWidth: 260,
-  mt: 0.5,
-  lineHeight: 1.4,
-};
-
 const qrCardSx = {
-  mx: 2,
   bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  overflow: "hidden",
+  border: "1px solid var(--app-color-border)",
+  boxShadow:
+    "0 2px 10px color-mix(in_srgb, var(--app-color-text) 5%, transparent)",
+  transition: "all 0.15s ease",
+  "&:active": {
+    transform: "scale(0.99)",
+  },
 };
 
 const qrTitleSx = {
@@ -518,15 +572,41 @@ const qrTitleSx = {
   maxWidth: 150,
 };
 
+const emptyCardSx = {
+  borderColor: "var(--app-color-border)",
+  bgcolor: "var(--app-color-surface)",
+  width: "100%",
+};
+
+const emptyStateSubTextSx = {
+  color: "var(--app-color-text-muted)",
+  fontSize: "11.5px",
+  maxWidth: 260,
+  mt: 0.5,
+  lineHeight: 1.4,
+};
+
 const paginationFooterWrapperSx = {
-  px: 2,
+  px: 0,
   pt: 2,
   pb: 2,
   borderTop: "1px solid var(--app-color-divider)",
   display: "flex",
   justifyContent: "center",
   width: "100%",
-  "& > div": { width: "100%" },
+  "& > div": {
+    width: "100%",
+    display: "flex !important",
+    justifyContent: "center !important",
+    alignItems: "center",
+    "& .MuiPagination-ul": {
+      justifyContent: "center !important",
+    },
+    "& .MuiPagination-root": {
+      display: "flex !important",
+      justifyContent: "center !important",
+    },
+  },
 };
 
 export default PaymentQrsMobilePage;

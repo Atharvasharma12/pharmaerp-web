@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -52,34 +53,34 @@ const useFundTransfer = () => {
 
   const cancelFundTransferStatus = useSelector(selectCancelFundTransferStatus);
 
-  const submitCreateFundTransfer = (payload) => {
+  const submitCreateFundTransfer = useCallback((payload) => {
     return dispatch(createFundTransfer(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchFundTransfers = (params = {}) => {
+  const fetchFundTransfers = useCallback((params = {}) => {
     return dispatch(getFundTransfers(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchFundTransferById = (fundTransferId) => {
+  const fetchFundTransferById = useCallback((fundTransferId) => {
     return dispatch(getFundTransferById(fundTransferId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitCancelFundTransfer = (fundTransferId, payload = {}) => {
+  const submitCancelFundTransfer = useCallback((fundTransferId, payload = {}) => {
     return dispatch(
       cancelFundTransfer({
         fundTransferId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearFundTransferError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearFundTransferMessage());
-  };
+  }, [dispatch]);
 
   const saveCurrentFundTransfer = (payload) => {
     dispatch(setCurrentFundTransfer(payload));

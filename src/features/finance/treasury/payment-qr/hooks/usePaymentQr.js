@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -62,42 +63,42 @@ const usePaymentQr = () => {
     selectSetPrimaryPaymentQrStatus,
   );
 
-  const submitCreatePaymentQr = (payload) => {
+  const submitCreatePaymentQr = useCallback((payload) => {
     return dispatch(createPaymentQr(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchPaymentQrs = (params = {}) => {
+  const fetchPaymentQrs = useCallback((params = {}) => {
     return dispatch(getPaymentQrs(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchPaymentQrById = (paymentQrId) => {
+  const fetchPaymentQrById = useCallback((paymentQrId) => {
     return dispatch(getPaymentQrById(paymentQrId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitUpdatePaymentQr = (paymentQrId, payload) => {
+  const submitUpdatePaymentQr = useCallback((paymentQrId, payload) => {
     return dispatch(
       updatePaymentQr({
         paymentQrId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitDeletePaymentQr = (paymentQrId) => {
+  const submitDeletePaymentQr = useCallback((paymentQrId) => {
     return dispatch(deletePaymentQr(paymentQrId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitSetPrimaryPaymentQr = (paymentQrId) => {
+  const submitSetPrimaryPaymentQr = useCallback((paymentQrId) => {
     return dispatch(setPrimaryPaymentQr(paymentQrId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearPaymentQrError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearPaymentQrMessage());
-  };
+  }, [dispatch]);
 
   const saveCurrentPaymentQr = (payload) => {
     dispatch(setCurrentPaymentQr(payload));

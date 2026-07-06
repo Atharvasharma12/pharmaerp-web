@@ -106,8 +106,6 @@ const chequeSlice = createSlice({
         state.getChequesStatus = API_STATUS.SUCCESS;
 
         state.cheques = action.payload?.cheques || [];
-
-        state.message = "Cheques fetched successfully";
       })
       .addCase(getCheques.rejected, (state, action) => {
         state.getChequesStatus = API_STATUS.ERROR;

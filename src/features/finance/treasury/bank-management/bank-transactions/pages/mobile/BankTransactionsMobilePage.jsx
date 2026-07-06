@@ -7,8 +7,11 @@ import {
   FiChevronDown,
   FiChevronUp,
   FiInbox,
+  FiEye,
+  FiMoreVertical,
+  FiRefreshCw,
 } from "react-icons/fi";
-import { LuBuilding2 } from "react-icons/lu";
+import { LuWallet } from "react-icons/lu";
 
 import {
   AppBox,
@@ -20,6 +23,7 @@ import {
   AppStack,
   AppText,
   AppTablePagination,
+  AppMenu,
 } from "@/components";
 import { ROUTES } from "@/constants";
 import { formatCurrency, formatDate } from "@/utils";
@@ -65,6 +69,7 @@ const BankTransactionsMobilePage = ({
   handleFilterChange,
   handlePageChange,
   handlePageSizeChange,
+  handleRefresh,
 }) => {
   const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
@@ -114,7 +119,8 @@ const BankTransactionsMobilePage = ({
     );
   };
 
-  const shouldRenderPagination = bankTransactions.length > 0;
+  const hasFilteredTransactions = bankTransactions.length > 0;
+  const shouldRenderPagination = hasFilteredTransactions && totalTransactions > pageSize;
 
   return (
     <section className="w-full bg-bg pb-6">
@@ -122,8 +128,8 @@ const BankTransactionsMobilePage = ({
         {/* Mobile Page Header */}
         <AppBox sx={headerWrapperSx}>
           <AppStack direction="row" align="center" justify="space-between" gap={1}>
-            <AppBox sx={{ minWidth: 0, flex: 1 }}>
-              <AppHeading level={1} weight={700} sx={pageTitleSx}>
+            <AppBox sx={{ minWidth: 0, flex: 1, pr: 1.5 }}>
+              <AppHeading level={1} weight={800} sx={pageTitleSx}>
                 Bank Transactions
               </AppHeading>
               <AppText variant="body2" sx={pageSubtitleSx}>
@@ -131,51 +137,60 @@ const BankTransactionsMobilePage = ({
               </AppText>
             </AppBox>
 
-            <AppIconButton
-              icon={<FiPlus />}
-              variant="filled"
-              colorVariant="primary"
-              size="small"
-              rounded="md"
-              onClick={handleCreate}
-              sx={actionHeaderIconBtnSx}
-            />
+            <AppStack direction="row" gap={1} align="center" sx={{ flexShrink: 0, display: "flex", alignItems: "center" }}>
+              <AppIconButton
+                icon={<FiRefreshCw className={isLoading ? "animate-spin" : ""} />}
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                rounded="md"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                sx={refreshMobileBtnSx}
+              />
+              <AppIconButton
+                icon={<FiPlus />}
+                variant="filled"
+                colorVariant="success"
+                size="small"
+                rounded="md"
+                onClick={handleCreate}
+                sx={createNewBtnSx}
+              />
+            </AppStack>
           </AppStack>
         </AppBox>
 
-        {/* Filters Toolbar */}
-        <div className="px-2 mb-3">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <AppInput
-                name="search"
-                value={searchParams.search}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search statements..."
-                startIcon={<FiSearch />}
-                size="small"
-                inputSx={compactFilterInputSx}
-              />
-            </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`px-3 py-1.5 border rounded-md flex items-center gap-1.5 text-[11.5px] font-bold transition ${
-                showFilters
-                  ? "bg-primary-soft border-primary/40 text-primary"
-                  : "bg-surface border-border text-text"
-              }`}
-            >
-              <FiFilter />
-              <span>Filters</span>
-              {showFilters ? <FiChevronUp /> : <FiChevronDown />}
-            </button>
-          </div>
+        {/* Search & Filters Toolbar */}
+        <div className="px-0 mb-3 flex gap-2">
+          <AppInput
+            name="search"
+            value={searchParams.search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search statements..."
+            startIcon={<FiSearch />}
+            size="small"
+            inputSx={searchMobileInputSx}
+            sx={{ flex: 1 }}
+          />
 
-          {/* Collapsible Panel */}
-          {showFilters && (
+          <AppIconButton
+            icon={<FiFilter />}
+            variant={showFilters ? "filled" : "outlined"}
+            colorVariant={showFilters ? "primary" : "neutral"}
+            size="medium"
+            rounded="md"
+            onClick={() => setShowFilters(!showFilters)}
+            sx={filterBtnSx}
+          />
+        </div>
+
+        {/* Collapsible Panel */}
+        {showFilters && (
+          <div className="px-0 mb-3">
             <AppCard
               variant="default"
-              rounded="md"
+              rounded="lg"
               bordered
               shadow="none"
               padding="none"
@@ -235,11 +250,11 @@ const BankTransactionsMobilePage = ({
                 />
               </div>
             </AppCard>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Content list */}
-        <div className="px-2 space-y-3">
+        <div className="px-0 space-y-3">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
@@ -247,68 +262,122 @@ const BankTransactionsMobilePage = ({
               </AppText>
             </div>
           ) : bankTransactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <FiInbox className="text-[40px] text-text-muted/40 mb-2" />
-              <AppHeading level={3} weight={600} sx={{ m: 0, fontSize: "13px", color: "var(--app-color-text)" }}>
-                No Statements Found
-              </AppHeading>
-              <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>
-                Adjust search keyword filters.
-              </AppText>
-            </div>
+            <AppCard variant="default" rounded="lg" bordered padding="md" sx={emptyCardSx}>
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <FiInbox className="text-[40px] text-text-muted/40 mb-2" />
+                <AppHeading level={3} weight={600} sx={{ m: 0, fontSize: "13px", color: "var(--app-color-text)" }}>
+                  No Statements Found
+                </AppHeading>
+                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>
+                  Adjust search keyword filters.
+                </AppText>
+              </div>
+            </AppCard>
           ) : (
-            bankTransactions.map((tx) => {
-              const linkedBank = tx.bankAccountId;
-              const bankLabel = linkedBank
-                ? `${linkedBank.bankName || "Bank"} - *${String(linkedBank.accountNumber || "").slice(-4)}`
-                : "-";
+            <AppStack direction="column" gap={1.2}>
+              {bankTransactions.map((tx) => {
+                const linkedBank = tx.bankAccountId;
+                const bankLabel = linkedBank
+                  ? `${linkedBank.bankName || "Bank"} - *${String(linkedBank.accountNumber || "").slice(-4)}`
+                  : "-";
+                const isCredit = tx.direction === "CREDIT";
 
-              const isCredit = tx.direction === "CREDIT";
+                return (
+                  <AppCard
+                    key={tx._id}
+                    variant="default"
+                    rounded="lg"
+                    bordered
+                    shadow="sm"
+                    padding="none"
+                    sx={transactionCardSx}
+                  >
+                    <AppStack direction="row" align="center" gap={1.5} justify="space-between" sx={{ width: "100%", p: 1.5 }}>
+                      {/* Left Side Clickable details wrapper */}
+                      <AppStack
+                        direction="row"
+                        align="center"
+                        gap={1.5}
+                        sx={{ minWidth: 0, flex: 1, cursor: "pointer" }}
+                        onClick={() => handleCardClick(tx._id)}
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-primary-soft flex items-center justify-center text-primary shrink-0 shadow-sm border border-primary/10">
+                          <LuWallet className="text-[20px]" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <AppHeading level={3} weight={700} sx={txTitleSx}>
+                              {tx.transactionNumber}
+                            </AppHeading>
+                            <span className="shrink-0">{getDirectionBadge(tx.direction)}</span>
+                            <span className="shrink-0">{getStatusBadge(tx.status)}</span>
+                          </div>
+                          <AppText variant="body2" sx={descriptionTextSx}>
+                            {tx.transactionType} ({bankLabel})
+                          </AppText>
+                        </div>
+                      </AppStack>
 
-              return (
-                <AppCard
-                  key={tx._id}
-                  variant="default"
-                  rounded="lg"
-                  bordered
-                  shadow="none"
-                  padding="none"
-                  onClick={() => handleCardClick(tx._id)}
-                  sx={transactionCardSx}
-                >
-                  <div className="p-3.5 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-extrabold text-primary text-[12.5px] truncate max-w-[150px]">
-                        {tx.transactionNumber}
-                      </span>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {getDirectionBadge(tx.direction)}
-                        {getStatusBadge(tx.status)}
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-end">
-                      <div className="space-y-0.5">
-                        <span className="text-[11px] font-bold text-text block truncate max-w-[200px]">
-                          {tx.transactionType} ({bankLabel})
-                        </span>
-                        <span className="text-[9.5px] text-text-muted block">
-                          Date: {formatDate(tx.transactionDate)}
-                        </span>
-                        {tx.referenceNumber && (
-                          <span className="text-[9.5px] text-text-muted block font-mono">
-                            Ref/UTR: {tx.referenceNumber}
+                      {/* Right Side Stack */}
+                      <AppStack direction="row" align="center" gap={1} sx={{ flexShrink: 0 }}>
+                        <AppStack direction="column" align="flex-end" gap={0.5} sx={rightMetadataStackSx}>
+                          <span className="text-[9.5px] text-text-muted block">Amount</span>
+                          <span className={`text-[12.5px] font-extrabold block mt-0.5 ${isCredit ? "text-[#2b8a3e]" : "text-[#fa5252]"}`}>
+                            {isCredit ? "+" : "-"} {formatCurrency(tx.amount)}
                           </span>
-                        )}
+                        </AppStack>
+
+                        <AppMenu
+                          triggerIcon={<FiMoreVertical />}
+                          items={[
+                            {
+                              label: "View Details",
+                              icon: <FiEye />,
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                handleCardClick(tx._id);
+                              },
+                            },
+                          ]}
+                          triggerProps={{
+                            size: "small",
+                            sx: {
+                              color: "var(--app-color-text-muted)",
+                              backgroundColor: "transparent",
+                              border: "none",
+                              p: 0.5,
+                              minWidth: 0,
+                              "&:hover": {
+                                backgroundColor: "var(--app-color-surface-hover, #f1f5f9)",
+                              },
+                            },
+                          }}
+                        />
+                      </AppStack>
+                    </AppStack>
+
+                    {/* Metadata Drawer details */}
+                    <div className="px-3.5 pb-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[11px] border-t border-dashed border-border/80 pt-3">
+                      <div>
+                        <span className="text-text-muted block font-semibold">Transaction Date</span>
+                        <span className="font-bold text-text block mt-0.5">
+                          {formatDate(tx.transactionDate)}
+                        </span>
                       </div>
-                      <span className={`text-[14.5px] font-black shrink-0 ${isCredit ? "text-[#2b8a3e]" : "text-[#fa5252]"}`}>
-                        {isCredit ? "+" : "-"} {formatCurrency(tx.amount)}
-                      </span>
+
+                      {tx.referenceNumber && (
+                        <div>
+                          <span className="text-text-muted block font-semibold">Ref/UTR</span>
+                          <span className="font-bold text-text block mt-0.5 font-mono">
+                            {tx.referenceNumber}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </AppCard>
-              );
-            })
+                  </AppCard>
+                );
+              })}
+            </AppStack>
           )}
 
           {/* Conditional Pagination Footer */}
@@ -319,6 +388,44 @@ const BankTransactionsMobilePage = ({
                 pageSize={pageSize}
                 totalItems={totalTransactions}
                 onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+                showPageSize={false}
+                showSummary={true}
+                showFirstLast={false}
+                compact={true}
+                size="small"
+                align="center"
+                rounded="md"
+                sx={{
+                  width: "100%",
+                  justifyContent: "center !important",
+                  alignItems: "center",
+                  textAlign: "center",
+                  "& .MuiPagination-root": {
+                    display: "flex !important",
+                    justifyContent: "center !important",
+                    width: "100%",
+                  },
+                  "& .MuiPagination-ul": {
+                    justifyContent: "center !important",
+                    width: "100%",
+                  },
+                }}
+                summarySx={{
+                  textAlign: "center",
+                  width: "100%",
+                  mb: 0.5,
+                }}
+                paginationSx={{
+                  display: "flex !important",
+                  justifyContent: "center !important",
+                  alignItems: "center",
+                  width: "100%",
+                  "& .MuiPagination-ul": {
+                    justifyContent: "center !important",
+                    width: "100%",
+                  },
+                }}
               />
             </AppBox>
           )}
@@ -335,39 +442,71 @@ const containerSx = {
   width: "100%",
   maxWidth: { xs: 430, sm: 460 },
   mx: "auto",
-  px: 0.5,
+  px: 0,
   pt: 0,
   pb: 0,
 };
 
 const headerWrapperSx = {
-  pt: 1.5,
-  pb: 1,
-  px: 0.5,
+  pt: 1,
+  pb: 1.5,
+  px: 0,
 };
 
 const pageTitleSx = {
   m: 0,
-  fontSize: "18.5px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.3px",
+  fontSize: "21px",
+  fontWeight: 800,
   color: "var(--app-color-text)",
+  letterSpacing: "-0.5px",
 };
 
 const pageSubtitleSx = {
-  mt: 0.2,
-  fontSize: "11px",
-  lineHeight: "15px",
+  mt: 0.4,
+  fontSize: "11.5px",
   color: "var(--app-color-text-muted)",
 };
 
-const actionHeaderIconBtnSx = {
-  height: 32,
-  width: 32,
-  minWidth: 32,
-  bgcolor: "var(--app-color-primary)",
-  color: "white",
-  "&:hover": { bgcolor: "var(--app-color-primary-hover)" },
+const createNewBtnSx = {
+  height: 36,
+  width: 36,
+  minWidth: 36,
+  p: 0,
+};
+
+const refreshMobileBtnSx = {
+  height: 36,
+  width: 36,
+  minWidth: 36,
+  p: 0,
+};
+
+const searchMobileInputSx = {
+  height: 42,
+  fontSize: "13px",
+  bgcolor: "var(--app-color-surface)",
+};
+
+const filterBtnSx = {
+  height: 42,
+  width: 42,
+  minWidth: 42,
+  p: 0,
+  borderColor: "var(--app-color-border)",
+  bgcolor: "var(--app-color-surface)",
+  flexShrink: 0,
+};
+
+const filterCardSx = {
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+};
+
+const labelSx = {
+  fontSize: "11px",
+  fontWeight: 700,
+  color: "var(--app-color-text-muted)",
+  mb: 0.5,
 };
 
 const compactFilterInputSx = {
@@ -376,37 +515,69 @@ const compactFilterInputSx = {
   bgcolor: "var(--app-color-surface)",
 };
 
-const filterCardSx = {
-  mt: 1.5,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const labelSx = {
-  fontSize: "11px",
-  fontWeight: 700,
-  color: "var(--app-color-text)",
-  mb: 0.5,
-};
-
 const transactionCardSx = {
   bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  cursor: "pointer",
-  transition: "all 0.2s ease-in-out",
-  "&:hover": {
-    borderColor: "var(--app-color-primary)",
-    transform: "translateY(-1px)",
+  border: "1px solid var(--app-color-border)",
+  boxShadow:
+    "0 2px 10px color-mix(in_srgb, var(--app-color-text) 5%, transparent)",
+  transition: "all 0.15s ease",
+  "&:active": {
+    transform: "scale(0.99)",
   },
 };
 
+const txTitleSx = {
+  m: 0,
+  fontSize: "12px",
+  color: "var(--app-color-text)",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  maxWidth: 110,
+};
+
+const descriptionTextSx = {
+  mt: 0.25,
+  fontSize: "10.5px",
+  color: "var(--app-color-text-muted)",
+};
+
+const rightMetadataStackSx = {
+  pl: 1.5,
+  borderLeft:
+    "1px solid color-mix(in_srgb, var(--app-color-border) 60%, transparent)",
+  minWidth: { xs: 85, sm: 100 },
+  maxWidth: { xs: 100, sm: 120 },
+  flexShrink: 0,
+};
+
+const emptyCardSx = {
+  borderColor: "var(--app-color-border)",
+  bgcolor: "var(--app-color-surface)",
+  width: "100%",
+};
+
 const paginationFooterWrapperSx = {
+  px: 0,
   pt: 2,
   pb: 2,
+  borderTop: "1px solid var(--app-color-divider)",
   display: "flex",
   justifyContent: "center",
   width: "100%",
-  "& > div": { width: "100%" },
+  "& > div": {
+    width: "100%",
+    display: "flex !important",
+    justifyContent: "center !important",
+    alignItems: "center",
+    "& .MuiPagination-ul": {
+      justifyContent: "center !important",
+    },
+    "& .MuiPagination-root": {
+      display: "flex !important",
+      justifyContent: "center !important",
+    },
+  },
 };
 
 export default BankTransactionsMobilePage;

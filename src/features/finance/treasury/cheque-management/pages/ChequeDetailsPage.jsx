@@ -67,12 +67,15 @@ const ChequeDetailsPage = () => {
     }
   }, [chequeId, depositCheque, fetchDetails]);
 
-  const handleClear = useCallback(async (clearDate = "") => {
+  const handleClear = useCallback(async (clearDate = "", narration = "") => {
     if (!chequeId) return;
     setActionError("");
     setActionMessage("");
     try {
-      await clearCheque(chequeId, { clearDate: clearDate || undefined });
+      await clearCheque(chequeId, {
+        clearDate: clearDate || undefined,
+        narration: narration || undefined,
+      });
       setActionMessage("Cheque cleared by the bank successfully.");
       fetchDetails();
     } catch (err) {

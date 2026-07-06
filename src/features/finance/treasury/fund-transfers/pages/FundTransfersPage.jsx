@@ -35,7 +35,7 @@ const FundTransfersPage = () => {
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
 
-  useEffect(() => {
+  const fetchTransfersData = useCallback(() => {
     const query = {
       page: currentPage,
       limit: pageSize,
@@ -46,7 +46,15 @@ const FundTransfersPage = () => {
     getFundTransfers(query).catch((err) =>
       console.error("Failed to load fund transfers:", err)
     );
-  }, [currentPage, pageSize, searchParams]);
+  }, [currentPage, pageSize, searchParams, getFundTransfers]);
+
+  useEffect(() => {
+    fetchTransfersData();
+  }, [fetchTransfersData]);
+
+  const handleRefresh = useCallback(() => {
+    fetchTransfersData();
+  }, [fetchTransfersData]);
 
   const handleSearchChange = useCallback((value) => {
     setSearchParams((prev) => ({ ...prev, search: value }));
@@ -130,6 +138,7 @@ const FundTransfersPage = () => {
     handleCancelTransfer,
     handleViewDetails,
     handleCreateNew,
+    handleRefresh,
   };
 
   return isMobile ? (

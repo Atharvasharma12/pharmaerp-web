@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -58,34 +59,34 @@ const useCashTransaction = () => {
     selectCancelCashTransactionStatus,
   );
 
-  const submitCreateCashTransaction = (payload) => {
+  const submitCreateCashTransaction = useCallback((payload) => {
     return dispatch(createCashTransaction(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchCashTransactions = (params = {}) => {
+  const fetchCashTransactions = useCallback((params = {}) => {
     return dispatch(getCashTransactions(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchCashTransactionById = (cashTransactionId) => {
+  const fetchCashTransactionById = useCallback((cashTransactionId) => {
     return dispatch(getCashTransactionById(cashTransactionId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitCancelCashTransaction = (cashTransactionId, payload) => {
+  const submitCancelCashTransaction = useCallback((cashTransactionId, payload) => {
     return dispatch(
       cancelCashTransaction({
         cashTransactionId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearCashTransactionError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearCashTransactionMessage());
-  };
+  }, [dispatch]);
 
   const saveCurrentCashTransaction = (payload) => {
     dispatch(setCurrentCashTransaction(payload));

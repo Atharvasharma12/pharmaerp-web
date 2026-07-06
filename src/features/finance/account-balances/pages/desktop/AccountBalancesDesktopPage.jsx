@@ -1,35 +1,44 @@
 import React, { useMemo } from "react";
 import {
   FiSearch,
-  FiRefreshCw,
   FiBookOpen,
   FiArrowUpCircle,
   FiArrowDownCircle,
   FiEye,
+  FiRefreshCw,
+  FiMoreHorizontal,
 } from "react-icons/fi";
-import { FaRupeeSign } from "react-icons/fa";
-
 import {
   AppBox,
   AppBreadcrumb,
   AppButton,
-  AppIconButton,
   AppCard,
   AppHeading,
-  AppInput,
   AppSelect,
   AppStack,
-  AppTablePagination,
   AppText,
-  PageHeader,
+  AppTable,
+  AppTableSkeleton,
+  AppTag,
+  AppStatCard,
+  AppSearchInput,
+  AppIconButton,
+  AppMenu,
+  AppEmptyState,
+  AppAlert,
 } from "@/components";
-import { formatDate } from "@/utils";
+import { formatDate, formatCurrency } from "@/utils";
 
 const balanceTypeOptions = [
   { label: "All Balance Types", value: "all" },
   { label: "Debit Balances (DR)", value: "dr" },
   { label: "Credit Balances (CR)", value: "cr" },
 ];
+
+const balanceTypeColorMap = {
+  DR: "success",
+  CR: "error",
+};
 
 const AccountBalancesDesktopPage = ({
   accountBalances = [],
@@ -48,6 +57,7 @@ const AccountBalancesDesktopPage = ({
   handlePageSizeChange,
   handleRecalculate,
   handleViewDetails,
+  handleRefresh,
 }) => {
   // Aggregate stats
   const stats = useMemo(() => {
@@ -60,121 +70,225 @@ const AccountBalancesDesktopPage = ({
     return counts;
   }, [accountBalances, totalBalances]);
 
-  const showPagination = accountBalances.length > 0;
+  const statsList = useMemo(() => [
+    {
+      id: "accounts_tracked",
+      title: "Accounts Tracked",
+      value: stats.total,
+      description: "Chart of accounts monitored",
+      colorVariant: "primary",
+      icon: <FiBookOpen />,
+    },
+    {
+      id: "debit_balances",
+      title: "Debit Balances (DR)",
+      value: stats.dr,
+      description: "Accounts with active debits",
+      colorVariant: "success",
+      icon: <FiArrowUpCircle />,
+    },
+    {
+      id: "credit_balances",
+      title: "Credit Balances (CR)",
+      value: stats.cr,
+      description: "Accounts with active credits",
+      colorVariant: "error",
+      icon: <FiArrowDownCircle />,
+    },
+  ], [stats]);
+
+  const getBalanceTypeBadge = (type) => {
+    const raw = String(type || "").toUpperCase();
+    return (
+      <AppTag
+        label={raw}
+        variant="soft"
+        colorVariant={balanceTypeColorMap[raw] || "neutral"}
+        rounded="md"
+        sx={tagSx}
+      />
+    );
+  };
+
+  const columns = useMemo(() => [
+    {
+      id: "accountCode",
+      key: "accountCode",
+      label: "Account Code",
+      minWidth: 140,
+      render: (_, b) => (
+        <AppText variant="body2" sx={tableValueMonoSx}>
+          {b.accountId?.accountCode || "-"}
+        </AppText>
+      ),
+    },
+    {
+      id: "accountName",
+      key: "accountName",
+      label: "Account Name",
+      minWidth: 220,
+      render: (_, b) => (
+        <AppText
+          variant="body2"
+          onClick={() => handleViewDetails(b.accountId?._id || b.accountId)}
+          sx={accountNameSx}
+        >
+          {b.accountId?.accountName || "Unknown Account"}
+        </AppText>
+      ),
+    },
+    {
+      id: "debitTotal",
+      key: "debitTotal",
+      label: "Debit Total (Dr)",
+      minWidth: 150,
+      align: "right",
+      render: (_, b) => (
+        <AppText variant="body2" sx={debitAmountSx}>
+          {formatCurrency(b.debitTotal || 0)}
+        </AppText>
+      ),
+    },
+    {
+      id: "creditTotal",
+      key: "creditTotal",
+      label: "Credit Total (Cr)",
+      minWidth: 150,
+      align: "right",
+      render: (_, b) => (
+        <AppText variant="body2" sx={creditAmountSx}>
+          {formatCurrency(b.creditTotal || 0)}
+        </AppText>
+      ),
+    },
+    {
+      id: "balance",
+      key: "balance",
+      label: "Current Balance",
+      minWidth: 180,
+      align: "right",
+      render: (_, b) => (
+        <AppStack direction="row" align="center" justify="flex-end" gap={0.8}>
+          <AppText variant="body2" sx={balanceAmountSx}>
+            {formatCurrency(b.balance || 0)}
+          </AppText>
+          {getBalanceTypeBadge(b.balanceType)}
+        </AppStack>
+      ),
+    },
+    {
+      id: "lastTransactionAt",
+      key: "lastTransactionAt",
+      label: "Last Activity",
+      minWidth: 150,
+      align: "center",
+      render: (_, b) => (
+        <AppText variant="body2" sx={tableValueSx}>
+          {b.lastTransactionAt ? formatDate(b.lastTransactionAt) : "Never"}
+        </AppText>
+      ),
+    },
+    {
+      id: "actions",
+      key: "actions",
+      label: "Action",
+      align: "right",
+      width: 70,
+      render: (_, b) => (
+        <RowActions
+          balance={b}
+          onView={handleViewDetails}
+          onRecalculate={handleRecalculate}
+          disabled={isRecalculating}
+        />
+      ),
+    },
+  ], [isRecalculating, handleViewDetails, handleRecalculate]);
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
-      <div className="mx-auto w-full max-w-[1400px]">
+    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
+      <div className="mx-auto w-full max-w-[1500px]">
         {/* Page Header */}
-        <PageHeader
-          title="Account Balances"
-          subtitle="Audit aggregate balances, track debit/credit ledger sums, and verify chart of accounts."
-          extra={
+        <AppBox
+          display="flex"
+          alignItems="flex-start"
+          justifyContent="space-between"
+          sx={pageHeaderSx}
+        >
+          <AppBox sx={pageHeaderContentSx}>
+            <AppHeading level={1} weight={650}>
+              Account Balances
+            </AppHeading>
+            <AppText variant="body2" sx={pageHeaderSubtitleSx}>
+              Audit aggregate balances, track debit/credit ledger sums, and verify chart of accounts.
+            </AppText>
             <AppBreadcrumb
               size="small"
               variant="text"
               items={[
-                { label: "Dashboard" },
-                { label: "Finance & Accounting" },
+                { label: "Dashboard", href: "/" },
+                { label: "Finance & Accounting", href: "/finance" },
                 { label: "Account Balances", current: true },
               ]}
               sx={breadcrumbSx}
               itemSx={breadcrumbItemSx}
               currentItemSx={breadcrumbCurrentSx}
             />
-          }
-          align="flex-start"
-          justify="space-between"
-          sx={pageHeaderSx}
-          contentSx={pageHeaderContentSx}
-        />
+          </AppBox>
+
+          <AppStack
+            direction="row"
+            align="center"
+            justify="flex-end"
+            gap={1.1}
+            sx={{ flexShrink: 0 }}
+          >
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              startIcon={<FiRefreshCw />}
+              onClick={handleRefresh}
+              loading={isLoading}
+              disabled={isLoading}
+              sx={secondaryButtonSx}
+            >
+              Refresh
+            </AppButton>
+          </AppStack>
+        </AppBox>
 
         {/* Stats Grid */}
-        <div className="mt-5 grid grid-cols-3 gap-4">
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            sx={statCardSx}
-          >
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">
-                  Accounts Tracked
-                </span>
-                <span className="text-[20px] font-extrabold text-text mt-1 block">
-                  {stats.total}
-                </span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-surface-alt text-text flex items-center justify-center border border-border">
-                <FiBookOpen className="text-[18px]" />
-              </div>
-            </div>
-          </AppCard>
-
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            sx={statCardSx}
-          >
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">
-                  Debit Balances (DR)
-                </span>
-                <span className="text-[20px] font-extrabold text-[#2b8a3e] mt-1 block">
-                  {stats.dr}
-                </span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-[#ebfbee] text-[#2b8a3e] flex items-center justify-center border border-[#c3fae8]">
-                <FiArrowUpCircle className="text-[18px]" />
-              </div>
-            </div>
-          </AppCard>
-
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            sx={statCardSx}
-          >
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">
-                  Credit Balances (CR)
-                </span>
-                <span className="text-[20px] font-extrabold text-[#c92a2a] mt-1 block">
-                  {stats.cr}
-                </span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-[#fff5f5] text-[#c92a2a] flex items-center justify-center border border-[#ffc9c9]">
-                <FiArrowDownCircle className="text-[18px]" />
-              </div>
-            </div>
-          </AppCard>
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          {statsList.map((stat) => (
+            <AppStatCard
+              key={stat.id}
+              title={stat.title}
+              value={stat.value}
+              subtitle={stat.description}
+              icon={stat.icon}
+              colorVariant={stat.colorVariant}
+              variant="default"
+              sx={statCardSx}
+              iconSx={statIconSx}
+            />
+          ))}
         </div>
 
         {/* Feedback alerts */}
         {(error || message) && (
-          <div
-            className={`mt-4 p-3 text-[12.5px] font-semibold rounded-md flex justify-between items-center ${
-              error
-                ? "bg-danger-soft text-danger"
-                : "bg-success-soft text-success"
-            }`}
+          <AppAlert
+            severity={error ? "error" : "success"}
+            variant="soft"
+            title={error ? "Something went wrong" : "Success"}
+            closable
+            onClose={clearFeedback}
+            sx={alertSx}
           >
-            <span>{error || message}</span>
-            <button
-              onClick={clearFeedback}
-              className={`font-bold hover:underline ${error ? "text-danger" : "text-success"}`}
-            >
-              Dismiss
-            </button>
-          </div>
+            {error || message}
+          </AppAlert>
         )}
 
         {/* Table & Filters Card */}
@@ -184,209 +298,207 @@ const AccountBalancesDesktopPage = ({
           bordered
           shadow="sm"
           padding="none"
-          sx={mainCardSx}
+          sx={tableCardSx}
         >
           {/* Filters Toolbar */}
-          <div className="p-4 border-b border-border bg-surface-hover/20 flex items-end justify-between gap-4">
-            <div className="flex items-end gap-4">
-              <AppInput
-                label="Search Account"
+          <div className="border-b border-border px-3.5 py-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_180px] items-center gap-3">
+              <AppSearchInput
                 name="search"
                 value={searchParams.search}
-                onChange={(e) => handleSearchChange(e.target.value)}
+                onChange={handleSearchChange}
                 placeholder="Search account name/code..."
-                startIcon={<FiSearch />}
+                clearable
+                onClear={() => handleSearchChange("")}
                 size="small"
-                fullWidth={false}
-                formControlSx={{ width: 280 }}
-                inputSx={compactFilterInputSx}
-                labelSx={filterLabelSx}
+                variant="bordered"
+                rounded="md"
+                sx={searchSx}
+                inputSx={filterInputSx}
               />
 
               <AppSelect
-                label="Balance Type"
                 name="balanceType"
                 value={searchParams.balanceType}
-                onChange={(e) =>
-                  handleFilterChange("balanceType", e.target.value)
-                }
+                onChange={(e) => handleFilterChange("balanceType", e.target.value)}
                 options={balanceTypeOptions}
                 size="small"
                 variant="bordered"
                 rounded="md"
-                fullWidth={false}
-                formControlSx={{ width: 180 }}
-                inputSx={compactFilterInputSx}
-                labelSx={filterLabelSx}
+                sx={selectSx}
+                inputSx={filterInputSx}
               />
             </div>
           </div>
 
           {/* Table Container */}
-          <div className="overflow-x-auto w-full relative">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <AppText
-                  variant="body1"
-                  sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}
-                >
-                  Retrieving balance sheets...
-                </AppText>
-              </div>
-            ) : accountBalances.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <FiBookOpen className="text-[40px] text-text-muted/40 mb-3" />
-                <AppHeading
-                  level={3}
-                  weight={600}
-                  sx={{
-                    m: 0,
-                    fontSize: "14px",
-                    color: "var(--app-color-text)",
-                  }}
-                >
-                  No Account Balances Found
-                </AppHeading>
-                <AppText
-                  variant="body2"
-                  sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}
-                >
-                  There are no balances matching your search criteria.
-                </AppText>
-              </div>
-            ) : (
-              <table className="w-full text-left border-collapse text-[12.5px]">
-                <thead>
-                  <tr className="border-b border-border bg-surface-alt/10 text-text-muted font-bold">
-                    <th className="py-3 px-4 font-bold">Account Code</th>
-                    <th className="py-3 px-4 font-bold">Account Name</th>
-                    <th className="py-3 px-4 text-right font-bold">
-                      Debit Total (Dr)
-                    </th>
-                    <th className="py-3 px-4 text-right font-bold">
-                      Credit Total (Cr)
-                    </th>
-                    <th className="py-3 px-4 text-right font-bold">
-                      Current Balance
-                    </th>
-                    <th className="py-3 px-4 text-center font-bold">
-                      Last Activity
-                    </th>
-                    <th className="py-3 px-4 text-center font-bold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {accountBalances.map((b) => {
-                    const accName =
-                      b.accountId?.accountName || "Unknown Account";
-                    const accCode = b.accountId?.accountCode || "-";
-                    const isDebitBal =
-                      String(b.balanceType || "").toUpperCase() === "DR";
-
-                    return (
-                      <tr
-                        key={b._id}
-                        className="border-b border-border hover:bg-surface-hover/20 transition"
-                      >
-                        <td className="py-3.5 px-2 font-bold text-text font-mono">
-                          {accCode}
-                        </td>
-                        <td className="py-3.5 px-2 font-semibold text-text">
-                          {accName}
-                        </td>
-                        <td className="py-3.5 px-2 text-right font-semibold text-[#2b8a3e]">
-                          ₹{" "}
-                          {Number(b.debitTotal || 0).toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td className="py-3.5 px-2 text-right font-semibold text-[#c92a2a]">
-                          ₹{" "}
-                          {Number(b.creditTotal || 0).toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td className="py-3.5 px-2 text-right font-extrabold text-text">
-                          ₹{" "}
-                          {Number(b.balance || 0).toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                          })}
-                          <span className="text-[9.5px] text-text-muted font-black ml-1 uppercase">
-                            {b.balanceType}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-2 text-center text-text-muted">
-                          {b.lastTransactionAt
-                            ? formatDate(b.lastTransactionAt)
-                            : "Never"}
-                        </td>
-                        <td className="py-3.5 px-2 text-center">
-                          <AppStack
-                            direction="row"
-                            gap={1}
-                            justify="center"
-                            align="center"
-                          >
-                            <AppIconButton
-                              icon={<FiEye />}
-                              variant="outlined"
-                              colorVariant="primary"
-                              size="small"
-                              onClick={() =>
-                                handleViewDetails(
-                                  b.accountId?._id || b.accountId,
-                                )
-                              }
-                              title="Details"
-                            />
-                            <AppButton
-                              size="tiny"
-                              variant="text"
-                              colorVariant="neutral"
-                              startIcon={<FiRefreshCw />}
-                              onClick={() =>
-                                handleRecalculate(
-                                  b.accountId?._id || b.accountId,
-                                )
-                              }
-                              disabled={isRecalculating}
-                            >
-                              Recalculate
-                            </AppButton>
-                          </AppStack>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+          {isLoading ? (
+            <AppTableSkeleton rows={8} columns={7} showHeader={false} />
+          ) : accountBalances.length === 0 ? (
+            <AppEmptyState
+              title="No Account Balances Found"
+              description="There are no balances matching your search criteria."
+              icon={<FiBookOpen />}
+              size="page"
+              sx={stateSx}
+            />
+          ) : (
+            <AppTable
+              columns={columns}
+              rows={accountBalances}
+              getRowId={(row) => row._id}
+              dense
+              bordered={false}
+              rounded={false}
+              hover
+              stickyHeader
+              minWidth={1150}
+              maxHeight="calc(100vh - 340px)"
+              sx={tableSx}
+              headSx={tableHeadSx}
+              cellSx={tableCellSx}
+            />
+          )}
 
           {/* Table Footer */}
-          {showPagination && (
-            <AppBox sx={paginationFooterWrapperSx}>
-              <AppTablePagination
-                page={currentPage}
-                pageSize={pageSize}
-                totalItems={totalBalances}
-                onPageChange={handlePageChange}
-              />
-            </AppBox>
-          )}
+          {totalBalances > pageSize ? (
+            <TableFooter
+              totalBalances={totalBalances}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              handlePageChange={handlePageChange}
+              handlePageSizeChange={handlePageSizeChange}
+            />
+          ) : null}
         </AppCard>
       </div>
     </section>
   );
 };
 
+const RowActions = ({ balance, onView, onRecalculate, disabled }) => {
+  const items = [
+    { id: "view", label: "View Details", icon: <FiEye />, onClick: () => onView(balance.accountId?._id || balance.accountId) },
+    {
+      id: "recalculate",
+      label: "Recalculate",
+      icon: <FiRefreshCw />,
+      onClick: () => onRecalculate(balance.accountId?._id || balance.accountId),
+      disabled
+    },
+  ];
+
+  return (
+    <AppMenu
+      trigger={
+        <button
+          type="button"
+          aria-label="Balance actions"
+          className="inline-flex h-auto w-auto items-center justify-center border-0 bg-transparent p-1.5 text-text-muted hover:text-primary rounded transition hover:bg-surface-hover/40 shadow-none outline-none focus:bg-transparent active:bg-transparent"
+        >
+          <FiMoreHorizontal className="text-[18px]" />
+        </button>
+      }
+      items={items}
+      dense
+      minWidth={140}
+    />
+  );
+};
+
+const TableFooter = ({
+  totalBalances,
+  currentPage,
+  pageSize,
+  handlePageChange,
+  handlePageSizeChange,
+}) => {
+  const startEntry = (currentPage - 1) * pageSize + 1;
+  const endEntry = Math.min(currentPage * pageSize, totalBalances);
+  const totalPages = Math.ceil(totalBalances / pageSize) || 1;
+
+  return (
+    <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
+      <AppText variant="body2" sx={footerTextSx}>
+        Showing {startEntry} to {endEntry} of {totalBalances} balances
+      </AppText>
+
+      <AppStack direction="row" align="center" gap={1}>
+        <AppMenu
+          trigger={
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              endIcon={<FiChevronRight className="rotate-90" />}
+              sx={pageSizeButtonSx}
+            >
+              {pageSize} per page
+            </AppButton>
+          }
+          items={[
+            { id: "10", label: "10 per page", onClick: () => handlePageSizeChange(10) },
+            { id: "20", label: "20 per page", onClick: () => handlePageSizeChange(20) },
+            { id: "50", label: "50 per page", onClick: () => handlePageSizeChange(50) },
+            { id: "100", label: "100 per page", onClick: () => handlePageSizeChange(100) },
+          ]}
+          dense
+          minWidth={120}
+        />
+
+        <AppIconButton
+          icon={<FiChevronLeft />}
+          variant="outlined"
+          colorVariant="neutral"
+          size="small"
+          rounded="md"
+          disabled={currentPage === 1}
+          onClick={() => handlePageChange(currentPage - 1)}
+        />
+
+        <span className="flex h-[31px] min-w-[31px] items-center justify-center rounded-md bg-primary px-2 text-[12px] font-bold text-text-inverse">
+          {currentPage}
+        </span>
+
+        <AppIconButton
+          icon={<FiChevronRight />}
+          variant="outlined"
+          colorVariant="neutral"
+          size="small"
+          rounded="md"
+          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(currentPage + 1)}
+        />
+      </AppStack>
+    </div>
+  );
+};
+
 // Styling variables
-const breadcrumbSx = { mt: 0 };
+const pageHeaderSx = { width: "100%" };
+const pageHeaderSubtitleSx = {
+  mt: 0.55,
+  fontSize: "13px",
+  lineHeight: "20px",
+  color: "var(--app-color-text-muted)",
+};
+const pageHeaderContentSx = {
+  minWidth: 0,
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
+};
+
+const breadcrumbSx = { mt: 1 };
 const breadcrumbItemSx = {
   fontSize: "12px",
   color: "var(--app-color-text-muted)",
-  cursor: "pointer",
-  "&:hover": { color: "var(--app-color-primary)" },
 };
 const breadcrumbCurrentSx = {
   fontSize: "12px",
@@ -394,51 +506,132 @@ const breadcrumbCurrentSx = {
   color: "var(--app-color-text)",
 };
 
-const pageHeaderSx = { width: "100%" };
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "23px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.4px",
-    color: "var(--app-color-text)",
+const secondaryButtonSx = {
+  height: 36,
+  minWidth: 92,
+  px: 1.4,
+  fontSize: "12px",
+  fontWeight: 650,
+};
+
+const alertSx = { mt: 3 };
+
+const statCardSx = {
+  minHeight: 88,
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+  p: 1.5,
+  "& p:first-of-type": { fontSize: "11px" },
+  "& h1, & h2, & h3, & h4": { fontSize: "18px" },
+  "& p:last-of-type": { fontSize: "11px" },
+};
+const statIconSx = {
+  width: 38,
+  height: 38,
+  minWidth: 38,
+  borderRadius: "11px",
+};
+
+const tableCardSx = {
+  mt: 3,
+  overflow: "hidden",
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+  "& > div": { minWidth: 0 },
+};
+
+const searchSx = { width: "100%" };
+const selectSx = { width: "100%" };
+const filterInputSx = {
+  height: 36,
+  fontSize: "12px",
+  bgcolor: "var(--app-color-surface)",
+};
+
+const tableSx = {
+  "& .MuiTableContainer-root": {
+    borderRadius: 0,
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+    "&::-webkit-scrollbar": { display: "none" },
+  },
+};
+const tableHeadSx = {
+  bgcolor: "var(--app-color-surface-alt)",
+  "& .MuiTableCell-root": {
+    fontSize: "11.2px",
+    fontWeight: 750,
+    color: "var(--app-color-text-muted)",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+  },
+};
+const tableCellSx = {
+  py: 1.2,
+  fontSize: "12px",
+  borderColor: "var(--app-color-border)",
+};
+
+const accountNameSx = {
+  fontSize: "12px",
+  fontWeight: 750,
+  color: "var(--app-color-primary)",
+  cursor: "pointer",
+  "&:hover": {
+    textDecoration: "underline",
   },
 };
 
-const statCardSx = {
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
+const tableValueSx = {
+  fontSize: "12px",
+  fontWeight: 650,
+  color: "var(--app-color-text)",
 };
-
-const mainCardSx = {
-  mt: 5,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const compactFilterInputSx = {
-  height: 32,
-  fontSize: "11.5px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const filterLabelSx = {
-  fontSize: "11px",
+const tableValueMonoSx = {
+  fontSize: "12px",
   fontWeight: 700,
-  color: "var(--app-color-text-muted)",
-  mb: 0.5,
+  fontFamily: "var(--font-mono, monospace)",
+  color: "var(--app-color-text)",
+};
+const debitAmountSx = {
+  fontSize: "12px",
+  fontWeight: 700,
+  color: "var(--app-color-success)",
+};
+const creditAmountSx = {
+  fontSize: "12px",
+  fontWeight: 700,
+  color: "var(--app-color-error)",
+};
+const balanceAmountSx = {
+  fontSize: "12px",
+  fontWeight: 750,
+  color: "var(--app-color-text)",
 };
 
-const paginationFooterWrapperSx = {
-  px: 2,
-  pt: 2,
-  pb: 2,
-  borderTop: "1px solid var(--app-color-divider)",
-  display: "flex",
-  justifyContent: "center",
-  width: "100%",
-  "& > div": { width: "100%" },
+const tagSx = {
+  width: "fit-content",
+  height: 22,
+  px: 1,
+  fontSize: "10.5px",
+  fontWeight: 700,
 };
+
+const footerTextSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
+const pageSizeButtonSx = {
+  height: 34,
+  minWidth: 122,
+  px: 1.2,
+  fontSize: "12px",
+  fontWeight: 600,
+};
+const stateSx = { minHeight: 430 };
+
+const FiChevronRight = (props) => (
+  <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg" {...props}><polyline points="9 18 15 12 9 6"></polyline></svg>
+);
+const FiChevronLeft = (props) => (
+  <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg" {...props}><polyline points="15 18 9 12 15 6"></polyline></svg>
+);
 
 export default AccountBalancesDesktopPage;

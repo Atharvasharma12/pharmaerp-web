@@ -100,8 +100,6 @@ const cashTransactionSlice = createSlice({
         state.getCashTransactionsStatus = API_STATUS.SUCCESS;
 
         state.cashTransactions = action.payload?.cashTransactions || [];
-
-        state.message = "Cash transactions fetched successfully";
       })
       .addCase(getCashTransactions.rejected, (state, action) => {
         state.getCashTransactionsStatus = API_STATUS.ERROR;

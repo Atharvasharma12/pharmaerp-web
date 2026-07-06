@@ -2,14 +2,13 @@ import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiPlus,
-  FiSearch,
   FiEye,
   FiFileText,
   FiCheckCircle,
   FiClock,
-  FiInbox,
-  FiMoreVertical,
+  FiMoreHorizontal,
   FiEdit2,
+  FiRefreshCw,
 } from "react-icons/fi";
 
 import {
@@ -18,13 +17,18 @@ import {
   AppButton,
   AppCard,
   AppHeading,
-  AppInput,
   AppSelect,
   AppStack,
-  AppTablePagination,
   AppText,
-  PageHeader,
+  AppTable,
+  AppTableSkeleton,
+  AppTag,
+  AppStatCard,
+  AppSearchInput,
+  AppIconButton,
   AppMenu,
+  AppEmptyState,
+  AppAlert,
 } from "@/components";
 import { ROUTES } from "@/constants";
 import { formatCurrency, formatDate } from "@/utils";
@@ -50,6 +54,26 @@ const statusOptions = [
   { label: "Reversed", value: "REVERSED" },
 ];
 
+const statusColorMap = {
+  DRAFT: "neutral",
+  PENDING_APPROVAL: "warning",
+  PENDING: "warning",
+  APPROVED: "info",
+  POSTED: "success",
+  CANCELLED: "error",
+  REVERSED: "pink",
+};
+
+const typeColorMap = {
+  JOURNAL: "purple",
+  PAYMENT: "error",
+  RECEIPT: "success",
+  CONTRA: "info",
+  PURCHASE: "warning",
+  SALE: "teal",
+  OPENING_BALANCE: "indigo",
+};
+
 const JournalVouchersDesktopPage = ({
   journalVouchers = [],
   searchParams,
@@ -63,6 +87,7 @@ const JournalVouchersDesktopPage = ({
   handleFilterChange,
   handlePageChange,
   handlePageSizeChange,
+  handleRefresh,
 }) => {
   const navigate = useNavigate();
 
@@ -85,304 +110,478 @@ const JournalVouchersDesktopPage = ({
     return counts;
   }, [journalVouchers, totalVouchers]);
 
+  const statsList = useMemo(() => [
+    {
+      id: "total_postings",
+      title: "Total Postings",
+      value: stats.total,
+      description: "Total vouchers registered",
+      colorVariant: "primary",
+      icon: <FiFileText />,
+    },
+    {
+      id: "posted_ledger",
+      title: "Posted Ledger Entries",
+      value: stats.posted,
+      description: "Successfully posted entries",
+      colorVariant: "success",
+      icon: <FiCheckCircle />,
+    },
+    {
+      id: "pending_approvals",
+      title: "Pending Approvals",
+      value: stats.pending,
+      description: "Awaiting approval stage",
+      colorVariant: "warning",
+      icon: <FiClock />,
+    },
+    {
+      id: "draft_vouchers",
+      title: "Draft Vouchers",
+      value: stats.draft,
+      description: "In-progress drafts",
+      colorVariant: "neutral",
+      icon: <FiFileText />,
+    },
+  ], [stats]);
+
   const getTypeBadge = (type) => {
     const raw = String(type || "").toUpperCase();
-    let bg = "bg-[#f8f9fa] text-[#495057] border-[#dee2e6]";
-
-    if (raw === "JOURNAL") bg = "bg-[#f3f0ff] text-[#7048e8] border-[#d0bfff]";
-    else if (raw === "PAYMENT") bg = "bg-[#fff5f5] text-[#fa5252] border-[#ffc9c9]";
-    else if (raw === "RECEIPT") bg = "bg-[#ebfbee] text-[#2b8a3e] border-[#c3fae8]";
-    else if (raw === "CONTRA") bg = "bg-[#e7f5ff] text-[#1c7ed6] border-[#a5d8ff]";
-    else if (raw === "PURCHASE") bg = "bg-[#fff9db] text-[#f08c00] border-[#ffe066]";
-    else if (raw === "SALE") bg = "bg-[#e6fcf5] text-[#0ca678] border-[#96f2d7]";
-
     return (
-      <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold border ${bg}`}>
-        {raw}
-      </span>
+      <AppTag
+        label={raw}
+        variant="soft"
+        colorVariant={typeColorMap[raw] || "neutral"}
+        rounded="md"
+        sx={tagSx}
+      />
     );
   };
 
   const getStatusBadge = (status) => {
     const raw = String(status || "").toUpperCase();
-    let bg = "bg-[#f8f9fa] text-[#495057] border-[#dee2e6]";
-
-    if (raw === "DRAFT") bg = "bg-[#f1f3f5] text-[#868e96] border-[#e9ecef]";
-    else if (raw === "PENDING_APPROVAL" || raw === "PENDING") bg = "bg-[#fff9db] text-[#f08c00] border-[#ffe066]";
-    else if (raw === "APPROVED") bg = "bg-[#e8f2ff] text-[#1864ab] border-[#c3e3ff]";
-    else if (raw === "POSTED") bg = "bg-[#ebfbee] text-[#2b8a3e] border-[#c3fae8]";
-    else if (raw === "CANCELLED") bg = "bg-[#fff5f5] text-[#fa5252] border-[#ffc9c9]";
-    else if (raw === "REVERSED") bg = "bg-[#fff0f6] text-[#d6336c] border-[#fcc2d7]";
-
     return (
-      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-bold uppercase border ${bg}`}>
-        {raw}
-      </span>
+      <AppTag
+        label={raw}
+        variant="soft"
+        colorVariant={statusColorMap[raw] || "neutral"}
+        rounded="md"
+        sx={statusBadgeSx}
+      />
     );
   };
 
-  const showPagination = journalVouchers.length > 0;
+  const columns = useMemo(() => [
+    {
+      id: "voucherNumber",
+      key: "voucherNumber",
+      label: "Voucher Number",
+      minWidth: 160,
+      render: (_, voucher) => (
+        <AppText
+          variant="body2"
+          onClick={() => handleRowClick(voucher._id)}
+          sx={voucherNumberSx}
+        >
+          {voucher.voucherNumber}
+        </AppText>
+      ),
+    },
+    {
+      id: "voucherType",
+      key: "voucherType",
+      label: "Type",
+      minWidth: 140,
+      render: (_, voucher) => getTypeBadge(voucher.voucherType),
+    },
+    {
+      id: "voucherDate",
+      key: "voucherDate",
+      label: "Date",
+      minWidth: 120,
+      render: (_, voucher) => (
+        <AppText variant="body2" sx={tableValueSx}>
+          {formatDate(voucher.voucherDate)}
+        </AppText>
+      ),
+    },
+    {
+      id: "totalDebit",
+      key: "totalDebit",
+      label: "Debit Amount",
+      minWidth: 140,
+      render: (_, voucher) => (
+        <AppText variant="body2" sx={debitAmountSx}>
+          {formatCurrency(voucher.totalDebit || 0)}
+        </AppText>
+      ),
+    },
+    {
+      id: "totalCredit",
+      key: "totalCredit",
+      label: "Credit Amount",
+      minWidth: 140,
+      render: (_, voucher) => (
+        <AppText variant="body2" sx={creditAmountSx}>
+          {formatCurrency(voucher.totalCredit || 0)}
+        </AppText>
+      ),
+    },
+    {
+      id: "referenceNumber",
+      key: "referenceNumber",
+      label: "Reference No.",
+      minWidth: 130,
+      render: (_, voucher) => (
+        <AppText variant="body2" sx={tableValueMonoSx}>
+          {voucher.referenceNumber || "-"}
+        </AppText>
+      ),
+    },
+    {
+      id: "status",
+      key: "status",
+      label: "Status",
+      minWidth: 140,
+      render: (_, voucher) => getStatusBadge(voucher.status),
+    },
+    {
+      id: "actions",
+      key: "actions",
+      label: "Action",
+      align: "right",
+      width: 70,
+      render: (_, voucher) => (
+        <RowActions voucher={voucher} onView={handleRowClick} onEdit={(v) => navigate(ROUTES.EDIT_JOURNAL_VOUCHER(v._id))} />
+      ),
+    },
+  ], []);
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
-      <div className="mx-auto w-full max-w-[1400px]">
+    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
+      <div className="mx-auto w-full max-w-[1500px]">
         {/* Page Header */}
-        <PageHeader
-          title="Journal Vouchers"
-          subtitle="Record ledger adjustments, contra transfers, and accounting double-entry allocations."
-          extra={
-            <AppStack direction="row" gap={2} align="center">
-              <AppBreadcrumb
-                size="small"
-                variant="text"
-                items={[
-                  { label: "Dashboard" },
-                  { label: "Finance & Accounting" },
-                  { label: "Journal Vouchers", current: true },
-                ]}
-                sx={breadcrumbSx}
-                itemSx={breadcrumbItemSx}
-                currentItemSx={breadcrumbCurrentSx}
-              />
-              <AppButton
-                variant="contained"
-                colorVariant="primary"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleCreate}
-                sx={createBtnSx}
-              >
-                Create Voucher
-              </AppButton>
-            </AppStack>
-          }
-          align="flex-start"
-          justify="space-between"
+        <AppBox
+          display="flex"
+          alignItems="flex-start"
+          justifyContent="space-between"
           sx={pageHeaderSx}
-          contentSx={pageHeaderContentSx}
-        />
+        >
+          <AppBox sx={pageHeaderContentSx}>
+            <AppHeading level={1} weight={650}>
+              Journal Vouchers
+            </AppHeading>
+            <AppText variant="body2" sx={pageHeaderSubtitleSx}>
+              Record ledger adjustments, contra transfers, and accounting double-entry allocations.
+            </AppText>
+            <AppBreadcrumb
+              size="small"
+              variant="text"
+              items={[
+                { label: "Dashboard", href: "/" },
+                { label: "Finance & Accounting", href: "/finance" },
+                { label: "Journal Vouchers", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
+            />
+          </AppBox>
+
+          <AppStack
+            direction="row"
+            align="center"
+            justify="flex-end"
+            gap={1.1}
+            sx={{ flexShrink: 0 }}
+          >
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              startIcon={<FiRefreshCw />}
+              onClick={handleRefresh}
+              loading={isLoading}
+              disabled={isLoading}
+              sx={secondaryButtonSx}
+            >
+              Refresh
+            </AppButton>
+            <AppButton
+              type="button"
+              variant="contained"
+              colorVariant="primary"
+              rounded="md"
+              size="small"
+              startIcon={<FiPlus />}
+              onClick={handleCreate}
+              disabled={isLoading}
+              sx={primaryButtonSx}
+            >
+              Create Voucher
+            </AppButton>
+          </AppStack>
+        </AppBox>
 
         {/* Stats Grid */}
-        <div className="mt-5 grid grid-cols-4 gap-4">
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Total Postings</span>
-                <span className="text-[20px] font-extrabold text-text mt-1 block">{stats.total}</span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-surface-alt text-text flex items-center justify-center border border-border">
-                <FiFileText className="text-[18px]" />
-              </div>
-            </div>
-          </AppCard>
-
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Posted Ledger Entries</span>
-                <span className="text-[20px] font-extrabold text-[#2b8a3e] mt-1 block">{stats.posted}</span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-[#ebfbee] text-[#2b8a3e] flex items-center justify-center border border-[#c3fae8]">
-                <FiCheckCircle className="text-[18px]" />
-              </div>
-            </div>
-          </AppCard>
-
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Pending Approvals</span>
-                <span className="text-[20px] font-extrabold text-[#f08c00] mt-1 block">{stats.pending}</span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-[#fff9db] text-[#f08c00] flex items-center justify-center border border-[#ffe066]">
-                <FiClock className="text-[18px]" />
-              </div>
-            </div>
-          </AppCard>
-
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Draft Vouchers</span>
-                <span className="text-[20px] font-extrabold text-[#868e96] mt-1 block">{stats.draft}</span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-surface-hover/30 text-text-muted flex items-center justify-center border border-border/80">
-                <FiFileText className="text-[18px]" />
-              </div>
-            </div>
-          </AppCard>
+        <div className="mt-4 grid grid-cols-4 gap-3">
+          {statsList.map((stat) => (
+            <AppStatCard
+              key={stat.id}
+              title={stat.title}
+              value={stat.value}
+              subtitle={stat.description}
+              icon={stat.icon}
+              colorVariant={stat.colorVariant}
+              variant="default"
+              sx={statCardSx}
+              iconSx={statIconSx}
+            />
+          ))}
         </div>
 
-        {/* Main Content Card */}
+        {/* Error Alert */}
+        {error && (
+          <AppAlert
+            severity="error"
+            variant="soft"
+            title="Something went wrong"
+            closable
+            onClose={clearError}
+            sx={alertSx}
+          >
+            {error}
+          </AppAlert>
+        )}
+
+        {/* Table & Filters Card */}
         <AppCard
           variant="default"
           rounded="lg"
           bordered
           shadow="sm"
           padding="none"
-          sx={mainCardSx}
+          sx={tableCardSx}
         >
           {/* Filters Toolbar */}
-          <div className="p-4 border-b border-border bg-surface-hover/20 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <AppInput
+          <div className="border-b border-border px-3.5 py-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_180px_160px] items-center gap-3">
+              <AppSearchInput
                 name="search"
                 value={searchParams.search}
-                onChange={(e) => handleSearchChange(e.target.value)}
+                onChange={handleSearchChange}
                 placeholder="Search voucher number or narration..."
-                startIcon={<FiSearch />}
+                clearable
+                onClear={() => handleSearchChange("")}
                 size="small"
-                sx={searchFieldSx}
-                inputSx={searchFieldInputSx}
+                variant="bordered"
+                rounded="md"
+                sx={searchSx}
+                inputSx={filterInputSx}
               />
 
-              <div className="flex items-center gap-2">
-                <AppSelect
-                  name="voucherType"
-                  value={searchParams.voucherType}
-                  onChange={(e) => handleFilterChange("voucherType", e.target.value)}
-                  options={typeOptions}
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  inputSx={compactFilterInputSx}
-                />
+              <AppSelect
+                name="voucherType"
+                value={searchParams.voucherType}
+                onChange={(e) => handleFilterChange("voucherType", e.target.value)}
+                options={typeOptions}
+                size="small"
+                variant="bordered"
+                rounded="md"
+                sx={selectSx}
+                inputSx={filterInputSx}
+              />
 
-                <AppSelect
-                  name="status"
-                  value={searchParams.status}
-                  onChange={(e) => handleFilterChange("status", e.target.value)}
-                  options={statusOptions}
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  inputSx={compactFilterInputSx}
-                />
-              </div>
+              <AppSelect
+                name="status"
+                value={searchParams.status}
+                onChange={(e) => handleFilterChange("status", e.target.value)}
+                options={statusOptions}
+                size="small"
+                variant="bordered"
+                rounded="md"
+                sx={selectSx}
+                inputSx={filterInputSx}
+              />
             </div>
           </div>
 
           {/* Table Container */}
-          <div className="overflow-x-auto w-full relative">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <AppText variant="body1" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
-                  Querying journal vouchers...
-                </AppText>
-              </div>
-            ) : journalVouchers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <FiInbox className="text-[40px] text-text-muted/40 mb-3" />
-                <AppHeading level={3} weight={600} sx={{ m: 0, fontSize: "14px", color: "var(--app-color-text)" }}>
-                  No Vouchers Found
-                </AppHeading>
-                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>
-                  Try adjusting your filter options or register a new journal voucher.
-                </AppText>
-              </div>
-            ) : (
-              <table className="w-full text-left border-collapse text-[12.5px]">
-                <thead>
-                  <tr className="border-b border-border bg-surface-alt/10 text-text-muted font-bold">
-                    <th className="py-3 px-4 font-bold">Voucher Number</th>
-                    <th className="py-3 px-4 font-bold">Type</th>
-                    <th className="py-3 px-4 font-bold">Date</th>
-                    <th className="py-3 px-4 font-bold">Debit Amount</th>
-                    <th className="py-3 px-4 font-bold">Credit Amount</th>
-                    <th className="py-3 px-4 font-bold">Reference No.</th>
-                    <th className="py-3 px-4 font-bold">Status</th>
-                    <th className="py-3 px-4 text-center font-bold">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {journalVouchers.map((voucher) => {
-                    return (
-                      <tr
-                        key={voucher._id}
-                        onClick={() => handleRowClick(voucher._id)}
-                        className="border-b border-border hover:bg-surface-hover/20 transition cursor-pointer"
-                      >
-                        <td className="py-3.5 px-4 font-bold text-primary hover:underline">
-                          {voucher.voucherNumber}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {getTypeBadge(voucher.voucherType)}
-                        </td>
-                        <td className="py-3.5 px-4 text-text-muted font-semibold">
-                          {formatDate(voucher.voucherDate)}
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-[#2b8a3e]">
-                          {formatCurrency(voucher.totalDebit || 0)}
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-[#e64980]">
-                          {formatCurrency(voucher.totalCredit || 0)}
-                        </td>
-                        <td className="py-3.5 px-4 text-text-muted font-mono">
-                          {voucher.referenceNumber || "-"}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {getStatusBadge(voucher.status)}
-                        </td>
-                        <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-end">
-                            <AppMenu
-                              trigger={
-                                <button className="p-1.5 text-text-muted hover:text-primary hover:bg-surface-hover/40 rounded transition cursor-pointer">
-                                  <FiMoreVertical className="text-[15px]" />
-                                </button>
-                              }
-                              items={[
-                                {
-                                  id: "view",
-                                  label: "View Details",
-                                  icon: <FiEye />,
-                                  onClick: () => handleRowClick(voucher._id),
-                                },
-                                {
-                                  id: "edit",
-                                  label: "Edit Voucher",
-                                  icon: <FiEdit2 />,
-                                  onClick: () => navigate(ROUTES.EDIT_JOURNAL_VOUCHER(voucher._id)),
-                                },
-                              ]}
-                              dense
-                              minWidth={130}
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+          {isLoading ? (
+            <AppTableSkeleton rows={8} columns={8} showHeader={false} />
+          ) : journalVouchers.length === 0 ? (
+            <AppEmptyState
+              title="No Vouchers Found"
+              description="Try adjusting your filter options or register a new journal voucher."
+              icon={<FiFileText />}
+              action={
+                <AppButton
+                  variant="contained"
+                  colorVariant="primary"
+                  rounded="md"
+                  startIcon={<FiPlus />}
+                  onClick={handleCreate}
+                  sx={primaryButtonSx}
+                >
+                  Create Voucher
+                </AppButton>
+              }
+              size="page"
+              sx={stateSx}
+            />
+          ) : (
+            <AppTable
+              columns={columns}
+              rows={journalVouchers}
+              getRowId={(row) => row._id}
+              dense
+              bordered={false}
+              rounded={false}
+              hover
+              stickyHeader
+              minWidth={1150}
+              maxHeight="calc(100vh - 340px)"
+              sx={tableSx}
+              headSx={tableHeadSx}
+              cellSx={tableCellSx}
+            />
+          )}
 
           {/* Table Footer */}
-          {showPagination && (
-            <AppBox sx={paginationFooterWrapperSx}>
-              <AppTablePagination
-                page={currentPage}
-                pageSize={pageSize}
-                totalItems={totalVouchers}
-                onPageChange={handlePageChange}
-              />
-            </AppBox>
-          )}
+          {totalVouchers > pageSize ? (
+            <TableFooter
+              totalVouchers={totalVouchers}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              handlePageChange={handlePageChange}
+              handlePageSizeChange={handlePageSizeChange}
+            />
+          ) : null}
         </AppCard>
       </div>
     </section>
   );
 };
 
-// Styling configurations
-const breadcrumbSx = { mt: 0 };
+const RowActions = ({ voucher, onView, onEdit }) => {
+  const items = [
+    { id: "view", label: "View Details", icon: <FiEye />, onClick: () => onView(voucher._id) },
+    { id: "edit", label: "Edit Voucher", icon: <FiEdit2 />, onClick: () => onEdit(voucher) },
+  ];
+
+  return (
+    <AppMenu
+      trigger={
+        <button
+          type="button"
+          aria-label="Voucher actions"
+          className="inline-flex h-auto w-auto items-center justify-center border-0 bg-transparent p-1.5 text-text-muted hover:text-primary rounded transition hover:bg-surface-hover/40 shadow-none outline-none focus:bg-transparent active:bg-transparent"
+        >
+          <FiMoreHorizontal className="text-[18px]" />
+        </button>
+      }
+      items={items}
+      dense
+      minWidth={140}
+    />
+  );
+};
+
+const TableFooter = ({
+  totalVouchers,
+  currentPage,
+  pageSize,
+  handlePageChange,
+  handlePageSizeChange,
+}) => {
+  const startEntry = (currentPage - 1) * pageSize + 1;
+  const endEntry = Math.min(currentPage * pageSize, totalVouchers);
+  const totalPages = Math.ceil(totalVouchers / pageSize) || 1;
+
+  return (
+    <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
+      <AppText variant="body2" sx={footerTextSx}>
+        Showing {startEntry} to {endEntry} of {totalVouchers} vouchers
+      </AppText>
+
+      <AppStack direction="row" align="center" gap={1}>
+        <AppMenu
+          trigger={
+            <AppButton
+              type="button"
+              variant="outlined"
+              colorVariant="neutral"
+              rounded="md"
+              size="small"
+              endIcon={<FiChevronRight className="rotate-90" />}
+              sx={pageSizeButtonSx}
+            >
+              {pageSize} per page
+            </AppButton>
+          }
+          items={[
+            { id: "10", label: "10 per page", onClick: () => handlePageSizeChange(10) },
+            { id: "20", label: "20 per page", onClick: () => handlePageSizeChange(20) },
+            { id: "50", label: "50 per page", onClick: () => handlePageSizeChange(50) },
+            { id: "100", label: "100 per page", onClick: () => handlePageSizeChange(100) },
+          ]}
+          dense
+          minWidth={120}
+        />
+
+        <AppIconButton
+          icon={<FiChevronLeft />}
+          variant="outlined"
+          colorVariant="neutral"
+          size="small"
+          rounded="md"
+          disabled={currentPage === 1}
+          onClick={() => handlePageChange(currentPage - 1)}
+        />
+
+        <span className="flex h-[31px] min-w-[31px] items-center justify-center rounded-md bg-primary px-2 text-[12px] font-bold text-text-inverse">
+          {currentPage}
+        </span>
+
+        <AppIconButton
+          icon={<FiChevronRight />}
+          variant="outlined"
+          colorVariant="neutral"
+          size="small"
+          rounded="md"
+          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(currentPage + 1)}
+        />
+      </AppStack>
+    </div>
+  );
+};
+
+// Styling variables
+const pageHeaderSx = { width: "100%" };
+const pageHeaderSubtitleSx = {
+  mt: 0.55,
+  fontSize: "13px",
+  lineHeight: "20px",
+  color: "var(--app-color-text-muted)",
+};
+const pageHeaderContentSx = {
+  minWidth: 0,
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "25px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.45px",
+    color: "var(--app-color-text)",
+  },
+};
+
+const breadcrumbSx = { mt: 1 };
 const breadcrumbItemSx = {
   fontSize: "12px",
   color: "var(--app-color-text-muted)",
-  cursor: "pointer",
-  "&:hover": { color: "var(--app-color-primary)" },
 };
 const breadcrumbCurrentSx = {
   fontSize: "12px",
@@ -390,62 +589,142 @@ const breadcrumbCurrentSx = {
   color: "var(--app-color-text)",
 };
 
-const pageHeaderSx = { width: "100%" };
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "23px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.4px",
-    color: "var(--app-color-text)",
-  },
+const primaryButtonSx = {
+  height: 36,
+  px: 1.6,
+  fontSize: "12px",
+  fontWeight: 700,
+};
+const secondaryButtonSx = {
+  height: 36,
+  minWidth: 92,
+  px: 1.4,
+  fontSize: "12px",
+  fontWeight: 650,
 };
 
-const createBtnSx = {
-  height: 32,
-  fontSize: "11.5px",
-  fontWeight: 600,
-  bgcolor: "var(--app-color-primary)",
-  "&:hover": { bgcolor: "var(--app-color-primary-hover)" },
-};
+const alertSx = { mt: 3 };
 
 const statCardSx = {
+  minHeight: 88,
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
+  p: 1.5,
+  "& p:first-of-type": { fontSize: "11px" },
+  "& h1, & h2, & h3, & h4": { fontSize: "18px" },
+  "& p:last-of-type": { fontSize: "11px" },
+};
+const statIconSx = {
+  width: 38,
+  height: 38,
+  minWidth: 38,
+  borderRadius: "11px",
 };
 
-const mainCardSx = {
-  mt: 5,
+const tableCardSx = {
+  mt: 3,
+  overflow: "hidden",
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
+  "& > div": { minWidth: 0 },
 };
 
-const searchFieldSx = {
-  width: 250,
-};
-
-const searchFieldInputSx = {
-  height: 32,
+const searchSx = { width: "100%" };
+const selectSx = { width: "100%" };
+const filterInputSx = {
+  height: 36,
   fontSize: "12px",
   bgcolor: "var(--app-color-surface)",
 };
 
-const compactFilterInputSx = {
-  height: 32,
-  fontSize: "11.5px",
-  bgcolor: "var(--app-color-surface)",
+const tableSx = {
+  "& .MuiTableContainer-root": {
+    borderRadius: 0,
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+    "&::-webkit-scrollbar": { display: "none" },
+  },
+};
+const tableHeadSx = {
+  bgcolor: "var(--app-color-surface-alt)",
+  "& .MuiTableCell-root": {
+    fontSize: "11.2px",
+    fontWeight: 750,
+    color: "var(--app-color-text-muted)",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+  },
+};
+const tableCellSx = {
+  py: 1.2,
+  fontSize: "12px",
+  borderColor: "var(--app-color-border)",
 };
 
-const paginationFooterWrapperSx = {
-  px: 2,
-  pt: 2,
-  pb: 2,
-  borderTop: "1px solid var(--app-color-divider)",
-  display: "flex",
-  justifyContent: "center",
-  width: "100%",
-  "& > div": { width: "100%" },
+const voucherNumberSx = {
+  fontSize: "12px",
+  fontWeight: 750,
+  color: "var(--app-color-primary)",
+  cursor: "pointer",
+  "&:hover": {
+    textDecoration: "underline",
+  },
 };
+
+const tableValueSx = {
+  fontSize: "12px",
+  fontWeight: 650,
+  color: "var(--app-color-text)",
+};
+const tableValueMonoSx = {
+  fontSize: "12px",
+  fontWeight: 700,
+  fontFamily: "var(--font-mono, monospace)",
+  color: "var(--app-color-text)",
+};
+const debitAmountSx = {
+  fontSize: "12px",
+  fontWeight: 750,
+  color: "var(--app-color-success)",
+};
+const creditAmountSx = {
+  fontSize: "12px",
+  fontWeight: 750,
+  color: "var(--app-color-error)",
+};
+
+const tagSx = {
+  width: "fit-content",
+  height: 22,
+  px: 0.8,
+  fontSize: "10.5px",
+  fontWeight: 700,
+};
+
+const statusBadgeSx = {
+  width: "fit-content",
+  height: 22,
+  px: 1.5,
+  fontSize: "10.5px",
+  fontWeight: 700,
+  textTransform: "uppercase",
+};
+
+const footerTextSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
+const pageSizeButtonSx = {
+  height: 34,
+  minWidth: 122,
+  px: 1.2,
+  fontSize: "12px",
+  fontWeight: 600,
+};
+const stateSx = { minHeight: 430 };
+
+const FiChevronRight = (props) => (
+  <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg" {...props}><polyline points="9 18 15 12 9 6"></polyline></svg>
+);
+const FiChevronLeft = (props) => (
+  <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg" {...props}><polyline points="15 18 9 12 15 6"></polyline></svg>
+);
 
 export default JournalVouchersDesktopPage;

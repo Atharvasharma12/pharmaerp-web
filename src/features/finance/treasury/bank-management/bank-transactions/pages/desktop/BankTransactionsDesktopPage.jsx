@@ -8,6 +8,8 @@ import {
   FiTrendingDown,
   FiActivity,
   FiInbox,
+  FiMoreVertical,
+  FiRefreshCw,
 } from "react-icons/fi";
 
 import {
@@ -21,6 +23,8 @@ import {
   AppStack,
   AppTablePagination,
   AppText,
+  AppTable,
+  AppMenu,
   PageHeader,
 } from "@/components";
 import { ROUTES } from "@/constants";
@@ -67,6 +71,7 @@ const BankTransactionsDesktopPage = ({
   handleFilterChange,
   handlePageChange,
   handlePageSizeChange,
+  handleRefresh,
 }) => {
   const navigate = useNavigate();
 
@@ -127,7 +132,122 @@ const BankTransactionsDesktopPage = ({
     );
   };
 
-  const showPagination = bankTransactions.length > 0;
+  const columns = useMemo(() => [
+    {
+      id: "transactionNumber",
+      label: "Transaction Number",
+      minWidth: 150,
+      render: (_, tx) => (
+        <AppText variant="body2" sx={tableValueMonoSx}>
+          {tx.transactionNumber}
+        </AppText>
+      ),
+    },
+    {
+      id: "transactionType",
+      label: "Type",
+      minWidth: 120,
+      render: (_, tx) => (
+        <AppText variant="body2" sx={tableValueSx}>
+          {tx.transactionType}
+        </AppText>
+      ),
+    },
+    {
+      id: "direction",
+      label: "Direction",
+      minWidth: 110,
+      render: (_, tx) => getDirectionBadge(tx.direction),
+    },
+    {
+      id: "linkedAccount",
+      label: "Linked Account",
+      minWidth: 180,
+      render: (_, tx) => {
+        const linkedBank = tx.bankAccountId;
+        return (
+          <AppText variant="body2" sx={tableValueMutedSx}>
+            {linkedBank
+              ? `${linkedBank.bankName || "Bank"} - *${String(linkedBank.accountNumber || "").slice(-4)}`
+              : "-"}
+          </AppText>
+        );
+      },
+    },
+    {
+      id: "transactionDate",
+      label: "Transaction Date",
+      minWidth: 130,
+      render: (_, tx) => (
+        <AppText variant="body2" sx={tableValueMutedSx}>
+          {formatDate(tx.transactionDate)}
+        </AppText>
+      ),
+    },
+    {
+      id: "amount",
+      label: "Amount",
+      minWidth: 130,
+      align: "right",
+      render: (_, tx) => {
+        const isCredit = tx.direction === "CREDIT";
+        return (
+          <span className={`text-[12.5px] font-black ${isCredit ? "text-[#2b8a3e]" : "text-[#fa5252]"}`}>
+            {isCredit ? "+" : "-"} {formatCurrency(tx.amount)}
+          </span>
+        );
+      },
+    },
+    {
+      id: "referenceNumber",
+      label: "Reference / UTR",
+      minWidth: 140,
+      render: (_, tx) => (
+        <AppText variant="body2" sx={tableValueMonoSx}>
+          {tx.referenceNumber || "-"}
+        </AppText>
+      ),
+    },
+    {
+      id: "status",
+      label: "Status",
+      align: "center",
+      minWidth: 110,
+      render: (_, tx) => getStatusBadge(tx.status),
+    },
+    {
+      id: "actions",
+      label: "Actions",
+      align: "right",
+      width: 80,
+      render: (_, tx) => (
+        <AppStack direction="row" gap={0.5} justify="flex-end" align="center">
+          <AppMenu
+            trigger={
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text hover:bg-surface-hover focus:outline-none cursor-pointer"
+              >
+                <FiMoreVertical className="text-[16px]" />
+              </button>
+            }
+            items={[
+              {
+                id: "view",
+                label: "View Details",
+                icon: <FiEye />,
+                onClick: () => handleRowClick(tx._id),
+              },
+            ]}
+            dense
+            minWidth={140}
+          />
+        </AppStack>
+      ),
+    },
+  ], []);
+
+  const showPagination = totalTransactions > pageSize;
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
@@ -142,9 +262,9 @@ const BankTransactionsDesktopPage = ({
                 size="small"
                 variant="text"
                 items={[
-                  { label: "Dashboard" },
-                  { label: "Finance & Accounting" },
-                  { label: "Treasury" },
+                  { label: "Dashboard", onClick: () => navigate(ROUTES.DASHBOARD) },
+                  { label: "Finance & Accounting", onClick: () => navigate(ROUTES.FINANCE) },
+                  { label: "Treasury", onClick: () => navigate(ROUTES.TREASURY) },
                   { label: "Bank Transactions", current: true },
                 ]}
                 sx={breadcrumbSx}
@@ -152,13 +272,25 @@ const BankTransactionsDesktopPage = ({
                 currentItemSx={breadcrumbCurrentSx}
               />
               <AppButton
-                variant="contained"
-                colorVariant="primary"
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                rounded="md"
+                startIcon={<FiRefreshCw />}
+                onClick={handleRefresh}
+                loading={isLoading}
+                sx={importButtonSx}
+              >
+                Refresh
+              </AppButton>
+              <AppButton
+                variant="filled"
+                colorVariant="success"
                 size="small"
                 rounded="md"
                 startIcon={<FiPlus />}
                 onClick={handleCreate}
-                sx={createBtnSx}
+                sx={primaryButtonSx}
               >
                 Create Transaction
               </AppButton>
@@ -297,7 +429,7 @@ const BankTransactionsDesktopPage = ({
           </div>
 
           {/* Table Container */}
-          <div className="overflow-x-auto w-full relative">
+          <div className="w-full relative">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20">
                 <AppText variant="body1" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
@@ -315,77 +447,14 @@ const BankTransactionsDesktopPage = ({
                 </AppText>
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-[12.5px]">
-                <thead>
-                  <tr className="border-b border-border bg-surface-alt/10 text-text-muted font-bold">
-                    <th className="py-3 px-4 font-bold">Transaction Number</th>
-                    <th className="py-3 px-4 font-bold">Type</th>
-                    <th className="py-3 px-4 font-bold">Direction</th>
-                    <th className="py-3 px-4 font-bold">Linked Account</th>
-                    <th className="py-3 px-4 font-bold">Transaction Date</th>
-                    <th className="py-3 px-4 font-bold">Amount</th>
-                    <th className="py-3 px-4 font-bold">Reference / UTR</th>
-                    <th className="py-3 px-4 font-bold">Status</th>
-                    <th className="py-3 px-4 text-center font-bold">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bankTransactions.map((tx) => {
-                    const linkedBank = tx.bankAccountId;
-                    const bankLabel = linkedBank
-                      ? `${linkedBank.bankName || "Bank"} - *${String(linkedBank.accountNumber || "").slice(-4)}`
-                      : "-";
-
-                    const isCredit = tx.direction === "CREDIT";
-
-                    return (
-                      <tr
-                        key={tx._id}
-                        onClick={() => handleRowClick(tx._id)}
-                        className="border-b border-border hover:bg-surface-hover/20 transition cursor-pointer"
-                      >
-                        <td className="py-3.5 px-4 font-bold text-primary hover:underline">
-                          {tx.transactionNumber}
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-text">
-                          {tx.transactionType}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {getDirectionBadge(tx.direction)}
-                        </td>
-                        <td className="py-3.5 px-4 text-text-muted font-semibold">
-                          {bankLabel}
-                        </td>
-                        <td className="py-3.5 px-4 text-text-muted">
-                          {formatDate(tx.transactionDate)}
-                        </td>
-                        <td
-                          className={`py-3.5 px-4 font-black ${
-                            isCredit ? "text-[#2b8a3e]" : "text-[#fa5252]"
-                          }`}
-                        >
-                          {isCredit ? "+" : "-"} {formatCurrency(tx.amount)}
-                        </td>
-                        <td className="py-3.5 px-4 text-text-muted font-mono">
-                          {tx.referenceNumber || "-"}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {getStatusBadge(tx.status)}
-                        </td>
-                        <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleRowClick(tx._id)}
-                            className="p-1.5 text-text-muted hover:text-primary hover:bg-surface-hover/40 rounded transition cursor-pointer"
-                            title="View Details"
-                          >
-                            <FiEye className="text-[14px]" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <AppTable
+                columns={columns}
+                rows={bankTransactions}
+                getRowId={(row) => row._id}
+                sx={tableSx}
+                headSx={tableHeadSx}
+                cellSx={tableCellSx}
+              />
             )}
           </div>
 
@@ -397,6 +466,7 @@ const BankTransactionsDesktopPage = ({
                 pageSize={pageSize}
                 totalItems={totalTransactions}
                 onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
               />
             </AppBox>
           )}
@@ -432,12 +502,26 @@ const pageHeaderContentSx = {
   },
 };
 
-const createBtnSx = {
-  height: 32,
-  fontSize: "11.5px",
-  fontWeight: 600,
-  bgcolor: "var(--app-color-primary)",
-  "&:hover": { bgcolor: "var(--app-color-primary-hover)" },
+const primaryButtonSx = {
+  height: 38,
+  px: 2.5,
+  fontSize: "12.5px",
+  fontWeight: 700,
+  bgcolor: "#00b85c",
+  color: "white",
+  whiteSpace: "nowrap",
+  "&:hover": { bgcolor: "#009e4f" },
+};
+
+const importButtonSx = {
+  height: 38,
+  px: 2.5,
+  fontSize: "12.5px",
+  fontWeight: 650,
+  borderColor: "var(--app-color-border)",
+  color: "var(--app-color-text)",
+  bgcolor: "white",
+  whiteSpace: "nowrap",
 };
 
 const statCardSx = {
@@ -467,15 +551,61 @@ const compactFilterInputSx = {
   bgcolor: "var(--app-color-surface)",
 };
 
+const tableSx = {
+  width: "100%",
+  "& .MuiTable-root": {
+    width: "100%",
+  },
+};
+
+const tableHeadSx = {
+  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, var(--app-color-surface))",
+  "& th": {
+    fontSize: "11px",
+    fontWeight: 750,
+    textTransform: "uppercase",
+    color: "var(--app-color-text-muted)",
+    py: 1.5,
+    borderBottom: "1px solid var(--app-color-divider)",
+  },
+};
+
+const tableCellSx = {
+  py: 1.5,
+  fontSize: "12.5px",
+  borderBottom: "1px solid var(--app-color-divider)",
+};
+
+const tableValueSx = {
+  fontSize: "12.5px",
+  fontWeight: 650,
+  color: "var(--app-color-text)",
+};
+
+const tableValueMutedSx = {
+  fontSize: "12.5px",
+  fontWeight: 650,
+  color: "var(--app-color-text-muted)",
+};
+
+const tableValueMonoSx = {
+  fontSize: "12px",
+  fontFamily: "var(--font-mono, monospace)",
+  fontWeight: 750,
+  color: "var(--app-color-text)",
+};
+
 const paginationFooterWrapperSx = {
   px: 2,
-  pt: 2,
-  pb: 2,
+  py: 2,
   borderTop: "1px solid var(--app-color-divider)",
   display: "flex",
-  justifyContent: "center",
+  justifyContent: "flex-end",
+  alignItems: "center",
   width: "100%",
-  "& > div": { width: "100%" },
+  "& > div": {
+    width: "auto",
+  },
 };
 
 export default BankTransactionsDesktopPage;

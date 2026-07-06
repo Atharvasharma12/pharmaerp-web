@@ -106,8 +106,6 @@ const bankSlipSlice = createSlice({
         state.getBankSlipsStatus = API_STATUS.SUCCESS;
 
         state.bankSlips = action.payload?.bankSlips || [];
-
-        state.message = "Bank slips fetched successfully";
       })
       .addCase(getBankSlips.rejected, (state, action) => {
         state.getBankSlipsStatus = API_STATUS.ERROR;

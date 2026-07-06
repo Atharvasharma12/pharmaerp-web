@@ -56,20 +56,29 @@ const CashDenominationsPage = () => {
     );
   }, []);
 
-  useEffect(() => {
-    const query = {
-      page: currentPage,
-      limit: pageSize,
-      search: filters.search || undefined,
-      cashAccountId: filters.cashAccountId === "all" ? undefined : filters.cashAccountId,
-      branchId: filters.branchId === "all" ? undefined : filters.branchId,
-      status: filters.status === "all" ? undefined : filters.status,
-    };
+  const fetchCashDenominationsData = useCallback(async () => {
+    try {
+      const query = {
+        page: currentPage,
+        limit: pageSize,
+        search: filters.search || undefined,
+        cashAccountId: filters.cashAccountId === "all" ? undefined : filters.cashAccountId,
+        branchId: filters.branchId === "all" ? undefined : filters.branchId,
+        status: filters.status === "all" ? undefined : filters.status,
+      };
+      await getCashDenominations(query);
+    } catch (err) {
+      console.error("Failed to fetch cash denominations:", err);
+    }
+  }, [currentPage, pageSize, filters, getCashDenominations]);
 
-    getCashDenominations(query).catch((err) =>
-      console.error("Failed to fetch cash denominations:", err)
-    );
-  }, [currentPage, pageSize, filters.search, filters.cashAccountId, filters.branchId, filters.status]);
+  useEffect(() => {
+    fetchCashDenominationsData();
+  }, [fetchCashDenominationsData]);
+
+  const handleRefresh = useCallback(() => {
+    fetchCashDenominationsData();
+  }, [fetchCashDenominationsData]);
 
   useEffect(() => {
     return () => {
@@ -152,6 +161,7 @@ const CashDenominationsPage = () => {
     handlePageSizeChange,
     handleCreateNew,
     handleViewDetails,
+    handleRefresh,
   };
 
   return isMobile ? (

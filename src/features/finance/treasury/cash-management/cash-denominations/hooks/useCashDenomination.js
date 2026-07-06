@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -66,43 +67,43 @@ const useCashDenomination = () => {
     selectCancelCashDenominationStatus,
   );
 
-  const submitCreateCashDenomination = (payload) => {
+  const submitCreateCashDenomination = useCallback((payload) => {
     return dispatch(createCashDenomination(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchCashDenominations = (params = {}) => {
+  const fetchCashDenominations = useCallback((params = {}) => {
     return dispatch(getCashDenominations(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchCashDenominationById = (cashDenominationId) => {
+  const fetchCashDenominationById = useCallback((cashDenominationId) => {
     return dispatch(getCashDenominationById(cashDenominationId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitConfirmCashDenomination = (cashDenominationId, payload) => {
+  const submitConfirmCashDenomination = useCallback((cashDenominationId, payload) => {
     return dispatch(
       confirmCashDenomination({
         cashDenominationId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitCancelCashDenomination = (cashDenominationId, payload) => {
+  const submitCancelCashDenomination = useCallback((cashDenominationId, payload) => {
     return dispatch(
       cancelCashDenomination({
         cashDenominationId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearCashDenominationError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearCashDenominationMessage());
-  };
+  }, [dispatch]);
 
   const saveCurrentCashDenomination = (payload) => {
     dispatch(setCurrentCashDenomination(payload));
