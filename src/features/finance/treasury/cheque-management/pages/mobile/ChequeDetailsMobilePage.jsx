@@ -179,7 +179,7 @@ const ChequeDetailsMobilePage = ({
         {/* Status hint */}
         {hint && (
           <div
-            className={`mx-2 mb-3 p-3 rounded-lg border flex items-start gap-2 text-[11px] font-semibold ${
+            className={`mx-4 mb-3 p-3 rounded-lg border flex items-start gap-2 text-[11px] font-semibold ${
               hint.color === "warning"
                 ? "bg-warning-soft/20 border-warning/20 text-warning"
                 : "bg-primary-soft/20 border-primary/20 text-primary"
@@ -193,7 +193,7 @@ const ChequeDetailsMobilePage = ({
         {/* Feedback Alert */}
         {(error || message) && (
           <div
-            className={`mx-2 mb-3 p-3 text-[11px] font-semibold rounded-md flex justify-between items-center ${
+            className={`mx-4 mb-3 p-3 text-[11px] font-semibold rounded-md flex justify-between items-center ${
               error ? "bg-danger-soft text-danger" : "bg-success-soft text-success"
             }`}
           >
@@ -208,10 +208,10 @@ const ChequeDetailsMobilePage = ({
         )}
 
         {/* Details card content */}
-        <div className="px-2">
+        <div className="px-0">
           <AppCard
             variant="default"
-            rounded="lg"
+            rounded="none"
             bordered
             shadow="none"
             padding="none"
@@ -404,7 +404,7 @@ const containerSx = {
   width: "100%",
   maxWidth: { xs: 430, sm: 460 },
   mx: "auto",
-  px: 0.5,
+  px: 0,
   pt: 0,
   pb: 0,
 };
@@ -412,7 +412,7 @@ const containerSx = {
 const headerWrapperSx = {
   pt: 1.5,
   pb: 1,
-  px: 0.5,
+  px: 2,
 };
 
 const pageTitleSx = {

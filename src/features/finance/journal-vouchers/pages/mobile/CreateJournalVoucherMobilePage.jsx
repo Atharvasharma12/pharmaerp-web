@@ -98,10 +98,10 @@ const CreateJournalVoucherMobilePage = ({
         </AppBox>
 
         {/* Content stack */}
-        <div className="px-2 space-y-4">
+        <div className="px-0 space-y-4">
           {/* Server Error / Submit Errors */}
           {serverError && (
-            <div className="p-3 bg-danger-soft text-danger text-[11.5px] font-semibold rounded-md flex justify-between items-center">
+            <div className="mx-4 p-3 bg-danger-soft text-danger text-[11.5px] font-semibold rounded-md flex justify-between items-center">
               <span>{serverError}</span>
               <button
                 type="button"
@@ -114,7 +114,7 @@ const CreateJournalVoucherMobilePage = ({
           )}
 
           {formErrors.submit && (
-            <div className="p-3 bg-danger-soft text-danger text-[11.5px] font-semibold rounded-md">
+            <div className="mx-4 p-3 bg-danger-soft text-danger text-[11.5px] font-semibold rounded-md">
               {formErrors.submit}
             </div>
           )}
@@ -122,7 +122,7 @@ const CreateJournalVoucherMobilePage = ({
           {/* Form parameters card */}
           <AppCard
             variant="default"
-            rounded="lg"
+            rounded="none"
             bordered
             shadow="none"
             padding="none"
@@ -207,7 +207,7 @@ const CreateJournalVoucherMobilePage = ({
 
           {/* Posting ledger lines */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between px-1">
+            <div className="flex items-center justify-between px-4">
               <AppHeading level={3} weight={700} sx={{ m: 0, fontSize: "12.5px", color: "var(--app-color-text)" }}>
                 Ledger Entries
               </AppHeading>
@@ -221,7 +221,7 @@ const CreateJournalVoucherMobilePage = ({
             </div>
 
             {formErrors.lines && (
-              <div className="p-3 bg-danger-soft text-danger text-[11.5px] font-bold rounded-md">
+              <div className="mx-4 p-3 bg-danger-soft text-danger text-[11.5px] font-bold rounded-md">
                 {formErrors.lines}
               </div>
             )}
@@ -230,7 +230,7 @@ const CreateJournalVoucherMobilePage = ({
               <AppCard
                 key={idx}
                 variant="default"
-                rounded="lg"
+                rounded="none"
                 bordered
                 shadow="none"
                 padding="none"
@@ -366,7 +366,7 @@ const containerSx = {
   width: "100%",
   maxWidth: { xs: 430, sm: 460 },
   mx: "auto",
-  px: 0.5,
+  px: 0,
   pt: 0,
   pb: 0,
 };
@@ -374,7 +374,7 @@ const containerSx = {
 const headerWrapperSx = {
   pt: 1.5,
   pb: 1,
-  px: 0.5,
+  px: 2,
 };
 
 const pageTitleSx = {

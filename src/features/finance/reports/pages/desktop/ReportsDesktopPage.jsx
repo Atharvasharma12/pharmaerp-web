@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiList,
   FiBookOpen,
@@ -13,6 +14,7 @@ import {
   FiArrowRight,
   FiClock,
   FiChevronRight,
+  FiPrinter,
 } from "react-icons/fi";
 import { FaWallet, FaUniversity } from "react-icons/fa";
 
@@ -21,8 +23,10 @@ import {
   AppButton,
   AppCard,
   PageHeader,
+  AppBox,
 } from "@/components";
 import { formatDate } from "@/utils";
+import { ROUTES } from "@/constants";
 
 // 9 report modules data
 const REPORT_MODULES = [
@@ -109,41 +113,41 @@ const REPORT_MODULES = [
   },
 ];
 
-// Mock recent generated reports
+// Mock recent generated reports updated to match 2026 dates
 const RECENT_REPORTS = [
   {
     id: "r1",
     name: "Trial Balance",
     type: "PDF",
-    date: "02 Jun 2024, 10:30 AM",
+    date: "06 Jul 2026, 10:30 AM",
     generatedBy: "Admin User",
   },
   {
     id: "r2",
     name: "Profit & Loss Statement",
     type: "Excel",
-    date: "01 Jun 2024, 06:15 PM",
+    date: "06 Jul 2026, 06:15 PM",
     generatedBy: "Admin User",
   },
   {
     id: "r3",
     name: "Bank Book",
     type: "PDF",
-    date: "01 Jun 2024, 05:45 PM",
+    date: "05 Jul 2026, 05:45 PM",
     generatedBy: "Admin User",
   },
   {
     id: "r4",
-    name: "Customer Ledger - ABC Pharma",
+    name: "Customer Ledger - Apollo Pharmacy",
     type: "PDF",
-    date: "31 May 2024, 11:20 AM",
+    date: "05 Jul 2026, 11:20 AM",
     generatedBy: "Admin User",
   },
   {
     id: "r5",
     name: "Balance Sheet",
     type: "Excel",
-    date: "30 May 2024, 07:10 PM",
+    date: "04 Jul 2026, 07:10 PM",
     generatedBy: "Admin User",
   },
 ];
@@ -181,6 +185,8 @@ const QUICK_ACTIONS = [
 ];
 
 const ReportsDesktopPage = ({ handleReportChange }) => {
+  const navigate = useNavigate();
+
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
       <div className="mx-auto w-full max-w-[1400px]">
@@ -193,8 +199,8 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
               size="small"
               variant="text"
               items={[
-                { label: "Dashboard" },
-                { label: "Finance & Accounting" },
+                { label: "Dashboard", onClick: () => navigate(ROUTES.DASHBOARD) },
+                { label: "Finance & Accounting", onClick: () => navigate(ROUTES.FINANCE) },
                 { label: "Reports", current: true },
               ]}
               sx={breadcrumbSx}
@@ -210,6 +216,7 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
               rounded="md"
               startIcon={<FiSettings />}
               sx={secondaryButtonSx}
+              onClick={() => handleReportChange("trial-balance")}
             >
               Report Settings
             </AppButton>
@@ -222,17 +229,17 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
 
         {/* 1. Statistics Cards Grid */}
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
+          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx} className="hover:shadow-md transition-shadow">
             <div className="p-4 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase text-text-muted tracking-wider block">
                   Total Reports
                 </span>
-                <span className="text-[20px] font-black text-text mt-1.5 block leading-none">
+                <span className="text-[20px] font-black text-text mt-1.5 block leading-none font-mono">
                   9
                 </span>
                 <span className="text-[11px] text-text-muted mt-1.5 block">
-                  Available Reports
+                  Available Statements
                 </span>
               </div>
               <div className="w-10 h-10 rounded-xl bg-purple-soft text-purple flex items-center justify-center border border-purple/10 shrink-0">
@@ -241,17 +248,17 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
             </div>
           </AppCard>
 
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
+          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx} className="hover:shadow-md transition-shadow">
             <div className="p-4 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase text-text-muted tracking-wider block">
-                  Generated This Month
+                  Generated (Month)
                 </span>
-                <span className="text-[20px] font-black text-text mt-1.5 block leading-none">
+                <span className="text-[20px] font-black text-text mt-1.5 block leading-none font-mono">
                   28
                 </span>
                 <span className="text-[11px] text-text-muted mt-1.5 block">
-                  Reports Generated
+                  Reconciled Exports
                 </span>
               </div>
               <div className="w-10 h-10 rounded-xl bg-primary-soft text-primary flex items-center justify-center border border-primary/10 shrink-0">
@@ -260,13 +267,13 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
             </div>
           </AppCard>
 
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
+          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx} className="hover:shadow-md transition-shadow">
             <div className="p-4 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase text-text-muted tracking-wider block">
                   Scheduled Reports
                 </span>
-                <span className="text-[20px] font-black text-text mt-1.5 block leading-none">
+                <span className="text-[20px] font-black text-text mt-1.5 block leading-none font-mono">
                   4
                 </span>
                 <span className="text-[11px] text-text-muted mt-1.5 block">
@@ -279,7 +286,7 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
             </div>
           </AppCard>
 
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
+          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx} className="hover:shadow-md transition-shadow">
             <div className="p-4 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase text-text-muted tracking-wider block">
@@ -302,9 +309,9 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
         {/* 2. Report Modules Grid Section */}
         <div className="mt-8">
           <div className="mb-4">
-            <h2 className="text-[16px] font-black text-text m-0">Report Modules</h2>
+            <h2 className="text-[16px] font-black text-text m-0 uppercase tracking-wider">Report Modules</h2>
             <p className="text-[12px] text-text-muted mt-0.5 m-0">
-              Select a report to view, generate and download
+              Select a statement option to configure parameters and run official reports.
             </p>
           </div>
 
@@ -328,10 +335,11 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
                   shadow="sm"
                   padding="none"
                   sx={moduleCardSx}
+                  className="hover:scale-[1.01] transition-transform duration-200"
                 >
                   <div className="p-5 flex items-start gap-4 relative overflow-hidden h-full">
                     {/* Index Number Badge */}
-                    <div className="absolute top-3 left-3 w-5 h-5 rounded-full bg-success text-success-contrast text-[10.5px] font-extrabold flex items-center justify-center border border-white shadow-sm">
+                    <div className="absolute top-3 left-3 w-5 h-5 rounded-full bg-success text-success-contrast text-[10px] font-extrabold flex items-center justify-center border border-white shadow-sm font-mono">
                       {module.index}
                     </div>
 
@@ -341,11 +349,11 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
                           {module.icon}
                         </div>
                         <div className="min-w-0">
-                          <h3 className="text-[14px] font-extrabold text-text leading-tight truncate">
+                          <h3 className="text-[14px] font-black text-text leading-tight truncate">
                             {module.title}
                           </h3>
                           {module.isCore && (
-                            <span className="inline-block mt-0.5 bg-success-soft text-success text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            <span className="inline-block mt-0.5 bg-success-soft text-success text-[8.5px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">
                               Core Report
                             </span>
                           )}
@@ -359,13 +367,13 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
                       <div className="mt-5 border-t border-divider pt-3 flex justify-between items-center text-[12px] font-bold">
                         <button
                           onClick={() => handleReportChange(module.key)}
-                          className="text-success hover:underline flex items-center gap-1 cursor-pointer"
+                          className="text-success hover:underline flex items-center gap-1 cursor-pointer font-bold"
                         >
                           View Report <FiArrowRight className="text-[12px]" />
                         </button>
                         <button
                           onClick={() => handleReportChange(module.key)}
-                          className="text-text-muted hover:text-text flex items-center gap-1.5 cursor-pointer"
+                          className="text-text-muted hover:text-text flex items-center gap-1.5 cursor-pointer font-bold"
                         >
                           <FiSettings className="text-[13px]" /> Customize
                         </button>
@@ -382,13 +390,13 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
           {/* Recent Reports Table */}
           <AppCard variant="default" rounded="lg" bordered shadow="sm" padding="none">
-            <div className="p-4 border-b border-border flex justify-between items-center">
-              <span className="text-[13px] font-black uppercase tracking-wider text-text">
-                Recent Reports
+            <div className="p-4 border-b border-border flex justify-between items-center bg-surface-hover/5">
+              <span className="text-[12px] font-black uppercase tracking-wider text-text">
+                Recent Generated Statements
               </span>
               <button
                 onClick={() => handleReportChange("trial-balance")}
-                className="text-[11.5px] font-bold text-success hover:underline"
+                className="text-[11.5px] font-bold text-success hover:underline uppercase tracking-wider"
               >
                 View All
               </button>
@@ -397,7 +405,7 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
             <div className="overflow-x-auto w-full">
               <table className="w-full text-left border-collapse text-[12px]">
                 <thead>
-                  <tr className="border-b border-border bg-surface-hover/10 text-text-muted font-bold">
+                  <tr className="border-b border-border bg-surface-hover/10 text-text-muted font-bold uppercase tracking-wider text-[9.5px]">
                     <th className="py-2.5 px-4 font-bold">Report Name</th>
                     <th className="py-2.5 px-4 font-bold">Type</th>
                     <th className="py-2.5 px-4 font-bold">Generated On</th>
@@ -415,7 +423,7 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
                     return (
                       <tr
                         key={report.id}
-                        className="border-b border-border hover:bg-surface-hover/10 transition"
+                        className="border-b border-border/40 hover:bg-surface-hover/10 transition"
                       >
                         <td className="py-3 px-4 font-bold text-text">{report.name}</td>
                         <td className="py-3 px-4">
@@ -423,7 +431,7 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
                             {report.type}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-text-muted">{report.date}</td>
+                        <td className="py-3 px-4 text-text-muted font-mono">{report.date}</td>
                         <td className="py-3 px-4 text-text font-semibold">{report.generatedBy}</td>
                         <td className="py-3 px-4 text-center">
                           <button
@@ -452,8 +460,8 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
 
           {/* Quick Actions Panel */}
           <AppCard variant="default" rounded="lg" bordered shadow="sm" padding="none">
-            <div className="p-4 border-b border-border">
-              <span className="text-[13px] font-black uppercase tracking-wider text-text">
+            <div className="p-4 border-b border-border bg-surface-hover/5">
+              <span className="text-[12px] font-black uppercase tracking-wider text-text">
                 Quick Actions
               </span>
             </div>
@@ -476,7 +484,7 @@ const ReportsDesktopPage = ({ handleReportChange }) => {
                         {action.icon}
                       </div>
                       <div className="min-w-0">
-                        <span className="block text-[13px] font-extrabold text-text leading-tight group-hover:text-success transition">
+                        <span className="block text-[13px] font-bold text-text leading-tight group-hover:text-success transition">
                           {action.title}
                         </span>
                         <span className="block text-[10.5px] text-text-muted truncate mt-0.5">

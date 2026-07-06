@@ -102,308 +102,359 @@ const CreateJournalVoucherDesktopPage = ({
           contentSx={pageHeaderContentSx}
         />
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-5">
-          {/* Server/Submit Errors */}
-          {serverError && (
-            <div className="p-3 bg-danger-soft text-danger text-[12.5px] font-semibold rounded-md flex items-center justify-between">
-              <span>{serverError}</span>
-              <button
-                type="button"
-                onClick={clearError}
-                className="text-danger hover:underline font-bold"
+        {/* Layout Split */}
+        <div className="mt-5 grid grid-cols-[minmax(0,1fr)_290px] gap-5">
+          {/* Form Side */}
+          <div className="min-w-0">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Server/Submit Errors */}
+              {serverError && (
+                <div className="p-3 bg-danger-soft text-danger text-[12.5px] font-semibold rounded-md flex items-center justify-between">
+                  <span>{serverError}</span>
+                  <button
+                    type="button"
+                    onClick={clearError}
+                    className="text-danger hover:underline font-bold"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
+              {formErrors.submit && (
+                <div className="p-3 bg-danger-soft text-danger text-[12.5px] font-semibold rounded-md">
+                  {formErrors.submit}
+                </div>
+              )}
+
+              {/* Header parameters card */}
+              <AppCard
+                variant="default"
+                rounded="lg"
+                bordered
+                shadow="sm"
+                padding="none"
+                sx={cardSx}
               >
-                Dismiss
-              </button>
-            </div>
-          )}
+                <div className="px-5 py-3.5 border-b border-border">
+                  <AppHeading level={3} weight={700} sx={cardTitleSx}>
+                    Voucher Header Parameters
+                  </AppHeading>
+                </div>
 
-          {formErrors.submit && (
-            <div className="p-3 bg-danger-soft text-danger text-[12.5px] font-semibold rounded-md">
-              {formErrors.submit}
-            </div>
-          )}
+                <div className="p-5 grid grid-cols-4 gap-5">
+                  {/* Date */}
+                  <AppInput
+                    type="date"
+                    label="Voucher Date"
+                    name="voucherDate"
+                    value={formData.voucherDate}
+                    onChange={(e) => handleFieldChange("voucherDate", e.target.value)}
+                    required
+                    error={Boolean(formErrors.voucherDate)}
+                    helperText={formErrors.voucherDate || "Transaction booking date"}
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
 
-          {/* Header parameters card */}
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={cardSx}
-          >
-            <div className="px-5 py-3.5 border-b border-border">
-              <AppHeading level={3} weight={700} sx={cardTitleSx}>
-                Voucher Header Parameters
-              </AppHeading>
-            </div>
+                  {/* Type */}
+                  <AppSelect
+                    label="Voucher Posting Type"
+                    name="voucherType"
+                    value={formData.voucherType}
+                    onChange={(e) => handleFieldChange("voucherType", e.target.value)}
+                    options={typeOptions}
+                    size="medium"
+                    variant="bordered"
+                    rounded="md"
+                    required
+                    labelSx={labelSx}
+                    sx={selectFieldSx}
+                    inputSx={selectInputSx}
+                    helperText="Select the type of adjustment voucher"
+                  />
 
-            <div className="p-5 grid grid-cols-4 gap-5">
-              {/* Date */}
-              <AppInput
-                type="date"
-                label="Voucher Date"
-                name="voucherDate"
-                value={formData.voucherDate}
-                onChange={(e) => handleFieldChange("voucherDate", e.target.value)}
-                required
-                error={Boolean(formErrors.voucherDate)}
-                helperText={formErrors.voucherDate || "Transaction booking date"}
-                labelSx={labelSx}
-                inputSx={inputSx}
-              />
+                  {/* Reference */}
+                  <AppInput
+                    label="Reference Number (Optional)"
+                    name="referenceNumber"
+                    value={formData.referenceNumber}
+                    onChange={(e) => handleFieldChange("referenceNumber", e.target.value)}
+                    placeholder="e.g. JV-109283"
+                    helperText="Physical document index code"
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                  />
 
-              {/* Type */}
-              <AppSelect
-                label="Voucher Posting Type"
-                name="voucherType"
-                value={formData.voucherType}
-                onChange={(e) => handleFieldChange("voucherType", e.target.value)}
-                options={typeOptions}
-                size="medium"
-                variant="bordered"
-                rounded="md"
-                required
-                labelSx={labelSx}
-                sx={selectFieldSx}
-                inputSx={selectInputSx}
-                helperText="Select the type of adjustment voucher"
-              />
+                  {/* Status */}
+                  <AppSelect
+                    label="Ledger Action Status"
+                    name="status"
+                    value={formData.status}
+                    onChange={(e) => handleFieldChange("status", e.target.value)}
+                    options={statusOptions}
+                    size="medium"
+                    variant="bordered"
+                    rounded="md"
+                    required
+                    labelSx={labelSx}
+                    sx={selectFieldSx}
+                    inputSx={selectInputSx}
+                    helperText="Whether to draft or post immediately"
+                  />
+                </div>
 
-              {/* Reference */}
-              <AppInput
-                label="Reference Number (Optional)"
-                name="referenceNumber"
-                value={formData.referenceNumber}
-                onChange={(e) => handleFieldChange("referenceNumber", e.target.value)}
-                placeholder="e.g. JV-109283"
-                helperText="Physical document index code"
-                labelSx={labelSx}
-                inputSx={inputSx}
-              />
+                {/* Narration */}
+                <div className="px-5 pb-5">
+                  <AppInput
+                    label="Voucher Narration / Header Notes (Optional)"
+                    name="narration"
+                    value={formData.narration}
+                    onChange={(e) => handleFieldChange("narration", e.target.value)}
+                    placeholder="Brief summary describing ledger adjustments..."
+                    multiline
+                    rows={2}
+                    labelSx={labelSx}
+                    inputSx={{ ...inputSx, height: "auto" }}
+                  />
+                </div>
+              </AppCard>
 
-              {/* Status */}
-              <AppSelect
-                label="Ledger Action Status"
-                name="status"
-                value={formData.status}
-                onChange={(e) => handleFieldChange("status", e.target.value)}
-                options={statusOptions}
-                size="medium"
-                variant="bordered"
-                rounded="md"
-                required
-                labelSx={labelSx}
-                sx={selectFieldSx}
-                inputSx={selectInputSx}
-                helperText="Whether to draft or post immediately"
-              />
-            </div>
-
-            {/* Narration */}
-            <div className="px-5 pb-5">
-              <AppInput
-                label="Voucher Narration / Header Notes (Optional)"
-                name="narration"
-                value={formData.narration}
-                onChange={(e) => handleFieldChange("narration", e.target.value)}
-                placeholder="Brief summary describing ledger adjustments..."
-                multiline
-                rows={2}
-                labelSx={labelSx}
-                inputSx={{ ...inputSx, height: "auto" }}
-              />
-            </div>
-          </AppCard>
-
-          {/* Ledger Double-Entry Lines spreadsheet */}
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={cardSx}
-          >
-            <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-              <AppHeading level={3} weight={700} sx={cardTitleSx}>
-                Double-Entry Posting Ledger lines
-              </AppHeading>
-
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="primary"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleAddLine}
-                sx={{ height: 30, fontSize: "11px" }}
+              {/* Ledger Double-Entry Lines spreadsheet */}
+              <AppCard
+                variant="default"
+                rounded="lg"
+                bordered
+                shadow="sm"
+                padding="none"
+                sx={cardSx}
               >
-                Add Line Row
-              </AppButton>
-            </div>
+                <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                  <AppHeading level={3} weight={700} sx={cardTitleSx}>
+                    Double-Entry Posting Ledger lines
+                  </AppHeading>
 
-            {/* Form Validation Errors for lines */}
-            {formErrors.lines && (
-              <div className="mx-5 mt-4 p-3 bg-danger-soft text-danger text-[12px] font-bold rounded-md">
-                {formErrors.lines}
-              </div>
-            )}
+                  <AppButton
+                    type="button"
+                    variant="outlined"
+                    colorVariant="primary"
+                    size="small"
+                    rounded="md"
+                    startIcon={<FiPlus />}
+                    onClick={handleAddLine}
+                    sx={{ height: 30, fontSize: "11px" }}
+                  >
+                    Add Line Row
+                  </AppButton>
+                </div>
 
-            {/* Lines Table */}
-            <div className="overflow-x-auto w-full relative">
-              <table className="w-full text-left border-collapse text-[12.5px]">
-                <thead>
-                  <tr className="border-b border-border bg-surface-alt/5 text-text-muted font-bold">
-                    <th className="py-2.5 px-4 w-[40px] text-center font-bold">#</th>
-                    <th className="py-2.5 px-4 min-w-[300px] font-bold">Ledger Account Selection</th>
-                    <th className="py-2.5 px-4 w-[160px] font-bold">Debit Amount ($)</th>
-                    <th className="py-2.5 px-4 w-[160px] font-bold">Credit Amount ($)</th>
-                    <th className="py-2.5 px-4 min-w-[200px] font-bold">Line Description / Memo</th>
-                    <th className="py-2.5 px-4 w-[50px] text-center font-bold">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {formData.lines.map((line, idx) => (
-                    <tr key={idx} className="border-b border-border hover:bg-surface-hover/10 transition">
-                      <td className="py-2.5 px-4 text-center font-semibold text-text-muted">
-                        {idx + 1}
-                      </td>
-
-                      <td className="py-2.5 px-4">
-                        <AppSelect
-                          name={`lines.${idx}.accountId`}
-                          value={line.accountId}
-                          onChange={(e) => handleLineChange(idx, "accountId", e.target.value)}
-                          options={accountOptions}
-                          size="small"
-                          variant="bordered"
-                          rounded="md"
-                          sx={{ width: "100%" }}
-                          inputSx={{ height: 32, fontSize: "12px", bgcolor: "var(--app-color-surface)" }}
-                        />
-                      </td>
-
-                      <td className="py-2.5 px-4">
-                        <AppInput
-                          type="number"
-                          step="0.01"
-                          name={`lines.${idx}.debit`}
-                          value={line.debit || ""}
-                          onChange={(e) => handleLineChange(idx, "debit", e.target.value)}
-                          placeholder="0.00"
-                          inputSx={{ height: 32, fontSize: "12px", bgcolor: "var(--app-color-surface)" }}
-                        />
-                      </td>
-
-                      <td className="py-2.5 px-4">
-                        <AppInput
-                          type="number"
-                          step="0.01"
-                          name={`lines.${idx}.credit`}
-                          value={line.credit || ""}
-                          onChange={(e) => handleLineChange(idx, "credit", e.target.value)}
-                          placeholder="0.00"
-                          inputSx={{ height: 32, fontSize: "12px", bgcolor: "var(--app-color-surface)" }}
-                        />
-                      </td>
-
-                      <td className="py-2.5 px-4">
-                        <AppInput
-                          name={`lines.${idx}.narration`}
-                          value={line.narration}
-                          onChange={(e) => handleLineChange(idx, "narration", e.target.value)}
-                          placeholder="Entry memo note..."
-                          inputSx={{ height: 32, fontSize: "12px", bgcolor: "var(--app-color-surface)" }}
-                        />
-                      </td>
-
-                      <td className="py-2.5 px-4 text-center">
-                        <button
-                          type="button"
-                          disabled={formData.lines.length <= 2}
-                          onClick={() => handleRemoveLine(idx)}
-                          className={`p-1.5 rounded transition ${
-                            formData.lines.length <= 2
-                              ? "text-text-muted/30 cursor-not-allowed"
-                              : "text-text-muted hover:text-danger hover:bg-danger-soft/10 cursor-pointer"
-                          }`}
-                          title="Remove line"
-                        >
-                          <FiTrash2 className="text-[13px]" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* running totals summation bar */}
-            <div className="p-4 bg-surface-alt/10 border-t border-border flex flex-wrap items-center justify-between gap-4">
-              {/* Balanced alert status */}
-              <div className="flex items-center gap-2">
-                {totals.isBalanced ? (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#ebfbee] text-[#2b8a3e] border border-[#c3fae8] rounded-md text-[11.5px] font-bold">
-                    <FiCheckCircle />
-                    <span>Double-Entry Balanced</span>
-                  </div>
-                ) : (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#fff5f5] text-[#fa5252] border border-[#ffc9c9] rounded-md text-[11.5px] font-bold">
-                    <FiAlertTriangle />
-                    <span>
-                      {totals.debitSum === 0
-                        ? "Enter Ledger Postings"
-                        : `Imbalanced: Difference is ${formatCurrency(totals.difference)}`}
-                    </span>
+                {/* Form Validation Errors for lines */}
+                {formErrors.lines && (
+                  <div className="mx-5 mt-4 p-3 bg-danger-soft text-danger text-[12px] font-bold rounded-md">
+                    {formErrors.lines}
                   </div>
                 )}
-              </div>
 
-              {/* Sum totals display */}
-              <div className="flex items-center gap-6 text-[13px] font-extrabold text-text">
-                <div>
-                  <span className="text-text-muted font-normal text-[11px] block text-right">Total Debit:</span>
-                  <span className="text-[#2b8a3e] text-[15px]">{formatCurrency(totals.debitSum)}</span>
+                {/* Lines Table */}
+                <div className="overflow-x-auto w-full relative">
+                  <table className="w-full text-left border-collapse text-[12.5px]">
+                    <thead>
+                      <tr className="border-b border-border bg-surface-alt/5 text-text-muted font-bold">
+                        <th className="py-2.5 px-4 w-[40px] text-center font-bold">#</th>
+                        <th className="py-2.5 px-4 min-w-[300px] font-bold">Ledger Account Selection</th>
+                        <th className="py-2.5 px-4 w-[160px] font-bold">Debit Amount ($)</th>
+                        <th className="py-2.5 px-4 w-[160px] font-bold">Credit Amount ($)</th>
+                        <th className="py-2.5 px-4 min-w-[200px] font-bold">Line Description / Memo</th>
+                        <th className="py-2.5 px-4 w-[50px] text-center font-bold">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formData.lines.map((line, idx) => (
+                        <tr key={idx} className="border-b border-border hover:bg-surface-hover/10 transition">
+                          <td className="py-2.5 px-4 text-center font-semibold text-text-muted">
+                            {idx + 1}
+                          </td>
+
+                          <td className="py-2.5 px-4">
+                            <AppSelect
+                              name={`lines.${idx}.accountId`}
+                              value={line.accountId}
+                              onChange={(e) => handleLineChange(idx, "accountId", e.target.value)}
+                              options={accountOptions}
+                              size="small"
+                              variant="bordered"
+                              rounded="md"
+                              sx={{ width: "100%" }}
+                              inputSx={{ height: 32, fontSize: "12px", bgcolor: "var(--app-color-surface)" }}
+                            />
+                          </td>
+
+                          <td className="py-2.5 px-4">
+                            <AppInput
+                              type="number"
+                              step="0.01"
+                              name={`lines.${idx}.debit`}
+                              value={line.debit || ""}
+                              onChange={(e) => handleLineChange(idx, "debit", e.target.value)}
+                              placeholder="0.00"
+                              inputSx={{ height: 32, fontSize: "12px", bgcolor: "var(--app-color-surface)" }}
+                            />
+                          </td>
+
+                          <td className="py-2.5 px-4">
+                            <AppInput
+                              type="number"
+                              step="0.01"
+                              name={`lines.${idx}.credit`}
+                              value={line.credit || ""}
+                              onChange={(e) => handleLineChange(idx, "credit", e.target.value)}
+                              placeholder="0.00"
+                              inputSx={{ height: 32, fontSize: "12px", bgcolor: "var(--app-color-surface)" }}
+                            />
+                          </td>
+
+                          <td className="py-2.5 px-4">
+                            <AppInput
+                              name={`lines.${idx}.narration`}
+                              value={line.narration}
+                              onChange={(e) => handleLineChange(idx, "narration", e.target.value)}
+                              placeholder="Entry memo note..."
+                              inputSx={{ height: 32, fontSize: "12px", bgcolor: "var(--app-color-surface)" }}
+                            />
+                          </td>
+
+                          <td className="py-2.5 px-4 text-center">
+                            <button
+                              type="button"
+                              disabled={formData.lines.length <= 2}
+                              onClick={() => handleRemoveLine(idx)}
+                              className={`p-1.5 rounded transition ${
+                                formData.lines.length <= 2
+                                  ? "text-text-muted/30 cursor-not-allowed"
+                                  : "text-text-muted hover:text-danger hover:bg-danger-soft/10 cursor-pointer"
+                              }`}
+                              title="Remove line"
+                            >
+                              <FiTrash2 className="text-[13px]" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div>
-                  <span className="text-text-muted font-normal text-[11px] block text-right">Total Credit:</span>
-                  <span className="text-[#e64980] text-[15px]">{formatCurrency(totals.creditSum)}</span>
+
+                {/* running totals summation bar */}
+                <div className="p-4 bg-surface-alt/10 border-t border-border flex flex-wrap items-center justify-between gap-4">
+                  {/* Balanced alert status */}
+                  <div className="flex items-center gap-2">
+                    {totals.isBalanced ? (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#ebfbee] text-[#2b8a3e] border border-[#c3fae8] rounded-md text-[11.5px] font-bold">
+                        <FiCheckCircle />
+                        <span>Double-Entry Balanced</span>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#fff5f5] text-[#fa5252] border border-[#ffc9c9] rounded-md text-[11.5px] font-bold">
+                        <FiAlertTriangle />
+                        <span>
+                          {totals.debitSum === 0
+                            ? "Enter Ledger Postings"
+                            : `Imbalanced: Difference is ${formatCurrency(totals.difference)}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sum totals display */}
+                  <div className="flex items-center gap-6 text-[13px] font-extrabold text-text">
+                    <div>
+                      <span className="text-text-muted font-normal text-[11px] block text-right">Total Debit:</span>
+                      <span className="text-[#2b8a3e] text-[15px]">{formatCurrency(totals.debitSum)}</span>
+                    </div>
+                    <div>
+                      <span className="text-text-muted font-normal text-[11px] block text-right">Total Credit:</span>
+                      <span className="text-[#e64980] text-[15px]">{formatCurrency(totals.creditSum)}</span>
+                    </div>
+                  </div>
                 </div>
+              </AppCard>
+
+              {/* Form Actions Footer */}
+              <div className="flex items-center justify-between">
+                <AppButton
+                  type="button"
+                  variant="outlined"
+                  colorVariant="neutral"
+                  rounded="md"
+                  size="small"
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                  sx={actionBtnSx}
+                >
+                  Cancel
+                </AppButton>
+
+                <AppButton
+                  type="submit"
+                  variant="contained"
+                  colorVariant="success"
+                  rounded="md"
+                  size="small"
+                  loading={isLoading}
+                  disabled={isLoading}
+                  sx={actionBtnSx}
+                >
+                  Create Journal Voucher
+                </AppButton>
               </div>
-            </div>
-          </AppCard>
-
-          {/* Form Actions Footer */}
-          <div className="flex items-center justify-between">
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              onClick={handleCancel}
-              disabled={isLoading}
-              sx={actionBtnSx}
-            >
-              Cancel
-            </AppButton>
-
-            <AppButton
-              type="submit"
-              variant="contained"
-              colorVariant="primary"
-              rounded="md"
-              size="small"
-              loading={isLoading}
-              disabled={isLoading}
-              sx={actionBtnSx}
-            >
-              Create Journal Voucher
-            </AppButton>
+            </form>
           </div>
-        </form>
+
+          {/* Right Sidebar Section */}
+          <div className="space-y-4">
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              shadow="sm"
+              padding="none"
+              sx={sideCardSx}
+            >
+              <div className="px-4 py-3.5 border-b border-border flex items-center gap-1.5">
+                <FiInfo className="text-success text-[15px]" />
+                <AppHeading level={3} weight={700} sx={sideCardTitleSx}>
+                  Help & Tips
+                </AppHeading>
+              </div>
+              <div className="p-4 space-y-4 text-[12px] leading-relaxed">
+                <div>
+                  <span className="font-bold text-text block mb-1">Double Entry Rules</span>
+                  <span className="text-text-muted">
+                    Debits must equal credits. An imbalanced journal voucher cannot be posted.
+                  </span>
+                </div>
+                <div>
+                  <span className="font-bold text-text block mb-1">Voucher Date</span>
+                  <span className="text-text-muted">
+                    The transaction date that determines when balances take effect in the general ledger.
+                  </span>
+                </div>
+                <div>
+                  <span className="font-bold text-text block mb-1">Contra Vouchers</span>
+                  <span className="text-text-muted">
+                    Contra vouchers should be used specifically for bank transfers or cash withdrawals.
+                  </span>
+                </div>
+                <div>
+                  <span className="font-bold text-text block mb-1">Draft vs Posted</span>
+                  <span className="text-text-muted">
+                    Save as a Draft to review details later, or Post directly to write entries to the ledger immediately.
+                  </span>
+                </div>
+              </div>
+            </AppCard>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -444,6 +495,18 @@ const cardSx = {
 const cardTitleSx = {
   m: 0,
   fontSize: "14px",
+  color: "var(--app-color-text)",
+};
+
+const sideCardSx = {
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+  overflow: "hidden",
+};
+
+const sideCardTitleSx = {
+  m: 0,
+  fontSize: "12.8px",
   color: "var(--app-color-text)",
 };
 

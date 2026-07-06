@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FiArrowLeft, FiClock, FiCheck, FiAlertTriangle, FiSlash, FiFolderMinus, FiTrendingUp, FiInfo } from "react-icons/fi";
+import { FiArrowLeft, FiClock, FiCheck, FiAlertTriangle, FiSlash, FiTrendingUp, FiInfo } from "react-icons/fi";
 
 import {
   AppBreadcrumb,
@@ -8,6 +8,7 @@ import {
   AppHeading,
   AppStack,
   AppText,
+  PageHeader,
 } from "@/components";
 import { formatDate } from "@/utils";
 
@@ -149,30 +150,46 @@ const ChequeDetailsDesktopPage = ({
         isLoading={isTransitioning}
       />
 
-      <div className="mx-auto w-full max-w-[800px]">
+      <div className="mx-auto w-full max-w-[1200px]">
         {/* Page Header */}
-        <div className="flex items-start justify-between">
-          <div className="min-w-0">
-            <AppHeading level={1} weight={700} sx={pageTitleSx}>
-              Cheque Details
-            </AppHeading>
-            <AppText variant="body2" sx={pageSubtitleSx}>
-              Verify clearances, bounce charges, posting diaries, and audit records.
-            </AppText>
-          </div>
-          <AppBreadcrumb
+        <PageHeader
+          title={`Cheque #${chequeDetails.chequeNumber}`}
+          subtitle="Verify clearances, bounce charges, posting diaries, and audit records."
+          extra={
+            <AppBreadcrumb
+              size="small"
+              variant="text"
+              items={[
+                { label: "Dashboard" },
+                { label: "Finance" },
+                { label: "Cheques", onClick: handleBack },
+                { label: "Details", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
+            />
+          }
+          align="flex-start"
+          justify="space-between"
+          sx={pageHeaderSx}
+          contentSx={pageHeaderContentSx}
+        />
+
+        {/* Toolbar */}
+        <div className="mt-4 flex items-center justify-between">
+          <AppButton
+            variant="outlined"
+            colorVariant="neutral"
             size="small"
-            variant="text"
-            items={[
-              { label: "Dashboard" },
-              { label: "Finance" },
-              { label: "Cheques", onClick: handleBack },
-              { label: "Details", current: true },
-            ]}
-            sx={breadcrumbSx}
-            itemSx={breadcrumbItemSx}
-            currentItemSx={breadcrumbCurrentSx}
-          />
+            rounded="md"
+            startIcon={<FiArrowLeft />}
+            onClick={handleBack}
+            disabled={isTransitioning}
+            sx={actionBtnSx}
+          >
+            Back to List
+          </AppButton>
         </div>
 
         {/* Status hint banner */}
@@ -206,240 +223,256 @@ const ChequeDetailsDesktopPage = ({
           </div>
         )}
 
-        {/* Details Card */}
-        <AppCard
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="sm"
-          sx={cardSx}
-          className="mt-5"
-        >
-          {/* Header Panel */}
-          <div className="px-5 py-4 border-b border-border bg-surface-alt/10 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] text-text-muted font-black tracking-wider uppercase font-mono">
-                Cheque Number: {chequeDetails.chequeNumber}
-              </span>
-              <AppHeading level={3} weight={700} sx={cardTitleSx} className="mt-0.5">
-                Cheque Instrument Registry
-              </AppHeading>
-            </div>
-            <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[9.5px] font-bold uppercase ${getStatusBadgeClass(chequeDetails.status)}`}>
-              {chequeDetails.status}
-            </span>
-          </div>
+        {/* Split Grid */}
+        <div className="mt-5 grid grid-cols-3 gap-5">
+          {/* Left Column - Summary & Actions */}
+          <div className="col-span-1 space-y-5">
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              shadow="sm"
+              sx={leftCardSx}
+            >
+              <div className="flex flex-col items-center text-center p-4">
+                <div className="w-12 h-12 rounded-lg bg-primary-soft border border-primary/20 flex items-center justify-center text-primary shrink-0 select-none shadow-sm mb-3">
+                  <FiInfo size={24} />
+                </div>
+                <AppHeading level={2} weight={700} sx={leftCardTitleSx}>
+                  Cheque #{chequeDetails.chequeNumber}
+                </AppHeading>
+                <div className="mt-2 flex flex-col gap-1.5 items-center justify-center">
+                  <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[10px] font-bold uppercase ${getStatusBadgeClass(chequeDetails.status)}`}>
+                    {chequeDetails.status}
+                  </span>
+                  <span className="text-[12px] text-text-muted mt-1 font-semibold">
+                    {isReceived ? "Received Instrument" : "Issued Instrument"}
+                  </span>
+                </div>
+              </div>
 
-          <div className="p-5 space-y-6">
-            {/* Type & Amount */}
-            <div className="grid grid-cols-2 gap-5 border-b border-border pb-5">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Cheque Amount</span>
-                <span className="text-[24px] font-black text-text mt-1 block">
+              <div className="border-t border-border p-4 text-center">
+                <span className="text-[12px] text-text-muted block font-semibold">
+                  Cheque Amount
+                </span>
+                <span className="text-[22px] font-black text-text block mt-1 font-mono">
                   ₹ {Number(chequeDetails.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </span>
               </div>
 
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Cheque Date (Drawn)</span>
-                <span className="text-[15px] font-extrabold text-text mt-2 block">
-                  {formatDate(chequeDetails.chequeDate)}
-                </span>
-              </div>
-            </div>
+              {/* Action buttons */}
+              <div className="border-t border-border p-4 flex flex-col gap-2">
+                {canDeposit && (
+                  <AppButton
+                    variant="contained"
+                    colorVariant="primary"
+                    size="small"
+                    rounded="md"
+                    startIcon={<FiTrendingUp />}
+                    onClick={handleDeposit}
+                    disabled={isTransitioning}
+                    fullWidth
+                  >
+                    Deposit Cheque
+                  </AppButton>
+                )}
 
-            {/* Core Info */}
-            <div className="grid grid-cols-2 gap-5 border-b border-border pb-5">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Cheque Type</span>
-                <span className="text-[13px] font-bold text-text mt-1 block">
-                  {isReceived ? "Received from Customer" : "Issued to Vendor"}
-                </span>
-              </div>
+                {canClear && (
+                  <AppButton
+                    variant="contained"
+                    colorVariant="success"
+                    size="small"
+                    rounded="md"
+                    startIcon={<FiCheck />}
+                    onClick={() => setClearModalOpen(true)}
+                    disabled={isTransitioning}
+                    fullWidth
+                  >
+                    Clear Cheque
+                  </AppButton>
+                )}
 
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block font-mono">Company Bank</span>
-                <span className="text-[13px] font-semibold text-text mt-1 block">
-                  {getBankName()}
-                </span>
-              </div>
+                {canBounce && (
+                  <AppButton
+                    variant="outlined"
+                    colorVariant="error"
+                    size="small"
+                    rounded="md"
+                    startIcon={<FiAlertTriangle />}
+                    onClick={() => setBounceModalOpen(true)}
+                    disabled={isTransitioning}
+                    fullWidth
+                  >
+                    Bounce Cheque
+                  </AppButton>
+                )}
 
-              <div className="col-span-2">
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Party Name (Drawer/Payee)</span>
-                <span className="text-[13.5px] font-bold text-text mt-1.5 block">
-                  {chequeDetails.partyName}
-                </span>
+                {canCancel && (
+                  <AppButton
+                    variant="outlined"
+                    colorVariant="error"
+                    size="small"
+                    rounded="md"
+                    startIcon={<FiSlash />}
+                    onClick={() => setCancelModalOpen(true)}
+                    disabled={isTransitioning}
+                    fullWidth
+                  >
+                    Cancel Cheque
+                  </AppButton>
+                )}
               </div>
-
-              <div className="col-span-2">
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Ledger Account (COA Mapping)</span>
-                <span className="text-[13px] font-semibold text-text mt-1 block">
-                  {getAccountName()}
-                </span>
-              </div>
-            </div>
-
-            {/* Narration */}
-            <div className="border-b border-border pb-5">
-              <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Narration / Remarks</span>
-              <p className="text-[13px] text-text font-semibold mt-2 leading-relaxed bg-surface-alt/20 p-3 rounded-md border border-border">
-                {chequeDetails.narration || "No additional remarks."}
-              </p>
-            </div>
-
-            {/* Transition logs depending on status */}
-            {isDeposited && (
-              <div className="p-4 bg-primary-soft/10 border border-primary/20 rounded-md">
-                <span className="text-[9.5px] font-extrabold text-primary uppercase tracking-wider block mb-1">
-                  Deposit Log
-                </span>
-                <span className="text-[12px] text-text-muted">
-                  Deposited at: <strong>{formatDate(chequeDetails.depositedAt)}</strong>
-                </span>
-              </div>
-            )}
-
-            {isCleared && (
-              <div className="p-4 bg-success-soft/10 border border-success/20 rounded-md">
-                <span className="text-[9.5px] font-extrabold text-success uppercase tracking-wider block mb-1">
-                  Clearance Log
-                </span>
-                <span className="text-[12px] text-text-muted">
-                  Cleared at: <strong>{formatDate(chequeDetails.clearedAt)}</strong>
-                </span>
-              </div>
-            )}
-
-            {isBounced && (
-              <div className="p-4 bg-danger-soft/10 border border-danger/20 rounded-md space-y-2">
-                <span className="text-[9.5px] font-extrabold text-danger uppercase tracking-wider block">
-                  Bounce Log
-                </span>
-                <div className="grid grid-cols-2 gap-4 text-[12px] text-text-muted">
-                  <div>
-                    <span>Bounced At:</span>
-                    <strong className="text-text ml-1">{formatDate(chequeDetails.bouncedAt)}</strong>
-                  </div>
-                  <div>
-                    <span>Charges Incurred:</span>
-                    <strong className="text-text ml-1">₹ {Number(chequeDetails.bounceCharges || 0).toLocaleString("en-IN")}</strong>
-                  </div>
-                  <div className="col-span-2">
-                    <span>Reason:</span>
-                    <p className="text-text font-semibold mt-1">{chequeDetails.bounceReason || "N/A"}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {isCancelled && (
-              <div className="p-4 bg-neutral-soft border border-border rounded-md space-y-2">
-                <span className="text-[9.5px] font-extrabold text-text-muted uppercase tracking-wider block">
-                  Cancellation Log
-                </span>
-                <div className="grid grid-cols-2 gap-4 text-[12px] text-text-muted">
-                  <div>
-                    <span>Cancelled At:</span>
-                    <strong className="text-text ml-1">{formatDate(chequeDetails.cancelledAt)}</strong>
-                  </div>
-                  <div className="col-span-2">
-                    <span>Reason:</span>
-                    <p className="text-text font-semibold mt-1">{chequeDetails.cancellationReason || "No reason provided"}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Audit creation info */}
-            <div className="flex justify-between items-center text-[12px] text-text-muted pt-2">
-              <div className="flex items-center gap-1.5">
-                <span>Recorded By:</span>
-                <strong>{creatorName}</strong>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span>Created At:</span>
-                <strong>{formatDate(chequeDetails.createdAt)}</strong>
-              </div>
-            </div>
+            </AppCard>
           </div>
-        </AppCard>
 
-        {/* Footer controls */}
-        <div className="mt-5 flex items-center justify-between">
-          <AppButton
-            variant="outlined"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-            startIcon={<FiArrowLeft />}
-            onClick={handleBack}
-            disabled={isTransitioning}
-            sx={actionBtnSx}
-          >
-            Back to List
-          </AppButton>
+          {/* Right Column - Instrument metadata & logs */}
+          <div className="col-span-2 space-y-5">
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              shadow="sm"
+              sx={rightCardSx}
+            >
+              <div className="px-5 py-4 border-b border-border">
+                <AppHeading level={3} weight={700} sx={cardTitleSx}>
+                  Cheque Instrument Registry Metadata
+                </AppHeading>
+              </div>
 
-          <AppStack direction="row" gap={1} align="center">
-            {/* RECEIVED + PENDING → Deposit */}
-            {canDeposit && (
-              <AppButton
-                variant="contained"
-                colorVariant="primary"
-                size="small"
-                rounded="md"
-                startIcon={<FiTrendingUp />}
-                onClick={handleDeposit}
-                disabled={isTransitioning}
-              >
-                Deposit Cheque
-              </AppButton>
-            )}
+              <div className="p-5 space-y-6">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-5 text-[13px]">
+                  <div>
+                    <span className="text-text-muted block font-semibold">
+                      Cheque Number
+                    </span>
+                    <span className="font-mono font-bold text-text block mt-1 text-[13.5px]">
+                      {chequeDetails.chequeNumber}
+                    </span>
+                  </div>
 
-            {/* Clear button */}
-            {canClear && (
-              <AppButton
-                variant="contained"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                startIcon={<FiCheck />}
-                onClick={() => setClearModalOpen(true)}
-                disabled={isTransitioning}
-              >
-                Clear
-              </AppButton>
-            )}
+                  <div>
+                    <span className="text-text-muted block font-semibold">
+                      Cheque Date (Drawn)
+                    </span>
+                    <span className="font-bold text-text block mt-1 font-mono">
+                      {formatDate(chequeDetails.chequeDate)}
+                    </span>
+                  </div>
 
-            {/* Bounce button */}
-            {canBounce && (
-              <AppButton
-                variant="outlined"
-                colorVariant="error"
-                size="small"
-                rounded="md"
-                startIcon={<FiAlertTriangle />}
-                onClick={() => setBounceModalOpen(true)}
-                disabled={isTransitioning}
-              >
-                Bounce
-              </AppButton>
-            )}
+                  <div>
+                    <span className="text-text-muted block font-semibold">
+                      Party Name (Drawer/Payee)
+                    </span>
+                    <span className="font-bold text-text block mt-1">
+                      {chequeDetails.partyName}
+                    </span>
+                  </div>
 
-            {/* Cancel button */}
-            {canCancel && (
-              <AppButton
-                variant="outlined"
-                colorVariant="error"
-                size="small"
-                rounded="md"
-                startIcon={<FiSlash />}
-                onClick={() => setCancelModalOpen(true)}
-                disabled={isTransitioning}
-              >
-                Cancel Cheque
-              </AppButton>
-            )}
-          </AppStack>
+                  <div>
+                    <span className="text-text-muted block font-semibold">
+                      Company Bank Account
+                    </span>
+                    <span className="font-semibold text-text block mt-1">
+                      {getBankName()}
+                    </span>
+                  </div>
+
+                  <div className="col-span-2">
+                    <span className="text-text-muted block font-semibold">
+                      Ledger Account (COA Mapping)
+                    </span>
+                    <span className="font-bold text-primary block mt-1">
+                      {getAccountName()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Remarks/Narration */}
+                <div>
+                  <span className="text-text-muted block font-semibold">Narration / Remarks</span>
+                  <p className="text-[13px] text-text font-semibold mt-2 leading-relaxed bg-surface-alt/20 p-3 rounded-md border border-border">
+                    {chequeDetails.narration || "No additional remarks."}
+                  </p>
+                </div>
+
+                {/* Logs depending on status */}
+                {isDeposited && (
+                  <div className="p-4 bg-primary-soft/10 border border-primary/20 rounded-md">
+                    <span className="text-[9.5px] font-extrabold text-primary uppercase tracking-wider block mb-1">
+                      Deposit Log
+                    </span>
+                    <span className="text-[12px] text-text-muted">
+                      Deposited at: <strong>{formatDate(chequeDetails.depositedAt)}</strong>
+                    </span>
+                  </div>
+                )}
+
+                {isCleared && (
+                  <div className="p-4 bg-success-soft/10 border border-success/20 rounded-md">
+                    <span className="text-[9.5px] font-extrabold text-success uppercase tracking-wider block mb-1">
+                      Clearance Log
+                    </span>
+                    <span className="text-[12px] text-text-muted">
+                      Cleared at: <strong>{formatDate(chequeDetails.clearedAt)}</strong>
+                    </span>
+                  </div>
+                )}
+
+                {isBounced && (
+                  <div className="p-4 bg-danger-soft/10 border border-danger/20 rounded-md space-y-2">
+                    <span className="text-[9.5px] font-extrabold text-danger uppercase tracking-wider block">
+                      Bounce Log
+                    </span>
+                    <div className="grid grid-cols-2 gap-4 text-[12px] text-text-muted">
+                      <div>
+                        <span>Bounced At:</span>
+                        <strong className="text-text ml-1">{formatDate(chequeDetails.bouncedAt)}</strong>
+                      </div>
+                      <div>
+                        <span>Charges Incurred:</span>
+                        <strong className="text-text ml-1">₹ {Number(chequeDetails.bounceCharges || 0).toLocaleString("en-IN")}</strong>
+                      </div>
+                      <div className="col-span-2">
+                        <span>Reason:</span>
+                        <p className="text-text font-semibold mt-1">{chequeDetails.bounceReason || "N/A"}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {isCancelled && (
+                  <div className="p-4 bg-neutral-soft border border-border rounded-md space-y-2">
+                    <span className="text-[9.5px] font-extrabold text-text-muted uppercase tracking-wider block">
+                      Cancellation Log
+                    </span>
+                    <div className="grid grid-cols-2 gap-4 text-[12px] text-text-muted">
+                      <div>
+                        <span>Cancelled At:</span>
+                        <strong className="text-text ml-1">{formatDate(chequeDetails.cancelledAt)}</strong>
+                      </div>
+                      <div className="col-span-2">
+                        <span>Reason:</span>
+                        <p className="text-text font-semibold mt-1">{chequeDetails.cancellationReason || "No reason provided"}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Audit creation info */}
+                <div className="flex justify-between items-center text-[12px] text-text-muted pt-4 border-t border-border">
+                  <div className="flex items-center gap-1.5">
+                    <span>Recorded By:</span>
+                    <strong>{creatorName}</strong>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span>Created At:</span>
+                    <strong>{formatDate(chequeDetails.createdAt)}</strong>
+                  </div>
+                </div>
+              </div>
+            </AppCard>
+          </div>
         </div>
       </div>
     </section>
@@ -460,28 +493,39 @@ const breadcrumbCurrentSx = {
   color: "var(--app-color-text)",
 };
 
-const pageTitleSx = {
-  m: 0,
-  fontSize: "23px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.4px",
-  color: "var(--app-color-text)",
+const pageHeaderSx = { width: "100%" };
+const pageHeaderContentSx = {
+  minWidth: 0,
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "23px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.4px",
+    color: "var(--app-color-text)",
+  },
 };
 
-const pageSubtitleSx = {
-  mt: 0.5,
-  fontSize: "13px",
-  color: "var(--app-color-text-muted)",
+const leftCardSx = {
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+  height: "fit-content",
 };
 
-const cardSx = {
+const rightCardSx = {
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
 
+const leftCardTitleSx = {
+  m: 0,
+  mt: 2,
+  fontSize: "16px",
+  color: "var(--app-color-text)",
+};
+
 const cardTitleSx = {
   m: 0,
-  fontSize: "15px",
+  fontSize: "14px",
   color: "var(--app-color-text)",
 };
 

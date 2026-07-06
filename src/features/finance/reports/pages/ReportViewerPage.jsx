@@ -42,6 +42,9 @@ const ReportViewerPage = () => {
     includeZeroBalances: false,
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   // Fetch reference lists on mount
   useEffect(() => {
     getAccounts({ all: true }).catch((err) => console.error("Accounts fetch failed:", err));
@@ -54,10 +57,12 @@ const ReportViewerPage = () => {
     clearReport();
     clearError();
     clearMessage();
+    setCurrentPage(1);
   }, [reportType, clearReport, clearError, clearMessage]);
 
   const handleFilterChange = useCallback((name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
+    setCurrentPage(1);
   }, []);
 
   const runReport = useCallback(async () => {
@@ -156,6 +161,10 @@ const ReportViewerPage = () => {
       clearError();
       clearMessage();
     },
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
   };
 
   return isMobile ? (

@@ -24,6 +24,9 @@ import {
   AppStack,
   AppText,
   AppButton,
+  AppTablePagination,
+  AppDrawer,
+  AppIconButton,
 } from "@/components";
 import { formatDate } from "@/utils";
 import { API_STATUS } from "@/constants";
@@ -100,8 +103,12 @@ const ReportViewerMobilePage = ({
   runReport,
   handleBackToDashboard,
   clearFeedback,
+  currentPage,
+  setCurrentPage,
+  pageSize,
+  setPageSize,
 }) => {
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
 
   const formatCurrency = (val) => {
     const num = Number(val || 0);
@@ -109,10 +116,6 @@ const ReportViewerMobilePage = ({
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-  };
-
-  const navigateToReport = (key) => {
-    window.location.pathname = `/finance/reports/${key}`;
   };
 
   const isLoading = status === API_STATUS.LOADING;
@@ -123,64 +126,63 @@ const ReportViewerMobilePage = ({
   }, [reportType]);
 
   return (
-    <section className="w-full bg-bg pb-6 px-3">
-      {/* Mobile Page Header with Back Button */}
-      <AppBox sx={headerWrapperSx}>
-        <AppStack direction="row" align="center" gap={1.5}>
-          <button
-            onClick={handleBackToDashboard}
-            className="p-1 border border-border hover:bg-surface-hover rounded-md shrink-0 text-text-muted cursor-pointer"
+    <section className="w-full bg-bg pb-6">
+      <AppBox sx={containerSx}>
+        {/* Mobile Page Header with Back Button */}
+        <AppBox sx={headerWrapperSx}>
+          <AppStack direction="row" align="center" justify="space-between" gap={1.5}>
+            <AppStack direction="row" align="center" gap={1.5}>
+              <button
+                onClick={handleBackToDashboard}
+                className="p-1 border border-border hover:bg-surface-hover rounded-md shrink-0 text-text-muted cursor-pointer"
+              >
+                <FiArrowLeft className="text-[18px]" />
+              </button>
+              <div className="min-w-0">
+                <AppHeading level={1} weight={700} sx={pageTitleSx}>
+                  {currentReportLabel}
+                </AppHeading>
+                <AppText variant="body2" sx={pageSubtitleSx}>
+                  View statement balances
+                </AppText>
+              </div>
+            </AppStack>
+            <AppIconButton
+              icon={<FiFilter />}
+              variant="outlined"
+              colorVariant="neutral"
+              size="small"
+              rounded="md"
+              onClick={() => setShowFilters(true)}
+            />
+          </AppStack>
+        </AppBox>
+
+        {/* Feedback Alerts */}
+        {(error || message) && (
+          <div
+            className={`mb-3 p-3 text-[11.5px] font-semibold rounded-md flex justify-between items-center ${
+              error ? "bg-danger-soft text-danger" : "bg-success-soft text-success"
+            }`}
           >
-            <FiArrowLeft className="text-[18px]" />
-          </button>
-          <div className="min-w-0">
-            <AppHeading level={1} weight={700} sx={pageTitleSx}>
-              {currentReportLabel}
-            </AppHeading>
-            <AppText variant="body2" sx={pageSubtitleSx}>
-              View statement balances
-            </AppText>
+            <span className="flex-1">{error || message}</span>
+            <button
+              onClick={clearFeedback}
+              className={`font-bold hover:underline ml-2 ${error ? "text-danger" : "text-success"}`}
+            >
+              Dismiss
+            </button>
           </div>
-        </AppStack>
-      </AppBox>
+        )}
 
-      {/* Feedback Alerts */}
-      {(error || message) && (
-        <div
-          className={`mb-3 p-3 text-[11.5px] font-semibold rounded-md flex justify-between items-center ${
-            error ? "bg-danger-soft text-danger" : "bg-success-soft text-success"
-          }`}
+        {/* Professional Bottom Sheet Filters Drawer */}
+        <AppDrawer
+          open={showFilters}
+          onClose={() => setShowFilters(false)}
+          title="Filter Parameters"
+          position="bottom"
         >
-          <span className="flex-1">{error || message}</span>
-          <button
-            onClick={clearFeedback}
-            className={`font-bold hover:underline ml-2 ${error ? "text-danger" : "text-success"}`}
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-
-      {/* Collapsible Filters */}
-      <div className="mb-3">
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`w-full px-3 py-2 border rounded-md flex items-center justify-between text-[11.5px] font-bold transition ${
-            showFilters
-              ? "bg-primary-soft border-primary/30 text-primary"
-              : "bg-surface border-border text-text"
-          }`}
-        >
-          <span className="flex items-center gap-1.5">
-            <FiFilter className="text-[14px]" />
-            Filters Configuration
-          </span>
-          {showFilters ? <FiChevronUp className="text-[14px]" /> : <FiChevronDown className="text-[14px]" />}
-        </button>
-
-        {showFilters && (
-          <AppCard variant="default" rounded="none" bordered className="border-t-0 p-3 flex flex-col gap-3">
+          <AppBox sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
             {/* Trial Balance & Balance Sheet Date */}
             {(reportType === "trial-balance" || reportType === "balance-sheet") && (
               <AppInput
@@ -319,150 +321,227 @@ const ReportViewerMobilePage = ({
               disabled={isLoading}
               loading={isLoading}
               fullWidth
+              sx={runReportBtnSx}
             >
               Run Report
             </AppButton>
-          </AppCard>
-        )}
-      </div>
+          </AppBox>
+        </AppDrawer>
 
-      {/* Output Content Card */}
-      <AppCard variant="default" rounded="lg" bordered shadow="sm" padding="none">
-        <div className="p-3 bg-surface-hover/20 border-b border-border">
-          <span className="text-[12px] font-black text-text uppercase block">
-            {currentReportLabel} Data
-          </span>
-        </div>
+        {/* Output Content Card */}
+        <AppCard variant="default" rounded="lg" bordered shadow="sm" padding="none" sx={outputCardSx}>
+          <div className="p-3 bg-surface-hover/20 border-b border-border">
+            <span className="text-[12px] font-black text-text uppercase block">
+              {currentReportLabel} Data
+            </span>
+          </div>
 
-        <div className="p-3">
-          {isLoading ? (
-            <div className="py-12 flex flex-col items-center justify-center text-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mb-2"></div>
-              <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)" }}>
-                Loading report data...
-              </AppText>
-            </div>
-          ) : isError ? (
-            <div className="py-12 text-center text-danger text-[12px]">
-              Failed to load report: {error || "An error occurred."}
-            </div>
-          ) : !reportData ? (
-            <div className="py-12 text-center text-text-muted text-[12px]">
-              Select parameters above and click "Run Report" to display figures.
-            </div>
-          ) : (
-            <div className="overflow-x-auto w-full">
-              {reportType === "trial-balance" && (
-                <MobileTrialBalance data={reportData} formatCurrency={formatCurrency} />
-              )}
-              {(reportType === "general-ledger" ||
-                reportType === "customer-ledger" ||
-                reportType === "supplier-ledger" ||
-                reportType === "cash-book" ||
-                reportType === "bank-book") && (
-                <MobileLedger data={reportData} formatCurrency={formatCurrency} />
-              )}
-              {reportType === "profit-loss" && (
-                <MobileProfitLoss data={reportData} formatCurrency={formatCurrency} />
-              )}
-              {reportType === "balance-sheet" && (
-                <MobileBalanceSheet data={reportData} formatCurrency={formatCurrency} />
-              )}
-              {reportType === "gst-report" && (
-                <MobileGst data={reportData} gstType={filters.gstType} formatCurrency={formatCurrency} />
-              )}
-            </div>
-          )}
-        </div>
-      </AppCard>
+          <div className="p-3">
+            {isLoading ? (
+              <div className="py-12 flex flex-col items-center justify-center text-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mb-2"></div>
+                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)" }}>
+                  Loading report data...
+                </AppText>
+              </div>
+            ) : isError ? (
+              <div className="py-12 text-center text-danger text-[12px]">
+                Failed to load report: {error || "An error occurred."}
+              </div>
+            ) : !reportData ? (
+              <div className="py-12 text-center text-text-muted text-[12px]">
+                Select parameters above and click "Run Report" to display figures.
+              </div>
+            ) : (
+              <div className="overflow-x-auto w-full">
+                {reportType === "trial-balance" && (
+                  <MobileTrialBalance
+                    data={reportData}
+                    formatCurrency={formatCurrency}
+                    currentPage={currentPage}
+                    setCurrentPage={setCurrentPage}
+                    pageSize={pageSize}
+                    setPageSize={setPageSize}
+                  />
+                )}
+                {(reportType === "general-ledger" ||
+                  reportType === "customer-ledger" ||
+                  reportType === "supplier-ledger" ||
+                  reportType === "cash-book" ||
+                  reportType === "bank-book") && (
+                  <MobileLedger
+                    data={reportData}
+                    formatCurrency={formatCurrency}
+                    currentPage={currentPage}
+                    setCurrentPage={setCurrentPage}
+                    pageSize={pageSize}
+                    setPageSize={setPageSize}
+                  />
+                )}
+                {reportType === "profit-loss" && (
+                  <MobileProfitLoss data={reportData} formatCurrency={formatCurrency} />
+                )}
+                {reportType === "balance-sheet" && (
+                  <MobileBalanceSheet data={reportData} formatCurrency={formatCurrency} />
+                )}
+                {reportType === "gst-report" && (
+                  <MobileGst data={reportData} gstType={filters.gstType} formatCurrency={formatCurrency} />
+                )}
+              </div>
+            )}
+          </div>
+        </AppCard>
+      </AppBox>
     </section>
   );
 };
 
 /* Mobile Specific Tables Subviews */
-const MobileTrialBalance = ({ data, formatCurrency }) => {
+const MobileTrialBalance = ({
+  data,
+  formatCurrency,
+  currentPage,
+  setCurrentPage,
+  pageSize,
+  setPageSize,
+}) => {
   const rows = data.rows || [];
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return rows.slice(start, start + pageSize);
+  }, [rows, currentPage, pageSize]);
+
   return (
-    <table className="w-full text-left border-collapse text-[11px] min-w-[500px]">
-      <thead>
-        <tr className="border-b border-border text-text font-bold">
-          <th className="py-2 font-bold">Code</th>
-          <th className="py-2 font-bold">Account</th>
-          <th className="py-2 text-right font-bold">Dr</th>
-          <th className="py-2 text-right font-bold">Cr</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r, idx) => (
-          <tr key={r.accountId || idx} className="border-b border-border">
-            <td className="py-2 font-mono font-semibold text-text-muted">{r.accountCode}</td>
-            <td className="py-2 text-text font-bold">{r.accountName}</td>
-            <td className="py-2 text-right text-[#2b8a3e]">{r.debitTotal > 0 ? formatCurrency(r.debitTotal) : "-"}</td>
-            <td className="py-2 text-right text-[#c92a2a]">{r.creditTotal > 0 ? formatCurrency(r.creditTotal) : "-"}</td>
+    <div>
+      <table className="w-full text-left border-collapse text-[11px] min-w-[500px] border border-border/40">
+        <thead>
+          <tr className="border-b border-border/40 bg-surface-hover/10 text-text font-bold uppercase tracking-wider">
+            <th className="py-2 px-2.5 font-bold text-[9.5px]">Code</th>
+            <th className="py-2 px-2.5 font-bold text-[9.5px]">Account</th>
+            <th className="py-2 px-2.5 text-right font-bold text-[9.5px]">Dr</th>
+            <th className="py-2 px-2.5 text-right font-bold text-[9.5px]">Cr</th>
           </tr>
-        ))}
-        <tr className="font-extrabold border-t border-text text-text">
-          <td colSpan={2} className="py-2 text-right">Totals</td>
-          <td className="py-2 text-right text-[#2b8a3e]">{formatCurrency(data.totalDebit)}</td>
-          <td className="py-2 text-right text-[#c92a2a]">{formatCurrency(data.totalCredit)}</td>
-        </tr>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {paginatedRows.map((r, idx) => (
+            <tr key={r.accountId || idx} className="border-b border-border/30 hover:bg-surface-hover/5 transition">
+              <td className="py-2 px-2.5 font-mono font-bold text-text-muted">{r.accountCode}</td>
+              <td className="py-2 px-2.5 text-text font-bold">{r.accountName}</td>
+              <td className="py-2 px-2.5 text-right font-mono font-semibold text-[#2b8a3e]">
+                {r.debitTotal > 0 ? formatCurrency(r.debitTotal) : <span className="text-text-muted/40 font-normal">₹0.00</span>}
+              </td>
+              <td className="py-2 px-2.5 text-right font-mono font-semibold text-[#c92a2a]">
+                {r.creditTotal > 0 ? formatCurrency(r.creditTotal) : <span className="text-text-muted/40 font-normal">₹0.00</span>}
+              </td>
+            </tr>
+          ))}
+          <tr className="border-t border-b-4 border-double border-text bg-surface-hover/10 font-bold text-text">
+            <td colSpan={2} className="py-2.5 px-2.5 text-right font-bold">Totals</td>
+            <td className="py-2.5 px-2.5 text-right font-mono font-black text-[#2b8a3e]">{formatCurrency(data.totalDebit)}</td>
+            <td className="py-2.5 px-2.5 text-right font-mono font-black text-[#c92a2a]">{formatCurrency(data.totalCredit)}</td>
+          </tr>
+        </tbody>
+      </table>
+      {rows.length > pageSize && (
+        <AppBox sx={paginationFooterWrapperSx} className="no-print">
+          <AppTablePagination
+            page={currentPage}
+            pageSize={pageSize}
+            totalItems={rows.length}
+            onPageChange={(e, newPage) => setCurrentPage(newPage)}
+            onPageSizeChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+          />
+        </AppBox>
+      )}
+    </div>
   );
 };
 
-const MobileLedger = ({ data, formatCurrency }) => {
+const MobileLedger = ({
+  data,
+  formatCurrency,
+  currentPage,
+  setCurrentPage,
+  pageSize,
+  setPageSize,
+}) => {
   const entries = data.entries || [];
   const openingBalance = data.openingBalance || 0;
   const openingBalanceType = data.openingBalanceType || "DR";
   const totals = data.totals || { debit: 0, credit: 0, closingBalance: 0, closingBalanceType: "DR" };
 
+  const paginatedEntries = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return entries.slice(start, start + pageSize);
+  }, [entries, currentPage, pageSize]);
+
   return (
     <div>
-      <div className="flex justify-between border-b border-border pb-2 text-[11.5px] font-bold text-text-muted">
+      <div className="flex justify-between border-b border-border pb-2 text-[11px] font-bold text-text-muted font-mono bg-surface-hover/5 p-2 rounded border">
         <span>Op. Bal: {formatCurrency(openingBalance)} {openingBalanceType}</span>
         <span>Cl. Bal: {formatCurrency(totals.closingBalance)} {totals.closingBalanceType}</span>
       </div>
-      <table className="w-full text-left border-collapse text-[11px] min-w-[500px] mt-2">
+      <table className="w-full text-left border-collapse text-[11px] min-w-[500px] mt-2 border border-border/40">
         <thead>
-          <tr className="border-b border-border text-text font-bold">
-            <th className="py-2 font-bold">Date</th>
-            <th className="py-2 font-bold">Voucher</th>
-            <th className="py-2 text-right font-bold">Dr</th>
-            <th className="py-2 text-right font-bold">Cr</th>
-            <th className="py-2 text-right font-bold">Balance</th>
+          <tr className="border-b border-border/40 bg-surface-hover/10 text-text font-bold uppercase tracking-wider">
+            <th className="py-2 px-2.5 font-bold text-[9.5px]">Date</th>
+            <th className="py-2 px-2.5 font-bold text-[9.5px]">Voucher</th>
+            <th className="py-2 px-2.5 text-right font-bold text-[9.5px]">Dr</th>
+            <th className="py-2 px-2.5 text-right font-bold text-[9.5px]">Cr</th>
+            <th className="py-2 px-2.5 text-right font-bold text-[9.5px]">Balance</th>
           </tr>
         </thead>
         <tbody>
-          {entries.map((e, idx) => (
-            <tr key={e._id || idx} className="border-b border-border">
-              <td className="py-2 text-text-muted">{formatDate(e.voucherDate)}</td>
-              <td className="py-2 text-text font-bold font-mono">{e.voucherNumber || e.voucherId?.voucherNumber || "OP"}</td>
-              <td className="py-2 text-right text-[#2b8a3e]">{e.debit > 0 ? formatCurrency(e.debit) : "-"}</td>
-              <td className="py-2 text-right text-[#c92a2a]">{e.credit > 0 ? formatCurrency(e.credit) : "-"}</td>
-              <td className="py-2 text-right text-text font-black">{formatCurrency(Math.abs(e.runningBalance))}</td>
+          {paginatedEntries.map((e, idx) => (
+            <tr key={e._id || idx} className="border-b border-border/30 hover:bg-surface-hover/5 transition">
+              <td className="py-2 px-2.5 text-text-muted">{formatDate(e.voucherDate)}</td>
+              <td className="py-2 px-2.5 text-text font-bold font-mono">{e.voucherNumber || e.voucherId?.voucherNumber || "OP"}</td>
+              <td className="py-2 px-2.5 text-right font-mono font-semibold text-[#2b8a3e]">
+                {e.debit > 0 ? formatCurrency(e.debit) : <span className="text-text-muted/40 font-normal">₹0.00</span>}
+              </td>
+              <td className="py-2 px-2.5 text-right font-mono font-semibold text-[#c92a2a]">
+                {e.credit > 0 ? formatCurrency(e.credit) : <span className="text-text-muted/40 font-normal">₹0.00</span>}
+              </td>
+              <td className="py-2 px-2.5 text-right font-mono font-black text-text">{formatCurrency(Math.abs(e.runningBalance))}</td>
             </tr>
           ))}
         </tbody>
       </table>
+      {entries.length > pageSize && (
+        <AppBox sx={paginationFooterWrapperSx} className="no-print">
+          <AppTablePagination
+            page={currentPage}
+            pageSize={pageSize}
+            totalItems={entries.length}
+            onPageChange={(e, newPage) => setCurrentPage(newPage)}
+            onPageSizeChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+          />
+        </AppBox>
+      )}
     </div>
   );
 };
 
 const MobileProfitLoss = ({ data, formatCurrency }) => {
   return (
-    <div className="text-[11.5px]">
-      <div className="flex justify-between font-bold py-1 border-b border-border">
-        <span>Total Revenue:</span>
-        <span className="text-[#2b8a3e]">{formatCurrency(data.totalIncome)}</span>
+    <div className="text-[11.5px] border border-border/40 rounded-md p-3 bg-surface">
+      <div className="flex justify-between font-semibold py-1.5 border-b border-border/40">
+        <span className="text-text-muted uppercase text-[10px] font-bold">Total Revenue:</span>
+        <span className="text-[#2b8a3e] font-mono font-bold">{formatCurrency(data.totalIncome)}</span>
       </div>
-      <div className="flex justify-between font-bold py-1 border-b border-border mt-1">
-        <span>Total Expenses:</span>
-        <span className="text-[#c92a2a]">{formatCurrency(data.totalExpenses)}</span>
+      <div className="flex justify-between font-semibold py-1.5 border-b border-border/40 mt-1">
+        <span className="text-text-muted uppercase text-[10px] font-bold">Total Expenses:</span>
+        <span className="text-[#c92a2a] font-mono font-bold">{formatCurrency(data.totalExpenses)}</span>
       </div>
-      <div className="flex justify-between font-black py-2 mt-2 bg-primary-soft border border-primary/20 rounded px-2">
-        <span>{data.isProfit ? "Net Profit" : "Net Loss"}:</span>
-        <span className={data.isProfit ? "text-[#2b8a3e]" : "text-[#c92a2a]"}>{formatCurrency(data.netProfit)}</span>
+      <div className="flex justify-between font-black py-2 mt-3 bg-primary-soft border border-primary/20 rounded px-2">
+        <span className="uppercase text-[10px] font-black">{data.isProfit ? "Net Profit" : "Net Loss"}:</span>
+        <span className={`font-mono font-black ${data.isProfit ? "text-[#2b8a3e]" : "text-[#c92a2a]"}`}>{formatCurrency(data.netProfit)}</span>
       </div>
     </div>
   );
@@ -470,18 +549,18 @@ const MobileProfitLoss = ({ data, formatCurrency }) => {
 
 const MobileBalanceSheet = ({ data, formatCurrency }) => {
   return (
-    <div className="text-[11.5px]">
-      <div className="flex justify-between font-bold py-1 border-b border-border">
-        <span>Total Assets:</span>
-        <span>{formatCurrency(data.totalAssets)}</span>
+    <div className="text-[11.5px] border border-border/40 rounded-md p-3 bg-surface">
+      <div className="flex justify-between font-semibold py-1.5 border-b border-border/40">
+        <span className="text-text-muted uppercase text-[10px] font-bold">Total Assets:</span>
+        <span className="font-mono font-bold text-text">{formatCurrency(data.totalAssets)}</span>
       </div>
-      <div className="flex justify-between font-bold py-1 border-b border-border mt-1">
-        <span>Total Liabilities & Equity:</span>
-        <span>{formatCurrency(data.totalLiabilitiesAndEquity)}</span>
+      <div className="flex justify-between font-semibold py-1.5 border-b border-border/40 mt-1">
+        <span className="text-text-muted uppercase text-[10px] font-bold">Total Liabilities & Equity:</span>
+        <span className="font-mono font-bold text-text">{formatCurrency(data.totalLiabilitiesAndEquity)}</span>
       </div>
-      <div className="flex justify-between font-black py-2 mt-2 bg-surface-hover/20 rounded px-2">
-        <span>Balanced Check:</span>
-        <span className={data.isBalanced ? "text-[#2b8a3e]" : "text-[#c92a2a]"}>
+      <div className="flex justify-between font-black py-2 mt-3 bg-surface-hover/20 rounded px-2">
+        <span className="uppercase text-[10px] font-black">Balanced Check:</span>
+        <span className={`font-mono font-black ${data.isBalanced ? "text-[#2b8a3e]" : "text-[#c92a2a]"}`}>
           {data.isBalanced ? "BALANCED" : "OUT OF BALANCE"}
         </span>
       </div>
@@ -491,18 +570,18 @@ const MobileBalanceSheet = ({ data, formatCurrency }) => {
 
 const MobileGst = ({ data, gstType, formatCurrency }) => {
   return (
-    <div className="text-[11.5px]">
-      <div className="flex justify-between font-semibold py-1">
-        <span>Output GST:</span>
-        <span className="text-[#c92a2a]">{formatCurrency(data.totalOutputGst)}</span>
+    <div className="text-[11.5px] border border-border/40 rounded-md p-3 bg-surface">
+      <div className="flex justify-between font-semibold py-1.5 border-b border-border/40">
+        <span className="text-text-muted uppercase text-[10px] font-bold">Output GST (Sales):</span>
+        <span className="text-[#c92a2a] font-mono font-bold">{formatCurrency(data.totalOutputGst)}</span>
       </div>
-      <div className="flex justify-between font-semibold py-1">
-        <span>Input GST (ITC):</span>
-        <span className="text-[#2b8a3e]">{formatCurrency(data.totalInputGst)}</span>
+      <div className="flex justify-between font-semibold py-1.5 border-b border-border/40 mt-1">
+        <span className="text-text-muted uppercase text-[10px] font-bold">Input GST (ITC):</span>
+        <span className="text-[#2b8a3e] font-mono font-bold">{formatCurrency(data.totalInputGst)}</span>
       </div>
-      <div className="flex justify-between font-black py-2 border-t border-border mt-1">
-        <span>Net GST Payable:</span>
-        <span className={data.netGstPayable >= 0 ? "text-[#c92a2a]" : "text-[#2b8a3e]"}>
+      <div className="flex justify-between font-black py-2 mt-3 border-t border-border mt-1">
+        <span className="uppercase text-[10px] font-black">Net GST Payable:</span>
+        <span className={`font-mono font-black ${data.netGstPayable >= 0 ? "text-[#c92a2a]" : "text-[#2b8a3e]"}`}>
           {formatCurrency(Math.abs(data.netGstPayable))}
         </span>
       </div>
@@ -511,17 +590,35 @@ const MobileGst = ({ data, gstType, formatCurrency }) => {
 };
 
 /* Styles */
-const headerWrapperSx = { px: 1, pt: 3, pb: 2 };
+const containerSx = {
+  position: "relative",
+  zIndex: 1,
+  width: "100%",
+  maxWidth: { xs: 430, sm: 460 },
+  mx: "auto",
+  px: 0,
+  pt: 0,
+  pb: 0,
+};
+
+const headerWrapperSx = {
+  pt: 1,
+  pb: 1.5,
+  px: 0,
+};
+
 const pageTitleSx = {
-  fontSize: "20px",
-  lineHeight: 1.2,
+  fontSize: "21px",
+  fontWeight: 800,
   color: "var(--app-color-text)",
   m: 0,
+  letterSpacing: "-0.5px",
 };
+
 const pageSubtitleSx = {
-  fontSize: "12px",
+  fontSize: "11.5px",
   color: "var(--app-color-text-muted)",
-  mt: 0.5,
+  mt: 0.4,
 };
 
 const filterLabelSx = {
@@ -529,6 +626,50 @@ const filterLabelSx = {
   fontWeight: 700,
   color: "var(--app-color-text-muted)",
   mb: 0.5,
+};
+
+const filterCardSx = {
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+};
+
+const outputCardSx = {
+  bgcolor: "var(--app-color-surface)",
+  border: "1px solid var(--app-color-border)",
+  boxShadow:
+    "0 2px 10px color-mix(in_srgb, var(--app-color-text) 5%, transparent)",
+};
+
+const runReportBtnSx = {
+  bgcolor: "var(--app-color-primary, #00994a)",
+  color: "var(--app-color-primary-contrast, #ffffff)",
+  fontWeight: 750,
+  boxShadow: "none",
+  "&:hover": {
+    bgcolor: "var(--app-color-primary-hover, #00833f)",
+  },
+};
+
+const paginationFooterWrapperSx = {
+  px: 0,
+  pt: 2,
+  pb: 2,
+  display: "flex",
+  justifyContent: "center",
+  width: "100%",
+  "& > div": {
+    width: "100%",
+    display: "flex !important",
+    justifyContent: "center !important",
+    alignItems: "center",
+    "& .MuiPagination-ul": {
+      justifyContent: "center !important",
+    },
+    "& .MuiPagination-root": {
+      display: "flex !important",
+      justifyContent: "center !important",
+    },
+  },
 };
 
 export default ReportViewerMobilePage;

@@ -58,30 +58,46 @@ const AccountBalanceDetailsDesktopPage = ({
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
-      <div className="mx-auto w-full max-w-[800px]">
+      <div className="mx-auto w-full max-w-[1200px]">
         {/* Page Header */}
-        <div className="flex items-start justify-between">
-          <div className="min-w-0">
-            <AppHeading level={1} weight={700} sx={pageTitleSx}>
-              Balance Details
-            </AppHeading>
-            <AppText variant="body2" sx={pageSubtitleSx}>
-              Audit aggregated debit/credit totals and balance configuration.
-            </AppText>
-          </div>
-          <AppBreadcrumb
+        <PageHeader
+          title="Account Balance Details"
+          subtitle="Audit aggregated debit/credit totals and balance configuration."
+          extra={
+            <AppBreadcrumb
+              size="small"
+              variant="text"
+              items={[
+                { label: "Dashboard" },
+                { label: "Finance & Accounting" },
+                { label: "Account Balances", onClick: handleBack },
+                { label: "Details", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
+            />
+          }
+          align="flex-start"
+          justify="space-between"
+          sx={pageHeaderSx}
+          contentSx={pageHeaderContentSx}
+        />
+
+        {/* Toolbar */}
+        <div className="mt-4 flex items-center justify-between">
+          <AppButton
+            variant="outlined"
+            colorVariant="neutral"
             size="small"
-            variant="text"
-            items={[
-              { label: "Dashboard" },
-              { label: "Finance & Accounting" },
-              { label: "Account Balances", onClick: handleBack },
-              { label: "Details", current: true },
-            ]}
-            sx={breadcrumbSx}
-            itemSx={breadcrumbItemSx}
-            currentItemSx={breadcrumbCurrentSx}
-          />
+            rounded="md"
+            startIcon={<FiArrowLeft />}
+            onClick={handleBack}
+            disabled={isRecalculating}
+            sx={actionBtnSx}
+          >
+            Back to List
+          </AppButton>
         </div>
 
         {/* Feedback alerts */}
@@ -101,52 +117,39 @@ const AccountBalanceDetailsDesktopPage = ({
           </div>
         )}
 
-        {/* Balance Sheet Card */}
-        <AppCard
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="sm"
-          sx={cardSx}
-          className="mt-5"
-        >
-          <div className="px-5 py-4 border-b border-border bg-surface-alt/10 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] text-text-muted font-black tracking-wider uppercase font-mono">
-                {accCode}
-              </span>
-              <AppHeading level={3} weight={700} sx={cardTitleSx} className="mt-0.5">
-                {accName}
-              </AppHeading>
-            </div>
-            <span className="inline-flex items-center rounded-md px-2.5 py-0.5 text-[9.5px] font-bold uppercase bg-[#ebfbee] text-[#2b8a3e] border border-[#c3fae8]">
-              {accNature}
-            </span>
-          </div>
-
-          <div className="p-5 space-y-6">
-            {/* Balance Overview Grid */}
-            <div className="grid grid-cols-2 gap-5 border-b border-border pb-5">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Debit Total (Dr)</span>
-                <span className="text-[20px] font-extrabold text-[#2b8a3e] mt-1 block">
-                  ₹ {Number(balanceDetails.debitTotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                </span>
+        {/* Split Grid */}
+        <div className="mt-5 grid grid-cols-3 gap-5">
+          {/* Left Column - Balance Summary & Recalculate */}
+          <div className="col-span-1 space-y-5">
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              shadow="sm"
+              sx={leftCardSx}
+            >
+              <div className="flex flex-col items-center text-center p-4">
+                <div className="w-12 h-12 rounded-lg bg-success-soft border border-success/20 flex items-center justify-center text-success shrink-0 select-none shadow-sm mb-3">
+                  <FiBookOpen size={24} />
+                </div>
+                <AppHeading level={2} weight={700} sx={leftCardTitleSx}>
+                  {accName}
+                </AppHeading>
+                <div className="mt-2 flex flex-col gap-1.5 items-center justify-center">
+                  <span className="inline-flex items-center rounded-md px-2.5 py-0.5 text-[9.5px] font-bold uppercase bg-[#ebfbee] text-[#2b8a3e] border border-[#c3fae8]">
+                    {accNature}
+                  </span>
+                  <span className="text-[11px] text-text-muted mt-1 font-mono font-bold">
+                    Code: {accCode}
+                  </span>
+                </div>
               </div>
 
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Credit Total (Cr)</span>
-                <span className="text-[20px] font-extrabold text-[#c92a2a] mt-1 block">
-                  ₹ {Number(balanceDetails.creditTotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              <div className="border-t border-border p-4 text-center">
+                <span className="text-[12px] text-text-muted block font-semibold">
+                  Closing Balance
                 </span>
-              </div>
-            </div>
-
-            {/* Calculated Running Balance */}
-            <div className="grid grid-cols-2 gap-5 border-b border-border pb-5">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Closing Balance</span>
-                <span className="text-[24px] font-black text-text mt-1 block">
+                <span className="text-[22px] font-black text-text block mt-1 font-mono">
                   ₹ {Number(balanceDetails.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                   <span className="text-[12px] font-black text-text-muted uppercase ml-1">
                     {balanceDetails.balanceType}
@@ -154,60 +157,87 @@ const AccountBalanceDetailsDesktopPage = ({
                 </span>
               </div>
 
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Opening Balance</span>
-                <span className="text-[18px] font-extrabold text-text mt-1.5 block">
-                  ₹ {Number(openingBal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                  <span className="text-[11px] font-black text-text-muted uppercase ml-1">
-                    {openingType}
-                  </span>
-                </span>
+              {/* Action buttons */}
+              <div className="border-t border-border p-4">
+                <AppButton
+                  variant="contained"
+                  colorVariant="primary"
+                  size="small"
+                  rounded="md"
+                  startIcon={<FiRefreshCw />}
+                  onClick={handleRecalculate}
+                  disabled={isRecalculating}
+                  loading={isRecalculating}
+                  fullWidth
+                >
+                  Recalculate Balance
+                </AppButton>
               </div>
-            </div>
-
-            {/* Timestamps audit */}
-            <div className="flex justify-between items-center text-[12px] text-text-muted">
-              <div className="flex items-center gap-1.5">
-                <FiClock />
-                <span>Last transaction posted:</span>
-                <strong>{balanceDetails.lastTransactionAt ? formatDate(balanceDetails.lastTransactionAt) : "Never"}</strong>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span>Last recalculated:</span>
-                <strong>{formatDate(balanceDetails.updatedAt)}</strong>
-              </div>
-            </div>
+            </AppCard>
           </div>
-        </AppCard>
 
-        {/* Footer controls */}
-        <div className="mt-5 flex items-center justify-between">
-          <AppButton
-            variant="outlined"
-            colorVariant="neutral"
-            size="small"
-            rounded="md"
-            startIcon={<FiArrowLeft />}
-            onClick={handleBack}
-            disabled={isRecalculating}
-            sx={actionBtnSx}
-          >
-            Back to List
-          </AppButton>
+          {/* Right Column - Ledger Balances Detail */}
+          <div className="col-span-2 space-y-5">
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              shadow="sm"
+              sx={rightCardSx}
+            >
+              <div className="px-5 py-4 border-b border-border">
+                <AppHeading level={3} weight={700} sx={cardTitleSx}>
+                  Ledger Configuration & Balances
+                </AppHeading>
+              </div>
 
-          <AppButton
-            variant="contained"
-            colorVariant="primary"
-            size="small"
-            rounded="md"
-            startIcon={<FiRefreshCw />}
-            onClick={handleRecalculate}
-            disabled={isRecalculating}
-            loading={isRecalculating}
-            sx={actionBtnSx}
-          >
-            Recalculate Balance
-          </AppButton>
+              <div className="p-5 space-y-6">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-5 text-[13px]">
+                  <div>
+                    <span className="text-text-muted block font-semibold">Debit Total (Dr)</span>
+                    <strong className="text-[16px] font-extrabold text-[#2b8a3e] mt-1 block font-mono">
+                      ₹ {Number(balanceDetails.debitTotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span className="text-text-muted block font-semibold">Credit Total (Cr)</span>
+                    <strong className="text-[16px] font-extrabold text-[#c92a2a] mt-1 block font-mono">
+                      ₹ {Number(balanceDetails.creditTotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span className="text-text-muted block font-semibold font-mono">Opening Balance</span>
+                    <span className="font-bold text-text block mt-1 font-mono">
+                      ₹ {Number(openingBal).toLocaleString("en-IN", { minimumFractionDigits: 2 })}{" "}
+                      <span className="text-text-muted uppercase text-[11px] font-black">{openingType}</span>
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-text-muted block font-semibold">COA Nature Group</span>
+                    <span className="font-semibold text-text block mt-1 uppercase">
+                      {accNature}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Audit Timestamps */}
+                <div className="flex justify-between items-center text-[12px] text-text-muted pt-4 border-t border-border">
+                  <div className="flex items-center gap-1.5">
+                    <FiClock />
+                    <span>Last transaction posted:</span>
+                    <strong>{balanceDetails.lastTransactionAt ? formatDate(balanceDetails.lastTransactionAt) : "Never"}</strong>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span>Last recalculated:</span>
+                    <strong>{formatDate(balanceDetails.updatedAt)}</strong>
+                  </div>
+                </div>
+              </div>
+            </AppCard>
+          </div>
         </div>
       </div>
     </section>
@@ -228,28 +258,39 @@ const breadcrumbCurrentSx = {
   color: "var(--app-color-text)",
 };
 
-const pageTitleSx = {
-  m: 0,
-  fontSize: "23px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.4px",
-  color: "var(--app-color-text)",
+const pageHeaderSx = { width: "100%" };
+const pageHeaderContentSx = {
+  minWidth: 0,
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "23px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.4px",
+    color: "var(--app-color-text)",
+  },
 };
 
-const pageSubtitleSx = {
-  mt: 0.5,
-  fontSize: "13px",
-  color: "var(--app-color-text-muted)",
+const leftCardSx = {
+  bgcolor: "var(--app-color-surface)",
+  borderColor: "var(--app-color-border)",
+  height: "fit-content",
 };
 
-const cardSx = {
+const rightCardSx = {
   bgcolor: "var(--app-color-surface)",
   borderColor: "var(--app-color-border)",
 };
 
+const leftCardTitleSx = {
+  m: 0,
+  mt: 2,
+  fontSize: "16px",
+  color: "var(--app-color-text)",
+};
+
 const cardTitleSx = {
   m: 0,
-  fontSize: "15px",
+  fontSize: "14px",
   color: "var(--app-color-text)",
 };
 

@@ -36,7 +36,6 @@ const reportsSlice = createSlice({
       .addCase(getReport.fulfilled, (state, action) => {
         state.status = API_STATUS.SUCCESS;
         state.reportData = action.payload;
-        state.message = "Report generated successfully";
       })
       .addCase(getReport.rejected, (state, action) => {
         state.status = API_STATUS.ERROR;

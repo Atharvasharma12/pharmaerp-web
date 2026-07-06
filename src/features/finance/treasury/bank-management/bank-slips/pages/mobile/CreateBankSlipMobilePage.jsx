@@ -68,10 +68,10 @@ const CreateBankSlipMobilePage = ({
         </AppBox>
 
         {/* Content stack */}
-        <div className="px-2 space-y-4">
+        <div className="px-0 space-y-4">
           <AppCard
             variant="default"
-            rounded="lg"
+            rounded="none"
             bordered
             shadow="none"
             padding="none"
@@ -215,7 +215,7 @@ const CreateBankSlipMobilePage = ({
           {/* Help Tips */}
           <AppCard
             variant="default"
-            rounded="lg"
+            rounded="none"
             bordered
             shadow="none"
             padding="none"
@@ -249,7 +249,7 @@ const containerSx = {
   width: "100%",
   maxWidth: { xs: 430, sm: 460 },
   mx: "auto",
-  px: 0.5,
+  px: 0,
   pt: 0,
   pb: 0,
 };
@@ -257,7 +257,7 @@ const containerSx = {
 const headerWrapperSx = {
   pt: 1.5,
   pb: 1,
-  px: 0.5,
+  px: 2,
 };
 
 const pageTitleSx = {

@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -43,37 +44,37 @@ const useAccountBalance = () => {
     selectRecalculateAccountBalanceStatus,
   );
 
-  const fetchAccountBalances = (params = {}) => {
+  const fetchAccountBalances = useCallback((params = {}) => {
     return dispatch(getAccountBalances(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchAccountBalanceByAccountId = (accountId) => {
+  const fetchAccountBalanceByAccountId = useCallback((accountId) => {
     return dispatch(getAccountBalanceByAccountId(accountId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitRecalculateAccountBalance = (accountId) => {
+  const submitRecalculateAccountBalance = useCallback((accountId) => {
     return dispatch(recalculateAccountBalance(accountId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearAccountBalanceError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearAccountBalanceMessage());
-  };
+  }, [dispatch]);
 
-  const saveCurrentAccountBalance = (payload) => {
+  const saveCurrentAccountBalance = useCallback((payload) => {
     dispatch(setCurrentAccountBalance(payload));
-  };
+  }, [dispatch]);
 
-  const removeCurrentAccountBalance = () => {
+  const removeCurrentAccountBalance = useCallback(() => {
     dispatch(clearCurrentAccountBalance());
-  };
+  }, [dispatch]);
 
-  const removeAccountBalances = () => {
+  const removeAccountBalances = useCallback(() => {
     dispatch(clearAccountBalances());
-  };
+  }, [dispatch]);
 
   return {
     accountBalances,

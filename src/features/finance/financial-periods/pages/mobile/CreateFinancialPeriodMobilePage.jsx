@@ -62,10 +62,10 @@ const CreateFinancialPeriodMobilePage = ({
         </AppBox>
 
         {/* Content Stack */}
-        <div className="px-2 space-y-4">
+        <div className="px-0 space-y-4">
           {/* Server / Validation Errors */}
           {serverError && (
-            <div className="p-3 bg-danger-soft text-danger text-[11.5px] font-semibold rounded-md flex justify-between items-center">
+            <div className="mx-4 p-3 bg-danger-soft text-danger text-[11.5px] font-semibold rounded-md flex justify-between items-center">
               <span>{serverError}</span>
               <button
                 type="button"
@@ -78,7 +78,7 @@ const CreateFinancialPeriodMobilePage = ({
           )}
 
           {formErrors.submit && (
-            <div className="p-3 bg-danger-soft text-danger text-[11.5px] font-semibold rounded-md">
+            <div className="mx-4 p-3 bg-danger-soft text-danger text-[11.5px] font-semibold rounded-md">
               {formErrors.submit}
             </div>
           )}
@@ -86,7 +86,7 @@ const CreateFinancialPeriodMobilePage = ({
           {/* Parameters card */}
           <AppCard
             variant="default"
-            rounded="lg"
+            rounded="none"
             bordered
             shadow="none"
             padding="none"
@@ -229,7 +229,7 @@ const containerSx = {
   width: "100%",
   maxWidth: { xs: 430, sm: 460 },
   mx: "auto",
-  px: 0.5,
+  px: 0,
   pt: 0,
   pb: 0,
 };
@@ -237,7 +237,7 @@ const containerSx = {
 const headerWrapperSx = {
   pt: 1.5,
   pb: 1,
-  px: 0.5,
+  px: 2,
 };
 
 const pageTitleSx = {

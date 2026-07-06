@@ -10,6 +10,7 @@ import {
   AppSelect,
   AppStack,
   AppText,
+  PageHeader,
 } from "@/components";
 
 const CreateCashDenominationDesktopPage = ({
@@ -33,31 +34,31 @@ const CreateCashDenominationDesktopPage = ({
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
-      <div className="mx-auto w-full max-w-[1200px]">
+      <div className="mx-auto w-full max-w-[1400px]">
         {/* Page Header */}
-        <div className="flex items-start justify-between">
-          <div className="min-w-0">
-            <AppHeading level={1} weight={700} sx={pageTitleSx}>
-              New Cash Count
-            </AppHeading>
-            <AppText variant="body2" sx={pageSubtitleSx}>
-              Verify cash balances with physical denomination lists.
-            </AppText>
-          </div>
-          <AppBreadcrumb
-            size="small"
-            variant="text"
-            items={[
-              { label: "Dashboard" },
-              { label: "Finance" },
-              { label: "Cash Counts", onClick: handleCancel },
-              { label: "Record", current: true },
-            ]}
-            sx={breadcrumbSx}
-            itemSx={breadcrumbItemSx}
-            currentItemSx={breadcrumbCurrentSx}
-          />
-        </div>
+        <PageHeader
+          title="New Cash Count"
+          subtitle="Verify cash balances with physical denomination lists."
+          extra={
+            <AppBreadcrumb
+              size="small"
+              variant="text"
+              items={[
+                { label: "Dashboard" },
+                { label: "Finance" },
+                { label: "Cash Counts", onClick: handleCancel },
+                { label: "Record", current: true },
+              ]}
+              sx={breadcrumbSx}
+              itemSx={breadcrumbItemSx}
+              currentItemSx={breadcrumbCurrentSx}
+            />
+          }
+          align="flex-start"
+          justify="space-between"
+          sx={pageHeaderSx}
+          contentSx={pageHeaderContentSx}
+        />
 
         {/* Feedback Alert */}
         {(error || message) && (
@@ -68,6 +69,7 @@ const CreateCashDenominationDesktopPage = ({
           >
             <span>{error || message}</span>
             <button
+              type="button"
               onClick={clearFeedback}
               className={`font-bold hover:underline ${error ? "text-danger" : "text-success"}`}
             >
@@ -77,7 +79,7 @@ const CreateCashDenominationDesktopPage = ({
         )}
 
         {/* Split Grid */}
-        <form onSubmit={handleSubmit} className="mt-5 grid grid-cols-[1fr_320px] gap-5">
+        <form onSubmit={handleSubmit} className="mt-5 grid grid-cols-[minmax(0,1fr)_320px] gap-5">
           <div className="space-y-5 min-w-0">
             {/* Drawer selections */}
             <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={cardSx}>
@@ -284,18 +286,16 @@ const breadcrumbCurrentSx = {
   color: "var(--app-color-text)",
 };
 
-const pageTitleSx = {
-  m: 0,
-  fontSize: "23px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.4px",
-  color: "var(--app-color-text)",
-};
-
-const pageSubtitleSx = {
-  mt: 0.5,
-  fontSize: "13px",
-  color: "var(--app-color-text-muted)",
+const pageHeaderSx = { width: "100%" };
+const pageHeaderContentSx = {
+  minWidth: 0,
+  "& h1, & h2, & h3, & h4": {
+    m: 0,
+    fontSize: "23px",
+    lineHeight: 1.15,
+    letterSpacing: "-0.4px",
+    color: "var(--app-color-text)",
+  },
 };
 
 const cardSx = {

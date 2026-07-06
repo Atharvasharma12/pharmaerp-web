@@ -487,7 +487,7 @@ const addButtonBtnSx = {
   bgcolor: "var(--app-color-primary, #0f172a)",
   color: "var(--app-color-text-inverse, #ffffff)",
   "&:hover": {
-    bgcolor: "color-mix(in_srgb, var(--app-color-primary) 90%, black)",
+    bgcolor: "var(--app-color-primary-hover, #00833f)",
   },
   boxShadow: "none",
   flexShrink: 0,

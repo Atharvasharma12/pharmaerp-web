@@ -7,6 +7,7 @@ import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useCompany from "@/features/company/hooks/useCompany";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useUser from "@/features/user/hooks/useUser";
+import { ScrollToTop } from "@/components";
 
 import AppDesktopLayout from "./desktop/AppDesktopLayout";
 import AppMobileLayout from "./mobile/AppMobileLayout";
@@ -135,7 +136,12 @@ const AppLayout = () => {
     );
   }
 
-  return isMobile ? <AppMobileLayout /> : <AppDesktopLayout />;
+  return (
+    <>
+      <ScrollToTop />
+      {isMobile ? <AppMobileLayout /> : <AppDesktopLayout />}
+    </>
+  );
 };
 
 export default AppLayout;
