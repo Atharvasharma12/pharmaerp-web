@@ -24,11 +24,13 @@ import {
 import { AppButton } from "@/components";
 import ThemeSwitcher from "@/components/shared/theme/ThemeSwitcher";
 import LanguageSelector from "@/components/shared/language/LanguageSelector";
+import { ROUTES } from "@/constants";
 
 const PublicDesktopNavbar = () => {
   const [language, setLanguage] = useState("en");
 
   const loginUrl = "/login";
+  const registerUrl = ROUTES.REGISTER;
 
   const navItems = [
     {
@@ -243,7 +245,7 @@ const PublicDesktopNavbar = () => {
 
           <AppButton
             component={Link}
-            to="/"
+            to={registerUrl}
             variant="contained"
             colorVariant="primary"
             rounded="lg"

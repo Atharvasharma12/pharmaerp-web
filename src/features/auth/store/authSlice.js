@@ -17,6 +17,17 @@ import {
 const initialState = {
   user: storage.get(USER_STORAGE_KEY),
   token: storage.get(TOKEN_KEY),
+  workspace: null,
+  subscription: null,
+  signupData: {
+    fullName: "",
+    email: "",
+    phone: "",
+    password: "",
+    workspaceName: "",
+    workspaceType: "pharmacy",
+    planId: null,
+  },
 
   isAuthenticated: Boolean(storage.get(TOKEN_KEY)),
 
@@ -74,10 +85,31 @@ const authSlice = createSlice({
     clearCredentials(state) {
       state.user = null;
       state.token = null;
+      state.workspace = null;
+      state.subscription = null;
       state.isAuthenticated = false;
 
       storage.remove(TOKEN_KEY);
       storage.remove(USER_STORAGE_KEY);
+    },
+
+    setSignupData(state, action) {
+      state.signupData = {
+        ...state.signupData,
+        ...action.payload,
+      };
+    },
+
+    clearSignupData(state) {
+      state.signupData = {
+        fullName: "",
+        email: "",
+        phone: "",
+        password: "",
+        workspaceName: "",
+        workspaceType: "pharmacy",
+        planId: null,
+      };
     },
   },
 
@@ -88,8 +120,19 @@ const authSlice = createSlice({
         state.status = API_STATUS.SUCCESS;
         state.user = action.payload?.user || null;
         state.token = action.payload?.token || null;
+        state.workspace = action.payload?.workspace || null;
+        state.subscription = action.payload?.subscription || null;
         state.isAuthenticated = Boolean(action.payload?.token);
-        state.message = "User registered successfully";
+        state.message = "Registration successful. Your workspace and free trial are ready!";
+        state.signupData = {
+          fullName: "",
+          email: "",
+          phone: "",
+          password: "",
+          workspaceName: "",
+          workspaceType: "pharmacy",
+          planId: null,
+        };
       })
       .addCase(registerUser.rejected, setRejected)
 
@@ -110,6 +153,8 @@ const authSlice = createSlice({
         state.status = API_STATUS.SUCCESS;
         state.user = null;
         state.token = null;
+        state.workspace = null;
+        state.subscription = null;
         state.isAuthenticated = false;
         state.message = "Logout successful";
       })
@@ -207,6 +252,8 @@ export const {
   clearAuthMessage,
   setCredentials,
   clearCredentials,
+  setSignupData,
+  clearSignupData,
 } = authSlice.actions;
 
 export default authSlice.reducer;

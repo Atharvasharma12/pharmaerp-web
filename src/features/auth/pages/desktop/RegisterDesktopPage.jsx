@@ -7,6 +7,8 @@ import {
   FiPhone,
   FiShield,
   FiUser,
+  FiCheck,
+  FiBriefcase,
 } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 
@@ -23,7 +25,17 @@ import {
   AppPasswordInput,
   AppStack,
   AppText,
+  AppSwitch,
+  AppSelect,
 } from "@/components";
+
+const WORKSPACE_TYPES = [
+  { label: "Pharmacy", value: "pharmacy" },
+  { label: "Clinic", value: "clinic" },
+  { label: "Hospital", value: "hospital" },
+  { label: "Distributor", value: "distributor" },
+  { label: "Other", value: "other" },
+];
 
 const RegisterDesktopPage = ({
   formData,
@@ -34,6 +46,7 @@ const RegisterDesktopPage = ({
   handleChange,
   handleAgreeChange,
   handleSubmit,
+  workspaceTypes = [],
 }) => {
   return (
     <section className="relative min-h-screen overflow-hidden bg-bg">
@@ -158,6 +171,8 @@ const RegisterDesktopPage = ({
                   inputProps={{ maxLength: 10 }}
                 />
 
+
+
                 <CompactPassword
                   label="Password"
                   name="password"
@@ -168,8 +183,7 @@ const RegisterDesktopPage = ({
                   helperText={formErrors.password || "Minimum 6 characters"}
                   placeholder="Create a password"
                 />
-
-                <CompactPassword
+                 <CompactPassword
                   label="Confirm Password"
                   name="confirmPassword"
                   value={formData.confirmPassword}
@@ -178,6 +192,34 @@ const RegisterDesktopPage = ({
                   error={Boolean(formErrors.confirmPassword)}
                   helperText={formErrors.confirmPassword}
                   placeholder="Confirm your password"
+                />
+
+                <CompactInput
+                  label="Workspace Name"
+                  name="workspaceName"
+                  value={formData.workspaceName}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  error={Boolean(formErrors.workspaceName)}
+                  helperText={formErrors.workspaceName}
+                  placeholder="Enter your workspace name"
+                  startIcon={<FiBriefcase />}
+                />
+
+                <AppSelect
+                  label="Workspace Type"
+                  name="workspaceType"
+                  value={formData.workspaceType}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  error={Boolean(formErrors.workspaceType)}
+                  helperText={formErrors.workspaceType}
+                  options={workspaceTypes}
+                  size="medium"
+                  variant="soft"
+                  rounded="md"
+                  labelSx={labelSx}
+                  sx={{ width: "100%" }}
                 />
               </div>
 
@@ -219,6 +261,12 @@ const RegisterDesktopPage = ({
                 </AppText>
               )}
 
+              {formErrors.submit && (
+                <AppText variant="body2" sx={{ mt: 0.5, fontSize: "12px", fontWeight: 500, color: "var(--app-color-error)" }}>
+                  {formErrors.submit}
+                </AppText>
+              )}
+
               <AppStack direction="column" gap={1.25} sx={{ mt: 1.6 }}>
                 <AppButton
                   type="submit"
@@ -226,10 +274,11 @@ const RegisterDesktopPage = ({
                   colorVariant="primary"
                   rounded="md"
                   fullWidth
+                  loading={isLoading}
                   disabled={isLoading}
                   sx={submitButtonSx}
                 >
-                  {isLoading ? "Creating Account..." : "Create Account"}
+                  Register & Get Started
                 </AppButton>
 
                 <AppStack direction="row" align="center" gap={1.5}>
@@ -431,6 +480,8 @@ const CompactInput = ({
   error,
   helperText,
   inputProps,
+  children,
+  ...props
 }) => (
   <AppInput
     label={label}
@@ -451,7 +502,10 @@ const CompactInput = ({
     inputProps={inputProps}
     labelSx={labelSx}
     inputSx={inputSx}
-  />
+    {...props}
+  >
+    {children}
+  </AppInput>
 );
 
 const CompactPassword = ({

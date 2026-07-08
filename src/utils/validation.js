@@ -28,7 +28,7 @@ export const validateLoginForm = ({ email, password }) => {
   return errors;
 };
 
-export const validateRegisterForm = ({ email, password, fullName, phone }) => {
+export const validateRegisterForm = ({ email, password, fullName, phone, workspaceName }) => {
   const errors = {};
 
   if (!isValidEmail(email)) {
@@ -45,6 +45,10 @@ export const validateRegisterForm = ({ email, password, fullName, phone }) => {
 
   if (phone && !isValidPhone(phone)) {
     errors.phone = "Invalid phone number";
+  }
+
+  if (!workspaceName?.trim() || workspaceName.trim().length < 2 || workspaceName.trim().length > 100) {
+    errors.workspaceName = "Workspace name must be between 2 and 100 characters";
   }
 
   return errors;

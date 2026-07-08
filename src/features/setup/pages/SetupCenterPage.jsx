@@ -15,33 +15,13 @@ import SetupCenterMobilePage from "./mobile/SetupCenterMobilePage";
 
 const setupStepsConfig = [
   {
-    id: "workspace",
-    title: "Create Workspace",
-    description: "Create your workspace to manage all pharmacy operations.",
-    actionText: "Create Workspace",
-    route: ROUTES.CREATE_WORKSPACE,
-    completedRoute: ROUTES.WORKSPACE_DETAILS,
-    requiredFields: [],
-    colorVariant: "primary",
-  },
-  {
-    id: "plan",
-    title: "Choose Plan",
-    description: "Choose the perfect plan for your pharmacy business.",
-    actionText: "View Plan",
-    route: ROUTES.CHOOSE_PLAN,
-    completedRoute: ROUTES.CHOOSE_PLAN,
-    requiredFields: ["workspace"],
-    colorVariant: "success",
-  },
-  {
     id: "company",
     title: "Create Company",
     description: "Add your company details and set up your business profile.",
     actionText: "Create Company",
     route: ROUTES.CREATE_COMPANY,
     completedRoute: ROUTES.COMPANIES,
-    requiredFields: ["workspace", "plan"],
+    requiredFields: [],
     colorVariant: "info",
   },
   {
@@ -51,7 +31,7 @@ const setupStepsConfig = [
     actionText: "Create Branch",
     route: ROUTES.CREATE_BRANCH,
     completedRoute: ROUTES.BRANCHES,
-    requiredFields: ["workspace", "plan", "company"],
+    requiredFields: ["company"],
     colorVariant: "secondary",
   },
   {
@@ -61,7 +41,7 @@ const setupStepsConfig = [
     actionText: "Invite Team",
     route: ROUTES.INVITE_WORKSPACE_MEMBER,
     completedRoute: ROUTES.WORKSPACE_MEMBERS,
-    requiredFields: ["workspace", "plan", "company", "branch"],
+    requiredFields: ["company", "branch"],
     colorVariant: "primary",
   },
   {
@@ -71,7 +51,7 @@ const setupStepsConfig = [
     actionText: "Add Products",
     route: "/inventory/products/create",
     completedRoute: "/inventory/products",
-    requiredFields: ["workspace", "plan", "company", "branch"],
+    requiredFields: ["company", "branch"],
     colorVariant: "warning",
   },
   {
@@ -81,7 +61,7 @@ const setupStepsConfig = [
     actionText: "Add Suppliers",
     route: "/purchases/suppliers/create",
     completedRoute: "/purchases/suppliers",
-    requiredFields: ["workspace", "plan", "company", "branch"],
+    requiredFields: ["company", "branch"],
     colorVariant: "info",
   },
   {
@@ -91,7 +71,7 @@ const setupStepsConfig = [
     actionText: "Create Purchase",
     route: "/purchases/create",
     completedRoute: "/purchases",
-    requiredFields: ["workspace", "plan", "company", "branch"],
+    requiredFields: ["company", "branch"],
     colorVariant: "error",
   },
 ];

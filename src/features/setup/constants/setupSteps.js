@@ -4,36 +4,14 @@ import { ROUTES } from "@/constants";
 
 export const setupSteps = [
   {
-    id: "workspace",
-    title: "Create Workspace",
-    description: "Create your organization workspace to start using the ERP.",
-    actionText: "Create Workspace",
-    route: ROUTES.CREATE_WORKSPACE,
-    completed: false,
-    disabled: false,
-    requiredFields: [],
-    colorVariant: "primary",
-  },
-  {
-    id: "plan",
-    title: "Choose Plan",
-    description: "Select a plan or start a free trial for your workspace.",
-    actionText: "Choose Plan",
-    route: ROUTES.CHOOSE_PLAN,
-    completed: false,
-    disabled: true,
-    requiredFields: ["workspace"],
-    colorVariant: "info",
-  },
-  {
     id: "company",
     title: "Create Company",
     description: "Add your pharmacy business details, GST, PAN, and licenses.",
     actionText: "Create Company",
     route: ROUTES.CREATE_COMPANY,
     completed: false,
-    disabled: true,
-    requiredFields: ["workspace", "subscription"],
+    disabled: false,
+    requiredFields: [],
     colorVariant: "primary",
   },
   {
@@ -44,7 +22,7 @@ export const setupSteps = [
     route: ROUTES.CREATE_BRANCH,
     completed: false,
     disabled: true,
-    requiredFields: ["workspace", "subscription", "company"],
+    requiredFields: ["company"],
     colorVariant: "info",
   },
   {
@@ -55,7 +33,7 @@ export const setupSteps = [
     route: ROUTES.INVITE_WORKSPACE_MEMBER,
     completed: false,
     disabled: true,
-    requiredFields: ["workspace", "subscription", "company"],
+    requiredFields: ["company"],
     colorVariant: "warning",
   },
   {
@@ -66,7 +44,7 @@ export const setupSteps = [
     route: "/catalog/products",
     completed: false,
     disabled: true,
-    requiredFields: ["workspace", "subscription", "company", "branch"],
+    requiredFields: ["company", "branch"],
     colorVariant: "error",
   },
   {
@@ -78,8 +56,6 @@ export const setupSteps = [
     completed: false,
     disabled: true,
     requiredFields: [
-      "workspace",
-      "subscription",
       "company",
       "branch",
       "products",

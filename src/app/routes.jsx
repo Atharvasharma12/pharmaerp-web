@@ -6,14 +6,14 @@ import {
   PublicLayout,
   AuthLayout,
   AppLayout,
-  OnboardingLayout,
 } from "@/layouts";
 
 import { GuestRoute, ProtectedRoute, WorkspaceRequiredRoute } from "@/guards";
 
 import authRoutes from "@/features/auth/routes/authRoutes";
-import onboardingRoutes from "@/features/onboarding/routes/onboardingRoutes";
 import userRoutes from "@/features/user/routes/userRoutes";
+
+import { RegisterPage } from "@/features/auth/pages";
 
 import workspaceRoutes from "@/features/workspace/routes/workspaceRoutes";
 import setupRoutes from "@/features/setup/routes/setupRoutes";
@@ -134,15 +134,7 @@ export const router = createBrowserRouter([
     children: authRoutes,
   },
 
-  // Onboarding
-  {
-    element: (
-      <ProtectedRoute>
-        <OnboardingLayout />
-      </ProtectedRoute>
-    ),
-    children: onboardingRoutes,
-  },
+
 
   // Setup + User
   {

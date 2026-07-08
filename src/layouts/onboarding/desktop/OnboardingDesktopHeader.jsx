@@ -11,10 +11,8 @@ import { ROUTES } from "@/constants";
 import { ONBOARDING_STEPS } from "../onboardingConstants";
 
 const routeStepMap = {
-  [ROUTES.CREATE_WORKSPACE]: 0,
-  [ROUTES.CHOOSE_PLAN]: 1,
-  [ROUTES.TRIAL_ACTIVATED]: 2,
-  [ROUTES.SUBSCRIPTION_SUCCESS]: 2,
+  [ROUTES.REGISTER]: 0,
+  [ROUTES.CREATE_WORKSPACE]: 1,
 };
 
 const OnboardingDesktopHeader = ({ helpTo = "/help-center" }) => {

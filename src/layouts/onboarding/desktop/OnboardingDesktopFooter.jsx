@@ -8,29 +8,17 @@ import { AppButton, AppStack, AppText } from "@/components";
 import { ROUTES } from "@/constants";
 
 const footerConfig = {
-  [ROUTES.CREATE_WORKSPACE]: {
+  [ROUTES.REGISTER]: {
     backLabel: "Back",
     backTo: ROUTES.LOGIN,
-    continueLabel: "Continue to Plan",
-    continueTo: ROUTES.CHOOSE_PLAN,
+    continueLabel: "Continue",
+    continueTo: ROUTES.CREATE_WORKSPACE,
   },
-  [ROUTES.CHOOSE_PLAN]: {
+  [ROUTES.CREATE_WORKSPACE]: {
     backLabel: "Back",
-    backTo: ROUTES.CREATE_WORKSPACE,
-    continueLabel: "Continue to Dashboard",
-    continueTo: ROUTES.SETUP_CENTER,
-  },
-  [ROUTES.TRIAL_ACTIVATED]: {
-    backLabel: "Back",
-    backTo: ROUTES.CHOOSE_PLAN,
-    continueLabel: "Go to Dashboard",
-    continueTo: ROUTES.SETUP_CENTER,
-  },
-  [ROUTES.SUBSCRIPTION_SUCCESS]: {
-    backLabel: "Back",
-    backTo: ROUTES.CHOOSE_PLAN,
-    continueLabel: "Go to Dashboard",
-    continueTo: ROUTES.SETUP_CENTER,
+    backTo: ROUTES.REGISTER,
+    continueLabel: "Complete Onboarding",
+    continueTo: ROUTES.DASHBOARD,
   },
 };
 

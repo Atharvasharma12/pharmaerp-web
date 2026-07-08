@@ -1,4 +1,4 @@
-import { FiLock, FiMail, FiPhone, FiUser } from "react-icons/fi";
+import { FiLock, FiMail, FiPhone, FiUser, FiCheck, FiBriefcase, FiBarChart2 } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 
 import { ROUTES } from "@/constants";
@@ -14,7 +14,17 @@ import {
   AppPasswordInput,
   AppStack,
   AppText,
+  AppSwitch,
+  AppSelect,
 } from "@/components";
+
+const WORKSPACE_TYPES = [
+  { label: "Pharmacy", value: "pharmacy" },
+  { label: "Clinic", value: "clinic" },
+  { label: "Hospital", value: "hospital" },
+  { label: "Distributor", value: "distributor" },
+  { label: "Other", value: "other" },
+];
 
 const RegisterMobilePage = ({
   formData,
@@ -25,6 +35,7 @@ const RegisterMobilePage = ({
   handleChange,
   handleAgreeChange,
   handleSubmit,
+  workspaceTypes = [],
 }) => {
   return (
     <section className="relative min-h-screen overflow-hidden bg-bg">
@@ -116,6 +127,8 @@ const RegisterMobilePage = ({
                 inputProps={{ maxLength: 10 }}
               />
 
+
+
               <MobilePassword
                 label="Password"
                 name="password"
@@ -136,6 +149,34 @@ const RegisterMobilePage = ({
                 error={Boolean(formErrors.confirmPassword)}
                 helperText={formErrors.confirmPassword}
                 placeholder="Confirm your password"
+              />
+
+              <MobileInput
+                label="Workspace Name"
+                name="workspaceName"
+                value={formData.workspaceName}
+                onChange={handleChange}
+                disabled={isLoading}
+                error={Boolean(formErrors.workspaceName)}
+                helperText={formErrors.workspaceName}
+                placeholder="Enter workspace name"
+                startIcon={<FiBriefcase />}
+              />
+
+              <AppSelect
+                label="Workspace Type"
+                name="workspaceType"
+                value={formData.workspaceType}
+                onChange={handleChange}
+                disabled={isLoading}
+                error={Boolean(formErrors.workspaceType)}
+                helperText={formErrors.workspaceType}
+                options={workspaceTypes}
+                size="small"
+                variant="soft"
+                rounded="md"
+                labelSx={labelSx}
+                sx={{ width: "100%" }}
               />
 
               <AppStack
@@ -178,16 +219,23 @@ const RegisterMobilePage = ({
                 </AppText>
               )}
 
+              {formErrors.submit && (
+                <AppText variant="body2" sx={{ mt: -0.4, fontSize: "11.2px", fontWeight: 600, color: "var(--app-color-error)" }}>
+                  {formErrors.submit}
+                </AppText>
+              )}
+
               <AppButton
                 type="submit"
                 variant="contained"
                 colorVariant="primary"
                 rounded="md"
                 fullWidth
+                loading={isLoading}
                 disabled={isLoading}
                 sx={submitButtonSx}
               >
-                {isLoading ? "Creating Account..." : "Create Account"}
+                Register & Get Started
               </AppButton>
 
               <AppStack
@@ -384,6 +432,8 @@ const MobileInput = ({
   error,
   helperText,
   inputProps,
+  children,
+  ...props
 }) => (
   <AppInput
     label={label}
@@ -404,7 +454,10 @@ const MobileInput = ({
     inputProps={inputProps}
     labelSx={labelSx}
     inputSx={inputSx}
-  />
+    {...props}
+  >
+    {children}
+  </AppInput>
 );
 
 const MobilePassword = ({

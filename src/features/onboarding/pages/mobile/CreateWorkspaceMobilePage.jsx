@@ -151,7 +151,7 @@ const CreateWorkspaceMobilePage = ({
               endIcon={<FiArrowRight />}
               sx={continueButtonSx}
             >
-              Continue
+              Complete Onboarding
             </AppButton>
           </AppStack>
         </AppBox>

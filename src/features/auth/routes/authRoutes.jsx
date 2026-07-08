@@ -8,7 +8,6 @@ const authRoutes = [
     path: ROUTES.LOGIN,
     element: <LoginPage />,
   },
-
   {
     path: ROUTES.REGISTER,
     element: <RegisterPage />,

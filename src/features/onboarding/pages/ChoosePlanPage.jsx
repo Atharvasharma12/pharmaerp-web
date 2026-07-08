@@ -2,12 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import usePlan from "@/features/subscription/plans/hooks/usePlan";
-import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useSubscription from "@/features/subscription/subscriptions/hooks/useSubscription";
+import useAuth from "@/features/auth/hooks/useAuth";
+import { clearSignupData } from "@/features/auth/store/authSlice";
+import { setCurrentWorkspace } from "@/features/workspace/store/workspaceSlice";
+import { setCurrentSubscription } from "@/features/subscription/subscriptions/store/subscriptionSlice";
 
 import ChoosePlanDesktopPage from "./desktop/ChoosePlanDesktopPage";
 import ChoosePlanMobilePage from "./mobile/ChoosePlanMobilePage";
@@ -133,8 +137,17 @@ const getWorkspaceFromItem = (item) => item?.workspace || item || null;
 const ChoosePlanPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const hasFetchedPlansRef = useRef(false);
-  const hasFetchedSubscriptionRef = useRef(false);
+  const dispatch = useDispatch();
+
+  const { register } = useAuth();
+  const signupData = useSelector((state) => state.auth.signupData) || {};
+
+  // Security guard: Send back to Step 1 if account details are empty
+  useEffect(() => {
+    if (!signupData.fullName) {
+      navigate(ROUTES.REGISTER, { replace: true });
+    }
+  }, [signupData.fullName, navigate]);
 
   const {
     activePlans,
@@ -145,19 +158,6 @@ const ChoosePlanPage = () => {
   } = usePlan();
 
   const {
-    workspaces,
-    currentWorkspace,
-    getMyWorkspacesStatus,
-    getMyWorkspaces,
-  } = useWorkspace();
-
-  const {
-    startTrialSubscription,
-    purchaseSubscription,
-    getWorkspaceCurrentSubscription,
-    currentWorkspaceSubscription,
-    startTrialSubscriptionStatus,
-    purchaseSubscriptionStatus,
     error: subscriptionError,
     clearError: clearSubscriptionError,
   } = useSubscription();
@@ -168,65 +168,11 @@ const ChoosePlanPage = () => {
 
   const isYearly = billingCycle === "yearly";
 
-  const workspace = useMemo(() => {
-    if (currentWorkspace) return currentWorkspace;
-    const firstWorkspaceItem = Array.isArray(workspaces) ? workspaces[0] : null;
-    return getWorkspaceFromItem(firstWorkspaceItem);
-  }, [currentWorkspace, workspaces]);
-
-  const workspaceName = workspace?.name || "Your Workspace";
-  const workspaceId = workspace?._id;
-
-  const hasWorkspace = Boolean(workspaceId);
-  const hasExistingSubscription = Boolean(currentWorkspaceSubscription?._id);
-  const hasFetchedWorkspaces = getMyWorkspacesStatus === API_STATUS.SUCCESS;
-  const isFetchingWorkspaces = getMyWorkspacesStatus === API_STATUS.LOADING;
-
   useEffect(() => {
-    if (
-      getMyWorkspacesStatus === API_STATUS.IDLE ||
-      getMyWorkspacesStatus === API_STATUS.ERROR
-    ) {
-      getMyWorkspaces().catch(() => {});
-    }
-  }, [getMyWorkspacesStatus, getMyWorkspaces]);
-
-  useEffect(() => {
-    if (hasFetchedWorkspaces && !hasWorkspace) {
-      navigate(ROUTES.CREATE_WORKSPACE, { replace: true });
-    }
-  }, [hasFetchedWorkspaces, hasWorkspace, navigate]);
-
-  useEffect(() => {
-    if (!workspaceId || hasFetchedSubscriptionRef.current) return;
-    hasFetchedSubscriptionRef.current = true;
-    getWorkspaceCurrentSubscription(workspaceId).catch(() => {});
-  }, [workspaceId, getWorkspaceCurrentSubscription]);
-
-  useEffect(() => {
-    if (!hasExistingSubscription) return;
-    navigate(ROUTES.SETUP_CENTER, { replace: true });
-  }, [hasExistingSubscription, navigate]);
-
-  useEffect(() => {
-    if (
-      !hasWorkspace ||
-      hasExistingSubscription ||
-      hasFetchedPlansRef.current
-    ) {
-      return;
-    }
-    hasFetchedPlansRef.current = true;
     clearError();
     clearSubscriptionError?.();
     getActivePlans().catch(() => {});
-  }, [
-    hasWorkspace,
-    hasExistingSubscription,
-    clearError,
-    clearSubscriptionError,
-    getActivePlans,
-  ]);
+  }, []);
 
   const plans = useMemo(() => normalizePlans(activePlans), [activePlans]);
 
@@ -242,17 +188,10 @@ const ChoosePlanPage = () => {
   );
 
   const isFetchingPlans = getActivePlansStatus === API_STATUS.LOADING;
-  const isSubmitting =
-    startTrialSubscriptionStatus === API_STATUS.LOADING ||
-    purchaseSubscriptionStatus === API_STATUS.LOADING;
+  const isSubmitting = getActivePlansStatus === API_STATUS.LOADING; // temporary mapping
 
-  const isLoading = isFetchingWorkspaces || isFetchingPlans || isSubmitting;
+  const isLoading = isFetchingPlans || isSubmitting;
   const error = submitError || subscriptionError || planError;
-
-  const shouldHideChoosePlanPage =
-    isFetchingWorkspaces ||
-    (hasFetchedWorkspaces && !hasWorkspace) ||
-    hasExistingSubscription;
 
   const handleBillingCycleChange = (cycle) => {
     setBillingCycle(cycle);
@@ -276,99 +215,56 @@ const ChoosePlanPage = () => {
     const targetId = planId || selectedPlan;
     const plan = plans.find((item) => item.id === targetId);
 
-    if (!plan || !workspaceId || hasExistingSubscription) return;
+    // Build the consolidated registration payload
+    const payload = {
+      fullName: signupData.fullName,
+      email: signupData.email,
+      phone: signupData.phone,
+      password: signupData.password,
+      workspaceName: signupData.workspaceName,
+      workspaceType: signupData.workspaceType || "pharmacy",
+    };
 
-    if (!plan.trialDays || plan.trialDays <= 0) {
-      setSubmitError("This plan does not have free trial days.");
-      return;
+    // If a plan is selected, add it to the payload
+    if (plan && plan.planId) {
+      payload.planId = plan.planId;
     }
 
-    const payload = {
-      workspaceId,
-      planId: plan.planId,
-      seatQuantity: DEFAULT_SEAT_QUANTITY,
-    };
+    if (!payload.phone) {
+      delete payload.phone;
+    }
 
     try {
       setSubmitError(null);
       clearSubscriptionError?.();
 
-      const subscription = await startTrialSubscription(payload);
+      const result = await register(payload);
 
-      navigate(ROUTES.TRIAL_ACTIVATED, {
+      if (result?.workspace) {
+        dispatch(setCurrentWorkspace(result.workspace));
+      }
+      if (result?.subscription) {
+        dispatch(setCurrentSubscription(result.subscription));
+      }
+
+      // Clear the temporary signupData state
+      dispatch(clearSignupData());
+
+      navigate(ROUTES.DASHBOARD, {
         replace: true,
-        state: {
-          workspaceId,
-          workspaceName,
-          planId: plan.planId,
-          planCode: plan.planCode,
-          planName: plan.name,
-          trialDays: plan.trialDays,
-          subscription,
-        },
+        state: { showWelcomeToast: true },
       });
     } catch (err) {
       setSubmitError(
-        typeof err === "string" ? err : "Failed to start free trial",
+        typeof err === "string" ? err : "Registration failed. Please try again."
       );
     }
   };
-
-  const handlePurchaseSubscription = async (planId) => {
-    const targetId = planId || selectedPlan;
-    const plan = plans.find((item) => item.id === targetId);
-
-    if (!plan || !workspaceId || hasExistingSubscription) return;
-
-    const billingPlan = isYearly ? plan.yearlyPlan : plan.monthlyPlan;
-
-    const payload = {
-      workspaceId,
-      planId: billingPlan?._id || plan.planId,
-      billingCycle,
-      seatQuantity: DEFAULT_SEAT_QUANTITY,
-      currency: DEFAULT_CURRENCY,
-    };
-
-    try {
-      setSubmitError(null);
-      clearSubscriptionError?.();
-
-      const subscription = await purchaseSubscription(payload);
-
-      navigate(ROUTES.SETUP_CENTER, {
-        replace: true,
-        state: {
-          subscriptionPurchased: true,
-          workspaceId,
-          workspaceName,
-          planId: payload.planId,
-          planName: plan.name,
-          billingCycle,
-          subscription,
-        },
-      });
-    } catch (err) {
-      setSubmitError(
-        typeof err === "string" ? err : "Failed to purchase subscription",
-      );
-    }
-  };
-
-  if (shouldHideChoosePlanPage) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-bg">
-        <div className="text-sm font-medium text-text-muted">
-          Loading plans...
-        </div>
-      </div>
-    );
-  }
 
   const pageProps = {
-    workspace,
-    workspaceId,
-    workspaceName,
+    workspace: { name: signupData.workspaceName },
+    workspaceId: null,
+    workspaceName: signupData.workspaceName || "Your Workspace",
     plans,
     selectedPlan,
     selectedPlanData,
@@ -382,7 +278,7 @@ const ChoosePlanPage = () => {
     handleSelectPlan,
     handleBack,
     handleStartTrial,
-    handlePurchaseSubscription,
+    handlePurchaseSubscription: handleStartTrial, // both map to registration
   };
 
   return isMobile ? (

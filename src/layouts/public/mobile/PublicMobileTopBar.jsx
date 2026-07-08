@@ -26,12 +26,14 @@ import {
 import { AppButton, AppIconButton } from "@/components";
 import ThemeSwitcher from "@/components/shared/theme/ThemeSwitcher";
 import LanguageSelector from "@/components/shared/language/LanguageSelector";
+import { ROUTES } from "@/constants";
 
 const PublicMobileTopBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
 
   const loginUrl = "/login";
+  const registerUrl = ROUTES.REGISTER;
 
   const navItems = [
     {
@@ -285,7 +287,7 @@ const PublicMobileTopBar = () => {
 
             <AppButton
               component={Link}
-              to="/"
+              to={registerUrl}
               onClick={closeMenu}
               variant="contained"
               colorVariant="primary"

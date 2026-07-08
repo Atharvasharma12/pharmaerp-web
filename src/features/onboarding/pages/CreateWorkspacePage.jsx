@@ -2,10 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 
-import { API_STATUS, ROUTES } from "@/constants";
+import { ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import useAuth from "@/features/auth/hooks/useAuth";
+import { clearSignupData } from "@/features/auth/store/authSlice";
+import { setCurrentWorkspace } from "@/features/workspace/store/workspaceSlice";
+import { setCurrentSubscription } from "@/features/subscription/subscriptions/store/subscriptionSlice";
 
 import CreateWorkspaceDesktopPage from "./desktop/CreateWorkspaceDesktopPage";
 import CreateWorkspaceMobilePage from "./mobile/CreateWorkspaceMobilePage";
@@ -21,45 +25,30 @@ const WORKSPACE_TYPE = {
 const CreateWorkspacePage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const dispatch = useDispatch();
+  const { register } = useAuth();
 
-  const {
-    workspaces,
-    currentWorkspace,
+  const signupData = useSelector((state) => state.auth.signupData) || {};
 
-    createWorkspaceStatus,
-    getMyWorkspacesStatus,
-
-    error,
-
-    createWorkspace,
-    getMyWorkspaces,
-
-    clearError,
-    clearMessage,
-  } = useWorkspace();
+  // Security guard: Send back to Step 1 if account details are empty
+  useEffect(() => {
+    if (!signupData.fullName) {
+      navigate(ROUTES.REGISTER, { replace: true });
+    }
+  }, [signupData.fullName, navigate]);
 
   const [formData, setFormData] = useState({
-    workspaceName: "",
-    type: WORKSPACE_TYPE.PHARMACY,
-    phone: "",
-    email: "",
-    state: "",
-    city: "",
-    address: "",
+    workspaceName: signupData.workspaceName || "",
+    type: signupData.workspaceType || WORKSPACE_TYPE.PHARMACY,
+    phone: signupData.workspacePhone || "",
+    email: signupData.workspaceEmail || "",
+    state: signupData.workspaceState || "",
+    city: signupData.workspaceCity || "",
+    address: signupData.workspaceAddress || "",
   });
 
   const [formErrors, setFormErrors] = useState({});
-
-  const isCreatingWorkspace = createWorkspaceStatus === API_STATUS.LOADING;
-  const isCheckingWorkspaces = getMyWorkspacesStatus === API_STATUS.LOADING;
-
-  const hasFetchedWorkspaces = getMyWorkspacesStatus === API_STATUS.SUCCESS;
-
-  const hasWorkspace =
-    Boolean(currentWorkspace) || Boolean(workspaces && workspaces.length > 0);
-
-  const shouldHideCreatePage =
-    isCheckingWorkspaces || (hasFetchedWorkspaces && hasWorkspace);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const workspaceTypes = useMemo(
     () => [
@@ -93,40 +82,6 @@ const CreateWorkspacePage = () => {
     ],
     [],
   );
-
-  useEffect(() => {
-    clearError();
-    clearMessage();
-
-    return () => {
-      clearError();
-      clearMessage();
-    };
-  }, [clearError, clearMessage]);
-
-  useEffect(() => {
-    if (
-      getMyWorkspacesStatus === API_STATUS.IDLE ||
-      getMyWorkspacesStatus === API_STATUS.ERROR
-    ) {
-      getMyWorkspaces();
-    }
-  }, [getMyWorkspacesStatus, getMyWorkspaces]);
-
-  useEffect(() => {
-    if (hasFetchedWorkspaces && hasWorkspace) {
-      navigate(ROUTES.CHOOSE_PLAN, { replace: true });
-    }
-  }, [hasFetchedWorkspaces, hasWorkspace, navigate]);
-
-  useEffect(() => {
-    if (error) {
-      setFormErrors((prev) => ({
-        ...prev,
-        submit: error,
-      }));
-    }
-  }, [error]);
 
   const validateForm = () => {
     const errors = {};
@@ -171,40 +126,8 @@ const CreateWorkspacePage = () => {
     }));
   };
 
-  const buildPayload = () => {
-    const payload = {
-      name: formData.workspaceName.trim(),
-      type: formData.type,
-    };
-
-    const email = formData.email.trim().toLowerCase();
-    const phone = formData.phone.trim();
-
-    if (email) {
-      payload.email = email;
-    }
-
-    if (phone) {
-      payload.phone = phone;
-    }
-
-    if (formData.address.trim() || formData.city || formData.state) {
-      payload.address = {
-        addressLine1: formData.address.trim() || null,
-        city: formData.city || null,
-        state: formData.state || null,
-        country: "India",
-      };
-    }
-
-    return payload;
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
-
-    clearError();
-    clearMessage();
 
     const validationErrors = validateForm();
 
@@ -213,33 +136,46 @@ const CreateWorkspacePage = () => {
       return;
     }
 
-    try {
-      const workspace = await createWorkspace(buildPayload());
+    const payload = {
+      fullName: signupData.fullName,
+      email: signupData.email,
+      password: signupData.password,
+      phone: signupData.phone,
+      workspaceName: formData.workspaceName.trim(),
+      workspaceType: formData.type,
+    };
 
-      navigate(ROUTES.CHOOSE_PLAN, {
+    if (!payload.phone) {
+      delete payload.phone;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setFormErrors({});
+
+      const result = await register(payload);
+
+      if (result?.workspace) {
+        dispatch(setCurrentWorkspace(result.workspace));
+      }
+      if (result?.subscription) {
+        dispatch(setCurrentSubscription(result.subscription));
+      }
+
+      dispatch(clearSignupData());
+
+      navigate(ROUTES.DASHBOARD, {
         replace: true,
-        state: {
-          workspaceId: workspace?._id,
-          workspace,
-        },
+        state: { showWelcomeToast: true },
       });
-    } catch (submitError) {
-      setFormErrors((prev) => ({
-        ...prev,
-        submit: submitError || "Unable to create workspace. Please try again.",
-      }));
+    } catch (err) {
+      setFormErrors({
+        submit: typeof err === "string" ? err : "Registration failed. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  if (shouldHideCreatePage) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-bg">
-        <div className="text-sm font-medium text-text-muted">
-          Loading workspace...
-        </div>
-      </div>
-    );
-  }
 
   const pageProps = {
     formData,
@@ -247,7 +183,7 @@ const CreateWorkspacePage = () => {
     workspaceTypes,
     states,
     cities,
-    isLoading: isCreatingWorkspace,
+    isLoading: isSubmitting,
     handleChange,
     handleSubmit,
   };
