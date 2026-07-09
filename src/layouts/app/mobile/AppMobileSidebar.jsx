@@ -20,8 +20,12 @@ import {
   FiX,
 } from "react-icons/fi";
 
-import { AppButton } from "@/components";
+import { AppButton, AppAvatar } from "@/components";
 import { ROUTES } from "@/constants";
+
+import useAuth from "@/features/auth/hooks/useAuth";
+import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import useSubscription from "@/features/subscription/subscriptions/hooks/useSubscription";
 
 const sidebarItems = [
   {
@@ -108,6 +112,27 @@ const sidebarItems = [
 ];
 
 const AppMobileSidebar = ({ open, onClose }) => {
+  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspaceSubscription, getWorkspaceCurrentSubscription } = useSubscription();
+
+  React.useEffect(() => {
+    if (currentWorkspace?._id) {
+      getWorkspaceCurrentSubscription(currentWorkspace._id).catch(() => {});
+    }
+  }, [currentWorkspace?._id, getWorkspaceCurrentSubscription]);
+
+  const userName = user?.name || user?.fullName || "Admin";
+  const userInitials = userName
+    ?.split(" ")
+    ?.map((word) => word?.[0])
+    ?.join("")
+    ?.slice(0, 2)
+    ?.toUpperCase();
+
+  const planType = currentWorkspaceSubscription?.currentPlanSnapshot?.type || "free";
+  const isFree = planType === "free" || currentWorkspaceSubscription?.isFree || !currentWorkspaceSubscription;
+
   return (
     <>
       <div
@@ -181,55 +206,57 @@ const AppMobileSidebar = ({ open, onClose }) => {
           </nav>
 
           <div className="space-y-3 border-t border-border px-3 py-4">
-            <div className="rounded-xl border border-primary/15 bg-primary-soft/60 p-3">
-              <div className="text-[11px] font-medium text-text-muted">
-                Your Plan
-              </div>
+            {isFree && (
+              <div className="rounded-xl border border-primary/15 bg-primary-soft/60 p-3">
+                <div className="text-[11px] font-medium text-text-muted">
+                  Your Plan
+                </div>
 
-              <div className="mt-1 text-[14px] font-bold text-primary">
-                Professional Plan
-              </div>
+                <div className="mt-1 text-[14px] font-bold text-primary">
+                  Free Tier
+                </div>
 
-              <div className="mt-2 text-[11px] leading-relaxed text-text-muted">
-                Upgrade anytime to unlock more users, branches and premium
-                features.
-              </div>
+                <div className="mt-2 text-[11px] leading-relaxed text-text-muted">
+                  Upgrade anytime to unlock more users, branches and premium
+                  features.
+                </div>
 
-              <AppButton
-                fullWidth
-                variant="contained"
-                colorVariant="primary"
-                rounded="lg"
-                sx={{
-                  mt: 2,
-                  py: "7px",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  textTransform: "none",
-                }}
-              >
-                Upgrade Plan
-              </AppButton>
+                <NavLink to={ROUTES.UPGRADE_PLAN} onClick={onClose} className="w-full block">
+                  <AppButton
+                    fullWidth
+                    variant="contained"
+                    colorVariant="primary"
+                    rounded="lg"
+                    sx={{
+                      mt: 2,
+                      py: "7px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      textTransform: "none",
+                    }}
+                  >
+                    Upgrade Plan
+                  </AppButton>
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          <div className="shrink-0 border-t border-border p-3">
+            <div className="flex items-center gap-3 rounded-xl p-2 hover:bg-surface-hover transition duration-200">
+              <AppAvatar name={userName} initials={userInitials} size="small" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[12px] font-semibold text-text">
+                  {userName}
+                </div>
+                <div className="truncate text-[10px] text-text-muted">
+                  {user?.email}
+                </div>
+              </div>
+              <div className="shrink-0 rounded bg-primary-soft px-1.5 py-0.5 text-[10px] font-bold uppercase text-primary">
+                {planType}
+              </div>
             </div>
-
-            <NavLink
-              to="/help-center"
-              onClick={onClose}
-              className="flex items-center gap-3 rounded-xl border border-border bg-bg/70 p-3 transition hover:border-primary hover:bg-primary-soft"
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface text-[18px] text-primary">
-                <FiHelpCircle />
-              </span>
-
-              <span>
-                <span className="block text-[13px] font-bold text-text">
-                  Need Help?
-                </span>
-                <span className="mt-1 block text-[11px] text-text-muted">
-                  Contact support
-                </span>
-              </span>
-            </NavLink>
           </div>
         </div>
       </aside>

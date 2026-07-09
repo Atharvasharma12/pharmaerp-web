@@ -14,3 +14,13 @@ export const selectPlanMessage = (state) => state.plan.message;
 
 export const selectGetActivePlansStatus = (state) =>
   state.plan.getActivePlansStatus;
+
+export const selectCreatePlanStatus = (state) => state.plan.createPlanStatus;
+
+export const selectUpdatePlanStatus = (state) => state.plan.updatePlanStatus;
+
+export const selectArchivePlanStatus = (state) => state.plan.archivePlanStatus;
+
+export const selectRestorePlanStatus = (state) => state.plan.restorePlanStatus;
+
+export const selectDeletePlanStatus = (state) => state.plan.deletePlanStatus;

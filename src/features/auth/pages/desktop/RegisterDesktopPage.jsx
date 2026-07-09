@@ -8,7 +8,6 @@ import {
   FiShield,
   FiUser,
   FiCheck,
-  FiBriefcase,
 } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 
@@ -26,16 +25,8 @@ import {
   AppStack,
   AppText,
   AppSwitch,
-  AppSelect,
 } from "@/components";
 
-const WORKSPACE_TYPES = [
-  { label: "Pharmacy", value: "pharmacy" },
-  { label: "Clinic", value: "clinic" },
-  { label: "Hospital", value: "hospital" },
-  { label: "Distributor", value: "distributor" },
-  { label: "Other", value: "other" },
-];
 
 const RegisterDesktopPage = ({
   formData,
@@ -46,7 +37,6 @@ const RegisterDesktopPage = ({
   handleChange,
   handleAgreeChange,
   handleSubmit,
-  workspaceTypes = [],
 }) => {
   return (
     <section className="relative min-h-screen overflow-hidden bg-bg">
@@ -194,33 +184,6 @@ const RegisterDesktopPage = ({
                   placeholder="Confirm your password"
                 />
 
-                <CompactInput
-                  label="Workspace Name"
-                  name="workspaceName"
-                  value={formData.workspaceName}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  error={Boolean(formErrors.workspaceName)}
-                  helperText={formErrors.workspaceName}
-                  placeholder="Enter your workspace name"
-                  startIcon={<FiBriefcase />}
-                />
-
-                <AppSelect
-                  label="Workspace Type"
-                  name="workspaceType"
-                  value={formData.workspaceType}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  error={Boolean(formErrors.workspaceType)}
-                  helperText={formErrors.workspaceType}
-                  options={workspaceTypes}
-                  size="medium"
-                  variant="soft"
-                  rounded="md"
-                  labelSx={labelSx}
-                  sx={{ width: "100%" }}
-                />
               </div>
 
               <AppStack

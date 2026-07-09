@@ -4,33 +4,6 @@ import subscriptionService from "../services/subscriptionService";
 
 import { getErrorMessage } from "@/utils";
 
-export const purchaseSubscription = createAsyncThunk(
-  "subscription/purchaseSubscription",
-  async (payload, { rejectWithValue }) => {
-    try {
-      const response = await subscriptionService.purchaseSubscription(payload);
-
-      return response.data?.data || null;
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error));
-    }
-  },
-);
-
-export const startTrialSubscription = createAsyncThunk(
-  "subscription/startTrialSubscription",
-  async (payload, { rejectWithValue }) => {
-    try {
-      const response =
-        await subscriptionService.startTrialSubscription(payload);
-
-      return response.data?.data || null;
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error));
-    }
-  },
-);
-
 export const renewSubscription = createAsyncThunk(
   "subscription/renewSubscription",
   async (payload, { rejectWithValue }) => {

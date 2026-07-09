@@ -5,8 +5,6 @@ import { createSlice } from "@reduxjs/toolkit";
 import { API_STATUS } from "@/constants";
 
 import {
-  purchaseSubscription,
-  startTrialSubscription,
   renewSubscription,
   upgradeSubscription,
   scheduleDowngrade,
@@ -31,8 +29,6 @@ const initialState = {
   error: null,
   message: null,
 
-  purchaseSubscriptionStatus: API_STATUS.IDLE,
-  startTrialSubscriptionStatus: API_STATUS.IDLE,
   renewSubscriptionStatus: API_STATUS.IDLE,
   upgradeSubscriptionStatus: API_STATUS.IDLE,
   scheduleDowngradeStatus: API_STATUS.IDLE,
@@ -76,51 +72,7 @@ const subscriptionSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-      // PURCHASE SUBSCRIPTION
-      .addCase(purchaseSubscription.pending, (state) => {
-        state.purchaseSubscriptionStatus = API_STATUS.LOADING;
-        state.error = null;
-        state.message = null;
-      })
-      .addCase(purchaseSubscription.fulfilled, (state, action) => {
-        state.purchaseSubscriptionStatus = API_STATUS.SUCCESS;
 
-        if (action.payload) {
-          state.currentSubscription = action.payload;
-          state.currentWorkspaceSubscription = action.payload;
-          state.workspaceSubscriptions.unshift(action.payload);
-        }
-
-        state.message = "Subscription purchased successfully";
-      })
-      .addCase(purchaseSubscription.rejected, (state, action) => {
-        state.purchaseSubscriptionStatus = API_STATUS.ERROR;
-        state.error = action.payload || "Failed to purchase subscription";
-      })
-
-      // START TRIAL SUBSCRIPTION
-      .addCase(startTrialSubscription.pending, (state) => {
-        state.startTrialSubscriptionStatus = API_STATUS.LOADING;
-        state.error = null;
-        state.message = null;
-      })
-      .addCase(startTrialSubscription.fulfilled, (state, action) => {
-        state.startTrialSubscriptionStatus = API_STATUS.SUCCESS;
-
-        if (action.payload) {
-          state.currentSubscription = action.payload;
-          state.currentWorkspaceSubscription = action.payload;
-          state.workspaceSubscriptions.unshift(action.payload);
-        }
-
-        state.message = "Trial subscription started successfully";
-      })
-      .addCase(startTrialSubscription.rejected, (state, action) => {
-        state.startTrialSubscriptionStatus = API_STATUS.ERROR;
-        state.error = action.payload || "Failed to start trial subscription";
-      })
-
-      // RENEW SUBSCRIPTION
       .addCase(renewSubscription.pending, (state) => {
         state.renewSubscriptionStatus = API_STATUS.LOADING;
         state.error = null;

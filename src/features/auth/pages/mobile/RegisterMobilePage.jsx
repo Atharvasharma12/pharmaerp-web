@@ -1,4 +1,4 @@
-import { FiLock, FiMail, FiPhone, FiUser, FiCheck, FiBriefcase, FiBarChart2 } from "react-icons/fi";
+import { FiLock, FiMail, FiPhone, FiUser, FiCheck, FiBarChart2 } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 
 import { ROUTES } from "@/constants";
@@ -15,16 +15,8 @@ import {
   AppStack,
   AppText,
   AppSwitch,
-  AppSelect,
 } from "@/components";
 
-const WORKSPACE_TYPES = [
-  { label: "Pharmacy", value: "pharmacy" },
-  { label: "Clinic", value: "clinic" },
-  { label: "Hospital", value: "hospital" },
-  { label: "Distributor", value: "distributor" },
-  { label: "Other", value: "other" },
-];
 
 const RegisterMobilePage = ({
   formData,
@@ -35,7 +27,6 @@ const RegisterMobilePage = ({
   handleChange,
   handleAgreeChange,
   handleSubmit,
-  workspaceTypes = [],
 }) => {
   return (
     <section className="relative min-h-screen overflow-hidden bg-bg">
@@ -149,34 +140,6 @@ const RegisterMobilePage = ({
                 error={Boolean(formErrors.confirmPassword)}
                 helperText={formErrors.confirmPassword}
                 placeholder="Confirm your password"
-              />
-
-              <MobileInput
-                label="Workspace Name"
-                name="workspaceName"
-                value={formData.workspaceName}
-                onChange={handleChange}
-                disabled={isLoading}
-                error={Boolean(formErrors.workspaceName)}
-                helperText={formErrors.workspaceName}
-                placeholder="Enter workspace name"
-                startIcon={<FiBriefcase />}
-              />
-
-              <AppSelect
-                label="Workspace Type"
-                name="workspaceType"
-                value={formData.workspaceType}
-                onChange={handleChange}
-                disabled={isLoading}
-                error={Boolean(formErrors.workspaceType)}
-                helperText={formErrors.workspaceType}
-                options={workspaceTypes}
-                size="small"
-                variant="soft"
-                rounded="md"
-                labelSx={labelSx}
-                sx={{ width: "100%" }}
               />
 
               <AppStack

@@ -7,11 +7,9 @@ export const ROUTES = {
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password",
 
-  // Onboarding
-  CREATE_WORKSPACE: "/onboarding/create-workspace",
-  CHOOSE_PLAN: "/onboarding/choose-plan",
-  TRIAL_ACTIVATED: "/onboarding/trial-activated",
-  SUBSCRIPTION_SUCCESS: "/onboarding/subscription-success",
+  // Subscription
+  UPGRADE_PLAN: "/subscription/upgrade-plan",
+  CHECKOUT: "/subscription/checkout",
 
   // Workspace
   WORKSPACE: "/workspace",

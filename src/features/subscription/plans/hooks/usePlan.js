@@ -1,6 +1,16 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
-import { getPlans, getActivePlans, getPlanById } from "../store/planThunk";
+import {
+  getPlans,
+  getActivePlans,
+  getPlanById,
+  createPlan,
+  updatePlan,
+  archivePlan,
+  restorePlan,
+  deletePlan,
+} from "../store/planThunk";
 
 import {
   clearPlanError,
@@ -19,6 +29,11 @@ import {
   selectPlanError,
   selectPlanMessage,
   selectGetActivePlansStatus,
+  selectCreatePlanStatus,
+  selectUpdatePlanStatus,
+  selectArchivePlanStatus,
+  selectRestorePlanStatus,
+  selectDeletePlanStatus,
 } from "../store/planSelector";
 
 const usePlan = () => {
@@ -33,42 +48,67 @@ const usePlan = () => {
   const message = useSelector(selectPlanMessage);
 
   const getActivePlansStatus = useSelector(selectGetActivePlansStatus);
+  const createPlanStatus = useSelector(selectCreatePlanStatus);
+  const updatePlanStatus = useSelector(selectUpdatePlanStatus);
+  const archivePlanStatus = useSelector(selectArchivePlanStatus);
+  const restorePlanStatus = useSelector(selectRestorePlanStatus);
+  const deletePlanStatus = useSelector(selectDeletePlanStatus);
 
-  const fetchPlans = (params = {}) => {
+  const fetchPlans = useCallback((params = {}) => {
     return dispatch(getPlans(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchActivePlans = () => {
+  const fetchActivePlans = useCallback(() => {
     return dispatch(getActivePlans()).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchPlanById = (planId) => {
+  const fetchPlanById = useCallback((planId) => {
     return dispatch(getPlanById(planId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const clearError = () => {
+  const handleCreatePlan = useCallback((payload) => {
+    return dispatch(createPlan(payload)).unwrap();
+  }, [dispatch]);
+
+  const handleUpdatePlan = useCallback((planId, payload) => {
+    return dispatch(updatePlan({ planId, payload })).unwrap();
+  }, [dispatch]);
+
+  const handleArchivePlan = useCallback((planId) => {
+    return dispatch(archivePlan(planId)).unwrap();
+  }, [dispatch]);
+
+  const handleRestorePlan = useCallback((planId) => {
+    return dispatch(restorePlan(planId)).unwrap();
+  }, [dispatch]);
+
+  const handleDeletePlan = useCallback((planId) => {
+    return dispatch(deletePlan(planId)).unwrap();
+  }, [dispatch]);
+
+  const clearError = useCallback(() => {
     dispatch(clearPlanError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearPlanMessage());
-  };
+  }, [dispatch]);
 
-  const saveCurrentPlan = (payload) => {
+  const saveCurrentPlan = useCallback((payload) => {
     dispatch(setCurrentPlan(payload));
-  };
+  }, [dispatch]);
 
-  const removeCurrentPlan = () => {
+  const removeCurrentPlan = useCallback(() => {
     dispatch(clearCurrentPlan());
-  };
+  }, [dispatch]);
 
-  const removePlans = () => {
+  const removePlans = useCallback(() => {
     dispatch(clearPlans());
-  };
+  }, [dispatch]);
 
-  const removeActivePlans = () => {
+  const removeActivePlans = useCallback(() => {
     dispatch(clearActivePlans());
-  };
+  }, [dispatch]);
 
   return {
     plans,
@@ -80,10 +120,20 @@ const usePlan = () => {
     message,
 
     getActivePlansStatus,
+    createPlanStatus,
+    updatePlanStatus,
+    archivePlanStatus,
+    restorePlanStatus,
+    deletePlanStatus,
 
     getPlans: fetchPlans,
     getActivePlans: fetchActivePlans,
     getPlanById: fetchPlanById,
+    createPlan: handleCreatePlan,
+    updatePlan: handleUpdatePlan,
+    archivePlan: handleArchivePlan,
+    restorePlan: handleRestorePlan,
+    deletePlan: handleDeletePlan,
 
     clearError,
     clearMessage,

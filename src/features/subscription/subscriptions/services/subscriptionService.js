@@ -1,14 +1,6 @@
 import { apiClient, ENDPOINTS } from "@/services";
 
 const subscriptionService = {
-  purchaseSubscription(payload) {
-    return apiClient.post(ENDPOINTS.SUBSCRIPTION.PURCHASE, payload);
-  },
-
-  startTrialSubscription(payload) {
-    return apiClient.post(ENDPOINTS.SUBSCRIPTION.TRIAL, payload);
-  },
-
   renewSubscription(payload) {
     return apiClient.post(ENDPOINTS.SUBSCRIPTION.RENEW, payload);
   },

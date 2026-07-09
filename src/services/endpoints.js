@@ -416,25 +416,22 @@ export const ENDPOINTS = {
 
   PLAN: {
     LIST: "/subscription/plans",
-
     ACTIVE: "/subscription/plans/active",
-
     BY_ID: (planId) => `/subscription/plans/${planId}`,
+
+    // Admin write endpoints
+    CREATE: "/subscription/plans",
+    UPDATE: (planId) => `/subscription/plans/${planId}`,
+    ARCHIVE: (planId) => `/subscription/plans/${planId}/archive`,
+    RESTORE: (planId) => `/subscription/plans/${planId}/restore`,
+    DELETE: (planId) => `/subscription/plans/${planId}`,
   },
 
   SUBSCRIPTION: {
-    PURCHASE: "/subscription/subscriptions/purchase",
-
-    TRIAL: "/subscription/subscriptions/trial",
-
     RENEW: "/subscription/subscriptions/renew",
-
     UPGRADE: "/subscription/subscriptions/upgrade",
-
     DOWNGRADE: "/subscription/subscriptions/downgrade",
-
     CHANGE_SEATS: "/subscription/subscriptions/change-seats",
-
     CANCEL: "/subscription/subscriptions/cancel",
 
     BY_ID: (subscriptionId) => `/subscription/subscriptions/${subscriptionId}`,

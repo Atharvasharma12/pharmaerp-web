@@ -20,8 +20,12 @@ import {
   FiX,
 } from "react-icons/fi";
 
-import { AppButton } from "@/components";
+import { AppButton, AppAvatar } from "@/components";
 import { ROUTES } from "@/constants";
+
+import useAuth from "@/features/auth/hooks/useAuth";
+import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import useSubscription from "@/features/subscription/subscriptions/hooks/useSubscription";
 
 const sidebarItems = [
   {
@@ -110,6 +114,27 @@ const sidebarItems = [
 const SIDEBAR_WIDTH = 230;
 
 const AppDesktopSidebar = ({ open = true, onClose }) => {
+  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspaceSubscription, getWorkspaceCurrentSubscription } = useSubscription();
+
+  React.useEffect(() => {
+    if (currentWorkspace?._id) {
+      getWorkspaceCurrentSubscription(currentWorkspace._id).catch(() => {});
+    }
+  }, [currentWorkspace?._id, getWorkspaceCurrentSubscription]);
+
+  const userName = user?.name || user?.fullName || "Admin";
+  const userInitials = userName
+    ?.split(" ")
+    ?.map((word) => word?.[0])
+    ?.join("")
+    ?.slice(0, 2)
+    ?.toUpperCase();
+
+  const planType = currentWorkspaceSubscription?.currentPlanSnapshot?.type || "free";
+  const isFree = planType === "free" || currentWorkspaceSubscription?.isFree || !currentWorkspaceSubscription;
+
   return (
     <div
       className={[
@@ -182,64 +207,60 @@ const AppDesktopSidebar = ({ open = true, onClose }) => {
           </nav>
 
           <div className="shrink-0 space-y-3 px-3 pb-4">
-            <div className="rounded-xl border border-primary/15 bg-primary-soft/60 p-3">
-              <div className="text-[11px] font-medium text-text-muted">
-                Your Plan
-              </div>
-
-              <div className="mt-1 text-[14px] font-semibold text-primary">
-                Starter Trial
-              </div>
-
-              <div className="my-3 h-px bg-border" />
-
-              <div className="text-[11px] font-medium text-text">
-                14 Days Left in Trial
-              </div>
-
-              <div className="mt-1 text-[11px] text-text-muted">
-                Expires on 28 May 2024
-              </div>
-
-              <AppButton
-                fullWidth
-                variant="contained"
-                colorVariant="primary"
-                rounded="lg"
-                sx={{
-                  mt: 2,
-                  py: "7px",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  textTransform: "none",
-                }}
-              >
-                Upgrade Plan
-              </AppButton>
-            </div>
-
-            <div className="rounded-xl border border-divider bg-bg/70 p-3">
-              <div className="flex items-start gap-2.5">
-                <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-[17px] text-text-muted">
-                  <FiHelpCircle />
+            {isFree && (
+              <div className="rounded-xl border border-primary/15 bg-primary-soft/60 p-3">
+                <div className="text-[11px] font-medium text-text-muted">
+                  Your Plan
                 </div>
 
-                <div className="min-w-0">
-                  <div className="text-[12px] font-semibold text-text">
-                    Need Help?
-                  </div>
+                <div className="mt-1 text-[14px] font-semibold text-primary">
+                  Free Tier
+                </div>
 
-                  <div className="mt-1 text-[11px] leading-relaxed text-text-muted">
-                    We are here to help you.
-                  </div>
+                <div className="my-3 h-px bg-border" />
 
-                  <NavLink
-                    to="/help-center"
-                    className="mt-2 inline-flex text-[11px] font-semibold text-primary hover:underline"
+                <div className="text-[11px] font-medium text-text">
+                  Lifetime Free Tier
+                </div>
+
+                <div className="mt-1 text-[11px] text-text-muted">
+                  No credit card required.
+                </div>
+
+                <NavLink to={ROUTES.UPGRADE_PLAN} className="w-full block">
+                  <AppButton
+                    fullWidth
+                    variant="contained"
+                    colorVariant="primary"
+                    rounded="lg"
+                    sx={{
+                      mt: 2,
+                      py: "7px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      textTransform: "none",
+                    }}
                   >
-                    Contact Support →
-                  </NavLink>
+                    Upgrade Plan
+                  </AppButton>
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          <div className="shrink-0 border-t border-divider p-3">
+            <div className="flex items-center gap-3 rounded-xl p-2 hover:bg-surface-hover transition duration-200">
+              <AppAvatar name={userName} initials={userInitials} size="small" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[12px] font-semibold text-text">
+                  {userName}
                 </div>
+                <div className="truncate text-[10px] text-text-muted">
+                  {user?.email}
+                </div>
+              </div>
+              <div className="shrink-0 rounded bg-primary-soft px-1.5 py-0.5 text-[10px] font-bold uppercase text-primary">
+                {planType}
               </div>
             </div>
           </div>

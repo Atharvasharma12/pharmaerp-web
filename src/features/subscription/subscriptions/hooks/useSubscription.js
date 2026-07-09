@@ -1,10 +1,9 @@
 // src/features/subscription/subscriptions/hooks/useSubscription.js
 
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
-  purchaseSubscription,
-  startTrialSubscription,
   renewSubscription,
   upgradeSubscription,
   scheduleDowngrade,
@@ -34,8 +33,6 @@ import {
   selectSubscriptionStatus,
   selectSubscriptionError,
   selectSubscriptionMessage,
-  selectPurchaseSubscriptionStatus,
-  selectStartTrialSubscriptionStatus,
   selectRenewSubscriptionStatus,
   selectUpgradeSubscriptionStatus,
   selectScheduleDowngradeStatus,
@@ -64,14 +61,6 @@ const useSubscription = () => {
 
   const message = useSelector(selectSubscriptionMessage);
 
-  const purchaseSubscriptionStatus = useSelector(
-    selectPurchaseSubscriptionStatus,
-  );
-
-  const startTrialSubscriptionStatus = useSelector(
-    selectStartTrialSubscriptionStatus,
-  );
-
   const renewSubscriptionStatus = useSelector(selectRenewSubscriptionStatus);
 
   const upgradeSubscriptionStatus = useSelector(
@@ -92,82 +81,74 @@ const useSubscription = () => {
     selectValidateSeatAvailabilityStatus,
   );
 
-  const submitPurchaseSubscription = (payload) => {
-    return dispatch(purchaseSubscription(payload)).unwrap();
-  };
-
-  const submitStartTrialSubscription = (payload) => {
-    return dispatch(startTrialSubscription(payload)).unwrap();
-  };
-
-  const submitRenewSubscription = (payload) => {
+  const submitRenewSubscription = useCallback((payload) => {
     return dispatch(renewSubscription(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitUpgradeSubscription = (payload) => {
+  const submitUpgradeSubscription = useCallback((payload) => {
     return dispatch(upgradeSubscription(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitScheduleDowngrade = (payload) => {
+  const submitScheduleDowngrade = useCallback((payload) => {
     return dispatch(scheduleDowngrade(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitChangeSeatQuantity = (payload) => {
+  const submitChangeSeatQuantity = useCallback((payload) => {
     return dispatch(changeSeatQuantity(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitCancelSubscription = (payload) => {
+  const submitCancelSubscription = useCallback((payload) => {
     return dispatch(cancelSubscription(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchSubscriptionById = (subscriptionId) => {
+  const fetchSubscriptionById = useCallback((subscriptionId) => {
     return dispatch(getSubscriptionById(subscriptionId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchWorkspaceCurrentSubscription = (workspaceId) => {
+  const fetchWorkspaceCurrentSubscription = useCallback((workspaceId) => {
     return dispatch(getWorkspaceCurrentSubscription(workspaceId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchWorkspaceSubscriptions = (workspaceId) => {
+  const fetchWorkspaceSubscriptions = useCallback((workspaceId) => {
     return dispatch(getWorkspaceSubscriptions(workspaceId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitSyncActiveSeatCount = (workspaceId) => {
+  const submitSyncActiveSeatCount = useCallback((workspaceId) => {
     return dispatch(syncActiveSeatCount(workspaceId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitValidateSeatAvailability = (workspaceId, params = {}) => {
+  const submitValidateSeatAvailability = useCallback((workspaceId, params = {}) => {
     return dispatch(
       validateSeatAvailability({
         workspaceId,
         params,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearSubscriptionError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearSubscriptionMessage());
-  };
+  }, [dispatch]);
 
-  const saveCurrentSubscription = (payload) => {
+  const saveCurrentSubscription = useCallback((payload) => {
     dispatch(setCurrentSubscription(payload));
-  };
+  }, [dispatch]);
 
-  const removeCurrentSubscription = () => {
+  const removeCurrentSubscription = useCallback(() => {
     dispatch(clearCurrentSubscription());
-  };
+  }, [dispatch]);
 
-  const removeWorkspaceSubscriptions = () => {
+  const removeWorkspaceSubscriptions = useCallback(() => {
     dispatch(clearWorkspaceSubscriptions());
-  };
+  }, [dispatch]);
 
-  const removeSeatAvailability = () => {
+  const removeSeatAvailability = useCallback(() => {
     dispatch(clearSeatAvailability());
-  };
+  }, [dispatch]);
 
   return {
     workspaceSubscriptions,
@@ -181,8 +162,6 @@ const useSubscription = () => {
     error,
     message,
 
-    purchaseSubscriptionStatus,
-    startTrialSubscriptionStatus,
     renewSubscriptionStatus,
     upgradeSubscriptionStatus,
     scheduleDowngradeStatus,
@@ -191,10 +170,6 @@ const useSubscription = () => {
 
     syncActiveSeatCountStatus,
     validateSeatAvailabilityStatus,
-
-    purchaseSubscription: submitPurchaseSubscription,
-
-    startTrialSubscription: submitStartTrialSubscription,
 
     renewSubscription: submitRenewSubscription,
 

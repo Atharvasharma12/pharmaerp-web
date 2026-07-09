@@ -12,14 +12,6 @@ import { setCurrentSubscription } from "@/features/subscription/subscriptions/st
 import RegisterDesktopPage from "./desktop/RegisterDesktopPage";
 import RegisterMobilePage from "./mobile/RegisterMobilePage";
 
-export const WORKSPACE_TYPE = {
-  PHARMACY: "pharmacy",
-  CLINIC: "clinic",
-  HOSPITAL: "hospital",
-  DISTRIBUTOR: "distributor",
-  OTHER: "other",
-};
-
 const RegisterPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -34,19 +26,9 @@ const RegisterPage = () => {
     phone: "",
     password: "",
     confirmPassword: "",
-    workspaceName: "",
-    workspaceType: WORKSPACE_TYPE.PHARMACY,
   });
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const workspaceTypes = [
-    { label: "Pharmacy", value: WORKSPACE_TYPE.PHARMACY },
-    { label: "Clinic", value: WORKSPACE_TYPE.CLINIC },
-    { label: "Hospital", value: WORKSPACE_TYPE.HOSPITAL },
-    { label: "Distributor", value: WORKSPACE_TYPE.DISTRIBUTOR },
-    { label: "Other", value: WORKSPACE_TYPE.OTHER },
-  ];
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -97,12 +79,6 @@ const RegisterPage = () => {
     if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = "Passwords do not match";
     }
-    if (!formData.workspaceName?.trim()) {
-      errors.workspaceName = "Workspace name is required";
-    }
-    if (!Object.values(WORKSPACE_TYPE).includes(formData.workspaceType)) {
-      errors.workspaceType = "Select a valid workspace type";
-    }
     if (!agree) {
       errors.agree = "Please accept terms and privacy policy";
     }
@@ -117,8 +93,6 @@ const RegisterPage = () => {
       email: formData.email.trim().toLowerCase(),
       phone: formData.phone.trim(),
       password: formData.password,
-      workspaceName: formData.workspaceName.trim(),
-      workspaceType: formData.workspaceType,
     };
 
     if (!payload.phone) {
@@ -159,7 +133,6 @@ const RegisterPage = () => {
     agree,
     isLoading: isSubmitting,
     error,
-    workspaceTypes,
     handleChange,
     handleAgreeChange,
     handleSubmit,
