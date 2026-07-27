@@ -38,6 +38,8 @@ import categoryMasterRoutes from "@/features/category-master/routes/categoryMast
 import productFormMasterRoutes from "@/features/product-form-master/routes/productFormMasterRoutes";
 import saltMasterRoutes from "@/features/salt-master/routes/saltMasterRoutes";
 import bankMasterRoutes from "@/features/bank-master/routes/bankMasterRoutes";
+import marketplaceStoreRoutes from "@/features/marketplace/stores/routes/marketplaceStoreRoutes";
+import marketplaceProductRoutes from "@/features/marketplace/products/routes/marketplaceProductRoutes";
 import partiesRoutes from "@/features/parties/routes/partiesRoutes";
 import customerRoutes from "@/features/parties/customers/routes/customerRoutes";
 import supplierRoutes from "@/features/parties/suppliers/routes/supplierRoutes";
@@ -200,6 +202,9 @@ export const router = createBrowserRouter([
       ...productFormMasterRoutes,
       ...saltMasterRoutes,
       ...bankMasterRoutes,
+      // Marketplace
+      ...marketplaceStoreRoutes,
+      ...marketplaceProductRoutes,
     ],
   },
 

@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -15,13 +16,13 @@ import {
   setCurrentBranch,
   clearCurrentBranch,
   clearBranches,
-  clearManagedBranch, // Added clear reducer
+  clearManagedBranch,
 } from "../store/branchSlice";
 
 import {
   selectBranches,
   selectCurrentBranch,
-  selectManagedBranch, // Added selector
+  selectManagedBranch,
   selectBranchStatus,
   selectBranchError,
   selectBranchMessage,
@@ -38,7 +39,7 @@ const useBranch = () => {
 
   const branches = useSelector(selectBranches);
   const currentBranch = useSelector(selectCurrentBranch);
-  const managedBranch = useSelector(selectManagedBranch); // Added hook state
+  const managedBranch = useSelector(selectManagedBranch);
 
   const status = useSelector(selectBranchStatus);
   const error = useSelector(selectBranchError);
@@ -53,58 +54,65 @@ const useBranch = () => {
   const updateBranchStatus = useSelector(selectUpdateBranchStatus);
   const deleteBranchStatus = useSelector(selectDeleteBranchStatus);
 
-  const submitCreateBranch = (payload) => {
-    return dispatch(createBranch(payload)).unwrap();
-  };
+  const submitCreateBranch = useCallback(
+    (payload) => dispatch(createBranch(payload)).unwrap(),
+    [dispatch],
+  );
 
-  const fetchCompanyBranches = () => {
-    return dispatch(getCompanyBranches()).unwrap();
-  };
+  const fetchCompanyBranches = useCallback(
+    () => dispatch(getCompanyBranches()).unwrap(),
+    [dispatch],
+  );
 
-  const fetchWorkspaceBranches = () => {
-    return dispatch(getWorkspaceBranches()).unwrap();
-  };
+  const fetchWorkspaceBranches = useCallback(
+    () => dispatch(getWorkspaceBranches()).unwrap(),
+    [dispatch],
+  );
 
-  const fetchBranchById = (branchId) => {
-    return dispatch(getBranchById(branchId)).unwrap();
-  };
+  const fetchBranchById = useCallback(
+    (branchId) => dispatch(getBranchById(branchId)).unwrap(),
+    [dispatch],
+  );
 
-  const submitUpdateBranch = (branchId, payload) => {
-    return dispatch(
-      updateBranch({
-        branchId,
-        payload,
-      }),
-    ).unwrap();
-  };
+  const submitUpdateBranch = useCallback(
+    (branchId, payload) =>
+      dispatch(
+        updateBranch({
+          branchId,
+          payload,
+        }),
+      ).unwrap(),
+    [dispatch],
+  );
 
-  const submitDeleteBranch = (branchId) => {
-    return dispatch(deleteBranch(branchId)).unwrap();
-  };
+  const submitDeleteBranch = useCallback(
+    (branchId) => dispatch(deleteBranch(branchId)).unwrap(),
+    [dispatch],
+  );
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearBranchError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearBranchMessage());
-  };
+  }, [dispatch]);
 
-  const saveCurrentBranch = (payload) => {
+  const saveCurrentBranch = useCallback((payload) => {
     dispatch(setCurrentBranch(payload));
-  };
+  }, [dispatch]);
 
-  const removeCurrentBranch = () => {
+  const removeCurrentBranch = useCallback(() => {
     dispatch(clearCurrentBranch());
-  };
+  }, [dispatch]);
 
-  const removeBranches = () => {
+  const removeBranches = useCallback(() => {
     dispatch(clearBranches());
-  };
+  }, [dispatch]);
 
-  const removeManagedBranch = () => {
+  const removeManagedBranch = useCallback(() => {
     dispatch(clearManagedBranch());
-  };
+  }, [dispatch]);
 
   return {
     branches,

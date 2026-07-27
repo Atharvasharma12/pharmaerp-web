@@ -69,6 +69,11 @@ const sidebarItems = [
     icon: <FiBox />,
   },
   {
+    label: "Marketplace",
+    path: ROUTES.MARKETPLACE,
+    icon: <FiShoppingCart />,
+  },
+  {
     label: "Finance & Accounting",
     path: ROUTES.FINANCE,
     icon: <FiDollarSign />,

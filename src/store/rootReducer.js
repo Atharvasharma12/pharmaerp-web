@@ -47,6 +47,9 @@ import productFormMasterReducer from "@/features/product-form-master/store/produ
 import saltMasterReducer from "@/features/salt-master/store/saltMasterSlice";
 import bankMasterReducer from "@/features/bank-master/store/bankMasterSlice";
 
+import marketplaceStoreReducer from "@/features/marketplace/stores/store/marketplaceStoreSlice";
+import marketplaceProductReducer from "@/features/marketplace/products/store/marketplaceProductSlice";
+
 // ---------------------
 // App Reducer
 // ---------------------
@@ -105,6 +108,10 @@ const appReducer = combineReducers({
   productFormMaster: productFormMasterReducer,
   saltMaster: saltMasterReducer,
   bankMaster: bankMasterReducer,
+
+  // Marketplace
+  marketplaceStore: marketplaceStoreReducer,
+  marketplaceProduct: marketplaceProductReducer,
 });
 
 /**

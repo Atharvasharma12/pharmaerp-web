@@ -247,6 +247,25 @@ export const ROUTES = {
 
   BANK_MASTER: "/catalog/bank-master",
 
+  // Marketplace Portal
+  MARKETPLACE: "/marketplace",
+
+  // Marketplace Stores
+  MARKETPLACE_STORES: "/marketplace/stores",
+  CREATE_MARKETPLACE_STORE: "/marketplace/stores/create",
+  MARKETPLACE_STORE_DETAILS: (storeId = ":storeId") =>
+    `/marketplace/stores/${storeId}`,
+  EDIT_MARKETPLACE_STORE: (storeId = ":storeId") =>
+    `/marketplace/stores/${storeId}/edit`,
+
+  // Marketplace Products
+  MARKETPLACE_PRODUCTS: "/marketplace/products",
+  CREATE_MARKETPLACE_PRODUCT: "/marketplace/products/create",
+  MARKETPLACE_PRODUCT_DETAILS: (productId = ":productId") =>
+    `/marketplace/products/${productId}`,
+  EDIT_MARKETPLACE_PRODUCT: (productId = ":productId") =>
+    `/marketplace/products/${productId}/edit`,
+
   // Setup
   SETUP_CENTER: "/setup",
 

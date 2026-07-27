@@ -310,6 +310,22 @@ export const ENDPOINTS = {
     CANCEL: (chequeId) => `/finance/treasury/cheques/${chequeId}/cancel`,
   },
 
+  MARKETPLACE_STORE: {
+    CREATE: "/marketplace/stores",
+    LIST: "/marketplace/stores",
+    BY_ID: (storeId) => `/marketplace/stores/${storeId}`,
+    GO_ONLINE: (storeId) => `/marketplace/stores/${storeId}/go-online`,
+    GO_OFFLINE: (storeId) => `/marketplace/stores/${storeId}/go-offline`,
+    PAUSE: (storeId) => `/marketplace/stores/${storeId}/pause`,
+    RESUME: (storeId) => `/marketplace/stores/${storeId}/resume`,
+  },
+
+  MARKETPLACE_PRODUCT: {
+    CREATE: "/marketplace/products",
+    LIST: "/marketplace/products",
+    BY_ID: (productId) => `/marketplace/products/${productId}`,
+  },
+
   WORKSPACE_PRODUCTS: {
     // Search before creating a workspace product
     SEARCH_BEFORE_CREATE: "/catalog/products/search",
@@ -412,6 +428,10 @@ export const ENDPOINTS = {
       `/core/access-control/check/company/${companyId}`,
 
     CHECK_BRANCH: (branchId) => `/core/access-control/check/branch/${branchId}`,
+  },
+
+  MARKETPLACE_PRICING: {
+    CATALOG: "/marketplace/pricing/catalog",
   },
 
   PLAN: {
