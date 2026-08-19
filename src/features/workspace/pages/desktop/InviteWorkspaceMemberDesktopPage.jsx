@@ -1,5 +1,3 @@
-// src/features/workspace/pages/desktop/InviteWorkspaceMemberDesktopPage.jsx
-
 import {
   FiArrowLeft,
   FiCheck,
@@ -7,15 +5,19 @@ import {
   FiClock,
   FiGlobe,
   FiInfo,
+  FiKey,
   FiMail,
   FiMapPin,
+  FiPhone,
   FiRefreshCcw,
   FiSend,
   FiShield,
   FiShoppingBag,
   FiTrash2,
+  FiUser,
   FiUserPlus,
   FiUsers,
+  FiZap,
 } from "react-icons/fi";
 
 import {
@@ -49,6 +51,8 @@ const InviteWorkspaceMemberDesktopPage = ({
   error,
   message,
 
+  handleModeChange,
+  handleGeneratePassword,
   handleChange,
   handleToggleCompany,
   handleToggleBranchAccess,
@@ -62,6 +66,7 @@ const InviteWorkspaceMemberDesktopPage = ({
 }) => {
   const isAllBranches = Boolean(formData.accessAllBranches);
   const isAllCompanies = Boolean(formData.accessAllCompanies);
+  const isDirectMode = formData.mode === "direct";
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
@@ -104,55 +109,202 @@ const InviteWorkspaceMemberDesktopPage = ({
             sx={formCardSx}
           >
             <AppBox component="form" onSubmit={handleSubmit}>
+              {/* Onboarding Mode Selector */}
+              <div className="flex items-center gap-2 p-1.5 bg-surface-alt/70 rounded-lg border border-border/80 mb-5">
+                <button
+                  type="button"
+                  onClick={() => handleModeChange?.("direct")}
+                  className={`flex-1 py-2 px-3 rounded-md text-xs font-bold transition flex items-center justify-center gap-2 ${
+                    isDirectMode
+                      ? "bg-primary text-text-inverse shadow-sm"
+                      : "text-text-muted hover:text-text hover:bg-surface"
+                  }`}
+                >
+                  <FiZap className={isDirectMode ? "text-amber-300" : ""} />
+                  <span>Direct Add Staff (Instant Onboarding)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleModeChange?.("invite")}
+                  className={`flex-1 py-2 px-3 rounded-md text-xs font-bold transition flex items-center justify-center gap-2 ${
+                    !isDirectMode
+                      ? "bg-primary text-text-inverse shadow-sm"
+                      : "text-text-muted hover:text-text hover:bg-surface"
+                  }`}
+                >
+                  <FiMail />
+                  <span>Send Email Invitation Link</span>
+                </button>
+              </div>
+
               <AppStack direction="row" align="flex-start" gap={1.2}>
-                <IconBox icon={<FiUserPlus />} large />
+                <IconBox icon={isDirectMode ? <FiZap /> : <FiUserPlus />} large />
 
                 <AppBox sx={{ minWidth: 0, flex: 1 }}>
                   <AppHeading level={2} weight={650} sx={sectionTitleSx}>
-                    Invite Team Member & Pre-Configure Roles
+                    {isDirectMode
+                      ? "Create Staff Credentials & Store Access"
+                      : "Invite Team Member & Pre-Configure Roles"}
                   </AppHeading>
 
                   <AppText variant="body2" sx={sectionSubtitleSx}>
-                    Send an invitation link with granular store-level access and dedicated branch roles (e.g. Store Manager of Branch A, Cashier at Branch B).
+                    {isDirectMode
+                      ? "Instantly setup mobile login & password for counter cashiers or billing staff with live store role assignments."
+                      : "Send an email invite link with granular store-level access and dedicated branch roles."}
                   </AppText>
                 </AppBox>
               </AppStack>
 
-              {/* 1. Core Contact & Fallback Role */}
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <AppInput
-                  label="Email Address"
-                  name="email"
-                  type="email"
-                  value={formData.email || ""}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  placeholder="member@example.com"
-                  fullWidth
-                  required
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  startIcon={<FiMail />}
-                  error={Boolean(formErrors.email)}
-                  helperText={
-                    formErrors.email ||
-                    "The invitation and security token will be linked to this email."
-                  }
-                  labelSx={labelSx}
-                  inputSx={inputSx}
-                  helperTextSx={helperTextSx}
-                />
+              {/* 1. Core Profile / Contact Fields */}
+              {isDirectMode ? (
+                <div className="mt-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <AppInput
+                      label="Staff Full Name"
+                      name="fullName"
+                      value={formData.fullName || ""}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      placeholder="e.g. Ramesh Kumar"
+                      fullWidth
+                      required
+                      size="small"
+                      variant="bordered"
+                      rounded="md"
+                      startIcon={<FiUser />}
+                      error={Boolean(formErrors.fullName)}
+                      helperText={formErrors.fullName || "Official employee name"}
+                      labelSx={labelSx}
+                      inputSx={inputSx}
+                      helperTextSx={helperTextSx}
+                    />
 
-                <RoleSelect
-                  value={formData.roleId || ""}
-                  roles={roles}
-                  disabled={isLoading || isFetchingRoles}
-                  isFetchingRoles={isFetchingRoles}
-                  error={formErrors.roleId}
-                  onChange={handleChange}
-                />
-              </div>
+                    <AppInput
+                      label="Mobile Number (Primary Login ID)"
+                      name="phone"
+                      type="tel"
+                      value={formData.phone || ""}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      placeholder="9876543210"
+                      fullWidth
+                      size="small"
+                      variant="bordered"
+                      rounded="md"
+                      startIcon={<FiPhone />}
+                      error={Boolean(formErrors.phone)}
+                      helperText={
+                        formErrors.phone || "10-digit Indian mobile number for POS login"
+                      }
+                      labelSx={labelSx}
+                      inputSx={inputSx}
+                      helperTextSx={helperTextSx}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <AppInput
+                      label="Email Address (Optional)"
+                      name="email"
+                      type="email"
+                      value={formData.email || ""}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      placeholder="staff@example.com (optional)"
+                      fullWidth
+                      size="small"
+                      variant="bordered"
+                      rounded="md"
+                      startIcon={<FiMail />}
+                      error={Boolean(formErrors.email)}
+                      helperText={formErrors.email || "Optional backup email"}
+                      labelSx={labelSx}
+                      inputSx={inputSx}
+                      helperTextSx={helperTextSx}
+                    />
+
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-text mb-1 block">
+                          Password / PIN <span className="text-rose-500">*</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleGeneratePassword}
+                          className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
+                        >
+                          <FiRefreshCcw className="text-[10px]" /> Generate
+                        </button>
+                      </div>
+                      <AppInput
+                        name="password"
+                        value={formData.password || ""}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                        placeholder="••••••••"
+                        fullWidth
+                        required
+                        size="small"
+                        variant="bordered"
+                        rounded="md"
+                        startIcon={<FiKey />}
+                        error={Boolean(formErrors.password)}
+                        helperText={
+                          formErrors.password || "Initial password to hand over to staff"
+                        }
+                        inputSx={inputSx}
+                        helperTextSx={helperTextSx}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <RoleSelect
+                      value={formData.roleId || ""}
+                      roles={roles}
+                      disabled={isLoading || isFetchingRoles}
+                      isFetchingRoles={isFetchingRoles}
+                      error={formErrors.roleId}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <AppInput
+                    label="Email Address"
+                    name="email"
+                    type="email"
+                    value={formData.email || ""}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    placeholder="member@example.com"
+                    fullWidth
+                    required
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    startIcon={<FiMail />}
+                    error={Boolean(formErrors.email)}
+                    helperText={
+                      formErrors.email ||
+                      "The invitation and security token will be linked to this email."
+                    }
+                    labelSx={labelSx}
+                    inputSx={inputSx}
+                    helperTextSx={helperTextSx}
+                  />
+
+                  <RoleSelect
+                    value={formData.roleId || ""}
+                    roles={roles}
+                    disabled={isLoading || isFetchingRoles}
+                    isFetchingRoles={isFetchingRoles}
+                    error={formErrors.roleId}
+                    onChange={handleChange}
+                  />
+                </div>
+              )}
 
               {/* 2. Facility Scope Configuration (PBAC) */}
               <div className="mt-5 rounded-lg border border-border/80 bg-surface-alt/40 p-3.5">
@@ -265,7 +417,12 @@ const InviteWorkspaceMemberDesktopPage = ({
                                     </span>
                                   </div>
                                   <p className="text-[11px] text-text-muted">
-                                    {branch.city || branch.address || "Local Branch"}
+                                    {branch.city ||
+                                      (typeof branch.address === "string"
+                                        ? branch.address
+                                        : branch.address?.city ||
+                                          branch.address?.addressLine1 ||
+                                          "Local Branch")}
                                   </p>
                                 </div>
                               </div>
@@ -391,12 +548,12 @@ const InviteWorkspaceMemberDesktopPage = ({
                     variant="contained"
                     colorVariant="primary"
                     rounded="md"
-                    startIcon={<FiSend />}
+                    startIcon={isDirectMode ? <FiCheckCircle /> : <FiSend />}
                     loading={isInviting}
                     disabled={isLoading || isCheckingWorkspace}
                     sx={primaryButtonSx}
                   >
-                    Send Invitation
+                    {isDirectMode ? "Create & Activate Staff" : "Send Invitation Link"}
                   </AppButton>
                 </AppStack>
               </AppStack>

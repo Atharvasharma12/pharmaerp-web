@@ -38,6 +38,15 @@ export const selectUpdateWorkspaceMemberStatus = (state) =>
 export const selectRemoveWorkspaceMemberStatus = (state) =>
   state.workspace.removeWorkspaceMemberStatus;
 
+export const selectDirectCreateWorkspaceMemberStatus = (state) =>
+  state.workspace.directCreateWorkspaceMemberStatus;
+
+export const selectResetMemberPasswordStatus = (state) =>
+  state.workspace.resetMemberPasswordStatus;
+
+export const selectLastCreatedMemberCredentials = (state) =>
+  state.workspace.lastCreatedMemberCredentials;
+
 export const selectInviteWorkspaceMemberStatus = (state) =>
   state.workspace.inviteWorkspaceMemberStatus;
 

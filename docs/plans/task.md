@@ -1,11 +1,10 @@
 | Task | Status | Notes |
 | --- | --- | --- |
-| Task 1: Extend Backend Models for PBAC | done | Updated memberAccess.model.js and workspaceInvitation.model.js with branchAccess & facility scoping |
-| Task 2: Update Backend Invitation & Access Services | done | Implemented atomic MemberAccess provisioning, accept-signup, resend, update, and validations |
-| Task 3: Dynamic Per-Branch Role Resolution in Permission Middleware | done | Integrated branchAccess role override resolution in permission.middleware.js |
-| Task 4: Update Frontend API Endpoints & Redux Store | done | Updated endpoints, workspaceService, thunks, slices, selectors, and useWorkspace hook |
-| Task 5: Enhance InviteWorkspaceMemberPage with Multi-Branch Role Assignment | done | Built branch & company facility selector with per-branch role matrix & marketplace toggles |
-| Task 6: Create Dedicated Public Accept Invitation & Signup Page | done | Created AcceptInvitationPage.jsx with PBAC previews and integrated seamless signup flow |
-| Task 7: Update WorkspaceInvitationsPage with Resend, Copy Link & Store Preview | done | Added Resend action, Copy link, and Store Footprint indicators in desktop & mobile pages |
-| Task 8: Build Member Store Access Matrix Controls in WorkspaceMembersPage | done | Integrated Store & Role Access management actions into members roster |
-| Task 9: Verification & Testing | done | Verified with node --check on backend files and full vite production build on frontend |
+| Task 1: Backend Dual Phone & Email Login Support | done | Enabled login by 10-digit mobile number or email in auth service, repo, and validation |
+| Task 2: Backend Direct Member Creation API | done | Built atomic directCreateMember endpoint with PBAC provisioning |
+| Task 3: Backend Admin Member Password Reset API | done | Implemented resetMemberPassword controller and route for store admins |
+| Task 4: Frontend Redux Store & Service Integration | done | Updated endpoints, workspace service, thunks, slice, and useWorkspace hook |
+| Task 5: Frontend Direct Add Staff Page / Multi-Mode Onboarding | done | Added Direct Add / Invite tabs with store PBAC matrix and WhatsApp credential slip |
+| Task 6: Frontend Member Password Reset Modal in WorkspaceMembersPage | done | Integrated Admin Password Reset modal in desktop and mobile member rosters |
+| Task 7: Frontend Phone & Email Login Input | done | Supported 10-digit mobile number or email in login validation & UI |
+| Task 8: Verification & Testing | done | Backend node syntax checks and frontend production build verified clean (code 0) |

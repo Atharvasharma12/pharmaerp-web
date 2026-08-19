@@ -118,6 +118,39 @@ export const removeWorkspaceMember = createAsyncThunk(
   },
 );
 
+export const directCreateWorkspaceMember = createAsyncThunk(
+  "workspace/directCreateWorkspaceMember",
+  async ({ workspaceId, payload }, { rejectWithValue }) => {
+    try {
+      const response = await workspaceService.directCreateWorkspaceMember(
+        workspaceId,
+        payload,
+      );
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const resetMemberPassword = createAsyncThunk(
+  "workspace/resetMemberPassword",
+  async ({ workspaceId, memberUserId, password }, { rejectWithValue }) => {
+    try {
+      const response = await workspaceService.resetMemberPassword(
+        workspaceId,
+        memberUserId,
+        { password },
+      );
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
 export const inviteWorkspaceMember = createAsyncThunk(
   "workspace/inviteWorkspaceMember",
   async ({ workspaceId, payload }, { rejectWithValue }) => {

@@ -1,22 +1,13 @@
-import { FiLock, FiMail, FiPhone, FiUser, FiCheck, FiBarChart2 } from "react-icons/fi";
-import { FcGoogle } from "react-icons/fc";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { User, Mail, Lock, ShieldCheck, Check } from "lucide-react";
 
 import { ROUTES } from "@/constants";
-
-import {
-  AppBox,
-  AppButton,
-  AppCard,
-  AppCheckbox,
-  AppHeading,
-  AppInput,
-  AppLink,
-  AppPasswordInput,
-  AppStack,
-  AppText,
-  AppSwitch,
-} from "@/components";
-
+import AuthButton from "../../components/AuthButton";
+import AuthInput from "../../components/AuthInput";
+import AuthPasswordInput from "../../components/AuthPasswordInput";
+import SocialButton from "../../components/SocialButton";
+import RegisterIllustration from "../../components/RegisterIllustration";
 
 const RegisterMobilePage = ({
   formData,
@@ -29,427 +20,190 @@ const RegisterMobilePage = ({
   handleSubmit,
 }) => {
   return (
-    <section className="relative min-h-screen overflow-hidden bg-bg">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_10%,color-mix(in_srgb,var(--app-color-primary)_9%,transparent),transparent_36%)]" />
+    <section className="relative flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-x-hidden bg-bg px-3.5 sm:px-4 pt-4 pb-16 sm:pb-20 selection:bg-primary-soft selection:text-primary">
+      {/* Background ambient decorative glows */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute top-1/6 -left-16 size-56 rounded-full bg-primary-soft blur-3xl opacity-60" />
+        <div className="absolute bottom-1/6 -right-16 size-56 rounded-full bg-blue-500/10 blur-3xl opacity-60" />
+      </div>
 
-      <AppBox
-        sx={{
-          position: "relative",
-          zIndex: 1,
-          width: "100%",
-          maxWidth: { xs: 390, sm: 430, md: 460 },
-          minHeight: "100vh",
-          mx: "auto",
-          px: { xs: 2, sm: 2.5 },
-          pt: { xs: 2.4, sm: 3 },
-          pb: { xs: 2, sm: 2.5 },
-        }}
+      {/* Mobile Card Container per DESIGN_STANDARDS §4 (rounded-[18px]) & §2.2 */}
+      <motion.div
+        initial={{ opacity: 0, transform: "translateY(20px) scale(0.98)" }}
+        animate={{ opacity: 1, transform: "translateY(0px) scale(1)" }}
+        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+        className="relative z-10 my-auto w-full max-w-[390px] overflow-hidden rounded-[18px] border border-border bg-surface p-5 sm:p-6 shadow-[var(--app-shadow-lg)]"
       >
-        <AppBox sx={headerSx}>
-          <AppHeading level={2} weight={800} align="center" sx={titleSx}>
-            Create Account
-          </AppHeading>
+        {/* ── TOP ILLUSTRATION MATCHING REFERENCE IMAGE 2 ─────────────── */}
+        <div className="flex justify-center pb-1">
+          <RegisterIllustration className="flex justify-center" />
+        </div>
 
-          <AppText variant="body2" align="center" weight={600} sx={subtitleSx}>
-            Register to start managing your pharmacy smarter
-          </AppText>
-        </AppBox>
+        {/* ── HEADER ─────────────────────────────────────────────────── */}
+        <div className="text-center mt-1">
+          {/* Mobile Title: Exactly one <h1> per screen, 22px font-extrabold per DESIGN_STANDARDS §1.3 */}
+          <h1 className="text-[22px] font-extrabold tracking-tight text-text leading-[1.2]">
+            Sign Up
+          </h1>
+          {/* Mobile Secondary Body: 13px per DESIGN_STANDARDS §1.3 */}
+          <p className="mt-1 text-[13px] text-text-muted leading-[1.55]">
+            Use proper information to continue
+          </p>
+        </div>
 
-        <AppCard
-          variant="default"
-          rounded="xl"
-          bordered
-          shadow="md"
-          padding="none"
-          sx={cardSx}
-        >
-          {error && <AppBox sx={errorBoxSx}>{error}</AppBox>}
-
-          <AppBox
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{ width: "100%" }}
+        {/* Error message banner */}
+        {(error || formErrors.submit) && (
+          <div
+            className="mt-3 flex items-start gap-2 rounded-[8px] border border-error/30 bg-error-soft px-3.5 py-2.5"
+            role="alert"
           >
-            <AppStack
-              direction="column"
-              align="stretch"
-              gap={1.25}
-              sx={{ width: "100%" }}
-            >
-              <MobileInput
-                label="Full Name"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                disabled={isLoading}
-                error={Boolean(formErrors.fullName)}
-                helperText={formErrors.fullName}
-                placeholder="Enter your full name"
-                startIcon={<FiUser />}
-              />
+            <ShieldCheck size={16} className="mt-0.5 shrink-0 text-error" />
+            <p className="text-xs font-medium text-error leading-[1.4]">
+              {error || formErrors.submit}
+            </p>
+          </div>
+        )}
 
-              <MobileInput
-                label="Email Address"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={isLoading}
-                error={Boolean(formErrors.email)}
-                helperText={formErrors.email}
-                placeholder="Enter your email address"
-                startIcon={<FiMail />}
-              />
+        {/* ── FORM: gap-3 per DESIGN_STANDARDS §2.2 ─────────────────── */}
+        <form onSubmit={handleSubmit} noValidate className="mt-4">
+          <div className="flex flex-col gap-3">
+            {/* Full Name Field */}
+            <AuthInput
+              id="mobile-name"
+              type="text"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleChange}
+              disabled={isLoading}
+              placeholder="Full name"
+              autoComplete="name"
+              required
+              icon={<User size={16} />}
+              error={formErrors.fullName}
+            />
 
-              <MobileInput
-                label="Phone Number"
-                name="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={handleChange}
-                disabled={isLoading}
-                error={Boolean(formErrors.phone)}
-                helperText={
-                  formErrors.phone || "Optional 10-digit Indian mobile number"
-                }
-                placeholder="Enter your phone number"
-                startIcon={<FiPhone />}
-                prefix="+91"
-                inputProps={{ maxLength: 10 }}
-              />
+            {/* Email Address Field */}
+            <AuthInput
+              id="mobile-email"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              disabled={isLoading}
+              placeholder="Email address"
+              autoComplete="email"
+              required
+              icon={<Mail size={16} />}
+              error={formErrors.email}
+            />
 
+            {/* Password Field */}
+            <AuthPasswordInput
+              id="mobile-password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              disabled={isLoading}
+              placeholder="Password"
+              autoComplete="new-password"
+              required
+              icon={<Lock size={16} />}
+              error={formErrors.password}
+            />
 
+            {/* Confirm Password Field */}
+            <AuthPasswordInput
+              id="mobile-confirm-password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              disabled={isLoading}
+              placeholder="Confirm Password"
+              autoComplete="new-password"
+              required
+              icon={<Lock size={16} />}
+              error={formErrors.confirmPassword}
+            />
 
-              <MobilePassword
-                label="Password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={isLoading}
-                error={Boolean(formErrors.password)}
-                helperText={formErrors.password || "Minimum 6 characters"}
-                placeholder="Create a password"
-              />
-
-              <MobilePassword
-                label="Confirm Password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                disabled={isLoading}
-                error={Boolean(formErrors.confirmPassword)}
-                helperText={formErrors.confirmPassword}
-                placeholder="Confirm your password"
-              />
-
-              <AppStack
-                direction="row"
-                align="flex-start"
-                gap={0.7}
-                sx={{ mt: 0.4 }}
-              >
-                <AppCheckbox
-                  checked={agree}
-                  onChange={handleAgreeChange}
-                  disabled={isLoading}
-                  colorVariant="primary"
-                  size="small"
-                  sx={{
-                    m: 0,
-                    mt: 0.1,
-                    height: 20,
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                  checkboxSx={{ p: 0.25 }}
-                />
-
-                <AppText variant="body2" sx={agreeTextSx}>
-                  I agree to the{" "}
-                  <AppLink href="/terms" underline="none" sx={linkSx}>
-                    Terms
-                  </AppLink>{" "}
+            {/* Terms & Conditions Notice per Reference Image 2 */}
+            <div className="mt-1">
+              <label className="flex items-start gap-2 cursor-pointer select-none">
+                <div className="relative mt-0.5 flex items-center justify-center shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={agree}
+                    onChange={handleAgreeChange}
+                    disabled={isLoading}
+                    className="peer sr-only"
+                  />
+                  <div className="size-4 rounded-[4px] border border-border bg-surface transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 flex items-center justify-center text-white">
+                    {agree && <Check size={12} strokeWidth={3} />}
+                  </div>
+                </div>
+                <span className="text-[11.5px] text-text-muted leading-[1.45]">
+                  By signing up, you agree to our{" "}
+                  <Link to="/terms" className="font-bold text-primary hover:underline">
+                    Terms & Conditions
+                  </Link>{" "}
                   and{" "}
-                  <AppLink href="/privacy" underline="none" sx={linkSx}>
+                  <Link to="/privacy" className="font-bold text-primary hover:underline">
                     Privacy Policy
-                  </AppLink>
-                </AppText>
-              </AppStack>
-
+                  </Link>
+                </span>
+              </label>
               {formErrors.agree && (
-                <AppText variant="body2" sx={agreeErrorSx}>
+                <p className="mt-1 text-xs font-medium text-error leading-[1.4]">
                   {formErrors.agree}
-                </AppText>
+                </p>
               )}
+            </div>
 
-              {formErrors.submit && (
-                <AppText variant="body2" sx={{ mt: -0.4, fontSize: "11.2px", fontWeight: 600, color: "var(--app-color-error)" }}>
-                  {formErrors.submit}
-                </AppText>
-              )}
+            {/* Primary Create Account Button */}
+            <AuthButton
+              type="submit"
+              variant="primary"
+              fullWidth
+              loading={isLoading}
+              disabled={isLoading}
+              className="mt-1.5"
+            >
+              {isLoading ? "Creating Account..." : "Create Account"}
+            </AuthButton>
+          </div>
+        </form>
 
-              <AppButton
-                type="submit"
-                variant="contained"
-                colorVariant="primary"
-                rounded="md"
-                fullWidth
-                loading={isLoading}
-                disabled={isLoading}
-                sx={submitButtonSx}
-              >
-                Register & Get Started
-              </AppButton>
+        {/* ── DIVIDER: Or Continue with ─────────────────────────────────── */}
+        <div className="relative my-4 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <span className="relative bg-surface px-3 text-xs font-medium text-text-muted">
+            Or Continue with
+          </span>
+        </div>
 
-              <AppStack
-                direction="row"
-                align="center"
-                justify="center"
-                gap={1.1}
-                sx={{ width: "100%", my: 0.2 }}
-              >
-                <AppBox sx={dividerSx} />
+        {/* ── GOOGLE SSO BUTTON & SIGN IN CONTAINER ────────────────────── */}
+        <div className="flex flex-col gap-4">
+          <SocialButton
+            provider="google"
+            label="Sign in with Google"
+            disabled={isLoading}
+            fullWidth
+          />
 
-                <AppText variant="body2" weight={650} sx={orSx}>
-                  OR
-                </AppText>
-
-                <AppBox sx={dividerSx} />
-              </AppStack>
-
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="neutral"
-                rounded="md"
-                fullWidth
-                startIcon={<FcGoogle />}
-                disabled={isLoading}
-                sx={googleButtonSx}
-              >
-                Continue with Google
-              </AppButton>
-            </AppStack>
-          </AppBox>
-        </AppCard>
-
-        <AppBox sx={{ width: "100%", textAlign: "center", mt: 1.75 }}>
-          <AppText variant="body2" weight={650} sx={loginTextSx}>
-            Already have an account?{" "}
-            <AppLink href={ROUTES.LOGIN} underline="none" sx={linkSx}>
-              Login
-            </AppLink>
-          </AppText>
-        </AppBox>
-
-        <AppBox sx={footerSx}>
-          <FiLock style={{ color: "var(--app-color-primary)", fontSize: 13 }} />
-
-          <AppText variant="body2" weight={650} sx={safeTextSx}>
-            Your data is safe and secure with us.
-          </AppText>
-        </AppBox>
-      </AppBox>
+          <p className="text-center text-[13px] text-text-muted leading-[1.55]">
+            Already have an Account?{" "}
+            <Link
+              to={ROUTES.LOGIN}
+              className="font-bold text-primary transition-colors hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-[4px]"
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </motion.div>
     </section>
   );
 };
-
-const headerSx = {
-  width: "100%",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  textAlign: "center",
-  mt: { xs: 1.2, sm: 1.6 },
-};
-
-const titleSx = {
-  fontSize: { xs: "20px", sm: "23px" },
-  letterSpacing: "-0.35px",
-  color: "var(--app-color-text)",
-};
-
-const subtitleSx = {
-  mt: 0.45,
-  fontSize: { xs: "11.8px", sm: "13px" },
-  color: "var(--app-color-text-muted)",
-};
-
-const cardSx = {
-  mt: 3,
-  width: "100%",
-  px: { xs: 2.2, sm: 2.8 },
-  pt: { xs: 2.6, sm: 3 },
-  pb: { xs: 2.8, sm: 3.2 },
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-md)",
-};
-
-const errorBoxSx = {
-  mb: 1.5,
-  px: 1.3,
-  py: 1,
-  borderRadius: "10px",
-  border: "1px solid var(--app-color-error)",
-  bgcolor: "var(--app-color-error-soft)",
-  color: "var(--app-color-error)",
-  fontSize: "11.5px",
-  fontWeight: 600,
-};
-
-const labelSx = {
-  mb: 0.35,
-  fontSize: "11.6px",
-  fontWeight: 750,
-  color: "var(--app-color-text)",
-};
-
-const inputSx = {
-  height: 40,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-  color: "var(--app-color-text)",
-};
-
-const agreeTextSx = {
-  fontSize: "11.4px",
-  lineHeight: "18px",
-  fontWeight: 650,
-  color: "var(--app-color-text-muted)",
-};
-
-const agreeErrorSx = {
-  mt: -0.4,
-  fontSize: "11.2px",
-  fontWeight: 600,
-  color: "var(--app-color-error)",
-};
-
-const linkSx = {
-  color: "var(--app-color-primary)",
-  fontWeight: 800,
-};
-
-const submitButtonSx = {
-  mt: 0.6,
-  height: 46,
-  fontSize: "13.5px",
-  fontWeight: 750,
-  boxShadow: "var(--app-shadow-sm)",
-};
-
-const dividerSx = {
-  height: 1,
-  flex: 1,
-  bgcolor: "var(--app-color-divider)",
-};
-
-const orSx = {
-  width: "auto",
-  flexShrink: 0,
-  color: "var(--app-color-text-muted)",
-  fontSize: "10.6px",
-};
-
-const googleButtonSx = {
-  height: 44,
-  fontSize: "12.8px",
-  fontWeight: 750,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border-strong)",
-  color: "var(--app-color-text)",
-};
-
-const loginTextSx = {
-  fontSize: "12.4px",
-  color: "var(--app-color-text)",
-};
-
-const footerSx = {
-  width: "100%",
-  mt: 2.1,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 0.55,
-  textAlign: "center",
-};
-
-const safeTextSx = {
-  fontSize: "11.7px",
-  color: "var(--app-color-text-muted)",
-};
-
-const MobileInput = ({
-  label,
-  type = "text",
-  placeholder,
-  startIcon,
-  prefix,
-  name,
-  value,
-  onChange,
-  disabled,
-  error,
-  helperText,
-  inputProps,
-  children,
-  ...props
-}) => (
-  <AppInput
-    label={label}
-    type={type}
-    name={name}
-    value={value}
-    onChange={onChange}
-    disabled={disabled}
-    placeholder={placeholder}
-    fullWidth
-    size="small"
-    variant="bordered"
-    rounded="md"
-    startIcon={startIcon}
-    prefix={prefix}
-    error={error}
-    helperText={helperText}
-    inputProps={inputProps}
-    labelSx={labelSx}
-    inputSx={inputSx}
-    {...props}
-  >
-    {children}
-  </AppInput>
-);
-
-const MobilePassword = ({
-  label,
-  placeholder,
-  name,
-  value,
-  onChange,
-  disabled,
-  error,
-  helperText,
-}) => (
-  <AppPasswordInput
-    label={label}
-    name={name}
-    value={value}
-    onChange={onChange}
-    disabled={disabled}
-    placeholder={placeholder}
-    fullWidth
-    size="small"
-    variant="bordered"
-    rounded="md"
-    startIcon={<FiLock />}
-    error={error}
-    helperText={helperText}
-    labelSx={labelSx}
-    inputSx={inputSx}
-  />
-);
 
 export default RegisterMobilePage;

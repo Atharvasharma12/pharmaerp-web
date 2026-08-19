@@ -780,7 +780,11 @@ const BranchesTabSection = ({ company }) => {
                         {branch.name}
                       </span>
                       <span className="block text-[10.5px] text-text-muted truncate max-w-[240px]">
-                        {branch.address}
+                        {typeof branch.address === "string"
+                          ? branch.address
+                          : [branch.address?.addressLine1, branch.address?.city]
+                              .filter(Boolean)
+                              .join(", ") || "-"}
                       </span>
                     </div>
                   </div>

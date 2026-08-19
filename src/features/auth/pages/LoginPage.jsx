@@ -49,8 +49,10 @@ const LoginPage = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    const rawInput = formData.email.trim();
     const payload = {
-      email: formData.email.trim().toLowerCase(),
+      email: rawInput.toLowerCase(),
+      identifier: rawInput,
       password: formData.password,
     };
 

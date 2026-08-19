@@ -4,6 +4,7 @@ import {
   FiArrowLeft,
   FiCheckCircle,
   FiClock,
+  FiKey,
   FiMail,
   FiMapPin,
   FiMoreHorizontal,
@@ -83,6 +84,7 @@ const WorkspaceMembersDesktopPage = ({
   handleChangeMemberStatus,
   handleRemoveMember,
   handleManageAccess,
+  handleOpenResetPassword,
 
   clearMessage,
 }) => {
@@ -165,6 +167,7 @@ const WorkspaceMembersDesktopPage = ({
           onChangeStatus={handleChangeMemberStatus}
           onRemove={handleRemoveMember}
           onManageAccess={handleManageAccess}
+          onResetPassword={handleOpenResetPassword}
         />
       ),
     },
@@ -566,7 +569,13 @@ const ContactCell = ({ member }) => (
   </AppBox>
 );
 
-const MemberActions = ({ member, onChangeStatus, onRemove, onManageAccess }) => {
+const MemberActions = ({
+  member,
+  onChangeStatus,
+  onRemove,
+  onManageAccess,
+  onResetPassword,
+}) => {
   const isOwner = Boolean(member?.isOwner);
 
   const items = [
@@ -576,6 +585,13 @@ const MemberActions = ({ member, onChangeStatus, onRemove, onManageAccess }) => 
       icon: <FiMapPin />,
       disabled: isOwner,
       onClick: () => onManageAccess?.(member),
+    },
+    {
+      id: "reset-password",
+      label: "Reset Password / PIN",
+      icon: <FiKey />,
+      disabled: isOwner,
+      onClick: () => onResetPassword?.(member),
     },
     { id: "divider-1", type: "divider" },
     {

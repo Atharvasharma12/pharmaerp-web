@@ -74,7 +74,7 @@ const SidebarWorkspaceHeader = ({
             >
               <span>{workspaceName}</span>
             </div>,
-            document.body
+            document.body,
           )}
       </div>
     );

@@ -1,32 +1,13 @@
-import {
-  FiBarChart2,
-  FiCloud,
-  FiHeadphones,
-  FiLock,
-  FiMail,
-  FiPhone,
-  FiShield,
-  FiUser,
-  FiCheck,
-} from "react-icons/fi";
-import { FcGoogle } from "react-icons/fc";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { User, Mail, Phone, Lock, ShieldCheck, Check } from "lucide-react";
 
 import { ROUTES } from "@/constants";
-
-import {
-  AppBox,
-  AppButton,
-  AppCard,
-  AppCheckbox,
-  AppHeading,
-  AppInput,
-  AppLink,
-  AppPasswordInput,
-  AppStack,
-  AppText,
-  AppSwitch,
-} from "@/components";
-
+import AuthButton from "../../components/AuthButton";
+import AuthInput from "../../components/AuthInput";
+import AuthPasswordInput from "../../components/AuthPasswordInput";
+import SocialButton from "../../components/SocialButton";
+import DashboardPreview from "../../components/DashboardPreview";
 
 const RegisterDesktopPage = ({
   formData,
@@ -39,563 +20,248 @@ const RegisterDesktopPage = ({
   handleSubmit,
 }) => {
   return (
-    <section className="relative min-h-screen overflow-hidden bg-bg">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,color-mix(in_srgb,var(--app-color-primary)_8%,transparent),transparent_34%),radial-gradient(circle_at_84%_12%,color-mix(in_srgb,var(--app-color-primary)_4.5%,transparent),transparent_30%)]" />
+    <section className="relative flex min-h-[100dvh] w-full flex-col items-center justify-center bg-bg px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 selection:bg-primary-soft selection:text-primary">
+      {/* Background ambient glows */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute -top-32 -left-32 size-96 rounded-full bg-primary-soft blur-3xl opacity-60" />
+        <div className="absolute -bottom-32 -right-32 size-96 rounded-full bg-blue-500/10 blur-3xl opacity-60" />
+      </div>
 
-      <div className="relative z-10 mx-auto grid min-h-screen max-w-7xl items-start gap-8 px-8 py-8 lg:grid-cols-2 lg:px-12">
-        <AppBox sx={{ pt: 0.5, maxWidth: 520 }}>
-          <AppStack direction="row" align="center" gap={1}>
-            <AppBox
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              sx={{
-                width: 32,
-                height: 32,
-                color: "var(--app-color-primary)",
-                fontSize: "30px",
-                lineHeight: 1,
-              }}
-            >
-              ✚
-            </AppBox>
-
-            <AppHeading level={1} weight={700} sx={brandTitleSx}>
+      {/* Main Outer Container: Multi-Device Responsive (max-w-[1200px], rounded-[16px], my-auto for short screen scrolling) */}
+      <motion.div
+        initial={{ opacity: 0, transform: "translateY(12px) scale(0.98)" }}
+        animate={{ opacity: 1, transform: "translateY(0px) scale(1)" }}
+        transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+        className="relative z-10 my-auto grid w-full max-w-[1200px] overflow-hidden rounded-[16px] border border-border bg-surface shadow-[var(--app-shadow-lg)] lg:grid-cols-12"
+      >
+        {/* ── LEFT PANEL: Form (Responsive for Tablets & Desktops) ───── */}
+        <div className="flex flex-col justify-between p-6 sm:p-8 lg:p-8 xl:p-10 lg:col-span-6 xl:col-span-5">
+          {/* Brand Logo Header */}
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-[8px] bg-slate-900 text-white shadow-xs dark:bg-primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2L2 7.5V16.5L12 22L22 16.5V7.5L12 2ZM13 7V11H17V13H13V17H11V13H7V11H11V7H13Z" />
+              </svg>
+            </div>
+            <span className="text-xl font-bold tracking-tight text-text">
               Pharma<span className="text-primary">ERP</span>
-            </AppHeading>
-          </AppStack>
+            </span>
+          </div>
 
-          <AppHeading level={2} weight={700} sx={heroTitleSx}>
-            Create Your Account and Get Started
-          </AppHeading>
+          {/* Form Content: Centered constraint on tablets, full on desktop split */}
+          <div className="my-auto mx-auto w-full max-w-[420px] py-4 lg:mx-0">
+            <div>
+              {/* Page Title: Exactly one <h1> per page, 28px font-extrabold per DESIGN_STANDARDS §1.2 */}
+              <h1 className="text-[28px] font-extrabold tracking-tight text-text leading-tight">
+                Create an Account
+              </h1>
+              {/* Secondary Body Text: 14px leading-[1.6] per DESIGN_STANDARDS §1.2 */}
+              <p className="mt-1.5 text-sm text-text-muted leading-[1.6]">
+                Join now to streamline your pharmacy operations from day one.
+              </p>
+            </div>
 
-          <AppText variant="body2" sx={heroSubtitleSx}>
-            Manage your pharmacy operations smarter, faster and easier with{" "}
-            <span className="font-bold text-primary">PharmaERP</span>.
-          </AppText>
+            {/* Error Banner */}
+            {(error || formErrors.submit) && (
+              <div
+                className="mt-4 flex items-start gap-2.5 rounded-[8px] border border-error/30 bg-error-soft px-4 py-2.5"
+                role="alert"
+              >
+                <ShieldCheck size={18} className="mt-0.5 shrink-0 text-error" />
+                <p className="text-xs font-medium text-error leading-[1.4]">
+                  {error || formErrors.submit}
+                </p>
+              </div>
+            )}
 
-          <AppStack direction="column" gap={1.7} sx={{ mt: 3 }}>
-            <FeatureItem
-              icon={<FiShield />}
-              title="Secure & Reliable"
-              text="Your data is safe with us. 100% secure."
-            />
-            <FeatureItem
-              icon={<FiCloud />}
-              title="Cloud Based"
-              text="Access your business from anywhere, anytime."
-            />
-            <FeatureItem
-              icon={<FiBarChart2 />}
-              title="Powerful Insights"
-              text="Get real-time reports and grow your business."
-            />
-            <FeatureItem
-              icon={<FiHeadphones />}
-              title="Dedicated Support"
-              text="Our support team is always ready to help you."
-            />
-          </AppStack>
-        </AppBox>
-
-        <AppBox sx={{ pt: 0 }}>
-          <AppCard
-            variant="default"
-            rounded="xl"
-            bordered
-            shadow="md"
-            padding="none"
-            sx={cardSx}
-          >
-            <AppHeading level={2} weight={700} sx={formTitleSx}>
-              Create Account
-            </AppHeading>
-
-            <AppText variant="body2" sx={formSubtitleSx}>
-              Fill in the details below to create your PharmaERP account.
-            </AppText>
-
-            {error && <AppBox sx={errorBoxSx}>{error}</AppBox>}
-
-            <AppBox component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-              <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-2">
-                <CompactInput
-                  label="Full Name"
+            {/* Registration Form: gap-3.5 per DESIGN_STANDARDS §2.2 */}
+            <form onSubmit={handleSubmit} noValidate className="mt-5">
+              <div className="flex flex-col gap-3.5">
+                {/* Full Name Input */}
+                <AuthInput
+                  id="desktop-name"
+                  type="text"
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleChange}
                   disabled={isLoading}
-                  error={Boolean(formErrors.fullName)}
-                  helperText={formErrors.fullName}
-                  placeholder="Enter your full name"
-                  startIcon={<FiUser />}
+                  placeholder="Full Name"
+                  autoComplete="name"
+                  required
+                  icon={<User size={16} />}
+                  error={formErrors.fullName}
                 />
 
-                <CompactInput
-                  label="Email Address"
-                  name="email"
+                {/* Email Address Input */}
+                <AuthInput
+                  id="desktop-email"
                   type="email"
+                  name="email"
                   value={formData.email}
                   onChange={handleChange}
                   disabled={isLoading}
-                  error={Boolean(formErrors.email)}
-                  helperText={formErrors.email}
-                  placeholder="Enter your email address"
-                  startIcon={<FiMail />}
+                  placeholder="Email Address"
+                  autoComplete="email"
+                  required
+                  icon={<Mail size={16} />}
+                  error={formErrors.email}
                 />
 
-                <CompactInput
-                  label="Phone Number"
-                  name="phone"
+                {/* Optional Phone Input */}
+                <AuthInput
+                  id="desktop-phone"
                   type="tel"
+                  name="phone"
                   value={formData.phone}
                   onChange={handleChange}
                   disabled={isLoading}
-                  error={Boolean(formErrors.phone)}
-                  helperText={
-                    formErrors.phone || "Optional 10-digit Indian mobile number"
-                  }
-                  placeholder="Enter your phone number"
-                  startIcon={<FiPhone />}
-                  prefix="+91"
-                  inputProps={{ maxLength: 10 }}
+                  placeholder="10-Digit Mobile (Optional)"
+                  autoComplete="tel"
+                  icon={<Phone size={16} />}
+                  error={formErrors.phone}
+                  maxLength={10}
                 />
 
-
-
-                <CompactPassword
-                  label="Password"
+                {/* Password Input */}
+                <AuthPasswordInput
+                  id="desktop-password"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   disabled={isLoading}
-                  error={Boolean(formErrors.password)}
-                  helperText={formErrors.password || "Minimum 6 characters"}
-                  placeholder="Create a password"
+                  placeholder="Password"
+                  autoComplete="new-password"
+                  required
+                  icon={<Lock size={16} />}
+                  error={formErrors.password}
                 />
-                 <CompactPassword
-                  label="Confirm Password"
+
+                {/* Confirm Password Input */}
+                <AuthPasswordInput
+                  id="desktop-confirm-password"
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   disabled={isLoading}
-                  error={Boolean(formErrors.confirmPassword)}
-                  helperText={formErrors.confirmPassword}
-                  placeholder="Confirm your password"
+                  placeholder="Confirm Password"
+                  autoComplete="new-password"
+                  required
+                  icon={<Lock size={16} />}
+                  error={formErrors.confirmPassword}
                 />
 
-              </div>
+                {/* Terms of Service & Privacy Policy Checkbox */}
+                <div>
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={agree}
+                        onChange={handleAgreeChange}
+                        disabled={isLoading}
+                        className="peer sr-only"
+                      />
+                      <div className="size-4 rounded-[4px] border border-border bg-surface transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 flex items-center justify-center text-white">
+                        {agree && <Check size={12} strokeWidth={3} />}
+                      </div>
+                    </div>
+                    <span className="text-xs text-text-muted leading-[1.4]">
+                      I agree to the{" "}
+                      <Link
+                        to="/terms"
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        Terms of Service
+                      </Link>{" "}
+                      and{" "}
+                      <Link
+                        to="/privacy"
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        Privacy Policy
+                      </Link>
+                    </span>
+                  </label>
+                  {formErrors.agree && (
+                    <p className="mt-1 text-xs font-medium text-error leading-[1.4]">
+                      {formErrors.agree}
+                    </p>
+                  )}
+                </div>
 
-              <AppStack
-                direction="row"
-                align="center"
-                gap={0.7}
-                sx={{ mt: 1.5, height: 24 }}
-              >
-                <AppCheckbox
-                  checked={agree}
-                  onChange={handleAgreeChange}
-                  disabled={isLoading}
-                  colorVariant="primary"
-                  size="small"
-                  sx={{
-                    m: 0,
-                    height: 24,
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                />
-
-                <AppText variant="body2" sx={agreeTextSx}>
-                  I agree to the{" "}
-                  <AppLink href="/terms" underline="none" sx={linkSx}>
-                    Terms of Service
-                  </AppLink>{" "}
-                  and{" "}
-                  <AppLink href="/privacy" underline="none" sx={linkSx}>
-                    Privacy Policy
-                  </AppLink>
-                </AppText>
-              </AppStack>
-
-              {formErrors.agree && (
-                <AppText variant="body2" sx={agreeErrorSx}>
-                  {formErrors.agree}
-                </AppText>
-              )}
-
-              {formErrors.submit && (
-                <AppText variant="body2" sx={{ mt: 0.5, fontSize: "12px", fontWeight: 500, color: "var(--app-color-error)" }}>
-                  {formErrors.submit}
-                </AppText>
-              )}
-
-              <AppStack direction="column" gap={1.25} sx={{ mt: 1.6 }}>
-                <AppButton
+                {/* Register CTA Button */}
+                <AuthButton
                   type="submit"
-                  variant="contained"
-                  colorVariant="primary"
-                  rounded="md"
+                  variant="primary"
                   fullWidth
                   loading={isLoading}
                   disabled={isLoading}
-                  sx={submitButtonSx}
+                  className="mt-1.5"
                 >
-                  Register & Get Started
-                </AppButton>
+                  {isLoading ? "Creating Account..." : "Register"}
+                </AuthButton>
+              </div>
+            </form>
 
-                <AppStack direction="row" align="center" gap={1.5}>
-                  <AppBox sx={dividerSx} />
+            {/* Divider "Or Register With" */}
+            <div className="relative my-5 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <span className="relative bg-surface px-3 text-xs text-text-muted">
+                Or Register With
+              </span>
+            </div>
 
-                  <AppText variant="body2" weight={600} sx={orTextSx}>
-                    OR
-                  </AppText>
+            {/* Social Google Button & Sign In Link with uncollapsible gap-5 */}
+            <div className="flex flex-col gap-5">
+              <SocialButton
+                provider="google"
+                label="Sign in with Google"
+                disabled={isLoading}
+                fullWidth
+              />
 
-                  <AppBox sx={dividerSx} />
-                </AppStack>
-
-                <AppButton
-                  type="button"
-                  variant="outlined"
-                  colorVariant="neutral"
-                  rounded="md"
-                  fullWidth
-                  startIcon={<FcGoogle />}
-                  disabled={isLoading}
-                  sx={googleButtonSx}
+              <p className="text-center text-sm text-text-muted leading-[1.6]">
+                Already Have An Account?{" "}
+                <Link
+                  to={ROUTES.LOGIN}
+                  className="font-bold text-primary transition-colors hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-[4px]"
                 >
-                  Continue with Google
-                </AppButton>
+                  Sign In.
+                </Link>
+              </p>
+            </div>
+          </div>
 
-                <AppText variant="body2" align="center" sx={loginTextSx}>
-                  Already have an account?{" "}
-                  <AppLink href={ROUTES.LOGIN} underline="none" sx={linkSx}>
-                    Login
-                  </AppLink>
-                </AppText>
-              </AppStack>
-            </AppBox>
-          </AppCard>
+          {/* Bottom subtle footer */}
+          <div className="flex items-center justify-between text-xs text-text-muted/70 leading-[1.5]">
+            <span>© {new Date().getFullYear()} PharmaERP Enterprises Ltd.</span>
+            <Link to="/privacy" className="hover:text-text hover:underline">
+              Privacy Policy
+            </Link>
+          </div>
+        </div>
 
-          <AppStack
-            direction="row"
-            align="center"
-            justify="center"
-            gap={0}
-            sx={trustRowSx}
+        {/* ── RIGHT PANEL: Hero Card (Auto-hidden on Tablet single-col, visible on lg+) ── */}
+        <div className="relative hidden p-4 lg:col-span-6 xl:col-span-7 lg:flex">
+          <div
+            className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[14px] p-6 lg:p-8"
+            style={{
+              background:
+                "linear-gradient(135deg, var(--app-color-primary, #00994a) 0%, #1e40af 100%)",
+            }}
           >
-            <TrustText icon={<FiShield />} text="256-bit SSL Secured" />
-            <TrustDivider />
-            <TrustText icon={<FiLock />} text="Your Data is 100% Safe" />
-            <TrustDivider />
-            <TrustText icon={<FiHeadphones />} text="24/7 Customer Support" />
-          </AppStack>
-        </AppBox>
-      </div>
+            {/* Ambient geometric background glow */}
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_80%_80%,rgba(255,255,255,0.14),transparent_45%)]" />
+
+            {/* Dashboard UI Preview Component */}
+            <DashboardPreview />
+          </div>
+        </div>
+      </motion.div>
     </section>
   );
 };
-
-const brandTitleSx = {
-  m: 0,
-  fontSize: { xs: "24px", lg: "28px" },
-  letterSpacing: "-0.4px",
-  color: "var(--app-color-text)",
-};
-
-const heroTitleSx = {
-  mt: 4.2,
-  mb: 0,
-  maxWidth: 430,
-  fontSize: { xs: "26px", lg: "31px" },
-  lineHeight: 1.22,
-  letterSpacing: "-0.5px",
-  color: "var(--app-color-text)",
-};
-
-const heroSubtitleSx = {
-  mt: 1.2,
-  maxWidth: 420,
-  fontSize: "13.5px",
-  lineHeight: "22px",
-  color: "var(--app-color-text-muted)",
-};
-
-const cardSx = {
-  width: "100%",
-  maxWidth: 760,
-  ml: { lg: "auto" },
-  px: { xs: 3, sm: 4, lg: 4.5 },
-  py: { xs: 3, lg: 3.4 },
-  bgcolor: "color-mix(in srgb, var(--app-color-surface) 88%, transparent)",
-  backdropFilter: "blur(16px)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-md)",
-};
-
-const formTitleSx = {
-  m: 0,
-  fontSize: { xs: "24px", lg: "28px" },
-  color: "var(--app-color-text)",
-};
-
-const formSubtitleSx = {
-  mt: 0.5,
-  fontSize: "15px",
-  color: "var(--app-color-text-muted)",
-};
-
-const errorBoxSx = {
-  mt: 2,
-  px: 2,
-  py: 1.4,
-  borderRadius: "8px",
-  border: "1px solid var(--app-color-error)",
-  bgcolor: "var(--app-color-error-soft)",
-  color: "var(--app-color-error)",
-  fontSize: "13px",
-  fontWeight: 500,
-};
-
-const labelSx = {
-  mb: 0.45,
-  fontSize: "12.5px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const inputSx = {
-  height: 44,
-  fontSize: "13.5px",
-  bgcolor: "var(--app-color-surface-alt)",
-};
-
-const agreeTextSx = {
-  fontSize: "12.5px",
-  lineHeight: "24px",
-  color: "var(--app-color-text)",
-};
-
-const agreeErrorSx = {
-  mt: 0.5,
-  fontSize: "12px",
-  fontWeight: 500,
-  color: "var(--app-color-error)",
-};
-
-const linkSx = {
-  fontWeight: 700,
-  color: "var(--app-color-primary)",
-};
-
-const submitButtonSx = {
-  height: 46,
-  fontSize: "14px",
-  fontWeight: 700,
-  boxShadow: "var(--app-shadow-sm)",
-};
-
-const dividerSx = {
-  height: 1,
-  flex: 1,
-  bgcolor: "var(--app-color-border)",
-};
-
-const orTextSx = {
-  fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const googleButtonSx = {
-  height: 44,
-  fontSize: "13.5px",
-  fontWeight: 650,
-  bgcolor: "var(--app-color-surface-alt)",
-  borderColor: "var(--app-color-border)",
-  color: "var(--app-color-text)",
-};
-
-const loginTextSx = {
-  mt: 0.1,
-  fontSize: "13.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const trustRowSx = {
-  mt: 2,
-  width: "100%",
-  maxWidth: 760,
-  ml: { lg: "auto" },
-  flexWrap: "nowrap",
-  height: 24,
-};
-
-const CompactInput = ({
-  label,
-  type = "text",
-  placeholder,
-  startIcon,
-  prefix,
-  name,
-  value,
-  onChange,
-  disabled,
-  error,
-  helperText,
-  inputProps,
-  children,
-  ...props
-}) => (
-  <AppInput
-    label={label}
-    type={type}
-    name={name}
-    value={value}
-    onChange={onChange}
-    disabled={disabled}
-    placeholder={placeholder}
-    fullWidth
-    size="medium"
-    variant="bordered"
-    rounded="md"
-    startIcon={startIcon}
-    prefix={prefix}
-    error={error}
-    helperText={helperText}
-    inputProps={inputProps}
-    labelSx={labelSx}
-    inputSx={inputSx}
-    {...props}
-  >
-    {children}
-  </AppInput>
-);
-
-const CompactPassword = ({
-  label,
-  placeholder,
-  name,
-  value,
-  onChange,
-  disabled,
-  error,
-  helperText,
-}) => (
-  <AppPasswordInput
-    label={label}
-    name={name}
-    value={value}
-    onChange={onChange}
-    disabled={disabled}
-    placeholder={placeholder}
-    fullWidth
-    size="medium"
-    variant="bordered"
-    rounded="md"
-    startIcon={<FiLock />}
-    error={error}
-    helperText={helperText}
-    labelSx={labelSx}
-    inputSx={inputSx}
-  />
-);
-
-const FeatureItem = ({ icon, title, text }) => (
-  <AppStack direction="row" align="center" gap={1.3}>
-    <AppBox
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      sx={{
-        width: 38,
-        height: 38,
-        minWidth: 38,
-        borderRadius: "999px",
-        bgcolor: "var(--app-color-primary-soft)",
-        color: "var(--app-color-primary)",
-        fontSize: "19px",
-        lineHeight: 0,
-      }}
-    >
-      {icon}
-    </AppBox>
-
-    <AppBox>
-      <AppText
-        variant="body2"
-        weight={650}
-        sx={{
-          fontSize: "13px",
-          lineHeight: 1.15,
-          color: "var(--app-color-text)",
-        }}
-      >
-        {title}
-      </AppText>
-
-      <AppText
-        variant="body2"
-        sx={{
-          mt: 0.3,
-          fontSize: "12.5px",
-          lineHeight: "18px",
-          color: "var(--app-color-text-muted)",
-        }}
-      >
-        {text}
-      </AppText>
-    </AppBox>
-  </AppStack>
-);
-
-const TrustText = ({ icon, text }) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      gap: 0.7,
-      px: { xs: 1, md: 1.8 },
-      height: 24,
-      whiteSpace: "nowrap",
-    }}
-  >
-    <AppBox
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      sx={{
-        fontSize: "15px",
-        lineHeight: 1,
-        color: "var(--app-color-text-muted)",
-        mt: "-1px",
-      }}
-    >
-      {icon}
-    </AppBox>
-
-    <AppText
-      variant="body2"
-      sx={{
-        fontSize: "12.3px",
-        lineHeight: "24px",
-        color: "var(--app-color-text-muted)",
-      }}
-    >
-      {text}
-    </AppText>
-  </AppBox>
-);
-
-const TrustDivider = () => (
-  <AppBox
-    sx={{
-      width: "1px",
-      height: 16,
-      bgcolor: "var(--app-color-border)",
-      display: { xs: "none", md: "block" },
-    }}
-  />
-);
 
 export default RegisterDesktopPage;

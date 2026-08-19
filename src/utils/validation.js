@@ -12,13 +12,14 @@ export const isValidPhone = (phone = "") => {
   return /^[6-9][0-9]{9}$/.test(phone);
 };
 
-export const validateLoginForm = ({ email, password }) => {
+export const validateLoginForm = ({ email, password, identifier }) => {
   const errors = {};
+  const inputVal = (identifier || email || "").trim();
 
-  if (!email?.trim()) {
-    errors.email = "Email is required";
-  } else if (!isValidEmail(email)) {
-    errors.email = "Invalid email address";
+  if (!inputVal) {
+    errors.email = "Email or 10-digit mobile number is required";
+  } else if (!isValidEmail(inputVal) && !isValidPhone(inputVal)) {
+    errors.email = "Enter a valid email address or 10-digit mobile number";
   }
 
   if (!password) {

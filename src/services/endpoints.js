@@ -35,6 +35,12 @@ export const ENDPOINTS = {
     // Members
     MEMBERS: (workspaceId) => `/organization/workspaces/${workspaceId}/members`,
 
+    DIRECT_CREATE_MEMBER: (workspaceId) =>
+      `/organization/workspaces/${workspaceId}/members/direct-create`,
+
+    RESET_MEMBER_PASSWORD: (workspaceId, memberUserId) =>
+      `/organization/workspaces/${workspaceId}/members/${memberUserId}/reset-password`,
+
     MEMBER_STATUS: (workspaceId, memberUserId) =>
       `/organization/workspaces/${workspaceId}/members/${memberUserId}/status`,
 

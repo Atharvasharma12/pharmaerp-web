@@ -32,6 +32,20 @@ const workspaceService = {
     );
   },
 
+  directCreateWorkspaceMember(workspaceId, payload) {
+    return apiClient.post(
+      ENDPOINTS.WORKSPACE.DIRECT_CREATE_MEMBER(workspaceId),
+      payload,
+    );
+  },
+
+  resetMemberPassword(workspaceId, memberUserId, payload) {
+    return apiClient.post(
+      ENDPOINTS.WORKSPACE.RESET_MEMBER_PASSWORD(workspaceId, memberUserId),
+      payload,
+    );
+  },
+
   removeWorkspaceMember(workspaceId, memberUserId) {
     return apiClient.delete(
       ENDPOINTS.WORKSPACE.MEMBER_BY_USER_ID(workspaceId, memberUserId),

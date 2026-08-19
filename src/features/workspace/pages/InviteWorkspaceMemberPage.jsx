@@ -1,3 +1,5 @@
+// src/features/workspace/pages/InviteWorkspaceMemberPage.jsx
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -8,12 +10,17 @@ import useWorkspace from "../hooks/useWorkspace";
 import useAccessControl from "@/features/access-control/hooks/useAccessControl";
 import useCompany from "@/features/company/hooks/useCompany";
 import useBranch from "@/features/branch/hooks/useBranch";
+import { CredentialSuccessModal } from "../components";
 
 import InviteWorkspaceMemberDesktopPage from "./desktop/InviteWorkspaceMemberDesktopPage";
 import InviteWorkspaceMemberMobilePage from "./mobile/InviteWorkspaceMemberMobilePage";
 
 const INITIAL_FORM_DATA = {
+  mode: "direct", // "direct" (Direct Add Staff) | "invite" (Email Link)
+  fullName: "",
+  phone: "",
   email: "",
+  password: "",
   roleId: "",
   accessAllCompanies: false,
   accessAllBranches: false,
@@ -23,27 +30,15 @@ const INITIAL_FORM_DATA = {
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^[6-9][0-9]{9}$/;
 const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/;
 
 const normalizeText = (value) => String(value || "").trim();
 const normalizeLowerText = (value) => normalizeText(value).toLowerCase();
 
-const buildInvitePayload = (formData) => {
-  const payload = {
-    email: normalizeLowerText(formData.email),
-    accessAllCompanies: Boolean(formData.accessAllCompanies),
-    accessAllBranches: Boolean(formData.accessAllBranches),
-    companyIds: Array.isArray(formData.companyIds) ? formData.companyIds : [],
-    branchAccess: Array.isArray(formData.branchAccess) ? formData.branchAccess : [],
-  };
-
-  const roleId = normalizeText(formData.roleId);
-  const notes = normalizeText(formData.notes);
-
-  if (roleId) payload.roleId = roleId;
-  if (notes) payload.notes = notes;
-
-  return payload;
+const generateRandomPassword = () => {
+  const num = Math.floor(100 + Math.random() * 900);
+  return `Staff@${num}`;
 };
 
 const InviteWorkspaceMemberPage = () => {
@@ -54,8 +49,10 @@ const InviteWorkspaceMemberPage = () => {
     currentWorkspace,
     getMyWorkspaces,
     inviteWorkspaceMember,
+    directCreateWorkspaceMember,
     getMyWorkspacesStatus,
     inviteWorkspaceMemberStatus,
+    directCreateWorkspaceMemberStatus,
     error,
     message,
     clearError,
@@ -84,6 +81,8 @@ const InviteWorkspaceMemberPage = () => {
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
+  const [successCredentials, setSuccessCredentials] = useState(null);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   const workspaceId = currentWorkspace?._id;
 
@@ -92,13 +91,16 @@ const InviteWorkspaceMemberPage = () => {
   const isFetchingCompanies = getWorkspaceCompaniesStatus === API_STATUS.LOADING;
   const isFetchingBranches = getWorkspaceBranchesStatus === API_STATUS.LOADING;
   const isInviting = inviteWorkspaceMemberStatus === API_STATUS.LOADING;
+  const isDirectCreating =
+    directCreateWorkspaceMemberStatus === API_STATUS.LOADING;
 
   const isLoading =
     isCheckingWorkspace ||
     isFetchingRoles ||
     isFetchingCompanies ||
     isFetchingBranches ||
-    isInviting;
+    isInviting ||
+    isDirectCreating;
 
   const activeRoles = useMemo(
     () =>
@@ -177,16 +179,63 @@ const InviteWorkspaceMemberPage = () => {
     }));
   }, [error]);
 
+  const handleModeChange = useCallback((newMode) => {
+    setFormErrors({});
+    setFormData((prev) => ({
+      ...prev,
+      mode: newMode,
+      password: newMode === "direct" && !prev.password ? generateRandomPassword() : prev.password,
+    }));
+  }, []);
+
+  const handleGeneratePassword = useCallback(() => {
+    setFormData((prev) => ({
+      ...prev,
+      password: generateRandomPassword(),
+    }));
+  }, []);
+
   const validateForm = useCallback(() => {
     const errors = {};
+    const mode = formData.mode;
+    const fullName = normalizeText(formData.fullName);
+    const phone = normalizeText(formData.phone);
     const email = normalizeLowerText(formData.email);
+    const password = normalizeText(formData.password);
     const roleId = normalizeText(formData.roleId);
     const notes = normalizeText(formData.notes);
 
-    if (!email) {
-      errors.email = "Email address is required";
-    } else if (!EMAIL_REGEX.test(email)) {
-      errors.email = "Enter a valid email address";
+    if (mode === "direct") {
+      if (!fullName) {
+        errors.fullName = "Staff full name is required";
+      } else if (fullName.length < 2) {
+        errors.fullName = "Full name must be at least 2 characters";
+      }
+
+      if (!phone && !email) {
+        errors.phone = "Please provide at least a 10-digit mobile number or email";
+      }
+
+      if (phone && !PHONE_REGEX.test(phone)) {
+        errors.phone = "Enter a valid 10-digit Indian mobile number (e.g. 9876543210)";
+      }
+
+      if (email && !EMAIL_REGEX.test(email)) {
+        errors.email = "Enter a valid email address";
+      }
+
+      if (!password) {
+        errors.password = "Initial password or PIN is required";
+      } else if (password.length < 6) {
+        errors.password = "Password must be at least 6 characters";
+      }
+    } else {
+      // Invite Link Mode
+      if (!email) {
+        errors.email = "Email address is required to send invitation";
+      } else if (!EMAIL_REGEX.test(email)) {
+        errors.email = "Enter a valid email address";
+      }
     }
 
     if (roleId && !OBJECT_ID_REGEX.test(roleId)) {
@@ -245,13 +294,11 @@ const InviteWorkspaceMemberPage = () => {
       );
 
       if (existingIndex > -1) {
-        // Remove branch access
         return {
           ...prev,
           branchAccess: prev.branchAccess.filter((ba) => ba.branchId !== branchId),
         };
       } else {
-        // Add branch access with default role or global fallback
         return {
           ...prev,
           branchAccess: [
@@ -271,9 +318,7 @@ const InviteWorkspaceMemberPage = () => {
     setFormData((prev) => ({
       ...prev,
       branchAccess: prev.branchAccess.map((ba) =>
-        ba.branchId === branchId
-          ? { ...ba, roleId: roleId || null }
-          : ba,
+        ba.branchId === branchId ? { ...ba, roleId: roleId || null } : ba,
       ),
     }));
   }, []);
@@ -324,21 +369,61 @@ const InviteWorkspaceMemberPage = () => {
         return;
       }
 
-      try {
-        await inviteWorkspaceMember(workspaceId, buildInvitePayload(formData));
-        navigate(ROUTES.WORKSPACE_INVITATIONS, { replace: true });
-      } catch (submitError) {
-        setFormErrors((prev) => ({
-          ...prev,
-          submit:
-            submitError ||
-            "Unable to invite workspace member. Please try again.",
-        }));
+      if (formData.mode === "direct") {
+        try {
+          const res = await directCreateWorkspaceMember(workspaceId, {
+            fullName: normalizeText(formData.fullName),
+            phone: normalizeText(formData.phone) || null,
+            email: normalizeLowerText(formData.email) || null,
+            password: formData.password,
+            roleId: normalizeText(formData.roleId) || null,
+            companyIds: formData.companyIds,
+            branchAccess: formData.branchAccess,
+            accessAllCompanies: Boolean(formData.accessAllCompanies),
+            accessAllBranches: Boolean(formData.accessAllBranches),
+          });
+
+          if (res?.credentials) {
+            setSuccessCredentials(res.credentials);
+            setIsSuccessModalOpen(true);
+          } else {
+            navigate(ROUTES.WORKSPACE_MEMBERS, { replace: true });
+          }
+        } catch (submitError) {
+          setFormErrors((prev) => ({
+            ...prev,
+            submit:
+              submitError ||
+              "Unable to create staff member. Please check details and try again.",
+          }));
+        }
+      } else {
+        // Invite Link Mode
+        try {
+          await inviteWorkspaceMember(workspaceId, {
+            email: normalizeLowerText(formData.email),
+            roleId: normalizeText(formData.roleId) || null,
+            companyIds: formData.companyIds,
+            branchAccess: formData.branchAccess,
+            accessAllCompanies: Boolean(formData.accessAllCompanies),
+            accessAllBranches: Boolean(formData.accessAllBranches),
+            notes: normalizeText(formData.notes) || undefined,
+          });
+          navigate(ROUTES.WORKSPACE_INVITATIONS, { replace: true });
+        } catch (submitError) {
+          setFormErrors((prev) => ({
+            ...prev,
+            submit:
+              submitError ||
+              "Unable to invite workspace member. Please try again.",
+          }));
+        }
       }
     },
     [
       clearError,
       clearMessage,
+      directCreateWorkspaceMember,
       formData,
       inviteWorkspaceMember,
       navigate,
@@ -362,11 +447,13 @@ const InviteWorkspaceMemberPage = () => {
     isFetchingRoles,
     isFetchingCompanies,
     isFetchingBranches,
-    isInviting,
+    isInviting: isInviting || isDirectCreating,
 
     error,
     message,
 
+    handleModeChange,
+    handleGeneratePassword,
     handleChange,
     handleToggleCompany,
     handleToggleBranchAccess,
@@ -379,10 +466,24 @@ const InviteWorkspaceMemberPage = () => {
     handleViewMembers,
   };
 
-  return isMobile ? (
-    <InviteWorkspaceMemberMobilePage {...pageProps} />
-  ) : (
-    <InviteWorkspaceMemberDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <InviteWorkspaceMemberMobilePage {...pageProps} />
+      ) : (
+        <InviteWorkspaceMemberDesktopPage {...pageProps} />
+      )}
+
+      <CredentialSuccessModal
+        open={isSuccessModalOpen}
+        onClose={() => {
+          setIsSuccessModalOpen(false);
+          navigate(ROUTES.WORKSPACE_MEMBERS, { replace: true });
+        }}
+        credentials={successCredentials}
+        workspaceName={currentWorkspace?.name}
+      />
+    </>
   );
 };
 

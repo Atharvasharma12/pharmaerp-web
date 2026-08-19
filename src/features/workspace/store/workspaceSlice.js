@@ -9,6 +9,8 @@ import {
   getWorkspaceMembers,
   updateWorkspaceMemberStatus,
   removeWorkspaceMember,
+  directCreateWorkspaceMember,
+  resetMemberPassword,
   inviteWorkspaceMember,
   getWorkspaceInvitations,
   cancelWorkspaceInvitation,
@@ -32,6 +34,7 @@ const initialState = {
   invitations: [],
   incomingInvitations: [],
   publicInvitationDetails: null,
+  lastCreatedMemberCredentials: null,
 
   status: API_STATUS.IDLE,
   error: null,
@@ -46,6 +49,8 @@ const initialState = {
   getWorkspaceMembersStatus: API_STATUS.IDLE,
   updateWorkspaceMemberStatus: API_STATUS.IDLE,
   removeWorkspaceMemberStatus: API_STATUS.IDLE,
+  directCreateWorkspaceMemberStatus: API_STATUS.IDLE,
+  resetMemberPasswordStatus: API_STATUS.IDLE,
 
   inviteWorkspaceMemberStatus: API_STATUS.IDLE,
   getWorkspaceInvitationsStatus: API_STATUS.IDLE,
@@ -95,6 +100,9 @@ const workspaceSlice = createSlice({
     },
     clearIncomingInvitations(state) {
       state.incomingInvitations = [];
+    },
+    clearLastCreatedMemberCredentials(state) {
+      state.lastCreatedMemberCredentials = null;
     },
   },
   extraReducers: (builder) => {
@@ -251,6 +259,42 @@ const workspaceSlice = createSlice({
       .addCase(removeWorkspaceMember.rejected, (state, action) => {
         state.removeWorkspaceMemberStatus = API_STATUS.ERROR;
         state.error = action.payload || "Workspace member remove failed";
+      })
+
+      // DIRECT CREATE WORKSPACE MEMBER
+      .addCase(directCreateWorkspaceMember.pending, (state) => {
+        state.directCreateWorkspaceMemberStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(directCreateWorkspaceMember.fulfilled, (state, action) => {
+        state.directCreateWorkspaceMemberStatus = API_STATUS.SUCCESS;
+        if (action.payload?.member) {
+          state.members.unshift(action.payload.member);
+        }
+        if (action.payload?.credentials) {
+          state.lastCreatedMemberCredentials = action.payload.credentials;
+        }
+        state.message = "Staff member created and activated successfully";
+      })
+      .addCase(directCreateWorkspaceMember.rejected, (state, action) => {
+        state.directCreateWorkspaceMemberStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to create staff member";
+      })
+
+      // RESET MEMBER PASSWORD
+      .addCase(resetMemberPassword.pending, (state) => {
+        state.resetMemberPasswordStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(resetMemberPassword.fulfilled, (state, action) => {
+        state.resetMemberPasswordStatus = API_STATUS.SUCCESS;
+        state.message = "Member password reset successfully";
+      })
+      .addCase(resetMemberPassword.rejected, (state, action) => {
+        state.resetMemberPasswordStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to reset member password";
       })
 
       // INVITE WORKSPACE MEMBER
@@ -430,6 +474,7 @@ export const {
   clearWorkspaceMembers,
   clearWorkspaceInvitations,
   clearIncomingInvitations,
+  clearLastCreatedMemberCredentials,
 } = workspaceSlice.actions;
 
 export default workspaceSlice.reducer;

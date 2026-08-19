@@ -18,22 +18,22 @@ const LoginDesktopPage = ({
   handleSubmit,
 }) => {
   return (
-    <section className="relative flex min-h-[100dvh] w-full items-center justify-center bg-bg px-6 py-8 selection:bg-primary-soft selection:text-primary">
+    <section className="relative flex min-h-[100dvh] w-full flex-col items-center justify-center bg-bg px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 selection:bg-primary-soft selection:text-primary">
       {/* Background ambient glows */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -top-32 -left-32 size-96 rounded-full bg-primary-soft blur-3xl opacity-60" />
         <div className="absolute -bottom-32 -right-32 size-96 rounded-full bg-blue-500/10 blur-3xl opacity-60" />
       </div>
 
-      {/* Main Outer Card Container per DESIGN_STANDARDS §3.1 & §4 (max-w-[1200px], rounded-[16px]) */}
+      {/* Main Outer Container: Multi-Device Responsive (max-w-[1200px], rounded-[16px], my-auto for short screen scrolling) */}
       <motion.div
         initial={{ opacity: 0, transform: "translateY(12px) scale(0.98)" }}
         animate={{ opacity: 1, transform: "translateY(0px) scale(1)" }}
         transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-        className="relative z-10 mx-auto grid w-full max-w-[1200px] min-h-[660px] overflow-hidden rounded-[16px] border border-border bg-surface shadow-[var(--app-shadow-lg)] lg:grid-cols-12"
+        className="relative z-10 my-auto grid w-full max-w-[1200px] overflow-hidden rounded-[16px] border border-border bg-surface shadow-[var(--app-shadow-lg)] lg:grid-cols-12"
       >
-        {/* ── LEFT PANEL: Form ─────────────────────────────────────────── */}
-        <div className="flex flex-col justify-between p-6 sm:p-8 lg:col-span-6 xl:col-span-5 xl:p-10">
+        {/* ── LEFT PANEL: Form (Responsive for Tablets & Desktops) ───── */}
+        <div className="flex flex-col justify-between p-6 sm:p-8 lg:p-8 xl:p-10 lg:col-span-6 xl:col-span-5">
           {/* Brand Logo Header */}
           <div className="flex items-center gap-3">
             <div className="flex size-9 items-center justify-center rounded-[8px] bg-slate-900 text-white shadow-xs dark:bg-primary">
@@ -46,8 +46,8 @@ const LoginDesktopPage = ({
             </span>
           </div>
 
-          {/* Form Content */}
-          <div className="my-auto max-w-[400px] py-6">
+          {/* Form Content: Centered constraint on tablets, full on desktop split */}
+          <div className="my-auto mx-auto w-full max-w-[420px] py-4 lg:mx-0">
             <div>
               {/* Page Title: Exactly one <h1> per page, 28px font-extrabold per DESIGN_STANDARDS §1.2 */}
               <h1 className="text-[28px] font-extrabold tracking-tight text-text leading-tight">
@@ -73,16 +73,16 @@ const LoginDesktopPage = ({
             {/* Login Form: gap-4 per DESIGN_STANDARDS §2.2 */}
             <form onSubmit={handleSubmit} noValidate className="mt-6">
               <div className="flex flex-col gap-4">
-                {/* Email Input */}
+                {/* Email or Phone Input */}
                 <AuthInput
                   id="desktop-email"
-                  type="email"
+                  type="text"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   disabled={isLoading}
-                  placeholder="Email Address"
-                  autoComplete="email"
+                  placeholder="Email or 10-Digit Mobile"
+                  autoComplete="username"
                   required
                   icon={<Mail size={16} />}
                   error={formErrors.email}
@@ -165,7 +165,7 @@ const LoginDesktopPage = ({
           </div>
         </div>
 
-        {/* ── RIGHT PANEL: Hero Card ───────────────────────────────────── */}
+        {/* ── RIGHT PANEL: Hero Card (Auto-hidden on Tablet single-col, visible on lg+) ── */}
         <div className="relative hidden p-4 lg:col-span-6 xl:col-span-7 lg:flex">
           <div
             className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[14px] p-6 lg:p-8"

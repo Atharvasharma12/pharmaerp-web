@@ -4,14 +4,18 @@ import {
   FiCheckCircle,
   FiClock,
   FiInfo,
+  FiKey,
   FiMail,
   FiMapPin,
+  FiPhone,
   FiRefreshCcw,
   FiSend,
   FiShield,
   FiShoppingBag,
+  FiUser,
   FiUserPlus,
   FiUsers,
+  FiZap,
 } from "react-icons/fi";
 
 import {
@@ -42,6 +46,8 @@ const InviteWorkspaceMemberMobilePage = ({
   isInviting = false,
   error,
   message,
+  handleModeChange,
+  handleGeneratePassword,
   handleChange,
   handleToggleCompany,
   handleToggleBranchAccess,
@@ -55,6 +61,7 @@ const InviteWorkspaceMemberMobilePage = ({
 }) => {
   const isAllBranches = Boolean(formData.accessAllBranches);
   const isAllCompanies = Boolean(formData.accessAllCompanies);
+  const isDirectMode = formData.mode === "direct";
 
   return (
     <section className="w-full bg-bg">
@@ -129,29 +136,153 @@ const InviteWorkspaceMemberMobilePage = ({
 
         {/* Core Direct Input Action Form Fields Block */}
         <AppBox component="form" onSubmit={handleSubmit} sx={formSectionSx}>
+          {/* Mode Switcher Pill */}
+          <div className="flex items-center gap-1.5 p-1 bg-surface-alt/90 rounded-lg border border-border/80 mb-3">
+            <button
+              type="button"
+              onClick={() => handleModeChange?.("direct")}
+              className={`flex-1 py-1.5 px-2 rounded-md text-[11px] font-bold transition flex items-center justify-center gap-1.5 ${
+                isDirectMode
+                  ? "bg-primary text-text-inverse shadow-xs"
+                  : "text-text-muted hover:text-text hover:bg-surface"
+              }`}
+            >
+              <FiZap className={isDirectMode ? "text-amber-300 text-xs" : "text-xs"} />
+              <span>Direct Add</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleModeChange?.("invite")}
+              className={`flex-1 py-1.5 px-2 rounded-md text-[11px] font-bold transition flex items-center justify-center gap-1.5 ${
+                !isDirectMode
+                  ? "bg-primary text-text-inverse shadow-xs"
+                  : "text-text-muted hover:text-text hover:bg-surface"
+              }`}
+            >
+              <FiMail className="text-xs" />
+              <span>Invite Link</span>
+            </button>
+          </div>
+
           <AppStack direction="column" gap={1.65}>
-            <AppInput
-              label="Email Address"
-              name="email"
-              type="email"
-              value={formData.email || ""}
-              onChange={handleChange}
-              disabled={isLoading}
-              placeholder="member@example.com"
-              fullWidth
-              required
-              size="small"
-              variant="bordered"
-              rounded="md"
-              startIcon={<FiMail />}
-              error={Boolean(formErrors.email)}
-              helperText={
-                formErrors.email || "Invitation will be linked to this address."
-              }
-              labelSx={labelSx}
-              inputSx={inputSx}
-              helperTextSx={helperTextSx}
-            />
+            {isDirectMode ? (
+              <>
+                <AppInput
+                  label="Staff Full Name"
+                  name="fullName"
+                  value={formData.fullName || ""}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  placeholder="e.g. Ramesh Kumar"
+                  fullWidth
+                  required
+                  size="small"
+                  variant="bordered"
+                  rounded="md"
+                  startIcon={<FiUser />}
+                  error={Boolean(formErrors.fullName)}
+                  helperText={formErrors.fullName}
+                  labelSx={labelSx}
+                  inputSx={inputSx}
+                  helperTextSx={helperTextSx}
+                />
+
+                <AppInput
+                  label="Mobile Number (Login ID)"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone || ""}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  placeholder="9876543210"
+                  fullWidth
+                  size="small"
+                  variant="bordered"
+                  rounded="md"
+                  startIcon={<FiPhone />}
+                  error={Boolean(formErrors.phone)}
+                  helperText={formErrors.phone || "10-digit Indian mobile number"}
+                  labelSx={labelSx}
+                  inputSx={inputSx}
+                  helperTextSx={helperTextSx}
+                />
+
+                <AppInput
+                  label="Email (Optional)"
+                  name="email"
+                  type="email"
+                  value={formData.email || ""}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  placeholder="staff@example.com (optional)"
+                  fullWidth
+                  size="small"
+                  variant="bordered"
+                  rounded="md"
+                  startIcon={<FiMail />}
+                  error={Boolean(formErrors.email)}
+                  helperText={formErrors.email}
+                  labelSx={labelSx}
+                  inputSx={inputSx}
+                  helperTextSx={helperTextSx}
+                />
+
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-semibold text-text mb-0.5 block">
+                      Password / PIN <span className="text-rose-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleGeneratePassword}
+                      className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5"
+                    >
+                      <FiRefreshCcw className="text-[9px]" /> Generate
+                    </button>
+                  </div>
+                  <AppInput
+                    name="password"
+                    value={formData.password || ""}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    placeholder="••••••••"
+                    fullWidth
+                    required
+                    size="small"
+                    variant="bordered"
+                    rounded="md"
+                    startIcon={<FiKey />}
+                    error={Boolean(formErrors.password)}
+                    helperText={formErrors.password || "Initial staff password"}
+                    inputSx={inputSx}
+                    helperTextSx={helperTextSx}
+                  />
+                </div>
+              </>
+            ) : (
+              <AppInput
+                label="Email Address"
+                name="email"
+                type="email"
+                value={formData.email || ""}
+                onChange={handleChange}
+                disabled={isLoading}
+                placeholder="member@example.com"
+                fullWidth
+                required
+                size="small"
+                variant="bordered"
+                rounded="md"
+                startIcon={<FiMail />}
+                error={Boolean(formErrors.email)}
+                helperText={
+                  formErrors.email || "Invitation will be linked to this address."
+                }
+                labelSx={labelSx}
+                inputSx={inputSx}
+                helperTextSx={helperTextSx}
+              />
+            )}
 
             <AppBox>
               <AppStack
@@ -353,12 +484,12 @@ const InviteWorkspaceMemberMobilePage = ({
                 colorVariant="success"
                 rounded="md"
                 size="small"
-                startIcon={<FiSend />}
+                startIcon={isDirectMode ? <FiCheckCircle /> : <FiSend />}
                 loading={isInviting}
                 disabled={isLoading || isCheckingWorkspace}
                 sx={primaryButtonSx}
               >
-                Send Invitation
+                {isDirectMode ? "Create & Activate Staff" : "Send Invitation"}
               </AppButton>
             </AppStack>
           </AppStack>

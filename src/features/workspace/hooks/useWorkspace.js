@@ -9,6 +9,8 @@ import {
   getWorkspaceMembers,
   updateWorkspaceMemberStatus,
   removeWorkspaceMember,
+  directCreateWorkspaceMember,
+  resetMemberPassword,
   inviteWorkspaceMember,
   getWorkspaceInvitations,
   cancelWorkspaceInvitation,
@@ -29,6 +31,7 @@ import {
   clearWorkspaceMembers,
   clearWorkspaceInvitations,
   clearIncomingInvitations,
+  clearLastCreatedMemberCredentials,
 } from "../store/workspaceSlice";
 
 import {
@@ -47,6 +50,9 @@ import {
   selectGetWorkspaceMembersStatus,
   selectUpdateWorkspaceMemberStatus,
   selectRemoveWorkspaceMemberStatus,
+  selectDirectCreateWorkspaceMemberStatus,
+  selectResetMemberPasswordStatus,
+  selectLastCreatedMemberCredentials,
   selectInviteWorkspaceMemberStatus,
   selectGetWorkspaceInvitationsStatus,
   selectCancelWorkspaceInvitationStatus,
@@ -89,6 +95,18 @@ const useWorkspace = () => {
 
   const removeWorkspaceMemberStatus = useSelector(
     selectRemoveWorkspaceMemberStatus,
+  );
+
+  const directCreateWorkspaceMemberStatus = useSelector(
+    selectDirectCreateWorkspaceMemberStatus,
+  );
+
+  const resetMemberPasswordStatus = useSelector(
+    selectResetMemberPasswordStatus,
+  );
+
+  const lastCreatedMemberCredentials = useSelector(
+    selectLastCreatedMemberCredentials,
   );
 
   const inviteWorkspaceMemberStatus = useSelector(
@@ -179,6 +197,25 @@ const useWorkspace = () => {
       removeWorkspaceMember({
         workspaceId,
         memberUserId,
+      }),
+    ).unwrap();
+  };
+
+  const submitDirectCreateWorkspaceMember = (workspaceId, payload) => {
+    return dispatch(
+      directCreateWorkspaceMember({
+        workspaceId,
+        payload,
+      }),
+    ).unwrap();
+  };
+
+  const submitResetMemberPassword = (workspaceId, memberUserId, password) => {
+    return dispatch(
+      resetMemberPassword({
+        workspaceId,
+        memberUserId,
+        password,
       }),
     ).unwrap();
   };
@@ -297,6 +334,9 @@ const useWorkspace = () => {
     getWorkspaceMembersStatus,
     updateWorkspaceMemberStatus: updateWorkspaceMemberStatusValue,
     removeWorkspaceMemberStatus,
+    directCreateWorkspaceMemberStatus,
+    resetMemberPasswordStatus,
+    lastCreatedMemberCredentials,
 
     inviteWorkspaceMemberStatus,
     getWorkspaceInvitationsStatus,
@@ -322,6 +362,10 @@ const useWorkspace = () => {
     getWorkspaceMembers: fetchWorkspaceMembers,
     updateWorkspaceMemberStatus: submitUpdateWorkspaceMemberStatus,
     removeWorkspaceMember: submitRemoveWorkspaceMember,
+    directCreateWorkspaceMember: submitDirectCreateWorkspaceMember,
+    resetMemberPassword: submitResetMemberPassword,
+    clearLastCreatedMemberCredentials: () =>
+      dispatch(clearLastCreatedMemberCredentials()),
 
     inviteWorkspaceMember: submitInviteWorkspaceMember,
     getWorkspaceInvitations: fetchWorkspaceInvitations,

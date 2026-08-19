@@ -1,6 +1,3 @@
-// src/features/workspace/pages/mobile/WorkspaceMembersMobilePage.jsx
-
-import { useMemo } from "react";
 import {
   FiUsers,
   FiUserCheck,
@@ -16,6 +13,7 @@ import {
   FiCalendar,
   FiUserMinus,
   FiMapPin,
+  FiKey,
 } from "react-icons/fi";
 
 import {
@@ -65,6 +63,7 @@ const WorkspaceMembersMobilePage = ({
   handleChangeMemberStatus,
   handleRemoveMember,
   handleManageAccess,
+  handleOpenResetPassword,
 }) => {
   const shouldRenderPagination = hasFilteredMembers && totalMembers > 10;
 
@@ -344,6 +343,7 @@ const WorkspaceMembersMobilePage = ({
                           onChangeStatus={handleChangeMemberStatus}
                           onRemove={handleRemoveMember}
                           onManageAccess={handleManageAccess}
+                          onResetPassword={handleOpenResetPassword}
                         />
                       </AppStack>
                     </AppStack>
@@ -446,6 +446,7 @@ const RowActionDropdownTrigger = ({
   onChangeStatus,
   onRemove,
   onManageAccess,
+  onResetPassword,
 }) => {
   const isOwner = Boolean(member?.isOwner);
 
@@ -456,6 +457,13 @@ const RowActionDropdownTrigger = ({
       icon: <FiMapPin />,
       disabled: isOwner,
       onClick: () => onManageAccess?.(member),
+    },
+    {
+      id: "reset-password",
+      label: "Reset Password / PIN",
+      icon: <FiKey />,
+      disabled: isOwner,
+      onClick: () => onResetPassword?.(member),
     },
     { id: "divider_access", type: "divider" },
     {

@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import { AppConfirmModal } from "@/components";
+import { ResetMemberPasswordModal } from "../components";
 
 import useWorkspace from "../hooks/useWorkspace";
 
@@ -143,10 +144,12 @@ const WorkspaceMembersPage = () => {
     getWorkspaceMembers,
     updateWorkspaceMemberStatus,
     removeWorkspaceMember,
+    resetMemberPassword,
     getMyWorkspacesStatus,
     getWorkspaceMembersStatus,
     updateWorkspaceMemberStatus: updateMemberStatusStatus,
     removeWorkspaceMemberStatus,
+    resetMemberPasswordStatus,
     error,
     message,
     clearError,
@@ -161,12 +164,17 @@ const WorkspaceMembersPage = () => {
   const [memberAction, setMemberAction] = useState(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+  const [resetPasswordMember, setResetPasswordMember] = useState(null);
+
   const workspaceId = currentWorkspace?._id;
 
   const isLoadingWorkspaces = getMyWorkspacesStatus === API_STATUS.LOADING;
   const isLoadingMembers = getWorkspaceMembersStatus === API_STATUS.LOADING;
   const isUpdatingStatus = updateMemberStatusStatus === API_STATUS.LOADING;
   const isRemovingMember = removeWorkspaceMemberStatus === API_STATUS.LOADING;
+  const isResettingPassword =
+    resetMemberPasswordStatus === API_STATUS.LOADING;
 
   const isLoading = isLoadingWorkspaces || isLoadingMembers;
   const isMutating = isUpdatingStatus || isRemovingMember;
@@ -236,18 +244,12 @@ const WorkspaceMembersPage = () => {
         normalizeText(member.displayName).includes(search) ||
         normalizeText(member.displayEmail).includes(search) ||
         normalizeText(member.displayPhone).includes(search) ||
-        normalizeText(member.displayRole).includes(search) ||
-        normalizeText(member.status).includes(search) ||
-        normalizeText(member.notes).includes(search);
+        normalizeText(member.displayRole).includes(search);
 
       const matchesStatus =
         filters.status === "all" || member.status === filters.status;
-
       const matchesRole =
-        filters.role === "all" ||
-        (filters.role === "owner"
-          ? member.isOwner
-          : normalizeText(member.roleCode).includes(filters.role));
+        filters.role === "all" || member.roleCode === filters.role;
 
       return matchesSearch && matchesStatus && matchesRole;
     });
@@ -256,13 +258,13 @@ const WorkspaceMembersPage = () => {
   const stats = useMemo(() => {
     const total = mappedMembers.length;
     const active = mappedMembers.filter(
-      (member) => member.status === "active",
+      (item) => item.status === "active",
     ).length;
     const inactive = mappedMembers.filter(
-      (member) => member.status === "inactive",
+      (item) => item.status === "inactive",
     ).length;
     const suspended = mappedMembers.filter(
-      (member) => member.status === "suspended",
+      (item) => item.status === "suspended",
     ).length;
 
     return [
@@ -270,21 +272,21 @@ const WorkspaceMembersPage = () => {
         id: "total",
         title: "Total",
         value: total,
-        description: "Members",
+        description: "Members in workspace",
         colorVariant: "primary",
       },
       {
         id: "active",
         title: "Active",
         value: active,
-        description: "Can access workspace",
+        description: "Full account access",
         colorVariant: "success",
       },
       {
         id: "inactive",
         title: "Inactive",
         value: inactive,
-        description: "Access paused",
+        description: "Pending verification",
         colorVariant: "warning",
       },
       {
@@ -416,6 +418,31 @@ const WorkspaceMembersPage = () => {
     [openConfirm],
   );
 
+  const handleOpenResetPassword = useCallback((member) => {
+    if (!member || member.isOwner) return;
+    setResetPasswordMember(member);
+    setIsResetPasswordOpen(true);
+  }, []);
+
+  const handleCloseResetPassword = useCallback(() => {
+    if (isResettingPassword) return;
+    setIsResetPasswordOpen(false);
+    setResetPasswordMember(null);
+  }, [isResettingPassword]);
+
+  const handleConfirmResetPassword = useCallback(
+    async (newPassword) => {
+      if (!workspaceId || !resetPasswordMember) return;
+      const memberUserId =
+        resetPasswordMember.user?._id ||
+        resetPasswordMember.userId?._id ||
+        resetPasswordMember._id;
+
+      await resetMemberPassword(workspaceId, memberUserId, newPassword);
+    },
+    [resetMemberPassword, resetPasswordMember, workspaceId],
+  );
+
   const handleConfirmAction = useCallback(async () => {
     if (!workspaceId || !selectedMember || !memberAction) return;
 
@@ -451,26 +478,27 @@ const WorkspaceMembersPage = () => {
   const confirmConfig = useMemo(() => {
     if (!selectedMember || !memberAction) {
       return {
-        title: "Update Member",
-        message: "Are you sure you want to update this workspace member?",
-        confirmLabel: "Confirm",
+        title: "",
+        message: "",
+        description: "",
+        confirmLabel: "",
         variant: "warning",
       };
     }
 
     if (memberAction === "remove") {
       return {
-        title: "Remove Workspace Member",
+        title: "Remove Member",
         message: `Remove ${selectedMember.displayName} from this workspace?`,
         description:
-          "The member will be marked inactive and will no longer be able to access this workspace.",
+          "They will immediately lose access to all store facilities and roles.",
         confirmLabel: "Remove Member",
         variant: "error",
       };
     }
 
     return {
-      title: "Change Member Status",
+      title: "Update Member Status",
       message: `Change ${selectedMember.displayName}'s status to ${memberAction}?`,
       description: "This controls whether the member can access the workspace.",
       confirmLabel: "Update Status",
@@ -518,6 +546,7 @@ const WorkspaceMembersPage = () => {
     handleChangeMemberStatus,
     handleRemoveMember,
     handleManageAccess,
+    handleOpenResetPassword,
 
     clearMessage,
   };
@@ -544,6 +573,14 @@ const WorkspaceMembersPage = () => {
         confirmDisabled={isMutating}
         cancelDisabled={isMutating}
         closeOnBackdrop={!isMutating}
+      />
+
+      <ResetMemberPasswordModal
+        open={isResetPasswordOpen}
+        onClose={handleCloseResetPassword}
+        onConfirm={handleConfirmResetPassword}
+        member={resetPasswordMember}
+        isLoading={isResettingPassword}
       />
     </>
   );

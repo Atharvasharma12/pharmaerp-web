@@ -18,7 +18,7 @@ const LoginMobilePage = ({
   handleSubmit,
 }) => {
   return (
-    <section className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-x-hidden bg-bg px-4 pt-4 pb-20 selection:bg-primary-soft selection:text-primary">
+    <section className="relative flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-x-hidden bg-bg px-3.5 sm:px-4 pt-4 pb-16 sm:pb-20 selection:bg-primary-soft selection:text-primary">
       {/* Background ambient decorative glows */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute top-1/6 -left-16 size-56 rounded-full bg-primary-soft blur-3xl opacity-60" />
@@ -30,7 +30,7 @@ const LoginMobilePage = ({
         initial={{ opacity: 0, transform: "translateY(20px) scale(0.98)" }}
         animate={{ opacity: 1, transform: "translateY(0px) scale(1)" }}
         transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-        className="relative z-10 w-full max-w-[390px] overflow-hidden rounded-[18px] border border-border bg-surface p-6 shadow-[var(--app-shadow-lg)]"
+        className="relative z-10 my-auto w-full max-w-[390px] overflow-hidden rounded-[18px] border border-border bg-surface p-5 sm:p-6 shadow-[var(--app-shadow-lg)]"
       >
         {/* ── TOP ILLUSTRATION ─────────────────────────────────────────── */}
         <div className="flex justify-center pb-2">
@@ -63,16 +63,16 @@ const LoginMobilePage = ({
         {/* ── FORM: gap-3 per DESIGN_STANDARDS §2.2 ─────────────────── */}
         <form onSubmit={handleSubmit} noValidate className="mt-5">
           <div className="flex flex-col gap-3">
-            {/* Email Field */}
+            {/* Email or Phone Field */}
             <AuthInput
               id="mobile-email"
-              type="email"
+              type="text"
               name="email"
               value={formData.email}
               onChange={handleChange}
               disabled={isLoading}
-              placeholder="Email address"
-              autoComplete="email"
+              placeholder="Email or 10-Digit Mobile"
+              autoComplete="username"
               required
               icon={<Mail size={16} />}
               error={formErrors.email}
