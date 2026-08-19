@@ -9,7 +9,7 @@ import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import {
   SIDEBAR_NAV_GROUPS,
   SidebarItem,
-  SidebarWorkspaceHeader,
+  SidebarCompanySelector,
   SidebarUserProfile,
   SidebarScrollArea,
 } from "../components/sidebar";
@@ -51,9 +51,8 @@ const AppMobileSidebar = ({ open, onClose }) => {
           open ? "translate-x-0" : "-translate-x-full",
         ].join(" ")}
       >
-        {/* ── TOP: Workspace Brand & Close Button ────────────────────── */}
-        <SidebarWorkspaceHeader
-          workspace={currentWorkspace}
+        {/* ── TOP: Company & Branch Tabbed Selector ───────────────────── */}
+        <SidebarCompanySelector
           collapsed={false}
           onClose={onClose}
           showClose={true}

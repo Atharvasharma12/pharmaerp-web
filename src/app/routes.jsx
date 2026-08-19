@@ -28,6 +28,7 @@ import subscriptionRoutes from "@/features/subscription/routes/subscriptionRoute
 
 import globalProductRoutes from "@/features/global-products/routes/globalProductRoutes";
 import workspaceProductRoutes from "@/features/workspace-products/routes/workspaceProductRoutes";
+import settingsRoutes from "@/features/settings/routes/settingsRoutes";
 
 import HomePage from "@/pages/HomePage";
 
@@ -153,7 +154,7 @@ export const router = createBrowserRouter([
         <AppLayout />
       </ProtectedRoute>
     ),
-    children: [...setupRoutes, ...userRoutes],
+    children: [...setupRoutes, ...userRoutes, ...settingsRoutes],
   },
 
   // ERP Application
@@ -167,6 +168,7 @@ export const router = createBrowserRouter([
     ),
     children: [
       ...dashboardRoutes,
+      ...settingsRoutes,
 
       ...workspaceRoutes,
       ...companyRoutes,

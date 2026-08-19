@@ -1,219 +1,197 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+// src/layouts/app/mobile/AppMobileHeader.jsx
+
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  FiBell,
-  FiMenu,
-  FiChevronDown,
-  FiUser,
-  FiSettings,
-  FiLogOut,
-} from "react-icons/fi";
+  Menu,
+  Search,
+  X,
+  ChevronRight,
+  Layers,
+  ExternalLink,
+} from "lucide-react";
 
-import { AppAvatar, AppIconButton } from "@/components";
 import { ROUTES } from "@/constants";
+import {
+  HeaderNotifications,
+  HeaderProfileDropdown,
+} from "@/layouts/app/components/header";
 
-import useAuth from "@/features/auth/hooks/useAuth";
-import useWorkspace from "@/features/workspace/hooks/useWorkspace";
-import useCompany from "@/features/company/hooks/useCompany";
-import useBranch from "@/features/branch/hooks/useBranch";
-import AppMobileContextSheet from "./AppMobileContextSheet";
+const getPageTitle = (pathname) => {
+  if (!pathname || pathname === "/" || pathname === ROUTES.HOME) return "Dashboard";
+  if (pathname.startsWith("/dashboard")) return "Dashboard";
+  if (pathname.startsWith("/workspace-products")) return "Products";
+  if (pathname.startsWith("/catalog/global-products")) return "Global Catalog";
+  if (pathname.startsWith("/catalog")) return "Catalog";
+  if (pathname.startsWith("/parties/customers")) return "Customers";
+  if (pathname.startsWith("/parties/suppliers")) return "Suppliers";
+  if (pathname.startsWith("/parties")) return "Parties";
+  if (pathname.startsWith("/finance")) return "Finance";
+  if (pathname.startsWith("/marketplace")) return "Marketplace";
+  if (pathname.startsWith("/access-control")) return "Access Control";
+  if (pathname.startsWith("/branches")) return "Branches";
+  if (pathname.startsWith("/companies")) return "Companies";
+  if (pathname.startsWith("/workspace")) return "Workspace";
+  if (pathname.startsWith("/setup")) return "Setup Center";
+  if (pathname.startsWith("/settings")) return "Settings";
+  if (pathname.startsWith("/me") || pathname.startsWith("/profile")) return "My Profile";
+
+  const segment = pathname.split("/").filter(Boolean).pop() || "Dashboard";
+  return segment
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const QUICK_COMMANDS = [
+  { label: "Dashboard", path: ROUTES.DASHBOARD, icon: Layers },
+  { label: "Products Catalog", path: ROUTES.WORKSPACE_PRODUCTS, icon: Layers },
+  { label: "Create Company", path: ROUTES.CREATE_COMPANY, icon: ExternalLink },
+  { label: "Create Branch", path: ROUTES.CREATE_BRANCH, icon: ExternalLink },
+];
 
 const AppMobileHeader = ({ onMenuClick }) => {
   const navigate = useNavigate();
-  const [contextSheetOpen, setContextSheetOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
+  const location = useLocation();
 
-  const profileRef = useRef(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef(null);
 
-  const { user, logout, clearCredentials } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  const { currentCompany } = useCompany();
-  const { currentBranch } = useBranch();
+  const pageTitle = useMemo(() => getPageTitle(location.pathname), [location.pathname]);
 
-  // Close profile dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!profileRef.current?.contains(event.target)) {
-        setProfileOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Logout failed:", error);
-    } finally {
-      clearCredentials();
-      setProfileOpen(false);
-      navigate(ROUTES.LOGIN, { replace: true });
+    if (searchOpen) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
     }
-  };
+  }, [searchOpen]);
 
-  // Compute clean text descriptions for context indicators
-  const currentWorkspaceName = currentWorkspace?.name || "Select Workspace";
-  const currentCompanyName = currentCompany?.name || "Select Company";
-  const currentBranchName = currentBranch?.name || "Select Branch";
-
-  const userName = user?.name || user?.fullName || "Admin";
-  const userRole = user?.role || "Owner";
-  const userInitials = userName
-    ?.split(" ")
-    ?.map((word) => word?.[0])
-    ?.join("")
-    ?.slice(0, 2)
-    ?.toUpperCase();
+  const filteredCommands = useMemo(() => {
+    if (!searchQuery.trim()) return QUICK_COMMANDS;
+    return QUICK_COMMANDS.filter((cmd) =>
+      cmd.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
 
   return (
-    <>
-      <header className="sticky top-0 z-50 border-b border-divider bg-bg/95 backdrop-blur-md">
-        <div className="px-3 py-2.5">
-          <div className="flex items-center justify-between gap-2">
-            {/* Sidebar Toggle */}
-            <AppIconButton
-              icon={<FiMenu className="text-[22px]" />}
-              onClick={onMenuClick}
-              variant="text"
-              colorVariant="dark"
-              rounded="lg"
-              aria-label="Open menu"
-              sx={{
-                width: 36,
-                height: 36,
-                minWidth: 36,
-                style: { height: "36px", width: "36px" },
-              }}
-            />
+    <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur-md">
+      <div className="flex h-13 items-center justify-between px-3">
+        {/* Left: Menu & Dynamic Title */}
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            aria-label="Open navigation menu"
+            className="flex size-9 cursor-pointer items-center justify-center rounded-[8px] text-text-muted transition hover:bg-surface-hover hover:text-text active:scale-[0.95]"
+          >
+            <Menu className="size-5" />
+          </button>
 
-            {/* Middle Module: Interactive Multi-Context Trigger Selector */}
-            <button
-              type="button"
-              onClick={() => {
-                setContextSheetOpen(true);
-                setProfileOpen(false);
-              }}
-              className="flex min-w-0 flex-1 items-center justify-between gap-1.5 rounded-xl border border-divider bg-surface px-2.5 py-1 text-left shadow-xs transition active:bg-surface-hover"
+          <AnimatePresence mode="wait">
+            <motion.h1
+              key={pageTitle}
+              initial={{ opacity: 0, y: -2 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 2 }}
+              transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+              className="truncate text-[15px] font-extrabold tracking-tight text-text leading-tight"
             >
-              <div className="min-w-0 flex-1">
-                {/* Primary App Context Tier Name */}
-                <div className="truncate text-xs font-bold text-text leading-tight">
-                  {currentCompanyName !== "Select Company"
-                    ? currentCompanyName
-                    : currentWorkspaceName}
-                </div>
+              {pageTitle}
+            </motion.h1>
+          </AnimatePresence>
+        </div>
 
-                {/* Context Breadcrumbs Detail Row */}
-                <div className="mt-0.5 flex items-center gap-1.5 truncate text-[9px] font-medium text-text-muted leading-none">
-                  <span className="truncate max-w-[70px]">
-                    {currentWorkspaceName}
-                  </span>
-                  {currentCompanyName !== "Select Company" && (
-                    <>
-                      <span className="text-divider">•</span>
-                      <span className="truncate max-w-[75px] text-primary">
-                        {currentBranchName}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
+        {/* Right: Search Toggle, Modular Notifications, and Modular Profile */}
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSearchOpen(!searchOpen)}
+            aria-label="Search"
+            className={`flex size-8.5 cursor-pointer items-center justify-center rounded-full transition active:scale-[0.95] ${
+              searchOpen
+                ? "bg-surface-hover text-primary"
+                : "text-text-muted hover:bg-surface-hover hover:text-text"
+            }`}
+          >
+            <Search className="size-4" />
+          </button>
 
-              <FiChevronDown className="shrink-0 text-xs text-text-muted" />
-            </button>
+          <HeaderNotifications />
+          <HeaderProfileDropdown />
+        </div>
+      </div>
 
-            {/* Global Utility Controls Actions Segment */}
-            <div className="flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                aria-label="Notifications"
-                className="relative flex h-9 w-9 items-center justify-center rounded-xl text-text-muted transition active:bg-surface-hover active:text-primary"
-              >
-                <FiBell className="text-[20px]" />
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
-              </button>
+      {/* Expandable Mobile Search Bar (Styled like AuthInput) */}
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+            className="overflow-hidden border-t border-border bg-surface px-3 py-2"
+          >
+            <div className="relative flex items-center">
+              <span className="pointer-events-none absolute left-3 flex items-center text-text-muted">
+                <Search className="size-3.5" />
+              </span>
 
-              {/* Profile Dropdown Container */}
-              <div ref={profileRef} className="relative shrink-0 pl-0.5">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search or type a command..."
+                className="h-9 w-full rounded-[10px] border border-border bg-surface pl-8.5 pr-8 text-xs text-text placeholder:text-text-muted/60 outline-none transition-all duration-150 ease-out hover:border-border-strong focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+
+              {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setProfileOpen((prev) => !prev)}
-                  className="flex items-center justify-center rounded-xl transition active:scale-95"
-                  aria-label="Toggle profile menu"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 flex size-4 cursor-pointer items-center justify-center rounded-full text-text-muted hover:text-text"
                 >
-                  <AppAvatar
-                    name={userName}
-                    initials={userInitials}
-                    size="small"
-                  />
+                  <X className="size-3" />
                 </button>
+              )}
+            </div>
 
-                {/* Dropdown Card Overlays */}
-                {profileOpen && (
-                  <div className="absolute right-0 top-[42px] z-50 w-[220px] rounded-xl border border-divider bg-surface p-1.5 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
-                    <div className="flex items-center gap-2.5 px-2.5 py-2">
-                      <AppAvatar
-                        name={userName}
-                        initials={userInitials}
-                        size="small"
-                      />
-                      <div className="min-w-0">
-                        <div className="truncate text-xs font-semibold text-text">
-                          {userName}
+            {/* Filtered Mobile Commands */}
+            {searchQuery && (
+              <div className="mt-2 max-h-[160px] overflow-y-auto space-y-0.5">
+                {filteredCommands.length ? (
+                  filteredCommands.map((cmd) => {
+                    const Icon = cmd.icon;
+                    return (
+                      <button
+                        key={cmd.label}
+                        type="button"
+                        onClick={() => {
+                          navigate(cmd.path);
+                          setSearchOpen(false);
+                          setSearchQuery("");
+                        }}
+                        className="flex w-full items-center justify-between rounded-[6px] px-2 py-1.5 text-xs text-text hover:bg-surface-hover"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className="size-3.5 text-primary" />
+                          <span>{cmd.label}</span>
                         </div>
-                        <div className="mt-0.5 truncate text-[10px] text-text-muted">
-                          {userRole}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="my-1.5 h-px bg-divider" />
-
-                    <Link
-                      to={ROUTES.PROFILE}
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-text-muted transition active:bg-surface-hover active:text-text"
-                    >
-                      <FiUser className="text-[14px]" />
-                      My Profile
-                    </Link>
-
-                    <Link
-                      to={ROUTES.SETTINGS}
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-text-muted transition active:bg-surface-hover active:text-text"
-                    >
-                      <FiSettings className="text-[14px]" />
-                      Account Settings
-                    </Link>
-
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-error transition active:bg-error-soft"
-                    >
-                      <FiLogOut className="text-[14px]" />
-                      Logout
-                    </button>
+                        <ChevronRight className="size-3 text-text-muted" />
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="py-2 text-center text-xs text-text-muted">
+                    No matching commands
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Bottom Sheet Dropdown Overlay Dialog */}
-      <AppMobileContextSheet
-        isOpen={contextSheetOpen}
-        onClose={() => setContextSheetOpen(false)}
-      />
-    </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
   );
 };
 

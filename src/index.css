@@ -339,64 +339,6 @@ a {
   text-decoration: none;
 }
 
-/* ===============================
-   Form Elements
-=============================== */
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
-
-input,
-textarea,
-select {
-  background: var(--app-color-surface);
-  border: 1px solid var(--app-color-border);
-  color: var(--app-color-text);
-  transition: all 0.2s ease;
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: var(--app-color-text-muted);
-}
-
-input:hover,
-textarea:hover,
-select:hover {
-  border-color: var(--app-color-primary);
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: var(--app-color-primary);
-  box-shadow: var(--app-focus-ring);
-}
-
-input:disabled,
-textarea:disabled,
-select:disabled {
-  background: var(--app-color-disabled-bg);
-  border-color: var(--app-color-disabled-border);
-  color: var(--app-color-disabled-text);
-  cursor: not-allowed;
-}
-
-/* ===============================
-   Focus Visible
-=============================== */
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline: none;
-  box-shadow: var(--app-focus-ring);
-}
 
 /* ===============================
    Scrollbar

@@ -9,7 +9,7 @@ import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import {
   SIDEBAR_NAV_GROUPS,
   SidebarItem,
-  SidebarWorkspaceHeader,
+  SidebarCompanySelector,
   SidebarUserProfile,
   SidebarScrollArea,
 } from "../components/sidebar";
@@ -57,9 +57,8 @@ const AppDesktopSidebar = ({
         className="fixed left-0 top-0 z-30 h-[100dvh] border-r border-border bg-surface shadow-xs transition-[width] duration-200 ease-out overflow-hidden flex flex-col justify-between"
         style={{ width: currentWidth }}
       >
-        {/* ── TOP: Workspace Brand & Collapse Button ─────────────────── */}
-        <SidebarWorkspaceHeader
-          workspace={currentWorkspace}
+        {/* ── TOP: Company & Branch Tabbed Selector ───────────────────── */}
+        <SidebarCompanySelector
           collapsed={collapsed}
           onToggleCollapse={onToggleCollapse}
           onClose={onClose}
