@@ -12,7 +12,11 @@ import {
   inviteWorkspaceMember,
   getWorkspaceInvitations,
   cancelWorkspaceInvitation,
+  resendWorkspaceInvitation,
+  updateWorkspaceInvitation,
   acceptWorkspaceInvitation,
+  acceptWorkspaceInvitationSignup,
+  getPublicInvitationDetails,
   getIncomingUserInvitations,
   acceptIncomingInvitation,
 } from "./workspaceThunk";
@@ -27,6 +31,7 @@ const initialState = {
   members: [],
   invitations: [],
   incomingInvitations: [],
+  publicInvitationDetails: null,
 
   status: API_STATUS.IDLE,
   error: null,
@@ -45,7 +50,11 @@ const initialState = {
   inviteWorkspaceMemberStatus: API_STATUS.IDLE,
   getWorkspaceInvitationsStatus: API_STATUS.IDLE,
   cancelWorkspaceInvitationStatus: API_STATUS.IDLE,
+  resendWorkspaceInvitationStatus: API_STATUS.IDLE,
+  updateWorkspaceInvitationStatus: API_STATUS.IDLE,
   acceptWorkspaceInvitationStatus: API_STATUS.IDLE,
+  acceptWorkspaceInvitationSignupStatus: API_STATUS.IDLE,
+  getPublicInvitationDetailsStatus: API_STATUS.IDLE,
 
   getIncomingUserInvitationsStatus: API_STATUS.IDLE,
   acceptIncomingInvitationStatus: API_STATUS.IDLE,
@@ -322,6 +331,71 @@ const workspaceSlice = createSlice({
       .addCase(getIncomingUserInvitations.rejected, (state, action) => {
         state.getIncomingUserInvitationsStatus = API_STATUS.ERROR;
         state.error = action.payload || "Failed to load incoming invitations";
+      })
+
+      // RESEND WORKSPACE INVITATION
+      .addCase(resendWorkspaceInvitation.pending, (state) => {
+        state.resendWorkspaceInvitationStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(resendWorkspaceInvitation.fulfilled, (state, action) => {
+        state.resendWorkspaceInvitationStatus = API_STATUS.SUCCESS;
+        state.invitations = state.invitations.map((invitation) =>
+          invitation?._id === action.payload?._id ? action.payload : invitation,
+        );
+        state.message = "Invitation email resent successfully";
+      })
+      .addCase(resendWorkspaceInvitation.rejected, (state, action) => {
+        state.resendWorkspaceInvitationStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to resend invitation";
+      })
+
+      // UPDATE WORKSPACE INVITATION
+      .addCase(updateWorkspaceInvitation.pending, (state) => {
+        state.updateWorkspaceInvitationStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(updateWorkspaceInvitation.fulfilled, (state, action) => {
+        state.updateWorkspaceInvitationStatus = API_STATUS.SUCCESS;
+        state.invitations = state.invitations.map((invitation) =>
+          invitation?._id === action.payload?._id ? action.payload : invitation,
+        );
+        state.message = "Invitation updated successfully";
+      })
+      .addCase(updateWorkspaceInvitation.rejected, (state, action) => {
+        state.updateWorkspaceInvitationStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to update invitation";
+      })
+
+      // ACCEPT WORKSPACE INVITATION SIGNUP
+      .addCase(acceptWorkspaceInvitationSignup.pending, (state) => {
+        state.acceptWorkspaceInvitationSignupStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(acceptWorkspaceInvitationSignup.fulfilled, (state) => {
+        state.acceptWorkspaceInvitationSignupStatus = API_STATUS.SUCCESS;
+        state.message = "Account created and workspace joined successfully";
+      })
+      .addCase(acceptWorkspaceInvitationSignup.rejected, (state, action) => {
+        state.acceptWorkspaceInvitationSignupStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to accept invitation and sign up";
+      })
+
+      // GET PUBLIC INVITATION DETAILS
+      .addCase(getPublicInvitationDetails.pending, (state) => {
+        state.getPublicInvitationDetailsStatus = API_STATUS.LOADING;
+        state.error = null;
+      })
+      .addCase(getPublicInvitationDetails.fulfilled, (state, action) => {
+        state.getPublicInvitationDetailsStatus = API_STATUS.SUCCESS;
+        state.publicInvitationDetails = action.payload || null;
+      })
+      .addCase(getPublicInvitationDetails.rejected, (state, action) => {
+        state.getPublicInvitationDetailsStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to load invitation details";
       })
 
       // ACCEPT INCOMING INVITATION

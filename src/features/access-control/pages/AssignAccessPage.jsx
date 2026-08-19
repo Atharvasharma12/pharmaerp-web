@@ -21,6 +21,7 @@ const INITIAL_FORM_DATA = {
   accessAllBranches: false,
   companyIds: [],
   branchIds: [],
+  branchAccess: [], // [{ branchId, roleId, canOperateMarketplaceStore }]
 };
 
 const normalizeText = (value) => String(value || "").trim();
@@ -102,6 +103,7 @@ const buildAccessPayload = (formData) => {
     accessAllBranches,
     companyIds: accessAllCompanies ? [] : formData.companyIds,
     branchIds: accessAllBranches ? [] : formData.branchIds,
+    branchAccess: accessAllBranches ? [] : formData.branchAccess || [],
   };
 };
 

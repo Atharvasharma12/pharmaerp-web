@@ -1,325 +1,155 @@
-import { FiLock, FiSmartphone } from "react-icons/fi";
-import { FaWhatsapp } from "react-icons/fa";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Mail, Lock, ShieldCheck } from "lucide-react";
 
 import { ROUTES } from "@/constants";
-
-import {
-  AppBox,
-  AppButton,
-  AppCard,
-  AppCheckbox,
-  AppHeading,
-  AppInput,
-  AppLink,
-  AppPasswordInput,
-  AppStack,
-  AppText,
-} from "@/components";
+import AuthButton from "../../components/AuthButton";
+import AuthInput from "../../components/AuthInput";
+import AuthPasswordInput from "../../components/AuthPasswordInput";
+import SocialButton from "../../components/SocialButton";
+import PharmacyIllustration from "../../components/PharmacyIllustration";
 
 const LoginMobilePage = ({
   formData,
   formErrors,
-  rememberMe,
   isLoading,
   error,
   handleChange,
-  handleRememberMeChange,
   handleSubmit,
 }) => {
   return (
-    <section className="relative min-h-screen overflow-hidden bg-bg">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_10%,color-mix(in_srgb,var(--app-color-primary)_9%,transparent),transparent_36%)]" />
+    <section className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-x-hidden bg-bg px-4 pt-4 pb-20 selection:bg-primary-soft selection:text-primary">
+      {/* Background ambient decorative glows */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute top-1/6 -left-16 size-56 rounded-full bg-primary-soft blur-3xl opacity-60" />
+        <div className="absolute bottom-1/6 -right-16 size-56 rounded-full bg-blue-500/10 blur-3xl opacity-60" />
+      </div>
 
-      <AppBox
-        sx={{
-          position: "relative",
-          zIndex: 1,
-          width: "100%",
-          maxWidth: { xs: 390, sm: 430, md: 460 },
-          minHeight: "100vh",
-          mx: "auto",
-          px: { xs: 2, sm: 2.5 },
-          pt: { xs: 2.4, sm: 3 },
-          pb: { xs: 2, sm: 2.5 },
-        }}
+      {/* Mobile Card Container per DESIGN_STANDARDS §4 (rounded-[18px]) & §2.2 */}
+      <motion.div
+        initial={{ opacity: 0, transform: "translateY(20px) scale(0.98)" }}
+        animate={{ opacity: 1, transform: "translateY(0px) scale(1)" }}
+        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+        className="relative z-10 w-full max-w-[390px] overflow-hidden rounded-[18px] border border-border bg-surface p-6 shadow-[var(--app-shadow-lg)]"
       >
-        <AppBox
-          sx={{
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-            mt: { xs: 1.2, sm: 1.6 },
-          }}
-        >
-          <AppHeading level={2} weight={800} align="center" sx={welcomeSx}>
-            Welcome Back!
-          </AppHeading>
+        {/* ── TOP ILLUSTRATION ─────────────────────────────────────────── */}
+        <div className="flex justify-center pb-2">
+          <PharmacyIllustration className="flex justify-center" />
+        </div>
 
-          <AppText variant="body2" align="center" weight={600} sx={subtitleSx}>
-            Login to access your pharmacy dashboard
-          </AppText>
-        </AppBox>
+        {/* ── HEADER ─────────────────────────────────────────────────── */}
+        <div className="text-center mt-2">
+          {/* Mobile Title: Exactly one <h1> per screen, 22px font-extrabold per DESIGN_STANDARDS §1.3 */}
+          <h1 className="text-[22px] font-extrabold tracking-tight text-text leading-[1.2]">
+            Sign In
+          </h1>
+          {/* Mobile Secondary Body: 13px per DESIGN_STANDARDS §1.3 */}
+          <p className="mt-1 text-[13px] text-text-muted leading-[1.55]">
+            Enter valid email & password to continue
+          </p>
+        </div>
 
-        <AppCard
-          variant="default"
-          rounded="xl"
-          bordered
-          shadow="md"
-          padding="none"
-          sx={{
-            mt: 3,
-            width: "100%",
-            px: { xs: 2.2, sm: 2.8 },
-            pt: { xs: 3, sm: 3.5 },
-            pb: { xs: 3, sm: 3.4 },
-            bgcolor: "var(--app-color-surface)",
-            borderColor: "var(--app-color-border)",
-            boxShadow: "var(--app-shadow-md)",
-          }}
-        >
-          {error && (
-            <AppBox
-              sx={{
-                mb: 1.5,
-                px: 1.3,
-                py: 1,
-                borderRadius: "10px",
-                border: "1px solid var(--app-color-error)",
-                bgcolor: "var(--app-color-error-soft)",
-                color: "var(--app-color-error)",
-                fontSize: "11.5px",
-                fontWeight: 600,
-              }}
-            >
-              {error}
-            </AppBox>
-          )}
-
-          <AppBox
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{ width: "100%" }}
+        {/* Error message */}
+        {error && (
+          <div
+            className="mt-3 flex items-start gap-2 rounded-[8px] border border-error/30 bg-error-soft px-3.5 py-2.5"
+            role="alert"
           >
-            <AppStack
-              direction="column"
-              align="stretch"
-              gap={1.5}
-              sx={{ width: "100%" }}
-            >
-              <AppInput
-                label="Mobile Number / Email"
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={isLoading}
-                placeholder="Enter mobile number or email"
-                fullWidth
-                size="small"
-                variant="bordered"
-                rounded="md"
-                startIcon={<FiSmartphone />}
-                error={Boolean(formErrors.email)}
-                helperText={formErrors.email}
-                labelSx={labelSx}
-                inputSx={inputSx}
-              />
+            <ShieldCheck size={16} className="mt-0.5 shrink-0 text-error" />
+            <p className="text-xs font-medium text-error leading-[1.4]">{error}</p>
+          </div>
+        )}
 
-              <AppPasswordInput
-                label="Password"
+        {/* ── FORM: gap-3 per DESIGN_STANDARDS §2.2 ─────────────────── */}
+        <form onSubmit={handleSubmit} noValidate className="mt-5">
+          <div className="flex flex-col gap-3">
+            {/* Email Field */}
+            <AuthInput
+              id="mobile-email"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              disabled={isLoading}
+              placeholder="Email address"
+              autoComplete="email"
+              required
+              icon={<Mail size={16} />}
+              error={formErrors.email}
+            />
+
+            {/* Password Field */}
+            <div>
+              <AuthPasswordInput
+                id="mobile-password"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
                 disabled={isLoading}
-                placeholder="Enter your password"
-                fullWidth
-                size="small"
-                variant="bordered"
-                rounded="md"
-                startIcon={<FiLock />}
-                error={Boolean(formErrors.password)}
-                helperText={formErrors.password}
-                labelSx={labelSx}
-                inputSx={inputSx}
+                placeholder="Password"
+                autoComplete="current-password"
+                required
+                icon={<Lock size={16} />}
+                error={formErrors.password}
               />
 
-              <AppBox
-                sx={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  mt: 0.2,
-                }}
-              >
-                <AppCheckbox
-                  label="Remember me"
-                  checked={rememberMe}
-                  onChange={handleRememberMeChange}
-                  disabled={isLoading}
-                  colorVariant="primary"
-                  size="small"
-                  sx={{ m: 0, height: 20 }}
-                  checkboxSx={{ p: 0.25 }}
-                  labelSx={{
-                    fontSize: "11.4px",
-                    fontWeight: 650,
-                    color: "var(--app-color-text-muted)",
-                  }}
-                />
-
-                <AppLink
-                  href={ROUTES.FORGOT_PASSWORD}
-                  underline="none"
-                  sx={{
-                    fontSize: "11.3px",
-                    fontWeight: 750,
-                    color: "var(--app-color-primary)",
-                  }}
+              {/* Forgot Password Link */}
+              <div className="mt-1.5 flex justify-end">
+                <Link
+                  to={ROUTES.FORGOT_PASSWORD}
+                  className="text-xs font-semibold text-primary transition-colors hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-[4px]"
                 >
-                  Forgot Password?
-                </AppLink>
-              </AppBox>
+                  Forget password
+                </Link>
+              </div>
+            </div>
 
-              <AppButton
-                type="submit"
-                variant="contained"
-                colorVariant="primary"
-                rounded="md"
-                fullWidth
-                disabled={isLoading}
-                sx={{
-                  mt: 0.8,
-                  height: 46,
-                  fontSize: "13.5px",
-                  fontWeight: 750,
-                  boxShadow: "var(--app-shadow-sm)",
-                }}
-              >
-                {isLoading ? "Logging in..." : "Login"}
-              </AppButton>
-
-              <AppStack
-                direction="row"
-                align="center"
-                justify="center"
-                gap={1.1}
-                sx={{ width: "100%", my: 0.3 }}
-              >
-                <AppBox sx={dividerSx} />
-                <AppText variant="body2" weight={650} sx={orSx}>
-                  OR
-                </AppText>
-                <AppBox sx={dividerSx} />
-              </AppStack>
-
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="primary"
-                rounded="md"
-                fullWidth
-                startIcon={<FaWhatsapp />}
-                disabled={isLoading}
-                sx={{
-                  height: 44,
-                  fontSize: "12.8px",
-                  fontWeight: 750,
-                  bgcolor: "var(--app-color-surface)",
-                  borderColor: "var(--app-color-border-strong)",
-                  color: "var(--app-color-primary)",
-                }}
-              >
-                Login with WhatsApp
-              </AppButton>
-            </AppStack>
-          </AppBox>
-        </AppCard>
-
-        <AppBox sx={{ width: "100%", textAlign: "center", mt: 1.75 }}>
-          <AppText variant="body2" weight={650} sx={createSx}>
-            Don&apos;t have an account?{" "}
-            <AppLink
-              href={ROUTES.REGISTER}
-              underline="none"
-              sx={{ color: "var(--app-color-primary)", fontWeight: 800 }}
+            {/* Primary Login Button */}
+            <AuthButton
+              type="submit"
+              variant="primary"
+              fullWidth
+              loading={isLoading}
+              disabled={isLoading}
+              className="mt-1.5"
             >
-              Create Account
-            </AppLink>
-          </AppText>
-        </AppBox>
+              {isLoading ? "Signing in..." : "Login"}
+            </AuthButton>
+          </div>
+        </form>
 
-        <AppBox
-          sx={{
-            width: "100%",
-            mt: 2.1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 0.55,
-            textAlign: "center",
-          }}
-        >
-          <FiLock style={{ color: "var(--app-color-primary)", fontSize: 13 }} />
-          <AppText variant="body2" weight={650} sx={safeTextSx}>
-            Your data is safe and secure with us.
-          </AppText>
-        </AppBox>
-      </AppBox>
+        {/* ── DIVIDER: Or Continue with ─────────────────────────────────── */}
+        <div className="relative my-5 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <span className="relative bg-surface px-3 text-xs font-medium text-text-muted">
+            Or Continue with
+          </span>
+        </div>
+
+        {/* ── LONG GOOGLE SSO BUTTON & SIGN UP CONTAINER ────────────────── */}
+        <div className="flex flex-col gap-5">
+          <SocialButton
+            provider="google"
+            label="Sign in with Google"
+            disabled={isLoading}
+            fullWidth
+          />
+
+          <p className="text-center text-[13px] text-text-muted leading-[1.55]">
+            Haven&apos;t any account?{" "}
+            <Link
+              to={ROUTES.REGISTER}
+              className="font-bold text-primary transition-colors hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-[4px]"
+            >
+              Sign up
+            </Link>
+          </p>
+        </div>
+      </motion.div>
     </section>
   );
-};
-
-const labelSx = {
-  mb: 0.35,
-  fontSize: "11.6px",
-  fontWeight: 750,
-  color: "var(--app-color-text)",
-};
-
-const inputSx = {
-  height: 40,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-  color: "var(--app-color-text)",
-};
-
-const welcomeSx = {
-  fontSize: { xs: "20px", sm: "23px" },
-  letterSpacing: "-0.35px",
-  color: "var(--app-color-text)",
-};
-
-const subtitleSx = {
-  mt: 0.45,
-  fontSize: { xs: "11.8px", sm: "13px" },
-  color: "var(--app-color-text-muted)",
-};
-
-const dividerSx = {
-  height: 1,
-  flex: 1,
-  bgcolor: "var(--app-color-divider)",
-};
-
-const orSx = {
-  width: "auto",
-  flexShrink: 0,
-  color: "var(--app-color-text-muted)",
-  fontSize: "10.6px",
-};
-
-const createSx = {
-  fontSize: "12.4px",
-  color: "var(--app-color-text)",
-};
-
-const safeTextSx = {
-  fontSize: "11.7px",
-  color: "var(--app-color-text-muted)",
 };
 
 export default LoginMobilePage;

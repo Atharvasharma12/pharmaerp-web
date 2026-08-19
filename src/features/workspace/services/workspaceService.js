@@ -55,8 +55,32 @@ const workspaceService = {
     );
   },
 
+  resendWorkspaceInvitation(workspaceId, invitationId) {
+    return apiClient.post(
+      ENDPOINTS.WORKSPACE.RESEND_INVITATION(workspaceId, invitationId),
+    );
+  },
+
+  updateWorkspaceInvitation(workspaceId, invitationId, payload) {
+    return apiClient.patch(
+      ENDPOINTS.WORKSPACE.UPDATE_INVITATION(workspaceId, invitationId),
+      payload,
+    );
+  },
+
   acceptWorkspaceInvitation(token) {
     return apiClient.post(ENDPOINTS.WORKSPACE.ACCEPT_INVITATION(token));
+  },
+
+  acceptWorkspaceInvitationSignup(token, payload) {
+    return apiClient.post(
+      ENDPOINTS.WORKSPACE.ACCEPT_INVITATION_SIGNUP(token),
+      payload,
+    );
+  },
+
+  getPublicInvitationDetails(token) {
+    return apiClient.get(ENDPOINTS.WORKSPACE.PUBLIC_INVITATION_DETAILS(token));
   },
 
   // --- NEW USER PROFILE INCOMING INVITATIONS API ENDPOINT MAP ---

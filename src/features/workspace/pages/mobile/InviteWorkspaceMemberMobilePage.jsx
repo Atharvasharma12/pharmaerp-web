@@ -1,14 +1,15 @@
-// src/features/workspace/pages/mobile/InviteWorkspaceMemberMobilePage.jsx
-
 import {
   FiArrowLeft,
+  FiCheck,
   FiCheckCircle,
   FiClock,
   FiInfo,
   FiMail,
+  FiMapPin,
   FiRefreshCcw,
   FiSend,
   FiShield,
+  FiShoppingBag,
   FiUserPlus,
   FiUsers,
 } from "react-icons/fi";
@@ -31,19 +32,30 @@ const InviteWorkspaceMemberMobilePage = ({
   formErrors = {},
   workspaceSummary,
   roles = [],
+  companies = [],
+  branches = [],
   isLoading = false,
   isCheckingWorkspace = false,
   isFetchingRoles = false,
+  isFetchingCompanies = false,
+  isFetchingBranches = false,
   isInviting = false,
   error,
   message,
   handleChange,
+  handleToggleCompany,
+  handleToggleBranchAccess,
+  handleBranchRoleChange,
+  handleBranchMarketplaceToggle,
   handleSubmit,
   handleReset,
   handleBack,
   handleViewInvitations,
   handleViewMembers,
 }) => {
+  const isAllBranches = Boolean(formData.accessAllBranches);
+  const isAllCompanies = Boolean(formData.accessAllCompanies);
+
   return (
     <section className="w-full bg-bg">
       <AppBox sx={containerSx}>
@@ -57,10 +69,10 @@ const InviteWorkspaceMemberMobilePage = ({
           >
             <AppBox sx={{ minWidth: 0, flex: 1 }}>
               <AppHeading level={1} weight={800} sx={pageTitleSx}>
-                Invite Member
+                Invite Team Member
               </AppHeading>
               <AppText variant="body2" weight={600} sx={pageSubtitleSx}>
-                Add team members to your workspace directory.
+                Pre-configure store facility roles & access.
               </AppText>
             </AppBox>
 
@@ -154,7 +166,7 @@ const InviteWorkspaceMemberMobilePage = ({
                   htmlFor="invite-role-id"
                   sx={labelSx}
                 >
-                  Workspace Role
+                  Global Fallback Role
                 </AppText>
               </AppStack>
 
@@ -183,9 +195,102 @@ const InviteWorkspaceMemberMobilePage = ({
                   ? formErrors.roleId
                   : isFetchingRoles
                     ? "Loading workspace roles..."
-                    : "Optional. Leave blank to invite as default staff."}
+                    : "Optional. Used as fallback when branch-specific role is not set."}
               </AppText>
             </AppBox>
+
+            {/* PBAC Facilities Scoping */}
+            <div className="rounded-lg border border-border bg-surface-alt/40 p-3">
+              <div className="flex items-center justify-between pb-2 border-b border-border">
+                <span className="text-xs font-semibold text-text">Store Facilities (PBAC)</span>
+                <div className="flex items-center gap-2.5 text-[11px]">
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="accessAllBranches"
+                      checked={isAllBranches}
+                      onChange={handleChange}
+                      className="rounded text-primary"
+                    />
+                    <span>All Stores</span>
+                  </label>
+                </div>
+              </div>
+
+              {!isAllBranches && (
+                <div className="mt-2.5 space-y-2">
+                  {branches.length === 0 ? (
+                    <p className="text-[11px] text-text-muted italic">No stores found</p>
+                  ) : (
+                    branches.map((branch) => {
+                      const branchAccessItem = formData.branchAccess.find(
+                        (ba) => ba.branchId === branch._id,
+                      );
+                      const isAssigned = Boolean(branchAccessItem);
+
+                      return (
+                        <div
+                          key={branch._id}
+                          className={`p-2 rounded border transition text-xs ${
+                            isAssigned
+                              ? "border-primary/50 bg-surface"
+                              : "border-border/60 bg-surface/60 opacity-80"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={isAssigned}
+                                onChange={() => handleToggleBranchAccess(branch._id, formData.roleId)}
+                                className="rounded text-primary"
+                              />
+                              <span className="font-semibold text-text">{branch.name}</span>
+                            </label>
+                            <span className="text-[10px] text-text-muted font-mono">{branch.branchCode}</span>
+                          </div>
+
+                          {isAssigned && (
+                            <div className="mt-2 pt-1.5 border-t border-border/50 flex flex-col gap-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-text-muted">Branch Role:</span>
+                                <select
+                                  value={branchAccessItem.roleId || ""}
+                                  onChange={(e) =>
+                                    handleBranchRoleChange(branch._id, e.target.value)
+                                  }
+                                  className="text-[11px] rounded border border-border bg-surface px-1.5 py-0.5 outline-none flex-1 text-text"
+                                >
+                                  <option value="">Inherit Global Role</option>
+                                  {roles.map((r) => (
+                                    <option key={r._id} value={r._id}>
+                                      {r.name || r.code}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleBranchMarketplaceToggle(branch._id)}
+                                className={`text-[10px] py-1 px-2 rounded border flex items-center justify-center gap-1 ${
+                                  branchAccessItem.canOperateMarketplaceStore
+                                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-500 font-semibold"
+                                    : "border-border text-text-muted"
+                                }`}
+                              >
+                                <FiShoppingBag className="text-xs" />
+                                <span>Marketplace Fulfillment Operator</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
 
             <AppTextarea
               label="Notes"

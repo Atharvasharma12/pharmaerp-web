@@ -478,6 +478,13 @@ const WorkspaceMembersPage = () => {
     };
   }, [memberAction, selectedMember]);
 
+  const handleManageAccess = useCallback(
+    (member) => {
+      navigate(ROUTES.ASSIGN_ACCESS);
+    },
+    [navigate],
+  );
+
   const pageProps = {
     workspace: currentWorkspace,
     members: filteredMembers,
@@ -489,6 +496,7 @@ const WorkspaceMembersPage = () => {
     roleOptions,
 
     isLoading,
+    isMutating,
     hasError,
     error,
     message,
@@ -509,6 +517,7 @@ const WorkspaceMembersPage = () => {
     handleBackToWorkspace,
     handleChangeMemberStatus,
     handleRemoveMember,
+    handleManageAccess,
 
     clearMessage,
   };

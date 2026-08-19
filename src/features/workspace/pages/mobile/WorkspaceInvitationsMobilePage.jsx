@@ -4,11 +4,13 @@ import { useMemo } from "react";
 import {
   FiSend,
   FiClock,
+  FiCheck,
   FiCheckCircle,
   FiXCircle,
   FiSearch,
   FiFilter,
   FiRefreshCw,
+  FiCopy,
   FiUserPlus,
   FiUsers,
   FiCalendar,
@@ -42,7 +44,7 @@ const statIcons = {
 const statusColorMap = {
   pending: "warning",
   accepted: "success",
-  cancelled: "error",
+  cancelled: "neutral",
   expired: "error",
 };
 
@@ -55,6 +57,7 @@ const WorkspaceInvitationsMobilePage = ({
   totalInvitations = 0,
   filteredInvitationsCount = 0,
   hasFilteredInvitations,
+  copiedId,
   handleFilterChange,
   handleSearchChange,
   handleClearFilters,
@@ -62,6 +65,8 @@ const WorkspaceInvitationsMobilePage = ({
   handleInviteMember,
   handleViewMembers,
   handleCancelInvitation,
+  handleResendInvitation,
+  handleCopyLink,
 }) => {
   const shouldRenderPagination =
     hasFilteredInvitations && totalInvitations > 10;
@@ -318,19 +323,51 @@ const WorkspaceInvitationsMobilePage = ({
                         />
 
                         {invitation.effectiveStatus === "pending" && (
-                          <AppIconButton
-                            icon={<FiXCircle />}
-                            variant="text"
-                            colorVariant="error"
-                            size="small"
-                            rounded="md"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                              handleCancelInvitation(invitation);
-                            }}
-                            sx={cancelBtnOverrideSx}
-                          />
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              title="Resend Email"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleResendInvitation?.(invitation);
+                              }}
+                              className="p-1 rounded text-text-muted hover:text-primary transition"
+                            >
+                              <FiRefreshCw className="text-xs" />
+                            </button>
+
+                            <button
+                              type="button"
+                              title="Copy Link"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleCopyLink?.(invitation);
+                              }}
+                              className="p-1 rounded text-text-muted hover:text-primary transition"
+                            >
+                              {copiedId === invitation._id ? (
+                                <FiCheck className="text-xs text-emerald-500" />
+                              ) : (
+                                <FiCopy className="text-xs" />
+                              )}
+                            </button>
+
+                            <AppIconButton
+                              icon={<FiXCircle />}
+                              variant="text"
+                              colorVariant="error"
+                              size="small"
+                              rounded="md"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleCancelInvitation(invitation);
+                              }}
+                              sx={cancelBtnOverrideSx}
+                            />
+                          </div>
                         )}
                       </AppStack>
                     </AppStack>
@@ -344,13 +381,28 @@ const WorkspaceInvitationsMobilePage = ({
                       justify="space-between"
                       gap={1}
                     >
-                      <AppTag
-                        label={invitation.displayRole || "Staff"}
-                        variant="soft"
-                        colorVariant="primary"
-                        rounded="sm"
-                        sx={roleTagOverrideSx}
-                      />
+                      <div className="flex items-center gap-1">
+                        <AppTag
+                          label={invitation.displayRole || "Staff"}
+                          variant="soft"
+                          colorVariant="primary"
+                          rounded="sm"
+                          sx={roleTagOverrideSx}
+                        />
+                        <AppTag
+                          label={invitation.storeFootprint || "Workspace"}
+                          variant="soft"
+                          colorVariant={
+                            invitation.accessAllBranches
+                              ? "success"
+                              : invitation.branchAccess?.length > 0
+                                ? "primary"
+                                : "neutral"
+                          }
+                          rounded="sm"
+                          sx={roleTagOverrideSx}
+                        />
+                      </div>
 
                       <AppStack direction="row" align="center" gap={1}>
                         <AppStack

@@ -5,6 +5,7 @@ import {
   FiCheckCircle,
   FiClock,
   FiMail,
+  FiMapPin,
   FiMoreHorizontal,
   FiRefreshCw,
   FiSearch,
@@ -81,6 +82,7 @@ const WorkspaceMembersDesktopPage = ({
   handleBackToWorkspace,
   handleChangeMemberStatus,
   handleRemoveMember,
+  handleManageAccess,
 
   clearMessage,
 }) => {
@@ -162,6 +164,7 @@ const WorkspaceMembersDesktopPage = ({
           member={member}
           onChangeStatus={handleChangeMemberStatus}
           onRemove={handleRemoveMember}
+          onManageAccess={handleManageAccess}
         />
       ),
     },
@@ -563,10 +566,18 @@ const ContactCell = ({ member }) => (
   </AppBox>
 );
 
-const MemberActions = ({ member, onChangeStatus, onRemove }) => {
+const MemberActions = ({ member, onChangeStatus, onRemove, onManageAccess }) => {
   const isOwner = Boolean(member?.isOwner);
 
   const items = [
+    {
+      id: "access",
+      label: "Store & Role Access",
+      icon: <FiMapPin />,
+      disabled: isOwner,
+      onClick: () => onManageAccess?.(member),
+    },
+    { id: "divider-1", type: "divider" },
     {
       id: "active",
       label: "Mark Active",
@@ -588,7 +599,7 @@ const MemberActions = ({ member, onChangeStatus, onRemove }) => {
       disabled: isOwner || member?.status === "suspended",
       onClick: () => onChangeStatus(member, "suspended"),
     },
-    { id: "divider", type: "divider" },
+    { id: "divider-2", type: "divider" },
     {
       id: "remove",
       label: "Remove Member",

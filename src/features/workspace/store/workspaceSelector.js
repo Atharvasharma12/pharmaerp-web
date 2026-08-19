@@ -47,8 +47,23 @@ export const selectGetWorkspaceInvitationsStatus = (state) =>
 export const selectCancelWorkspaceInvitationStatus = (state) =>
   state.workspace.cancelWorkspaceInvitationStatus;
 
+export const selectResendWorkspaceInvitationStatus = (state) =>
+  state.workspace.resendWorkspaceInvitationStatus;
+
+export const selectUpdateWorkspaceInvitationStatus = (state) =>
+  state.workspace.updateWorkspaceInvitationStatus;
+
 export const selectAcceptWorkspaceInvitationStatus = (state) =>
   state.workspace.acceptWorkspaceInvitationStatus;
+
+export const selectAcceptWorkspaceInvitationSignupStatus = (state) =>
+  state.workspace.acceptWorkspaceInvitationSignupStatus;
+
+export const selectGetPublicInvitationDetailsStatus = (state) =>
+  state.workspace.getPublicInvitationDetailsStatus;
+
+export const selectPublicInvitationDetails = (state) =>
+  state.workspace.publicInvitationDetails;
 
 // --- NEW USER PROFILE INCOMING INVITATIONS SELECTORS ---
 

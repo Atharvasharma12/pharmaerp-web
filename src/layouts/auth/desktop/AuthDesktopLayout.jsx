@@ -2,19 +2,12 @@
 
 import { Outlet } from "react-router-dom";
 
-import AuthDesktopTopBar from "./AuthDesktopTopBar";
-import AuthDesktopFooter from "./AuthDesktopFooter";
-
 const AuthDesktopLayout = () => {
   return (
-    <div className="min-h-screen bg-bg text-text">
-      <AuthDesktopTopBar />
-
-      <main className="min-h-[calc(100vh-136px)]">
+    <div className="relative min-h-screen w-full bg-bg text-text selection:bg-primary/20 selection:text-primary">
+      <main className="w-full">
         <Outlet />
       </main>
-
-      <AuthDesktopFooter />
     </div>
   );
 };

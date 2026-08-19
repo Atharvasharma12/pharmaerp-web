@@ -1,505 +1,189 @@
-import {
-  FiBarChart2,
-  FiBox,
-  FiFileText,
-  FiHeadphones,
-  FiLock,
-  FiMail,
-  FiShield,
-  FiUsers,
-} from "react-icons/fi";
-import { FcGoogle } from "react-icons/fc";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Mail, Lock, ShieldCheck } from "lucide-react";
 
 import { ROUTES } from "@/constants";
-
-import {
-  AppBadge,
-  AppBox,
-  AppButton,
-  AppCard,
-  AppCheckbox,
-  AppHeading,
-  AppInput,
-  AppLink,
-  AppPasswordInput,
-  AppStack,
-  AppText,
-} from "@/components";
+import AuthButton from "../../components/AuthButton";
+import AuthInput from "../../components/AuthInput";
+import AuthPasswordInput from "../../components/AuthPasswordInput";
+import SocialButton from "../../components/SocialButton";
+import DashboardPreview from "../../components/DashboardPreview";
 
 const LoginDesktopPage = ({
   formData,
   formErrors,
-  rememberMe,
   isLoading,
   error,
   handleChange,
-  handleRememberMeChange,
   handleSubmit,
 }) => {
   return (
-    <section className="relative min-h-screen overflow-hidden bg-bg">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,color-mix(in_srgb,var(--app-color-primary)_8%,transparent),transparent_34%),radial-gradient(circle_at_84%_12%,color-mix(in_srgb,var(--app-color-primary)_4.5%,transparent),transparent_30%)]" />
+    <section className="relative flex min-h-[100dvh] w-full items-center justify-center bg-bg px-6 py-8 selection:bg-primary-soft selection:text-primary">
+      {/* Background ambient glows */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute -top-32 -left-32 size-96 rounded-full bg-primary-soft blur-3xl opacity-60" />
+        <div className="absolute -bottom-32 -right-32 size-96 rounded-full bg-blue-500/10 blur-3xl opacity-60" />
+      </div>
 
-      <div className="relative z-10 mx-auto grid min-h-screen max-w-7xl items-start gap-8 px-8 py-8 lg:grid-cols-2 lg:px-12">
-        <AppBox sx={{ pt: 0.5, maxWidth: 520 }}>
-          <AppStack direction="row" align="center" gap={1}>
-            <AppBox
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              sx={{
-                width: 32,
-                height: 32,
-                color: "var(--app-color-primary)",
-                fontSize: "30px",
-                lineHeight: 1,
-              }}
-            >
-              ✚
-            </AppBox>
-
-            <AppHeading
-              level={1}
-              weight={700}
-              sx={{
-                m: 0,
-                fontSize: { xs: "24px", lg: "28px" },
-                letterSpacing: "-0.4px",
-                color: "var(--app-color-text)",
-              }}
-            >
+      {/* Main Outer Card Container per DESIGN_STANDARDS §3.1 & §4 (max-w-[1200px], rounded-[16px]) */}
+      <motion.div
+        initial={{ opacity: 0, transform: "translateY(12px) scale(0.98)" }}
+        animate={{ opacity: 1, transform: "translateY(0px) scale(1)" }}
+        transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+        className="relative z-10 mx-auto grid w-full max-w-[1200px] min-h-[660px] overflow-hidden rounded-[16px] border border-border bg-surface shadow-[var(--app-shadow-lg)] lg:grid-cols-12"
+      >
+        {/* ── LEFT PANEL: Form ─────────────────────────────────────────── */}
+        <div className="flex flex-col justify-between p-6 sm:p-8 lg:col-span-6 xl:col-span-5 xl:p-10">
+          {/* Brand Logo Header */}
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-[8px] bg-slate-900 text-white shadow-xs dark:bg-primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2L2 7.5V16.5L12 22L22 16.5V7.5L12 2ZM13 7V11H17V13H13V17H11V13H7V11H11V7H13Z" />
+              </svg>
+            </div>
+            <span className="text-xl font-bold tracking-tight text-text">
               Pharma<span className="text-primary">ERP</span>
-            </AppHeading>
-          </AppStack>
+            </span>
+          </div>
 
-          <AppBadge
-            variant="soft"
-            colorVariant="primary"
-            rounded="full"
-            startIcon={<FiShield />}
-            label="Smart Pharmacy Management"
-            sx={{
-              mt: 3,
-              px: 1.1,
-              py: 0.35,
-              fontSize: "11px",
-              fontWeight: 700,
-            }}
-          />
+          {/* Form Content */}
+          <div className="my-auto max-w-[400px] py-6">
+            <div>
+              {/* Page Title: Exactly one <h1> per page, 28px font-extrabold per DESIGN_STANDARDS §1.2 */}
+              <h1 className="text-[28px] font-extrabold tracking-tight text-text leading-tight">
+                Log in to your account.
+              </h1>
+              {/* Secondary Body Text: 14px leading-[1.6] per DESIGN_STANDARDS §1.2 */}
+              <p className="mt-2 text-sm text-text-muted leading-[1.6]">
+                Enter your email address and password to log in.
+              </p>
+            </div>
 
-          <AppHeading
-            level={2}
-            weight={700}
-            sx={{
-              mt: 1.7,
-              mb: 0,
-              maxWidth: 430,
-              fontSize: { xs: "26px", lg: "31px" },
-              lineHeight: 1.22,
-              letterSpacing: "-0.5px",
-              color: "var(--app-color-text)",
-            }}
-          >
-            Manage Your Pharmacy Business Smarter
-          </AppHeading>
-
-          <AppText
-            variant="body2"
-            sx={{
-              mt: 1.2,
-              maxWidth: 430,
-              fontSize: "13.5px",
-              lineHeight: "22px",
-              color: "var(--app-color-text-muted)",
-            }}
-          >
-            PharmaERP helps you streamline inventory, billing, purchases, and
-            more — all in one place.
-          </AppText>
-
-          <AppStack direction="column" gap={1.7} sx={{ mt: 3 }}>
-            <FeatureItem
-              icon={<FiBarChart2 />}
-              title="Real-time Insights"
-              text="Get real-time reports and analytics."
-            />
-            <FeatureItem
-              icon={<FiBox />}
-              title="Inventory Management"
-              text="Track stock, expiry, and alerts."
-            />
-            <FeatureItem
-              icon={<FiFileText />}
-              title="Easy Billing"
-              text="Fast & simple POS billing."
-            />
-            <FeatureItem
-              icon={<FiUsers />}
-              title="Multi-store Management"
-              text="Manage single or multiple stores."
-            />
-          </AppStack>
-        </AppBox>
-
-        <AppBox sx={{ pt: 0 }}>
-          <AppCard
-            variant="default"
-            rounded="xl"
-            bordered
-            shadow="md"
-            padding="none"
-            sx={{
-              width: "100%",
-              maxWidth: 640,
-              ml: { lg: "auto" },
-              px: { xs: 3, sm: 4, lg: 4.5 },
-              py: { xs: 3, lg: 3.4 },
-              bgcolor:
-                "color-mix(in srgb, var(--app-color-surface) 88%, transparent)",
-              backdropFilter: "blur(16px)",
-              borderColor: "var(--app-color-border)",
-              boxShadow: "var(--app-shadow-md)",
-            }}
-          >
-            <AppHeading
-              level={2}
-              weight={700}
-              sx={{
-                m: 0,
-                fontSize: { xs: "24px", lg: "28px" },
-                color: "var(--app-color-text)",
-              }}
-            >
-              Welcome Back!
-            </AppHeading>
-
-            <AppText
-              variant="body2"
-              sx={{
-                mt: 0.5,
-                fontSize: "15px",
-                color: "var(--app-color-text-muted)",
-              }}
-            >
-              Sign in to your PharmaERP account.
-            </AppText>
-
+            {/* Error Banner */}
             {error && (
-              <AppBox
-                sx={{
-                  mt: 2,
-                  px: 2,
-                  py: 1.4,
-                  borderRadius: "8px",
-                  border: "1px solid var(--app-color-error)",
-                  bgcolor: "var(--app-color-error-soft)",
-                  color: "var(--app-color-error)",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                }}
+              <div
+                className="mt-4 flex items-start gap-2.5 rounded-[8px] border border-error/30 bg-error-soft px-4 py-3"
+                role="alert"
               >
-                {error}
-              </AppBox>
+                <ShieldCheck size={18} className="mt-0.5 shrink-0 text-error" />
+                <p className="text-xs font-medium text-error leading-[1.4]">{error}</p>
+              </div>
             )}
 
-            <AppBox component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-              <AppStack direction="column" gap={1.35}>
-                <AppInput
-                  label="Email Address"
+            {/* Login Form: gap-4 per DESIGN_STANDARDS §2.2 */}
+            <form onSubmit={handleSubmit} noValidate className="mt-6">
+              <div className="flex flex-col gap-4">
+                {/* Email Input */}
+                <AuthInput
+                  id="desktop-email"
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   disabled={isLoading}
-                  placeholder="Enter your email address"
-                  fullWidth
-                  size="medium"
-                  variant="bordered"
-                  rounded="md"
-                  startIcon={<FiMail />}
-                  error={Boolean(formErrors.email)}
-                  helperText={formErrors.email}
-                  labelSx={{
-                    mb: 0.45,
-                    fontSize: "12.5px",
-                    fontWeight: 650,
-                    color: "var(--app-color-text)",
-                  }}
-                  inputSx={{
-                    height: 44,
-                    fontSize: "13.5px",
-                    bgcolor: "var(--app-color-surface-alt)",
-                  }}
+                  placeholder="Email Address"
+                  autoComplete="email"
+                  required
+                  icon={<Mail size={16} />}
+                  error={formErrors.email}
                 />
 
-                <AppPasswordInput
-                  label="Password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  placeholder="Enter your password"
-                  fullWidth
-                  size="medium"
-                  variant="bordered"
-                  rounded="md"
-                  startIcon={<FiLock />}
-                  error={Boolean(formErrors.password)}
-                  helperText={formErrors.password}
-                  labelSx={{
-                    mb: 0.45,
-                    fontSize: "12.5px",
-                    fontWeight: 650,
-                    color: "var(--app-color-text)",
-                  }}
-                  inputSx={{
-                    height: 44,
-                    fontSize: "13.5px",
-                    bgcolor: "var(--app-color-surface-alt)",
-                  }}
-                />
-
-                <AppStack
-                  direction="row"
-                  align="center"
-                  justify="space-between"
-                  gap={2}
-                  sx={{ mt: 0.1, width: "100%", height: 24 }}
-                >
-                  <AppCheckbox
-                    label="Remember me"
-                    checked={rememberMe}
-                    onChange={handleRememberMeChange}
+                {/* Password Input */}
+                <div>
+                  <AuthPasswordInput
+                    id="desktop-password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
                     disabled={isLoading}
-                    colorVariant="primary"
-                    size="small"
-                    sx={{
-                      m: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      height: 24,
-                    }}
-                    labelSx={{
-                      fontSize: "12.5px",
-                      fontWeight: 500,
-                      color: "var(--app-color-text)",
-                      lineHeight: "24px",
-                    }}
+                    placeholder="Password"
+                    autoComplete="current-password"
+                    required
+                    icon={<Lock size={16} />}
+                    error={formErrors.password}
                   />
 
-                  <AppLink
-                    href={ROUTES.FORGOT_PASSWORD}
-                    underline="none"
-                    sx={{
-                      fontSize: "12.5px",
-                      fontWeight: 700,
-                      color: "var(--app-color-primary)",
-                    }}
-                  >
-                    Forgot Password?
-                  </AppLink>
-                </AppStack>
+                  {/* Forgot Password Link */}
+                  <div className="mt-2 flex justify-end">
+                    <Link
+                      to={ROUTES.FORGOT_PASSWORD}
+                      className="text-xs font-semibold text-primary transition-colors hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-[4px]"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                </div>
 
-                <AppButton
+                {/* Login Button */}
+                <AuthButton
                   type="submit"
-                  variant="contained"
-                  colorVariant="primary"
-                  rounded="md"
+                  variant="primary"
                   fullWidth
+                  loading={isLoading}
                   disabled={isLoading}
-                  sx={{
-                    mt: 0.2,
-                    height: 46,
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    boxShadow: "var(--app-shadow-sm)",
-                  }}
+                  className="mt-2"
                 >
-                  {isLoading ? "Signing In..." : "Sign In"}
-                </AppButton>
+                  {isLoading ? "Signing in..." : "Login"}
+                </AuthButton>
+              </div>
+            </form>
 
-                <AppStack direction="row" align="center" gap={1.5}>
-                  <AppBox
-                    sx={{
-                      height: 1,
-                      flex: 1,
-                      bgcolor: "var(--app-color-border)",
-                    }}
-                  />
-                  <AppText
-                    variant="body2"
-                    weight={600}
-                    sx={{
-                      fontSize: "11.5px",
-                      color: "var(--app-color-text-muted)",
-                    }}
-                  >
-                    OR
-                  </AppText>
-                  <AppBox
-                    sx={{
-                      height: 1,
-                      flex: 1,
-                      bgcolor: "var(--app-color-border)",
-                    }}
-                  />
-                </AppStack>
+            {/* Divider "or" */}
+            <div className="relative my-6 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <span className="relative bg-surface px-3 text-xs text-text-muted">
+                or
+              </span>
+            </div>
 
-                <AppButton
-                  type="button"
-                  variant="outlined"
-                  colorVariant="neutral"
-                  rounded="md"
-                  fullWidth
-                  startIcon={<FcGoogle />}
-                  disabled={isLoading}
-                  sx={{
-                    height: 44,
-                    fontSize: "13.5px",
-                    fontWeight: 650,
-                    bgcolor: "var(--app-color-surface-alt)",
-                    borderColor: "var(--app-color-border)",
-                    color: "var(--app-color-text)",
-                  }}
+            {/* Social Logins & Sign Up Container with uncollapsible gap-6 */}
+            <div className="flex flex-col gap-6">
+              <SocialButton
+                provider="google"
+                label="Sign in with Google"
+                disabled={isLoading}
+                fullWidth
+              />
+
+              <p className="text-center text-sm text-text-muted leading-[1.6]">
+                Don&apos;t you have an account?{" "}
+                <Link
+                  to={ROUTES.REGISTER}
+                  className="font-bold text-primary transition-colors hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 rounded-[4px]"
                 >
-                  Sign in with Google
-                </AppButton>
+                  Sign Up
+                </Link>
+              </p>
+            </div>
+          </div>
 
-                <AppText
-                  variant="body2"
-                  align="center"
-                  sx={{
-                    mt: 0.1,
-                    fontSize: "13.5px",
-                    color: "var(--app-color-text-muted)",
-                  }}
-                >
-                  Don&apos;t have an account?{" "}
-                  <AppLink
-                    href={ROUTES.REGISTER}
-                    underline="none"
-                    sx={{ fontWeight: 700, color: "var(--app-color-primary)" }}
-                  >
-                    Create Account
-                  </AppLink>
-                </AppText>
-              </AppStack>
-            </AppBox>
-          </AppCard>
+          {/* Bottom subtle copyright */}
+          <div className="text-xs text-text-muted/70 leading-[1.5]">
+            © {new Date().getFullYear()} PharmaERP. All rights reserved.
+          </div>
+        </div>
 
-          <AppStack
-            direction="row"
-            align="center"
-            justify="center"
-            gap={0}
-            sx={{
-              mt: 2,
-              width: "100%",
-              maxWidth: 640,
-              ml: { lg: "auto" },
-              flexWrap: "nowrap",
-              height: 24,
+        {/* ── RIGHT PANEL: Hero Card ───────────────────────────────────── */}
+        <div className="relative hidden p-4 lg:col-span-6 xl:col-span-7 lg:flex">
+          <div
+            className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[14px] p-6 lg:p-8"
+            style={{
+              background:
+                "linear-gradient(135deg, var(--app-color-primary, #00994a) 0%, #1e40af 100%)",
             }}
           >
-            <TrustText icon={<FiShield />} text="256-bit SSL Secured" />
-            <TrustDivider />
-            <TrustText icon={<FiLock />} text="Your Data is 100% Safe" />
-            <TrustDivider />
-            <TrustText icon={<FiHeadphones />} text="24/7 Customer Support" />
-          </AppStack>
-        </AppBox>
-      </div>
+            {/* Ambient geometric background glow */}
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_80%_80%,rgba(255,255,255,0.14),transparent_45%)]" />
+
+            {/* Dashboard UI Preview Component */}
+            <DashboardPreview />
+          </div>
+        </div>
+      </motion.div>
     </section>
   );
 };
-
-const FeatureItem = ({ icon, title, text }) => (
-  <AppStack direction="row" align="center" gap={1.3}>
-    <AppBox
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      sx={{
-        width: 38,
-        height: 38,
-        minWidth: 38,
-        borderRadius: "999px",
-        bgcolor: "var(--app-color-primary-soft)",
-        color: "var(--app-color-primary)",
-        fontSize: "19px",
-        lineHeight: 0,
-      }}
-    >
-      {icon}
-    </AppBox>
-
-    <AppBox>
-      <AppText
-        variant="body2"
-        weight={650}
-        sx={{
-          fontSize: "13px",
-          lineHeight: 1.15,
-          color: "var(--app-color-text)",
-        }}
-      >
-        {title}
-      </AppText>
-
-      <AppText
-        variant="body2"
-        sx={{
-          mt: 0.3,
-          fontSize: "12.5px",
-          lineHeight: "18px",
-          color: "var(--app-color-text-muted)",
-        }}
-      >
-        {text}
-      </AppText>
-    </AppBox>
-  </AppStack>
-);
-
-const TrustText = ({ icon, text }) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{ gap: 0.7, px: { xs: 1, md: 1.8 }, height: 24, whiteSpace: "nowrap" }}
-  >
-    <AppBox
-      sx={{
-        fontSize: "15px",
-        color: "var(--app-color-text-muted)",
-        mt: "-1px",
-      }}
-    >
-      {icon}
-    </AppBox>
-
-    <AppText
-      variant="body2"
-      sx={{
-        fontSize: "12.3px",
-        lineHeight: "24px",
-        color: "var(--app-color-text-muted)",
-      }}
-    >
-      {text}
-    </AppText>
-  </AppBox>
-);
-
-const TrustDivider = () => (
-  <AppBox
-    sx={{
-      width: "1px",
-      height: 16,
-      bgcolor: "var(--app-color-border)",
-      display: { xs: "none", md: "block" },
-    }}
-  />
-);
 
 export default LoginDesktopPage;

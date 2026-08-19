@@ -15,6 +15,7 @@ import userRoutes from "@/features/user/routes/userRoutes";
 
 import { RegisterPage } from "@/features/auth/pages";
 
+import { AcceptInvitationPage } from "@/features/workspace/pages";
 import workspaceRoutes from "@/features/workspace/routes/workspaceRoutes";
 import setupRoutes from "@/features/setup/routes/setupRoutes";
 import dashboardRoutes from "@/features/dashboard/routes/dashboardRoutes";
@@ -135,6 +136,12 @@ export const router = createBrowserRouter([
       </GuestRoute>
     ),
     children: authRoutes,
+  },
+
+  // Public/Hybrid Workspace Invitation Acceptance
+  {
+    path: ROUTES.ACCEPT_WORKSPACE_INVITATION,
+    element: <AcceptInvitationPage />,
   },
 
 

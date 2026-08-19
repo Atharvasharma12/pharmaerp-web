@@ -36,7 +36,8 @@ const getWorkspaceFromItem = (item) => {
   return item?.workspace || item || null;
 };
 
-const AppDesktopHeader = ({ sidebarOpen, onMenuClick }) => {
+const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240, onToggleCollapse, sidebarOpen, onMenuClick }) => {
+  const effectiveWidth = sidebarWidth ?? (sidebarCollapsed ? 68 : 240);
   const navigate = useNavigate();
 
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
@@ -178,24 +179,23 @@ const AppDesktopHeader = ({ sidebarOpen, onMenuClick }) => {
 
   return (
     <header
-      className="fixed top-0 z-40 h-[58px] border-b border-divider bg-surface/90 backdrop-blur-md transition-all duration-300"
+      className="fixed top-0 z-40 h-[58px] border-b border-border bg-surface/90 backdrop-blur-md transition-all duration-200"
       style={{
-        left: sidebarOpen ? SIDEBAR_WIDTH : 0,
+        left: effectiveWidth,
         right: 0,
       }}
     >
       <div className="flex h-[58px] w-full items-center justify-between px-5 lg:px-6">
         <div className="flex items-center gap-3">
-          {!sidebarOpen && (
-            <AppIconButton
-              icon={<FiMenu className="text-[22px]" />}
-              onClick={onMenuClick}
-              variant="text"
-              colorVariant="dark"
-              size="medium"
-              rounded="lg"
-              tooltip="Open Sidebar"
-            />
+          {sidebarCollapsed && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              aria-label="Expand sidebar"
+              className="flex size-8 items-center justify-center rounded-[8px] border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
+            >
+              <FiMenu className="text-[18px]" />
+            </button>
           )}
 
           <div ref={workspaceRef} className="relative">

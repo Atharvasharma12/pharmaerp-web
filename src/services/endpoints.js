@@ -45,11 +45,23 @@ export const ENDPOINTS = {
     INVITATIONS: (workspaceId) =>
       `/organization/workspaces/${workspaceId}/invitations`,
 
+    UPDATE_INVITATION: (workspaceId, invitationId) =>
+      `/organization/workspaces/${workspaceId}/invitations/${invitationId}`,
+
+    RESEND_INVITATION: (workspaceId, invitationId) =>
+      `/organization/workspaces/${workspaceId}/invitations/${invitationId}/resend`,
+
     CANCEL_INVITATION: (workspaceId, invitationId) =>
       `/organization/workspaces/${workspaceId}/invitations/${invitationId}/cancel`,
 
     ACCEPT_INVITATION: (token) =>
       `/organization/workspaces/invitations/${token}/accept`,
+
+    ACCEPT_INVITATION_SIGNUP: (token) =>
+      `/organization/workspaces/invitations/${token}/accept-signup`,
+
+    PUBLIC_INVITATION_DETAILS: (token) =>
+      `/organization/workspaces/invitations/public/${token}`,
 
     // --- NEW USER PROFILE INCOMING INVITATIONS ENDPOINT MAP ---
     USER_INBOX_INVITATIONS: "/organization/workspaces/user-inbox/invitations",

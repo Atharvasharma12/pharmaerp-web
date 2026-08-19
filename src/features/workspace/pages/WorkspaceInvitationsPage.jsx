@@ -95,6 +95,16 @@ const mapInvitationForView = (invitation) => {
   const cancelledBy = invitation?.cancelledBy || null;
   const effectiveStatus = getEffectiveStatus(invitation);
 
+  const branchAccess = Array.isArray(invitation?.branchAccess)
+    ? invitation.branchAccess
+    : [];
+
+  const storeFootprint = invitation?.accessAllBranches
+    ? "All Stores"
+    : branchAccess.length > 0
+      ? `${branchAccess.length} Store${branchAccess.length > 1 ? "s" : ""}`
+      : "Workspace Only";
+
   return {
     ...invitation,
     role,
@@ -102,6 +112,10 @@ const mapInvitationForView = (invitation) => {
     acceptedBy,
     cancelledBy,
     effectiveStatus,
+    branchAccess,
+    storeFootprint,
+    resendCount: invitation?.resendCount || 0,
+    lastResentAt: formatDateTime(invitation?.lastResentAt),
     displayEmail: invitation?.invitedEmail || "-",
     displayRole: formatRoleName(role),
     displayInvitedBy: getUserName(invitedBy),
@@ -125,10 +139,12 @@ const WorkspaceInvitationsPage = () => {
     getMyWorkspaces,
     getWorkspaceInvitations,
     cancelWorkspaceInvitation,
+    resendWorkspaceInvitation,
 
     getMyWorkspacesStatus,
     getWorkspaceInvitationsStatus,
     cancelWorkspaceInvitationStatus,
+    resendWorkspaceInvitationStatus,
 
     error,
     message,
@@ -389,6 +405,27 @@ const WorkspaceInvitationsPage = () => {
     workspaceId,
   ]);
 
+  const handleResendInvitation = useCallback(
+    async (invitation) => {
+      if (!workspaceId || !invitation?._id) return;
+      try {
+        await resendWorkspaceInvitation(workspaceId, invitation._id);
+      } catch {
+        // Error handled in slice
+      }
+    },
+    [resendWorkspaceInvitation, workspaceId],
+  );
+
+  const [copiedId, setCopiedId] = useState(null);
+  const handleCopyLink = useCallback((invitation) => {
+    if (!invitation) return;
+    const url = `${window.location.origin}/workspace-invitations/${invitation._id}`;
+    navigator.clipboard.writeText(url);
+    setCopiedId(invitation._id);
+    setTimeout(() => setCopiedId(null), 2000);
+  }, []);
+
   const pageProps = {
     workspace: currentWorkspace,
     invitations: filteredInvitations,
@@ -402,6 +439,7 @@ const WorkspaceInvitationsPage = () => {
     hasError,
     error,
     message,
+    copiedId,
 
     totalInvitations: mappedInvitations.length,
     filteredInvitationsCount: filteredInvitations.length,
@@ -418,6 +456,8 @@ const WorkspaceInvitationsPage = () => {
     handleViewMembers,
     handleBackToWorkspace,
     handleCancelInvitation,
+    handleResendInvitation,
+    handleCopyLink,
 
     clearMessage,
   };

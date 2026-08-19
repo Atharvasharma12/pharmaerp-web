@@ -164,11 +164,72 @@ export const cancelWorkspaceInvitation = createAsyncThunk(
   },
 );
 
+export const resendWorkspaceInvitation = createAsyncThunk(
+  "workspace/resendWorkspaceInvitation",
+  async ({ workspaceId, invitationId }, { rejectWithValue }) => {
+    try {
+      const response = await workspaceService.resendWorkspaceInvitation(
+        workspaceId,
+        invitationId,
+      );
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const updateWorkspaceInvitation = createAsyncThunk(
+  "workspace/updateWorkspaceInvitation",
+  async ({ workspaceId, invitationId, payload }, { rejectWithValue }) => {
+    try {
+      const response = await workspaceService.updateWorkspaceInvitation(
+        workspaceId,
+        invitationId,
+        payload,
+      );
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
 export const acceptWorkspaceInvitation = createAsyncThunk(
   "workspace/acceptWorkspaceInvitation",
   async (token, { rejectWithValue }) => {
     try {
       const response = await workspaceService.acceptWorkspaceInvitation(token);
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const acceptWorkspaceInvitationSignup = createAsyncThunk(
+  "workspace/acceptWorkspaceInvitationSignup",
+  async ({ token, payload }, { rejectWithValue }) => {
+    try {
+      const response =
+        await workspaceService.acceptWorkspaceInvitationSignup(token, payload);
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const getPublicInvitationDetails = createAsyncThunk(
+  "workspace/getPublicInvitationDetails",
+  async (token, { rejectWithValue }) => {
+    try {
+      const response =
+        await workspaceService.getPublicInvitationDetails(token);
 
       return response.data?.data;
     } catch (error) {

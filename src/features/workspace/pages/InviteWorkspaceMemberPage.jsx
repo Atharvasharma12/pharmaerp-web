@@ -1,5 +1,3 @@
-// src/features/workspace/pages/InviteWorkspaceMemberPage.jsx
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -8,6 +6,8 @@ import { useIsMobile } from "@/hooks";
 
 import useWorkspace from "../hooks/useWorkspace";
 import useAccessControl from "@/features/access-control/hooks/useAccessControl";
+import useCompany from "@/features/company/hooks/useCompany";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 import InviteWorkspaceMemberDesktopPage from "./desktop/InviteWorkspaceMemberDesktopPage";
 import InviteWorkspaceMemberMobilePage from "./mobile/InviteWorkspaceMemberMobilePage";
@@ -15,6 +15,10 @@ import InviteWorkspaceMemberMobilePage from "./mobile/InviteWorkspaceMemberMobil
 const INITIAL_FORM_DATA = {
   email: "",
   roleId: "",
+  accessAllCompanies: false,
+  accessAllBranches: false,
+  companyIds: [],
+  branchAccess: [], // [{ branchId, roleId, canOperateMarketplaceStore }]
   notes: "",
 };
 
@@ -27,6 +31,10 @@ const normalizeLowerText = (value) => normalizeText(value).toLowerCase();
 const buildInvitePayload = (formData) => {
   const payload = {
     email: normalizeLowerText(formData.email),
+    accessAllCompanies: Boolean(formData.accessAllCompanies),
+    accessAllBranches: Boolean(formData.accessAllBranches),
+    companyIds: Array.isArray(formData.companyIds) ? formData.companyIds : [],
+    branchAccess: Array.isArray(formData.branchAccess) ? formData.branchAccess : [],
   };
 
   const roleId = normalizeText(formData.roleId);
@@ -44,16 +52,12 @@ const InviteWorkspaceMemberPage = () => {
 
   const {
     currentWorkspace,
-
     getMyWorkspaces,
     inviteWorkspaceMember,
-
     getMyWorkspacesStatus,
     inviteWorkspaceMemberStatus,
-
     error,
     message,
-
     clearError,
     clearMessage,
   } = useWorkspace();
@@ -61,8 +65,22 @@ const InviteWorkspaceMemberPage = () => {
   const { roles, getWorkspaceRoles, getWorkspaceRolesStatus } =
     useAccessControl();
 
+  const {
+    companies,
+    getWorkspaceCompanies,
+    getWorkspaceCompaniesStatus,
+  } = useCompany();
+
+  const {
+    branches,
+    getWorkspaceBranches,
+    getWorkspaceBranchesStatus,
+  } = useBranch();
+
   const hasFetchedWorkspacesRef = useRef(false);
   const hasFetchedRolesRef = useRef(false);
+  const hasFetchedCompaniesRef = useRef(false);
+  const hasFetchedBranchesRef = useRef(false);
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
@@ -71,9 +89,16 @@ const InviteWorkspaceMemberPage = () => {
 
   const isCheckingWorkspace = getMyWorkspacesStatus === API_STATUS.LOADING;
   const isFetchingRoles = getWorkspaceRolesStatus === API_STATUS.LOADING;
+  const isFetchingCompanies = getWorkspaceCompaniesStatus === API_STATUS.LOADING;
+  const isFetchingBranches = getWorkspaceBranchesStatus === API_STATUS.LOADING;
   const isInviting = inviteWorkspaceMemberStatus === API_STATUS.LOADING;
 
-  const isLoading = isCheckingWorkspace || isFetchingRoles || isInviting;
+  const isLoading =
+    isCheckingWorkspace ||
+    isFetchingRoles ||
+    isFetchingCompanies ||
+    isFetchingBranches ||
+    isInviting;
 
   const activeRoles = useMemo(
     () =>
@@ -81,6 +106,22 @@ const InviteWorkspaceMemberPage = () => {
         (role) => role?.status === "active" && !role?.isDeleted,
       ),
     [roles],
+  );
+
+  const activeCompanies = useMemo(
+    () =>
+      (Array.isArray(companies) ? companies : []).filter(
+        (c) => c?.status === "active" && !c?.isDeleted,
+      ),
+    [companies],
+  );
+
+  const activeBranches = useMemo(
+    () =>
+      (Array.isArray(branches) ? branches : []).filter(
+        (b) => b?.status === "active" && !b?.isDeleted,
+      ),
+    [branches],
   );
 
   const workspaceSummary = useMemo(
@@ -102,40 +143,34 @@ const InviteWorkspaceMemberPage = () => {
       clearError();
       clearMessage();
     };
-
-    // Run only on mount/unmount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (workspaceId || hasFetchedWorkspacesRef.current) return;
-
     hasFetchedWorkspacesRef.current = true;
-
-    getMyWorkspaces().catch(() => {
-      // Error is already stored in workspace slice.
-    });
-
-    // getMyWorkspaces is recreated by custom hook.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    getMyWorkspaces().catch(() => {});
   }, [workspaceId]);
 
   useEffect(() => {
     if (!workspaceId || hasFetchedRolesRef.current) return;
-
     hasFetchedRolesRef.current = true;
+    getWorkspaceRoles().catch(() => {});
+  }, [workspaceId]);
 
-    getWorkspaceRoles().catch(() => {
-      // Error is already stored in access-control slice.
-    });
+  useEffect(() => {
+    if (!workspaceId || hasFetchedCompaniesRef.current) return;
+    hasFetchedCompaniesRef.current = true;
+    getWorkspaceCompanies().catch(() => {});
+  }, [workspaceId]);
 
-    // getWorkspaceRoles is recreated by custom hook.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!workspaceId || hasFetchedBranchesRef.current) return;
+    hasFetchedBranchesRef.current = true;
+    getWorkspaceBranches().catch(() => {});
   }, [workspaceId]);
 
   useEffect(() => {
     if (!error) return;
-
     setFormErrors((prev) => ({
       ...prev,
       submit: error,
@@ -171,7 +206,7 @@ const InviteWorkspaceMemberPage = () => {
 
   const handleChange = useCallback(
     (event) => {
-      const { name, value } = event.target;
+      const { name, value, type, checked } = event.target;
 
       if (error) clearError();
 
@@ -183,11 +218,76 @@ const InviteWorkspaceMemberPage = () => {
 
       setFormData((prev) => ({
         ...prev,
-        [name]: value,
+        [name]: type === "checkbox" ? checked : value,
       }));
     },
     [clearError, error],
   );
+
+  const handleToggleCompany = useCallback((companyId) => {
+    setFormData((prev) => {
+      const exists = prev.companyIds.includes(companyId);
+      const updatedCompanyIds = exists
+        ? prev.companyIds.filter((id) => id !== companyId)
+        : [...prev.companyIds, companyId];
+
+      return {
+        ...prev,
+        companyIds: updatedCompanyIds,
+      };
+    });
+  }, []);
+
+  const handleToggleBranchAccess = useCallback((branchId, defaultRoleId = "") => {
+    setFormData((prev) => {
+      const existingIndex = prev.branchAccess.findIndex(
+        (ba) => ba.branchId === branchId,
+      );
+
+      if (existingIndex > -1) {
+        // Remove branch access
+        return {
+          ...prev,
+          branchAccess: prev.branchAccess.filter((ba) => ba.branchId !== branchId),
+        };
+      } else {
+        // Add branch access with default role or global fallback
+        return {
+          ...prev,
+          branchAccess: [
+            ...prev.branchAccess,
+            {
+              branchId,
+              roleId: defaultRoleId || prev.roleId || null,
+              canOperateMarketplaceStore: false,
+            },
+          ],
+        };
+      }
+    });
+  }, []);
+
+  const handleBranchRoleChange = useCallback((branchId, roleId) => {
+    setFormData((prev) => ({
+      ...prev,
+      branchAccess: prev.branchAccess.map((ba) =>
+        ba.branchId === branchId
+          ? { ...ba, roleId: roleId || null }
+          : ba,
+      ),
+    }));
+  }, []);
+
+  const handleBranchMarketplaceToggle = useCallback((branchId) => {
+    setFormData((prev) => ({
+      ...prev,
+      branchAccess: prev.branchAccess.map((ba) =>
+        ba.branchId === branchId
+          ? { ...ba, canOperateMarketplaceStore: !ba.canOperateMarketplaceStore }
+          : ba,
+      ),
+    }));
+  }, []);
 
   const handleReset = useCallback(() => {
     if (isLoading) return;
@@ -254,16 +354,24 @@ const InviteWorkspaceMemberPage = () => {
     workspace: currentWorkspace,
     workspaceSummary,
     roles: activeRoles,
+    companies: activeCompanies,
+    branches: activeBranches,
 
     isLoading,
     isCheckingWorkspace,
     isFetchingRoles,
+    isFetchingCompanies,
+    isFetchingBranches,
     isInviting,
 
     error,
     message,
 
     handleChange,
+    handleToggleCompany,
+    handleToggleBranchAccess,
+    handleBranchRoleChange,
+    handleBranchMarketplaceToggle,
     handleSubmit,
     handleReset,
     handleBack,

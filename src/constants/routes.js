@@ -18,6 +18,7 @@ export const ROUTES = {
   WORKSPACE_MEMBERS: "/workspace/members",
   WORKSPACE_INVITATIONS: "/workspace/invitations",
   INVITE_WORKSPACE_MEMBER: "/workspace/members/invite",
+  ACCEPT_WORKSPACE_INVITATION: "/workspace-invitations/:token",
 
   // Company
   COMPANIES: "/companies",

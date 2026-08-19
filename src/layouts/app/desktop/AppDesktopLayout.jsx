@@ -6,28 +6,36 @@ import { Outlet } from "react-router-dom";
 import AppDesktopHeader from "./AppDesktopHeader";
 import AppDesktopSidebar from "./AppDesktopSidebar";
 
+const SIDEBAR_EXPANDED_WIDTH = 240;
+const SIDEBAR_COLLAPSED_WIDTH = 68;
+
 const AppDesktopLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Collapsed state (false = expanded 240px, true = collapsed icon rail 68px)
+  const [collapsed, setCollapsed] = useState(false);
+
+  const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
 
   return (
-    <div className="h-screen overflow-hidden bg-bg text-text">
+    <div className="flex min-h-[100dvh] w-full bg-bg text-text">
+      {/* Redesigned Multi-level Desktop Sidebar */}
       <AppDesktopSidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+        collapsed={collapsed}
+        onToggleCollapse={() => setCollapsed((prev) => !prev)}
+        onExpand={() => setCollapsed(false)}
       />
 
+      {/* Main Content Area smoothly adjusting to sidebar width */}
       <div
-        className={[
-          "flex h-screen min-w-0 flex-col transition-all duration-300 ease-in-out",
-          sidebarOpen ? "ml-[230px]" : "ml-0",
-        ].join(" ")}
+        className="flex min-w-0 flex-1 flex-col transition-[margin-left] duration-200 ease-out"
+        style={{ marginLeft: 0 }}
       >
         <AppDesktopHeader
-          sidebarOpen={sidebarOpen}
-          onMenuClick={() => setSidebarOpen(true)}
+          sidebarCollapsed={collapsed}
+          sidebarWidth={sidebarWidth}
+          onToggleCollapse={() => setCollapsed((prev) => !prev)}
         />
 
-        <main className="mt-[58px] h-[calc(100vh-58px)] min-w-0 flex-1 overflow-auto">
+        <main className="mt-[58px] min-h-[calc(100dvh-58px)] min-w-0 flex-1 overflow-y-auto px-6 py-6">
           <Outlet />
         </main>
       </div>

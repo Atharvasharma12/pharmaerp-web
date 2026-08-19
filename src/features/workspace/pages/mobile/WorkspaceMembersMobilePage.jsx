@@ -15,6 +15,7 @@ import {
   FiPhone,
   FiCalendar,
   FiUserMinus,
+  FiMapPin,
 } from "react-icons/fi";
 
 import {
@@ -63,6 +64,7 @@ const WorkspaceMembersMobilePage = ({
   handleViewInvitations,
   handleChangeMemberStatus,
   handleRemoveMember,
+  handleManageAccess,
 }) => {
   const shouldRenderPagination = hasFilteredMembers && totalMembers > 10;
 
@@ -341,6 +343,7 @@ const WorkspaceMembersMobilePage = ({
                           member={member}
                           onChangeStatus={handleChangeMemberStatus}
                           onRemove={handleRemoveMember}
+                          onManageAccess={handleManageAccess}
                         />
                       </AppStack>
                     </AppStack>
@@ -438,10 +441,23 @@ const WorkspaceMembersMobilePage = ({
   );
 };
 
-const RowActionDropdownTrigger = ({ member, onChangeStatus, onRemove }) => {
+const RowActionDropdownTrigger = ({
+  member,
+  onChangeStatus,
+  onRemove,
+  onManageAccess,
+}) => {
   const isOwner = Boolean(member?.isOwner);
 
   const menuConfigItems = [
+    {
+      id: "access",
+      label: "Store & Role Access",
+      icon: <FiMapPin />,
+      disabled: isOwner,
+      onClick: () => onManageAccess?.(member),
+    },
+    { id: "divider_access", type: "divider" },
     {
       id: "active",
       label: "Mark Active",

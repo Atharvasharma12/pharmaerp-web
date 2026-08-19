@@ -12,7 +12,11 @@ import {
   inviteWorkspaceMember,
   getWorkspaceInvitations,
   cancelWorkspaceInvitation,
+  resendWorkspaceInvitation,
+  updateWorkspaceInvitation,
   acceptWorkspaceInvitation,
+  acceptWorkspaceInvitationSignup,
+  getPublicInvitationDetails,
   getIncomingUserInvitations,
   acceptIncomingInvitation,
 } from "../store/workspaceThunk";
@@ -46,7 +50,12 @@ import {
   selectInviteWorkspaceMemberStatus,
   selectGetWorkspaceInvitationsStatus,
   selectCancelWorkspaceInvitationStatus,
+  selectResendWorkspaceInvitationStatus,
+  selectUpdateWorkspaceInvitationStatus,
   selectAcceptWorkspaceInvitationStatus,
+  selectAcceptWorkspaceInvitationSignupStatus,
+  selectGetPublicInvitationDetailsStatus,
+  selectPublicInvitationDetails,
   selectIncomingInvitations,
   selectGetIncomingUserInvitationsStatus,
   selectAcceptIncomingInvitationStatus,
@@ -94,8 +103,28 @@ const useWorkspace = () => {
     selectCancelWorkspaceInvitationStatus,
   );
 
+  const resendWorkspaceInvitationStatus = useSelector(
+    selectResendWorkspaceInvitationStatus,
+  );
+
+  const updateWorkspaceInvitationStatus = useSelector(
+    selectUpdateWorkspaceInvitationStatus,
+  );
+
   const acceptWorkspaceInvitationStatus = useSelector(
     selectAcceptWorkspaceInvitationStatus,
+  );
+
+  const acceptWorkspaceInvitationSignupStatus = useSelector(
+    selectAcceptWorkspaceInvitationSignupStatus,
+  );
+
+  const getPublicInvitationDetailsStatus = useSelector(
+    selectGetPublicInvitationDetailsStatus,
+  );
+
+  const publicInvitationDetails = useSelector(
+    selectPublicInvitationDetails,
   );
 
   // --- NEW USER INBOX SELECTORS ---
@@ -176,8 +205,40 @@ const useWorkspace = () => {
     ).unwrap();
   };
 
+  const submitResendWorkspaceInvitation = (workspaceId, invitationId) => {
+    return dispatch(
+      resendWorkspaceInvitation({
+        workspaceId,
+        invitationId,
+      }),
+    ).unwrap();
+  };
+
+  const submitUpdateWorkspaceInvitation = (workspaceId, invitationId, payload) => {
+    return dispatch(
+      updateWorkspaceInvitation({
+        workspaceId,
+        invitationId,
+        payload,
+      }),
+    ).unwrap();
+  };
+
   const submitAcceptWorkspaceInvitation = (token) => {
     return dispatch(acceptWorkspaceInvitation(token)).unwrap();
+  };
+
+  const submitAcceptWorkspaceInvitationSignup = (token, payload) => {
+    return dispatch(
+      acceptWorkspaceInvitationSignup({
+        token,
+        payload,
+      }),
+    ).unwrap();
+  };
+
+  const fetchPublicInvitationDetails = (token) => {
+    return dispatch(getPublicInvitationDetails(token)).unwrap();
   };
 
   // --- NEW USER INBOX DISPATCH METHODS ---
@@ -240,7 +301,12 @@ const useWorkspace = () => {
     inviteWorkspaceMemberStatus,
     getWorkspaceInvitationsStatus,
     cancelWorkspaceInvitationStatus,
+    resendWorkspaceInvitationStatus,
+    updateWorkspaceInvitationStatus,
     acceptWorkspaceInvitationStatus,
+    acceptWorkspaceInvitationSignupStatus,
+    getPublicInvitationDetailsStatus,
+    publicInvitationDetails,
 
     // --- NEW INBOX STATES EXPOSED ---
     incomingInvitations,
@@ -260,7 +326,11 @@ const useWorkspace = () => {
     inviteWorkspaceMember: submitInviteWorkspaceMember,
     getWorkspaceInvitations: fetchWorkspaceInvitations,
     cancelWorkspaceInvitation: submitCancelWorkspaceInvitation,
+    resendWorkspaceInvitation: submitResendWorkspaceInvitation,
+    updateWorkspaceInvitation: submitUpdateWorkspaceInvitation,
     acceptWorkspaceInvitation: submitAcceptWorkspaceInvitation,
+    acceptWorkspaceInvitationSignup: submitAcceptWorkspaceInvitationSignup,
+    getPublicInvitationDetails: fetchPublicInvitationDetails,
 
     // --- NEW INBOX METHOD DISPATCHERS EXPOSED ---
     getIncomingUserInvitations: fetchIncomingUserInvitations,

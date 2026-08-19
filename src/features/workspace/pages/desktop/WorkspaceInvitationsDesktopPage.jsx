@@ -2,8 +2,10 @@
 
 import {
   FiArrowLeft,
+  FiCheck,
   FiCheckCircle,
   FiClock,
+  FiCopy,
   FiRefreshCw,
   FiSearch,
   FiSend,
@@ -43,7 +45,7 @@ const statIcons = {
 const statusColorMap = {
   pending: "warning",
   accepted: "success",
-  cancelled: "error",
+  cancelled: "neutral",
   expired: "error",
 };
 
@@ -60,6 +62,7 @@ const WorkspaceInvitationsDesktopPage = ({
   hasError,
   error,
   message,
+  copiedId,
 
   totalInvitations = 0,
   filteredInvitationsCount = 0,
@@ -76,6 +79,8 @@ const WorkspaceInvitationsDesktopPage = ({
   handleViewMembers,
   handleBackToWorkspace,
   handleCancelInvitation,
+  handleResendInvitation,
+  handleCopyLink,
 
   clearMessage,
 }) => {
@@ -93,7 +98,7 @@ const WorkspaceInvitationsDesktopPage = ({
       id: "role",
       key: "role",
       label: "Role",
-      minWidth: 150,
+      minWidth: 140,
       render: (_, invitation) => (
         <AppTag
           label={invitation?.displayRole || "Staff"}
@@ -105,10 +110,33 @@ const WorkspaceInvitationsDesktopPage = ({
       ),
     },
     {
+      id: "stores",
+      key: "stores",
+      label: "Store Access",
+      minWidth: 150,
+      render: (_, invitation) => (
+        <div className="flex items-center gap-1">
+          <AppTag
+            label={invitation?.storeFootprint || "Workspace Only"}
+            variant="soft"
+            colorVariant={
+              invitation?.accessAllBranches
+                ? "success"
+                : invitation?.branchAccess?.length > 0
+                  ? "primary"
+                  : "neutral"
+            }
+            size="small"
+            rounded="md"
+          />
+        </div>
+      ),
+    },
+    {
       id: "status",
       key: "status",
       label: "Status",
-      width: 130,
+      width: 120,
       render: (_, invitation) => (
         <AppTag
           label={invitation?.effectiveStatus || "pending"}
@@ -125,7 +153,7 @@ const WorkspaceInvitationsDesktopPage = ({
       id: "invitedBy",
       key: "invitedBy",
       label: "Invited By",
-      minWidth: 190,
+      minWidth: 170,
       render: (_, invitation) => (
         <AppText variant="body2" sx={tableValueSx}>
           {invitation?.displayInvitedBy || "-"}
@@ -136,7 +164,7 @@ const WorkspaceInvitationsDesktopPage = ({
       id: "createdAt",
       key: "createdAt",
       label: "Created",
-      width: 125,
+      width: 110,
       render: (_, invitation) => (
         <AppText variant="body2" sx={tableValueSx}>
           {invitation?.displayCreatedAt || "-"}
@@ -147,7 +175,7 @@ const WorkspaceInvitationsDesktopPage = ({
       id: "expiresAt",
       key: "expiresAt",
       label: "Expires At",
-      width: 170,
+      width: 150,
       render: (_, invitation) => (
         <AppText variant="body2" sx={tableValueSx}>
           {invitation?.displayExpiresAt || "-"}
@@ -155,29 +183,54 @@ const WorkspaceInvitationsDesktopPage = ({
       ),
     },
     {
-      id: "activity",
-      key: "activity",
-      label: "Activity",
-      minWidth: 215,
-      render: (_, invitation) => <ActivityCell invitation={invitation} />,
-    },
-    {
       id: "actions",
       key: "actions",
       label: "Actions",
       align: "right",
-      width: 105,
+      width: 140,
       render: (_, invitation) => (
-        <AppIconButton
-          icon={<FiXCircle />}
-          tooltip="Cancel invitation"
-          variant="soft"
-          colorVariant="error"
-          size="small"
-          rounded="md"
-          disabled={invitation?.effectiveStatus !== "pending"}
-          onClick={() => handleCancelInvitation(invitation)}
-        />
+        <div className="flex items-center justify-end gap-1">
+          {invitation?.effectiveStatus === "pending" && (
+            <>
+              <button
+                type="button"
+                title={
+                  invitation.resendCount > 0
+                    ? `Resend Email (Resent ${invitation.resendCount}x)`
+                    : "Resend Invitation Email"
+                }
+                onClick={() => handleResendInvitation?.(invitation)}
+                className="p-1.5 rounded-md hover:bg-surface-alt text-text-muted hover:text-primary transition"
+              >
+                <FiRefreshCw className="text-sm" />
+              </button>
+
+              <button
+                type="button"
+                title={copiedId === invitation._id ? "Copied!" : "Copy Public Link"}
+                onClick={() => handleCopyLink?.(invitation)}
+                className="p-1.5 rounded-md hover:bg-surface-alt text-text-muted hover:text-primary transition"
+              >
+                {copiedId === invitation._id ? (
+                  <FiCheck className="text-sm text-emerald-500" />
+                ) : (
+                  <FiCopy className="text-sm" />
+                )}
+              </button>
+            </>
+          )}
+
+          <AppIconButton
+            icon={<FiXCircle />}
+            tooltip="Cancel invitation"
+            variant="soft"
+            colorVariant="error"
+            size="small"
+            rounded="md"
+            disabled={invitation?.effectiveStatus !== "pending"}
+            onClick={() => handleCancelInvitation(invitation)}
+          />
+        </div>
       ),
     },
   ];

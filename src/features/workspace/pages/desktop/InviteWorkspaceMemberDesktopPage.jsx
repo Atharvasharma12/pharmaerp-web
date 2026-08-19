@@ -2,13 +2,18 @@
 
 import {
   FiArrowLeft,
+  FiCheck,
   FiCheckCircle,
   FiClock,
+  FiGlobe,
   FiInfo,
   FiMail,
+  FiMapPin,
   FiRefreshCcw,
   FiSend,
   FiShield,
+  FiShoppingBag,
+  FiTrash2,
   FiUserPlus,
   FiUsers,
 } from "react-icons/fi";
@@ -32,21 +37,32 @@ const InviteWorkspaceMemberDesktopPage = ({
   formErrors = {},
   workspaceSummary,
   roles = [],
+  companies = [],
+  branches = [],
 
   isLoading = false,
   isCheckingWorkspace = false,
   isFetchingRoles = false,
+  isFetchingCompanies = false,
+  isFetchingBranches = false,
   isInviting = false,
   error,
   message,
 
   handleChange,
+  handleToggleCompany,
+  handleToggleBranchAccess,
+  handleBranchRoleChange,
+  handleBranchMarketplaceToggle,
   handleSubmit,
   handleReset,
   handleBack,
   handleViewInvitations,
   handleViewMembers,
 }) => {
+  const isAllBranches = Boolean(formData.accessAllBranches);
+  const isAllCompanies = Boolean(formData.accessAllCompanies);
+
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
       <div className="mx-auto w-full max-w-[1380px]">
@@ -93,17 +109,16 @@ const InviteWorkspaceMemberDesktopPage = ({
 
                 <AppBox sx={{ minWidth: 0, flex: 1 }}>
                   <AppHeading level={2} weight={650} sx={sectionTitleSx}>
-                    Invite Workspace Member
+                    Invite Team Member & Pre-Configure Roles
                   </AppHeading>
 
                   <AppText variant="body2" sx={sectionSubtitleSx}>
-                    Send an invitation to add a user to this workspace. Select a
-                    role for the member, or leave it blank to let the backend
-                    use the default staff role when available.
+                    Send an invitation link with granular store-level access and dedicated branch roles (e.g. Store Manager of Branch A, Cashier at Branch B).
                   </AppText>
                 </AppBox>
               </AppStack>
 
+              {/* 1. Core Contact & Fallback Role */}
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <AppInput
                   label="Email Address"
@@ -122,7 +137,7 @@ const InviteWorkspaceMemberDesktopPage = ({
                   error={Boolean(formErrors.email)}
                   helperText={
                     formErrors.email ||
-                    "The invitation will be linked to this email address."
+                    "The invitation and security token will be linked to this email."
                   }
                   labelSx={labelSx}
                   inputSx={inputSx}
@@ -139,19 +154,183 @@ const InviteWorkspaceMemberDesktopPage = ({
                 />
               </div>
 
+              {/* 2. Facility Scope Configuration (PBAC) */}
+              <div className="mt-5 rounded-lg border border-border/80 bg-surface-alt/40 p-3.5">
+                <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                  <div>
+                    <h3 className="text-sm font-semibold text-text">
+                      Store & Facility Scope (PBAC)
+                    </h3>
+                    <p className="text-xs text-text-muted">
+                      Determine which pharmacy companies and branch stores this user can operate.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs font-medium text-text">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="accessAllCompanies"
+                        checked={isAllCompanies}
+                        onChange={handleChange}
+                        className="rounded text-primary focus:ring-0"
+                      />
+                      <span>All Companies</span>
+                    </label>
+
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="accessAllBranches"
+                        checked={isAllBranches}
+                        onChange={handleChange}
+                        className="rounded text-primary focus:ring-0"
+                      />
+                      <span>All Branches</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Company Selection if not all companies */}
+                {!isAllCompanies && companies.length > 0 && (
+                  <div className="mt-3">
+                    <span className="text-xs font-semibold text-text-muted block mb-1.5">
+                      Allowed Legal Companies:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {companies.map((company) => {
+                        const isSelected = formData.companyIds.includes(company._id);
+                        return (
+                          <button
+                            key={company._id}
+                            type="button"
+                            onClick={() => handleToggleCompany(company._id)}
+                            className={`px-2.5 py-1 text-xs rounded-md border transition flex items-center gap-1.5 ${
+                              isSelected
+                                ? "border-primary bg-primary/10 text-primary font-semibold"
+                                : "border-border bg-surface text-text-muted hover:border-text-muted"
+                            }`}
+                          >
+                            {isSelected && <FiCheck className="text-xs" />}
+                            {company.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Branch Specific Roles Matrix */}
+                {!isAllBranches && (
+                  <div className="mt-4">
+                    <span className="text-xs font-semibold text-text-muted block mb-2">
+                      Branch Store Role Assignments:
+                    </span>
+
+                    {branches.length === 0 ? (
+                      <p className="text-xs text-text-muted italic">
+                        {isFetchingBranches ? "Loading store branches..." : "No branches found in workspace."}
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {branches.map((branch) => {
+                          const branchAccessItem = formData.branchAccess.find(
+                            (ba) => ba.branchId === branch._id,
+                          );
+                          const isAssigned = Boolean(branchAccessItem);
+
+                          return (
+                            <div
+                              key={branch._id}
+                              className={`p-2.5 rounded-lg border transition flex items-center justify-between gap-3 ${
+                                isAssigned
+                                  ? "border-primary/50 bg-surface shadow-xs"
+                                  : "border-border/60 bg-surface/50 opacity-80"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-[200px]">
+                                <input
+                                  type="checkbox"
+                                  checked={isAssigned}
+                                  onChange={() => handleToggleBranchAccess(branch._id, formData.roleId)}
+                                  className="rounded text-primary focus:ring-0"
+                                />
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <FiMapPin className="text-xs text-primary" />
+                                    <span className="text-xs font-semibold text-text">
+                                      {branch.name}
+                                    </span>
+                                    <span className="text-[10px] text-text-muted font-mono bg-surface-alt px-1 py-0.2 rounded border border-border">
+                                      {branch.branchCode || "STORE"}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-text-muted">
+                                    {branch.city || branch.address || "Local Branch"}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {isAssigned ? (
+                                <div className="flex items-center gap-2.5">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[11px] text-text-muted font-medium">Role:</span>
+                                    <select
+                                      value={branchAccessItem.roleId || ""}
+                                      onChange={(e) =>
+                                        handleBranchRoleChange(branch._id, e.target.value)
+                                      }
+                                      className="text-xs rounded border border-border bg-surface px-2 py-1 outline-none text-text"
+                                    >
+                                      <option value="">Inherit Global Role</option>
+                                      {roles.map((role) => (
+                                        <option key={role._id} value={role._id}>
+                                          {role.name || role.code}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleBranchMarketplaceToggle(branch._id)}
+                                    title="Toggle Marketplace Fulfillment Operator"
+                                    className={`px-2 py-1 text-[11px] rounded border flex items-center gap-1 transition ${
+                                      branchAccessItem.canOperateMarketplaceStore
+                                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-500 font-semibold"
+                                        : "border-border bg-surface text-text-muted hover:text-text"
+                                    }`}
+                                  >
+                                    <FiShoppingBag className="text-xs" />
+                                    <span>Marketplace Operator</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-text-muted italic">
+                                  No Store Access
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <AppTextarea
-                label="Notes"
+                label="Invitation Notes / Message"
                 name="notes"
                 value={formData.notes || ""}
                 onChange={handleChange}
                 disabled={isLoading}
-                placeholder="Optional note for internal reference"
+                placeholder="Optional custom message or onboarding instructions"
                 fullWidth
                 size="small"
                 variant="bordered"
                 rounded="md"
-                minRows={4}
-                maxRows={6}
+                minRows={3}
+                maxRows={5}
                 showCount
                 maxLength={500}
                 error={Boolean(formErrors.notes)}
@@ -225,7 +404,11 @@ const InviteWorkspaceMemberDesktopPage = ({
           </AppCard>
 
           <AppStack direction="column" gap={1.5}>
-            <WorkspaceSummaryCard workspaceSummary={workspaceSummary} />
+            <WorkspaceSummaryCard
+              workspaceSummary={workspaceSummary}
+              branchCount={formData.accessAllBranches ? "All Stores" : formData.branchAccess.length}
+              companyCount={formData.accessAllCompanies ? "All Companies" : formData.companyIds.length}
+            />
             <InvitationInfoCard onViewMembers={handleViewMembers} />
           </AppStack>
         </div>
@@ -342,7 +525,11 @@ const PageHeader = ({ isLoading, onBack, onViewInvitations }) => (
   </AppStack>
 );
 
-const WorkspaceSummaryCard = ({ workspaceSummary }) => (
+const WorkspaceSummaryCard = ({
+  workspaceSummary,
+  branchCount = "-",
+  companyCount = "-",
+}) => (
   <AppCard
     variant="default"
     rounded="lg"
@@ -360,7 +547,7 @@ const WorkspaceSummaryCard = ({ workspaceSummary }) => (
         </AppHeading>
 
         <AppText variant="body2" sx={sideSubtitleSx}>
-          Invitation will be sent for this workspace.
+          Target workspace and pre-configured facility footprint.
         </AppText>
       </AppBox>
     </AppStack>
@@ -369,6 +556,8 @@ const WorkspaceSummaryCard = ({ workspaceSummary }) => (
       <AppKeyValue label="Name" value={workspaceSummary?.name || "-"} />
       <AppKeyValue label="Code" value={workspaceSummary?.code || "-"} />
       <AppKeyValue label="Type" value={workspaceSummary?.type || "-"} />
+      <AppKeyValue label="Selected Stores" value={String(branchCount)} />
+      <AppKeyValue label="Selected Companies" value={String(companyCount)} />
       <AppKeyValue label="Email" value={workspaceSummary?.email || "-"} />
       <AppKeyValue label="Phone" value={workspaceSummary?.phone || "-"} />
     </div>
