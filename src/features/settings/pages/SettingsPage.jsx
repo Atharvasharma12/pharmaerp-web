@@ -33,7 +33,12 @@ const SettingsPage = () => {
   };
 
   if (isMobile) {
-    return <SettingsMobilePage />;
+    return (
+      <SettingsMobilePage
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+      />
+    );
   }
 
   return (

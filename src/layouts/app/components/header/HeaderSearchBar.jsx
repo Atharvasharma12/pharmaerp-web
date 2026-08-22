@@ -28,31 +28,70 @@ const HeaderSearchBar = ({ className = "" }) => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const searchInputRef = useRef(null);
   const containerRef = useRef(null);
+  const commandListRef = useRef(null);
 
   const isMac =
     typeof window !== "undefined" &&
     navigator.platform?.toUpperCase().indexOf("MAC") >= 0;
   const shortcutText = isMac ? "⌘ F" : "Ctrl + K";
 
+  const filteredCommands = useMemo(() => {
+    if (!searchQuery.trim()) return QUICK_COMMANDS;
+    return QUICK_COMMANDS.filter((cmd) =>
+      cmd.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
+
+  // Reset selectedIndex whenever filtered items change or popover opens
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [searchQuery, searchFocused]);
+
   // Global Keyboard Shortcut (Cmd+F / Ctrl+F / Cmd+K / Ctrl+K)
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleGlobalKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "k")) {
         e.preventDefault();
         searchInputRef.current?.focus();
         setSearchFocused(true);
-      } else if (e.key === "Escape") {
-        setSearchFocused(false);
-        searchInputRef.current?.blur();
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, []);
+
+  // Keyboard navigation within the search input
+  const handleInputKeyDown = (e) => {
+    if (!searchFocused && (e.key === "ArrowDown" || e.key === "Enter")) {
+      setSearchFocused(true);
+      return;
+    }
+
+    if (!filteredCommands.length) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % filteredCommands.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex(
+        (prev) => (prev - 1 + filteredCommands.length) % filteredCommands.length
+      );
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (filteredCommands[selectedIndex]) {
+        handleSelectCommand(filteredCommands[selectedIndex].path);
+      }
+    } else if (e.key === "Escape") {
+      setSearchFocused(false);
+      searchInputRef.current?.blur();
+    }
+  };
 
   // Click Outside Listener
   useEffect(() => {
@@ -66,17 +105,11 @@ const HeaderSearchBar = ({ className = "" }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredCommands = useMemo(() => {
-    if (!searchQuery.trim()) return QUICK_COMMANDS;
-    return QUICK_COMMANDS.filter((cmd) =>
-      cmd.label.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery]);
-
   const handleSelectCommand = (path) => {
     navigate(path);
     setSearchFocused(false);
     setSearchQuery("");
+    searchInputRef.current?.blur();
   };
 
   return (
@@ -84,7 +117,7 @@ const HeaderSearchBar = ({ className = "" }) => {
       ref={containerRef}
       className={`group relative flex w-full max-w-[460px] lg:max-w-[540px] items-center ${className}`}
     >
-      {/* Search Input styled identically to AuthInput */}
+      {/* Search Input styled with design system tokens */}
       <div className="relative flex w-full items-center">
         <span className="pointer-events-none absolute left-3 flex items-center text-text-muted transition-colors duration-150 group-focus-within:text-primary">
           <Search className="size-4 shrink-0" />
@@ -96,6 +129,7 @@ const HeaderSearchBar = ({ className = "" }) => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onFocus={() => setSearchFocused(true)}
+          onKeyDown={handleInputKeyDown}
           placeholder="Search or type a command"
           className="h-10 w-full rounded-[12px] border border-border bg-surface pl-9.5 pr-14 text-sm text-text placeholder:text-text-muted/60 outline-none transition-all duration-150 ease-out hover:border-border-strong focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 shadow-2xs"
         />
@@ -131,28 +165,48 @@ const HeaderSearchBar = ({ className = "" }) => {
             transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
             className="absolute left-0 right-0 top-[110%] z-50 overflow-hidden rounded-[14px] border border-border bg-surface p-2 shadow-[var(--app-shadow-xl)]"
           >
-            <div className="px-2 py-1 text-[10.5px] font-bold uppercase tracking-wider text-text-muted/70">
-              Quick Navigation & Commands
+            <div className="flex items-center justify-between px-2 py-1 text-[10.5px] font-bold uppercase tracking-wider text-text-muted/70">
+              <span>Quick Navigation & Commands</span>
+              <span className="text-[10px] font-mono font-normal lowercase">Use ↑ ↓ to navigate, ↵ to select</span>
             </div>
 
-            <div className="max-h-[240px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-0.5 pt-1">
+            <div
+              ref={commandListRef}
+              className="max-h-[240px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-0.5 pt-1"
+            >
               {filteredCommands.length ? (
-                filteredCommands.map((cmd) => {
+                filteredCommands.map((cmd, idx) => {
                   const Icon = cmd.icon;
+                  const isSelected = idx === selectedIndex;
                   return (
                     <button
                       key={cmd.label}
                       type="button"
+                      onMouseEnter={() => setSelectedIndex(idx)}
                       onClick={() => handleSelectCommand(cmd.path)}
-                      className="flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-2 text-left text-xs text-text transition hover:bg-surface-hover active:scale-[0.98]"
+                      className={`flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-2 text-left text-xs transition active:scale-[0.98] ${
+                        isSelected
+                          ? "bg-primary-soft/60 text-primary font-bold shadow-2xs"
+                          : "text-text hover:bg-surface-hover"
+                      }`}
                     >
                       <div className="flex items-center gap-2.5">
-                        <div className="flex size-6 items-center justify-center rounded-[5px] bg-primary/10 text-primary">
+                        <div
+                          className={`flex size-6 items-center justify-center rounded-[5px] transition ${
+                            isSelected
+                              ? "bg-primary text-white shadow-2xs"
+                              : "bg-primary/10 text-primary"
+                          }`}
+                        >
                           <Icon className="size-3.5" />
                         </div>
-                        <span className="font-medium">{cmd.label}</span>
+                        <span>{cmd.label}</span>
                       </div>
-                      <ChevronRight className="size-3.5 text-text-muted/60" />
+                      <ChevronRight
+                        className={`size-3.5 transition-transform ${
+                          isSelected ? "text-primary translate-x-0.5" : "text-text-muted/60"
+                        }`}
+                      />
                     </button>
                   );
                 })

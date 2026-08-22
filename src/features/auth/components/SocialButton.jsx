@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { UIButton } from "@/components/ui";
 
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" className="shrink-0" aria-hidden="true">
@@ -30,28 +31,20 @@ const SocialButton = ({
   className,
 }) => {
   return (
-    <button
+    <UIButton
       type="button"
+      variant="secondary"
       onClick={onClick}
       disabled={disabled}
-      aria-label={label}
+      fullWidth={fullWidth}
+      startIcon={<GoogleIcon />}
       className={cn(
-        // Sizing & Radius: 46px height, rounded-[8px] per DESIGN_STANDARDS §4 & §8.1
-        "flex h-[46px] items-center justify-center gap-2.5",
-        "rounded-[8px] border border-border bg-surface px-4",
-        "text-sm font-semibold text-text shadow-[var(--app-shadow-xs)]",
-        "cursor-pointer select-none",
-        "transition-all duration-120 ease-out",
-        "hover:border-border-strong hover:bg-surface-hover hover:shadow-[var(--app-shadow-sm)] active:scale-[0.97]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
-        "disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100",
-        fullWidth && "w-full",
+        "h-[46px] rounded-[8px] px-4 text-sm font-semibold shadow-[var(--app-shadow-xs)] hover:shadow-[var(--app-shadow-sm)] gap-2.5",
         className
       )}
     >
-      <GoogleIcon />
-      <span>{label}</span>
-    </button>
+      {label}
+    </UIButton>
   );
 };
 

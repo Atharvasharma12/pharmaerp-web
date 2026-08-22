@@ -3,9 +3,7 @@ import { motion } from "framer-motion";
 import { Mail, Lock, ShieldCheck } from "lucide-react";
 
 import { ROUTES } from "@/constants";
-import AuthButton from "../../components/AuthButton";
-import AuthInput from "../../components/AuthInput";
-import AuthPasswordInput from "../../components/AuthPasswordInput";
+import { UIButton, UIInput, UIAlert } from "@/components/ui";
 import SocialButton from "../../components/SocialButton";
 import PharmacyIllustration from "../../components/PharmacyIllustration";
 
@@ -51,20 +49,21 @@ const LoginMobilePage = ({
 
         {/* Error message */}
         {error && (
-          <div
-            className="mt-3 flex items-start gap-2 rounded-[8px] border border-error/30 bg-error-soft px-3.5 py-2.5"
-            role="alert"
+          <UIAlert
+            type="error"
+            variant="soft"
+            icon={<ShieldCheck size={16} className="shrink-0 text-error" />}
+            className="mt-3 p-2.5 rounded-[8px] text-xs font-medium"
           >
-            <ShieldCheck size={16} className="mt-0.5 shrink-0 text-error" />
-            <p className="text-xs font-medium text-error leading-[1.4]">{error}</p>
-          </div>
+            {error}
+          </UIAlert>
         )}
 
         {/* ── FORM: gap-3 per DESIGN_STANDARDS §2.2 ─────────────────── */}
         <form onSubmit={handleSubmit} noValidate className="mt-5">
           <div className="flex flex-col gap-3">
             {/* Email or Phone Field */}
-            <AuthInput
+            <UIInput
               id="mobile-email"
               type="text"
               name="email"
@@ -74,14 +73,18 @@ const LoginMobilePage = ({
               placeholder="Email or 10-Digit Mobile"
               autoComplete="username"
               required
-              icon={<Mail size={16} />}
+              size="lg"
+              variant="outline"
+              containerClassName="h-11 rounded-[12px]"
+              startIcon={<Mail size={16} />}
               error={formErrors.email}
             />
 
             {/* Password Field */}
             <div>
-              <AuthPasswordInput
+              <UIInput
                 id="mobile-password"
+                type="password"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
@@ -89,7 +92,11 @@ const LoginMobilePage = ({
                 placeholder="Password"
                 autoComplete="current-password"
                 required
-                icon={<Lock size={16} />}
+                showPasswordToggle={true}
+                size="lg"
+                variant="outline"
+                containerClassName="h-11 rounded-[12px]"
+                startIcon={<Lock size={16} />}
                 error={formErrors.password}
               />
 
@@ -105,16 +112,17 @@ const LoginMobilePage = ({
             </div>
 
             {/* Primary Login Button */}
-            <AuthButton
+            <UIButton
               type="submit"
               variant="primary"
+              size="lg"
               fullWidth
-              loading={isLoading}
-              disabled={isLoading}
-              className="mt-1.5"
+              isLoading={isLoading}
+              loadingText="Signing in..."
+              className="mt-1.5 h-[46px] rounded-[8px] text-[15px] font-bold shadow-[var(--app-shadow-sm)] hover:shadow-[var(--app-shadow-md)]"
             >
-              {isLoading ? "Signing in..." : "Login"}
-            </AuthButton>
+              Login
+            </UIButton>
           </div>
         </form>
 

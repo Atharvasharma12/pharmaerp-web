@@ -1,5 +1,6 @@
 export const ROUTES = {
   HOME: "/",
+  UI_SHOWCASE: "/ui-showcase",
 
   // Auth
   LOGIN: "/login",

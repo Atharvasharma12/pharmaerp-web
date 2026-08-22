@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   X,
   Store,
+  Building2,
 } from "lucide-react";
 
 import { ROUTES, API_STATUS } from "@/constants";
@@ -19,6 +20,12 @@ import useCompany from "@/features/company/hooks/useCompany";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useUser from "@/features/user/hooks/useUser";
+import { UITabs, UISkeleton, UIButton } from "@/components/ui";
+
+const SELECTOR_TABS = [
+  { id: "company", label: "Company", icon: <Building2 className="size-3.5" /> },
+  { id: "branch", label: "Branch", icon: <Store className="size-3.5" /> },
+];
 
 /**
  * Clean Company Initial / Logo Badge
@@ -53,30 +60,27 @@ const CompanyAvatar = ({ company, size = "md", className = "" }) => {
 };
 
 /**
- * Polished Shimmering Skeleton List for Company & Branch Tabs
+ * Shimmering Skeleton List for Company & Branch Tabs
  */
 const SelectorSkeletonList = ({ count = 3, iconType = "avatar" }) => {
-  const widths = ["w-28", "w-36", "w-24", "w-32"];
   return (
     <div className="space-y-1 py-0.5">
       {Array.from({ length: count }).map((_, index) => (
         <div
           key={index}
-          className="flex items-center justify-between gap-2.5 rounded-[8px] px-2.5 py-2 animate-pulse bg-surface-alt/40"
+          className="flex items-center justify-between gap-2.5 rounded-[8px] px-2.5 py-2 bg-surface-alt/40"
         >
-          <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex min-w-0 items-center gap-2.5 flex-1">
             {iconType === "avatar" ? (
-              <div className="size-6 shrink-0 rounded-[5px] bg-border/80" />
+              <UISkeleton className="size-6 rounded-[5px] shrink-0" />
             ) : (
               <div className="flex size-6 shrink-0 items-center justify-center rounded-[5px] bg-border/80">
-                <Store className="size-3.5 opacity-20" />
+                <Store className="size-3.5 opacity-30" />
               </div>
             )}
-            <div
-              className={`h-3.5 ${widths[index % widths.length]} rounded-[4px] bg-border/80`}
-            />
+            <UISkeleton className={`h-3.5 ${index % 2 === 0 ? "w-28" : "w-36"} rounded-[4px]`} />
           </div>
-          <div className="size-3.5 rounded-full bg-border/40 shrink-0" />
+          <UISkeleton className="size-3.5 rounded-full shrink-0" />
         </div>
       ))}
     </div>
@@ -141,7 +145,6 @@ const SidebarCompanySelector = ({
         width: 250,
       });
     } else {
-      // Snap to integer coordinates aligned flush with the trigger
       const roundedLeft = Math.round(rect.left);
       const targetWidth = Math.min(235, Math.max(220, Math.round(rect.width)));
       const spaceBelow = window.innerHeight - rect.bottom;
@@ -345,45 +348,16 @@ const SidebarCompanySelector = ({
                 }}
                 className="overflow-hidden rounded-[14px] border border-border bg-surface p-2 shadow-[var(--app-shadow-xl)]"
               >
-                {/* Fluid Animated Segmented Tabs */}
-                <div className="grid grid-cols-2 gap-1 rounded-[8px] bg-bg p-1 border border-border/60 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("company")}
-                    className={`relative flex items-center justify-center py-1.5 px-3 rounded-[6px] text-xs font-semibold transition-colors active:scale-[0.98] ${
-                      activeTab === "company"
-                        ? "text-primary font-bold"
-                        : "text-text-muted hover:text-text"
-                    }`}
-                  >
-                    {activeTab === "company" && (
-                      <motion.div
-                        layoutId="activeCollapsedSelectorTab"
-                        className="absolute inset-0 rounded-[6px] bg-surface border border-border/80 shadow-2xs"
-                        transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                      />
-                    )}
-                    <span className="relative z-10">Company</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("branch")}
-                    className={`relative flex items-center justify-center py-1.5 px-3 rounded-[6px] text-xs font-semibold transition-colors active:scale-[0.98] ${
-                      activeTab === "branch"
-                        ? "text-primary font-bold"
-                        : "text-text-muted hover:text-text"
-                    }`}
-                  >
-                    {activeTab === "branch" && (
-                      <motion.div
-                        layoutId="activeCollapsedSelectorTab"
-                        className="absolute inset-0 rounded-[6px] bg-surface border border-border/80 shadow-2xs"
-                        transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                      />
-                    )}
-                    <span className="relative z-10">Branch</span>
-                  </button>
+                {/* Reusable UITabs Primitive */}
+                <div className="mb-2">
+                  <UITabs
+                    tabs={SELECTOR_TABS}
+                    activeTab={activeTab}
+                    onChange={(tabId) => setActiveTab(tabId)}
+                    variant="segmented"
+                    size="xs"
+                    fullWidth={true}
+                  />
                 </div>
 
                 {/* Animated Tab Content with Smooth Transition */}
@@ -594,45 +568,16 @@ const SidebarCompanySelector = ({
               }}
               className="overflow-hidden rounded-[14px] border border-border bg-surface p-2 shadow-[var(--app-shadow-xl)]"
             >
-              {/* Fluid Animated Segmented Tabs like Setting Tabs */}
-              <div className="grid grid-cols-2 gap-1 rounded-[8px] bg-bg p-1 border border-border/60 mb-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("company")}
-                  className={`relative flex items-center justify-center py-1.5 px-3 rounded-[6px] text-xs font-semibold transition-colors active:scale-[0.98] ${
-                    activeTab === "company"
-                      ? "text-primary font-bold"
-                      : "text-text-muted hover:text-text"
-                  }`}
-                >
-                  {activeTab === "company" && (
-                    <motion.div
-                      layoutId="activeExpandedSelectorTab"
-                      className="absolute inset-0 rounded-[6px] bg-surface border border-border/80 shadow-2xs"
-                      transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                    />
-                  )}
-                  <span className="relative z-10">Company</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("branch")}
-                  className={`relative flex items-center justify-center py-1.5 px-3 rounded-[6px] text-xs font-semibold transition-colors active:scale-[0.98] ${
-                    activeTab === "branch"
-                      ? "text-primary font-bold"
-                      : "text-text-muted hover:text-text"
-                  }`}
-                >
-                  {activeTab === "branch" && (
-                    <motion.div
-                      layoutId="activeExpandedSelectorTab"
-                      className="absolute inset-0 rounded-[6px] bg-surface border border-border/80 shadow-2xs"
-                      transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                    />
-                  )}
-                  <span className="relative z-10">Branch</span>
-                </button>
+              {/* Reusable UITabs Primitive */}
+              <div className="mb-2">
+                <UITabs
+                  tabs={SELECTOR_TABS}
+                  activeTab={activeTab}
+                  onChange={(tabId) => setActiveTab(tabId)}
+                  variant="segmented"
+                  size="xs"
+                  fullWidth={true}
+                />
               </div>
 
               {/* Fluid Animated Tab Content with Smooth Transition */}

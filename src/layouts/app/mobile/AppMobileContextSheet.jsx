@@ -15,6 +15,7 @@ import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useCompany from "@/features/company/hooks/useCompany";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useUser from "@/features/user/hooks/useUser";
+import { UITabs } from "@/components/ui";
 
 const getWorkspaceFromItem = (item) => {
   return item?.workspace || item || null;
@@ -142,45 +143,30 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Premium Capsule Segmented Navigation Tab-Bar */}
+        {/* Segmented Navigation Tab-Bar using UITabs */}
         <div className="mx-5 my-2.5 shrink-0">
-          <div className="grid grid-cols-3 gap-1 bg-bg/80 p-1 rounded-xl border border-divider/40">
-            <button
-              type="button"
-              onClick={() => setActiveTab("workspace")}
-              className={`rounded-lg py-2 text-xs font-bold tracking-wide transition-all ${
-                activeTab === "workspace"
-                  ? "bg-surface text-primary shadow-sm"
-                  : "text-text-muted active:bg-surface/40"
-              }`}
-            >
-              Workspace
-            </button>
-            <button
-              type="button"
-              onClick={() => currentWorkspace?._id && setActiveTab("company")}
-              disabled={!currentWorkspace?._id}
-              className={`rounded-lg py-2 text-xs font-bold tracking-wide transition-all ${
-                activeTab === "company"
-                  ? "bg-surface text-primary shadow-sm"
-                  : "text-text-muted disabled:opacity-40"
-              }`}
-            >
-              Company
-            </button>
-            <button
-              type="button"
-              onClick={() => currentCompany?._id && setActiveTab("branch")}
-              disabled={!currentCompany?._id}
-              className={`rounded-lg py-2 text-xs font-bold tracking-wide transition-all ${
-                activeTab === "branch"
-                  ? "bg-surface text-primary shadow-sm"
-                  : "text-text-muted disabled:opacity-40"
-              }`}
-            >
-              Branch
-            </button>
-          </div>
+          <UITabs
+            tabs={[
+              { id: "workspace", label: "Workspace", icon: <FiShoppingBag className="text-xs" /> },
+              {
+                id: "company",
+                label: "Company",
+                icon: <FiBriefcase className="text-xs" />,
+                disabled: !currentWorkspace?._id,
+              },
+              {
+                id: "branch",
+                label: "Branch",
+                icon: <FiMapPin className="text-xs" />,
+                disabled: !currentCompany?._id,
+              },
+            ]}
+            activeTab={activeTab}
+            onChange={(tabId) => setActiveTab(tabId)}
+            variant="segmented"
+            size="sm"
+            fullWidth={true}
+          />
         </div>
 
         {/* Dynamic Context Lists Content viewport */}

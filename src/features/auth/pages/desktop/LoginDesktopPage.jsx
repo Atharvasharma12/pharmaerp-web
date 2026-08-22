@@ -3,9 +3,7 @@ import { motion } from "framer-motion";
 import { Mail, Lock, ShieldCheck } from "lucide-react";
 
 import { ROUTES } from "@/constants";
-import AuthButton from "../../components/AuthButton";
-import AuthInput from "../../components/AuthInput";
-import AuthPasswordInput from "../../components/AuthPasswordInput";
+import { UIButton, UIInput, UIAlert } from "@/components/ui";
 import SocialButton from "../../components/SocialButton";
 import DashboardPreview from "../../components/DashboardPreview";
 
@@ -61,20 +59,21 @@ const LoginDesktopPage = ({
 
             {/* Error Banner */}
             {error && (
-              <div
-                className="mt-4 flex items-start gap-2.5 rounded-[8px] border border-error/30 bg-error-soft px-4 py-3"
-                role="alert"
+              <UIAlert
+                type="error"
+                variant="soft"
+                icon={<ShieldCheck size={18} className="shrink-0 text-error" />}
+                className="mt-4 p-3 rounded-[8px] text-xs font-medium"
               >
-                <ShieldCheck size={18} className="mt-0.5 shrink-0 text-error" />
-                <p className="text-xs font-medium text-error leading-[1.4]">{error}</p>
-              </div>
+                {error}
+              </UIAlert>
             )}
 
             {/* Login Form: gap-4 per DESIGN_STANDARDS §2.2 */}
             <form onSubmit={handleSubmit} noValidate className="mt-6">
               <div className="flex flex-col gap-4">
                 {/* Email or Phone Input */}
-                <AuthInput
+                <UIInput
                   id="desktop-email"
                   type="text"
                   name="email"
@@ -84,14 +83,18 @@ const LoginDesktopPage = ({
                   placeholder="Email or 10-Digit Mobile"
                   autoComplete="username"
                   required
-                  icon={<Mail size={16} />}
+                  size="lg"
+                  variant="outline"
+                  containerClassName="h-11 rounded-[12px]"
+                  startIcon={<Mail size={16} />}
                   error={formErrors.email}
                 />
 
                 {/* Password Input */}
                 <div>
-                  <AuthPasswordInput
+                  <UIInput
                     id="desktop-password"
+                    type="password"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
@@ -99,7 +102,11 @@ const LoginDesktopPage = ({
                     placeholder="Password"
                     autoComplete="current-password"
                     required
-                    icon={<Lock size={16} />}
+                    showPasswordToggle={true}
+                    size="lg"
+                    variant="outline"
+                    containerClassName="h-11 rounded-[12px]"
+                    startIcon={<Lock size={16} />}
                     error={formErrors.password}
                   />
 
@@ -115,16 +122,17 @@ const LoginDesktopPage = ({
                 </div>
 
                 {/* Login Button */}
-                <AuthButton
+                <UIButton
                   type="submit"
                   variant="primary"
+                  size="lg"
                   fullWidth
-                  loading={isLoading}
-                  disabled={isLoading}
-                  className="mt-2"
+                  isLoading={isLoading}
+                  loadingText="Signing in..."
+                  className="mt-2 h-[46px] rounded-[8px] text-[15px] font-bold shadow-[var(--app-shadow-sm)] hover:shadow-[var(--app-shadow-md)]"
                 >
-                  {isLoading ? "Signing in..." : "Login"}
-                </AuthButton>
+                  Login
+                </UIButton>
               </div>
             </form>
 

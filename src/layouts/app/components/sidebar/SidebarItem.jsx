@@ -4,6 +4,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UIBadge } from "@/components/ui";
 
 /**
  * Check if a path or any child paths match the active pathname
@@ -218,9 +219,9 @@ const SidebarItem = ({
           </div>
 
           {item.badge && (
-            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+            <UIBadge variant="primary" size="xs">
               {item.badge}
-            </span>
+            </UIBadge>
           )}
         </NavLink>
       )}

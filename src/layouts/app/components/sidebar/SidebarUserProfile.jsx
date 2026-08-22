@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { LogOut } from "lucide-react";
+import { UIIconButton } from "@/components/ui";
 
 const SidebarUserProfile = ({
   user,
@@ -40,23 +41,22 @@ const SidebarUserProfile = ({
         onMouseLeave={handleMouseLeave}
         className="relative flex flex-col items-center gap-2 border-t border-border p-2"
       >
-        <div className="relative">
-          <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 font-medium text-xs text-primary">
-            {userInitials}
-          </div>
-          <span className="absolute bottom-0 right-0 size-2 rounded-full border-2 border-surface bg-emerald-500" />
+        <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 font-bold text-xs text-primary shadow-2xs">
+          {userInitials}
         </div>
 
         {onLogout && (
-          <button
+          <UIIconButton
             type="button"
             onClick={onLogout}
             title="Log out"
             aria-label="Log out"
-            className="flex size-6 cursor-pointer items-center justify-center rounded-[6px] text-text-muted transition hover:bg-error/10 hover:text-error"
+            variant="ghost"
+            size="xs"
+            className="text-text-muted hover:bg-error/10 hover:text-error"
           >
             <LogOut className="size-3.5" />
-          </button>
+          </UIIconButton>
         )}
 
         {/* Portal-based unclipped tooltip */}
@@ -72,7 +72,7 @@ const SidebarUserProfile = ({
               }}
               className="pointer-events-none rounded-[6px] border border-border bg-surface px-2.5 py-1.5 shadow-[var(--app-shadow-lg)] whitespace-nowrap"
             >
-              <p className="text-[12px] font-medium text-text">{userName}</p>
+              <p className="text-[12px] font-bold text-text">{userName}</p>
               <p className="text-[10px] text-text-muted">{userEmail}</p>
             </div>,
             document.body
@@ -84,15 +84,12 @@ const SidebarUserProfile = ({
   return (
     <div className="border-t border-border p-2">
       <div className="flex items-center gap-2.5 rounded-[8px] p-1.5 transition hover:bg-surface-hover">
-        <div className="relative shrink-0">
-          <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 font-medium text-xs text-primary">
-            {userInitials}
-          </div>
-          <span className="absolute bottom-0 right-0 size-2 rounded-full border-2 border-surface bg-emerald-500" />
+        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 font-bold text-xs text-primary shadow-2xs">
+          {userInitials}
         </div>
 
         <div className="min-w-0 flex-1 text-left">
-          <div className="truncate text-[13px] font-medium text-text leading-tight">
+          <div className="truncate text-[13px] font-bold text-text leading-tight">
             {userName}
           </div>
           <div className="truncate text-[11px] text-text-muted leading-tight">
@@ -101,15 +98,17 @@ const SidebarUserProfile = ({
         </div>
 
         {onLogout && (
-          <button
+          <UIIconButton
             type="button"
             onClick={onLogout}
             title="Log out"
             aria-label="Log out"
-            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-text-muted transition hover:bg-error/10 hover:text-error"
+            variant="ghost"
+            size="xs"
+            className="text-text-muted hover:bg-error/10 hover:text-error"
           >
             <LogOut className="size-3.5" />
-          </button>
+          </UIIconButton>
         )}
       </div>
     </div>

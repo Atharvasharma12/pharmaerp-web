@@ -3,9 +3,10 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, ChevronRight } from "lucide-react";
+import { Bell, ChevronRight, CheckCheck } from "lucide-react";
 
 import { ROUTES } from "@/constants";
+import { UIIconButton, UIBadge } from "@/components/ui";
 
 const DEFAULT_NOTIFICATIONS = [
   {
@@ -61,22 +62,23 @@ const HeaderNotifications = ({ className = "" }) => {
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       {/* Notification Bell Button */}
-      <button
-        type="button"
-        onClick={() => setNotificationsOpen((prev) => !prev)}
-        aria-label="Notifications"
-        aria-expanded={notificationsOpen}
-        className={`relative flex size-9 cursor-pointer items-center justify-center rounded-full transition-all active:scale-[0.95] ${
-          notificationsOpen
-            ? "bg-surface-hover text-primary ring-1 ring-border shadow-2xs"
-            : "text-text-muted hover:bg-surface-hover hover:text-text"
-        }`}
-      >
-        <Bell className="size-[18px]" />
+      <div className="relative">
+        <UIIconButton
+          type="button"
+          onClick={() => setNotificationsOpen((prev) => !prev)}
+          aria-label="Notifications"
+          aria-expanded={notificationsOpen}
+          variant={notificationsOpen ? "secondary" : "ghost"}
+          size="sm"
+          className="rounded-full"
+        >
+          <Bell className="size-[18px]" />
+        </UIIconButton>
+
         {unreadCount > 0 && (
-          <span className="absolute right-2 top-2 size-2 rounded-full bg-rose-500 ring-2 ring-surface animate-pulse" />
+          <span className="pointer-events-none absolute top-1 right-1 size-2 rounded-full bg-rose-500 ring-2 ring-surface animate-pulse" />
         )}
-      </button>
+      </div>
 
       {/* Notifications Floating Popover */}
       <AnimatePresence>
@@ -89,14 +91,23 @@ const HeaderNotifications = ({ className = "" }) => {
             className="absolute right-0 top-[46px] z-50 w-[300px] overflow-hidden rounded-[14px] border border-border bg-surface p-2 shadow-[var(--app-shadow-xl)]"
           >
             <div className="flex items-center justify-between border-b border-border/60 px-2.5 py-1.5">
-              <span className="text-xs font-bold text-text">Notifications</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-text">Notifications</span>
+                {unreadCount > 0 && (
+                  <UIBadge variant="destructive" size="xs">
+                    {unreadCount}
+                  </UIBadge>
+                )}
+              </div>
+
               {unreadCount > 0 && (
                 <button
                   type="button"
                   onClick={markAllRead}
-                  className="cursor-pointer text-[11px] font-semibold text-primary hover:underline"
+                  className="flex items-center gap-1 cursor-pointer text-[11px] font-semibold text-primary hover:underline"
                 >
-                  Mark all as read
+                  <CheckCheck className="size-3" />
+                  <span>Mark all read</span>
                 </button>
               )}
             </div>

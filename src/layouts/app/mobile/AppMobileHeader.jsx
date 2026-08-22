@@ -17,6 +17,7 @@ import {
   HeaderNotifications,
   HeaderProfileDropdown,
 } from "@/layouts/app/components/header";
+import { UIIconButton } from "@/components/ui";
 
 const getPageTitle = (pathname) => {
   if (!pathname || pathname === "/" || pathname === ROUTES.HOME) return "Dashboard";
@@ -78,14 +79,15 @@ const AppMobileHeader = ({ onMenuClick }) => {
       <div className="flex h-13 items-center justify-between px-3">
         {/* Left: Menu & Dynamic Title */}
         <div className="flex min-w-0 items-center gap-2">
-          <button
+          <UIIconButton
             type="button"
             onClick={onMenuClick}
             aria-label="Open navigation menu"
-            className="flex size-9 cursor-pointer items-center justify-center rounded-[8px] text-text-muted transition hover:bg-surface-hover hover:text-text active:scale-[0.95]"
+            variant="ghost"
+            size="sm"
           >
             <Menu className="size-5" />
-          </button>
+          </UIIconButton>
 
           <AnimatePresence mode="wait">
             <motion.h1
@@ -102,19 +104,17 @@ const AppMobileHeader = ({ onMenuClick }) => {
         </div>
 
         {/* Right: Search Toggle, Modular Notifications, and Modular Profile */}
-        <div className="flex shrink-0 items-center gap-2">
-          <button
+        <div className="flex shrink-0 items-center gap-1.5">
+          <UIIconButton
             type="button"
             onClick={() => setSearchOpen(!searchOpen)}
             aria-label="Search"
-            className={`flex size-8.5 cursor-pointer items-center justify-center rounded-full transition active:scale-[0.95] ${
-              searchOpen
-                ? "bg-surface-hover text-primary"
-                : "text-text-muted hover:bg-surface-hover hover:text-text"
-            }`}
+            variant={searchOpen ? "secondary" : "ghost"}
+            size="sm"
+            className="rounded-full"
           >
             <Search className="size-4" />
-          </button>
+          </UIIconButton>
 
           <HeaderNotifications />
           <HeaderProfileDropdown />

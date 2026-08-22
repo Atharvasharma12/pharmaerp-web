@@ -1,5 +1,12 @@
 import { useState } from "react";
-import SettingsCard from "../SettingsCard";
+import {
+  UIButton,
+  UICard,
+  UICardHeader,
+  UICardTitle,
+  UICardDescription,
+  UICardContent,
+} from "@/components/ui";
 
 const INITIAL_INTEGRATIONS = [
   {
@@ -78,59 +85,63 @@ const IntegrationsTab = () => {
   return (
     <div className="space-y-4">
       {/* ── CARD 1: Connected Apps ────────────────────────────── */}
-      <SettingsCard
-        title="Connected Applications"
-        description="Manage third-party integrations, payment gateways, and communications for your pharmacy store"
-      >
-        <div className="divide-y divide-border/60">
-          {integrations.map((app) => (
-            <div
-              key={app.id}
-              className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-            >
-              {/* Left Logo + Title + Description */}
-              <div className="flex items-center gap-3">
-                <div
-                  className={`flex size-9 items-center justify-center rounded-[10px] ${app.logoBg} shadow-2xs shrink-0`}
-                >
-                  {app.logoSvg}
+      <UICard variant="default" padding="none" className="p-4 sm:p-5 shadow-[var(--app-shadow-sm)]">
+        <UICardHeader className="pb-3 border-b border-border/60 mb-0">
+          <UICardTitle as="h2" className="text-sm sm:text-base font-bold tracking-tight text-text">
+            Connected Applications
+          </UICardTitle>
+          <UICardDescription className="mt-0.5 text-xs text-text-muted leading-relaxed">
+            Manage third-party integrations, payment gateways, and communications for your pharmacy store
+          </UICardDescription>
+        </UICardHeader>
+        <UICardContent className="pt-3.5 space-y-0">
+          <div className="divide-y divide-border/60">
+            {integrations.map((app) => (
+              <div
+                key={app.id}
+                className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+              >
+                {/* Left Logo + Title + Description */}
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`flex size-9 items-center justify-center rounded-[10px] ${app.logoBg} shadow-2xs shrink-0`}
+                  >
+                    {app.logoSvg}
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-bold text-text">
+                      {app.name}
+                    </h3>
+                    <p className="text-[11px] text-text-muted leading-tight">
+                      {app.description}
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <h3 className="text-xs font-bold text-text">
-                    {app.name}
-                  </h3>
-                  <p className="text-[11px] text-text-muted leading-tight">
-                    {app.description}
-                  </p>
+                {/* Right Status + Action Button */}
+                <div className="flex items-center gap-3">
+                  {app.connected && (
+                    <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success-soft px-2 py-0.5 text-[11px] font-semibold text-success">
+                      <span className="size-1.5 rounded-full bg-success" />
+                      Connected
+                    </span>
+                  )}
+
+                  <UIButton
+                    type="button"
+                    variant={app.connected ? "destructive" : "secondary"}
+                    size="xs"
+                    onClick={() => toggleConnection(app.id)}
+                  >
+                    {app.connected ? "Disconnect" : "Connect"}
+                  </UIButton>
                 </div>
               </div>
-
-              {/* Right Status + Action Button */}
-              <div className="flex items-center gap-3">
-                {app.connected && (
-                  <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success-soft px-2 py-0.2 text-[11px] font-semibold text-success">
-                    <span className="size-1.5 rounded-full bg-success" />
-                    Connected
-                  </span>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => toggleConnection(app.id)}
-                  className={`text-xs font-semibold transition-colors active:scale-[0.97] ${
-                    app.connected
-                      ? "text-error hover:underline"
-                      : "text-primary hover:text-primary-hover hover:underline"
-                  }`}
-                >
-                  {app.connected ? "Disconnect" : "Connect"}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </SettingsCard>
+            ))}
+          </div>
+        </UICardContent>
+      </UICard>
     </div>
   );
 };

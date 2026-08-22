@@ -31,6 +31,7 @@ import workspaceProductRoutes from "@/features/workspace-products/routes/workspa
 import settingsRoutes from "@/features/settings/routes/settingsRoutes";
 
 import HomePage from "@/pages/HomePage";
+import UIShowcasePage from "@/pages/UIShowcasePage";
 
 import { LandingPage } from "@/features/landing";
 import hsnMasterRoutes from "@/features/hsn-master/routes/hsnMasterRoutes";
@@ -125,6 +126,14 @@ export const router = createBrowserRouter([
       {
         path: "/terms-of-service",
         element: <HomePage />,
+      },
+      {
+        path: "/ui-showcase",
+        element: <UIShowcasePage />,
+      },
+      {
+        path: "/ui-components",
+        element: <UIShowcasePage />,
       },
     ],
   },

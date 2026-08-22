@@ -1,11 +1,9 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Mail, Lock, ShieldCheck, Check } from "lucide-react";
+import { User, Mail, Lock, ShieldCheck } from "lucide-react";
 
 import { ROUTES } from "@/constants";
-import AuthButton from "../../components/AuthButton";
-import AuthInput from "../../components/AuthInput";
-import AuthPasswordInput from "../../components/AuthPasswordInput";
+import { UIButton, UIInput, UICheckbox, UIAlert } from "@/components/ui";
 import SocialButton from "../../components/SocialButton";
 import RegisterIllustration from "../../components/RegisterIllustration";
 
@@ -53,22 +51,21 @@ const RegisterMobilePage = ({
 
         {/* Error message banner */}
         {(error || formErrors.submit) && (
-          <div
-            className="mt-3 flex items-start gap-2 rounded-[8px] border border-error/30 bg-error-soft px-3.5 py-2.5"
-            role="alert"
+          <UIAlert
+            type="error"
+            variant="soft"
+            icon={<ShieldCheck size={16} className="shrink-0 text-error" />}
+            className="mt-3 p-2.5 rounded-[8px] text-xs font-medium"
           >
-            <ShieldCheck size={16} className="mt-0.5 shrink-0 text-error" />
-            <p className="text-xs font-medium text-error leading-[1.4]">
-              {error || formErrors.submit}
-            </p>
-          </div>
+            {error || formErrors.submit}
+          </UIAlert>
         )}
 
         {/* ── FORM: gap-3 per DESIGN_STANDARDS §2.2 ─────────────────── */}
         <form onSubmit={handleSubmit} noValidate className="mt-4">
           <div className="flex flex-col gap-3">
             {/* Full Name Field */}
-            <AuthInput
+            <UIInput
               id="mobile-name"
               type="text"
               name="fullName"
@@ -78,12 +75,15 @@ const RegisterMobilePage = ({
               placeholder="Full name"
               autoComplete="name"
               required
-              icon={<User size={16} />}
+              size="lg"
+              variant="outline"
+              containerClassName="h-11 rounded-[12px]"
+              startIcon={<User size={16} />}
               error={formErrors.fullName}
             />
 
             {/* Email Address Field */}
-            <AuthInput
+            <UIInput
               id="mobile-email"
               type="email"
               name="email"
@@ -93,13 +93,17 @@ const RegisterMobilePage = ({
               placeholder="Email address"
               autoComplete="email"
               required
-              icon={<Mail size={16} />}
+              size="lg"
+              variant="outline"
+              containerClassName="h-11 rounded-[12px]"
+              startIcon={<Mail size={16} />}
               error={formErrors.email}
             />
 
             {/* Password Field */}
-            <AuthPasswordInput
+            <UIInput
               id="mobile-password"
+              type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
@@ -107,13 +111,18 @@ const RegisterMobilePage = ({
               placeholder="Password"
               autoComplete="new-password"
               required
-              icon={<Lock size={16} />}
+              showPasswordToggle={true}
+              size="lg"
+              variant="outline"
+              containerClassName="h-11 rounded-[12px]"
+              startIcon={<Lock size={16} />}
               error={formErrors.password}
             />
 
             {/* Confirm Password Field */}
-            <AuthPasswordInput
+            <UIInput
               id="mobile-confirm-password"
+              type="password"
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
@@ -121,54 +130,51 @@ const RegisterMobilePage = ({
               placeholder="Confirm Password"
               autoComplete="new-password"
               required
-              icon={<Lock size={16} />}
+              showPasswordToggle={true}
+              size="lg"
+              variant="outline"
+              containerClassName="h-11 rounded-[12px]"
+              startIcon={<Lock size={16} />}
               error={formErrors.confirmPassword}
             />
 
             {/* Terms & Conditions Notice per Reference Image 2 */}
-            <div className="mt-1">
-              <label className="flex items-start gap-2 cursor-pointer select-none">
-                <div className="relative mt-0.5 flex items-center justify-center shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={agree}
-                    onChange={handleAgreeChange}
-                    disabled={isLoading}
-                    className="peer sr-only"
-                  />
-                  <div className="size-4 rounded-[4px] border border-border bg-surface transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 flex items-center justify-center text-white">
-                    {agree && <Check size={12} strokeWidth={3} />}
-                  </div>
-                </div>
-                <span className="text-[11.5px] text-text-muted leading-[1.45]">
-                  By signing up, you agree to our{" "}
-                  <Link to="/terms" className="font-bold text-primary hover:underline">
-                    Terms & Conditions
-                  </Link>{" "}
-                  and{" "}
-                  <Link to="/privacy" className="font-bold text-primary hover:underline">
-                    Privacy Policy
-                  </Link>
-                </span>
-              </label>
-              {formErrors.agree && (
-                <p className="mt-1 text-xs font-medium text-error leading-[1.4]">
-                  {formErrors.agree}
-                </p>
-              )}
+            <div className="pt-0.5">
+              <UICheckbox
+                id="mobile-agree"
+                name="agree"
+                checked={agree}
+                onChange={(checked) => handleAgreeChange({ target: { checked } })}
+                disabled={isLoading}
+                error={formErrors.agree}
+                size="sm"
+                label={
+                  <span className="text-[11.5px] text-text-muted leading-[1.45]">
+                    By signing up, you agree to our{" "}
+                    <Link to="/terms" className="font-bold text-primary hover:underline">
+                      Terms & Conditions
+                    </Link>{" "}
+                    and{" "}
+                    <Link to="/privacy" className="font-bold text-primary hover:underline">
+                      Privacy Policy
+                    </Link>
+                  </span>
+                }
+              />
             </div>
 
             {/* Primary Create Account Button */}
-            <AuthButton
+            <UIButton
               type="submit"
               variant="primary"
+              size="lg"
               fullWidth
-              loading={isLoading}
-              disabled={isLoading}
-              className="mt-1.5"
+              isLoading={isLoading}
+              loadingText="Creating Account..."
+              className="mt-1.5 h-[46px] rounded-[8px] text-[15px] font-bold shadow-[var(--app-shadow-sm)] hover:shadow-[var(--app-shadow-md)]"
             >
-              {isLoading ? "Creating Account..." : "Create Account"}
-            </AuthButton>
+              Create Account
+            </UIButton>
           </div>
         </form>
 

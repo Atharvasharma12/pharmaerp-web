@@ -78,8 +78,9 @@ The ERP interface is engineered to adapt gracefully across **all 7 device form f
 ## 3. Typography & Numeric Scale
 
 ### 3.1 Global Typography Configuration
-- **Font Family**: `"Inter", system-ui, -apple-system, sans-serif;`
-- **Numeric Alignment**: ALWAYS add `tabular-nums` (`font-variant-numeric: tabular-nums`) to columns and components displaying currency, stock quantities, SKU codes, phone numbers, and timestamps.
+- **Primary UI & Headings Font**: `'Geist Variable', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;`
+- **Monospace & Data Font**: `'Geist Mono Variable', 'Geist Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;`
+- **Numeric Alignment**: ALWAYS add `tabular-nums` (`font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;`) to columns and components displaying currency (`₹`), stock quantities, batch serials, SKU codes, phone numbers, and timestamps.
 
 ### 3.2 Desktop & Tablet Type Scale (>= 768px)
 

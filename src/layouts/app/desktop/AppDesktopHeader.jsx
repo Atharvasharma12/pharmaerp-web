@@ -62,7 +62,7 @@ const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 2 }}
               transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
-              className="truncate text-[18px] lg:text-[20px] font-extrabold tracking-tight text-text leading-none"
+              className="truncate text-base lg:text-[17px] font-bold tracking-tight text-text leading-normal py-0.5"
             >
               {pageTitle}
             </motion.h1>

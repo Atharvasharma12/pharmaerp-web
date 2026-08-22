@@ -7,6 +7,7 @@ import { User, Settings, LogOut } from "lucide-react";
 
 import { ROUTES } from "@/constants";
 import useAuth from "@/features/auth/hooks/useAuth";
+import { UIBadge } from "@/components/ui";
 
 const HeaderProfileDropdown = ({ className = "" }) => {
   const navigate = useNavigate();
@@ -83,10 +84,10 @@ const HeaderProfileDropdown = ({ className = "" }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 4 }}
             transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
-            className="absolute right-0 top-[46px] z-50 w-[230px] overflow-hidden rounded-[14px] border border-border bg-surface p-2 shadow-[var(--app-shadow-xl)]"
+            className="absolute right-0 top-[46px] z-50 w-[240px] overflow-hidden rounded-[14px] border border-border bg-surface p-2 shadow-[var(--app-shadow-xl)]"
           >
             {/* User Profile Card */}
-            <div className="flex items-center gap-2.5 rounded-[8px] bg-surface-alt/40 p-2">
+            <div className="flex items-center gap-2.5 rounded-[8px] bg-surface-alt/40 p-2.5">
               <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs">
                 {userInitials}
               </div>
@@ -94,8 +95,10 @@ const HeaderProfileDropdown = ({ className = "" }) => {
                 <div className="truncate text-xs font-bold text-text">
                   {userName}
                 </div>
-                <div className="truncate text-[10.5px] text-text-muted">
-                  {userRole}
+                <div className="mt-0.5 flex items-center gap-1">
+                  <UIBadge variant="primary" size="xs">
+                    {userRole}
+                  </UIBadge>
                 </div>
               </div>
             </div>

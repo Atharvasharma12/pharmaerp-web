@@ -1,9 +1,17 @@
 import { useState } from "react";
-import { Laptop, Smartphone, Monitor, Trash2, AlertTriangle, X } from "lucide-react";
+import { Laptop, Smartphone, Monitor, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-import SettingsCard from "../SettingsCard";
-import SettingsToggle from "../SettingsToggle";
+import {
+  UIButton,
+  UIConfirmDialog,
+  UICard,
+  UICardHeader,
+  UICardTitle,
+  UICardDescription,
+  UICardContent,
+  UISwitch,
+} from "@/components/ui";
 
 const INITIAL_SESSIONS = [
   {
@@ -36,10 +44,18 @@ const SecurityTab = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [sessions, setSessions] = useState(INITIAL_SESSIONS);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleRevokeSession = (sessionId) => {
     setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+  };
+
+  const handleDeleteAccount = () => {
+    setIsDeleting(true);
+    setTimeout(() => {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }, 800);
   };
 
   const getDeviceIcon = (type) => {
@@ -56,18 +72,25 @@ const SecurityTab = () => {
   return (
     <div className="space-y-4">
       {/* ── CARD 1: Two-Factor Authentication ─────────────────── */}
-      <SettingsCard
-        title="Two-factor authentication"
-        description="Add an extra layer of security to your account by requiring a verification code alongside your password."
-        action={
-          <SettingsToggle
-            id="two-factor-toggle"
-            checked={twoFactorEnabled}
-            onChange={setTwoFactorEnabled}
-          />
-        }
-      >
-        <div className="border-t border-border/60 pt-3">
+      <UICard variant="default" padding="none" className="p-4 sm:p-5 shadow-[var(--app-shadow-sm)]">
+        <UICardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60 mb-0">
+          <div>
+            <UICardTitle as="h2" className="text-sm sm:text-base font-bold tracking-tight text-text">
+              Two-factor authentication
+            </UICardTitle>
+            <UICardDescription className="mt-0.5 text-xs text-text-muted leading-relaxed">
+              Add an extra layer of security to your account by requiring a verification code alongside your password.
+            </UICardDescription>
+          </div>
+          <div className="shrink-0">
+            <UISwitch
+              id="two-factor-toggle"
+              checked={twoFactorEnabled}
+              onChange={setTwoFactorEnabled}
+            />
+          </div>
+        </UICardHeader>
+        <UICardContent className="pt-3.5 space-y-0">
           <div className="flex items-center gap-3">
             {twoFactorEnabled ? (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success-soft px-2.5 py-0.5 text-xs font-semibold text-success">
@@ -86,73 +109,77 @@ const SecurityTab = () => {
                 : "Enable 2FA to protect your account"}
             </span>
           </div>
-        </div>
-      </SettingsCard>
+        </UICardContent>
+      </UICard>
 
       {/* ── CARD 2: Active Sessions ──────────────────────────── */}
-      <SettingsCard
-        title="Active sessions"
-        description="Devices that are currently signed in to your store account"
-      >
-        <div className="divide-y divide-border/60">
-          <AnimatePresence>
-            {sessions.map((session) => (
-              <motion.div
-                key={session.id}
-                layout
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-[8px] bg-surface-alt border border-border">
-                    {getDeviceIcon(session.type)}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-text">
-                        {session.device}
-                      </span>
-                      {session.isCurrent && (
-                        <span className="rounded-full bg-primary-soft px-2 py-0.2 text-[10px] font-semibold text-primary">
-                          Current
-                        </span>
-                      )}
+      <UICard variant="default" padding="none" className="p-4 sm:p-5 shadow-[var(--app-shadow-sm)]">
+        <UICardHeader className="pb-3 border-b border-border/60 mb-0">
+          <UICardTitle as="h2" className="text-sm sm:text-base font-bold tracking-tight text-text">
+            Active sessions
+          </UICardTitle>
+          <UICardDescription className="mt-0.5 text-xs text-text-muted leading-relaxed">
+            Devices that are currently signed in to your store account
+          </UICardDescription>
+        </UICardHeader>
+        <UICardContent className="pt-3.5 space-y-0">
+          <div className="divide-y divide-border/60">
+            <AnimatePresence>
+              {sessions.map((session) => (
+                <motion.div
+                  key={session.id}
+                  layout
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-8 items-center justify-center rounded-[8px] bg-surface-alt border border-border">
+                      {getDeviceIcon(session.type)}
                     </div>
-                    <p className="text-[11px] text-text-muted">
-                      {session.location} · {session.time}
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-text">
+                          {session.device}
+                        </span>
+                        {session.isCurrent && (
+                          <span className="rounded-full bg-primary-soft px-2 py-0.2 text-[10px] font-semibold text-primary">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-text-muted">
+                        {session.location} · {session.time}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {!session.isCurrent && (
-                  <button
-                    type="button"
-                    onClick={() => handleRevokeSession(session.id)}
-                    className="text-xs font-semibold text-text-muted transition-colors hover:text-error active:scale-[0.97]"
-                  >
-                    Revoke
-                  </button>
-                )}
-              </motion.div>
-            ))}
-          </AnimatePresence>
+                  {!session.isCurrent && (
+                    <button
+                      type="button"
+                      onClick={() => handleRevokeSession(session.id)}
+                      className="text-xs font-semibold text-text-muted transition-colors hover:text-error active:scale-[0.97] cursor-pointer"
+                    >
+                      Revoke
+                    </button>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
 
-          {sessions.length === 0 && (
-            <p className="py-3 text-center text-xs text-text-muted">
-              No other active sessions.
-            </p>
-          )}
-        </div>
-      </SettingsCard>
+            {sessions.length === 0 && (
+              <p className="py-3 text-center text-xs text-text-muted">
+                No other active sessions.
+              </p>
+            )}
+          </div>
+        </UICardContent>
+      </UICard>
 
       {/* ── CARD 3: Danger Zone ──────────────────────────────── */}
-      <SettingsCard
-        title="Danger zone"
-        description="Irreversible account and organization actions"
-      >
-        <div className="flex items-center justify-between">
+      <UICard variant="default" padding="none" className="p-4 sm:p-5 shadow-[var(--app-shadow-sm)] border-error/30">
+        <UICardContent className="p-0 flex items-center justify-between">
           <div>
             <h3 className="text-xs font-bold text-text">
               Delete account
@@ -162,92 +189,33 @@ const SecurityTab = () => {
             </p>
           </div>
 
-          <button
+          <UIButton
             type="button"
+            variant="destructive"
+            size="sm"
             onClick={() => setShowDeleteModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-[8px] border border-border px-3 py-1.5 text-xs font-semibold text-text transition-colors hover:border-error/40 hover:bg-error-soft hover:text-error active:scale-[0.97]"
+            startIcon={<Trash2 size={13} />}
           >
-            <Trash2 size={13} />
-            <span>Delete</span>
-          </button>
-        </div>
-      </SettingsCard>
+            Delete
+          </UIButton>
+        </UICardContent>
+      </UICard>
 
-      {/* ── Delete Account Confirmation Modal ────────────────── */}
-      <AnimatePresence>
-        {showDeleteModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowDeleteModal(false)}
-              className="absolute inset-0 bg-black/50 backdrop-blur-xs"
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative z-10 w-full max-w-md rounded-[14px] border border-border bg-surface p-5 shadow-[var(--app-shadow-xl)]"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex size-9 items-center justify-center rounded-[8px] bg-error-soft text-error">
-                  <AlertTriangle size={18} />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteModal(false)}
-                  className="rounded-[6px] p-1 text-text-muted hover:bg-surface-hover hover:text-text"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              <div className="mt-3.5">
-                <h3 className="text-sm sm:text-base font-bold text-text">
-                  Delete Account
-                </h3>
-                <p className="mt-1 text-xs leading-relaxed text-text-muted">
-                  This action is permanent and cannot be undone. All your store preferences, activity history, and workspace links will be immediately deleted.
-                </p>
-                <div className="mt-3.5">
-                  <label className="text-xs font-semibold text-text">
-                    Type <span className="font-bold text-error">DELETE</span> to confirm:
-                  </label>
-                  <input
-                    type="text"
-                    value={deleteConfirmText}
-                    onChange={(e) => setDeleteConfirmText(e.target.value)}
-                    placeholder="DELETE"
-                    className="mt-1.5 w-full rounded-[10px] border border-border bg-surface px-3 py-2 text-xs text-text focus:border-error focus:outline-none focus:ring-2 focus:ring-error/20"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-5 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteModal(false)}
-                  className="rounded-[8px] border border-border px-3.5 py-1.5 text-xs font-semibold text-text hover:bg-surface-hover"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={deleteConfirmText !== "DELETE"}
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                  }}
-                  className="rounded-[8px] bg-error px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-error/90 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Permanently Delete
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* ── Delete Account Confirmation Dialog ────────────────── */}
+      <UIConfirmDialog
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteAccount}
+        title="Delete Account"
+        description="This action is permanent and cannot be undone. All your store preferences, activity history, and workspace links will be immediately deleted."
+        intent="danger"
+        confirmText="Permanently Delete"
+        cancelText="Cancel"
+        requireInput={true}
+        confirmPhrase="DELETE"
+        inputPlaceholder="Type DELETE to confirm"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

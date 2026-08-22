@@ -1,11 +1,9 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Mail, Phone, Lock, ShieldCheck, Check } from "lucide-react";
+import { User, Mail, Phone, Lock, ShieldCheck } from "lucide-react";
 
 import { ROUTES } from "@/constants";
-import AuthButton from "../../components/AuthButton";
-import AuthInput from "../../components/AuthInput";
-import AuthPasswordInput from "../../components/AuthPasswordInput";
+import { UIButton, UIInput, UICheckbox, UIAlert } from "@/components/ui";
 import SocialButton from "../../components/SocialButton";
 import DashboardPreview from "../../components/DashboardPreview";
 
@@ -63,22 +61,21 @@ const RegisterDesktopPage = ({
 
             {/* Error Banner */}
             {(error || formErrors.submit) && (
-              <div
-                className="mt-4 flex items-start gap-2.5 rounded-[8px] border border-error/30 bg-error-soft px-4 py-2.5"
-                role="alert"
+              <UIAlert
+                type="error"
+                variant="soft"
+                icon={<ShieldCheck size={18} className="shrink-0 text-error" />}
+                className="mt-4 p-2.5 rounded-[8px] text-xs font-medium"
               >
-                <ShieldCheck size={18} className="mt-0.5 shrink-0 text-error" />
-                <p className="text-xs font-medium text-error leading-[1.4]">
-                  {error || formErrors.submit}
-                </p>
-              </div>
+                {error || formErrors.submit}
+              </UIAlert>
             )}
 
             {/* Registration Form: gap-3.5 per DESIGN_STANDARDS §2.2 */}
             <form onSubmit={handleSubmit} noValidate className="mt-5">
               <div className="flex flex-col gap-3.5">
                 {/* Full Name Input */}
-                <AuthInput
+                <UIInput
                   id="desktop-name"
                   type="text"
                   name="fullName"
@@ -88,12 +85,15 @@ const RegisterDesktopPage = ({
                   placeholder="Full Name"
                   autoComplete="name"
                   required
-                  icon={<User size={16} />}
+                  size="lg"
+                  variant="outline"
+                  containerClassName="h-11 rounded-[12px]"
+                  startIcon={<User size={16} />}
                   error={formErrors.fullName}
                 />
 
                 {/* Email Address Input */}
-                <AuthInput
+                <UIInput
                   id="desktop-email"
                   type="email"
                   name="email"
@@ -103,12 +103,15 @@ const RegisterDesktopPage = ({
                   placeholder="Email Address"
                   autoComplete="email"
                   required
-                  icon={<Mail size={16} />}
+                  size="lg"
+                  variant="outline"
+                  containerClassName="h-11 rounded-[12px]"
+                  startIcon={<Mail size={16} />}
                   error={formErrors.email}
                 />
 
                 {/* Optional Phone Input */}
-                <AuthInput
+                <UIInput
                   id="desktop-phone"
                   type="tel"
                   name="phone"
@@ -117,14 +120,18 @@ const RegisterDesktopPage = ({
                   disabled={isLoading}
                   placeholder="10-Digit Mobile (Optional)"
                   autoComplete="tel"
-                  icon={<Phone size={16} />}
+                  size="lg"
+                  variant="outline"
+                  containerClassName="h-11 rounded-[12px]"
+                  startIcon={<Phone size={16} />}
                   error={formErrors.phone}
                   maxLength={10}
                 />
 
                 {/* Password Input */}
-                <AuthPasswordInput
+                <UIInput
                   id="desktop-password"
+                  type="password"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
@@ -132,13 +139,18 @@ const RegisterDesktopPage = ({
                   placeholder="Password"
                   autoComplete="new-password"
                   required
-                  icon={<Lock size={16} />}
+                  showPasswordToggle={true}
+                  size="lg"
+                  variant="outline"
+                  containerClassName="h-11 rounded-[12px]"
+                  startIcon={<Lock size={16} />}
                   error={formErrors.password}
                 />
 
                 {/* Confirm Password Input */}
-                <AuthPasswordInput
+                <UIInput
                   id="desktop-confirm-password"
+                  type="password"
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
@@ -146,60 +158,57 @@ const RegisterDesktopPage = ({
                   placeholder="Confirm Password"
                   autoComplete="new-password"
                   required
-                  icon={<Lock size={16} />}
+                  showPasswordToggle={true}
+                  size="lg"
+                  variant="outline"
+                  containerClassName="h-11 rounded-[12px]"
+                  startIcon={<Lock size={16} />}
                   error={formErrors.confirmPassword}
                 />
 
                 {/* Terms of Service & Privacy Policy Checkbox */}
-                <div>
-                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                    <div className="relative flex items-center justify-center">
-                      <input
-                        type="checkbox"
-                        checked={agree}
-                        onChange={handleAgreeChange}
-                        disabled={isLoading}
-                        className="peer sr-only"
-                      />
-                      <div className="size-4 rounded-[4px] border border-border bg-surface transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 flex items-center justify-center text-white">
-                        {agree && <Check size={12} strokeWidth={3} />}
-                      </div>
-                    </div>
-                    <span className="text-xs text-text-muted leading-[1.4]">
-                      I agree to the{" "}
-                      <Link
-                        to="/terms"
-                        className="font-semibold text-primary hover:underline"
-                      >
-                        Terms of Service
-                      </Link>{" "}
-                      and{" "}
-                      <Link
-                        to="/privacy"
-                        className="font-semibold text-primary hover:underline"
-                      >
-                        Privacy Policy
-                      </Link>
-                    </span>
-                  </label>
-                  {formErrors.agree && (
-                    <p className="mt-1 text-xs font-medium text-error leading-[1.4]">
-                      {formErrors.agree}
-                    </p>
-                  )}
+                <div className="pt-0.5">
+                  <UICheckbox
+                    id="desktop-agree"
+                    name="agree"
+                    checked={agree}
+                    onChange={(checked) => handleAgreeChange({ target: { checked } })}
+                    disabled={isLoading}
+                    error={formErrors.agree}
+                    size="sm"
+                    label={
+                      <span className="text-xs text-text-muted leading-[1.4]">
+                        I agree to the{" "}
+                        <Link
+                          to="/terms"
+                          className="font-semibold text-primary hover:underline"
+                        >
+                          Terms of Service
+                        </Link>{" "}
+                        and{" "}
+                        <Link
+                          to="/privacy"
+                          className="font-semibold text-primary hover:underline"
+                        >
+                          Privacy Policy
+                        </Link>
+                      </span>
+                    }
+                  />
                 </div>
 
                 {/* Register CTA Button */}
-                <AuthButton
+                <UIButton
                   type="submit"
                   variant="primary"
+                  size="lg"
                   fullWidth
-                  loading={isLoading}
-                  disabled={isLoading}
-                  className="mt-1.5"
+                  isLoading={isLoading}
+                  loadingText="Creating Account..."
+                  className="mt-1.5 h-[46px] rounded-[8px] text-[15px] font-bold shadow-[var(--app-shadow-sm)] hover:shadow-[var(--app-shadow-md)]"
                 >
-                  {isLoading ? "Creating Account..." : "Register"}
-                </AuthButton>
+                  Register
+                </UIButton>
               </div>
             </form>
 
