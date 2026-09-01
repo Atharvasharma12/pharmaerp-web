@@ -42,7 +42,9 @@ import {
   AppText,
   HELP_SUPPORT_CARD,
   PageRightSidebar,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 
 const typeColorMap = {
   manufacturer: "purple",
@@ -280,18 +282,20 @@ const SuppliersDesktopPage = ({
             >
               Refresh
             </AppButton>
-            <AppButton
-              type="button"
-              variant="contained"
-              colorVariant="success"
-              rounded="md"
-              size="small"
-              startIcon={<FiPlus />}
-              onClick={handleCreateSupplier}
-              sx={primaryButtonSx}
-            >
-              Add Supplier
-            </AppButton>
+            <PermissionGate permission="supplier:create">
+              <AppButton
+                type="button"
+                variant="contained"
+                colorVariant="success"
+                rounded="md"
+                size="small"
+                startIcon={<FiPlus />}
+                onClick={handleCreateSupplier}
+                sx={primaryButtonSx}
+              >
+                Add Supplier
+              </AppButton>
+            </PermissionGate>
           </AppStack>
         </AppBox>
 
@@ -526,6 +530,8 @@ const TableToolbar = ({
 );
 
 const SupplierActions = ({ supplier, onView, onEdit, onDelete }) => {
+  const { can } = usePermission();
+
   const items = [
     {
       id: "view",
@@ -533,21 +539,21 @@ const SupplierActions = ({ supplier, onView, onEdit, onDelete }) => {
       icon: <FiEye />,
       onClick: () => onView?.(supplier),
     },
-    {
+    can("supplier:update") && {
       id: "edit",
       label: "Edit Supplier",
       icon: <FiEdit2 />,
       onClick: () => onEdit?.(supplier),
     },
-    { id: "divider", type: "divider" },
-    {
+    can("supplier:delete") && { id: "divider", type: "divider" },
+    can("supplier:delete") && {
       id: "remove",
       label: "Remove Profile",
       icon: <FiTrash2 />,
       danger: true,
       onClick: () => onDelete?.(supplier),
     },
-  ];
+  ].filter(Boolean);
 
   return (
     <AppMenu

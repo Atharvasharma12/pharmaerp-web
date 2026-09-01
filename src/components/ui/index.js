@@ -46,3 +46,4 @@ export * from "./navigation";
 export * from "./layout";
 export * from "./typography";
 export * from "./data-display";
+export * from "../common";

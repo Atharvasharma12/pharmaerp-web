@@ -1,981 +1,669 @@
 // src/features/workspace/pages/desktop/WorkspaceMembersDesktopPage.jsx
 
+import React, { useState } from "react";
 import {
-  FiArrowLeft,
-  FiCheckCircle,
-  FiClock,
-  FiKey,
-  FiMail,
-  FiMapPin,
-  FiMoreHorizontal,
-  FiRefreshCw,
-  FiSearch,
-  FiShield,
-  FiUserCheck,
-  FiUserMinus,
-  FiUserPlus,
-  FiUsers,
-  FiX,
-  FiZap,
-} from "react-icons/fi";
-
+  Plus,
+  Upload,
+  Download,
+  MoreHorizontal,
+  Mail,
+  Phone,
+  Key,
+  MapPin,
+  UserCheck,
+  Clock,
+  Shield,
+  UserMinus,
+  Users,
+  Search,
+  RotateCcw,
+  Eye,
+  Building2,
+  GitBranch,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants";
 import {
-  AppAlert,
-  AppBox,
-  AppBreadcrumb,
-  AppButton,
-  AppCard,
-  AppHeading,
-  AppIconButton,
-  AppKeyValue,
-  AppMenu,
-  AppSearchInput,
-  AppSelect,
-  AppStack,
-  AppStatCard,
-  AppStatusBadge,
-  AppTable,
-  AppTableSkeleton,
-  AppTag,
-  AppText,
-  AppEmptyState,
-  AppErrorState,
-  HELP_SUPPORT_CARD,
-  PageRightSidebar,
-} from "@/components";
+  UIButton,
+  UIIconButton,
+  UISearchInput,
+  UISelect,
+  UIPagination,
+  UIDropdown,
+  UIDropdownTrigger,
+  UIDropdownMenu,
+  UIDropdownItem,
+  UIDropdownDivider,
+  UIEmptyState,
+  UISkeleton,
+  UIAlert,
+  PermissionGate,
+} from "@/components/ui";
+import { usePermission } from "@/hooks";
+import { cn } from "@/lib/utils";
 
-const statIcons = {
-  total: <FiUsers />,
-  active: <FiUserCheck />,
-  inactive: <FiClock />,
-  suspended: <FiShield />,
-};
-
-const WorkspaceMembersDesktopPage = ({
+export default function WorkspaceMembersDesktopPage({
   workspace,
   members = [],
+  paginatedMembers = [],
   stats = [],
-  memberHelp,
-
   filters,
   activeFilterChips = [],
   statusOptions = [],
   roleOptions = [],
-
   isLoading,
   hasError,
   error,
   message,
-
   totalMembers = 0,
   filteredMembersCount = 0,
   hasMembers,
   hasFilteredMembers,
-
+  hasCompanies = true,
+  hasBranches = true,
+  currentPage = 1,
+  pageSize = 6,
+  totalPages = 1,
+  handlePageChange,
+  handlePageSizeChange,
   handleFilterChange,
   handleSearchChange,
   handleRemoveFilter,
   handleClearFilters,
-
   handleRefresh,
   handleInviteMember,
   handleViewInvitations,
-  handleBackToWorkspace,
+  handleViewMemberDetails,
+  handleExportCSV,
   handleChangeMemberStatus,
   handleRemoveMember,
   handleManageAccess,
   handleOpenResetPassword,
-
   clearMessage,
-}) => {
-  const showInitialSkeleton = isLoading && !hasMembers;
+}) {
+  const navigate = useNavigate();
+  const { can } = usePermission();
+  const [activeDropdownMemberId, setActiveDropdownMemberId] = useState(null);
 
-  const columns = [
-    {
-      id: "member",
-      key: "displayName",
-      label: "Member",
-      minWidth: 280,
-      render: (_, member) => <MemberCell member={member} />,
-    },
-    {
-      id: "contact",
-      key: "contact",
-      label: "Contact Information",
-      minWidth: 240,
-      render: (_, member) => <ContactCell member={member} />,
-    },
-    {
-      id: "role",
-      key: "role",
-      label: "Workspace Role",
-      minWidth: 160,
-      render: (_, member) => (
-        <AppTag
-          label={member?.displayRole || "-"}
-          variant="soft"
-          colorVariant={member?.isOwner ? "warning" : "primary"}
-          size="small"
-          rounded="md"
-          sx={roleTagSx}
-        />
-      ),
-    },
-    {
-      id: "joinedAt",
-      key: "createdAt",
-      label: "Joined Date",
-      minWidth: 140,
-      render: (_, member) => (
-        <AppText variant="body2" sx={tableValueSx}>
-          {member?.displayJoinedAt || "-"}
-        </AppText>
-      ),
-    },
-    {
-      id: "status",
-      key: "status",
-      label: "Status",
-      width: 120,
-      render: (_, member) => (
-        <AppStatusBadge
-          status={member?.status || "inactive"}
-          label={member?.status || "inactive"}
-          variant="soft"
-          size="small"
-          rounded="md"
-          colorVariant={
-            member?.status === "active"
-              ? "success"
-              : member?.status === "suspended"
-                ? "error"
-                : "neutral"
-          }
-          sx={statusBadgeSx}
-        />
-      ),
-    },
-    {
-      id: "actions",
-      key: "actions",
-      label: "Actions",
-      align: "right",
-      width: 70,
-      render: (_, member) => (
-        <MemberActions
-          member={member}
-          onChangeStatus={handleChangeMemberStatus}
-          onRemove={handleRemoveMember}
-          onManageAccess={handleManageAccess}
-          onResetPassword={handleOpenResetPassword}
-        />
-      ),
-    },
-  ];
+  const activeCount =
+    stats.find((s) => s.id === "active")?.value ??
+    members.filter((m) => m.status === "active").length;
+  const inactiveCount =
+    (stats.find((s) => s.id === "inactive")?.value || 0) +
+    (stats.find((s) => s.id === "suspended")?.value || 0);
+
+  // Condition to hide pagination when total records don't exceed single page
+  const shouldShowPagination = hasFilteredMembers && filteredMembersCount > pageSize;
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
-      {message ? <TopToast message={message} onClose={clearMessage} /> : null}
+    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-5 max-w-[1440px] mx-auto space-y-3.5">
+      {/* Feedback Toast */}
+      {message && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full px-4">
+          <UIAlert
+            intent="success"
+            title={message}
+            onClose={clearMessage}
+            className="shadow-lg"
+          />
+        </div>
+      )}
 
-      <div className="mx-auto w-full max-w-[1500px]">
-        <PageHeader
-          title="Workspace Members"
-          subtitle="Manage your team members, workspace roles and control account access."
-          extra={
-            <AppBreadcrumb
-              size="small"
-              variant="text"
-              items={[
-                { label: "Workspace", onClick: handleBackToWorkspace },
-                { label: workspace?.name || "Members", current: true },
-              ]}
-              sx={breadcrumbSx}
-              itemSx={breadcrumbItemSx}
-              currentItemSx={breadcrumbCurrentSx}
-            />
-          }
-          actions={
-            <AppStack
-              direction="row"
-              align="center"
-              justify="flex-end"
-              gap={1.1}
-              sx={{ flexShrink: 0 }}
-            >
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="neutral"
-                rounded="md"
-                size="small"
-                startIcon={<FiArrowLeft />}
-                onClick={handleBackToWorkspace}
-                sx={secondaryButtonSx}
-              >
-                Workspace
-              </AppButton>
-
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="neutral"
-                rounded="md"
-                size="small"
-                startIcon={<FiRefreshCw />}
-                onClick={handleRefresh}
-                loading={isLoading}
-                disabled={isLoading}
-                sx={secondaryButtonSx}
-              >
-                Refresh
-              </AppButton>
-
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="primary"
-                rounded="md"
-                size="small"
-                onClick={handleViewInvitations}
-                sx={secondaryButtonSx}
-              >
-                Invitations
-              </AppButton>
-
-              <AppButton
-                type="button"
-                variant="contained"
-                colorVariant="primary"
-                rounded="md"
-                size="small"
-                startIcon={<FiUserPlus />}
-                onClick={handleInviteMember}
-                sx={primaryButtonSx}
-              >
-                Invite Member
-              </AppButton>
-            </AppStack>
-          }
-          align="flex-start"
-          justify="space-between"
-          sx={pageHeaderSx}
-          contentSx={pageHeaderContentSx}
+      {/* Global Error Banner */}
+      {error && !hasError && (
+        <UIAlert
+          intent="danger"
+          title="Something went wrong"
+          description={error}
+          onClose={clearMessage}
         />
+      )}
 
-        {error && !hasError ? (
-          <AppAlert
-            severity="error"
-            variant="soft"
-            title="Something went wrong"
-            closable
-            onClose={handleRefresh}
-            sx={alertSx}
-          >
-            {error}
-          </AppAlert>
-        ) : null}
-
-        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_290px] gap-5">
-          <div className="min-w-0">
-            <StatsGrid stats={stats} />
-
-            <AppCard
-              variant="default"
-              rounded="lg"
-              bordered
-              shadow="sm"
-              padding="none"
-              sx={tableCardSx}
+      {/* Prerequisite Alert Banners for Owner / Member Management */}
+      {!hasCompanies && !isLoading && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-900 dark:text-amber-200">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-amber-500/20 rounded-xl text-amber-600 dark:text-amber-400 shrink-0">
+                <Building2 className="size-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold">Operating Company Required</h3>
+                <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
+                  Before you can add or invite team members, you must first create at least one company. Staff members require assigned company clearances.
+                </p>
+              </div>
+            </div>
+            <UIButton
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => navigate(ROUTES.CREATE_COMPANY)}
+              startIcon={<Building2 className="size-3.5" />}
+              className="shrink-0"
             >
-              <TableToolbar
-                filters={filters}
-                activeFilterChips={activeFilterChips}
-                statusOptions={statusOptions}
-                roleOptions={roleOptions}
-                totalMembers={totalMembers}
-                filteredMembersCount={filteredMembersCount}
-                handleFilterChange={handleFilterChange}
-                handleSearchChange={handleSearchChange}
-                handleRemoveFilter={handleRemoveFilter}
-                handleClearFilters={handleClearFilters}
-              />
-
-              {hasError ? (
-                <AppErrorState
-                  title="Unable to load workspace members"
-                  description={error || "Please refresh and try again."}
-                  actionText="Refresh"
-                  onRetry={handleRefresh}
-                  size="page"
-                  sx={stateSx}
-                />
-              ) : showInitialSkeleton ? (
-                <AppTableSkeleton rows={8} columns={6} showHeader={false} />
-              ) : !hasMembers ? (
-                <AppEmptyState
-                  title="No members yet"
-                  description="Invite team members to collaborate in this workspace."
-                  icon={<FiUsers />}
-                  action={
-                    <AppButton
-                      variant="contained"
-                      colorVariant="primary"
-                      rounded="md"
-                      startIcon={<FiUserPlus />}
-                      onClick={handleInviteMember}
-                      sx={primaryButtonSx}
-                    >
-                      Invite Member
-                    </AppButton>
-                  }
-                  size="page"
-                  sx={stateSx}
-                />
-              ) : !hasFilteredMembers ? (
-                <AppEmptyState
-                  title="No members found"
-                  description="Try changing your search or filters."
-                  icon={<FiSearch />}
-                  action={
-                    <AppButton
-                      variant="outlined"
-                      colorVariant="neutral"
-                      rounded="md"
-                      onClick={handleClearFilters}
-                      sx={secondaryButtonSx}
-                    >
-                      Clear Filters
-                    </AppButton>
-                  }
-                  size="page"
-                  sx={stateSx}
-                />
-              ) : (
-                <AppTable
-                  columns={columns}
-                  rows={members}
-                  getRowId={(row) => row._id}
-                  dense
-                  bordered={false}
-                  rounded={false}
-                  hover
-                  stickyHeader
-                  minWidth={1050}
-                  maxHeight="calc(100vh - 315px)"
-                  sx={tableSx}
-                  headSx={tableHeadSx}
-                  cellSx={tableCellSx}
-                />
-              )}
-            </AppCard>
+              Create Company
+            </UIButton>
           </div>
+        </div>
+      )}
 
-          <WorkspaceMembersRightSidebar memberHelp={memberHelp} />
+      {hasCompanies && !hasBranches && !isLoading && (
+        <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 text-cyan-900 dark:text-cyan-200">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-cyan-500/20 rounded-xl text-cyan-600 dark:text-cyan-400 shrink-0">
+                <GitBranch className="size-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold">Dispensary Branch Required</h3>
+                <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
+                  You have created a company, but you need at least one dispensary branch before adding staff so they can be granted store access.
+                </p>
+              </div>
+            </div>
+            <UIButton
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => navigate(ROUTES.CREATE_BRANCH)}
+              startIcon={<GitBranch className="size-3.5" />}
+              className="shrink-0"
+            >
+              Create Branch
+            </UIButton>
+          </div>
+        </div>
+      )}
+
+      {/* 1. Header Area with Minimal Padding */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1">
+        <div>
+          <h1 className="text-xl lg:text-2xl font-extrabold text-text tracking-tight flex items-center gap-2">
+            <span className="font-mono tabular-nums">{totalMembers}</span> Members
+          </h1>
+          <div className="flex items-center gap-3.5 text-xs font-semibold mt-1">
+            <span className="inline-flex items-center gap-1.5 text-text">
+              <span className="size-2.5 rounded-full bg-success ring-2 ring-success/20" />
+              Active{" "}
+              <strong className="font-mono tabular-nums text-text font-bold">
+                {activeCount}
+              </strong>
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-text">
+              <span className="size-2.5 rounded-full bg-error ring-2 ring-error/20" />
+              Inactive{" "}
+              <strong className="font-mono tabular-nums text-text font-bold">
+                {inactiveCount}
+              </strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Action Buttons: Import, Export, Add Member */}
+        <div className="flex items-center gap-2 shrink-0">
+          <UIButton
+            type="button"
+            variant="outline"
+            size="sm"
+            startIcon={<Upload className="size-3.5 text-text-muted" />}
+            onClick={handleViewInvitations}
+          >
+            Import
+          </UIButton>
+
+          <UIButton
+            type="button"
+            variant="outline"
+            size="sm"
+            startIcon={<Download className="size-3.5 text-text-muted" />}
+            onClick={handleExportCSV}
+          >
+            Export
+          </UIButton>
+
+          <PermissionGate permission="workspace-member:create">
+            <UIButton
+              type="button"
+              variant="primary"
+              size="sm"
+              startIcon={<Plus className="size-4" />}
+              onClick={handleInviteMember}
+            >
+              Add Member
+            </UIButton>
+          </PermissionGate>
         </div>
       </div>
-    </section>
-  );
-};
 
-const TopToast = ({ message, onClose }) => (
-  <div className="fixed left-1/2 top-4 z-[1400] w-[calc(100%-32px)] max-w-md -translate-x-1/2">
-    <AppAlert
-      severity="success"
-      variant="filled"
-      title={message}
-      closable
-      onClose={onClose}
-      sx={toastSx}
-    />
-  </div>
-);
-
-const PageHeader = ({
-  title,
-  subtitle,
-  extra,
-  actions,
-  align,
-  justify,
-  sx,
-  contentSx,
-}) => (
-  <AppBox
-    display="flex"
-    alignItems={align || "flex-start"}
-    justifyContent={justify || "space-between"}
-    sx={{ width: "100%", ...sx }}
-  >
-    <AppBox sx={contentSx}>
-      <AppHeading level={1} weight={650}>
-        {title}
-      </AppHeading>
-      {subtitle ? (
-        <AppText variant="body2" sx={pageHeaderSubtitleSx}>
-          {subtitle}
-        </AppText>
-      ) : null}
-      {extra}
-    </AppBox>
-    {actions}
-  </AppBox>
-);
-
-const StatsGrid = ({ stats }) => (
-  <div className="grid grid-cols-4 gap-4">
-    {stats.map((stat) => (
-      <AppStatCard
-        key={stat.id}
-        title={stat.title}
-        value={stat.value}
-        subtitle={stat.description}
-        icon={statIcons[stat.id] || <FiUsers />}
-        colorVariant={stat.colorVariant}
-        variant="default"
-        sx={statCardSx}
-        iconSx={statIconSx}
-      />
-    ))}
-  </div>
-);
-
-const TableToolbar = ({
-  filters,
-  activeFilterChips,
-  statusOptions,
-  roleOptions,
-  totalMembers,
-  filteredMembersCount,
-  handleFilterChange,
-  handleSearchChange,
-  handleRemoveFilter,
-  handleClearFilters,
-}) => (
-  <div className="border-b border-border px-3.5 py-3">
-    <div className="grid grid-cols-[minmax(0,1fr)_128px_128px] items-center gap-3">
-      <AppSearchInput
-        name="search"
-        value={filters.search}
-        onChange={handleSearchChange}
-        placeholder="Search members by name, email or status..."
-        clearable
-        onClear={() => handleSearchChange("")}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={searchSx}
-        inputSx={filterInputSx}
-      />
-
-      <AppSelect
-        name="status"
-        value={filters.status}
-        onChange={handleFilterChange}
-        options={statusOptions}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={selectSx}
-        inputSx={filterInputSx}
-      />
-
-      <AppSelect
-        name="role"
-        value={filters.role}
-        onChange={handleFilterChange}
-        options={roleOptions}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={selectSx}
-        inputSx={filterInputSx}
-      />
-    </div>
-
-    {activeFilterChips.length ? (
-      <AppStack direction="row" align="center" gap={0.7} sx={chipsRowSx}>
-        {activeFilterChips.map((chip) => (
-          <button
-            key={chip.key}
-            type="button"
-            onClick={() => handleRemoveFilter(chip.key)}
-            className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-alt px-2 py-1 text-[11px] font-semibold text-text-muted transition hover:bg-surface-hover"
-          >
-            {chip.label}
-            <FiX className="text-[12px]" />
-          </button>
-        ))}
-
-        <button
-          type="button"
-          onClick={handleClearFilters}
-          className="text-[11px] font-semibold text-primary"
-        >
-          Clear all
-        </button>
-      </AppStack>
-    ) : null}
-  </div>
-);
-
-const MemberCell = ({ member }) => (
-  // Added h-full and items-center to ensure the layout centers perfectly vertically
-  <div className="flex items-center gap-3 min-w-0 h-full">
-    <div className="flex items-center justify-center shrink-0">
-      <Avatar name={member?.displayName} />
-    </div>
-
-    <div className="flex flex-col min-w-0 justify-center">
-      <AppStack direction="row" align="center" gap={0.7}>
-        <AppHeading level={3} weight={700} sx={memberNameSx}>
-          {member?.displayName || "-"}
-        </AppHeading>
-
-        {member?.isOwner ? (
-          <AppTag
-            label="Owner"
-            variant="soft"
-            colorVariant="warning"
-            size="small"
-            rounded="md"
-            sx={roleTagSx}
+      {/* 2. Compact Search & Filter Toolbar */}
+      <div className="bg-surface border border-border/60 rounded-xl p-2.5 px-3 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+        <div className="flex-1 min-w-[220px]">
+          <UISearchInput
+            placeholder="Search member name, email or phone..."
+            value={filters.search}
+            onChange={handleSearchChange}
+            onClear={() => handleSearchChange("")}
+            size="sm"
           />
-        ) : null}
-      </AppStack>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="w-32">
+            <UISelect
+              value={filters.role}
+              onChange={(val) => handleFilterChange({ role: val })}
+              options={roleOptions}
+              placeholder="All Roles"
+              size="sm"
+            />
+          </div>
+
+          <div className="w-32">
+            <UISelect
+              value={filters.status}
+              onChange={(val) => handleFilterChange({ status: val })}
+              options={statusOptions}
+              placeholder="All Status"
+              size="sm"
+            />
+          </div>
+
+          {activeFilterChips.length > 0 && (
+            <UIButton
+              type="button"
+              variant="ghost"
+              size="xs"
+              startIcon={<RotateCcw className="size-3 text-text-muted" />}
+              onClick={handleClearFilters}
+            >
+              Reset
+            </UIButton>
+          )}
+        </div>
+      </div>
+
+      {/* 3. Main Card Grid Stream */}
+      {isLoading && !hasMembers ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="bg-surface rounded-2xl p-4 flex flex-col items-center space-y-3 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+            >
+              <UISkeleton className="size-18 rounded-full" />
+              <UISkeleton className="h-4 w-28 rounded" />
+              <UISkeleton className="h-3 w-20 rounded" />
+              <div className="w-full pt-3 border-t border-border/30 grid grid-cols-2 gap-3">
+                <UISkeleton className="h-6 rounded" />
+                <UISkeleton className="h-6 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : !hasMembers ? (
+        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+          <UIEmptyState
+            icon={<Users className="size-9 text-primary" />}
+            title="No workspace members yet"
+            description="Start building your pharmacy team roster by adding or inviting members."
+            primaryAction={
+              <UIButton
+                variant="primary"
+                size="sm"
+                startIcon={<Plus className="size-4" />}
+                onClick={handleInviteMember}
+              >
+                Add Member
+              </UIButton>
+            }
+          />
+        </div>
+      ) : !hasFilteredMembers ? (
+        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+          <UIEmptyState
+            icon={<Search className="size-9 text-text-muted" />}
+            title="No matching members found"
+            description="Try changing your search query, status, or role filter criteria."
+            primaryAction={
+              <UIButton variant="outline" size="sm" onClick={handleClearFilters}>
+                Clear Filters
+              </UIButton>
+            }
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+          {paginatedMembers.map((member) => {
+            const isDropdownOpen = activeDropdownMemberId === member._id;
+            const hasAnyDropdownOpen = activeDropdownMemberId !== null;
+
+            return (
+              <MemberCard
+                key={member._id}
+                member={member}
+                isDropdownOpen={isDropdownOpen}
+                hasAnyDropdownOpen={hasAnyDropdownOpen}
+                onDropdownOpenChange={(open) => {
+                  setActiveDropdownMemberId(open ? member._id : null);
+                }}
+                onCardClick={() => {
+                  if (!hasAnyDropdownOpen) {
+                    handleViewMemberDetails?.(member);
+                  }
+                }}
+                onViewDetails={() => {
+                  setActiveDropdownMemberId(null);
+                  handleViewMemberDetails?.(member);
+                }}
+                onChangeStatus={(m, status) => {
+                  setActiveDropdownMemberId(null);
+                  handleChangeMemberStatus(m, status);
+                }}
+                onRemove={(m) => {
+                  setActiveDropdownMemberId(null);
+                  handleRemoveMember(m);
+                }}
+                onManageAccess={(m) => {
+                  setActiveDropdownMemberId(null);
+                  handleViewMemberDetails?.(m);
+                }}
+                onResetPassword={(m) => {
+                  setActiveDropdownMemberId(null);
+                  handleOpenResetPassword(m);
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* 4. Bottom Pagination Module (Shown ONLY when records exceed page size) */}
+      {shouldShowPagination && (
+        <div className="bg-surface rounded-xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] overflow-hidden">
+          <UIPagination
+            page={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredMembersCount}
+            pageSize={pageSize}
+            pageSizeOptions={[6, 12, 24, 48]}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            showSummary
+            showPageSize
+          />
+        </div>
+      )}
     </div>
-  </div>
-);
-const ContactCell = ({ member }) => (
-  <AppBox sx={{ minWidth: 0 }}>
-    <AppKeyValue
-      icon={<FiMail />}
-      label="Email"
-      value={member?.displayEmail || "-"}
-      dense
-      sx={keyValueSx}
-      labelSx={keyLabelSx}
-      valueSx={keyTextSx}
-    />
+  );
+}
 
-    <AppKeyValue
-      icon={<FiUserCheck />}
-      label="Phone"
-      value={member?.displayPhone || "-"}
-      dense
-      sx={keyValueSx}
-      labelSx={keyLabelSx}
-      valueSx={keyTextSx}
-    />
-  </AppBox>
-);
-
-const MemberActions = ({
+/**
+ * MemberCard Component
+ * - Displays Companies and Branches assigned to member
+ * - Soft borderless elevation with two-tone background shading
+ * - Active dropdown stacking and hover isolation
+ */
+function MemberCard({
   member,
+  isDropdownOpen,
+  hasAnyDropdownOpen,
+  onDropdownOpenChange,
+  onCardClick,
+  onViewDetails,
   onChangeStatus,
   onRemove,
   onManageAccess,
   onResetPassword,
-}) => {
+}) {
+  const { can } = usePermission();
   const isOwner = Boolean(member?.isOwner);
+  const status = member?.status || "inactive";
 
-  const items = [
-    {
-      id: "access",
-      label: "Store & Role Access",
-      icon: <FiMapPin />,
-      disabled: isOwner,
-      onClick: () => onManageAccess?.(member),
-    },
-    {
-      id: "reset-password",
-      label: "Reset Password / PIN",
-      icon: <FiKey />,
-      disabled: isOwner,
-      onClick: () => onResetPassword?.(member),
-    },
-    { id: "divider-1", type: "divider" },
-    {
-      id: "active",
-      label: "Mark Active",
-      icon: <FiUserCheck />,
-      disabled: isOwner || member?.status === "active",
-      onClick: () => onChangeStatus(member, "active"),
-    },
-    {
-      id: "inactive",
-      label: "Mark Inactive",
-      icon: <FiClock />,
-      disabled: isOwner || member?.status === "inactive",
-      onClick: () => onChangeStatus(member, "inactive"),
-    },
-    {
-      id: "suspended",
-      label: "Suspend Member",
-      icon: <FiShield />,
-      disabled: isOwner || member?.status === "suspended",
-      onClick: () => onChangeStatus(member, "suspended"),
-    },
-    { id: "divider-2", type: "divider" },
-    {
-      id: "remove",
-      label: "Remove Member",
-      icon: <FiUserMinus />,
-      danger: true,
-      disabled: isOwner,
-      onClick: () => onRemove(member),
-    },
-  ];
+  const getStatusDotColor = () => {
+    switch (status) {
+      case "active":
+        return "bg-success ring-success/20";
+      case "suspended":
+        return "bg-error ring-error/20";
+      default:
+        return "bg-warning ring-warning/20";
+    }
+  };
+
+  const getInitials = (name) => {
+    return String(name || "M")
+      .trim()
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join("");
+  };
+
+  // Company and Branch Access counts / labels
+  const companyAccessLabel = isOwner
+    ? "All Companies"
+    : member?.accessAllCompanies
+    ? "All Companies"
+    : member?.companyCount !== undefined
+    ? `${member.companyCount} ${member.companyCount === 1 ? "Company" : "Companies"}`
+    : member?.companies?.length !== undefined
+    ? `${member.companies.length} ${member.companies.length === 1 ? "Company" : "Companies"}`
+    : member?.companyIds?.length !== undefined
+    ? `${member.companyIds.length} ${member.companyIds.length === 1 ? "Company" : "Companies"}`
+    : "No Companies";
+
+  const branchAccessLabel = isOwner
+    ? "All Branches"
+    : member?.accessAllBranches
+    ? "All Branches"
+    : member?.branchCount !== undefined
+    ? `${member.branchCount} ${member.branchCount === 1 ? "Branch" : "Branches"}`
+    : member?.branches?.length !== undefined
+    ? `${member.branches.length} ${member.branches.length === 1 ? "Branch" : "Branches"}`
+    : member?.branchIds?.length !== undefined
+    ? `${member.branchIds.length} ${member.branchIds.length === 1 ? "Branch" : "Branches"}`
+    : "No Branches";
 
   return (
-    <AppMenu
-      trigger={
-        <button
-          type="button"
-          aria-label="Member actions"
-          className="inline-flex h-auto w-auto items-center justify-center border-0 bg-transparent p-0 text-text-muted shadow-none outline-none transition hover:bg-transparent hover:text-text focus:bg-transparent active:bg-transparent"
+    <div
+      onClick={onCardClick}
+      className={cn(
+        "bg-surface rounded-2xl shadow-xs transition-all duration-200 flex flex-col relative border-0",
+        isDropdownOpen
+          ? "z-50 ring-2 ring-primary/40 shadow-xl"
+          : hasAnyDropdownOpen
+          ? "z-0 ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+          : "z-10 ring-1 ring-black/[0.04] dark:ring-white/[0.06] hover:z-20 hover:ring-primary/40 hover:shadow-md cursor-pointer group active:scale-[0.99]"
+      )}
+    >
+      {/* Top Section: Avatar, Name, Role (bg-surface, rounded-t-2xl) */}
+      <div className="bg-surface p-4 pt-3.5 relative flex flex-col items-center text-center rounded-t-2xl">
+        {/* Enlarged Three-Dots Context Menu (z-50) */}
+        <div
+          className="absolute top-3 right-3 z-50"
+          onClick={(e) => e.stopPropagation()}
         >
-          <FiMoreHorizontal className="text-[18px]" />
-        </button>
-      }
-      items={items}
-      dense
-      minWidth={180}
-    />
-  );
-};
+          <UIDropdown
+            open={isDropdownOpen}
+            onOpenChange={onDropdownOpenChange}
+            align="right"
+            placement="bottom"
+          >
+            <UIDropdownTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Actions for ${member.displayName}`}
+                className={cn(
+                  "size-9 rounded-xl flex items-center justify-center transition-colors cursor-pointer border-0",
+                  isDropdownOpen
+                    ? "bg-primary-soft text-primary"
+                    : "text-text-muted hover:text-text hover:bg-surface-hover"
+                )}
+              >
+                <MoreHorizontal className="size-5" />
+              </button>
+            </UIDropdownTrigger>
+            <UIDropdownMenu width="w-52" className="shadow-2xl border border-border/60">
+              <UIDropdownItem
+                icon={<Eye className="size-4 text-primary" />}
+                onClick={(e) => {
+                  e?.stopPropagation?.();
+                  onViewDetails?.();
+                }}
+              >
+                View Member Details
+              </UIDropdownItem>
+              <UIDropdownItem
+                icon={<MapPin className="size-4" />}
+                onClick={(e) => {
+                  e?.stopPropagation?.();
+                  onManageAccess?.(member);
+                }}
+              >
+                Manage Access & Roles
+              </UIDropdownItem>
+              <UIDropdownItem
+                icon={<Key className="size-4" />}
+                onClick={(e) => {
+                  e?.stopPropagation?.();
+                  onResetPassword?.(member);
+                }}
+                disabled={isOwner}
+              >
+                Reset Password / PIN
+              </UIDropdownItem>
 
-const WorkspaceMembersRightSidebar = ({ memberHelp }) => (
-  <PageRightSidebar
-    spacing={4}
-    cards={[
-      {
-        title: "About Workspace",
-        icon: <FiUsers />,
-        colorVariant: "success",
-        variant: "default",
-        description:
-          "Manage access tiers, tracking profiles and verify operational states for staff inside your dashboard directory.",
-        points: memberHelp?.aboutPoints || [
-          "Assign custom security profiles",
-          "Provision access rights securely",
-          "Track operations audit changes",
-          "Enforce platform permissions",
-        ],
-        pointIcon: <FiCheckCircle />,
-        pointIconVariant: "check",
-      },
-      {
-        title: "Security Measures",
-        icon: <FiZap />,
-        colorVariant: "primary",
-        variant: "soft",
-        soft: true,
-        points: [
-          "Audit workspace rosters monthly",
-          "Apply minimum access logic",
-          "Audit deactivated user tokens",
-          "Enforce modern authentication",
-        ],
-        pointIcon: <FiZap />,
-        pointIconVariant: "zap",
-      },
-      {
-        title: "Workspace Directory Info",
-        icon: null,
-        colorVariant: "info",
-        variant: "default",
-        custom: (
-          <div className="space-y-4">
-            <div>
-              <AppTag
-                label="Primary Owner"
-                variant="soft"
-                colorVariant="warning"
-                rounded="md"
-                sx={roleTagSx}
-              />
-              <AppText variant="body2" sx={sidebarInfoTextSx}>
-                Holds complete business platform orchestration control rights.
-                Max 1 per workspace entity.
-              </AppText>
+              {can("member-access:update") && (
+                <>
+                  <UIDropdownItem
+                    icon={<UserCheck className="size-4 text-success" />}
+                    onClick={(e) => {
+                      e?.stopPropagation?.();
+                      onChangeStatus?.(member, "active");
+                    }}
+                    disabled={isOwner || status === "active"}
+                  >
+                    Mark Active
+                  </UIDropdownItem>
+                  <UIDropdownItem
+                    icon={<Clock className="size-4 text-warning" />}
+                    onClick={(e) => {
+                      e?.stopPropagation?.();
+                      onChangeStatus?.(member, "inactive");
+                    }}
+                    disabled={isOwner || status === "inactive"}
+                  >
+                    Mark Inactive
+                  </UIDropdownItem>
+                  <UIDropdownItem
+                    icon={<Shield className="size-4 text-error" />}
+                    onClick={(e) => {
+                      e?.stopPropagation?.();
+                      onChangeStatus?.(member, "suspended");
+                    }}
+                    disabled={isOwner || status === "suspended"}
+                  >
+                    Suspend Member
+                  </UIDropdownItem>
+                  <UIDropdownDivider />
+                </>
+              )}
+
+              {can("workspace-member:delete") && (
+                <UIDropdownItem
+                  icon={<UserMinus className="size-4 text-error" />}
+                  onClick={(e) => {
+                    e?.stopPropagation?.();
+                    onRemove?.(member);
+                  }}
+                  disabled={isOwner}
+                  destructive
+                >
+                  Remove Member
+                </UIDropdownItem>
+              )}
+            </UIDropdownMenu>
+          </UIDropdown>
+        </div>
+
+        {/* Circular Avatar with Status Dot */}
+        <div className="relative mt-1">
+          {member?.user?.avatar || member?.avatar ? (
+            <img
+              src={member?.user?.avatar || member?.avatar}
+              alt={member.displayName}
+              className="size-18 rounded-full object-cover border-2 border-surface shadow-xs"
+            />
+          ) : (
+            <div className="size-18 rounded-full bg-primary-soft text-primary font-extrabold text-lg flex items-center justify-center border-2 border-surface shadow-xs select-none">
+              {getInitials(member.displayName)}
             </div>
-            <div>
-              <AppTag
-                label="Standard Users"
-                variant="soft"
-                colorVariant="primary"
-                rounded="md"
-                sx={roleTagSx}
-              />
-              <AppText variant="body2" sx={sidebarInfoTextSx}>
-                Assigned limited operational profiles tailored strictly around
-                clear department boundaries.
-              </AppText>
-            </div>
+          )}
+
+          <span
+            className={`absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-surface ring-2 ${getStatusDotColor()}`}
+            title={`Status: ${status}`}
+          />
+        </div>
+
+        {/* Member Name & Role */}
+        <div className="mt-2.5 space-y-0.5 max-w-full">
+          <h3
+            className={cn(
+              "text-base font-bold text-text tracking-tight truncate px-2 transition-colors",
+              !hasAnyDropdownOpen && "group-hover:text-primary"
+            )}
+          >
+            {member.displayName}
+          </h3>
+          <p className="text-xs text-text-muted font-medium truncate">
+            {member.displayRole || "Staff Member"}
+          </p>
+        </div>
+      </div>
+
+      {/* Bottom Section: Shaded Color Background (bg-surface-alt/75, rounded-b-2xl) */}
+      <div className="bg-surface-alt/75 border-t border-border/30 p-3.5 space-y-2 text-left flex-1 flex flex-col justify-between rounded-b-2xl">
+        {/* 2-Column Metadata Grid: Company Access & Branch Access */}
+        <div className="w-full grid grid-cols-2 gap-2 text-left">
+          <div className="min-w-0 pr-1">
+            <span className="block text-[10.5px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
+              <Building2 className="size-3 text-text-muted/70 shrink-0" />
+              Companies
+            </span>
+            <span className="block text-xs font-semibold text-text truncate mt-0.5">
+              {companyAccessLabel}
+            </span>
           </div>
-        ),
-      },
-      HELP_SUPPORT_CARD,
-    ]}
-  />
-);
 
-const Avatar = ({ name }) => {
-  const initials = String(name || "M")
-    .trim()
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join("");
+          <div className="min-w-0 pl-1">
+            <span className="block text-[10.5px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
+              <GitBranch className="size-3 text-text-muted/70 shrink-0" />
+              Branches
+            </span>
+            <span className="block text-xs font-semibold text-text truncate mt-0.5">
+              {branchAccessLabel}
+            </span>
+          </div>
+        </div>
 
-  return (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[12px] font-bold text-primary">
-      {initials || "M"}
-    </span>
+        {/* Contact Details List (Email & Phone) */}
+        <div className="w-full space-y-1.5 pt-1.5 border-t border-border/30 text-left">
+          <div className="flex items-center gap-2 text-xs text-text-muted hover:text-text truncate transition-colors">
+            <Mail className="size-3.5 shrink-0 text-text-muted" />
+            <span className="truncate">{member.displayEmail || "-"}</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-text-muted hover:text-text truncate transition-colors">
+            <Phone className="size-3.5 shrink-0 text-text-muted" />
+            <span className="font-mono tabular-nums truncate">
+              {member.displayPhone || "-"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
-};
-
-const IconBox = ({
-  icon,
-  colorVariant = "primary",
-  large = false,
-  small = false,
-  stat = false,
-}) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      width: large ? 48 : small ? 32 : stat ? 38 : 44,
-      height: large ? 48 : small ? 32 : stat ? 38 : 44,
-      minWidth: large ? 48 : small ? 32 : stat ? 38 : 44,
-      borderRadius: large ? "14px" : small ? "9px" : stat ? "11px" : "12px",
-      bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
-      color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
-      fontSize: large ? "34px" : small ? "16px" : stat ? "19px" : "22px",
-      lineHeight: 0,
-    }}
-  >
-    {icon}
-  </AppBox>
-);
-
-const pageHeaderSx = {
-  width: "100%",
-};
-
-const pageHeaderSubtitleSx = {
-  mt: 0.55,
-  fontSize: "13px",
-  lineHeight: "20px",
-  color: "var(--app-color-text-muted)",
-};
-
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "25px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.45px",
-    color: "var(--app-color-text)",
-  },
-};
-
-const breadcrumbSx = {
-  mt: 1,
-};
-
-const breadcrumbItemSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-
-const breadcrumbCurrentSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const primaryButtonSx = {
-  height: 36,
-  px: 1.6,
-  fontSize: "12px",
-  fontWeight: 700,
-};
-
-const secondaryButtonSx = {
-  height: 36,
-  minWidth: 92,
-  px: 1.4,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-
-const statCardSx = {
-  minHeight: 96,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const statIconSx = {
-  width: 44,
-  height: 44,
-  minWidth: 44,
-  borderRadius: "12px",
-  "& svg": {
-    fontSize: 22,
-  },
-};
-
-const alertSx = {
-  mt: 3,
-};
-
-const tableCardSx = {
-  mt: 3,
-  overflow: "hidden",
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  "& > div": {
-    minWidth: 0,
-  },
-};
-
-const searchSx = {
-  width: "100%",
-};
-
-const selectSx = {
-  width: "100%",
-};
-
-const filterInputSx = {
-  height: 36,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const chipsRowSx = {
-  mt: 1.2,
-  flexWrap: "wrap",
-};
-
-const tableSx = {
-  "& .MuiTableContainer-root": {
-    borderRadius: 0,
-    // Applies hidden scrollbar styling engine to the underlying Material-UI wrapper container
-    scrollbarWidth: "none", // Firefox
-    msOverflowStyle: "none", // IE / Edge
-    "&::-webkit-scrollbar": {
-      display: "none", // Chrome / Safari / Webkit
-    },
-  },
-};
-
-const tableHeadSx = {
-  bgcolor: "var(--app-color-surface-alt)",
-  "& .MuiTableCell-root": {
-    fontSize: "11.2px",
-    fontWeight: 750,
-    color: "var(--app-color-text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-  },
-};
-
-const tableCellSx = {
-  py: 1.2,
-  fontSize: "12px",
-  borderColor: "var(--app-color-border)",
-};
-
-const tableValueSx = {
-  fontSize: "12px",
-  fontWeight: 550,
-  color: "var(--app-color-text)",
-};
-
-const memberNameSx = {
-  m: 0,
-  maxWidth: 210,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "12.5px",
-  lineHeight: 1.25,
-  color: "var(--app-color-text)",
-};
-
-const memberMetaSx = {
-  mt: 0.3,
-  maxWidth: 250,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "11px",
-  lineHeight: "18px",
-  color: "var(--app-color-text-muted)",
-};
-
-const roleTagSx = {
-  width: "fit-content",
-  height: 22,
-  px: 0.8,
-  fontSize: "10.5px",
-  fontWeight: 700,
-};
-
-const statusBadgeSx = {
-  width: "fit-content",
-  height: 22,
-  px: 1,
-  fontSize: "10.5px",
-  fontWeight: 700,
-  textTransform: "capitalize",
-};
-
-const keyValueSx = {
-  mb: 0.35,
-  alignItems: "center",
-  gap: 0.7,
-  "& svg": {
-    color: "var(--app-color-primary)",
-    fontSize: "12px",
-  },
-};
-
-const keyLabelSx = {
-  minWidth: 42,
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const keyTextSx = {
-  maxWidth: 160,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "11.5px",
-  fontWeight: 600,
-  color: "var(--app-color-text)",
-};
-
-const sidebarInfoTextSx = {
-  mt: 0.9,
-  fontSize: "12px",
-  lineHeight: "21px",
-  color: "var(--app-color-text-muted)",
-};
-
-const stateSx = {
-  minHeight: 430,
-};
-
-const toastSx = {
-  boxShadow: "var(--app-shadow-lg)",
-};
-
-export default WorkspaceMembersDesktopPage;
+}

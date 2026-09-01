@@ -12,14 +12,14 @@ export const ROUTES = {
   UPGRADE_PLAN: "/subscription/upgrade-plan",
   CHECKOUT: "/subscription/checkout",
 
-  // Workspace
-  WORKSPACE: "/workspace",
-  EDIT_WORKSPACE: "/workspace/edit",
-  WORKSPACE_DETAILS: "/workspace/details",
-  WORKSPACE_MEMBERS: "/workspace/members",
-  WORKSPACE_INVITATIONS: "/workspace/invitations",
-  INVITE_WORKSPACE_MEMBER: "/workspace/members/invite",
-  ACCEPT_WORKSPACE_INVITATION: "/workspace-invitations/:token",
+  // Members & Staff
+  MEMBERS: "/members",
+  WORKSPACE_MEMBERS: "/members",
+  WORKSPACE_MEMBER_DETAILS: (memberId = ":memberId") =>
+    `/members/${memberId}`,
+  WORKSPACE_INVITATIONS: "/members/invitations",
+  INVITE_WORKSPACE_MEMBER: "/members/invite",
+  ACCEPT_WORKSPACE_INVITATION: "/invitations/:token",
 
   // Company
   COMPANIES: "/companies",
@@ -276,6 +276,18 @@ export const ROUTES = {
 
   // User Profile
   PROFILE: "/me",
+
+  // Sales & POS
+  SALES: "/sales",
+
+  // Billing & Invoices
+  BILLING: "/billing",
+
+  // Purchases & Procurement
+  PURCHASES: "/purchases",
+
+  // Help & Support
+  HELP_CENTER: "/help-center",
 
   // Settings
   SETTINGS: "/settings",

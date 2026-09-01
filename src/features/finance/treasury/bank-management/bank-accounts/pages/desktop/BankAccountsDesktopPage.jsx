@@ -36,7 +36,9 @@ import {
   AppTag,
   AppText,
   AppMenu,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 
 import { BANK_ACCOUNT_TYPE } from "../../constants/bankAccount.constant";
 
@@ -323,6 +325,7 @@ const BankAccountsDesktopPage = ({
       align: "right",
       width: 80,
       render: (_, account) => {
+        const { can } = usePermission();
         const menuItems = [
           {
             id: "view",
@@ -330,22 +333,22 @@ const BankAccountsDesktopPage = ({
             icon: <FiEye />,
             onClick: () => handleViewDetails(account),
           },
-          {
+          can("bank-account:update") && {
             id: "edit",
             label: "Edit Account",
             icon: <FiEdit2 />,
             onClick: () => handleEditAccount(account),
           },
-          {
+          can("bank-account:delete") && {
             id: "delete",
             label: "Delete Account",
             icon: <FiTrash2 />,
             danger: true,
             onClick: () => handleDeleteAccount(account),
           },
-        ];
+        ].filter(Boolean);
 
-        if (!account.isPrimary) {
+        if (!account.isPrimary && can("bank-account:update")) {
           menuItems.unshift({
             id: "set-primary",
             label: "Set as Primary",
@@ -423,18 +426,20 @@ const BankAccountsDesktopPage = ({
             >
               Refresh
             </AppButton>
-            <AppButton
-              type="button"
-              variant="filled"
-              colorVariant="success"
-              rounded="md"
-              size="small"
-              startIcon={<FiPlus />}
-              onClick={handleAddAccount}
-              sx={primaryButtonSx}
-            >
-              Add Bank Account
-            </AppButton>
+            <PermissionGate permission="bank-account:create">
+              <AppButton
+                type="button"
+                variant="filled"
+                colorVariant="success"
+                rounded="md"
+                size="small"
+                startIcon={<FiPlus />}
+                onClick={handleAddAccount}
+                sx={primaryButtonSx}
+              >
+                Add Bank Account
+              </AppButton>
+            </PermissionGate>
           </AppStack>
         </AppBox>
 

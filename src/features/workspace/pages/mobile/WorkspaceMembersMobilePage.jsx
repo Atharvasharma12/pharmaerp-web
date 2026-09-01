@@ -1,801 +1,636 @@
+// src/features/workspace/pages/mobile/WorkspaceMembersMobilePage.jsx
+
+import React, { useState } from "react";
 import {
-  FiUsers,
-  FiUserCheck,
-  FiClock,
-  FiShield,
-  FiSearch,
-  FiFilter,
-  FiRefreshCw,
-  FiPlus,
-  FiMoreHorizontal,
-  FiMail,
-  FiPhone,
-  FiCalendar,
-  FiUserMinus,
-  FiMapPin,
-  FiKey,
-} from "react-icons/fi";
-
+  Plus,
+  Upload,
+  Download,
+  MoreHorizontal,
+  Mail,
+  Phone,
+  Key,
+  MapPin,
+  UserCheck,
+  Clock,
+  Shield,
+  UserMinus,
+  Users,
+  Search,
+  RotateCcw,
+  Eye,
+  Building2,
+  GitBranch,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants";
 import {
-  AppBox,
-  AppButton,
-  AppCard,
-  AppHeading,
-  AppIconButton,
-  AppMenu,
-  AppSearchInput,
-  AppSelect,
-  AppStack,
-  AppStatusBadge,
-  AppTag,
-  AppText,
-} from "@/components";
+  UIButton,
+  UIIconButton,
+  UISearchInput,
+  UISelect,
+  UIPagination,
+  UIDropdown,
+  UIDropdownTrigger,
+  UIDropdownMenu,
+  UIDropdownItem,
+  UIDropdownDivider,
+  UIEmptyState,
+  UISkeleton,
+  UIAlert,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
 
-const statusColorMap = {
-  active: "success",
-  inactive: "neutral",
-  suspended: "error",
-};
-
-const statIcons = {
-  total: <FiUsers />,
-  active: <FiUserCheck />,
-  inactive: <FiClock />,
-  suspended: <FiShield />,
-};
-
-const WorkspaceMembersMobilePage = ({
+export default function WorkspaceMembersMobilePage({
   workspace,
   members = [],
+  paginatedMembers = [],
   stats = [],
   filters,
+  activeFilterChips = [],
   statusOptions = [],
   roleOptions = [],
+  isLoading,
+  hasError,
+  error,
+  message,
   totalMembers = 0,
   filteredMembersCount = 0,
+  hasMembers,
   hasFilteredMembers,
+  hasCompanies = true,
+  hasBranches = true,
+  currentPage = 1,
+  pageSize = 6,
+  totalPages = 1,
+  handlePageChange,
+  handlePageSizeChange,
   handleFilterChange,
   handleSearchChange,
   handleClearFilters,
-  handleRefresh,
   handleInviteMember,
   handleViewInvitations,
+  handleViewMemberDetails,
+  handleExportCSV,
   handleChangeMemberStatus,
   handleRemoveMember,
   handleManageAccess,
   handleOpenResetPassword,
-}) => {
-  const shouldRenderPagination = hasFilteredMembers && totalMembers > 10;
+  clearMessage,
+}) {
+  const navigate = useNavigate();
+  const [activeDropdownMemberId, setActiveDropdownMemberId] = useState(null);
+
+  const activeCount =
+    stats.find((s) => s.id === "active")?.value ??
+    members.filter((m) => m.status === "active").length;
+  const inactiveCount =
+    (stats.find((s) => s.id === "inactive")?.value || 0) +
+    (stats.find((s) => s.id === "suspended")?.value || 0);
+
+  // Condition to hide pagination when total records don't exceed single page
+  const shouldShowPagination = hasFilteredMembers && filteredMembersCount > pageSize;
 
   return (
-    <section className="w-full bg-bg">
-      <AppBox sx={containerSx}>
-        {/* Expanded Width Page Title Header Section */}
-        <AppBox sx={headerWrapperSx}>
-          <AppStack
-            direction="row"
-            align="center"
-            justify="space-between"
-            gap={1}
+    <div className="w-full bg-bg text-text p-2.5 sm:p-3 pb-16 space-y-2.5 max-w-[480px] mx-auto">
+      {/* Toast */}
+      {message && (
+        <div className="fixed top-3 left-3 right-3 z-50">
+          <UIAlert
+            intent="success"
+            title={message}
+            onClose={clearMessage}
+            className="shadow-md"
+          />
+        </div>
+      )}
+
+      {/* Error */}
+      {error && !hasError && (
+        <UIAlert
+          intent="danger"
+          title="Error"
+          description={error}
+          onClose={clearMessage}
+        />
+      )}
+
+      {/* Prerequisite Alert Banners for Owner / Member Management */}
+      {!hasCompanies && !isLoading && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-amber-900 dark:text-amber-200 text-xs space-y-2">
+          <div className="flex items-center gap-2 font-bold">
+            <Building2 className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>Operating Company Required</span>
+          </div>
+          <p className="text-[11px] text-text-muted leading-relaxed">
+            Please create at least one company before adding or inviting team members.
+          </p>
+          <UIButton
+            type="button"
+            variant="primary"
+            size="xs"
+            onClick={() => navigate(ROUTES.CREATE_COMPANY)}
+            className="w-full"
           >
-            <AppBox sx={{ minWidth: 0, flex: 1 }}>
-              <AppHeading level={1} weight={800} sx={pageTitleSx}>
-                Members
-              </AppHeading>
-              <AppText variant="body2" weight={600} sx={pageSubtitleSx}>
-                {workspace?.name || "Manage your team roster"}
-              </AppText>
-            </AppBox>
+            Create Company
+          </UIButton>
+        </div>
+      )}
 
-            <AppStack
-              direction="row"
-              align="center"
-              gap={0.5}
-              sx={{ flexShrink: 0 }}
-            >
-              <AppIconButton
-                icon={<FiRefreshCw />}
-                variant="outlined"
-                colorVariant="neutral"
-                size="small"
-                rounded="md"
-                onClick={handleRefresh}
-                sx={actionHeaderIconBtnSx}
-              />
-              <AppButton
-                variant="outlined"
-                colorVariant="primary"
-                size="small"
-                rounded="md"
-                onClick={handleViewInvitations}
-                sx={headerSecondaryBtnSx}
-              >
-                Invitations
-              </AppButton>
-              <AppButton
-                variant="contained"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleInviteMember}
-                sx={addMemberBtnSx}
-              >
-                Invite
-              </AppButton>
-            </AppStack>
-          </AppStack>
-        </AppBox>
-
-        {/* High-Density Compact Stats Grid Section */}
-        <AppBox sx={statsGridWrapperSx}>
-          <div className="grid grid-cols-4 gap-1.5">
-            {stats.map((stat) => (
-              <AppCard
-                key={stat.id}
-                variant="default"
-                rounded="md"
-                bordered
-                shadow="none"
-                padding="none"
-                sx={compactStatCardSx}
-              >
-                <AppStack direction="row" align="center" gap={0.5}>
-                  <AppBox
-                    sx={{
-                      ...compactStatIconSx,
-                      bgcolor: `var(--app-color-${stat.colorVariant}-soft)`,
-                      color: `var(--app-color-${stat.colorVariant})`,
-                    }}
-                  >
-                    {statIcons[stat.id] || <FiUsers />}
-                  </AppBox>
-                  <AppBox sx={{ minWidth: 0 }}>
-                    <AppHeading level={3} weight={800} sx={compactStatValueSx}>
-                      {stat.value}
-                    </AppHeading>
-                    <AppText variant="body2" sx={compactStatTitleSx}>
-                      {stat.title}
-                    </AppText>
-                  </AppBox>
-                </AppStack>
-              </AppCard>
-            ))}
+      {hasCompanies && !hasBranches && !isLoading && (
+        <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-3.5 text-cyan-900 dark:text-cyan-200 text-xs space-y-2">
+          <div className="flex items-center gap-2 font-bold">
+            <GitBranch className="size-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
+            <span>Dispensary Branch Required</span>
           </div>
-        </AppBox>
-
-        {/* Max Width Filter Layout Row */}
-        <AppBox sx={filterSectionSx}>
-          <div className="grid grid-cols-1 gap-2">
-            <AppSearchInput
-              name="search"
-              value={filters.search}
-              onChange={handleSearchChange}
-              placeholder="Search members by name, email or status..."
-              clearable
-              onClear={() => handleSearchChange("")}
-              size="small"
-              variant="bordered"
-              rounded="md"
-              sx={searchBarSx}
-              inputSx={inputOverrideSx}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <AppSelect
-              name="role"
-              value={filters.role}
-              onChange={handleFilterChange}
-              options={roleOptions}
-              size="small"
-              variant="bordered"
-              rounded="md"
-              sx={selectInputSx}
-              inputSx={inputOverrideSx}
-            />
-            <AppSelect
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              options={statusOptions}
-              size="small"
-              variant="bordered"
-              rounded="md"
-              sx={selectInputSx}
-              inputSx={inputOverrideSx}
-            />
-          </div>
-        </AppBox>
-
-        {/* Edge-Aligned Counter Actions Bar */}
-        <AppBox sx={metaActionRowSx}>
-          <AppText variant="body2" weight={700} sx={countLabelTextSx}>
-            Showing {filteredMembersCount} of {totalMembers} Members
-          </AppText>
-          <AppButton
-            variant="text"
-            colorVariant="neutral"
-            size="small"
-            startIcon={<FiRefreshCw />}
-            onClick={handleClearFilters}
-            sx={resetTextLinkSx}
+          <p className="text-[11px] text-text-muted leading-relaxed">
+            Please create at least one dispensary branch before adding staff members.
+          </p>
+          <UIButton
+            type="button"
+            variant="primary"
+            size="xs"
+            onClick={() => navigate(ROUTES.CREATE_BRANCH)}
+            className="w-full"
           >
-            Reset
-          </AppButton>
-        </AppBox>
+            Create Branch
+          </UIButton>
+        </div>
+      )}
 
-        {/* High Density Main Listing Stream */}
-        <AppBox sx={listingListWrapperSx}>
-          {!hasFilteredMembers ? (
-            <AppCard
-              variant="default"
-              rounded="md"
-              bordered
-              padding="md"
-              sx={emptyCardContainerSx}
+      {/* 1. Header Area with Minimal Padding */}
+      <div className="flex flex-col gap-2 pt-0.5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-extrabold text-text tracking-tight flex items-center gap-1.5">
+              <span className="font-mono tabular-nums">{totalMembers}</span> Members
+            </h1>
+            <div className="flex items-center gap-3 text-xs font-semibold mt-0.5">
+              <span className="inline-flex items-center gap-1 text-text">
+                <span className="size-2 rounded-full bg-success ring-2 ring-success/20" />
+                Active{" "}
+                <strong className="font-mono tabular-nums text-text font-bold">
+                  {activeCount}
+                </strong>
+              </span>
+              <span className="inline-flex items-center gap-1 text-text">
+                <span className="size-2 rounded-full bg-error ring-2 ring-error/20" />
+                Inactive{" "}
+                <strong className="font-mono tabular-nums text-text font-bold">
+                  {inactiveCount}
+                </strong>
+              </span>
+            </div>
+          </div>
+
+          <UIButton
+            type="button"
+            variant="primary"
+            size="sm"
+            startIcon={<Plus className="size-3.5" />}
+            onClick={handleInviteMember}
+          >
+            Add Member
+          </UIButton>
+        </div>
+
+        {/* Action Toolbar */}
+        <div className="flex items-center gap-2">
+          <UIButton
+            type="button"
+            variant="outline"
+            size="xs"
+            fullWidth
+            startIcon={<Upload className="size-3.5 text-text-muted" />}
+            onClick={handleViewInvitations}
+          >
+            Import
+          </UIButton>
+
+          <UIButton
+            type="button"
+            variant="outline"
+            size="xs"
+            fullWidth
+            startIcon={<Download className="size-3.5 text-text-muted" />}
+            onClick={handleExportCSV}
+          >
+            Export
+          </UIButton>
+        </div>
+      </div>
+
+      {/* 2. Compact Search & Filter Toolbar */}
+      <div className="bg-surface border border-border/60 rounded-xl p-2.5 shadow-2xs space-y-2">
+        <UISearchInput
+          placeholder="Search members..."
+          value={filters.search}
+          onChange={handleSearchChange}
+          onClear={() => handleSearchChange("")}
+          size="sm"
+        />
+
+        <div className="grid grid-cols-2 gap-2">
+          <UISelect
+            value={filters.role}
+            onChange={(val) => handleFilterChange({ role: val })}
+            options={roleOptions}
+            placeholder="All Roles"
+            size="sm"
+          />
+          <UISelect
+            value={filters.status}
+            onChange={(val) => handleFilterChange({ status: val })}
+            options={statusOptions}
+            placeholder="All Status"
+            size="sm"
+          />
+        </div>
+
+        {activeFilterChips.length > 0 && (
+          <div className="flex justify-end">
+            <UIButton
+              type="button"
+              variant="ghost"
+              size="xs"
+              startIcon={<RotateCcw className="size-3 text-text-muted" />}
+              onClick={handleClearFilters}
             >
-              <AppStack
-                direction="column"
-                align="center"
-                justify="center"
-                gap={1}
-                sx={{ py: 4, width: "100%" }}
-              >
-                <FiSearch className="text-[28px] text-text-muted/60" />
-                <AppHeading
-                  level={3}
-                  weight={700}
-                  align="center"
-                  sx={{ m: 0, fontSize: "13px", width: "100%" }}
-                >
-                  No members found
-                </AppHeading>
-                <AppText
-                  variant="body2"
-                  align="center"
-                  sx={emptyStateSubTextSx}
-                >
-                  Refine keywords or reset dropdown properties to inspect
-                  workspace targets.
-                </AppText>
-              </AppStack>
-            </AppCard>
-          ) : (
-            <AppStack direction="column" gap={1}>
-              {members.map((member) => {
-                const initials = String(member?.displayName || "M")
-                  .trim()
-                  .split(" ")
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((word) => word.charAt(0).toUpperCase())
-                  .join("");
-
-                return (
-                  <AppCard
-                    key={member._id}
-                    variant="default"
-                    rounded="lg"
-                    bordered
-                    shadow="none"
-                    padding="none"
-                    sx={memberListingItemCardSx}
-                  >
-                    {/* Top Segment: Row Identity Blocks */}
-                    <AppStack
-                      direction="row"
-                      align="flex-start"
-                      justify="space-between"
-                      gap={1}
-                    >
-                      <AppStack direction="row" align="center" gap={1}>
-                        <AppBox sx={avatarFrameSx}>{initials || "M"}</AppBox>
-
-                        <AppBox sx={{ minWidth: 0 }}>
-                          <AppStack direction="row" align="center" gap={0.5}>
-                            <AppHeading
-                              level={2}
-                              weight={800}
-                              sx={memberCardTitleTextSx}
-                            >
-                              {member.displayName}
-                            </AppHeading>
-                          </AppStack>
-                          <AppText variant="body2" sx={memberCardSubTextSx}>
-                            {member.displayEmail}
-                          </AppText>
-                          {member.displayPhone &&
-                            member.displayPhone !== "-" && (
-                              <AppText
-                                variant="body2"
-                                sx={memberCardPhoneTextSx}
-                              >
-                                {member.displayPhone}
-                              </AppText>
-                            )}
-                        </AppBox>
-                      </AppStack>
-
-                      {/* Wraps actions explicitly to isolate click bubbles */}
-                      <AppStack
-                        direction="row"
-                        align="center"
-                        gap={0.25}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                        }}
-                      >
-                        <AppStatusBadge
-                          status={member.status}
-                          label={member.status || "inactive"}
-                          variant="soft"
-                          size="small"
-                          rounded="md"
-                          colorVariant={
-                            statusColorMap[member.status] || "neutral"
-                          }
-                          sx={statusBadgeOverrideSx}
-                        />
-                        <RowActionDropdownTrigger
-                          member={member}
-                          onChangeStatus={handleChangeMemberStatus}
-                          onRemove={handleRemoveMember}
-                          onManageAccess={handleManageAccess}
-                          onResetPassword={handleOpenResetPassword}
-                        />
-                      </AppStack>
-                    </AppStack>
-
-                    <div className="w-full h-[1px] bg-divider my-2" />
-
-                    {/* Bottom Segment: Roles & Joined Indicators */}
-                    <AppStack
-                      direction="row"
-                      align="center"
-                      justify="space-between"
-                      gap={1}
-                    >
-                      <AppTag
-                        label={member.displayRole || "Staff"}
-                        variant="soft"
-                        colorVariant={member.isOwner ? "warning" : "primary"}
-                        rounded="sm"
-                        sx={roleTagOverrideSx}
-                      />
-
-                      <AppStack direction="row" align="center" gap={1}>
-                        <AppStack
-                          direction="row"
-                          align="center"
-                          gap={0.4}
-                          sx={inlineMetaMetricFrameSx}
-                        >
-                          <FiCalendar className="text-[12px]" />
-                          <AppText
-                            variant="body2"
-                            weight={600}
-                            sx={inlineMetaValueTextSx}
-                          >
-                            Joined {member.displayJoinedAt || "-"}
-                          </AppText>
-                        </AppStack>
-                      </AppStack>
-                    </AppStack>
-                  </AppCard>
-                );
-              })}
-            </AppStack>
-          )}
-        </AppBox>
-
-        {/* Intelligent Conditional Pagination Module */}
-        {shouldRenderPagination && (
-          <AppBox sx={paginationFooterWrapperSx}>
-            <AppStack
-              direction="row"
-              align="center"
-              justify="space-between"
-              gap={1}
-            >
-              <AppSelect
-                name="pageSizeSelect"
-                value="10"
-                options={[{ label: "10 per page", value: "10" }]}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={pageSizeSelectSx}
-                inputSx={paginationInputBoxOverrideSx}
-              />
-
-              <AppStack direction="row" align="center" gap={0.5}>
-                <AppIconButton
-                  icon={<FiChevronLeft />}
-                  variant="outlined"
-                  colorVariant="neutral"
-                  size="small"
-                  rounded="md"
-                  disabled
-                  sx={paginationArrowBtnSx}
-                />
-                <span className="flex h-[30px] min-w-[30px] items-center justify-center rounded-md bg-primary text-[11.5px] font-bold text-text-inverse shadow-sm">
-                  1
-                </span>
-                <AppIconButton
-                  icon={<FiChevronRight />}
-                  variant="outlined"
-                  colorVariant="neutral"
-                  size="small"
-                  rounded="md"
-                  disabled={totalMembers <= 10}
-                  sx={paginationArrowBtnSx}
-                />
-              </AppStack>
-            </AppStack>
-          </AppBox>
+              Reset Filters
+            </UIButton>
+          </div>
         )}
-      </AppBox>
-    </section>
-  );
-};
+      </div>
 
-const RowActionDropdownTrigger = ({
+      {/* 3. Member Cards Stream with Company & Branch Access */}
+      {isLoading && !hasMembers ? (
+        <div className="space-y-2.5">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="bg-surface rounded-2xl p-4 flex flex-col items-center space-y-2.5 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+            >
+              <UISkeleton className="size-16 rounded-full" />
+              <UISkeleton className="h-4 w-28 rounded" />
+              <UISkeleton className="h-3 w-20 rounded" />
+              <div className="w-full pt-2.5 border-t border-border/30 grid grid-cols-2 gap-2">
+                <UISkeleton className="h-6 rounded" />
+                <UISkeleton className="h-6 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : !hasMembers ? (
+        <div className="py-8 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+          <UIEmptyState
+            icon={<Users className="size-8 text-primary" />}
+            title="No members yet"
+            description="Invite team members to collaborate in this workspace."
+            primaryAction={
+              <UIButton
+                variant="primary"
+                size="sm"
+                startIcon={<Plus className="size-3.5" />}
+                onClick={handleInviteMember}
+              >
+                Add Member
+              </UIButton>
+            }
+          />
+        </div>
+      ) : !hasFilteredMembers ? (
+        <div className="py-8 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+          <UIEmptyState
+            icon={<Search className="size-8 text-text-muted" />}
+            title="No matching members"
+            description="Try changing your search keywords or active filters."
+            primaryAction={
+              <UIButton variant="outline" size="sm" onClick={handleClearFilters}>
+                Clear Filters
+              </UIButton>
+            }
+          />
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {paginatedMembers.map((member) => {
+            const isDropdownOpen = activeDropdownMemberId === member._id;
+            const hasAnyDropdownOpen = activeDropdownMemberId !== null;
+
+            return (
+              <MobileMemberCard
+                key={member._id}
+                member={member}
+                isDropdownOpen={isDropdownOpen}
+                hasAnyDropdownOpen={hasAnyDropdownOpen}
+                onDropdownOpenChange={(open) => {
+                  setActiveDropdownMemberId(open ? member._id : null);
+                }}
+                onCardClick={() => {
+                  if (!hasAnyDropdownOpen) {
+                    handleViewMemberDetails?.(member);
+                  }
+                }}
+                onViewDetails={() => {
+                  setActiveDropdownMemberId(null);
+                  handleViewMemberDetails?.(member);
+                }}
+                onChangeStatus={(m, status) => {
+                  setActiveDropdownMemberId(null);
+                  handleChangeMemberStatus(m, status);
+                }}
+                onRemove={(m) => {
+                  setActiveDropdownMemberId(null);
+                  handleRemoveMember(m);
+                }}
+                onManageAccess={(m) => {
+                  setActiveDropdownMemberId(null);
+                  handleViewMemberDetails?.(m);
+                }}
+                onResetPassword={(m) => {
+                  setActiveDropdownMemberId(null);
+                  handleOpenResetPassword(m);
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* 4. Bottom Pagination (Shown ONLY when records exceed page size) */}
+      {shouldShowPagination && (
+        <div className="bg-surface rounded-xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] overflow-hidden">
+          <UIPagination
+            page={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredMembersCount}
+            pageSize={pageSize}
+            pageSizeOptions={[6, 12, 24]}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            showSummary
+            showPageSize={false}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MobileMemberCard({
   member,
+  isDropdownOpen,
+  hasAnyDropdownOpen,
+  onDropdownOpenChange,
+  onCardClick,
+  onViewDetails,
   onChangeStatus,
   onRemove,
   onManageAccess,
   onResetPassword,
-}) => {
+}) {
   const isOwner = Boolean(member?.isOwner);
+  const status = member?.status || "inactive";
 
-  const menuConfigItems = [
-    {
-      id: "access",
-      label: "Store & Role Access",
-      icon: <FiMapPin />,
-      disabled: isOwner,
-      onClick: () => onManageAccess?.(member),
-    },
-    {
-      id: "reset-password",
-      label: "Reset Password / PIN",
-      icon: <FiKey />,
-      disabled: isOwner,
-      onClick: () => onResetPassword?.(member),
-    },
-    { id: "divider_access", type: "divider" },
-    {
-      id: "active",
-      label: "Mark Active",
-      icon: <FiUserCheck />,
-      disabled: isOwner || member?.status === "active",
-      onClick: () => onChangeStatus?.(member, "active"),
-    },
-    {
-      id: "inactive",
-      label: "Mark Inactive",
-      icon: <FiClock />,
-      disabled: isOwner || member?.status === "inactive",
-      onClick: () => onChangeStatus?.(member, "inactive"),
-    },
-    {
-      id: "suspended",
-      label: "Suspend Member",
-      icon: <FiShield />,
-      disabled: isOwner || member?.status === "suspended",
-      onClick: () => onChangeStatus?.(member, "suspended"),
-    },
-    { id: "divider_row", type: "divider" },
-    {
-      id: "remove",
-      label: "Remove Member",
-      icon: <FiUserMinus />,
-      danger: true,
-      disabled: isOwner,
-      onClick: () => onRemove?.(member),
-    },
-  ];
+  const getStatusDotColor = () => {
+    switch (status) {
+      case "active":
+        return "bg-success ring-success/20";
+      case "suspended":
+        return "bg-error ring-error/20";
+      default:
+        return "bg-warning ring-warning/20";
+    }
+  };
+
+  const getInitials = (name) => {
+    return String(name || "M")
+      .trim()
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join("");
+  };
+
+  // Company and Branch Access counts / labels
+  const companyAccessLabel = isOwner
+    ? "All Companies"
+    : member?.accessAllCompanies
+    ? "All Companies"
+    : member?.companyCount !== undefined
+    ? `${member.companyCount} ${member.companyCount === 1 ? "Company" : "Companies"}`
+    : member?.companies?.length !== undefined
+    ? `${member.companies.length} ${member.companies.length === 1 ? "Company" : "Companies"}`
+    : member?.companyIds?.length !== undefined
+    ? `${member.companyIds.length} ${member.companyIds.length === 1 ? "Company" : "Companies"}`
+    : "No Companies";
+
+  const branchAccessLabel = isOwner
+    ? "All Branches"
+    : member?.accessAllBranches
+    ? "All Branches"
+    : member?.branchCount !== undefined
+    ? `${member.branchCount} ${member.branchCount === 1 ? "Branch" : "Branches"}`
+    : member?.branches?.length !== undefined
+    ? `${member.branches.length} ${member.branches.length === 1 ? "Branch" : "Branches"}`
+    : member?.branchIds?.length !== undefined
+    ? `${member.branchIds.length} ${member.branchIds.length === 1 ? "Branch" : "Branches"}`
+    : "No Branches";
 
   return (
-    <AppMenu
-      trigger={
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-          }}
-          className="inline-flex h-7 w-7 items-center justify-center border-0 bg-transparent p-0 text-text-muted transition hover:text-text focus:outline-none"
+    <div
+      onClick={onCardClick}
+      className={cn(
+        "bg-surface rounded-2xl shadow-xs transition-all duration-150 flex flex-col relative border-0",
+        isDropdownOpen
+          ? "z-50 ring-2 ring-primary/40 shadow-lg"
+          : hasAnyDropdownOpen
+          ? "z-0 ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+          : "z-10 ring-1 ring-black/[0.04] dark:ring-white/[0.06] hover:z-20 hover:ring-primary/40 hover:shadow-xs cursor-pointer active:scale-[0.99]"
+      )}
+    >
+      {/* Top Section (bg-surface, rounded-t-2xl) */}
+      <div className="bg-surface p-3.5 pt-3 relative flex flex-col items-center text-center rounded-t-2xl">
+        {/* Enlarged Three-Dots Menu (z-50, non-clipping) */}
+        <div
+          className="absolute top-2.5 right-2.5 z-50"
+          onClick={(e) => e.stopPropagation()}
         >
-          <FiMoreHorizontal className="text-[17px]" />
-        </button>
-      }
-      triggerProps={{
-        onClick: (e) => {
-          e.stopPropagation();
-          e.preventDefault();
-        },
-      }}
-      items={menuConfigItems}
-      dense
-      minWidth={165}
-    />
+          <UIDropdown
+            open={isDropdownOpen}
+            onOpenChange={onDropdownOpenChange}
+            align="right"
+            placement="bottom"
+          >
+            <UIDropdownTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Actions for ${member.displayName}`}
+                className={cn(
+                  "size-8 rounded-xl flex items-center justify-center transition-colors cursor-pointer border-0",
+                  isDropdownOpen
+                    ? "bg-primary-soft text-primary"
+                    : "text-text-muted hover:text-text hover:bg-surface-hover"
+                )}
+              >
+                <MoreHorizontal className="size-5" />
+              </button>
+            </UIDropdownTrigger>
+            <UIDropdownMenu width="w-48" className="shadow-2xl border border-border/60">
+              <UIDropdownItem
+                icon={<Eye className="size-4 text-primary" />}
+                onClick={(e) => {
+                  e?.stopPropagation?.();
+                  onViewDetails?.();
+                }}
+              >
+                View Details
+              </UIDropdownItem>
+              <UIDropdownItem
+                icon={<MapPin className="size-4" />}
+                onClick={(e) => {
+                  e?.stopPropagation?.();
+                  onManageAccess?.(member);
+                }}
+              >
+                Access & Roles
+              </UIDropdownItem>
+              <UIDropdownItem
+                icon={<Key className="size-4" />}
+                onClick={(e) => {
+                  e?.stopPropagation?.();
+                  onResetPassword?.(member);
+                }}
+                disabled={isOwner}
+              >
+                Reset PIN
+              </UIDropdownItem>
+
+              <UIDropdownDivider />
+
+              <UIDropdownItem
+                icon={<UserCheck className="size-4 text-success" />}
+                onClick={(e) => {
+                  e?.stopPropagation?.();
+                  onChangeStatus?.(member, "active");
+                }}
+                disabled={isOwner || status === "active"}
+              >
+                Mark Active
+              </UIDropdownItem>
+              <UIDropdownItem
+                icon={<Clock className="size-4 text-warning" />}
+                onClick={(e) => {
+                  e?.stopPropagation?.();
+                  onChangeStatus?.(member, "inactive");
+                }}
+                disabled={isOwner || status === "inactive"}
+              >
+                Mark Inactive
+              </UIDropdownItem>
+              <UIDropdownItem
+                icon={<Shield className="size-4 text-error" />}
+                onClick={(e) => {
+                  e?.stopPropagation?.();
+                  onChangeStatus?.(member, "suspended");
+                }}
+                disabled={isOwner || status === "suspended"}
+              >
+                Suspend
+              </UIDropdownItem>
+
+              <UIDropdownDivider />
+
+              <UIDropdownItem
+                icon={<UserMinus className="size-4 text-error" />}
+                onClick={(e) => {
+                  e?.stopPropagation?.();
+                  onRemove?.(member);
+                }}
+                disabled={isOwner}
+                destructive
+              >
+                Remove Member
+              </UIDropdownItem>
+            </UIDropdownMenu>
+          </UIDropdown>
+        </div>
+
+        {/* Avatar with Status Dot */}
+        <div className="relative mt-0.5">
+          {member?.user?.avatar || member?.avatar ? (
+            <img
+              src={member?.user?.avatar || member?.avatar}
+              alt={member.displayName}
+              className="size-16 rounded-full object-cover border-2 border-surface shadow-xs"
+            />
+          ) : (
+            <div className="size-16 rounded-full bg-primary-soft text-primary font-extrabold text-lg flex items-center justify-center border-2 border-surface shadow-xs select-none">
+              {getInitials(member.displayName)}
+            </div>
+          )}
+
+          <span
+            className={`absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-surface ring-2 ${getStatusDotColor()}`}
+          />
+        </div>
+
+        {/* Name & Role */}
+        <div className="mt-2 space-y-0.5 max-w-full">
+          <h3
+            className={cn(
+              "text-base font-bold text-text tracking-tight truncate px-2 transition-colors",
+              !hasAnyDropdownOpen && "group-hover:text-primary"
+            )}
+          >
+            {member.displayName}
+          </h3>
+          <p className="text-xs text-text-muted font-medium truncate">
+            {member.displayRole || "Staff Member"}
+          </p>
+        </div>
+      </div>
+
+      {/* Shaded Bottom Section: Company & Branch Metadata */}
+      <div className="bg-surface-alt/75 border-t border-border/30 p-3 space-y-1.5 text-left rounded-b-2xl">
+        {/* 2-Column Metadata Grid */}
+        <div className="w-full grid grid-cols-2 gap-2 text-left">
+          <div className="min-w-0 pr-1">
+            <span className="block text-[10px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
+              <Building2 className="size-3 text-text-muted/70 shrink-0" />
+              Companies
+            </span>
+            <span className="block text-xs font-semibold text-text truncate mt-0.5">
+              {companyAccessLabel}
+            </span>
+          </div>
+
+          <div className="min-w-0 pl-1">
+            <span className="block text-[10px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
+              <GitBranch className="size-3 text-text-muted/70 shrink-0" />
+              Branches
+            </span>
+            <span className="block text-xs font-semibold text-text font-mono tabular-nums mt-0.5 truncate">
+              {branchAccessLabel}
+            </span>
+          </div>
+        </div>
+
+        {/* Contact Details List */}
+        <div className="w-full space-y-1 pt-1 border-t border-border/30 text-left">
+          <div className="flex items-center gap-2 text-xs text-text-muted truncate">
+            <Mail className="size-3.5 shrink-0 text-text-muted" />
+            <span className="truncate">{member.displayEmail || "-"}</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-text-muted truncate">
+            <Phone className="size-3.5 shrink-0 text-text-muted" />
+            <span className="font-mono tabular-nums truncate">
+              {member.displayPhone || "-"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
-};
-
-/* Architectural Style Definitions Dictionary */
-const containerSx = {
-  position: "relative",
-  zIndex: 1,
-  width: "100%",
-  maxWidth: { xs: 430, sm: 460 },
-  mx: "auto",
-  px: 0,
-  pt: 0,
-  pb: 0,
-};
-
-const headerWrapperSx = {
-  pt: 1.5,
-  pb: 1,
-  px: 0.5,
-};
-
-const pageTitleSx = {
-  m: 0,
-  fontSize: "21px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.4px",
-  color: "var(--app-color-text)",
-};
-
-const pageSubtitleSx = {
-  mt: 0.2,
-  fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const actionHeaderIconBtnSx = {
-  height: 32,
-  width: 32,
-  minWidth: 32,
-  borderColor: "var(--app-color-border)",
-};
-
-const headerSecondaryBtnSx = {
-  height: 32,
-  fontSize: "11px",
-  fontWeight: 700,
-  px: 1.1,
-  borderColor: "var(--app-color-border-strong)",
-  color: "var(--app-color-text)",
-};
-
-const addMemberBtnSx = {
-  height: 32,
-  fontSize: "11px",
-  fontWeight: 750,
-  px: 1.2,
-  boxShadow: "var(--app-shadow-xs)",
-  "& .MuiButton-startIcon": {
-    marginRight: "4px",
-    fontSize: "12px",
-  },
-};
-
-const statsGridWrapperSx = {
-  px: 0.5,
-  pb: 1.25,
-};
-
-const compactStatCardSx = {
-  p: 0.65,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "none",
-};
-
-const compactStatIconSx = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 24,
-  height: 24,
-  borderRadius: "6px",
-  fontSize: "12px",
-  flexShrink: 0,
-};
-
-const compactStatValueSx = {
-  m: 0,
-  fontSize: "12.5px",
-  lineHeight: 1,
-  color: "var(--app-color-text)",
-};
-
-const compactStatTitleSx = {
-  fontSize: "9px",
-  fontWeight: 600,
-  color: "var(--app-color-text-muted)",
-  lineHeight: 1,
-  mt: 0.1,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-
-const filterSectionSx = {
-  px: 0.5,
-  pb: 1.25,
-};
-
-const searchBarSx = {
-  width: "100%",
-};
-
-const selectInputSx = {
-  width: "100%",
-};
-
-const inputOverrideSx = {
-  height: 35,
-  fontSize: "11.5px",
-  bgcolor: "var(--app-color-surface)",
-  color: "var(--app-color-text)",
-};
-
-const metaActionRowSx = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  px: 0.5,
-  py: 0.75,
-  borderTop: "1px solid var(--app-color-divider)",
-  borderBottom: "1px solid var(--app-color-divider)",
-  bgcolor: "var(--app-color-surface-alt)",
-};
-
-const countLabelTextSx = {
-  fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const resetTextLinkSx = {
-  p: 0,
-  minWidth: "auto",
-  height: "auto",
-  fontSize: "11px",
-  fontWeight: 750,
-  color: "var(--app-color-text)",
-  "& .MuiButton-startIcon": {
-    marginRight: "3px",
-    fontSize: "10.5px",
-  },
-};
-
-const listingListWrapperSx = {
-  px: 0.5,
-  py: 1.25,
-  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, transparent)",
-  overflowY: "auto",
-  msOverflowStyle: "none",
-  scrollbarWidth: "none",
-  "&::-webkit-scrollbar": {
-    display: "none",
-    width: 0,
-    height: 0,
-  },
-};
-
-const emptyCardContainerSx = {
-  borderColor: "var(--app-color-border)",
-  bgcolor: "var(--app-color-surface)",
-  width: "100%",
-};
-
-const emptyStateSubTextSx = {
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-  px: 2,
-  textAlign: "center",
-  width: "100%",
-};
-
-const memberListingItemCardSx = {
-  p: 1.2,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-xs)",
-  transition: "background-color 0.1s ease",
-};
-
-const avatarFrameSx = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 36,
-  height: 36,
-  borderRadius: "50%",
-  fontSize: "11.5px",
-  fontWeight: 750,
-  flexShrink: 0,
-  bgcolor: "var(--app-color-primary-soft)",
-  color: "var(--app-color-primary)",
-};
-
-const memberCardTitleTextSx = {
-  m: 0,
-  fontSize: "12.5px",
-  lineHeight: 1.2,
-  color: "var(--app-color-text)",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-};
-
-const memberCardSubTextSx = {
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
-  mt: 0.15,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-
-const memberCardPhoneTextSx = {
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
-  mt: 0.05,
-};
-
-const statusBadgeOverrideSx = {
-  height: 18,
-  fontSize: "9px",
-  fontWeight: 750,
-  px: 1,
-  textTransform: "capitalize",
-};
-
-const roleTagOverrideSx = {
-  height: 18,
-  fontSize: "9px",
-  fontWeight: 750,
-  px: 1,
-};
-
-const inlineMetaMetricFrameSx = {
-  color: "var(--app-color-text-muted)",
-};
-
-const inlineMetaValueTextSx = {
-  fontSize: "10px",
-  lineHeight: 1,
-};
-
-const paginationFooterWrapperSx = {
-  px: 0.5,
-  pt: 1.25,
-  pb: 2,
-  borderTop: "1px solid var(--app-color-divider)",
-};
-
-const pageSizeSelectSx = {
-  width: 112,
-};
-
-const paginationInputBoxOverrideSx = {
-  height: 30,
-  fontSize: "11px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const paginationArrowBtnSx = {
-  height: 30,
-  width: 30,
-  minWidth: 30,
-  borderColor: "var(--app-color-border)",
-};
-
-export default WorkspaceMembersMobilePage;
+}

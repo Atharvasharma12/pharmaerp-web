@@ -29,12 +29,13 @@ import {
   AppSelect,
   AppStack,
   AppStatusBadge,
-  AppTable,
   AppTag,
   AppText,
   PageHeader,
   AppMenu,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 
 // Map colors
 const statusColorMap = {
@@ -96,18 +97,20 @@ const AccountsTableToolbar = ({
         inputSx={filterInputSx}
       />
     </div>
-    <AppButton
-      type="button"
-      variant="contained"
-      colorVariant="success"
-      rounded="md"
-      size="small"
-      startIcon={<FiPlus />}
-      onClick={handleCreateAccount}
-      sx={addButtonSx}
-    >
-      Add Account
-    </AppButton>
+    <PermissionGate permission="account:create">
+      <AppButton
+        type="button"
+        variant="contained"
+        colorVariant="success"
+        rounded="md"
+        size="small"
+        startIcon={<FiPlus />}
+        onClick={handleCreateAccount}
+        sx={addButtonSx}
+      >
+        Add Account
+      </AppButton>
+    </PermissionGate>
   </div>
 );
 
@@ -283,36 +286,41 @@ const AccountsDesktopPage = ({
       label: "Actions",
       align: "right",
       width: 90,
-      render: (_, row) => (
-        <AppStack direction="row" align="center" justify="flex-end" gap={0.5}>
-          <AppMenu
-            trigger={
-              <button
-                type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text focus:outline-none"
-              >
-                <FiMoreHorizontal className="text-[16px]" />
-              </button>
-            }
-            items={[
-              {
-                id: "view",
-                label: "View Details",
-                icon: <FiEye />,
-                onClick: () => handleViewAccount(row._id),
-              },
-              {
-                id: "edit",
-                label: "Edit Account",
-                icon: <FiEdit2 />,
-                onClick: () => handleEditAccount(row._id),
-              },
-            ]}
-            dense
-            minWidth={140}
-          />
-        </AppStack>
-      ),
+      render: (_, row) => {
+        const { can } = usePermission();
+        const menuItems = [
+          {
+            id: "view",
+            label: "View Details",
+            icon: <FiEye />,
+            onClick: () => handleViewAccount(row._id),
+          },
+          can("account:update") && {
+            id: "edit",
+            label: "Edit Account",
+            icon: <FiEdit2 />,
+            onClick: () => handleEditAccount(row._id),
+          },
+        ].filter(Boolean);
+
+        return (
+          <AppStack direction="row" align="center" justify="flex-end" gap={0.5}>
+            <AppMenu
+              trigger={
+                <button
+                  type="button"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text focus:outline-none"
+                >
+                  <FiMoreHorizontal className="text-[16px]" />
+                </button>
+              }
+              items={menuItems}
+              dense
+              minWidth={140}
+            />
+          </AppStack>
+        );
+      },
     },
   ];
 

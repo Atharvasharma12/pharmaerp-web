@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ROUTES } from "@/constants";
-import { useIsMobile } from "@/hooks";
+import { useIsMobile, usePermission } from "@/hooks";
 
 import TreasuryDesktopPage from "./desktop/TreasuryDesktopPage";
 import TreasuryMobilePage from "./mobile/TreasuryMobilePage";
@@ -89,22 +89,24 @@ const TreasuryPage = () => {
     ];
   }, []);
 
-  // Treasury module navigation cards
+  // Treasury modules with permission mappings
   const modules = useMemo(() => {
-    return [
+    const rawModules = [
       {
         id: "bankAccounts",
         title: "Bank Accounts",
-        description: "Manage all your bank accounts and their details",
+        description: "Manage bank accounts, deposits and withdrawals",
         colorVariant: "success",
-        path: ROUTES.BANK_ACCOUNTS,
+        path: "/finance/treasury/bank-accounts",
+        permission: "bank-account:view",
       },
       {
         id: "cashAccounts",
         title: "Cash Accounts",
-        description: "Manage cash accounts and cash in hand",
+        description: "Manage cash in hand, petty cash and cash registers",
         colorVariant: "warning",
-        path: ROUTES.CASH_ACCOUNTS,
+        path: "/finance/treasury/cash-accounts",
+        permission: "cash-account:view",
       },
       {
         id: "fundTransfers",
@@ -112,6 +114,7 @@ const TreasuryPage = () => {
         description: "Transfer funds between bank accounts and cash accounts",
         colorVariant: "purple",
         path: "/finance/treasury/fund-transfers",
+        permission: "fund-transfer:view",
       },
       {
         id: "bankTransactions",
@@ -119,6 +122,7 @@ const TreasuryPage = () => {
         description: "Record and manage all bank transactions",
         colorVariant: "info",
         path: "/finance/treasury/bank-transactions",
+        permission: "bank-transaction:view",
       },
       {
         id: "cashTransactions",
@@ -126,6 +130,7 @@ const TreasuryPage = () => {
         description: "Record and manage all cash transactions",
         colorVariant: "warning",
         path: "/finance/treasury/cash-transactions",
+        permission: "cash-transaction:view",
       },
       {
         id: "chequeManagement",
@@ -133,6 +138,7 @@ const TreasuryPage = () => {
         description: "Manage cheques, issues, deposits and clearances",
         colorVariant: "info",
         path: "/finance/treasury/cheque-management",
+        permission: "cheque:view",
       },
       {
         id: "paymentQrUpi",
@@ -140,6 +146,7 @@ const TreasuryPage = () => {
         description: "Manage UPI QR codes and digital payments",
         colorVariant: "success",
         path: "/finance/treasury/payment-qrs",
+        permission: "payment-qr:view",
       },
       {
         id: "bankSlips",
@@ -147,6 +154,7 @@ const TreasuryPage = () => {
         description: "Manage deposit slips, withdrawal slips and more",
         colorVariant: "danger",
         path: "/finance/treasury/bank-slips",
+        permission: "bank-slip:view",
       },
       {
         id: "cashDenominations",
@@ -154,9 +162,12 @@ const TreasuryPage = () => {
         description: "Manage cash denominations and cash counting",
         colorVariant: "purple",
         path: "/finance/treasury/cash-denominations",
+        permission: "cash-denomination:view",
       },
     ];
-  }, []);
+
+    return rawModules.filter((m) => !m.permission || can(m.permission));
+  }, [can]);
 
   // Recent transactions list
   const recentTransactions = useMemo(() => {
@@ -191,59 +202,69 @@ const TreasuryPage = () => {
     ];
   }, []);
 
-  // Quick actions list with target routes or mock trigger logic
+  // Quick actions list with target routes and permissions
   const quickActions = useMemo(() => {
-    return [
+    const rawActions = [
       {
         id: "addBankAccount",
         title: "Add Bank Account",
         path: ROUTES.CREATE_BANK_ACCOUNT,
         colorVariant: "success",
+        permission: "bank-account:create",
       },
       {
         id: "addCashAccount",
         title: "Add Cash Account",
         path: ROUTES.CREATE_CASH_ACCOUNT,
         colorVariant: "warning",
+        permission: "cash-account:create",
       },
       {
         id: "recordBankTransaction",
         title: "Record Bank Transaction",
         path: "/finance/treasury/bank-transactions/create",
         colorVariant: "info",
+        permission: "bank-transaction:create",
       },
       {
         id: "recordCashTransaction",
         title: "Record Cash Transaction",
         path: "/finance/treasury/cash-transactions/create",
         colorVariant: "warning",
+        permission: "cash-transaction:create",
       },
       {
         id: "fundTransfer",
         title: "Fund Transfer",
         path: "/finance/treasury/fund-transfers/create",
         colorVariant: "purple",
+        permission: "fund-transfer:create",
       },
       {
         id: "manageCheques",
         title: "Manage Cheques",
         path: "/finance/treasury/cheque-management",
         colorVariant: "info",
+        permission: "cheque:view",
       },
       {
         id: "generateBankSlip",
         title: "Generate Bank Slip",
         path: "/finance/treasury/bank-slips/create",
         colorVariant: "danger",
+        permission: "bank-slip:create",
       },
       {
         id: "cashDenominations",
         title: "Cash Denominations",
         path: "/finance/treasury/cash-denominations",
         colorVariant: "purple",
+        permission: "cash-denomination:view",
       },
     ];
-  }, []);
+
+    return rawActions.filter((a) => !a.permission || can(a.permission));
+  }, [can]);
 
   const handleRefresh = useCallback(() => {
     setIsLoading(true);

@@ -35,7 +35,9 @@ import {
   HELP_SUPPORT_CARD,
   PageHeader,
   PageRightSidebar,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 
 const statusColorMap = {
   active: "success",
@@ -154,18 +156,20 @@ const BranchesDesktopPage = ({
                 Export
               </AppButton>
 
-              <AppButton
-                type="button"
-                variant="contained"
-                colorVariant="primary"
-                rounded="md"
-                size="small"
-                startIcon={<FiPlus />}
-                onClick={handleCreateBranch}
-                sx={primaryButtonSx}
-              >
-                Add Branch
-              </AppButton>
+              <PermissionGate permission="branch:create">
+                <AppButton
+                  type="button"
+                  variant="contained"
+                  colorVariant="primary"
+                  rounded="md"
+                  size="small"
+                  startIcon={<FiPlus />}
+                  onClick={handleCreateBranch}
+                  sx={primaryButtonSx}
+                >
+                  Add Branch
+                </AppButton>
+              </PermissionGate>
             </AppStack>
           }
           align="flex-start"
@@ -505,23 +509,25 @@ const BranchRow = ({ branch, onView, onEdit, onSettings, onDelete }) => (
 );
 
 const BranchActions = ({ branch, onView, onEdit, onSettings, onDelete }) => {
+  const { can } = usePermission();
+
   const items = [
-    { id: "view", label: "View Location", onClick: () => onView?.(branch) },
-    { id: "edit", label: "Edit Site Details", onClick: () => onEdit?.(branch) },
-    {
+    { id: "view", label: "View Details", onClick: () => onView?.(branch) },
+    can("branch:update") && { id: "edit", label: "Edit Site Details", onClick: () => onEdit?.(branch) },
+    can("branch:update") && {
       id: "settings",
       label: "Module Sync",
       onClick: () => onSettings?.(branch),
     },
-    { id: "divider", type: "divider" },
-    {
+    can("branch:delete") && { id: "divider", type: "divider" },
+    can("branch:delete") && {
       id: "remove",
       label: "Delete Branch",
       danger: true,
       disabled: Boolean(branch?.isPrimary),
       onClick: () => onDelete?.(branch),
     },
-  ];
+  ].filter(Boolean);
 
   return (
     <AppMenu

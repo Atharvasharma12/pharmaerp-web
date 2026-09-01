@@ -1,7 +1,13 @@
+// src/features/settings/components/tabs/SecurityTab.jsx
+
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Laptop, Smartphone, Monitor, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { ROUTES } from "@/constants";
+import useUser from "@/features/user/hooks/useUser";
+import useAuth from "@/features/auth/hooks/useAuth";
 import {
   UIButton,
   UIConfirmDialog,
@@ -11,51 +17,59 @@ import {
   UICardDescription,
   UICardContent,
   UISwitch,
+  UIAlert,
 } from "@/components/ui";
 
 const INITIAL_SESSIONS = [
   {
-    id: "session-1",
-    device: "MacBook Pro",
-    type: "laptop",
-    location: "Berlin, Germany",
+    id: "session-current",
+    device: "Current Browser Session",
+    type: "desktop",
+    location: "Active Session",
     time: "Active now",
     isCurrent: true,
-  },
-  {
-    id: "session-2",
-    device: "iPhone 15",
-    type: "smartphone",
-    location: "Berlin, Germany",
-    time: "2 hours ago",
-    isCurrent: false,
-  },
-  {
-    id: "session-3",
-    device: "Chrome on Windows",
-    type: "desktop",
-    location: "Munich, Germany",
-    time: "Yesterday",
-    isCurrent: false,
   },
 ];
 
 const SecurityTab = () => {
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const navigate = useNavigate();
+  const { deactivateAccount } = useUser();
+  const { logout, clearCredentials } = useAuth();
+
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [sessions, setSessions] = useState(INITIAL_SESSIONS);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleRevokeSession = (sessionId) => {
     setSessions((prev) => prev.filter((s) => s.id !== sessionId));
   };
 
-  const handleDeleteAccount = () => {
+  const handleToggle2FA = (checked) => {
+    setTwoFactorEnabled(checked);
+    if (checked) {
+      setSuccessMessage("Two-factor authentication settings updated.");
+    } else {
+      setSuccessMessage("Two-factor authentication has been disabled.");
+    }
+    setTimeout(() => setSuccessMessage(""), 3500);
+  };
+
+  const handleDeleteAccount = async () => {
     setIsDeleting(true);
-    setTimeout(() => {
-      setIsDeleting(false);
+    setErrorMessage("");
+    try {
+      await deactivateAccount();
+      await logout();
+      clearCredentials();
       setShowDeleteModal(false);
-    }, 800);
+      navigate(ROUTES.LOGIN, { replace: true });
+    } catch (err) {
+      setErrorMessage(err || "Failed to deactivate account");
+      setIsDeleting(false);
+    }
   };
 
   const getDeviceIcon = (type) => {
@@ -71,6 +85,28 @@ const SecurityTab = () => {
 
   return (
     <div className="space-y-4">
+      {/* ── Status Alerts ────────────────────────────────────── */}
+      <AnimatePresence>
+        {successMessage && (
+          <UIAlert
+            type="success"
+            variant="soft"
+            className="p-3 rounded-[10px] text-xs"
+          >
+            {successMessage}
+          </UIAlert>
+        )}
+        {errorMessage && (
+          <UIAlert
+            type="error"
+            variant="soft"
+            className="p-3 rounded-[10px] text-xs"
+          >
+            {errorMessage}
+          </UIAlert>
+        )}
+      </AnimatePresence>
+
       {/* ── CARD 1: Two-Factor Authentication ─────────────────── */}
       <UICard variant="default" padding="none" className="p-4 sm:p-5 shadow-[var(--app-shadow-sm)]">
         <UICardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60 mb-0">
@@ -79,14 +115,14 @@ const SecurityTab = () => {
               Two-factor authentication
             </UICardTitle>
             <UICardDescription className="mt-0.5 text-xs text-text-muted leading-relaxed">
-              Add an extra layer of security to your account by requiring a verification code alongside your password.
+              Add an extra layer of security to your account by requiring an OTP code during login.
             </UICardDescription>
           </div>
           <div className="shrink-0">
             <UISwitch
               id="two-factor-toggle"
               checked={twoFactorEnabled}
-              onChange={setTwoFactorEnabled}
+              onChange={handleToggle2FA}
             />
           </div>
         </UICardHeader>
@@ -105,7 +141,7 @@ const SecurityTab = () => {
             )}
             <span className="text-xs text-text-muted">
               {twoFactorEnabled
-                ? "Authenticator app configured"
+                ? "Two-factor verification enabled for your login"
                 : "Enable 2FA to protect your account"}
             </span>
           </div>
@@ -119,7 +155,7 @@ const SecurityTab = () => {
             Active sessions
           </UICardTitle>
           <UICardDescription className="mt-0.5 text-xs text-text-muted leading-relaxed">
-            Devices that are currently signed in to your store account
+            Devices and browser sessions currently authenticated with your account
           </UICardDescription>
         </UICardHeader>
         <UICardContent className="pt-3.5 space-y-0">
@@ -182,10 +218,10 @@ const SecurityTab = () => {
         <UICardContent className="p-0 flex items-center justify-between">
           <div>
             <h3 className="text-xs font-bold text-text">
-              Delete account
+              Deactivate account
             </h3>
             <p className="text-[11px] text-text-muted">
-              Permanently remove your account and all associated store preferences
+              Permanently deactivate your account and revoke all active workspace memberships
             </p>
           </div>
 
@@ -196,7 +232,7 @@ const SecurityTab = () => {
             onClick={() => setShowDeleteModal(true)}
             startIcon={<Trash2 size={13} />}
           >
-            Delete
+            Deactivate
           </UIButton>
         </UICardContent>
       </UICard>
@@ -206,10 +242,10 @@ const SecurityTab = () => {
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteAccount}
-        title="Delete Account"
-        description="This action is permanent and cannot be undone. All your store preferences, activity history, and workspace links will be immediately deleted."
+        title="Deactivate Account"
+        description="This action is permanent. Your account will be deactivated and you will be immediately logged out of all active workspace sessions."
         intent="danger"
-        confirmText="Permanently Delete"
+        confirmText="Permanently Deactivate"
         cancelText="Cancel"
         requireInput={true}
         confirmPhrase="DELETE"

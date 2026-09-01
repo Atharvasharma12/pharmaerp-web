@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -14,13 +15,13 @@ import {
   setCurrentCompany,
   clearCurrentCompany,
   clearCompanies,
-  clearManagedCompany, // Added clear reducer
+  clearManagedCompany,
 } from "../store/companySlice";
 
 import {
   selectCompanies,
   selectCurrentCompany,
-  selectManagedCompany, // Added selector
+  selectManagedCompany,
   selectCompanyStatus,
   selectCompanyError,
   selectCompanyMessage,
@@ -36,7 +37,7 @@ const useCompany = () => {
 
   const companies = useSelector(selectCompanies);
   const currentCompany = useSelector(selectCurrentCompany);
-  const managedCompany = useSelector(selectManagedCompany); // Added hook state
+  const managedCompany = useSelector(selectManagedCompany);
 
   const status = useSelector(selectCompanyStatus);
   const error = useSelector(selectCompanyError);
@@ -50,59 +51,68 @@ const useCompany = () => {
   const updateCompanyStatus = useSelector(selectUpdateCompanyStatus);
   const deleteCompanyStatus = useSelector(selectDeleteCompanyStatus);
 
-  const submitCreateCompany = (payload) => {
-    return dispatch(createCompany(payload)).unwrap();
-  };
+  const submitCreateCompany = useCallback(
+    (payload) => dispatch(createCompany(payload)).unwrap(),
+    [dispatch],
+  );
 
-  const fetchWorkspaceCompanies = () => {
-    return dispatch(getWorkspaceCompanies()).unwrap();
-  };
+  const fetchWorkspaceCompanies = useCallback(
+    () => dispatch(getWorkspaceCompanies()).unwrap(),
+    [dispatch],
+  );
 
-  const fetchCompanyById = (companyId) => {
-    return dispatch(getCompanyById(companyId)).unwrap();
-  };
+  const fetchCompanyById = useCallback(
+    (companyId) => dispatch(getCompanyById(companyId)).unwrap(),
+    [dispatch],
+  );
 
-  const submitUpdateCompany = (companyId, payload) => {
-    return dispatch(
-      updateCompany({
-        companyId,
-        payload,
-      }),
-    ).unwrap();
-  };
+  const submitUpdateCompany = useCallback(
+    (companyId, payload) =>
+      dispatch(
+        updateCompany({
+          companyId,
+          payload,
+        }),
+      ).unwrap(),
+    [dispatch],
+  );
 
-  const submitDeleteCompany = (companyId) => {
-    return dispatch(deleteCompany(companyId)).unwrap();
-  };
+  const submitDeleteCompany = useCallback(
+    (companyId) => dispatch(deleteCompany(companyId)).unwrap(),
+    [dispatch],
+  );
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearCompanyError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearCompanyMessage());
-  };
+  }, [dispatch]);
 
-  const saveCurrentCompany = (payload) => {
-    dispatch(setCurrentCompany(payload));
-  };
+  const saveCurrentCompany = useCallback(
+    (payload) => {
+      dispatch(setCurrentCompany(payload));
+    },
+    [dispatch],
+  );
 
-  const removeCurrentCompany = () => {
+  const removeCurrentCompany = useCallback(() => {
     dispatch(clearCurrentCompany());
-  };
+  }, [dispatch]);
 
-  const removeCompanies = () => {
+  const removeCompanies = useCallback(() => {
     dispatch(clearCompanies());
-  };
+  }, [dispatch]);
 
-  const removeManagedCompany = () => {
+  const removeManagedCompany = useCallback(() => {
     dispatch(clearManagedCompany());
-  };
+  }, [dispatch]);
 
   return {
     companies,
     currentCompany,
-    managedCompany, // Exposed management state
+    managedCompany,
 
     status,
     error,
@@ -126,7 +136,7 @@ const useCompany = () => {
     setCurrentCompany: saveCurrentCompany,
     clearCurrentCompany: removeCurrentCompany,
     clearCompanies: removeCompanies,
-    clearManagedCompany: removeManagedCompany, // Clean-up handler for pages
+    clearManagedCompany: removeManagedCompany,
   };
 };
 

@@ -42,6 +42,10 @@ const accessControlService = {
     return apiClient.get(ENDPOINTS.ACCESS_CONTROL.MEMBER_ACCESS);
   },
 
+  getMyAccess() {
+    return apiClient.get(ENDPOINTS.ACCESS_CONTROL.MEMBER_ACCESS_ME);
+  },
+
   getMemberAccess(memberUserId) {
     return apiClient.get(
       ENDPOINTS.ACCESS_CONTROL.MEMBER_ACCESS_BY_USER_ID(memberUserId),

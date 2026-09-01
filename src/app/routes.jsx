@@ -8,12 +8,10 @@ import {
   AppLayout,
 } from "@/layouts";
 
-import { GuestRoute, ProtectedRoute, WorkspaceRequiredRoute } from "@/guards";
+import { GuestRoute, ProtectedRoute, WorkspaceRequiredRoute, PermissionGuard } from "@/guards";
 
 import authRoutes from "@/features/auth/routes/authRoutes";
 import userRoutes from "@/features/user/routes/userRoutes";
-
-import { RegisterPage } from "@/features/auth/pages";
 
 import { AcceptInvitationPage } from "@/features/workspace/pages";
 import workspaceRoutes from "@/features/workspace/routes/workspaceRoutes";
@@ -66,20 +64,74 @@ import financialPeriodRoutes from "@/features/finance/financial-periods/routes/f
 import ledgerRoutes from "@/features/finance/ledger/routes/ledgerRoutes";
 import reportsRoutes from "@/features/finance/reports/routes/reportsRoutes";
 
+import salesRoutes from "@/features/sales/routes/salesRoutes";
+import billingRoutes from "@/features/billing/routes/billingRoutes";
+import purchasesRoutes from "@/features/purchases/routes/purchasesRoutes";
+import helpCenterRoutes from "@/features/help-center/routes/helpCenterRoutes";
+
 const NotFoundPage = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface px-4">
       <div className="text-center">
         <h1 className="text-6xl font-bold text-primary">404</h1>
-
         <p className="mt-3 text-lg font-medium text-text">Page Not Found</p>
-
         <p className="mt-2 text-sm text-text-muted">
           The page you are looking for does not exist.
         </p>
       </div>
     </div>
   );
+};
+
+/**
+ * Guards a list of routes with action-level granularity:
+ * - If route path contains /create, /invite, /import, or /new -> `${domain}:create`
+ * - If route path contains /edit, /settings, or /assign -> `${domain}:update`
+ * - Otherwise -> `${domain}:view`
+ */
+const guardRouteList = (routeList, baseDomain, overrides = {}) => {
+  return routeList.map((route) => {
+    if (overrides[route.path]) {
+      const perm = overrides[route.path];
+      return {
+        ...route,
+        element: Array.isArray(perm) ? (
+          <PermissionGuard permissions={perm}>{route.element}</PermissionGuard>
+        ) : (
+          <PermissionGuard permission={perm}>{route.element}</PermissionGuard>
+        ),
+      };
+    }
+
+    const pathStr = String(route.path || "").toLowerCase();
+    let action = "view";
+
+    if (
+      pathStr.includes("/create") ||
+      pathStr.includes("/invite") ||
+      pathStr.includes("/import") ||
+      pathStr.includes("/new")
+    ) {
+      action = "create";
+    } else if (
+      pathStr.includes("/edit") ||
+      pathStr.includes("/settings") ||
+      pathStr.includes("/assign")
+    ) {
+      action = "update";
+    }
+
+    const permissionKey = `${baseDomain}:${action}`;
+
+    return {
+      ...route,
+      element: (
+        <PermissionGuard permission={permissionKey}>
+          {route.element}
+        </PermissionGuard>
+      ),
+    };
+  });
 };
 
 export const router = createBrowserRouter([
@@ -154,8 +206,6 @@ export const router = createBrowserRouter([
     element: <AcceptInvitationPage />,
   },
 
-
-
   // Setup + User
   {
     element: (
@@ -179,50 +229,197 @@ export const router = createBrowserRouter([
       ...dashboardRoutes,
       ...settingsRoutes,
 
-      ...workspaceRoutes,
-      ...companyRoutes,
-      ...branchRoutes,
-      ...accessControlRoutes,
-      ...partiesRoutes,
-      ...subscriptionRoutes,
-      ...customerRoutes,
-      ...supplierRoutes,
+      // Organization & Members
+      ...guardRouteList(workspaceRoutes, "workspace", {
+        [ROUTES.WORKSPACE_MEMBERS]: "workspace-member:view",
+        "/members/:memberId": "workspace-member:view",
+        [ROUTES.WORKSPACE_INVITATIONS]: "workspace-member:view",
+        [ROUTES.INVITE_WORKSPACE_MEMBER]: "workspace-member:create",
+      }),
+      ...guardRouteList(companyRoutes, "company"),
+      ...guardRouteList(branchRoutes, "branch"),
 
-      ...financeRoutes,
-      ...chartOfAccountsRoutes,
-      ...journalVoucherRoutes,
-      ...accountGroupRoutes,
-      ...accountRoutes,
-      ...accountBalanceRoutes,
-      ...financialPeriodRoutes,
-      ...ledgerRoutes,
-      ...reportsRoutes,
+      // Access Control
+      ...guardRouteList(accessControlRoutes, "role", {
+        [ROUTES.ASSIGN_ROLE]: "member-access:update",
+        [ROUTES.EDIT_ACCESS]: "member-access:update",
+        [ROUTES.MEMBER_ACCESS]: "role:view",
+        [ROUTES.ASSIGN_ACCESS]: "role:view",
+      }),
 
-      ...treasuryRoutes,
-      ...fundTransferRoutes,
-      ...chequeRoutes,
-      ...bankAccountRoutes,
-      ...cashAccountRoutes,
-      ...paymentQrRoutes,
-      ...bankSlipRoutes,
-      ...bankTransactionRoutes,
-      ...cashTransactionRoutes,
-      ...cashDenominationRoutes,
+      // Parties
+      ...partiesRoutes.map((route) => ({
+        ...route,
+        element: (
+          <PermissionGuard permissions={["customer:view", "supplier:view"]}>
+            {route.element}
+          </PermissionGuard>
+        ),
+      })),
+      ...guardRouteList(customerRoutes, "customer"),
+      ...guardRouteList(supplierRoutes, "supplier"),
 
-      // Catalog
-      ...catalogRoutes,
-      ...workspaceProductRoutes,
-      ...globalProductRoutes,
-      ...hsnMasterRoutes,
-      ...manufacturerMasterRoutes,
-      ...uomMasterRoutes,
-      ...categoryMasterRoutes,
-      ...productFormMasterRoutes,
-      ...saltMasterRoutes,
-      ...bankMasterRoutes,
+      // Subscriptions
+      ...subscriptionRoutes.map((route) => ({
+        ...route,
+        element: (
+          <PermissionGuard permission="subscription:view">
+            {route.element}
+          </PermissionGuard>
+        ),
+      })),
+
+      // Finance & Chart of Accounts
+      ...financeRoutes.map((route) => ({
+        ...route,
+        element: (
+          <PermissionGuard
+            permissions={[
+              "account:view",
+              "journal-voucher:view",
+              "ledger:view",
+              "report:view",
+            ]}
+          >
+            {route.element}
+          </PermissionGuard>
+        ),
+      })),
+      ...chartOfAccountsRoutes.map((route) => ({
+        ...route,
+        element: (
+          <PermissionGuard
+            permissions={[
+              "account:view",
+              "account-group:view",
+              "account-balance:view",
+            ]}
+          >
+            {route.element}
+          </PermissionGuard>
+        ),
+      })),
+      ...guardRouteList(accountRoutes, "account"),
+      ...guardRouteList(accountGroupRoutes, "account-group"),
+      ...accountBalanceRoutes.map((route) => ({
+        ...route,
+        element: (
+          <PermissionGuard permission="account-balance:view">
+            {route.element}
+          </PermissionGuard>
+        ),
+      })),
+      ...guardRouteList(financialPeriodRoutes, "financial-period"),
+      ...guardRouteList(journalVoucherRoutes, "journal-voucher"),
+      ...ledgerRoutes.map((route) => ({
+        ...route,
+        element: (
+          <PermissionGuard permission="ledger:view">
+            {route.element}
+          </PermissionGuard>
+        ),
+      })),
+      ...reportsRoutes.map((route) => ({
+        ...route,
+        element: (
+          <PermissionGuard permission="report:view">
+            {route.element}
+          </PermissionGuard>
+        ),
+      })),
+
+      // Treasury
+      ...treasuryRoutes.map((route) => ({
+        ...route,
+        element: (
+          <PermissionGuard
+            permissions={[
+              "bank-account:view",
+              "cash-account:view",
+              "fund-transfer:view",
+              "cheque:view",
+              "payment-qr:view",
+              "bank-slip:view",
+              "cash-denomination:view",
+            ]}
+          >
+            {route.element}
+          </PermissionGuard>
+        ),
+      })),
+      ...guardRouteList(bankAccountRoutes, "bank-account"),
+      ...guardRouteList(cashAccountRoutes, "cash-account"),
+      ...guardRouteList(fundTransferRoutes, "fund-transfer"),
+      ...guardRouteList(chequeRoutes, "cheque"),
+      ...guardRouteList(paymentQrRoutes, "payment-qr"),
+      ...guardRouteList(bankSlipRoutes, "bank-slip"),
+      ...bankTransactionRoutes.map((route) => ({
+        ...route,
+        element: (
+          <PermissionGuard permission="bank-transaction:view">
+            {route.element}
+          </PermissionGuard>
+        ),
+      })),
+      ...cashTransactionRoutes.map((route) => ({
+        ...route,
+        element: (
+          <PermissionGuard permission="cash-transaction:view">
+            {route.element}
+          </PermissionGuard>
+        ),
+      })),
+      ...guardRouteList(cashDenominationRoutes, "cash-denomination"),
+
+      // Inventory & Catalog
+      ...catalogRoutes.map((route) => ({
+        ...route,
+        element: (
+          <PermissionGuard
+            permissions={[
+              "product:view",
+              "global-product:view",
+              "category:view",
+              "hsn:view",
+              "manufacturer:view",
+              "salt:view",
+              "uom:view",
+              "product-form:view",
+              "bank-master:view",
+            ]}
+          >
+            {route.element}
+          </PermissionGuard>
+        ),
+      })),
+      ...guardRouteList(workspaceProductRoutes, "product"),
+      ...globalProductRoutes.map((route) => ({
+        ...route,
+        element: (
+          <PermissionGuard permission="global-product:view">
+            {route.element}
+          </PermissionGuard>
+        ),
+      })),
+      ...guardRouteList(hsnMasterRoutes, "hsn"),
+      ...guardRouteList(manufacturerMasterRoutes, "manufacturer"),
+      ...guardRouteList(uomMasterRoutes, "uom"),
+      ...guardRouteList(categoryMasterRoutes, "category"),
+      ...guardRouteList(productFormMasterRoutes, "product-form"),
+      ...guardRouteList(saltMasterRoutes, "salt"),
+      ...guardRouteList(bankMasterRoutes, "bank-master"),
+
       // Marketplace
-      ...marketplaceStoreRoutes,
-      ...marketplaceProductRoutes,
+      ...guardRouteList(marketplaceStoreRoutes, "marketplace-store"),
+      ...guardRouteList(marketplaceProductRoutes, "marketplace-product"),
+
+      // Sales & POS, Invoicing & Purchases
+      ...guardRouteList(salesRoutes, "pos"),
+      ...guardRouteList(billingRoutes, "bill"),
+      ...guardRouteList(purchasesRoutes, "purchase"),
+
+      // Help Center
+      ...helpCenterRoutes,
     ],
   },
 
@@ -231,4 +428,10 @@ export const router = createBrowserRouter([
     path: ROUTES.NOT_FOUND,
     element: <NotFoundPage />,
   },
+  {
+    path: "*",
+    element: <NotFoundPage />,
+  },
 ]);
+
+export default router;

@@ -34,7 +34,9 @@ import {
   AppTableSkeleton,
   AppTag,
   AppText,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 
 const statIcons = {
   total_products: <HiOutlineCube />,
@@ -279,18 +281,20 @@ const MarketplaceProductsDesktopPage = ({
             >
               Refresh
             </AppButton>
-            <AppButton
-              type="button"
-              variant="contained"
-              colorVariant="primary"
-              rounded="md"
-              size="small"
-              startIcon={<FiPlus />}
-              onClick={handleCreateProduct}
-              sx={primaryButtonSx}
-            >
-              Enable Product
-            </AppButton>
+            <PermissionGate permission="marketplace-product:create">
+              <AppButton
+                type="button"
+                variant="contained"
+                colorVariant="primary"
+                rounded="md"
+                size="small"
+                startIcon={<FiPlus />}
+                onClick={handleCreateProduct}
+                sx={primaryButtonSx}
+              >
+                Enable Product
+              </AppButton>
+            </PermissionGate>
           </AppStack>
         </AppBox>
 
@@ -561,17 +565,19 @@ const TableToolbar = ({
 };
 
 const RowActions = ({ product, onView, onEdit, onDelete }) => {
+  const { can } = usePermission();
+
   const items = [
     { id: "view", label: "View Details", onClick: () => onView(product) },
-    { id: "edit", label: "Edit Product", onClick: () => onEdit(product) },
-    { id: "divider", type: "divider" },
-    {
+    can("marketplace-product:update") && { id: "edit", label: "Edit Product", onClick: () => onEdit(product) },
+    can("marketplace-product:delete") && { id: "divider", type: "divider" },
+    can("marketplace-product:delete") && {
       id: "delete",
       label: "Disable Product",
       danger: true,
       onClick: () => onDelete(product),
     },
-  ];
+  ].filter(Boolean);
 
   return (
     <AppMenu

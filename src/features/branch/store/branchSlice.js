@@ -11,6 +11,7 @@ import {
 
 const initialState = {
   branches: [],
+  workspaceBranches: [],
   currentBranch: null,
   managedBranch: null,
 
@@ -44,6 +45,7 @@ const branchSlice = createSlice({
     },
     clearBranches(state) {
       state.branches = [];
+      state.workspaceBranches = [];
     },
     clearManagedBranch(state) {
       state.managedBranch = null;
@@ -61,6 +63,7 @@ const branchSlice = createSlice({
         state.createBranchStatus = API_STATUS.SUCCESS;
         if (action.payload) {
           state.branches.unshift(action.payload);
+          state.workspaceBranches.unshift(action.payload);
           state.currentBranch = action.payload;
         }
         state.message = "Branch created successfully";
@@ -93,7 +96,11 @@ const branchSlice = createSlice({
       })
       .addCase(getWorkspaceBranches.fulfilled, (state, action) => {
         state.getWorkspaceBranchesStatus = API_STATUS.SUCCESS;
-        state.branches = Array.isArray(action.payload) ? action.payload : [];
+        const list = Array.isArray(action.payload) ? action.payload : [];
+        state.workspaceBranches = list;
+        if (!state.branches?.length) {
+          state.branches = list;
+        }
         state.currentBranch = state.currentBranch || null;
         state.message = "Workspace branches fetched successfully";
       })
@@ -129,6 +136,9 @@ const branchSlice = createSlice({
         state.branches = state.branches.map((branch) =>
           branch._id === updatedBranch?._id ? updatedBranch : branch,
         );
+        state.workspaceBranches = state.workspaceBranches.map((branch) =>
+          branch._id === updatedBranch?._id ? updatedBranch : branch,
+        );
         state.managedBranch = updatedBranch || state.managedBranch;
 
         if (state.currentBranch?._id === updatedBranch?._id && updatedBranch) {
@@ -149,6 +159,9 @@ const branchSlice = createSlice({
       .addCase(deleteBranch.fulfilled, (state, action) => {
         state.deleteBranchStatus = API_STATUS.SUCCESS;
         state.branches = state.branches.filter(
+          (branch) => branch?._id !== action.meta.arg,
+        );
+        state.workspaceBranches = state.workspaceBranches.filter(
           (branch) => branch?._id !== action.meta.arg,
         );
         if (state.managedBranch?._id === action.meta.arg) {

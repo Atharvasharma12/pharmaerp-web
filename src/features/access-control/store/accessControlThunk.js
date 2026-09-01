@@ -127,6 +127,19 @@ export const getMemberAccess = createAsyncThunk(
   },
 );
 
+export const getMyAccess = createAsyncThunk(
+  "accessControl/getMyAccess",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await accessControlService.getMyAccess();
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
 export const updateMemberAccess = createAsyncThunk(
   "accessControl/updateMemberAccess",
   async ({ memberUserId, payload }, { rejectWithValue }) => {

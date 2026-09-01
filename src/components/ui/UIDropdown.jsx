@@ -16,6 +16,9 @@ export const UIDropdown = forwardRef(
   (
     {
       children,
+      open: controlledOpen,
+      defaultOpen = false,
+      onOpenChange,
       placement = "auto", // "auto" | "bottom" | "top"
       align = "auto", // "auto" | "right" | "left"
       className,
@@ -23,7 +26,21 @@ export const UIDropdown = forwardRef(
     },
     ref
   ) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const isControlled = controlledOpen !== undefined;
+    const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+    const isOpen = isControlled ? controlledOpen : uncontrolledOpen;
+
+    const setIsOpen = (valueOrUpdater) => {
+      const nextOpen =
+        typeof valueOrUpdater === "function"
+          ? valueOrUpdater(isOpen)
+          : valueOrUpdater;
+      if (!isControlled) {
+        setUncontrolledOpen(nextOpen);
+      }
+      onOpenChange?.(nextOpen);
+    };
+
     const [resolvedPlacement, setResolvedPlacement] = useState("bottom");
     const [resolvedAlign, setResolvedAlign] = useState("right");
     const containerRef = useRef(null);

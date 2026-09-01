@@ -438,6 +438,8 @@ export const ENDPOINTS = {
     // Member Access
     MEMBER_ACCESS: "/core/access-control/member-access",
 
+    MEMBER_ACCESS_ME: "/core/access-control/member-access/me",
+
     MEMBER_ACCESS_BY_USER_ID: (memberUserId) =>
       `/core/access-control/member-access/${memberUserId}`,
 

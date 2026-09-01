@@ -31,7 +31,9 @@ import {
   AppMenu,
   PageHeader,
   AppTablePagination,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 import { ROUTES } from "@/constants";
 
 const providerOptions = [
@@ -78,6 +80,7 @@ const PaymentQrsDesktopPage = ({
   clearMessage,
 }) => {
   const navigate = useNavigate();
+  const { can } = usePermission();
   const hasFilteredQrs = pagedQrs.length > 0;
 
   const handleCopyUpiId = (upiId) => {
@@ -198,15 +201,15 @@ const PaymentQrsDesktopPage = ({
               icon: <FiEye />,
               onClick: () => handleViewDetails(row._id),
             },
-            {
+            can("payment-qr:update") && {
               id: "edit",
-              label: "Edit",
+              label: "Edit Configuration",
               icon: <FiEdit2 />,
               onClick: () => handleEditQr(row._id),
             },
-          ];
+          ].filter(Boolean);
 
-          if (!row.isPrimary) {
+          if (!row.isPrimary && can("payment-qr:update")) {
             menuItems.push({
               id: "set-primary",
               label: "Set As Primary",
@@ -215,12 +218,15 @@ const PaymentQrsDesktopPage = ({
             });
           }
 
-          menuItems.push({
-            id: "delete",
-            label: "Delete",
-            icon: <FiTrash2 />,
-            onClick: () => handleDeleteQr(row._id),
-          });
+          if (can("payment-qr:delete")) {
+            menuItems.push({
+              id: "delete",
+              label: "Delete Register",
+              icon: <FiTrash2 />,
+              danger: true,
+              onClick: () => handleDeleteQr(row._id),
+            });
+          }
 
           return (
             <AppStack direction="row" gap={0.5} justify="flex-end" align="center">
@@ -281,17 +287,19 @@ const PaymentQrsDesktopPage = ({
               >
                 Refresh
               </AppButton>
-              <AppButton
-                variant="filled"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleCreateQr}
-                sx={primaryButtonSx}
-              >
-                Add UPI QR
-              </AppButton>
+              <PermissionGate permission="payment-qr:create">
+                <AppButton
+                  variant="filled"
+                  colorVariant="success"
+                  size="small"
+                  rounded="md"
+                  startIcon={<FiPlus />}
+                  onClick={handleCreateQr}
+                  sx={primaryButtonSx}
+                >
+                  Add UPI QR
+                </AppButton>
+              </PermissionGate>
             </AppStack>
           }
           align="flex-start"

@@ -1,30 +1,20 @@
 import { ROUTES } from "@/constants";
 
 import {
-  WorkspacePage,
-  EditWorkspacePage,
-  WorkspaceDetailsPage,
   WorkspaceMembersPage,
+  WorkspaceMemberDetailsPage,
   WorkspaceInvitationsPage,
   InviteWorkspaceMemberPage,
 } from "../pages";
 
 const workspaceRoutes = [
   {
-    path: ROUTES.WORKSPACE,
-    element: <WorkspacePage />,
-  },
-  {
-    path: ROUTES.EDIT_WORKSPACE,
-    element: <EditWorkspacePage />,
-  },
-  {
-    path: ROUTES.WORKSPACE_DETAILS,
-    element: <WorkspaceDetailsPage />,
-  },
-  {
     path: ROUTES.WORKSPACE_MEMBERS,
     element: <WorkspaceMembersPage />,
+  },
+  {
+    path: "/members/:memberId",
+    element: <WorkspaceMemberDetailsPage />,
   },
   {
     path: ROUTES.WORKSPACE_INVITATIONS,

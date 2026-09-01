@@ -59,3 +59,8 @@ export const selectCheckCompanyAccessStatus = (state) =>
 
 export const selectCheckBranchAccessStatus = (state) =>
   state.accessControl.checkBranchAccessStatus;
+
+export const selectMyAccess = (state) => state.accessControl.myAccess;
+
+export const selectGetMyAccessStatus = (state) =>
+  state.accessControl.getMyAccessStatus;

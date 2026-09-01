@@ -1,11 +1,15 @@
 import { ROUTES } from "@/constants";
-
+import { PermissionGuard } from "@/guards";
 import { SetupCenterPage } from "../pages";
 
 const setupRoutes = [
   {
     path: ROUTES.SETUP_CENTER,
-    element: <SetupCenterPage />,
+    element: (
+      <PermissionGuard requireOwner>
+        <SetupCenterPage />
+      </PermissionGuard>
+    ),
   },
 ];
 

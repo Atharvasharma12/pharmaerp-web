@@ -32,7 +32,9 @@ import {
   AppText,
   PageHeader,
   AppMenu,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 
 const statusFilterOptions = [
   { label: "All Statuses", value: "all" },
@@ -150,29 +152,30 @@ const CashAccountsDesktopPage = ({
       minWidth: 80,
       align: "right",
       render: (_, account) => {
+        const { can } = usePermission();
         const menuItems = [
           {
             id: "view",
-            label: "View Details",
+            label: "View Ledger",
             icon: <FiEye />,
             onClick: () => handleViewDetails(account),
           },
-          {
+          can("cash-account:update") && {
             id: "edit",
             label: "Edit Account",
             icon: <FiEdit2 />,
             onClick: () => handleEditAccount(account),
           },
-          {
+          can("cash-account:delete") && {
             id: "delete",
             label: "Delete Account",
             icon: <FiTrash2 />,
             danger: true,
             onClick: () => handleDeleteAccount(account),
           },
-        ];
+        ].filter(Boolean);
 
-        if (!account?.isPrimary) {
+        if (!account.isPrimary && can("cash-account:update")) {
           menuItems.unshift({
             id: "set-primary",
             label: "Set as Primary",
@@ -245,19 +248,21 @@ const CashAccountsDesktopPage = ({
               disabled={isLoading}
               sx={refreshBtnSx}
             />
-            <AppButton
-              type="button"
-              variant="filled"
-              colorVariant="primary"
-              rounded="md"
-              size="small"
-              startIcon={<FiPlus />}
-              onClick={handleCreateAccount}
-              disabled={isLoading}
-              sx={addAccountBtnSx}
-            >
-              Add Cash Account
-            </AppButton>
+            <PermissionGate permission="cash-account:create">
+              <AppButton
+                type="button"
+                variant="filled"
+                colorVariant="primary"
+                rounded="md"
+                size="small"
+                startIcon={<FiPlus />}
+                onClick={handleCreateAccount}
+                disabled={isLoading}
+                sx={addAccountBtnSx}
+              >
+                Add Cash Account
+              </AppButton>
+            </PermissionGate>
           </AppStack>
         </div>
 

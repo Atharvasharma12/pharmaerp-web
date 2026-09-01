@@ -27,7 +27,9 @@ import {
   AppMenu,
   AppEmptyState,
   AppAlert,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 import { formatDate } from "@/utils";
 
 const typeOptions = [
@@ -208,31 +210,50 @@ const FinancialPeriodsDesktopPage = ({
       label: "Actions",
       align: "center",
       minWidth: 180,
-      render: (_, p) => (
-        <AppStack direction="row" gap={1} justify="center" align="center">
-          {p.status === "OPEN" && (
-            <AppButton
-              size="tiny"
-              variant="outlined"
-              colorVariant="warning"
-              onClick={() => handleUpdateStatus(p._id, "CLOSED")}
-              disabled={isUpdating}
-            >
-              Close Period
-            </AppButton>
-          )}
+      render: (_, p) => {
+        const { can } = usePermission();
+        if (!can("financial-period:update")) {
+          return <AppText variant="body2" sx={tableValueMutedSx}>-</AppText>;
+        }
 
-          {p.status === "CLOSED" && (
-            <>
+        return (
+          <AppStack direction="row" gap={1} justify="center" align="center">
+            {p.status === "OPEN" && (
               <AppButton
                 size="tiny"
                 variant="outlined"
-                colorVariant="danger"
-                onClick={() => handleUpdateStatus(p._id, "LOCKED")}
+                colorVariant="warning"
+                onClick={() => handleUpdateStatus(p._id, "CLOSED")}
                 disabled={isUpdating}
               >
-                Lock Period
+                Close Period
               </AppButton>
+            )}
+
+            {p.status === "CLOSED" && (
+              <>
+                <AppButton
+                  size="tiny"
+                  variant="outlined"
+                  colorVariant="danger"
+                  onClick={() => handleUpdateStatus(p._id, "LOCKED")}
+                  disabled={isUpdating}
+                >
+                  Lock Period
+                </AppButton>
+                <AppButton
+                  size="tiny"
+                  variant="outlined"
+                  colorVariant="neutral"
+                  onClick={() => handleUpdateStatus(p._id, "OPEN")}
+                  disabled={isUpdating}
+                >
+                  Re-Open
+                </AppButton>
+              </>
+            )}
+
+            {p.status === "LOCKED" && (
               <AppButton
                 size="tiny"
                 variant="outlined"
@@ -240,12 +261,12 @@ const FinancialPeriodsDesktopPage = ({
                 onClick={() => handleUpdateStatus(p._id, "OPEN")}
                 disabled={isUpdating}
               >
-                Reopen
+                Unlock to Open
               </AppButton>
-            </>
-          )}
-        </AppStack>
-      ),
+            )}
+          </AppStack>
+        );
+      },
     },
   ], [isUpdating, handleUpdateStatus]);
 
@@ -301,19 +322,21 @@ const FinancialPeriodsDesktopPage = ({
             >
               Refresh
             </AppButton>
-            <AppButton
-              type="button"
-              variant="contained"
-              colorVariant="primary"
-              rounded="md"
-              size="small"
-              startIcon={<FiPlus />}
-              onClick={handleCreate}
-              disabled={isLoading}
-              sx={primaryButtonSx}
-            >
-              Create Period
-            </AppButton>
+            <PermissionGate permission="financial-period:create">
+              <AppButton
+                type="button"
+                variant="contained"
+                colorVariant="primary"
+                rounded="md"
+                size="small"
+                startIcon={<FiPlus />}
+                onClick={handleCreate}
+                disabled={isLoading}
+                sx={primaryButtonSx}
+              >
+                Create Period
+              </AppButton>
+            </PermissionGate>
           </AppStack>
         </AppBox>
 

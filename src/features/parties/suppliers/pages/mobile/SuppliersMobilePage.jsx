@@ -33,6 +33,7 @@ import {
   AppStatusBadge,
   AppTag,
   AppText,
+  PermissionGate,
 } from "@/components";
 
 const typeColorMap = {
@@ -115,17 +116,19 @@ const SuppliersMobilePage = ({
                 disabled={isLoading}
                 sx={actionHeaderIconBtnSx}
               />
-              <AppButton
-                variant="contained"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleCreateSupplier}
-                sx={addSupplierBtnSx}
-              >
-                Add
-              </AppButton>
+              <PermissionGate permission="supplier:create">
+                <AppButton
+                  variant="contained"
+                  colorVariant="success"
+                  size="small"
+                  rounded="md"
+                  startIcon={<FiPlus />}
+                  onClick={handleCreateSupplier}
+                  sx={addSupplierBtnSx}
+                >
+                  Add
+                </AppButton>
+              </PermissionGate>
             </AppStack>
           </AppStack>
         </AppBox>

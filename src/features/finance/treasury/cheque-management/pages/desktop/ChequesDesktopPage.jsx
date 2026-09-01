@@ -27,6 +27,7 @@ import {
   AppTable,
   AppMenu,
   PageHeader,
+  PermissionGate,
 } from "@/components";
 import { ROUTES } from "@/constants";
 import { formatCurrency, formatDate } from "@/utils";
@@ -303,17 +304,19 @@ const ChequesDesktopPage = ({
               >
                 Refresh
               </AppButton>
-              <AppButton
-                variant="filled"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleCreateNew}
-                sx={primaryButtonSx}
-              >
-                New Cheque
-              </AppButton>
+              <PermissionGate permission="cheque:create">
+                <AppButton
+                  variant="filled"
+                  colorVariant="success"
+                  size="small"
+                  rounded="md"
+                  startIcon={<FiPlus />}
+                  onClick={handleCreateNew}
+                  sx={primaryButtonSx}
+                >
+                  New Cheque
+                </AppButton>
+              </PermissionGate>
             </AppStack>
           }
           align="flex-start"

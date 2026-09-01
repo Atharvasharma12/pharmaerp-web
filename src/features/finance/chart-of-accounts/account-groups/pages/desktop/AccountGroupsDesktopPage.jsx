@@ -30,11 +30,13 @@ import {
   AppSelect,
   AppStack,
   AppStatusBadge,
-  AppTable,
+  AppTag,
   AppText,
   PageHeader,
   AppMenu,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 
 // Map status to badge color
 const statusColorMap = {
@@ -88,18 +90,20 @@ const GroupsTableToolbar = ({
         inputSx={filterInputSx}
       />
     </div>
-    <AppButton
-      type="button"
-      variant="contained"
-      colorVariant="success"
-      rounded="md"
-      size="small"
-      startIcon={<FiPlus />}
-      onClick={handleCreateGroup}
-      sx={addButtonSx}
-    >
-      Add Account Group
-    </AppButton>
+    <PermissionGate permission="account-group:create">
+      <AppButton
+        type="button"
+        variant="contained"
+        colorVariant="success"
+        rounded="md"
+        size="small"
+        startIcon={<FiPlus />}
+        onClick={handleCreateGroup}
+        sx={addButtonSx}
+      >
+        Add Account Group
+      </AppButton>
+    </PermissionGate>
   </div>
 );
 

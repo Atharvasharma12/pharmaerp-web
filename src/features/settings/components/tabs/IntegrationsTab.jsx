@@ -6,6 +6,7 @@ import {
   UICardTitle,
   UICardDescription,
   UICardContent,
+  PermissionGate,
 } from "@/components/ui";
 
 const INITIAL_INTEGRATIONS = [
@@ -128,14 +129,16 @@ const IntegrationsTab = () => {
                     </span>
                   )}
 
-                  <UIButton
-                    type="button"
-                    variant={app.connected ? "destructive" : "secondary"}
-                    size="xs"
-                    onClick={() => toggleConnection(app.id)}
-                  >
-                    {app.connected ? "Disconnect" : "Connect"}
-                  </UIButton>
+                  <PermissionGate permission="workspace:update">
+                    <UIButton
+                      type="button"
+                      variant={app.connected ? "destructive" : "secondary"}
+                      size="xs"
+                      onClick={() => toggleConnection(app.id)}
+                    >
+                      {app.connected ? "Disconnect" : "Connect"}
+                    </UIButton>
+                  </PermissionGate>
                 </div>
               </div>
             ))}

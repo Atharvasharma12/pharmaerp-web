@@ -1,14 +1,16 @@
 // src/features/workspace/pages/WorkspaceMembersPage.jsx
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import { AppConfirmModal } from "@/components";
+import { UIConfirmDialog } from "@/components/ui";
 import { ResetMemberPasswordModal } from "../components";
 
 import useWorkspace from "../hooks/useWorkspace";
+import useCompany from "@/features/company/hooks/useCompany";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 import WorkspaceMembersDesktopPage from "./desktop/WorkspaceMembersDesktopPage";
 import WorkspaceMembersMobilePage from "./mobile/WorkspaceMembersMobilePage";
@@ -25,6 +27,7 @@ const roleOptions = [
   { label: "Owner", value: "owner" },
   { label: "Admin", value: "admin" },
   { label: "Manager", value: "manager" },
+  { label: "Pharmacist", value: "pharmacist" },
   { label: "Staff", value: "staff" },
 ];
 
@@ -156,10 +159,42 @@ const WorkspaceMembersPage = () => {
     clearMessage,
   } = useWorkspace();
 
+  const {
+    companies,
+    getWorkspaceCompanies,
+  } = useCompany();
+
+  const {
+    branches,
+    getWorkspaceBranches,
+  } = useBranch();
+
+  const hasFetchedCompaniesRef = useRef(false);
+  const hasFetchedBranchesRef = useRef(false);
+
   const hasFetchedWorkspacesRef = useRef(false);
   const hasFetchedMembersRef = useRef(false);
 
+  const hasCompanies = useMemo(
+    () =>
+      (Array.isArray(companies) ? companies : []).filter(
+        (c) => c?.status === "active" && !c?.isDeleted,
+      ).length > 0,
+    [companies],
+  );
+
+  const hasBranches = useMemo(
+    () =>
+      (Array.isArray(branches) ? branches : []).filter(
+        (b) => b?.status === "active" && !b?.isDeleted,
+      ).length > 0,
+    [branches],
+  );
+
   const [filters, setFilters] = useState(initialFilters);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberAction, setMemberAction] = useState(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -221,6 +256,18 @@ const WorkspaceMembersPage = () => {
   }, [fetchMembers, workspaceId]);
 
   useEffect(() => {
+    if (!workspaceId || hasFetchedCompaniesRef.current) return;
+    hasFetchedCompaniesRef.current = true;
+    getWorkspaceCompanies().catch(() => {});
+  }, [getWorkspaceCompanies, workspaceId]);
+
+  useEffect(() => {
+    if (!workspaceId || hasFetchedBranchesRef.current) return;
+    hasFetchedBranchesRef.current = true;
+    getWorkspaceBranches().catch(() => {});
+  }, [getWorkspaceBranches, workspaceId]);
+
+  useEffect(() => {
     if (!message) return;
 
     const timer = window.setTimeout(() => {
@@ -254,6 +301,13 @@ const WorkspaceMembersPage = () => {
       return matchesSearch && matchesStatus && matchesRole;
     });
   }, [mappedMembers, filters]);
+
+  // Derive Paginated Members
+  const totalPages = Math.max(1, Math.ceil(filteredMembers.length / pageSize));
+  const paginatedMembers = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredMembers.slice(startIndex, startIndex + pageSize);
+  }, [filteredMembers, currentPage, pageSize]);
 
   const stats = useMemo(() => {
     const total = mappedMembers.length;
@@ -334,6 +388,7 @@ const WorkspaceMembersPage = () => {
   }, [filters]);
 
   const handleFilterChange = useCallback((eventOrValue) => {
+    setCurrentPage(1);
     if (eventOrValue?.target) {
       const { name, value } = eventOrValue.target;
 
@@ -352,6 +407,7 @@ const WorkspaceMembersPage = () => {
   }, []);
 
   const handleSearchChange = useCallback((event) => {
+    setCurrentPage(1);
     const value = event?.target?.value ?? event;
 
     setFilters((prev) => ({
@@ -361,6 +417,7 @@ const WorkspaceMembersPage = () => {
   }, []);
 
   const handleRemoveFilter = useCallback((key) => {
+    setCurrentPage(1);
     setFilters((prev) => ({
       ...prev,
       [key]: initialFilters[key],
@@ -368,7 +425,18 @@ const WorkspaceMembersPage = () => {
   }, []);
 
   const handleClearFilters = useCallback(() => {
+    setCurrentPage(1);
     setFilters(initialFilters);
+  }, []);
+
+  const handlePageChange = useCallback((newPage) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const handlePageSizeChange = useCallback((newSize) => {
+    setPageSize(newSize);
+    setCurrentPage(1);
   }, []);
 
   const handleRefresh = useCallback(() => {
@@ -387,6 +455,36 @@ const WorkspaceMembersPage = () => {
   const handleBackToWorkspace = useCallback(() => {
     navigate(ROUTES.WORKSPACE);
   }, [navigate]);
+
+  // Export CSV handler
+  const handleExportCSV = useCallback(() => {
+    if (!filteredMembers.length) return;
+
+    const headers = ["Name", "Email", "Phone", "Role", "Status", "Joined Date"];
+    const rows = filteredMembers.map((m) => [
+      `"${m.displayName.replace(/"/g, '""')}"`,
+      `"${m.displayEmail.replace(/"/g, '""')}"`,
+      `"${m.displayPhone.replace(/"/g, '""')}"`,
+      `"${m.displayRole.replace(/"/g, '""')}"`,
+      `"${m.status || "inactive"}"`,
+      `"${m.displayJoinedAt || "-"}"`,
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `workspace_members_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [filteredMembers]);
 
   const openConfirm = useCallback((member, action) => {
     if (!member || member.isOwner) return;
@@ -479,36 +577,45 @@ const WorkspaceMembersPage = () => {
     if (!selectedMember || !memberAction) {
       return {
         title: "",
-        message: "",
         description: "",
-        confirmLabel: "",
-        variant: "warning",
+        confirmText: "",
+        intent: "warning",
       };
     }
 
     if (memberAction === "remove") {
       return {
-        title: "Remove Member",
-        message: `Remove ${selectedMember.displayName} from this workspace?`,
-        description:
-          "They will immediately lose access to all store facilities and roles.",
-        confirmLabel: "Remove Member",
-        variant: "error",
+        title: "Remove Workspace Member",
+        description: `Are you sure you want to remove ${selectedMember.displayName} from this workspace? They will immediately lose access to all store facilities and roles.`,
+        confirmText: "Remove Member",
+        intent: "danger",
       };
     }
 
     return {
       title: "Update Member Status",
-      message: `Change ${selectedMember.displayName}'s status to ${memberAction}?`,
-      description: "This controls whether the member can access the workspace.",
-      confirmLabel: "Update Status",
-      variant: memberAction === "active" ? "success" : "warning",
+      description: `Change ${selectedMember.displayName}'s status to ${memberAction}? This controls whether the member can log in and access the workspace.`,
+      confirmText: "Update Status",
+      intent: memberAction === "active" ? "success" : "warning",
     };
   }, [memberAction, selectedMember]);
 
   const handleManageAccess = useCallback(
     (member) => {
-      navigate(ROUTES.ASSIGN_ACCESS);
+      const memberId = member?._id || member?.userId?._id || member?.user?._id;
+      if (memberId) {
+        navigate(ROUTES.WORKSPACE_MEMBER_DETAILS(memberId));
+      }
+    },
+    [navigate],
+  );
+
+  const handleViewMemberDetails = useCallback(
+    (member) => {
+      const memberId = member?._id || member?.userId?._id || member?.user?._id;
+      if (memberId) {
+        navigate(ROUTES.WORKSPACE_MEMBER_DETAILS(memberId));
+      }
     },
     [navigate],
   );
@@ -516,6 +623,7 @@ const WorkspaceMembersPage = () => {
   const pageProps = {
     workspace: currentWorkspace,
     members: filteredMembers,
+    paginatedMembers,
     stats,
 
     filters,
@@ -533,16 +641,26 @@ const WorkspaceMembersPage = () => {
     filteredMembersCount: filteredMembers.length,
     hasMembers: mappedMembers.length > 0,
     hasFilteredMembers: filteredMembers.length > 0,
+    hasCompanies,
+    hasBranches,
 
+    currentPage,
+    pageSize,
+    totalPages,
+
+    handlePageChange,
+    handlePageSizeChange,
     handleFilterChange,
     handleSearchChange,
     handleRemoveFilter,
     handleClearFilters,
+    handleExportCSV,
 
     handleRefresh,
     handleInviteMember,
     handleViewInvitations,
     handleBackToWorkspace,
+    handleViewMemberDetails,
     handleChangeMemberStatus,
     handleRemoveMember,
     handleManageAccess,
@@ -559,20 +677,19 @@ const WorkspaceMembersPage = () => {
         <WorkspaceMembersDesktopPage {...pageProps} />
       )}
 
-      <AppConfirmModal
-        open={isConfirmOpen}
+      {/* Modern UIConfirmDialog Primitive */}
+      <UIConfirmDialog
+        isOpen={isConfirmOpen}
         onClose={closeConfirm}
         onConfirm={handleConfirmAction}
         title={confirmConfig.title}
-        message={confirmConfig.message}
         description={confirmConfig.description}
-        variant={confirmConfig.variant}
-        confirmLabel={confirmConfig.confirmLabel}
-        cancelLabel="Cancel"
-        loading={isMutating}
-        confirmDisabled={isMutating}
-        cancelDisabled={isMutating}
-        closeOnBackdrop={!isMutating}
+        intent={confirmConfig.intent}
+        confirmText={confirmConfig.confirmText}
+        cancelText="Cancel"
+        itemName={selectedMember?.displayName}
+        itemDetails={`${selectedMember?.displayRole || "Member"} • ${selectedMember?.displayEmail || ""}`}
+        isLoading={isMutating}
       />
 
       <ResetMemberPasswordModal

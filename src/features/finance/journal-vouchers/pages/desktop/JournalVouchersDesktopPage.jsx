@@ -29,7 +29,9 @@ import {
   AppMenu,
   AppEmptyState,
   AppAlert,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 import { ROUTES } from "@/constants";
 import { formatCurrency, formatDate } from "@/utils";
 
@@ -309,19 +311,21 @@ const JournalVouchersDesktopPage = ({
             >
               Refresh
             </AppButton>
-            <AppButton
-              type="button"
-              variant="contained"
-              colorVariant="primary"
-              rounded="md"
-              size="small"
-              startIcon={<FiPlus />}
-              onClick={handleCreate}
-              disabled={isLoading}
-              sx={primaryButtonSx}
-            >
-              Create Voucher
-            </AppButton>
+            <PermissionGate permission="journal-voucher:create">
+              <AppButton
+                type="button"
+                variant="contained"
+                colorVariant="primary"
+                rounded="md"
+                size="small"
+                startIcon={<FiPlus />}
+                onClick={handleCreate}
+                disabled={isLoading}
+                sx={primaryButtonSx}
+              >
+                Create Voucher
+              </AppButton>
+            </PermissionGate>
           </AppStack>
         </AppBox>
 
@@ -466,10 +470,12 @@ const JournalVouchersDesktopPage = ({
 };
 
 const RowActions = ({ voucher, onView, onEdit }) => {
+  const { can } = usePermission();
+
   const items = [
     { id: "view", label: "View Details", icon: <FiEye />, onClick: () => onView(voucher._id) },
-    { id: "edit", label: "Edit Voucher", icon: <FiEdit2 />, onClick: () => onEdit(voucher) },
-  ];
+    can("journal-voucher:update") && { id: "edit", label: "Edit Voucher", icon: <FiEdit2 />, onClick: () => onEdit(voucher) },
+  ].filter(Boolean);
 
   return (
     <AppMenu

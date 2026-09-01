@@ -45,7 +45,9 @@ import {
   AppText,
   HELP_SUPPORT_CARD,
   PageRightSidebar,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 
 const typeColorMap = {
   retail: "success",
@@ -280,18 +282,20 @@ const CustomersDesktopPage = ({
             >
               Refresh
             </AppButton>
-            <AppButton
-              type="button"
-              variant="contained"
-              colorVariant="success"
-              rounded="md"
-              size="small"
-              startIcon={<FiPlus />}
-              onClick={handleCreateCustomer}
-              sx={primaryButtonSx}
-            >
-              Add Customer
-            </AppButton>
+            <PermissionGate permission="customer:create">
+              <AppButton
+                type="button"
+                variant="contained"
+                colorVariant="success"
+                rounded="md"
+                size="small"
+                startIcon={<FiPlus />}
+                onClick={handleCreateCustomer}
+                sx={primaryButtonSx}
+              >
+                Add Customer
+              </AppButton>
+            </PermissionGate>
           </AppStack>
         </AppBox>
 
@@ -523,18 +527,20 @@ const TableToolbar = ({
 );
 
 const CustomerActions = ({ customer, onView, onEdit, onDelete }) => {
+  const { can } = usePermission();
+
   const items = [
     { id: "view", label: "View Details", icon: <FiEye />, onClick: () => onView?.(customer) },
-    { id: "edit", label: "Edit Customer", icon: <FiEdit2 />, onClick: () => onEdit?.(customer) },
-    { id: "divider", type: "divider" },
-    {
+    can("customer:update") && { id: "edit", label: "Edit Customer", icon: <FiEdit2 />, onClick: () => onEdit?.(customer) },
+    can("customer:delete") && { id: "divider", type: "divider" },
+    can("customer:delete") && {
       id: "remove",
       label: "Remove Profile",
       icon: <FiTrash2 />,
       danger: true,
       onClick: () => onDelete?.(customer),
     },
-  ];
+  ].filter(Boolean);
 
   return (
     <AppMenu

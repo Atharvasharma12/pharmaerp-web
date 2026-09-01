@@ -8,15 +8,15 @@ import {
   Search,
   X,
   ChevronRight,
-  Layers,
-  ExternalLink,
 } from "lucide-react";
 
 import { ROUTES } from "@/constants";
+import { usePermission } from "@/hooks";
 import {
   HeaderNotifications,
   HeaderProfileDropdown,
 } from "@/layouts/app/components/header";
+import { getAccessibleSearchCommands } from "@/layouts/app/components/header/accessibleSearchCommands";
 import { UIIconButton } from "@/components/ui";
 
 const getPageTitle = (pathname) => {
@@ -44,22 +44,21 @@ const getPageTitle = (pathname) => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-const QUICK_COMMANDS = [
-  { label: "Dashboard", path: ROUTES.DASHBOARD, icon: Layers },
-  { label: "Products Catalog", path: ROUTES.WORKSPACE_PRODUCTS, icon: Layers },
-  { label: "Create Company", path: ROUTES.CREATE_COMPANY, icon: ExternalLink },
-  { label: "Create Branch", path: ROUTES.CREATE_BRANCH, icon: ExternalLink },
-];
-
 const AppMobileHeader = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { can, canAny, isOwner } = usePermission();
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef(null);
 
   const pageTitle = useMemo(() => getPageTitle(location.pathname), [location.pathname]);
+
+  // Compute all commands accessible to the user
+  const accessibleCommands = useMemo(() => {
+    return getAccessibleSearchCommands(can, canAny, isOwner);
+  }, [can, canAny, isOwner]);
 
   useEffect(() => {
     if (searchOpen) {
@@ -68,11 +67,17 @@ const AppMobileHeader = ({ onMenuClick }) => {
   }, [searchOpen]);
 
   const filteredCommands = useMemo(() => {
-    if (!searchQuery.trim()) return QUICK_COMMANDS;
-    return QUICK_COMMANDS.filter((cmd) =>
-      cmd.label.toLowerCase().includes(searchQuery.toLowerCase())
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) {
+      return accessibleCommands.slice(0, 6);
+    }
+    return accessibleCommands.filter(
+      (cmd) =>
+        cmd.label.toLowerCase().includes(query) ||
+        (cmd.fullLabel && cmd.fullLabel.toLowerCase().includes(query)) ||
+        (cmd.category && cmd.category.toLowerCase().includes(query))
     );
-  }, [searchQuery]);
+  }, [accessibleCommands, searchQuery]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur-md">
@@ -158,13 +163,13 @@ const AppMobileHeader = ({ onMenuClick }) => {
 
             {/* Filtered Mobile Commands */}
             {searchQuery && (
-              <div className="mt-2 max-h-[160px] overflow-y-auto space-y-0.5">
+              <div className="mt-2 max-h-[180px] overflow-y-auto space-y-0.5">
                 {filteredCommands.length ? (
                   filteredCommands.map((cmd) => {
                     const Icon = cmd.icon;
                     return (
                       <button
-                        key={cmd.label}
+                        key={cmd.id || cmd.path || cmd.label}
                         type="button"
                         onClick={() => {
                           navigate(cmd.path);
@@ -173,11 +178,13 @@ const AppMobileHeader = ({ onMenuClick }) => {
                         }}
                         className="flex w-full items-center justify-between rounded-[6px] px-2 py-1.5 text-xs text-text hover:bg-surface-hover"
                       >
-                        <div className="flex items-center gap-2">
-                          <Icon className="size-3.5 text-primary" />
-                          <span>{cmd.label}</span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex size-5 shrink-0 items-center justify-center rounded bg-primary/10 text-primary">
+                            <Icon className="size-3" />
+                          </div>
+                          <span className="truncate">{cmd.label}</span>
                         </div>
-                        <ChevronRight className="size-3 text-text-muted" />
+                        <ChevronRight className="size-3 shrink-0 text-text-muted" />
                       </button>
                     );
                   })

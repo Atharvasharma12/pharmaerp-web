@@ -3,29 +3,15 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Search,
-  ChevronRight,
-  Layers,
-  ExternalLink,
-  User,
-  Settings,
-  X,
-} from "lucide-react";
+import { Search, ChevronRight, X } from "lucide-react";
 
-import { ROUTES } from "@/constants";
-
-const QUICK_COMMANDS = [
-  { label: "Dashboard", path: ROUTES.DASHBOARD, icon: Layers },
-  { label: "Products Catalog", path: ROUTES.WORKSPACE_PRODUCTS, icon: Layers },
-  { label: "Create Company", path: ROUTES.CREATE_COMPANY, icon: ExternalLink },
-  { label: "Create Branch", path: ROUTES.CREATE_BRANCH, icon: ExternalLink },
-  { label: "Manage Customers", path: ROUTES.CUSTOMERS, icon: User },
-  { label: "Account Settings", path: ROUTES.SETTINGS, icon: Settings },
-];
+import { usePermission } from "@/hooks";
+import { getAccessibleSearchCommands } from "./accessibleSearchCommands";
 
 const HeaderSearchBar = ({ className = "" }) => {
   const navigate = useNavigate();
+  const { can, canAny, isOwner } = usePermission();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -39,12 +25,25 @@ const HeaderSearchBar = ({ className = "" }) => {
     navigator.platform?.toUpperCase().indexOf("MAC") >= 0;
   const shortcutText = isMac ? "⌘ F" : "Ctrl + K";
 
+  // Compute all commands the current user is permitted to see
+  const accessibleCommands = useMemo(() => {
+    return getAccessibleSearchCommands(can, canAny, isOwner);
+  }, [can, canAny, isOwner]);
+
+  // Filter commands by user query
   const filteredCommands = useMemo(() => {
-    if (!searchQuery.trim()) return QUICK_COMMANDS;
-    return QUICK_COMMANDS.filter((cmd) =>
-      cmd.label.toLowerCase().includes(searchQuery.toLowerCase())
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) {
+      // Show default top accessible navigation & quick actions
+      return accessibleCommands.slice(0, 8);
+    }
+    return accessibleCommands.filter(
+      (cmd) =>
+        cmd.label.toLowerCase().includes(query) ||
+        (cmd.fullLabel && cmd.fullLabel.toLowerCase().includes(query)) ||
+        (cmd.category && cmd.category.toLowerCase().includes(query))
     );
-  }, [searchQuery]);
+  }, [accessibleCommands, searchQuery]);
 
   // Reset selectedIndex whenever filtered items change or popover opens
   useEffect(() => {
@@ -172,7 +171,7 @@ const HeaderSearchBar = ({ className = "" }) => {
 
             <div
               ref={commandListRef}
-              className="max-h-[240px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-0.5 pt-1"
+              className="max-h-[260px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-0.5 pt-1"
             >
               {filteredCommands.length ? (
                 filteredCommands.map((cmd, idx) => {
@@ -180,7 +179,7 @@ const HeaderSearchBar = ({ className = "" }) => {
                   const isSelected = idx === selectedIndex;
                   return (
                     <button
-                      key={cmd.label}
+                      key={cmd.id || cmd.path || cmd.label}
                       type="button"
                       onMouseEnter={() => setSelectedIndex(idx)}
                       onClick={() => handleSelectCommand(cmd.path)}
@@ -190,9 +189,9 @@ const HeaderSearchBar = ({ className = "" }) => {
                           : "text-text hover:bg-surface-hover"
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <div
-                          className={`flex size-6 items-center justify-center rounded-[5px] transition ${
+                          className={`flex size-6 shrink-0 items-center justify-center rounded-[5px] transition ${
                             isSelected
                               ? "bg-primary text-white shadow-2xs"
                               : "bg-primary/10 text-primary"
@@ -200,10 +199,17 @@ const HeaderSearchBar = ({ className = "" }) => {
                         >
                           <Icon className="size-3.5" />
                         </div>
-                        <span>{cmd.label}</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate">{cmd.label}</span>
+                          {cmd.fullLabel && cmd.fullLabel !== cmd.label && (
+                            <span className="text-[10px] text-text-muted/70 truncate">
+                              {cmd.fullLabel}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <ChevronRight
-                        className={`size-3.5 transition-transform ${
+                        className={`size-3.5 shrink-0 transition-transform ${
                           isSelected ? "text-primary translate-x-0.5" : "text-text-muted/60"
                         }`}
                       />
@@ -212,7 +218,7 @@ const HeaderSearchBar = ({ className = "" }) => {
                 })
               ) : (
                 <div className="py-4 text-center text-xs text-text-muted">
-                  No matching commands found for "{searchQuery}"
+                  No matching commands found for &quot;{searchQuery}&quot;
                 </div>
               )}
             </div>

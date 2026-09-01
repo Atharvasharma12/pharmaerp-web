@@ -23,10 +23,13 @@ import {
   AppSelect,
   AppStack,
   AppTable,
+  AppTag,
   AppText,
   AppMenu,
   PageHeader,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 import { formatDate } from "@/utils";
 
 const transferTypeOptions = [
@@ -235,7 +238,7 @@ const FundTransfersDesktopPage = ({
             },
           ];
 
-          if (t.status !== "CANCELLED") {
+          if (t.status !== "CANCELLED" && can("fund-transfer:update")) {
             menuItems.push({
               id: "cancel",
               label: "Cancel Transfer",
@@ -321,17 +324,19 @@ const FundTransfersDesktopPage = ({
               >
                 Refresh
               </AppButton>
-              <AppButton
-                variant="filled"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleCreateNew}
-                sx={primaryButtonSx}
-              >
-                New Transfer
-              </AppButton>
+              <PermissionGate permission="fund-transfer:create">
+                <AppButton
+                  variant="filled"
+                  colorVariant="success"
+                  size="small"
+                  rounded="md"
+                  startIcon={<FiPlus />}
+                  onClick={handleCreateNew}
+                  sx={primaryButtonSx}
+                >
+                  New Transfer
+                </AppButton>
+              </PermissionGate>
             </AppStack>
           }
           align="flex-start"

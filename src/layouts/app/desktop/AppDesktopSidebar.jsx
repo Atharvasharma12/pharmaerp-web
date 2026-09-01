@@ -1,10 +1,11 @@
 // src/layouts/app/desktop/AppDesktopSidebar.jsx
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants";
 import useAuth from "@/features/auth/hooks/useAuth";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import { usePermission } from "@/hooks";
 
 import {
   SIDEBAR_NAV_GROUPS,
@@ -13,6 +14,7 @@ import {
   SidebarUserProfile,
   SidebarScrollArea,
 } from "../components/sidebar";
+import { filterNavByPermission } from "../components/sidebar/filterNavByPermission";
 
 const SIDEBAR_EXPANDED_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 68;
@@ -26,6 +28,14 @@ const AppDesktopSidebar = ({
   const navigate = useNavigate();
   const { user, logout, clearCredentials } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  const { can, canAny, isOwner } = usePermission();
+
+  // Filter nav groups by current user's permissions and owner status
+  const visibleNavGroups = useMemo(
+    () => filterNavByPermission(SIDEBAR_NAV_GROUPS, can, canAny, isOwner),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [can, canAny, isOwner],
+  );
 
   const handleLogout = async () => {
     try {
@@ -67,7 +77,7 @@ const AppDesktopSidebar = ({
         {/* ── MIDDLE: Multi-Level Navigation Tree (WhatsApp-Style Auto-Hiding Scrollbar) ── */}
         <SidebarScrollArea className="px-2 py-2 space-y-3">
           <nav className="space-y-3">
-            {SIDEBAR_NAV_GROUPS.map((group) => (
+            {visibleNavGroups.map((group) => (
               <div key={group.id} className="space-y-0.5">
                 {/* Subtle Group Label (11px uppercase) */}
                 {!collapsed && (

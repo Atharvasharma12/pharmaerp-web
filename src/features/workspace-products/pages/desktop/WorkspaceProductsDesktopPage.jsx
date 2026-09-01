@@ -36,7 +36,11 @@ import {
   AppTableSkeleton,
   AppTag,
   AppText,
+  HELP_SUPPORT_CARD,
+  PageRightSidebar,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 
 const statIcons = {
   total_products: <HiOutlineCube />,
@@ -282,30 +286,34 @@ const WorkspaceProductsDesktopPage = ({
             >
               Refresh
             </AppButton>
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiUpload />}
-              onClick={handleImportWorkspaceProducts}
-              sx={secondaryButtonSx}
-            >
-              Import
-            </AppButton>
-            <AppButton
-              type="button"
-              variant="contained"
-              colorVariant="primary"
-              rounded="md"
-              size="small"
-              startIcon={<FiPlus />}
-              onClick={handleCreateProduct}
-              sx={primaryButtonSx}
-            >
-              Create Custom Product
-            </AppButton>
+            <PermissionGate permission="product:create">
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiUpload />}
+                onClick={handleImportWorkspaceProducts}
+                sx={secondaryButtonSx}
+              >
+                Import
+              </AppButton>
+            </PermissionGate>
+            <PermissionGate permission="product:create">
+              <AppButton
+                type="button"
+                variant="contained"
+                colorVariant="primary"
+                rounded="md"
+                size="small"
+                startIcon={<FiPlus />}
+                onClick={handleCreateProduct}
+                sx={primaryButtonSx}
+              >
+                Create Custom Product
+              </AppButton>
+            </PermissionGate>
           </AppStack>
         </AppBox>
 
@@ -552,17 +560,19 @@ const TableToolbar = ({
 };
 
 const RowActions = ({ product, onView, onEdit, onDelete }) => {
+  const { can } = usePermission();
+
   const items = [
     { id: "view", label: "View Details", onClick: () => onView(product) },
-    { id: "edit", label: "Edit Product", onClick: () => onEdit(product) },
-    { id: "divider", type: "divider" },
-    {
+    can("product:update") && { id: "edit", label: "Edit Product", onClick: () => onEdit(product) },
+    can("product:delete") && { id: "divider", type: "divider" },
+    can("product:delete") && {
       id: "delete",
       label: "Delete Product",
       danger: true,
       onClick: () => onDelete(product),
     },
-  ];
+  ].filter(Boolean);
 
   return (
     <AppMenu

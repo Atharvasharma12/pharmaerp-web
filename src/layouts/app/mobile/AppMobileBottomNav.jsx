@@ -13,36 +13,40 @@ import {
 
 import { ROUTES } from "@/constants";
 
-const navItems = [
-  {
-    label: "Dashboard",
-    path: ROUTES.SETUP_CENTER,
-    icon: <FiHome />,
-    end: true,
-  },
-  {
-    label: "Sales (POS)",
-    path: "/sales",
-    icon: <FiShoppingCart />,
-  },
-  {
-    label: "Inventory",
-    path: "/inventory",
-    icon: <FiBox />,
-  },
-  {
-    label: "Reports",
-    path: "/reports",
-    icon: <FiBarChart2 />,
-  },
-  {
-    label: "More",
-    path: "/more",
-    icon: <FiMoreHorizontal />,
-  },
-];
+import { usePermission } from "@/hooks";
 
 const AppMobileBottomNav = () => {
+  const { isOwner } = usePermission();
+
+  const navItems = [
+    {
+      label: "Dashboard",
+      path: ROUTES.DASHBOARD,
+      icon: <FiHome />,
+      end: true,
+    },
+    {
+      label: "Sales (POS)",
+      path: ROUTES.SALES,
+      icon: <FiShoppingCart />,
+    },
+    {
+      label: "Inventory",
+      path: ROUTES.WORKSPACE_PRODUCTS,
+      icon: <FiBox />,
+    },
+    {
+      label: "Reports",
+      path: ROUTES.REPORTS,
+      icon: <FiBarChart2 />,
+    },
+    {
+      label: "Settings",
+      path: ROUTES.SETTINGS,
+      icon: <FiMoreHorizontal />,
+    },
+  ];
+
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 px-2 pb-[env(safe-area-inset-bottom)] shadow-lg backdrop-blur-md">
       <div className="mx-auto grid h-[64px] max-w-md grid-cols-5 items-center">

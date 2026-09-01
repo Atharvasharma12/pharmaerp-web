@@ -1,6 +1,10 @@
+// src/features/settings/pages/desktop/SettingsDesktopPage.jsx
+
+import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Palette, Bell, Lock, CreditCard, Plug } from "lucide-react";
 import { UIPageHeader, UITabs } from "@/components/ui";
+import { usePermission } from "@/hooks";
 
 import ProfileTab from "../../components/tabs/ProfileTab";
 import AppearanceTab from "../../components/tabs/AppearanceTab";
@@ -14,11 +18,19 @@ export const SETTINGS_TABS = [
   { id: "appearance", label: "Appearance", icon: <Palette className="size-3.5" /> },
   { id: "notifications", label: "Notifications", icon: <Bell className="size-3.5" /> },
   { id: "security", label: "Security", icon: <Lock className="size-3.5" /> },
-  { id: "billing", label: "Billing", icon: <CreditCard className="size-3.5" /> },
-  { id: "integrations", label: "Integrations", icon: <Plug className="size-3.5" /> },
+  { id: "billing", label: "Billing", icon: <CreditCard className="size-3.5" />, permission: "subscription:view" },
+  { id: "integrations", label: "Integrations", icon: <Plug className="size-3.5" />, permission: "workspace:update" },
 ];
 
 const SettingsDesktopPage = ({ activeTab = "profile", onTabChange }) => {
+  const { can } = usePermission();
+
+  // Filter visible tabs based on user permissions
+  const visibleTabs = useMemo(
+    () => SETTINGS_TABS.filter((t) => !t.permission || can(t.permission)),
+    [can]
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "profile":
@@ -53,7 +65,7 @@ const SettingsDesktopPage = ({ activeTab = "profile", onTabChange }) => {
         {/* Reusable UITabs Primitive */}
         <div className="w-full overflow-x-auto no-scrollbar py-0.5">
           <UITabs
-            tabs={SETTINGS_TABS}
+            tabs={visibleTabs}
             activeTab={activeTab}
             onChange={(tabId) => onTabChange(tabId)}
             variant="pill"

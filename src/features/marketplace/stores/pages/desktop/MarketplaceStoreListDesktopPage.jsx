@@ -35,8 +35,10 @@ import {
   AppText,
   PageHeader,
   PageRightSidebar,
+  PermissionGate,
   HELP_SUPPORT_CARD,
 } from "@/components";
+import { usePermission } from "@/hooks";
 
 // Replicated exact CSS Tokens from Branches page
 const tableCardSx = {
@@ -229,18 +231,20 @@ const MarketplaceStoreListDesktopPage = ({
                 Refresh
               </AppButton>
 
-              <AppButton
-                type="button"
-                variant="contained"
-                colorVariant="primary"
-                rounded="md"
-                size="small"
-                startIcon={<FiPlus />}
-                onClick={handleCreateStore}
-                sx={primaryButtonSx}
-              >
-                Create Store
-              </AppButton>
+              <PermissionGate permission="marketplace-store:create">
+                <AppButton
+                  type="button"
+                  variant="contained"
+                  colorVariant="primary"
+                  rounded="md"
+                  size="small"
+                  startIcon={<FiPlus />}
+                  onClick={handleCreateStore}
+                  sx={primaryButtonSx}
+                >
+                  Create Store
+                </AppButton>
+              </PermissionGate>
             </AppStack>
           }
         />
@@ -572,20 +576,20 @@ const MarketplaceStoreListDesktopPage = ({
                                 icon: <FiEye />,
                                 onClick: () => handleViewStore(store._id),
                               },
-                              {
+                              can("marketplace-store:update") && {
                                 id: "edit",
                                 label: "Edit Store",
                                 icon: <FiEdit2 />,
                                 onClick: () => handleEditStore(store._id),
                               },
-                              {
+                              can("marketplace-store:delete") && {
                                 id: "delete",
                                 label: "Delete Store",
                                 icon: <FiTrash2 />,
                                 danger: true,
                                 onClick: () => setStoreToDelete(store),
                               },
-                            ]}
+                            ].filter(Boolean)}
                             dense
                             minWidth={170}
                           />

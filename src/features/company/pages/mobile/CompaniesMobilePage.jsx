@@ -33,6 +33,7 @@ import {
   AppStatusBadge,
   AppTag,
   AppText,
+  PermissionGate,
 } from "@/components";
 
 const companyIconMap = {
@@ -125,17 +126,19 @@ const CompaniesMobilePage = ({
               </AppText>
             </AppBox>
 
-            <AppButton
-              variant="contained"
-              colorVariant="success"
-              size="small"
-              rounded="md"
-              startIcon={<FiPlus />}
-              onClick={handleCreateCompany}
-              sx={addCompanyBtnSx}
-            >
-              Add Company
-            </AppButton>
+            <PermissionGate permission="company:create">
+              <AppButton
+                variant="contained"
+                colorVariant="success"
+                size="small"
+                rounded="md"
+                startIcon={<FiPlus />}
+                onClick={handleCreateCompany}
+                sx={addCompanyBtnSx}
+              >
+                Add Company
+              </AppButton>
+            </PermissionGate>
           </AppStack>
         </AppBox>
 

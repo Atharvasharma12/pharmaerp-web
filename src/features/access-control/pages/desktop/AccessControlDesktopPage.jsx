@@ -1,634 +1,385 @@
+// src/features/access-control/pages/desktop/AccessControlDesktopPage.jsx
+
+import React from "react";
 import {
-  FiArrowRight,
-  FiBookOpen,
-  FiCheckCircle,
-  FiRefreshCw,
-  FiShield,
-  FiSliders,
-  FiUsers,
-  FiZap,
-} from "react-icons/fi";
-import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
-import { LuStore } from "react-icons/lu";
+  Shield,
+  FileKey,
+  Users,
+  Plus,
+  RotateCcw,
+  Search,
+  ArrowRight,
+  Eye,
+  Edit2,
+  Lock,
+  Layers,
+  Sparkles,
+} from "lucide-react";
 
 import {
-  AppAlert,
-  AppBox,
-  AppBreadcrumb,
-  AppButton,
-  AppCard,
-  AppErrorState,
-  AppHeading,
-  AppStack,
-  AppStatCard,
-  AppTableSkeleton,
-  AppTag,
-  AppText,
-  HELP_SUPPORT_CARD,
-  PageHeader,
-  PageRightSidebar,
-} from "@/components";
+  UIButton,
+  UIIconButton,
+  UISearchInput,
+  UIBadge,
+  UIPagination,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UIEmptyState,
+  UISkeleton,
+  UIAlert,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
 
-const statIcons = {
-  roles: <FiUsers />,
-  members: <FiUsers />,
-  companies: <HiOutlineBuildingOffice2 />,
-  branches: <LuStore />,
-  permissions: <FiShield />,
-};
+export default function AccessControlDesktopPage({
+  stats = [],
+  roles = [],
+  paginatedRoles = [],
+  permissions = [],
 
-const overviewIcons = {
-  roles: <FiUsers />,
-  memberAccess: <FiUsers />,
-  permissions: <FiShield />,
-  accessSummary: <FiSliders />,
-};
+  search = "",
+  setSearch,
+  currentPage = 1,
+  pageSize = 5,
+  totalPages = 1,
+  handlePageChange,
+  handlePageSizeChange,
 
-const activityIcons = {
-  success: <FiUsers />,
-  info: <FiUsers />,
-  warning: <FiShield />,
-};
+  totalRolesCount = 0,
+  filteredRolesCount = 0,
 
-const AccessControlDesktopPage = ({
-  dashboardStats = [],
-  accessOverviewItems = [],
-  recentAccessActivity = [],
-
-  isLoading,
-  hasError,
-  error,
-  message,
-
-  hasRoles,
-  hasPermissions,
+  isLoading = false,
+  hasError = false,
+  error = null,
+  message = null,
 
   handleRefresh,
+  handleCreateRole,
   handleViewRoles,
+  handleViewPermissions,
+  handleViewRole,
+  handleEditRole,
 
   clearMessage,
-}) => {
-  const showInitialSkeleton = isLoading && !hasRoles && !hasPermissions;
+}) {
+  const shouldShowPagination = filteredRolesCount > pageSize;
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
-      {message ? <TopToast message={message} onClose={clearMessage} /> : null}
+    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-5 max-w-[1440px] mx-auto space-y-4">
+      {/* Feedback Toast */}
+      {message && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full px-4">
+          <UIAlert
+            intent="success"
+            title={message}
+            onClose={clearMessage}
+            className="shadow-lg"
+          />
+        </div>
+      )}
 
-      <div className="mx-auto w-full max-w-[1500px]">
-        <PageHeader
-          title="Access Control"
-          subtitle="Manage roles, permissions and control access for your workspace."
-          extra={
-            <AppBreadcrumb
-              size="small"
-              variant="text"
-              items={[
-                { label: "Dashboard" },
-                { label: "Access Control", current: true },
-              ]}
-              sx={breadcrumbSx}
-              itemSx={breadcrumbItemSx}
-              currentItemSx={breadcrumbCurrentSx}
-            />
-          }
-          actions={
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiRefreshCw />}
-              onClick={handleRefresh}
-              loading={isLoading}
-              disabled={isLoading}
-              sx={secondaryButtonSx}
-            >
-              Refresh
-            </AppButton>
-          }
-          align="flex-start"
-          justify="space-between"
-          sx={pageHeaderSx}
-          contentSx={pageHeaderContentSx}
-        />
-
-        <StatsGrid stats={dashboardStats} />
-
-        {error && !hasError ? (
-          <AppAlert
-            severity="error"
-            variant="soft"
-            title="Something went wrong"
-            closable
-            onClose={handleRefresh}
-            sx={alertSx}
-          >
-            {error}
-          </AppAlert>
-        ) : null}
-
-        {hasError ? (
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={stateCardSx}
-          >
-            <AppErrorState
-              title="Unable to load access control"
-              description={error || "Please refresh and try again."}
-              actionText="Refresh"
-              onRetry={handleRefresh}
-              size="page"
-              sx={stateSx}
-            />
-          </AppCard>
-        ) : showInitialSkeleton ? (
-          <div className="mt-5 grid grid-cols-[minmax(0,1fr)_390px] gap-5">
-            <AppCard
-              variant="default"
-              rounded="lg"
-              bordered
-              shadow="sm"
-              padding="none"
-              sx={sectionCardSx}
-            >
-              <AppTableSkeleton rows={5} columns={3} showHeader={false} />
-            </AppCard>
-
-            <AppCard
-              variant="default"
-              rounded="lg"
-              bordered
-              shadow="sm"
-              padding="none"
-              sx={sectionCardSx}
-            >
-              <AppTableSkeleton rows={5} columns={2} showHeader={false} />
-            </AppCard>
+      {/* 1. Header Banner Card */}
+      <div className="bg-surface rounded-2xl p-5 sm:p-6 border border-border/60 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2.5">
+            <div className="size-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+              <Shield className="size-5" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text">
+              Access Control & Security Hub
+            </h1>
           </div>
-        ) : (
-          <div className="mt-5 grid grid-cols-[minmax(0,1fr)_390px] gap-5">
-            <div className="space-y-5">
-              <AccessOverviewCard items={accessOverviewItems} />
+          <p className="text-xs sm:text-sm text-text-muted pl-0.5">
+            Configure workspace security roles, govern permission catalogs, and manage operational authorities.
+          </p>
+        </div>
 
-              <RecentActivityCard
-                activities={recentAccessActivity}
-                onViewAll={handleViewRoles}
-              />
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <UIButton
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            startIcon={<RotateCcw className={cn("size-3.5", isLoading && "animate-spin")} />}
+          >
+            Refresh
+          </UIButton>
+
+          <UIButton
+            variant="outline"
+            size="sm"
+            onClick={handleViewPermissions}
+            startIcon={<FileKey className="size-3.5 text-text-muted" />}
+          >
+            Permission Catalog
+          </UIButton>
+
+          <UIButton
+            variant="primary"
+            size="sm"
+            onClick={handleCreateRole}
+            startIcon={<Plus className="size-4" />}
+          >
+            Create Role
+          </UIButton>
+        </div>
+      </div>
+
+      {/* 2. Top Metric Stat Capsules */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {stats.map((stat) => (
+          <div
+            key={stat.id}
+            className="bg-surface rounded-2xl p-4 border border-border/60 shadow-2xs space-y-1"
+          >
+            <div className="text-xs font-semibold text-text-muted">{stat.title}</div>
+            <div className="text-xl sm:text-2xl font-bold text-text font-mono">
+              {stat.value}
+            </div>
+            <div className="text-[11px] text-text-muted">{stat.description}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 3. Core Modules Fast-Nav Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Module 1: Roles */}
+        <div
+          onClick={handleViewRoles}
+          className="bg-surface rounded-2xl p-5 border border-border/60 shadow-2xs hover:border-primary/40 transition-all cursor-pointer group space-y-3"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-text-inverse transition-colors">
+                <Shield className="size-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-text group-hover:text-primary transition-colors">
+                  Role Management
+                </h3>
+                <span className="text-[11px] text-text-muted">
+                  {totalRolesCount} configured roles in workspace
+                </span>
+              </div>
             </div>
 
-            <AccessControlRightSidebar />
+            <ArrowRight className="size-4 text-text-muted group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+          </div>
+
+          <p className="text-xs text-text-muted leading-relaxed">
+            Create customized security roles, adjust feature permissions, and allocate access across your team.
+          </p>
+        </div>
+
+        {/* Module 2: Permissions */}
+        <div
+          onClick={handleViewPermissions}
+          className="bg-surface rounded-2xl p-5 border border-border/60 shadow-2xs hover:border-primary/40 transition-all cursor-pointer group space-y-3"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                <FileKey className="size-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-text group-hover:text-purple-600 transition-colors">
+                  Permission Matrix
+                </h3>
+                <span className="text-[11px] text-text-muted">
+                  {permissions.length} total system capability keys
+                </span>
+              </div>
+            </div>
+
+            <ArrowRight className="size-4 text-text-muted group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+          </div>
+
+          <p className="text-xs text-text-muted leading-relaxed">
+            Explore granular capability keys across inventory, sales, POS checkouts, reports, and governance.
+          </p>
+        </div>
+      </div>
+
+      {/* 4. Active Roles Table (Sorted by Highest Members First) */}
+      <div className="bg-surface rounded-2xl border border-border/60 shadow-2xs overflow-hidden space-y-0">
+        {/* Table Top Toolbar */}
+        <div className="p-4 border-b border-border/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-text">Configured Roles Directory</h2>
+            <span className="text-xs text-text-muted">
+              Ranked by total assigned staff members
+            </span>
+          </div>
+
+          <div className="w-full sm:w-64">
+            <UISearchInput
+              placeholder="Search roles..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onClear={() => setSearch("")}
+              size="sm"
+            />
+          </div>
+        </div>
+
+        {/* Table Content */}
+        {isLoading && roles.length === 0 ? (
+          <div className="p-6 space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <UISkeleton key={i} className="h-12 w-full rounded-xl" />
+            ))}
+          </div>
+        ) : paginatedRoles.length > 0 ? (
+          <>
+            <div className="overflow-x-auto">
+              <UITable>
+                <UITableHeader>
+                  <UITableRow className="bg-surface-alt/50">
+                    <UITableHead className="min-w-[200px]">Role Name & Code</UITableHead>
+                    <UITableHead className="min-w-[140px]">Tier & Scope</UITableHead>
+                    <UITableHead className="min-w-[130px]">Assigned Members</UITableHead>
+                    <UITableHead className="min-w-[140px]">Permissions</UITableHead>
+                    <UITableHead className="min-w-[100px]">Status</UITableHead>
+                    <UITableHead className="text-right min-w-[140px]">Actions</UITableHead>
+                  </UITableRow>
+                </UITableHeader>
+
+                <UITableBody>
+                  {paginatedRoles.map((role) => {
+                    const isSystem = Boolean(role.isSystem);
+                    const canEdit = role.isEditable !== false && !isSystem;
+                    const permCount = role.permissionCount || (role.permissions?.length ?? 0);
+                    const memberCount = role.membersCount ?? 0;
+
+                    return (
+                      <UITableRow key={role._id} className="hover:bg-surface-alt/30 transition-colors">
+                        {/* Role Name */}
+                        <UITableCell>
+                          <div className="flex items-center gap-2.5">
+                            <div className="size-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                              <Shield className="size-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-xs text-text truncate">
+                                  {role.name}
+                                </span>
+                                {isSystem && (
+                                  <Lock className="size-3 text-text-muted shrink-0" />
+                                )}
+                              </div>
+                              <span className="text-[10.5px] font-mono text-text-muted block">
+                                {role.code}
+                              </span>
+                            </div>
+                          </div>
+                        </UITableCell>
+
+                        {/* Scope */}
+                        <UITableCell>
+                          <UIBadge
+                            variant="soft"
+                            color={isSystem ? "primary" : "neutral"}
+                            size="xs"
+                          >
+                            {isSystem ? "Organization" : "Workspace"}
+                          </UIBadge>
+                        </UITableCell>
+
+                        {/* Member Count Pill */}
+                        <UITableCell>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 font-mono">
+                            <Users className="size-3" />
+                            <span>{memberCount} {memberCount === 1 ? "Member" : "Members"}</span>
+                          </span>
+                        </UITableCell>
+
+                        {/* Permissions */}
+                        <UITableCell>
+                          <span className="text-xs font-mono font-medium text-text">
+                            {permCount} capabilities
+                          </span>
+                        </UITableCell>
+
+                        {/* Status */}
+                        <UITableCell>
+                          <UIBadge
+                            variant="soft"
+                            color={role.status === "active" ? "success" : "neutral"}
+                            size="xs"
+                          >
+                            {role.status || "active"}
+                          </UIBadge>
+                        </UITableCell>
+
+                        {/* Actions */}
+                        <UITableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <UIButton
+                              variant="ghost"
+                              size="xs"
+                              onClick={() => handleViewRole(role._id)}
+                              startIcon={<Eye className="size-3" />}
+                            >
+                              View
+                            </UIButton>
+
+                            {canEdit && (
+                              <UIButton
+                                variant="outline"
+                                size="xs"
+                                onClick={() => handleEditRole(role._id)}
+                                startIcon={<Edit2 className="size-3" />}
+                              >
+                                Edit
+                              </UIButton>
+                            )}
+                          </div>
+                        </UITableCell>
+                      </UITableRow>
+                    );
+                  })}
+                </UITableBody>
+              </UITable>
+            </div>
+
+            {/* Pagination Controls (Hidden if not enough rows per user requirement) */}
+            {shouldShowPagination && (
+              <div className="p-3 border-t border-border/40 flex items-center justify-between">
+                <div className="text-xs text-text-muted">
+                  Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                  {Math.min(currentPage * pageSize, filteredRolesCount)} of{" "}
+                  {filteredRolesCount} roles
+                </div>
+                <UIPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  size="sm"
+                />
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="p-8 text-center space-y-3">
+            <UIEmptyState
+              icon={<Shield className="size-10 text-text-muted/60" />}
+              title="No Roles Found"
+              description="No roles match your search query."
+              action={
+                search ? (
+                  <UIButton variant="outline" size="sm" onClick={() => setSearch("")}>
+                    Clear Search
+                  </UIButton>
+                ) : null
+              }
+            />
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
-};
-
-const TopToast = ({ message, onClose }) => (
-  <div className="fixed left-1/2 top-4 z-[1400] w-[calc(100%-32px)] max-w-md -translate-x-1/2">
-    <AppAlert
-      severity="success"
-      variant="filled"
-      title={message}
-      closable
-      onClose={onClose}
-      sx={toastSx}
-    />
-  </div>
-);
-
-const StatsGrid = ({ stats }) => (
-  <div className="mt-4 grid grid-cols-5 gap-3">
-    {stats.map((stat) => (
-      <AppStatCard
-        key={stat.id}
-        title={stat.title}
-        value={stat.value}
-        subtitle={stat.description}
-        icon={statIcons[stat.id] || <FiShield />}
-        colorVariant={stat.colorVariant}
-        variant="default"
-        sx={statCardSx}
-        iconSx={statIconSx}
-      />
-    ))}
-  </div>
-);
-
-const AccessOverviewCard = ({ items = [] }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={sectionCardSx}
-  >
-    <SectionHeader
-      title="Access Control Overview"
-      subtitle="Manage workspace roles, member access and permissions from one place."
-    />
-
-    <div className="mt-4 space-y-3">
-      {items.map((item) => (
-        <OverviewRow key={item.id} item={item} />
-      ))}
-    </div>
-  </AppCard>
-);
-
-const OverviewRow = ({ item }) => (
-  <button
-    type="button"
-    onClick={item.onClick}
-    className="block w-full text-left"
-  >
-    <AppCard
-      variant="default"
-      rounded="lg"
-      bordered
-      shadow="none"
-      padding="none"
-      sx={overviewRowSx}
-    >
-      <div className="grid grid-cols-[minmax(0,1fr)_24px] items-center gap-3">
-        <AppStack direction="row" align="center" gap={1.5} sx={{ minWidth: 0 }}>
-          <IconBox
-            icon={overviewIcons[item.id] || <FiShield />}
-            colorVariant={item.colorVariant}
-          />
-
-          <AppBox sx={{ minWidth: 0 }}>
-            <AppHeading level={3} weight={700} sx={rowTitleSx}>
-              {item.title}
-            </AppHeading>
-
-            <AppText variant="body2" sx={rowSubtitleSx}>
-              {item.description}
-            </AppText>
-          </AppBox>
-        </AppStack>
-
-        <span className="flex h-full items-center justify-end">
-          <FiArrowRight className="text-[17px] text-text-muted" />
-        </span>
-      </div>
-    </AppCard>
-  </button>
-);
-
-const RecentActivityCard = ({ activities = [], onViewAll }) => (
-  <AppCard
-    variant="default"
-    rounded="lg"
-    bordered
-    shadow="sm"
-    padding="none"
-    sx={activityCardSx}
-  >
-    <SectionHeader
-      title="Recent Access Activity"
-      subtitle="Latest changes in roles and member access"
-      action={
-        <AppButton
-          type="button"
-          variant="outlined"
-          colorVariant="primary"
-          rounded="md"
-          size="small"
-          onClick={onViewAll}
-          sx={sectionActionSx}
-        >
-          View All
-        </AppButton>
-      }
-    />
-
-    <div className="mt-3 divide-y divide-border">
-      {activities.map((activity) => (
-        <ActivityRow key={activity.id} activity={activity} />
-      ))}
-    </div>
-  </AppCard>
-);
-
-const ActivityRow = ({ activity }) => (
-  <div className="grid grid-cols-[minmax(0,1fr)_140px] items-center gap-3 py-3.5">
-    <AppStack direction="row" align="center" gap={1.2} sx={{ minWidth: 0 }}>
-      <IconBox
-        icon={activityIcons[activity.colorVariant] || <FiShield />}
-        colorVariant={activity.colorVariant}
-        small
-      />
-
-      <AppBox sx={{ minWidth: 0 }}>
-        <AppHeading level={3} weight={700} sx={activityTitleSx}>
-          {activity.title}
-        </AppHeading>
-
-        <AppText variant="body2" sx={activitySubtitleSx}>
-          {activity.description}
-        </AppText>
-      </AppBox>
-    </AppStack>
-
-    <div className="flex justify-end">
-      <AppTag
-        label={activity.label}
-        variant="soft"
-        colorVariant={activity.colorVariant}
-        rounded="md"
-        sx={activityTagSx}
-      />
-    </div>
-  </div>
-);
-
-const AccessControlRightSidebar = () => (
-  <PageRightSidebar
-    spacing={4}
-    cards={[
-      {
-        title: "What is Access Control?",
-        icon: <FiShield />,
-        colorVariant: "primary",
-        variant: "default",
-        description:
-          "Access Control helps you manage roles, permissions and member access across your workspace.",
-        points: [
-          "Create roles and set permissions",
-          "Assign roles to members",
-          "Control company and branch access",
-          "Secure your pharmacy business",
-        ],
-        pointIcon: <FiCheckCircle />,
-      },
-      {
-        title: "Best Practices",
-        icon: <FiZap />,
-        colorVariant: "primary",
-        variant: "soft",
-        soft: true,
-        points: [
-          "Create role based on responsibilities",
-          "Assign minimum required permissions",
-          "Review access regularly",
-          "Remove access when not needed",
-        ],
-        pointIcon: <FiZap />,
-        pointIconVariant: "zap",
-      },
-      HELP_SUPPORT_CARD,
-    ]}
-  />
-);
-
-const SectionHeader = ({ title, subtitle, action }) => (
-  <AppBox
-    display="flex"
-    alignItems="flex-start"
-    justifyContent="space-between"
-    sx={{ width: "100%" }}
-  >
-    <AppBox sx={{ minWidth: 0 }}>
-      <AppHeading level={2} weight={700} sx={sectionTitleSx}>
-        {title}
-      </AppHeading>
-
-      {subtitle ? (
-        <AppText variant="body2" sx={sectionSubtitleSx}>
-          {subtitle}
-        </AppText>
-      ) : null}
-    </AppBox>
-
-    {action}
-  </AppBox>
-);
-
-const IconBox = ({
-  icon,
-  colorVariant = "primary",
-  large = false,
-  small = false,
-  stat = false,
-  plain = false,
-}) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      width: large ? 48 : small ? 32 : stat ? 38 : 44,
-      height: large ? 48 : small ? 32 : stat ? 38 : 44,
-      minWidth: large ? 48 : small ? 32 : stat ? 38 : 44,
-      borderRadius: large ? "14px" : small ? "9px" : stat ? "11px" : "12px",
-      bgcolor: plain
-        ? "transparent"
-        : `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
-      color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
-      fontSize: large ? "34px" : small ? "16px" : stat ? "19px" : "22px",
-      lineHeight: 0,
-    }}
-  >
-    {icon}
-  </AppBox>
-);
-
-const pageHeaderSx = {
-  width: "100%",
-};
-
-const pageHeaderContentSx = {
-  minWidth: 0,
-
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "25px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.45px",
-    color: "var(--app-color-text)",
-  },
-};
-
-const breadcrumbSx = {
-  mt: 1,
-};
-
-const breadcrumbItemSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-
-const breadcrumbCurrentSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const secondaryButtonSx = {
-  height: 36,
-  minWidth: 110,
-  px: 1.5,
-  fontSize: "12px",
-  fontWeight: 650,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const statCardSx = {
-  minHeight: 88,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-
-  "& .MuiCardContent-root": {
-    p: 0,
-  },
-
-  p: 1.5,
-
-  "& p:first-of-type": {
-    fontSize: "11px",
-  },
-
-  "& h1, & h2, & h3, & h4, & h5, & h6": {
-    fontSize: "18px",
-  },
-
-  "& p:last-of-type": {
-    fontSize: "11px",
-  },
-};
-
-const statIconSx = {
-  width: 38,
-  height: 38,
-  minWidth: 38,
-  borderRadius: "11px",
-
-  "& svg": {
-    fontSize: 19,
-  },
-};
-
-const alertSx = {
-  mt: 3,
-};
-
-const stateCardSx = {
-  mt: 3,
-  overflow: "hidden",
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const stateSx = {
-  minHeight: 390,
-};
-
-const sectionCardSx = {
-  p: 2.2,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const activityTagSx = {
-  minWidth: 110,
-  height: 36,
-  px: 1.5,
-  fontSize: "12px",
-  fontWeight: 700,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const activityCardSx = {
-  p: 2.2,
-  overflow: "hidden",
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-
-  "& .divide-y > *": {
-    minHeight: 72,
-  },
-};
-
-const sectionTitleSx = {
-  m: 0,
-  fontSize: "18px",
-  lineHeight: 1.2,
-  color: "var(--app-color-text)",
-};
-
-const sectionSubtitleSx = {
-  mt: 0.55,
-  fontSize: "13px",
-  lineHeight: "20px",
-  color: "var(--app-color-text-muted)",
-};
-
-const sectionActionSx = {
-  height: 30,
-  px: 1.2,
-  fontSize: "11.5px",
-  fontWeight: 700,
-};
-
-const overviewRowSx = {
-  px: 1.4,
-  py: 1.25,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  transition: "border-color 160ms ease, box-shadow 160ms ease",
-  "&:hover": {
-    borderColor: "var(--app-color-primary)",
-    boxShadow: "var(--app-shadow-xs)",
-  },
-};
-
-const rowTitleSx = {
-  m: 0,
-  fontSize: "13.5px",
-  lineHeight: 1.25,
-  color: "var(--app-color-text)",
-};
-
-const rowSubtitleSx = {
-  mt: 0.35,
-  fontSize: "11.8px",
-  lineHeight: "18px",
-  color: "var(--app-color-text-muted)",
-};
-
-const activityTitleSx = {
-  m: 0,
-  maxWidth: 520,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "12.5px",
-  color: "var(--app-color-text)",
-};
-
-const activitySubtitleSx = {
-  mt: 0.35,
-  maxWidth: 520,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-};
-
-const toastSx = {
-  boxShadow: "var(--app-shadow-lg)",
-};
-
-export default AccessControlDesktopPage;
+}

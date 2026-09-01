@@ -1,11 +1,11 @@
 // src/features/workspace/pages/WorkspaceInvitationsPage.jsx
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import { AppConfirmModal } from "@/components";
+import { UIConfirmDialog, uiToast } from "@/components/ui";
 
 import useWorkspace from "../hooks/useWorkspace";
 
@@ -13,7 +13,7 @@ import WorkspaceInvitationsDesktopPage from "./desktop/WorkspaceInvitationsDeskt
 import WorkspaceInvitationsMobilePage from "./mobile/WorkspaceInvitationsMobilePage";
 
 const statusOptions = [
-  { label: "All Status", value: "all" },
+  { label: "Status: All", value: "all" },
   { label: "Pending", value: "pending" },
   { label: "Accepted", value: "accepted" },
   { label: "Cancelled", value: "cancelled" },
@@ -32,11 +32,8 @@ const normalizeText = (value) =>
 
 const formatDate = (value) => {
   if (!value) return "-";
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return "-";
-
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -46,11 +43,8 @@ const formatDate = (value) => {
 
 const formatDateTime = (value) => {
   if (!value) return "-";
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return "-";
-
   return date.toLocaleString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -62,9 +56,7 @@ const formatDateTime = (value) => {
 
 const formatRoleName = (role) => {
   const roleName = role?.name || role?.title || role?.code;
-
   if (!roleName) return "Staff";
-
   return String(roleName)
     .replace(/_/g, " ")
     .split(" ")
@@ -84,7 +76,6 @@ const getEffectiveStatus = (invitation) => {
   ) {
     return "expired";
   }
-
   return invitation?.status || "pending";
 };
 
@@ -100,9 +91,9 @@ const mapInvitationForView = (invitation) => {
     : [];
 
   const storeFootprint = invitation?.accessAllBranches
-    ? "All Stores"
+    ? "All Branches"
     : branchAccess.length > 0
-      ? `${branchAccess.length} Store${branchAccess.length > 1 ? "s" : ""}`
+      ? `${branchAccess.length} ${branchAccess.length === 1 ? "Branch" : "Branches"}`
       : "Workspace Only";
 
   return {
@@ -159,6 +150,9 @@ const WorkspaceInvitationsPage = () => {
   const [filters, setFilters] = useState(initialFilters);
   const [selectedInvitation, setSelectedInvitation] = useState(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
+  const [copiedId, setCopiedId] = useState(null);
 
   const workspaceId = currentWorkspace?._id;
 
@@ -167,6 +161,8 @@ const WorkspaceInvitationsPage = () => {
     getWorkspaceInvitationsStatus === API_STATUS.LOADING;
   const isCancellingInvitation =
     cancelWorkspaceInvitationStatus === API_STATUS.LOADING;
+  const isResending =
+    resendWorkspaceInvitationStatus === API_STATUS.LOADING;
 
   const isLoading = isLoadingWorkspaces || isLoadingInvitations;
   const hasError = getWorkspaceInvitationsStatus === API_STATUS.ERROR;
@@ -174,24 +170,18 @@ const WorkspaceInvitationsPage = () => {
   const fetchWorkspaces = useCallback(async () => {
     try {
       await getMyWorkspaces();
-    } catch {
-      // Error is already stored in workspace slice.
-    }
+    } catch {}
   }, [getMyWorkspaces]);
 
   const fetchInvitations = useCallback(async () => {
     if (!workspaceId) return;
-
     try {
       await getWorkspaceInvitations(workspaceId);
-    } catch {
-      // Error is already stored in workspace slice.
-    }
+    } catch {}
   }, [getWorkspaceInvitations, workspaceId]);
 
   useEffect(() => {
     clearError();
-
     return () => {
       clearError();
     };
@@ -199,32 +189,20 @@ const WorkspaceInvitationsPage = () => {
 
   useEffect(() => {
     if (workspaceId || hasFetchedWorkspacesRef.current) return;
-
     hasFetchedWorkspacesRef.current = true;
     fetchWorkspaces();
   }, [fetchWorkspaces, workspaceId]);
 
   useEffect(() => {
     if (!workspaceId || hasFetchedInvitationsRef.current) return;
-
     hasFetchedInvitationsRef.current = true;
     fetchInvitations();
   }, [fetchInvitations, workspaceId]);
 
-  useEffect(() => {
-    if (!message) return;
-
-    const timer = window.setTimeout(() => {
-      clearMessage();
-    }, 2500);
-
-    return () => window.clearTimeout(timer);
-  }, [message, clearMessage]);
-
   const mappedInvitations = useMemo(
     () =>
       (Array.isArray(invitations) ? invitations : []).map(mapInvitationForView),
-    [invitations],
+    [invitations]
   );
 
   const filteredInvitations = useMemo(() => {
@@ -249,48 +227,55 @@ const WorkspaceInvitationsPage = () => {
     });
   }, [mappedInvitations, filters]);
 
+  // Pagination Slice
+  const totalPages = Math.max(1, Math.ceil(filteredInvitations.length / pageSize));
+  const paginatedInvitations = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredInvitations.slice(start, start + pageSize);
+  }, [filteredInvitations, currentPage, pageSize]);
+
   const stats = useMemo(() => {
     const total = mappedInvitations.length;
     const pending = mappedInvitations.filter(
-      (item) => item.effectiveStatus === "pending",
+      (item) => item.effectiveStatus === "pending"
     ).length;
     const accepted = mappedInvitations.filter(
-      (item) => item.effectiveStatus === "accepted",
+      (item) => item.effectiveStatus === "accepted"
     ).length;
     const cancelled = mappedInvitations.filter(
-      (item) => item.effectiveStatus === "cancelled",
+      (item) => item.effectiveStatus === "cancelled"
     ).length;
     const expired = mappedInvitations.filter(
-      (item) => item.effectiveStatus === "expired",
+      (item) => item.effectiveStatus === "expired"
     ).length;
 
     return [
       {
         id: "total",
-        title: "Total",
+        title: "Total Invitations",
         value: total,
-        description: "Invitations",
+        description: "Sent invitations",
         colorVariant: "primary",
       },
       {
         id: "pending",
-        title: "Pending",
+        title: "Pending Action",
         value: pending,
-        description: "Awaiting action",
+        description: "Awaiting response",
         colorVariant: "warning",
       },
       {
         id: "accepted",
-        title: "Accepted",
+        title: "Accepted & Active",
         value: accepted,
         description: "Joined workspace",
         colorVariant: "success",
       },
       {
         id: "expired",
-        title: "Expired",
-        value: expired,
-        description: `${cancelled} cancelled`,
+        title: "Expired / Cancelled",
+        value: expired + cancelled,
+        description: `${expired} expired, ${cancelled} cancelled`,
         colorVariant: "error",
       },
     ];
@@ -298,63 +283,46 @@ const WorkspaceInvitationsPage = () => {
 
   const activeFilterChips = useMemo(() => {
     const chips = [];
-
     if (filters.search) {
       chips.push({
         key: "search",
         label: `Search: ${filters.search}`,
-        value: filters.search,
       });
     }
-
     if (filters.status !== "all") {
       chips.push({
         key: "status",
         label:
           statusOptions.find((option) => option.value === filters.status)
             ?.label || filters.status,
-        value: filters.status,
       });
     }
-
     return chips;
   }, [filters]);
 
   const handleFilterChange = useCallback((eventOrValue) => {
+    setCurrentPage(1);
     if (eventOrValue?.target) {
       const { name, value } = eventOrValue.target;
-
-      setFilters((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-
+      setFilters((prev) => ({ ...prev, [name]: value }));
       return;
     }
-
-    setFilters((prev) => ({
-      ...prev,
-      ...eventOrValue,
-    }));
+    setFilters((prev) => ({ ...prev, ...eventOrValue }));
   }, []);
 
   const handleSearchChange = useCallback((event) => {
+    setCurrentPage(1);
     const value = event?.target?.value ?? event;
-
-    setFilters((prev) => ({
-      ...prev,
-      search: value,
-    }));
+    setFilters((prev) => ({ ...prev, search: value }));
   }, []);
 
   const handleRemoveFilter = useCallback((key) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: initialFilters[key],
-    }));
+    setCurrentPage(1);
+    setFilters((prev) => ({ ...prev, [key]: initialFilters[key] }));
   }, []);
 
   const handleClearFilters = useCallback(() => {
+    setCurrentPage(1);
     setFilters(initialFilters);
   }, []);
 
@@ -377,58 +345,54 @@ const WorkspaceInvitationsPage = () => {
 
   const handleCancelInvitation = useCallback((invitation) => {
     if (!invitation || invitation.effectiveStatus !== "pending") return;
-
     setSelectedInvitation(invitation);
     setIsCancelModalOpen(true);
   }, []);
 
   const closeCancelModal = useCallback(() => {
     if (isCancellingInvitation) return;
-
     setIsCancelModalOpen(false);
     setSelectedInvitation(null);
   }, [isCancellingInvitation]);
 
   const handleConfirmCancelInvitation = useCallback(async () => {
     if (!workspaceId || !selectedInvitation?._id) return;
-
     try {
       await cancelWorkspaceInvitation(workspaceId, selectedInvitation._id);
       closeCancelModal();
-    } catch {
-      // Error is already stored in workspace slice.
+      uiToast.success("Invitation Cancelled", `Invitation for ${selectedInvitation.displayEmail} was revoked.`);
+      fetchInvitations();
+    } catch (err) {
+      uiToast.error("Cancellation Failed", err?.message || "Could not cancel invitation.");
     }
-  }, [
-    cancelWorkspaceInvitation,
-    closeCancelModal,
-    selectedInvitation,
-    workspaceId,
-  ]);
+  }, [cancelWorkspaceInvitation, closeCancelModal, fetchInvitations, selectedInvitation, workspaceId]);
 
   const handleResendInvitation = useCallback(
     async (invitation) => {
       if (!workspaceId || !invitation?._id) return;
       try {
         await resendWorkspaceInvitation(workspaceId, invitation._id);
-      } catch {
-        // Error handled in slice
+        uiToast.success("Invitation Resent", `Invitation email re-sent to ${invitation.displayEmail}.`);
+      } catch (err) {
+        uiToast.error("Resend Failed", err?.message || "Could not resend invitation.");
       }
     },
-    [resendWorkspaceInvitation, workspaceId],
+    [resendWorkspaceInvitation, workspaceId]
   );
 
-  const [copiedId, setCopiedId] = useState(null);
   const handleCopyLink = useCallback((invitation) => {
     if (!invitation) return;
-    const url = `${window.location.origin}/workspace-invitations/${invitation._id}`;
+    const url = `${window.location.origin}/accept-invitation/${invitation._id || invitation.token}`;
     navigator.clipboard.writeText(url);
     setCopiedId(invitation._id);
+    uiToast.success("Link Copied", "Invitation link copied to clipboard.");
     setTimeout(() => setCopiedId(null), 2000);
   }, []);
 
   const pageProps = {
     workspace: currentWorkspace,
     invitations: filteredInvitations,
+    paginatedInvitations,
     stats,
 
     filters,
@@ -440,6 +404,15 @@ const WorkspaceInvitationsPage = () => {
     error,
     message,
     copiedId,
+
+    currentPage,
+    pageSize,
+    totalPages,
+    handlePageChange: setCurrentPage,
+    handlePageSizeChange: (size) => {
+      setPageSize(size);
+      setCurrentPage(1);
+    },
 
     totalInvitations: mappedInvitations.length,
     filteredInvitationsCount: filteredInvitations.length,
@@ -470,20 +443,18 @@ const WorkspaceInvitationsPage = () => {
         <WorkspaceInvitationsDesktopPage {...pageProps} />
       )}
 
-      <AppConfirmModal
-        open={isCancelModalOpen}
+      <UIConfirmDialog
+        isOpen={isCancelModalOpen}
         onClose={closeCancelModal}
         onConfirm={handleConfirmCancelInvitation}
-        title="Cancel Invitation"
-        message={`Cancel invitation for ${
-          selectedInvitation?.displayEmail || "this email"
-        }?`}
-        description="The invitation link will stop working and this seat will become available again."
-        variant="error"
-        confirmLabel="Cancel Invitation"
-        cancelLabel="Keep Invitation"
-        loading={isCancellingInvitation}
-        closeOnBackdrop={!isCancellingInvitation}
+        title="Cancel Workspace Invitation"
+        description={`Cancel the invitation for ${selectedInvitation?.displayEmail || "this user"}? The link will immediately expire and cannot be redeemed.`}
+        intent="danger"
+        confirmText="Cancel Invitation"
+        cancelText="Keep Invitation"
+        itemName={selectedInvitation?.displayEmail}
+        itemDetails={`Assigned Role: ${selectedInvitation?.displayRole || "Staff"} • Sent ${selectedInvitation?.displayCreatedAt}`}
+        isLoading={isCancellingInvitation}
       />
     </>
   );

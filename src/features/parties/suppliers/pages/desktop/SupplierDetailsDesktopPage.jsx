@@ -37,6 +37,7 @@ import {
   AppText,
   AppPageLoader,
   AppErrorState,
+  PermissionGate,
 } from "@/components";
 
 import { formatDate, formatCurrency } from "@/utils";
@@ -203,17 +204,19 @@ const SupplierDetailsDesktopPage = ({
           </AppStack>
 
           <AppStack direction="row" align="center" gap={1}>
-            <AppButton
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiEdit3 />}
-              onClick={handleEdit}
-              sx={secondaryButtonSx}
-            >
-              Edit Supplier
-            </AppButton>
+            <PermissionGate permission="supplier:update">
+              <AppButton
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiEdit3 />}
+                onClick={handleEdit}
+                sx={secondaryButtonSx}
+              >
+                Edit Supplier
+              </AppButton>
+            </PermissionGate>
             <AppMenu
               trigger={
                 <AppButton

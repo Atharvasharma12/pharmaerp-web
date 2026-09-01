@@ -1,844 +1,463 @@
-import {
-  FiArrowLeft,
-  FiCheck,
-  FiCheckCircle,
-  FiClock,
-  FiInfo,
-  FiKey,
-  FiMail,
-  FiMapPin,
-  FiPhone,
-  FiRefreshCcw,
-  FiSend,
-  FiShield,
-  FiShoppingBag,
-  FiUser,
-  FiUserPlus,
-  FiUsers,
-  FiZap,
-} from "react-icons/fi";
+// src/features/workspace/pages/mobile/InviteWorkspaceMemberMobilePage.jsx
 
+import React, { useState, useMemo } from "react";
 import {
-  AppAlert,
-  AppBox,
-  AppButton,
-  AppCard,
-  AppHeading,
-  AppInput,
-  AppKeyValue,
-  AppStack,
-  AppTextarea,
-  AppText,
-} from "@/components";
+  ArrowLeft,
+  Zap,
+  Mail,
+  UserPlus,
+  Key,
+  Shield,
+  Building2,
+  GitBranch,
+  Check,
+  RotateCcw,
+  Store,
+  Eye,
+  EyeOff,
+  Users,
+} from "lucide-react";
 
-const InviteWorkspaceMemberMobilePage = ({
-  formData,
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants";
+import {
+  UIButton,
+  UIIconButton,
+  UIInput,
+  UISearchInput,
+  UISwitch,
+  UIBadge,
+  UIAlert,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
+
+export default function InviteWorkspaceMemberMobilePage({
+  formData = {
+    mode: "direct",
+    fullName: "",
+    phone: "",
+    email: "",
+    password: "",
+    roleId: "",
+    accessAllCompanies: false,
+    accessAllBranches: false,
+    companyIds: [],
+    branchAccess: [],
+    notes: "",
+  },
   formErrors = {},
-  workspaceSummary,
+  workspaceSummary = { name: "Workspace" },
   roles = [],
   companies = [],
   branches = [],
+  hasCompanies = true,
+  hasBranches = true,
+  canCreateOrInvite = true,
+
   isLoading = false,
-  isCheckingWorkspace = false,
-  isFetchingRoles = false,
-  isFetchingCompanies = false,
-  isFetchingBranches = false,
   isInviting = false,
-  error,
-  message,
+
   handleModeChange,
   handleGeneratePassword,
   handleChange,
   handleToggleCompany,
   handleToggleBranchAccess,
-  handleBranchRoleChange,
-  handleBranchMarketplaceToggle,
   handleSubmit,
-  handleReset,
   handleBack,
   handleViewInvitations,
-  handleViewMembers,
-}) => {
-  const isAllBranches = Boolean(formData.accessAllBranches);
-  const isAllCompanies = Boolean(formData.accessAllCompanies);
+}) {
+  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
   const isDirectMode = formData.mode === "direct";
 
+  const selectedCompanyIdSet = useMemo(() => {
+    return new Set(
+      (formData.companyIds || []).map((id) => String(id?._id || id).trim())
+    );
+  }, [formData.companyIds]);
+
+  const availableBranches = useMemo(() => {
+    const allBranches = branches || [];
+    if (formData.accessAllCompanies) return allBranches;
+    if (selectedCompanyIdSet.size === 0) return [];
+    return allBranches.filter((b) => {
+      const compId = String(
+        b.companyId?._id || b.companyId || b.company?._id || b.company || ""
+      ).trim();
+      return selectedCompanyIdSet.has(compId);
+    });
+  }, [branches, formData.accessAllCompanies, selectedCompanyIdSet]);
+
   return (
-    <section className="w-full bg-bg">
-      <AppBox sx={containerSx}>
-        {/* Expanded Width Mobile Header Section */}
-        <AppBox sx={headerWrapperSx}>
-          <AppStack
-            direction="row"
-            align="center"
-            justify="space-between"
-            gap={1}
-          >
-            <AppBox sx={{ minWidth: 0, flex: 1 }}>
-              <AppHeading level={1} weight={800} sx={pageTitleSx}>
-                Invite Team Member
-              </AppHeading>
-              <AppText variant="body2" weight={600} sx={pageSubtitleSx}>
-                Pre-configure store facility roles & access.
-              </AppText>
-            </AppBox>
-
-            <AppStack
-              direction="row"
-              align="center"
-              gap={0.5}
-              sx={{ flexShrink: 0 }}
-            >
-              <AppIconButtonCustom
-                icon={<FiClock />}
-                onClick={handleViewInvitations}
-                disabled={isLoading}
-              />
-              <AppButton
-                variant="outlined"
-                colorVariant="neutral"
-                size="small"
-                rounded="md"
-                onClick={handleBack}
-                disabled={isInviting}
-                sx={headerSecondaryBtnSx}
-              >
-                Members
-              </AppButton>
-            </AppStack>
-          </AppStack>
-        </AppBox>
-
-        {/* Global Alert Notification Interceptors */}
-        {message && (
-          <AppBox sx={alertContainerSx}>
-            <AppAlert
-              severity="success"
-              variant="soft"
-              title={message}
-              rounded="md"
-            />
-          </AppBox>
-        )}
-
-        {error && !formErrors.submit && (
-          <AppBox sx={alertContainerSx}>
-            <AppAlert
-              severity="error"
-              variant="soft"
-              title="Something went wrong"
-              rounded="md"
-            >
-              {error}
-            </AppAlert>
-          </AppBox>
-        )}
-
-        {/* Core Direct Input Action Form Fields Block */}
-        <AppBox component="form" onSubmit={handleSubmit} sx={formSectionSx}>
-          {/* Mode Switcher Pill */}
-          <div className="flex items-center gap-1.5 p-1 bg-surface-alt/90 rounded-lg border border-border/80 mb-3">
-            <button
-              type="button"
-              onClick={() => handleModeChange?.("direct")}
-              className={`flex-1 py-1.5 px-2 rounded-md text-[11px] font-bold transition flex items-center justify-center gap-1.5 ${
-                isDirectMode
-                  ? "bg-primary text-text-inverse shadow-xs"
-                  : "text-text-muted hover:text-text hover:bg-surface"
-              }`}
-            >
-              <FiZap className={isDirectMode ? "text-amber-300 text-xs" : "text-xs"} />
-              <span>Direct Add</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleModeChange?.("invite")}
-              className={`flex-1 py-1.5 px-2 rounded-md text-[11px] font-bold transition flex items-center justify-center gap-1.5 ${
-                !isDirectMode
-                  ? "bg-primary text-text-inverse shadow-xs"
-                  : "text-text-muted hover:text-text hover:bg-surface"
-              }`}
-            >
-              <FiMail className="text-xs" />
-              <span>Invite Link</span>
-            </button>
+    <div className="min-h-screen bg-bg text-text p-3 pb-24 space-y-3.5">
+      {/* Header */}
+      <div className="bg-surface rounded-2xl p-4 border border-border/60 shadow-2xs flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <UIIconButton
+            icon={<ArrowLeft className="size-4" />}
+            size="sm"
+            variant="ghost"
+            onClick={handleBack}
+          />
+          <div>
+            <h1 className="text-sm font-bold text-text leading-tight">
+              {isDirectMode ? "Add Staff Member" : "Invite Team Member"}
+            </h1>
+            <p className="text-[11px] text-text-muted">
+              {workspaceSummary.name || "Workspace"}
+            </p>
           </div>
+        </div>
 
-          <AppStack direction="column" gap={1.65}>
-            {isDirectMode ? (
-              <>
-                <AppInput
-                  label="Staff Full Name"
-                  name="fullName"
-                  value={formData.fullName || ""}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  placeholder="e.g. Ramesh Kumar"
-                  fullWidth
-                  required
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  startIcon={<FiUser />}
-                  error={Boolean(formErrors.fullName)}
-                  helperText={formErrors.fullName}
-                  labelSx={labelSx}
-                  inputSx={inputSx}
-                  helperTextSx={helperTextSx}
-                />
+        <UIButton
+          variant="outline"
+          size="xs"
+          onClick={handleViewInvitations}
+          startIcon={<Mail className="size-3" />}
+        >
+          Invites
+        </UIButton>
+      </div>
 
-                <AppInput
-                  label="Mobile Number (Login ID)"
-                  name="phone"
-                  type="tel"
-                  value={formData.phone || ""}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  placeholder="9876543210"
-                  fullWidth
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  startIcon={<FiPhone />}
-                  error={Boolean(formErrors.phone)}
-                  helperText={formErrors.phone || "10-digit Indian mobile number"}
-                  labelSx={labelSx}
-                  inputSx={inputSx}
-                  helperTextSx={helperTextSx}
-                />
+      {/* Prerequisite Alert Banners */}
+      {!hasCompanies && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-amber-900 dark:text-amber-200 text-xs space-y-2.5">
+          <div className="flex items-center gap-2 font-bold">
+            <Building2 className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>Company Required</span>
+          </div>
+          <p className="text-[11px] text-text-muted leading-relaxed">
+            Please create at least one company first before adding or inviting team members.
+          </p>
+          <UIButton
+            type="button"
+            variant="primary"
+            size="xs"
+            onClick={() => navigate(ROUTES.CREATE_COMPANY)}
+            className="w-full"
+          >
+            Create Company First
+          </UIButton>
+        </div>
+      )}
 
-                <AppInput
-                  label="Email (Optional)"
-                  name="email"
-                  type="email"
-                  value={formData.email || ""}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  placeholder="staff@example.com (optional)"
-                  fullWidth
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  startIcon={<FiMail />}
-                  error={Boolean(formErrors.email)}
-                  helperText={formErrors.email}
-                  labelSx={labelSx}
-                  inputSx={inputSx}
-                  helperTextSx={helperTextSx}
-                />
+      {hasCompanies && !hasBranches && (
+        <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-3.5 text-cyan-900 dark:text-cyan-200 text-xs space-y-2.5">
+          <div className="flex items-center gap-2 font-bold">
+            <GitBranch className="size-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
+            <span>Branch Required</span>
+          </div>
+          <p className="text-[11px] text-text-muted leading-relaxed">
+            Please create at least one dispensary branch first so staff can be assigned store access.
+          </p>
+          <UIButton
+            type="button"
+            variant="primary"
+            size="xs"
+            onClick={() => navigate(ROUTES.CREATE_BRANCH)}
+            className="w-full"
+          >
+            Create Branch First
+          </UIButton>
+        </div>
+      )}
 
-                <div>
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-semibold text-text mb-0.5 block">
-                      Password / PIN <span className="text-rose-500">*</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handleGeneratePassword}
-                      className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5"
-                    >
-                      <FiRefreshCcw className="text-[9px]" /> Generate
-                    </button>
-                  </div>
-                  <AppInput
-                    name="password"
-                    value={formData.password || ""}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                    placeholder="••••••••"
-                    fullWidth
-                    required
-                    size="small"
-                    variant="bordered"
-                    rounded="md"
-                    startIcon={<FiKey />}
-                    error={Boolean(formErrors.password)}
-                    helperText={formErrors.password || "Initial staff password"}
-                    inputSx={inputSx}
-                    helperTextSx={helperTextSx}
-                  />
-                </div>
-              </>
-            ) : (
-              <AppInput
-                label="Email Address"
+      {formErrors.submit && (
+        <UIAlert intent="danger" title="Error" description={formErrors.submit} />
+      )}
+
+      {/* Mode Switcher */}
+      <div className="bg-surface rounded-2xl p-1.5 border border-border/60 shadow-2xs grid grid-cols-2 gap-1.5">
+        <button
+          type="button"
+          onClick={() => handleModeChange?.("direct")}
+          className={cn(
+            "py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+            isDirectMode
+              ? "bg-primary text-text-inverse shadow-xs"
+              : "text-text-muted hover:text-text hover:bg-surface-alt/70"
+          )}
+        >
+          <Zap className="size-3.5" />
+          <span>Direct Add</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleModeChange?.("invite")}
+          className={cn(
+            "py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+            !isDirectMode
+              ? "bg-primary text-text-inverse shadow-xs"
+              : "text-text-muted hover:text-text hover:bg-surface-alt/70"
+          )}
+        >
+          <Mail className="size-3.5" />
+          <span>Email Invite</span>
+        </button>
+      </div>
+
+      {/* Card 1: Identity */}
+      <div className="bg-surface rounded-2xl p-4 border border-border/60 shadow-2xs space-y-3">
+        <h2 className="text-xs font-bold text-text uppercase tracking-wider">
+          {isDirectMode ? "1. Staff Identity" : "1. Invitee Email"}
+        </h2>
+
+        {isDirectMode ? (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-text block mb-1">
+                Full Name <span className="text-destructive">*</span>
+              </label>
+              <UIInput
+                name="fullName"
+                placeholder="e.g. Rajesh Kumar"
+                value={formData.fullName}
+                onChange={handleChange}
+                error={formErrors.fullName}
+                size="sm"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-text block mb-1">
+                Mobile Number
+              </label>
+              <UIInput
+                name="phone"
+                placeholder="10-digit number"
+                value={formData.phone}
+                onChange={handleChange}
+                error={formErrors.phone}
+                size="sm"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-text block mb-1">
+                Email Address
+              </label>
+              <UIInput
                 name="email"
                 type="email"
-                value={formData.email || ""}
+                placeholder="staff@pharmacy.com"
+                value={formData.email}
                 onChange={handleChange}
-                disabled={isLoading}
-                placeholder="member@example.com"
-                fullWidth
-                required
-                size="small"
-                variant="bordered"
-                rounded="md"
-                startIcon={<FiMail />}
-                error={Boolean(formErrors.email)}
-                helperText={
-                  formErrors.email || "Invitation will be linked to this address."
-                }
-                labelSx={labelSx}
-                inputSx={inputSx}
-                helperTextSx={helperTextSx}
+                error={formErrors.email}
+                size="sm"
               />
-            )}
+            </div>
 
-            <AppBox>
-              <AppStack
-                direction="row"
-                align="center"
-                gap={0.4}
-                sx={labelRowSx}
-              >
-                <FiShield className="text-[12px] text-text-muted" />
-                <AppText
-                  component="label"
-                  htmlFor="invite-role-id"
-                  sx={labelSx}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-text">
+                  Initial Password <span className="text-destructive">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGeneratePassword}
+                  className="text-[11px] text-primary font-semibold hover:underline"
                 >
-                  Global Fallback Role
-                </AppText>
-              </AppStack>
-
-              <select
-                id="invite-role-id"
-                name="roleId"
-                value={formData.roleId || ""}
-                onChange={handleChange}
-                disabled={isLoading || isFetchingRoles}
-                className="w-full rounded-md border px-3 outline-none transition disabled:cursor-not-allowed disabled:opacity-70"
-                style={selectStyle}
-              >
-                <option value="">Default Staff Role</option>
-                {roles.map((role) => (
-                  <option key={role._id} value={role._id}>
-                    {role.name || role.code || "Unnamed Role"}
-                  </option>
-                ))}
-              </select>
-
-              <AppText
-                variant="body2"
-                sx={formErrors.roleId ? helperErrorTextSx : helperTextSx}
-              >
-                {formErrors.roleId
-                  ? formErrors.roleId
-                  : isFetchingRoles
-                    ? "Loading workspace roles..."
-                    : "Optional. Used as fallback when branch-specific role is not set."}
-              </AppText>
-            </AppBox>
-
-            {/* PBAC Facilities Scoping */}
-            <div className="rounded-lg border border-border bg-surface-alt/40 p-3">
-              <div className="flex items-center justify-between pb-2 border-b border-border">
-                <span className="text-xs font-semibold text-text">Store Facilities (PBAC)</span>
-                <div className="flex items-center gap-2.5 text-[11px]">
-                  <label className="flex items-center gap-1 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="accessAllBranches"
-                      checked={isAllBranches}
-                      onChange={handleChange}
-                      className="rounded text-primary"
-                    />
-                    <span>All Stores</span>
-                  </label>
-                </div>
+                  Auto-Generate
+                </button>
               </div>
+              <div className="relative">
+                <UIInput
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="PIN / Password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  error={formErrors.password}
+                  size="sm"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
+                >
+                  {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-text block mb-1">
+                Invitee Email <span className="text-destructive">*</span>
+              </label>
+              <UIInput
+                name="email"
+                type="email"
+                placeholder="invitee@email.com"
+                value={formData.email}
+                onChange={handleChange}
+                error={formErrors.email}
+                size="sm"
+              />
+            </div>
 
-              {!isAllBranches && (
-                <div className="mt-2.5 space-y-2">
-                  {branches.length === 0 ? (
-                    <p className="text-[11px] text-text-muted italic">No stores found</p>
-                  ) : (
-                    branches.map((branch) => {
-                      const branchAccessItem = formData.branchAccess.find(
-                        (ba) => ba.branchId === branch._id,
-                      );
-                      const isAssigned = Boolean(branchAccessItem);
+            <div>
+              <label className="text-xs font-semibold text-text block mb-1">
+                Message (Optional)
+              </label>
+              <textarea
+                name="notes"
+                rows={2}
+                placeholder="Welcome to our team..."
+                value={formData.notes}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-xs text-text placeholder:text-text-muted/60 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
-                      return (
-                        <div
-                          key={branch._id}
-                          className={`p-2 rounded border transition text-xs ${
-                            isAssigned
-                              ? "border-primary/50 bg-surface"
-                              : "border-border/60 bg-surface/60 opacity-80"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={isAssigned}
-                                onChange={() => handleToggleBranchAccess(branch._id, formData.roleId)}
-                                className="rounded text-primary"
-                              />
-                              <span className="font-semibold text-text">{branch.name}</span>
-                            </label>
-                            <span className="text-[10px] text-text-muted font-mono">{branch.branchCode}</span>
-                          </div>
+      {/* Card 2: Role */}
+      <div className="bg-surface rounded-2xl p-4 border border-border/60 shadow-2xs space-y-3">
+        <h2 className="text-xs font-bold text-text uppercase tracking-wider">
+          2. Security Role
+        </h2>
 
-                          {isAssigned && (
-                            <div className="mt-2 pt-1.5 border-t border-border/50 flex flex-col gap-1.5">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] text-text-muted">Branch Role:</span>
-                                <select
-                                  value={branchAccessItem.roleId || ""}
-                                  onChange={(e) =>
-                                    handleBranchRoleChange(branch._id, e.target.value)
-                                  }
-                                  className="text-[11px] rounded border border-border bg-surface px-1.5 py-0.5 outline-none flex-1 text-text"
-                                >
-                                  <option value="">Inherit Global Role</option>
-                                  {roles.map((r) => (
-                                    <option key={r._id} value={r._id}>
-                                      {r.name || r.code}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => handleBranchMarketplaceToggle(branch._id)}
-                                className={`text-[10px] py-1 px-2 rounded border flex items-center justify-center gap-1 ${
-                                  branchAccessItem.canOperateMarketplaceStore
-                                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-500 font-semibold"
-                                    : "border-border text-text-muted"
-                                }`}
-                              >
-                                <FiShoppingBag className="text-xs" />
-                                <span>Marketplace Fulfillment Operator</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
+        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+          {roles.map((role) => {
+            const isSelected = String(formData.roleId).trim() === String(role._id).trim();
+            return (
+              <div
+                key={role._id}
+                onClick={() => handleChange({ target: { name: "roleId", value: role._id } })}
+                className={cn(
+                  "p-2.5 rounded-xl border transition-all flex items-center justify-between cursor-pointer",
+                  isSelected
+                    ? "bg-surface border-primary/50 text-primary font-semibold ring-1 ring-primary/25"
+                    : "bg-surface-alt/40 border-border/60 text-text"
+                )}
+              >
+                <div>
+                  <span className="text-xs font-bold block">{role.name}</span>
+                  <span className="text-[10.5px] text-text-muted block">
+                    {role.permissions?.length || 0} Permissions
+                  </span>
                 </div>
-              )}
-            </div>
+                {isSelected && <Check className="size-4 text-primary" />}
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-            <AppTextarea
-              label="Notes"
-              name="notes"
-              value={formData.notes || ""}
-              onChange={handleChange}
-              disabled={isLoading}
-              placeholder="Optional note for internal reference"
-              fullWidth
-              size="small"
-              variant="bordered"
-              rounded="md"
-              minRows={3}
-              maxRows={5}
-              showCount
-              maxLength={500}
-              error={Boolean(formErrors.notes)}
-              helperText={formErrors.notes || "Maximum 500 characters."}
-              labelSx={labelSx}
-              inputSx={textareaSx}
-              helperTextSx={helperTextSx}
-            />
+      {/* Card 3: Company Clearance */}
+      <div className="bg-surface rounded-2xl p-4 border border-border/60 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold text-text uppercase tracking-wider">
+            3. Companies
+          </h2>
+          <UISwitch
+            checked={formData.accessAllCompanies}
+            onChange={(checked) =>
+              handleChange({ target: { name: "accessAllCompanies", value: checked, type: "checkbox", checked } })
+            }
+            label={formData.accessAllCompanies ? "All" : "Custom"}
+            size="sm"
+          />
+        </div>
 
-            {formErrors.submit && (
-              <AppAlert
-                severity="error"
-                variant="soft"
-                rounded="md"
-                sx={{ mt: 1 }}
-              >
-                {formErrors.submit}
-              </AppAlert>
+        {!formData.accessAllCompanies && (
+          <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+            {companies.map((comp) => {
+              const isChecked = selectedCompanyIdSet.has(String(comp._id).trim());
+              return (
+                <div
+                  key={comp._id}
+                  onClick={() => handleToggleCompany(comp._id)}
+                  className="p-2 rounded-xl border border-border/60 bg-surface-alt/40 flex items-center justify-between text-xs"
+                >
+                  <span className="font-semibold text-text truncate">{comp.name}</span>
+                  <UISwitch
+                    checked={isChecked}
+                    onChange={() => handleToggleCompany(comp._id)}
+                    size="sm"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Card 4: Branches */}
+      <div className="bg-surface rounded-2xl p-4 border border-border/60 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold text-text uppercase tracking-wider">
+            4. Branches
+          </h2>
+          <UISwitch
+            checked={formData.accessAllBranches}
+            onChange={(checked) =>
+              handleChange({ target: { name: "accessAllBranches", value: checked, type: "checkbox", checked } })
+            }
+            label={formData.accessAllBranches ? "All" : "Custom"}
+            size="sm"
+            disabled={availableBranches.length === 0}
+          />
+        </div>
+
+        {!formData.accessAllBranches && (
+          <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+            {availableBranches.length === 0 ? (
+              <span className="text-[11px] text-text-muted text-center block py-2">
+                Select a company above first.
+              </span>
+            ) : (
+              availableBranches.map((branch) => {
+                const isChecked = (formData.branchAccess || []).some(
+                  (ba) => String(ba.branchId || ba).trim() === String(branch._id).trim()
+                );
+                return (
+                  <div
+                    key={branch._id}
+                    onClick={() => handleToggleBranchAccess(branch._id, formData.roleId)}
+                    className="p-2 rounded-xl border border-border/60 bg-surface-alt/40 flex items-center justify-between text-xs"
+                  >
+                    <span className="font-semibold text-text truncate">{branch.name}</span>
+                    <UISwitch
+                      checked={isChecked}
+                      onChange={() => handleToggleBranchAccess(branch._id, formData.roleId)}
+                      size="sm"
+                    />
+                  </div>
+                );
+              })
             )}
+          </div>
+        )}
+      </div>
 
-            {/* Standardized Form Actions Row Component Structure */}
-            <AppStack
-              direction="row"
-              align="center"
-              justify="space-between"
-              gap={1.2}
-              sx={actionsSx}
-            >
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="neutral"
-                rounded="md"
-                size="small"
-                startIcon={<FiRefreshCcw />}
-                onClick={handleReset}
-                disabled={isLoading}
-                sx={secondaryButtonSx}
-              >
-                Reset
-              </AppButton>
-
-              <AppButton
-                type="submit"
-                variant="contained"
-                colorVariant="success"
-                rounded="md"
-                size="small"
-                startIcon={isDirectMode ? <FiCheckCircle /> : <FiSend />}
-                loading={isInviting}
-                disabled={isLoading || isCheckingWorkspace}
-                sx={primaryButtonSx}
-              >
-                {isDirectMode ? "Create & Activate Staff" : "Send Invitation"}
-              </AppButton>
-            </AppStack>
-          </AppStack>
-        </AppBox>
-
-        {/* High Density Information Advisory Segments Block */}
-        <AppBox sx={infoSectionWrapperSx}>
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="none"
-            padding="none"
-            sx={sideCardSx}
-          >
-            <AppStack direction="row" align="center" gap={0.75}>
-              <AppBox sx={iconBoxSx}>
-                <FiUsers />
-              </AppBox>
-              <AppBox>
-                <AppHeading level={2} weight={750} sx={sideTitleSx}>
-                  Workspace Summary
-                </AppHeading>
-                <AppText variant="body2" sx={sideSubtitleSx}>
-                  Target profile destination details.
-                </AppText>
-              </AppBox>
-            </AppStack>
-
-            <div className="mt-3 grid grid-cols-2 gap-x-2 gap-y-1 border-t border-divider/60 pt-2.5">
-              <AppKeyValue
-                label="Name"
-                value={workspaceSummary?.name || "-"}
-                labelSx={summaryLabelSx}
-                valueSx={summaryValueSx}
-              />
-              <AppKeyValue
-                label="Code"
-                value={workspaceSummary?.code || "-"}
-                labelSx={summaryLabelSx}
-                valueSx={summaryValueSx}
-              />
-              <AppKeyValue
-                label="Type"
-                value={workspaceSummary?.type || "-"}
-                labelSx={summaryLabelSx}
-                valueSx={summaryValueSx}
-              />
-              <AppKeyValue
-                label="Phone"
-                value={workspaceSummary?.phone || "-"}
-                labelSx={summaryLabelSx}
-                valueSx={summaryValueSx}
-              />
-            </div>
-          </AppCard>
-
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="none"
-            padding="none"
-            sx={{ ...sideCardSx, mt: 1 }}
-          >
-            <AppStack direction="row" align="center" gap={0.75}>
-              <AppBox
-                sx={{
-                  ...iconBoxSx,
-                  bgcolor: "var(--app-color-info-soft)",
-                  color: "var(--app-color-info)",
-                }}
-              >
-                <FiInfo />
-              </AppBox>
-              <AppBox>
-                <AppHeading level={2} weight={750} sx={sideTitleSx}>
-                  How Invitations Work
-                </AppHeading>
-                <AppText variant="body2" sx={sideSubtitleSx}>
-                  Seat-aware links expire automatically.
-                </AppText>
-              </AppBox>
-            </AppStack>
-
-            <AppStack
-              direction="column"
-              gap={0.85}
-              sx={{
-                mt: 2,
-                borderTop: "1px solid var(--app-color-divider)",
-                pt: 2,
-              }}
-            >
-              <InfoRow
-                icon={<FiCheckCircle />}
-                title="Seat validation"
-                text="Roster validation applies prior to allocation."
-              />
-              <InfoRow
-                icon={<FiClock />}
-                title="72-hour expiry"
-                text="Link codes invalidate automatically post 72 hours."
-              />
-            </AppStack>
-
-            <AppButton
-              type="button"
-              variant="soft"
-              colorVariant="primary"
-              rounded="md"
-              fullWidth
-              size="small"
-              startIcon={<FiUsers />}
-              onClick={handleViewMembers}
-              sx={membersButtonSx}
-            >
-              View Workspace Members
-            </AppButton>
-          </AppCard>
-        </AppBox>
-      </AppBox>
-    </section>
+      {/* Sticky Bottom Actions */}
+      <div className="fixed bottom-0 left-0 right-0 p-3 bg-surface/90 backdrop-blur-md border-t border-border/60 flex items-center gap-2 z-30">
+        <UIButton
+          variant="outline"
+          size="sm"
+          className="flex-1"
+          onClick={handleBack}
+        >
+          Cancel
+        </UIButton>
+        <UIButton
+          variant="primary"
+          size="sm"
+          className="flex-1"
+          onClick={handleSubmit}
+          isLoading={isLoading || isInviting}
+          disabled={!canCreateOrInvite || isLoading || isInviting}
+          startIcon={isDirectMode ? <Zap className="size-3.5" /> : <Mail className="size-3.5" />}
+        >
+          {isDirectMode ? "Add Staff" : "Send Invite"}
+        </UIButton>
+      </div>
+    </div>
   );
-};
-
-// Internal Presentation Compositions
-const InfoRow = ({ icon, title, text }) => (
-  <AppStack direction="row" align="flex-start" gap={0.75}>
-    <AppBox sx={smallInfoIconSx}>{icon}</AppBox>
-    <AppBox sx={{ minWidth: 0, flex: 1 }}>
-      <AppHeading level={3} weight={700} sx={infoTitleSx}>
-        {title}
-      </AppHeading>
-      <AppText variant="body2" sx={infoTextSx}>
-        {text}
-      </AppText>
-    </AppBox>
-  </AppStack>
-);
-
-const AppIconButtonCustom = ({ icon, onClick, disabled }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-surface text-text-muted transition active:bg-surface-active disabled:cursor-not-allowed disabled:opacity-50"
-  >
-    <span className="text-[15px]">{icon}</span>
-  </button>
-);
-
-/* Architectural Structural Layout Definitions */
-const containerSx = {
-  position: "relative",
-  zIndex: 1,
-  width: "100%",
-  maxWidth: { xs: 430, sm: 460 },
-  mx: "auto",
-  px: 0,
-  pt: 0,
-  pb: 0,
-};
-
-const headerWrapperSx = {
-  pt: 1.5,
-  pb: 1,
-  px: 0.5,
-};
-
-const pageTitleSx = {
-  m: 0,
-  fontSize: "21px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.4px",
-  color: "var(--app-color-text)",
-};
-
-const pageSubtitleSx = {
-  mt: 0.2,
-  fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const headerSecondaryBtnSx = {
-  height: 32,
-  fontSize: "11px",
-  fontWeight: 700,
-  px: 1.1,
-  borderColor: "var(--app-color-border-strong)",
-  color: "var(--app-color-text)",
-};
-
-const alertContainerSx = {
-  px: 0.5,
-  mb: 1,
-};
-
-const formSectionSx = {
-  px: 0.5,
-  pb: 1.5,
-};
-
-const labelRowSx = {
-  mb: 0.45,
-  alignItems: "center",
-};
-
-const labelSx = {
-  mb: 0,
-  fontSize: "12.3px",
-  fontWeight: 700,
-  color: "var(--app-color-text)",
-};
-
-const inputSx = {
-  height: 40,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const selectStyle = {
-  height: 40,
-  fontSize: "12px",
-  backgroundColor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  color: "var(--app-color-text)",
-};
-
-const textareaSx = {
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const helperTextSx = {
-  mt: 0.45,
-  fontSize: "10.5px",
-  fontWeight: 500,
-  lineHeight: "14px",
-  color: "var(--app-color-text-muted)",
-};
-
-const helperErrorTextSx = {
-  ...helperTextSx,
-  color: "var(--app-color-error)",
-};
-
-const actionsSx = {
-  mt: 1,
-  pt: 1.5,
-  borderTop: "1px solid var(--app-color-divider)",
-};
-
-const primaryButtonSx = {
-  height: 34,
-  px: 1.5,
-  fontSize: "12px",
-  fontWeight: 750,
-};
-
-const secondaryButtonSx = {
-  height: 34,
-  px: 1.25,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-
-const infoSectionWrapperSx = {
-  px: 0.5,
-  py: 1.25,
-  borderTop: "1px solid var(--app-color-divider)",
-  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, transparent)",
-};
-
-const sideCardSx = {
-  p: 1.2,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "none",
-};
-
-const iconBoxSx = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 32,
-  height: 32,
-  borderRadius: "8px",
-  bgcolor: "var(--app-color-primary-soft)",
-  color: "var(--app-color-primary)",
-  fontSize: "15px",
-  flexShrink: 0,
-};
-
-const sideTitleSx = {
-  m: 0,
-  fontSize: "13px",
-  lineHeight: 1.2,
-  color: "var(--app-color-text)",
-};
-
-const sideSubtitleSx = {
-  mt: 0.1,
-  fontSize: "10.8px",
-  color: "var(--app-color-text-muted)",
-};
-
-const summaryLabelSx = {
-  fontSize: "10px",
-  color: "var(--app-color-text-muted)",
-};
-
-const summaryValueSx = {
-  fontSize: "11.5px",
-  color: "var(--app-color-text)",
-  fontWeight: 600,
-};
-
-const smallInfoIconSx = {
-  width: 24,
-  height: 24,
-  borderRadius: "50%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  bgcolor: "var(--app-color-primary-soft)",
-  color: "var(--app-color-primary)",
-  fontSize: "12px",
-  flexShrink: 0,
-};
-
-const infoTitleSx = {
-  m: 0,
-  fontSize: "11.5px",
-  color: "var(--app-color-text)",
-};
-
-const infoTextSx = {
-  mt: 0.05,
-  fontSize: "10.5px",
-  lineHeight: "14px",
-  color: "var(--app-color-text-muted)",
-};
-
-const membersButtonSx = {
-  mt: 1.5,
-  height: 34,
-  fontSize: "11.5px",
-  fontWeight: 750,
-};
-
-export default InviteWorkspaceMemberMobilePage;
+}

@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -154,166 +155,195 @@ const useWorkspace = () => {
     selectAcceptIncomingInvitationStatus,
   );
 
-  const submitCreateWorkspace = (payload) => {
-    return dispatch(createWorkspace(payload)).unwrap();
-  };
+  const submitCreateWorkspace = useCallback(
+    (payload) => dispatch(createWorkspace(payload)).unwrap(),
+    [dispatch],
+  );
 
-  const fetchMyWorkspaces = () => {
-    return dispatch(getMyWorkspaces()).unwrap();
-  };
+  const fetchMyWorkspaces = useCallback(
+    () => dispatch(getMyWorkspaces()).unwrap(),
+    [dispatch],
+  );
 
-  const fetchWorkspaceById = (workspaceId) => {
-    return dispatch(getWorkspaceById(workspaceId)).unwrap();
-  };
+  const fetchWorkspaceById = useCallback(
+    (workspaceId) => dispatch(getWorkspaceById(workspaceId)).unwrap(),
+    [dispatch],
+  );
 
-  const submitUpdateWorkspace = (workspaceId, payload) => {
-    return dispatch(updateWorkspace({ workspaceId, payload })).unwrap();
-  };
+  const submitUpdateWorkspace = useCallback(
+    (workspaceId, payload) =>
+      dispatch(updateWorkspace({ workspaceId, payload })).unwrap(),
+    [dispatch],
+  );
 
-  const submitDeleteWorkspace = (workspaceId) => {
-    return dispatch(deleteWorkspace(workspaceId)).unwrap();
-  };
+  const submitDeleteWorkspace = useCallback(
+    (workspaceId) => dispatch(deleteWorkspace(workspaceId)).unwrap(),
+    [dispatch],
+  );
 
-  const fetchWorkspaceMembers = (workspaceId) => {
-    return dispatch(getWorkspaceMembers(workspaceId)).unwrap();
-  };
+  const fetchWorkspaceMembers = useCallback(
+    (workspaceId) => dispatch(getWorkspaceMembers(workspaceId)).unwrap(),
+    [dispatch],
+  );
 
-  const submitUpdateWorkspaceMemberStatus = (
-    workspaceId,
-    memberUserId,
-    status,
-  ) => {
-    return dispatch(
-      updateWorkspaceMemberStatus({
-        workspaceId,
-        memberUserId,
-        status,
-      }),
-    ).unwrap();
-  };
+  const submitUpdateWorkspaceMemberStatus = useCallback(
+    (workspaceId, memberUserId, status) =>
+      dispatch(
+        updateWorkspaceMemberStatus({
+          workspaceId,
+          memberUserId,
+          status,
+        }),
+      ).unwrap(),
+    [dispatch],
+  );
 
-  const submitRemoveWorkspaceMember = (workspaceId, memberUserId) => {
-    return dispatch(
-      removeWorkspaceMember({
-        workspaceId,
-        memberUserId,
-      }),
-    ).unwrap();
-  };
+  const submitRemoveWorkspaceMember = useCallback(
+    (workspaceId, memberUserId) =>
+      dispatch(
+        removeWorkspaceMember({
+          workspaceId,
+          memberUserId,
+        }),
+      ).unwrap(),
+    [dispatch],
+  );
 
-  const submitDirectCreateWorkspaceMember = (workspaceId, payload) => {
-    return dispatch(
-      directCreateWorkspaceMember({
-        workspaceId,
-        payload,
-      }),
-    ).unwrap();
-  };
+  const submitDirectCreateWorkspaceMember = useCallback(
+    (workspaceId, payload) =>
+      dispatch(
+        directCreateWorkspaceMember({
+          workspaceId,
+          payload,
+        }),
+      ).unwrap(),
+    [dispatch],
+  );
 
-  const submitResetMemberPassword = (workspaceId, memberUserId, password) => {
-    return dispatch(
-      resetMemberPassword({
-        workspaceId,
-        memberUserId,
-        password,
-      }),
-    ).unwrap();
-  };
+  const submitResetMemberPassword = useCallback(
+    (workspaceId, memberUserId, password) =>
+      dispatch(
+        resetMemberPassword({
+          workspaceId,
+          memberUserId,
+          password,
+        }),
+      ).unwrap(),
+    [dispatch],
+  );
 
-  const submitInviteWorkspaceMember = (workspaceId, payload) => {
-    return dispatch(
-      inviteWorkspaceMember({
-        workspaceId,
-        payload,
-      }),
-    ).unwrap();
-  };
+  const submitInviteWorkspaceMember = useCallback(
+    (workspaceId, payload) =>
+      dispatch(
+        inviteWorkspaceMember({
+          workspaceId,
+          payload,
+        }),
+      ).unwrap(),
+    [dispatch],
+  );
 
-  const fetchWorkspaceInvitations = (workspaceId) => {
-    return dispatch(getWorkspaceInvitations(workspaceId)).unwrap();
-  };
+  const fetchWorkspaceInvitations = useCallback(
+    (workspaceId) => dispatch(getWorkspaceInvitations(workspaceId)).unwrap(),
+    [dispatch],
+  );
 
-  const submitCancelWorkspaceInvitation = (workspaceId, invitationId) => {
-    return dispatch(
-      cancelWorkspaceInvitation({
-        workspaceId,
-        invitationId,
-      }),
-    ).unwrap();
-  };
+  const submitCancelWorkspaceInvitation = useCallback(
+    (workspaceId, invitationId) =>
+      dispatch(
+        cancelWorkspaceInvitation({
+          workspaceId,
+          invitationId,
+        }),
+      ).unwrap(),
+    [dispatch],
+  );
 
-  const submitResendWorkspaceInvitation = (workspaceId, invitationId) => {
-    return dispatch(
-      resendWorkspaceInvitation({
-        workspaceId,
-        invitationId,
-      }),
-    ).unwrap();
-  };
+  const submitResendWorkspaceInvitation = useCallback(
+    (workspaceId, invitationId) =>
+      dispatch(
+        resendWorkspaceInvitation({
+          workspaceId,
+          invitationId,
+        }),
+      ).unwrap(),
+    [dispatch],
+  );
 
-  const submitUpdateWorkspaceInvitation = (workspaceId, invitationId, payload) => {
-    return dispatch(
-      updateWorkspaceInvitation({
-        workspaceId,
-        invitationId,
-        payload,
-      }),
-    ).unwrap();
-  };
+  const submitUpdateWorkspaceInvitation = useCallback(
+    (workspaceId, invitationId, payload) =>
+      dispatch(
+        updateWorkspaceInvitation({
+          workspaceId,
+          invitationId,
+          payload,
+        }),
+      ).unwrap(),
+    [dispatch],
+  );
 
-  const submitAcceptWorkspaceInvitation = (token) => {
-    return dispatch(acceptWorkspaceInvitation(token)).unwrap();
-  };
+  const submitAcceptWorkspaceInvitation = useCallback(
+    (token) => dispatch(acceptWorkspaceInvitation(token)).unwrap(),
+    [dispatch],
+  );
 
-  const submitAcceptWorkspaceInvitationSignup = (token, payload) => {
-    return dispatch(
-      acceptWorkspaceInvitationSignup({
-        token,
-        payload,
-      }),
-    ).unwrap();
-  };
+  const submitAcceptWorkspaceInvitationSignup = useCallback(
+    (token, payload) =>
+      dispatch(
+        acceptWorkspaceInvitationSignup({
+          token,
+          payload,
+        }),
+      ).unwrap(),
+    [dispatch],
+  );
 
-  const fetchPublicInvitationDetails = (token) => {
-    return dispatch(getPublicInvitationDetails(token)).unwrap();
-  };
+  const fetchPublicInvitationDetails = useCallback(
+    (token) => dispatch(getPublicInvitationDetails(token)).unwrap(),
+    [dispatch],
+  );
 
   // --- NEW USER INBOX DISPATCH METHODS ---
-  const fetchIncomingUserInvitations = () => {
-    return dispatch(getIncomingUserInvitations()).unwrap();
-  };
+  const fetchIncomingUserInvitations = useCallback(
+    () => dispatch(getIncomingUserInvitations()).unwrap(),
+    [dispatch],
+  );
 
-  const submitAcceptIncomingInvitation = (token) => {
-    return dispatch(acceptIncomingInvitation(token)).unwrap();
-  };
+  const submitAcceptIncomingInvitation = useCallback(
+    (token) => dispatch(acceptIncomingInvitation(token)).unwrap(),
+    [dispatch],
+  );
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearWorkspaceError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearWorkspaceMessage());
-  };
+  }, [dispatch]);
 
-  const saveCurrentWorkspace = (payload) => {
-    dispatch(setCurrentWorkspace(payload));
-  };
+  const saveCurrentWorkspace = useCallback(
+    (payload) => {
+      dispatch(setCurrentWorkspace(payload));
+    },
+    [dispatch],
+  );
 
-  const removeCurrentWorkspace = () => {
+  const removeCurrentWorkspace = useCallback(() => {
     dispatch(clearCurrentWorkspace());
-  };
+  }, [dispatch]);
 
-  const removeWorkspaceMembers = () => {
+  const removeWorkspaceMembers = useCallback(() => {
     dispatch(clearWorkspaceMembers());
-  };
+  }, [dispatch]);
 
-  const removeWorkspaceInvitations = () => {
+  const removeWorkspaceInvitations = useCallback(() => {
     dispatch(clearWorkspaceInvitations());
-  };
+  }, [dispatch]);
 
-  const removeIncomingInvitations = () => {
+  const removeIncomingInvitations = useCallback(() => {
     dispatch(clearIncomingInvitations());
-  };
+  }, [dispatch]);
 
   return {
     workspaces,

@@ -1,5 +1,9 @@
+// src/features/settings/pages/mobile/SettingsMobilePage.jsx
+
+import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UIPageHeader, UITabs } from "@/components/ui";
+import { usePermission } from "@/hooks";
 
 import { SETTINGS_TABS } from "../desktop/SettingsDesktopPage";
 import ProfileTab from "../../components/tabs/ProfileTab";
@@ -10,6 +14,14 @@ import BillingTab from "../../components/tabs/BillingTab";
 import IntegrationsTab from "../../components/tabs/IntegrationsTab";
 
 const SettingsMobilePage = ({ activeTab = "profile", onTabChange }) => {
+  const { can } = usePermission();
+
+  // Filter visible tabs based on user permissions
+  const visibleTabs = useMemo(
+    () => SETTINGS_TABS.filter((t) => !t.permission || can(t.permission)),
+    [can]
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "profile":
@@ -43,7 +55,7 @@ const SettingsMobilePage = ({ activeTab = "profile", onTabChange }) => {
         {/* Reusable scrollable pill tab bar */}
         <div className="w-full overflow-x-auto no-scrollbar py-0.5">
           <UITabs
-            tabs={SETTINGS_TABS}
+            tabs={visibleTabs}
             activeTab={activeTab}
             onChange={(tabId) => onTabChange(tabId)}
             variant="pill"

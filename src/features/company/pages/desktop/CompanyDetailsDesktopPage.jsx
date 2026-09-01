@@ -47,6 +47,8 @@ import {
   AppText,
   AppPageLoader,
   AppErrorState,
+  PageRightSidebar,
+  PermissionGate,
 } from "@/components";
 
 const CompanyDetailsDesktopPage = ({
@@ -173,17 +175,19 @@ const CompanyDetailsDesktopPage = ({
           </AppStack>
 
           <AppStack direction="row" align="center" gap={1}>
-            <AppButton
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiEdit3 />}
-              onClick={handleEdit}
-              sx={secondaryButtonSx}
-            >
-              Edit Company
-            </AppButton>
+            <PermissionGate permission="company:update">
+              <AppButton
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiEdit3 />}
+                onClick={handleEdit}
+                sx={secondaryButtonSx}
+              >
+                Edit Company
+              </AppButton>
+            </PermissionGate>
             <AppMenu
               trigger={
                 <AppButton

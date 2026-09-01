@@ -7,7 +7,9 @@ import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useCompany from "@/features/company/hooks/useCompany";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useUser from "@/features/user/hooks/useUser";
+import useAccessControl from "@/features/access-control/hooks/useAccessControl";
 import { ScrollToTop } from "@/components";
+import { UIToastContainer } from "@/components/ui";
 
 import AppDesktopLayout from "./desktop/AppDesktopLayout";
 import AppMobileLayout from "./mobile/AppMobileLayout";
@@ -36,6 +38,7 @@ const AppLayout = () => {
     setCurrentBranch,
     clearCurrentBranch,
   } = useBranch();
+  const { getMyAccess } = useAccessControl();
 
   // STRATEGY: If Redux is populated, we are routing (skip loading). If empty, we are reloading (show loader).
   const isHardRefresh = !currentWorkspace?._id || !currentCompany?._id;
@@ -111,6 +114,9 @@ const AppLayout = () => {
         }
 
         // UNLOCK GATE: Everything resolved in sequential order safely!
+        // Load the current user's permissions (non-blocking — errors fail silently)
+        getMyAccess().catch(() => null);
+
         setIsSyncComplete(true);
       } catch (error) {
         console.error(
@@ -139,6 +145,7 @@ const AppLayout = () => {
   return (
     <>
       <ScrollToTop />
+      <UIToastContainer position="bottom-right" />
       {isMobile ? <AppMobileLayout /> : <AppDesktopLayout />}
     </>
   );

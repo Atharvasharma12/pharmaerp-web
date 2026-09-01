@@ -24,6 +24,7 @@ import {
   AppTable,
   AppMenu,
   PageHeader,
+  PermissionGate,
 } from "@/components";
 import { ROUTES } from "@/constants";
 import { formatDate, formatCurrency } from "@/utils";
@@ -199,17 +200,19 @@ const CashDenominationsDesktopPage = ({
               >
                 Refresh
               </AppButton>
-              <AppButton
-                variant="filled"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleCreateNew}
-                sx={primaryButtonSx}
-              >
-                New Cash Count
-              </AppButton>
+              <PermissionGate permission="cash-denomination:create">
+                <AppButton
+                  variant="filled"
+                  colorVariant="success"
+                  size="small"
+                  rounded="md"
+                  startIcon={<FiPlus />}
+                  onClick={handleCreateNew}
+                  sx={primaryButtonSx}
+                >
+                  New Cash Count
+                </AppButton>
+              </PermissionGate>
             </AppStack>
           }
           align="flex-start"

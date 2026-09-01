@@ -30,11 +30,12 @@ import {
   AppSelect,
   AppStack,
   AppStatusBadge,
-  AppTable,
   AppTag,
   AppText,
   PageHeader,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 
 // Map statistic IDs to react-icons
 const statIcons = {
@@ -103,18 +104,20 @@ const AccountsTableToolbar = ({
         inputSx={filterInputSx}
       />
     </div>
-    <AppButton
-      type="button"
-      variant="contained"
-      colorVariant="success"
-      rounded="md"
-      size="small"
-      startIcon={<FiPlus />}
-      onClick={() => handleAction("add_account")}
-      sx={addButtonSx}
-    >
-      Add Account
-    </AppButton>
+    <PermissionGate permission="account:create">
+      <AppButton
+        type="button"
+        variant="contained"
+        colorVariant="success"
+        rounded="md"
+        size="small"
+        startIcon={<FiPlus />}
+        onClick={() => handleAction("add_account")}
+        sx={addButtonSx}
+      >
+        Add Account
+      </AppButton>
+    </PermissionGate>
   </div>
 );
 
@@ -152,18 +155,20 @@ const GroupsTableToolbar = ({
         inputSx={filterInputSx}
       />
     </div>
-    <AppButton
-      type="button"
-      variant="contained"
-      colorVariant="success"
-      rounded="md"
-      size="small"
-      startIcon={<FiPlus />}
-      onClick={() => handleAction("add_group")}
-      sx={addButtonSx}
-    >
-      Add Group
-    </AppButton>
+    <PermissionGate permission="account-group:create">
+      <AppButton
+        type="button"
+        variant="contained"
+        colorVariant="success"
+        rounded="md"
+        size="small"
+        startIcon={<FiPlus />}
+        onClick={() => handleAction("add_group")}
+        sx={addButtonSx}
+      >
+        Add Group
+      </AppButton>
+    </PermissionGate>
   </div>
 );
 

@@ -183,7 +183,7 @@ export const UIStatCard = forwardRef(
                 {prefix}
               </span>
             )}
-            <span className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-text tabular-nums truncate">
+            <span className="text-xl sm:text-2xl font-bold font-mono tracking-tight text-text tabular-nums">
               {value}
             </span>
             {suffix && (

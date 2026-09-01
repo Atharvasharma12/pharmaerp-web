@@ -36,7 +36,9 @@ import {
   HELP_SUPPORT_CARD,
   PageHeader,
   PageRightSidebar,
+  PermissionGate,
 } from "@/components";
+import { usePermission } from "@/hooks";
 
 const companyColorMap = {
   proprietorship: "primary",
@@ -163,18 +165,20 @@ const CompaniesDesktopPage = ({
                 Export
               </AppButton>
 
-              <AppButton
-                type="button"
-                variant="contained"
-                colorVariant="primary"
-                rounded="md"
-                size="small"
-                startIcon={<FiPlus />}
-                onClick={handleCreateCompany}
-                sx={primaryButtonSx}
-              >
-                Add Company
-              </AppButton>
+              <PermissionGate permission="company:create">
+                <AppButton
+                  type="button"
+                  variant="contained"
+                  colorVariant="primary"
+                  rounded="md"
+                  size="small"
+                  startIcon={<FiPlus />}
+                  onClick={handleCreateCompany}
+                  sx={primaryButtonSx}
+                >
+                  Add Company
+                </AppButton>
+              </PermissionGate>
             </AppStack>
           }
           align="flex-start"
@@ -521,22 +525,24 @@ const CompanyRow = ({ company, onView, onEdit, onSettings, onDelete }) => (
 );
 
 const CompanyActions = ({ company, onView, onEdit, onSettings, onDelete }) => {
+  const { can } = usePermission();
+
   const items = [
     { id: "view", label: "View Details", onClick: () => onView?.(company) },
-    { id: "edit", label: "Edit Company", onClick: () => onEdit?.(company) },
-    {
+    can("company:update") && { id: "edit", label: "Edit Company", onClick: () => onEdit?.(company) },
+    can("company:update") && {
       id: "settings",
       label: "Module Settings",
       onClick: () => onSettings?.(company),
     },
-    { id: "divider", type: "divider" },
-    {
+    can("company:delete") && { id: "divider", type: "divider" },
+    can("company:delete") && {
       id: "remove",
       label: "Remove Profile",
       danger: true,
       onClick: () => onDelete?.(company),
     },
-  ];
+  ].filter(Boolean);
 
   return (
     <AppMenu

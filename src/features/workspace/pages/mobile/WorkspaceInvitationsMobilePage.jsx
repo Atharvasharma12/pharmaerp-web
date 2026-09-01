@@ -1,768 +1,211 @@
 // src/features/workspace/pages/mobile/WorkspaceInvitationsMobilePage.jsx
 
-import { useMemo } from "react";
+import React from "react";
 import {
-  FiSend,
-  FiClock,
-  FiCheck,
-  FiCheckCircle,
-  FiXCircle,
-  FiSearch,
-  FiFilter,
-  FiRefreshCw,
-  FiCopy,
-  FiUserPlus,
-  FiUsers,
-  FiCalendar,
-  FiMail,
-  FiChevronLeft,
-  FiChevronRight,
-  FiPlus,
-} from "react-icons/fi";
+  Mail,
+  Plus,
+  RotateCcw,
+  Copy,
+  Check,
+  Send,
+  XCircle,
+  Shield,
+  GitBranch,
+} from "lucide-react";
 
 import {
-  AppBox,
-  AppButton,
-  AppCard,
-  AppHeading,
-  AppIconButton,
-  AppSelect,
-  AppSearchInput,
-  AppStack,
-  AppStatusBadge,
-  AppTag,
-  AppText,
-} from "@/components";
+  UIButton,
+  UIIconButton,
+  UISearchInput,
+  UISelect,
+  UIBadge,
+  UIEmptyState,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
 
-const statIcons = {
-  total: <FiSend />,
-  pending: <FiClock />,
-  accepted: <FiCheckCircle />,
-  expired: <FiXCircle />,
+const statusBadgeVariant = (status) => {
+  switch (status) {
+    case "accepted":
+      return { variant: "soft", color: "success", label: "Accepted" };
+    case "pending":
+      return { variant: "soft", color: "warning", label: "Pending" };
+    case "expired":
+      return { variant: "soft", color: "neutral", label: "Expired" };
+    case "cancelled":
+      return { variant: "soft", color: "neutral", label: "Cancelled" };
+    default:
+      return { variant: "soft", color: "neutral", label: status };
+  }
 };
 
-const statusColorMap = {
-  pending: "warning",
-  accepted: "success",
-  cancelled: "neutral",
-  expired: "error",
-};
-
-const WorkspaceInvitationsMobilePage = ({
+export default function WorkspaceInvitationsMobilePage({
   workspace,
   invitations = [],
-  stats = [],
+  paginatedInvitations = [],
   filters,
   statusOptions = [],
-  totalInvitations = 0,
+  isLoading = false,
+  copiedId = null,
+
   filteredInvitationsCount = 0,
-  hasFilteredInvitations,
-  copiedId,
+  hasFilteredInvitations = false,
+
   handleFilterChange,
   handleSearchChange,
   handleClearFilters,
   handleRefresh,
   handleInviteMember,
-  handleViewMembers,
   handleCancelInvitation,
   handleResendInvitation,
   handleCopyLink,
-}) => {
-  const shouldRenderPagination =
-    hasFilteredInvitations && totalInvitations > 10;
-
+}) {
   return (
-    <section className="w-full bg-bg">
-      <AppBox sx={containerSx}>
-        {/* Expanded Width Page Title Header Section */}
-        <AppBox sx={headerWrapperSx}>
-          <AppStack
-            direction="row"
-            align="center"
-            justify="space-between"
-            gap={1}
-          >
-            <AppBox sx={{ minWidth: 0, flex: 1 }}>
-              <AppHeading level={1} weight={800} sx={pageTitleSx}>
-                Invitations
-              </AppHeading>
-              <AppText variant="body2" weight={600} sx={pageSubtitleSx}>
-                {workspace?.name || "Workspace Invites"}
-              </AppText>
-            </AppBox>
+    <div className="min-h-screen bg-bg text-text p-3 pb-24 space-y-3.5">
+      {/* Header */}
+      <div className="bg-surface rounded-2xl p-4 border border-border/60 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+              <Mail className="size-4" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold text-text">Invitations</h1>
+              <span className="text-[11px] text-text-muted">{workspace?.name}</span>
+            </div>
+          </div>
 
-            <AppStack
-              direction="row"
-              align="center"
-              gap={0.5}
-              sx={{ flexShrink: 0 }}
+          <div className="flex items-center gap-1.5">
+            <UIIconButton
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              aria-label="Refresh"
             >
-              <AppIconButton
-                icon={<FiRefreshCw />}
-                variant="outlined"
-                colorVariant="neutral"
-                size="small"
-                rounded="md"
-                onClick={handleRefresh}
-                sx={actionHeaderIconBtnSx}
-              />
-              <AppButton
-                variant="outlined"
-                colorVariant="primary"
-                size="small"
-                rounded="md"
-                onClick={handleViewMembers}
-                sx={headerSecondaryBtnSx}
-              >
-                Members
-              </AppButton>
-              <AppButton
-                variant="contained"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleInviteMember}
-                sx={addInviteBtnSx}
-              >
-                Invite
-              </AppButton>
-            </AppStack>
-          </AppStack>
-        </AppBox>
+              <RotateCcw className="size-3.5 text-text-muted" />
+            </UIIconButton>
 
-        {/* High-Density Compact Horizontal Metrics Grid */}
-        <AppBox sx={statsGridWrapperSx}>
-          <div className="grid grid-cols-4 gap-1.5">
-            {stats.map((stat) => (
-              <AppCard
-                key={stat.id}
-                variant="default"
-                rounded="md"
-                bordered
-                shadow="none"
-                padding="none"
-                sx={compactStatCardSx}
-              >
-                <AppStack direction="row" align="center" gap={0.5}>
-                  <AppBox
-                    sx={{
-                      ...compactStatIconSx,
-                      bgcolor: `var(--app-color-${stat.colorVariant}-soft)`,
-                      color: `var(--app-color-${stat.colorVariant})`,
-                    }}
-                  >
-                    {statIcons[stat.id] || <FiSend />}
-                  </AppBox>
-                  <AppBox sx={{ minWidth: 0 }}>
-                    <AppHeading level={2} weight={800} sx={compactStatValueSx}>
-                      {stat.value}
-                    </AppHeading>
-                    <AppText variant="body2" sx={compactStatTitleSx}>
-                      {stat.title}
-                    </AppText>
-                  </AppBox>
-                </AppStack>
-              </AppCard>
-            ))}
-          </div>
-        </AppBox>
-
-        {/* Max Width Filter Layout Row */}
-        <AppBox sx={filterSectionSx}>
-          <div className="grid grid-cols-1 gap-2">
-            <AppSearchInput
-              name="search"
-              value={filters.search}
-              onChange={handleSearchChange}
-              placeholder="Search email, role, inviter..."
-              clearable
-              onClear={() => handleSearchChange("")}
-              size="small"
-              variant="bordered"
-              rounded="md"
-              sx={searchBarSx}
-              inputSx={inputOverrideSx}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-2 mt-2">
-            <AppSelect
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              options={statusOptions}
-              size="small"
-              variant="bordered"
-              rounded="md"
-              sx={selectInputSx}
-              inputSx={inputOverrideSx}
-            />
-          </div>
-        </AppBox>
-
-        {/* Edge-Aligned Counter Actions Bar */}
-        <AppBox sx={metaActionRowSx}>
-          <AppText variant="body2" weight={700} sx={countLabelTextSx}>
-            Showing {filteredInvitationsCount} of {totalInvitations} Invitations
-          </AppText>
-          <AppButton
-            variant="text"
-            colorVariant="neutral"
-            size="small"
-            startIcon={<FiRefreshCw />}
-            onClick={handleClearFilters}
-            sx={resetTextLinkSx}
-          >
-            Reset
-          </AppButton>
-        </AppBox>
-
-        {/* High Density Main Listing Stream */}
-        <AppBox sx={listingListWrapperSx}>
-          {!hasFilteredInvitations ? (
-            <AppCard
-              variant="default"
-              rounded="md"
-              bordered
-              padding="md"
-              sx={emptyCardContainerSx}
+            <UIButton
+              variant="primary"
+              size="sm"
+              onClick={handleInviteMember}
+              startIcon={<Plus className="size-3.5" />}
             >
-              <AppStack
-                direction="column"
-                align="center"
-                justify="center"
-                gap={1}
-                sx={{ py: 4, width: "100%" }}
+              Invite
+            </UIButton>
+          </div>
+        </div>
+
+        {/* Search & Filter */}
+        <div className="space-y-2 pt-1 border-t border-border/40">
+          <UISearchInput
+            placeholder="Search email or role..."
+            value={filters.search}
+            onChange={handleSearchChange}
+            onClear={() => handleSearchChange({ target: { value: "" } })}
+            size="sm"
+          />
+
+          <UISelect
+            size="sm"
+            value={filters.status}
+            onChange={(e) => handleFilterChange({ status: e.target.value })}
+            options={statusOptions}
+          />
+        </div>
+      </div>
+
+      {/* Invitation Cards */}
+      {hasFilteredInvitations ? (
+        <div className="space-y-3">
+          {invitations.map((invitation) => {
+            const statusMeta = statusBadgeVariant(invitation.effectiveStatus);
+            const isPending = invitation.effectiveStatus === "pending";
+            const isCopied = copiedId === invitation._id;
+
+            return (
+              <div
+                key={invitation._id}
+                className="bg-surface rounded-2xl p-4 border border-border/60 shadow-2xs space-y-3"
               >
-                <FiSearch className="text-[28px] text-text-muted/60" />
-                <AppHeading
-                  level={3}
-                  weight={700}
-                  align="center"
-                  sx={{ m: 0, fontSize: "13px", width: "100%" }}
-                >
-                  No invitations found
-                </AppHeading>
-                <AppText
-                  variant="body2"
-                  align="center"
-                  sx={emptyStateSubTextSx}
-                >
-                  Refine keywords or reset dropdown properties to inspect
-                  workspace targets.
-                </AppText>
-              </AppStack>
-            </AppCard>
-          ) : (
-            <AppStack direction="column" gap={1}>
-              {invitations.map((invitation) => {
-                const initials = String(invitation?.displayEmail || "I")
-                  .trim()
-                  .charAt(0)
-                  .toUpperCase();
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-bold text-text block truncate">
+                      {invitation.displayEmail}
+                    </span>
+                    <span className="text-[11px] text-text-muted block mt-0.5">
+                      Invited by {invitation.displayInvitedBy}
+                    </span>
+                  </div>
 
-                return (
-                  <AppCard
-                    key={invitation._id}
-                    variant="default"
-                    rounded="lg"
-                    bordered
-                    shadow="none"
-                    padding="none"
-                    sx={invitationListingItemCardSx}
+                  <UIBadge
+                    variant={statusMeta.variant}
+                    color={statusMeta.color}
+                    size="xs"
                   >
-                    {/* Top Segment: Core Identity Fields Layout Block */}
-                    <AppStack
-                      direction="row"
-                      align="flex-start"
-                      justify="space-between"
-                      gap={1}
-                    >
-                      <AppStack direction="row" align="center" gap={1}>
-                        <AppBox sx={avatarFrameSx}>{initials || "I"}</AppBox>
+                    {statusMeta.label}
+                  </UIBadge>
+                </div>
 
-                        <AppBox sx={{ minWidth: 0 }}>
-                          <AppHeading
-                            level={2}
-                            weight={800}
-                            sx={inviteCardTitleTextSx}
-                          >
-                            {invitation.displayEmail}
-                          </AppHeading>
-                          <AppText variant="body2" sx={inviteCardSubTextSx}>
-                            Invited by: {invitation.displayInvitedBy}
-                          </AppText>
-                          <AppText variant="body2" sx={inviteCardDateTextSx}>
-                            Expires: {invitation.displayExpiresAt}
-                          </AppText>
-                        </AppBox>
-                      </AppStack>
+                <div className="flex items-center gap-2 text-xs flex-wrap">
+                  <span className="inline-flex items-center gap-1 font-semibold text-text">
+                    <Shield className="size-3 text-primary" />
+                    <span>{invitation.displayRole}</span>
+                  </span>
+                  <span className="text-border">•</span>
+                  <span className="inline-flex items-center gap-1 text-text-muted">
+                    <GitBranch className="size-3" />
+                    <span>{invitation.storeFootprint}</span>
+                  </span>
+                </div>
 
-                      {/* Explicit propagation cancellation wrappers on interactive action elements */}
-                      <AppStack
-                        direction="row"
-                        align="center"
-                        gap={0.25}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                        }}
+                <div className="text-[11px] text-text-muted border-t border-border/30 pt-2 flex items-center justify-between">
+                  <span>Sent {invitation.displayCreatedAt}</span>
+                  {isPending && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyLink(invitation)}
+                        className="text-xs text-primary font-semibold hover:underline"
                       >
-                        <AppStatusBadge
-                          status={invitation.effectiveStatus}
-                          label={invitation.effectiveStatus || "pending"}
-                          variant="soft"
-                          size="small"
-                          rounded="md"
-                          colorVariant={
-                            statusColorMap[invitation.effectiveStatus] ||
-                            "neutral"
-                          }
-                          sx={statusBadgeOverrideSx}
-                        />
-
-                        {invitation.effectiveStatus === "pending" && (
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              title="Resend Email"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                handleResendInvitation?.(invitation);
-                              }}
-                              className="p-1 rounded text-text-muted hover:text-primary transition"
-                            >
-                              <FiRefreshCw className="text-xs" />
-                            </button>
-
-                            <button
-                              type="button"
-                              title="Copy Link"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                handleCopyLink?.(invitation);
-                              }}
-                              className="p-1 rounded text-text-muted hover:text-primary transition"
-                            >
-                              {copiedId === invitation._id ? (
-                                <FiCheck className="text-xs text-emerald-500" />
-                              ) : (
-                                <FiCopy className="text-xs" />
-                              )}
-                            </button>
-
-                            <AppIconButton
-                              icon={<FiXCircle />}
-                              variant="text"
-                              colorVariant="error"
-                              size="small"
-                              rounded="md"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                handleCancelInvitation(invitation);
-                              }}
-                              sx={cancelBtnOverrideSx}
-                            />
-                          </div>
-                        )}
-                      </AppStack>
-                    </AppStack>
-
-                    <div className="w-full h-[1px] bg-divider my-2" />
-
-                    {/* Bottom Segment: Workspace Context Meta Badges */}
-                    <AppStack
-                      direction="row"
-                      align="center"
-                      justify="space-between"
-                      gap={1}
-                    >
-                      <div className="flex items-center gap-1">
-                        <AppTag
-                          label={invitation.displayRole || "Staff"}
-                          variant="soft"
-                          colorVariant="primary"
-                          rounded="sm"
-                          sx={roleTagOverrideSx}
-                        />
-                        <AppTag
-                          label={invitation.storeFootprint || "Workspace"}
-                          variant="soft"
-                          colorVariant={
-                            invitation.accessAllBranches
-                              ? "success"
-                              : invitation.branchAccess?.length > 0
-                                ? "primary"
-                                : "neutral"
-                          }
-                          rounded="sm"
-                          sx={roleTagOverrideSx}
-                        />
-                      </div>
-
-                      <AppStack direction="row" align="center" gap={1}>
-                        <AppStack
-                          direction="row"
-                          align="center"
-                          gap={0.4}
-                          sx={inlineMetaMetricFrameSx}
-                        >
-                          <FiCalendar className="text-[12px]" />
-                          <AppText
-                            variant="body2"
-                            weight={600}
-                            sx={inlineMetaValueTextSx}
-                          >
-                            Sent {invitation.displayCreatedAt || "-"}
-                          </AppText>
-                        </AppStack>
-                      </AppStack>
-                    </AppStack>
-                  </AppCard>
-                );
-              })}
-            </AppStack>
-          )}
-        </AppBox>
-
-        {/* Intelligent Conditional Pagination Module */}
-        {shouldRenderPagination && (
-          <AppBox sx={paginationFooterWrapperSx}>
-            <AppStack
-              direction="row"
-              align="center"
-              justify="space-between"
-              gap={1}
-            >
-              <AppSelect
-                name="pageSizeSelect"
-                value="10"
-                options={[{ label: "10 per page", value: "10" }]}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={pageSizeSelectSx}
-                inputSx={paginationInputBoxOverrideSx}
-              />
-
-              <AppStack direction="row" align="center" gap={0.5}>
-                <AppIconButton
-                  icon={<FiChevronLeft />}
-                  variant="outlined"
-                  colorVariant="neutral"
-                  size="small"
-                  rounded="md"
-                  disabled
-                  sx={paginationArrowBtnSx}
-                />
-                <span className="flex h-[30px] min-w-[30px] items-center justify-center rounded-md bg-primary text-[11.5px] font-bold text-text-inverse shadow-sm">
-                  1
-                </span>
-                <AppIconButton
-                  icon={<FiChevronRight />}
-                  variant="outlined"
-                  colorVariant="neutral"
-                  size="small"
-                  rounded="md"
-                  disabled={totalInvitations <= 10}
-                  sx={paginationArrowBtnSx}
-                />
-              </AppStack>
-            </AppStack>
-          </AppBox>
-        )}
-      </AppBox>
-    </section>
+                        {isCopied ? "Copied" : "Copy Link"}
+                      </button>
+                      <span className="text-border">|</span>
+                      <button
+                        type="button"
+                        onClick={() => handleResendInvitation(invitation)}
+                        className="text-xs text-text-muted hover:text-text font-semibold hover:underline"
+                      >
+                        Resend
+                      </button>
+                      <span className="text-border">|</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCancelInvitation(invitation)}
+                        className="text-xs text-destructive font-semibold hover:underline"
+                      >
+                        Revoke
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="bg-surface rounded-2xl p-6 border border-border/60 shadow-2xs text-center space-y-3">
+          <UIEmptyState
+            icon={<Mail className="size-8 text-text-muted/60" />}
+            title="No Invitations Found"
+            description="No invitations match your current search or filter."
+            action={
+              <UIButton variant="outline" size="sm" onClick={handleClearFilters}>
+                Reset Filters
+              </UIButton>
+            }
+          />
+        </div>
+      )}
+    </div>
   );
-};
-
-/* Architectural Style Definitions Dictionary mapping structural parameters */
-const containerSx = {
-  position: "relative",
-  zIndex: 1,
-  width: "100%",
-  maxWidth: { xs: 430, sm: 460 },
-  mx: "auto",
-  px: 0,
-  pt: 0,
-  pb: 0,
-};
-
-const headerWrapperSx = {
-  pt: 1.5,
-  pb: 1,
-  px: 0.5,
-};
-
-const pageTitleSx = {
-  m: 0,
-  fontSize: "21px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.4px",
-  color: "var(--app-color-text)",
-};
-
-const pageSubtitleSx = {
-  mt: 0.2,
-  fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const actionHeaderIconBtnSx = {
-  height: 32,
-  width: 32,
-  minWidth: 32,
-  borderColor: "var(--app-color-border)",
-};
-
-const headerSecondaryBtnSx = {
-  height: 32,
-  fontSize: "11px",
-  fontWeight: 700,
-  px: 1.1,
-  borderColor: "var(--app-color-border-strong)",
-  color: "var(--app-color-text)",
-};
-
-const addInviteBtnSx = {
-  height: 32,
-  fontSize: "11px",
-  fontWeight: 750,
-  px: 1.2,
-  boxShadow: "var(--app-shadow-xs)",
-  "& .MuiButton-startIcon": {
-    marginRight: "4px",
-    fontSize: "12px",
-  },
-};
-
-const statsGridWrapperSx = {
-  px: 0.5,
-  pb: 1.25,
-};
-
-const compactStatCardSx = {
-  p: 0.65,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "none",
-};
-
-const compactStatIconSx = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 24,
-  height: 24,
-  borderRadius: "6px",
-  fontSize: "12px",
-  flexShrink: 0,
-};
-
-const compactStatValueSx = {
-  m: 0,
-  fontSize: "12.5px",
-  lineHeight: 1,
-  color: "var(--app-color-text)",
-};
-
-const compactStatTitleSx = {
-  fontSize: "9px",
-  fontWeight: 650,
-  color: "var(--app-color-text-muted)",
-  lineHeight: 1,
-  mt: 0.1,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-
-const filterSectionSx = {
-  px: 0.5,
-  pb: 1.25,
-};
-
-const searchBarSx = {
-  width: "100%",
-};
-
-const selectInputSx = {
-  width: "100%",
-};
-
-const inputOverrideSx = {
-  height: 35,
-  fontSize: "11.5px",
-  bgcolor: "var(--app-color-surface)",
-  color: "var(--app-color-text)",
-};
-
-const metaActionRowSx = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  px: 0.5,
-  py: 0.75,
-  borderTop: "1px solid var(--app-color-divider)",
-  borderBottom: "1px solid var(--app-color-divider)",
-  bgcolor: "var(--app-color-surface-alt)",
-};
-
-const countLabelTextSx = {
-  fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const resetTextLinkSx = {
-  p: 0,
-  minWidth: "auto",
-  height: "auto",
-  fontSize: "11px",
-  fontWeight: 750,
-  color: "var(--app-color-text)",
-  "& .MuiButton-startIcon": {
-    marginRight: "3px",
-    fontSize: "10.5px",
-  },
-};
-
-const listingListWrapperSx = {
-  px: 0.5,
-  py: 1.25,
-  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, transparent)",
-  overflowY: "auto",
-  msOverflowStyle: "none",
-  scrollbarWidth: "none",
-  "&::-webkit-scrollbar": {
-    display: "none",
-    width: 0,
-    height: 0,
-  },
-};
-
-const emptyCardContainerSx = {
-  borderColor: "var(--app-color-border)",
-  bgcolor: "var(--app-color-surface)",
-  width: "100%",
-};
-
-const emptyStateSubTextSx = {
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-  px: 2,
-  textAlign: "center",
-  width: "100%",
-};
-
-const invitationListingItemCardSx = {
-  p: 1.2,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-xs)",
-  transition: "background-color 0.1s ease",
-};
-
-const avatarFrameSx = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 36,
-  height: 36,
-  borderRadius: "50%",
-  fontSize: "12.5px",
-  fontWeight: 750,
-  flexShrink: 0,
-  bgcolor: "var(--app-color-primary-soft)",
-  color: "var(--app-color-primary)",
-};
-
-const inviteCardTitleTextSx = {
-  m: 0,
-  fontSize: "12.5px",
-  lineHeight: 1.2,
-  color: "var(--app-color-text)",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-};
-
-const inviteCardSubTextSx = {
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
-  mt: 0.15,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-
-const inviteCardDateTextSx = {
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
-  mt: 0.05,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-
-const statusBadgeOverrideSx = {
-  height: 18,
-  fontSize: "9px",
-  fontWeight: 750,
-  px: 1,
-  textTransform: "capitalize",
-};
-
-const cancelBtnOverrideSx = {
-  p: 0,
-  ml: 0.25,
-  color: "var(--app-color-error)",
-  "& svg": {
-    fontSize: "16px",
-  },
-};
-
-const roleTagOverrideSx = {
-  height: 18,
-  fontSize: "9px",
-  fontWeight: 750,
-  px: 1,
-};
-
-const inlineMetaMetricFrameSx = {
-  color: "var(--app-color-text-muted)",
-};
-
-const inlineMetaValueTextSx = {
-  fontSize: "10px",
-  lineHeight: 1,
-};
-
-const paginationFooterWrapperSx = {
-  px: 0.5,
-  pt: 1.25,
-  pb: 2,
-  borderTop: "1px solid var(--app-color-divider)",
-};
-
-const pageSizeSelectSx = {
-  width: 112,
-};
-
-const paginationInputBoxOverrideSx = {
-  height: 30,
-  fontSize: "11px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const paginationArrowBtnSx = {
-  height: 30,
-  width: 30,
-  minWidth: 30,
-  borderColor: "var(--app-color-border)",
-};
-
-export default WorkspaceInvitationsMobilePage;
+}

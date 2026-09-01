@@ -1,393 +1,219 @@
 // src/features/access-control/pages/mobile/RoleDetailsMobilePage.jsx
 
-import { useState } from "react";
+import React, { useMemo } from "react";
 import {
-  FiArrowLeft,
-  FiMoreHorizontal,
-  FiShield,
-  FiUsers,
-  FiCheckCircle,
-  FiClock,
-  FiChevronRight,
-  FiChevronDown,
-  FiEye,
-  FiEdit2,
-  FiSettings,
-  FiTrash2,
-  FiRefreshCw,
-} from "react-icons/fi";
+  Shield,
+  ArrowLeft,
+  Edit2,
+  Users,
+  RotateCcw,
+  CheckCircle2,
+  Lock,
+  Layers,
+  FileKey,
+  Check,
+} from "lucide-react";
 
 import {
-  AppBox,
-  AppButton,
-  AppCard,
-  AppHeading,
-  AppIconButton,
-  AppMenu,
-  AppStack,
-  AppStatusBadge,
-  AppTag,
-  AppText,
-  AppPageLoader,
-  AppErrorState,
-} from "@/components";
+  UIButton,
+  UIIconButton,
+  UIBadge,
+  UISkeleton,
+  UIEmptyState,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
 
-const statusColorMap = {
-  active: "success",
-  inactive: "neutral",
+const groupPermissionsByModule = (permissions = []) => {
+  const groups = {};
+
+  permissions.forEach((perm) => {
+    const raw = String(perm || "").toLowerCase();
+    const parts = raw.split(/[.:_-]/).filter(Boolean);
+    const mod = parts[0] || "general";
+
+    if (!groups[mod]) {
+      groups[mod] = [];
+    }
+    groups[mod].push(perm);
+  });
+
+  return Object.entries(groups).map(([modKey, perms]) => ({
+    key: modKey,
+    title: modKey.charAt(0).toUpperCase() + modKey.slice(1).replace(/_/g, " "),
+    permissions: perms,
+  }));
 };
 
-const RoleDetailsMobilePage = ({
-  role,
-  isLoading,
-  hasError,
-  error,
+export default function RoleDetailsMobilePage({
+  role = null,
+  roleId,
+
+  isLoading = false,
+  hasError = false,
+  hasRole = false,
+  error = null,
+
+  handleRefresh,
   handleBackToRoles,
   handleEditRole,
-  handleRefresh,
-}) => {
-  const [activeTab, setActiveTab] = useState("overview");
+  handleViewPermissions,
+}) {
+  const isSystem = Boolean(role?.isSystem);
+  const canEdit = Boolean(role?.canEdit);
 
-  if (isLoading && !role) {
+  const permissionGroups = useMemo(() => {
+    if (!role?.permissions) return [];
+    return groupPermissionsByModule(role.permissions);
+  }, [role?.permissions]);
+
+  if (isLoading && !hasRole) {
     return (
-      <AppBox sx={loadingContainerSx}>
-        <AppPageLoader text="Loading role details..." />
-      </AppBox>
+      <div className="min-h-screen bg-bg text-text p-3 space-y-3">
+        <UISkeleton className="h-16 w-full rounded-2xl" />
+        <UISkeleton className="h-28 w-full rounded-2xl" />
+        <UISkeleton className="h-48 w-full rounded-2xl" />
+      </div>
     );
   }
 
-  if (hasError && !role) {
+  if (hasError && !hasRole) {
     return (
-      <AppBox sx={loadingContainerSx}>
-        <AppErrorState
-          title="Extraction Failure"
-          description={error || "Could not process role information."}
-          actionText="Retry"
-          onRetry={handleRefresh}
-          size="medium"
-        />
-      </AppBox>
+      <div className="min-h-screen bg-bg text-text p-3">
+        <div className="bg-surface rounded-2xl p-6 border border-border/60 shadow-2xs text-center space-y-3">
+          <UIEmptyState
+            icon={<Shield className="size-8 text-destructive/60" />}
+            title="Role Not Found"
+            description={error || "Could not retrieve role details."}
+            action={
+              <UIButton variant="outline" size="sm" onClick={handleBackToRoles}>
+                Back to Roles
+              </UIButton>
+            }
+          />
+        </div>
+      </div>
     );
   }
-
-  const safeRole = role || {};
 
   return (
-    <section className="w-full bg-bg">
-      <AppBox sx={containerSx}>
-        {/* --- MOBILE HEADER STRIP --- */}
-        <AppBox sx={headerWrapperSx}>
-          <AppStack
-            direction="row"
-            align="center"
-            justify="space-between"
-            gap={1}
-            sx={{ mb: 1.5 }}
+    <div className="min-h-screen bg-bg text-text p-3 pb-24 space-y-3.5">
+      {/* Header */}
+      <div className="bg-surface rounded-2xl p-4 border border-border/60 shadow-2xs flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <UIIconButton
+            variant="outline"
+            size="sm"
+            onClick={handleBackToRoles}
+            aria-label="Back"
           >
-            <AppIconButton
-              icon={<FiArrowLeft />}
-              variant="outlined"
-              colorVariant="neutral"
-              size="small"
-              rounded="md"
-              onClick={handleBackToRoles}
-              sx={backBtnSx}
-            />
-            <AppStack direction="row" align="center" gap={0.5}>
-              <AppButton
-                variant="outlined"
-                colorVariant="neutral"
-                size="small"
-                rounded="md"
-                onClick={handleEditRole}
-                disabled={!safeRole.canEdit}
-                sx={headerActionBtnSx}
+            <ArrowLeft className="size-4" />
+          </UIIconButton>
+          <div>
+            <h1 className="text-base font-bold text-text truncate">
+              {role?.displayName || "Role"}
+            </h1>
+            <span className="text-[11px] text-text-muted">
+              {isSystem ? "System Role" : "Custom Role"} • {role?.displayStatus}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <UIIconButton
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            aria-label="Refresh"
+          >
+            <RotateCcw className="size-3.5 text-text-muted" />
+          </UIIconButton>
+
+          {canEdit && (
+            <UIButton
+              variant="primary"
+              size="xs"
+              onClick={handleEditRole}
+              startIcon={<Edit2 className="size-3" />}
+            >
+              Edit
+            </UIButton>
+          )}
+        </div>
+      </div>
+
+      {/* Metrics Row */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="bg-surface rounded-2xl p-3.5 border border-border/60 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-text-muted text-[11px]">
+            <span>Members</span>
+            <Users className="size-3.5 text-primary" />
+          </div>
+          <div className="text-lg font-bold text-text font-mono">
+            {role?.membersCount ?? 0}
+          </div>
+          <span className="text-[10px] text-text-muted">Assigned staff</span>
+        </div>
+
+        <div className="bg-surface rounded-2xl p-3.5 border border-border/60 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-text-muted text-[11px]">
+            <span>Permissions</span>
+            <FileKey className="size-3.5 text-emerald-500" />
+          </div>
+          <div className="text-lg font-bold text-text font-mono">
+            {role?.permissionCount ?? 0}
+          </div>
+          <span className="text-[10px] text-text-muted">Granted rights</span>
+        </div>
+      </div>
+
+      {/* Description Card */}
+      <div className="bg-surface rounded-2xl p-4 border border-border/60 shadow-2xs space-y-2">
+        <h2 className="text-xs font-bold text-text uppercase tracking-wider">
+          Description
+        </h2>
+        <p className="text-xs text-text-muted leading-relaxed">
+          {role?.displayDescription || "No description provided."}
+        </p>
+      </div>
+
+      {/* Permissions Groups */}
+      <div className="bg-surface rounded-2xl p-4 border border-border/60 shadow-2xs space-y-3">
+        <h2 className="text-xs font-bold text-text uppercase tracking-wider">
+          Granted Capabilities ({role?.permissionCount ?? 0})
+        </h2>
+
+        {permissionGroups.length > 0 ? (
+          <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+            {permissionGroups.map((group) => (
+              <div
+                key={group.key}
+                className="p-3 rounded-xl border border-border/60 bg-surface-alt/40 space-y-2"
               >
-                Edit
-              </AppButton>
-              <AppIconButton
-                icon={<FiMoreHorizontal />}
-                size="small"
-                variant="outlined"
-                colorVariant="neutral"
-                rounded="md"
-                onClick={handleRefresh}
-                sx={moreActionBtnSx}
-              />
-            </AppStack>
-          </AppStack>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-text">{group.title}</span>
+                  <UIBadge variant="soft" color="neutral" size="xs">
+                    {group.permissions.length}
+                  </UIBadge>
+                </div>
 
-          <AppStack direction="column" gap={0.5}>
-            <AppHeading level={1} weight={800} sx={roleTitleTextSx}>
-              {safeRole.displayName}
-            </AppHeading>
-            <AppStack direction="row" align="center" gap={0.75}>
-              <AppStatusBadge
-                status={safeRole.displayStatus}
-                label={safeRole.displayStatus}
-                variant="soft"
-                size="small"
-                rounded="md"
-                colorVariant={
-                  statusColorMap[safeRole.displayStatus] || "success"
-                }
-                sx={statusBadgeOverrideSx}
-              />
-              <AppTag
-                label={safeRole.displayType}
-                variant="soft"
-                colorVariant="purple"
-                size="small"
-                rounded="md"
-                sx={roleTagOverrideSx}
-              />
-            </AppStack>
-          </AppStack>
-        </AppBox>
-
-        {/* --- HORIZONTAL TAB NAVIGATION --- */}
-        <AppBox sx={tabsLineTrackSx}>
-          {["Overview", "Permissions", "Members"].map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab.toLowerCase())}
-              className={`border-b-2 px-3.5 pb-2.5 text-[12px] font-bold transition whitespace-nowrap outline-none ${
-                activeTab === tab.toLowerCase()
-                  ? "border-primary text-primary"
-                  : "border-transparent text-text-muted"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </AppBox>
-
-        {/* --- MAIN TAB CONTENT AREA --- */}
-        <AppBox sx={mainBodyScrollContentWrapperSx}>
-          <AppStack direction="column" gap={1.25}>
-            <AppCard
-              variant="default"
-              rounded="lg"
-              bordered
-              shadow="none"
-              padding="none"
-              sx={moduleCardContainerSx}
-            >
-              <AppBox sx={cardHeaderBannerSx}>
-                <AppHeading level={3} weight={800} sx={cardHeaderTitleSx}>
-                  Role Profile Data
-                </AppHeading>
-              </AppBox>
-              <AppBox sx={{ p: 1.25, spaceY: 3 }}>
-                <CompactLabelRow
-                  label="Role Code"
-                  value={
-                    <span className="font-mono text-[11.5px] font-bold">
-                      {safeRole.displayCode}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {group.permissions.map((perm) => (
+                    <span
+                      key={perm}
+                      className="px-2 py-0.5 rounded-md text-[11px] bg-surface border border-border/50 text-text flex items-center gap-1"
+                    >
+                      <Check className="size-2.5 text-emerald-500" />
+                      <span>{perm}</span>
                     </span>
-                  }
-                />
-                <CompactLabelRow
-                  label="Created By"
-                  value={safeRole.displayCreatedBy}
-                />
-                <CompactLabelRow
-                  label="Created On"
-                  value={safeRole.displayCreatedAt}
-                />
-                <CompactLabelRow
-                  label="Last Updated"
-                  value={safeRole.displayUpdatedAt}
-                />
-                <div className="w-full h-[1px] bg-divider" />
-                <div className="text-[11.5px] text-text-muted leading-relaxed">
-                  <span className="font-bold text-text block mb-1">
-                    Description
-                  </span>
-                  {safeRole.displayDescription}
+                  ))}
                 </div>
-              </AppBox>
-            </AppCard>
-
-            <AppCard
-              variant="default"
-              rounded="lg"
-              bordered
-              shadow="none"
-              padding="none"
-              sx={moduleCardContainerSx}
-            >
-              <AppBox sx={cardHeaderBannerSx}>
-                <AppHeading level={3} weight={800} sx={cardHeaderTitleSx}>
-                  Workspace Scope
-                </AppHeading>
-              </AppBox>
-              <AppBox sx={{ p: 1.25, spaceY: 3 }}>
-                <CompactLabelRow
-                  label="Workspace"
-                  value={safeRole.workspaceName || "MedPlus Pharmacy"}
-                />
-                <CompactLabelRow label="Companies" value="All Companies" />
-                <CompactLabelRow label="Branches" value="All Branches" />
-              </AppBox>
-            </AppCard>
-
-            <AppCard
-              variant="default"
-              rounded="lg"
-              bordered
-              shadow="none"
-              padding="none"
-              sx={moduleCardContainerSx}
-            >
-              <AppBox sx={cardHeaderBannerSx}>
-                <AppHeading level={3} weight={800} sx={cardHeaderTitleSx}>
-                  Security Access
-                </AppHeading>
-              </AppBox>
-              <AppBox sx={{ p: 1.25 }}>
-                <div className="flex items-center gap-3 bg-primary-soft/30 p-3 rounded-lg border border-primary-soft">
-                  <FiShield className="text-primary text-[20px]" />
-                  <div className="min-w-0">
-                    <AppText
-                      variant="body2"
-                      weight={750}
-                      sx={{ color: "var(--app-color-primary)" }}
-                    >
-                      {safeRole.permissionCount} /{" "}
-                      {safeRole.totalPermissionCount}
-                    </AppText>
-                    <AppText
-                      variant="body2"
-                      sx={{
-                        fontSize: "11px",
-                        color: "var(--app-color-text-muted)",
-                      }}
-                    >
-                      Total platform permissions active
-                    </AppText>
-                  </div>
-                </div>
-              </AppBox>
-            </AppCard>
-          </AppStack>
-        </AppBox>
-      </AppBox>
-    </section>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <span className="text-xs text-text-muted">No permissions attached.</span>
+        )}
+      </div>
+    </div>
   );
-};
-
-const CompactLabelRow = ({ label, value }) => (
-  <div className="flex items-center justify-between gap-2 text-[11.5px]">
-    <AppText
-      variant="body2"
-      weight={700}
-      sx={{ color: "var(--app-color-text-muted)" }}
-    >
-      {label}
-    </AppText>
-    <div className="font-semibold text-text text-right">{value}</div>
-  </div>
-);
-
-const containerSx = {
-  position: "relative",
-  zIndex: 1,
-  width: "100%",
-  maxWidth: { xs: 430, sm: 460 },
-  mx: "auto",
-  px: 0,
-  pt: 0,
-  pb: 0,
-};
-
-const headerWrapperSx = { pt: 1.5, pb: 1.25, px: 0.5 };
-const backBtnSx = {
-  height: 32,
-  width: 32,
-  minWidth: 32,
-  borderColor: "var(--app-color-border)",
-};
-const headerActionBtnSx = {
-  height: 32,
-  fontSize: "11px",
-  fontWeight: 750,
-  px: 1.3,
-  borderColor: "var(--app-color-border-strong)",
-  color: "var(--app-color-text)",
-};
-const moreActionBtnSx = {
-  height: 32,
-  width: 32,
-  minWidth: 32,
-  borderColor: "var(--app-color-border-strong)",
-};
-
-const roleTitleTextSx = {
-  m: 0,
-  fontSize: "18px",
-  lineHeight: 1.2,
-  letterSpacing: "-0.3px",
-  color: "var(--app-color-text)",
-};
-const statusBadgeOverrideSx = {
-  height: 16,
-  fontSize: "8.5px",
-  fontWeight: 750,
-  px: 0.85,
-  textTransform: "capitalize",
-};
-const roleTagOverrideSx = {
-  height: 16,
-  fontSize: "8.5px",
-  fontWeight: 750,
-  px: 0.85,
-};
-
-const tabsLineTrackSx = {
-  display: "flex",
-  gap: 0.75,
-  borderBottom: "1px solid var(--app-color-divider)",
-  px: 0.5,
-  overflowX: "auto",
-  scrollbarWidth: "none",
-  "&::-webkit-scrollbar": { display: "none" },
-};
-
-const mainBodyScrollContentWrapperSx = {
-  px: 0.5,
-  py: 1.25,
-  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 20%, transparent)",
-};
-const moduleCardContainerSx = {
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-xs)",
-};
-const cardHeaderBannerSx = {
-  px: 1.2,
-  py: 0.85,
-  borderBottom: "1px solid var(--app-color-divider)",
-  bgcolor: "var(--app-color-surface-alt)",
-};
-const cardHeaderTitleSx = {
-  m: 0,
-  fontSize: "12px",
-  letterSpacing: "-0.1px",
-  color: "var(--app-color-text)",
-};
-const cardFooterActionTriggerSx = {
-  borderTop: "1px solid var(--app-color-divider)",
-  py: 0.75,
-  display: "flex",
-  justifyContent: "center",
-};
-const loadingContainerSx = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: "50vh",
-};
-
-export default RoleDetailsMobilePage;
+}

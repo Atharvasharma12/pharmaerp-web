@@ -34,6 +34,7 @@ import {
   AppStatusBadge,
   AppTag,
   AppText,
+  PermissionGate,
 } from "@/components";
 
 const statusColorMap = {
@@ -81,17 +82,19 @@ const BranchesMobilePage = ({
               </AppText>
             </AppBox>
 
-            <AppButton
-              variant="contained"
-              colorVariant="success"
-              size="small"
-              rounded="md"
-              startIcon={<FiPlus />}
-              onClick={handleCreateBranch}
-              sx={addBranchBtnSx}
-            >
-              Add Branch
-            </AppButton>
+            <PermissionGate permission="branch:create">
+              <AppButton
+                variant="contained"
+                colorVariant="success"
+                size="small"
+                rounded="md"
+                startIcon={<FiPlus />}
+                onClick={handleCreateBranch}
+                sx={addBranchBtnSx}
+              >
+                Add Branch
+              </AppButton>
+            </PermissionGate>
           </AppStack>
         </AppBox>
 

@@ -25,6 +25,7 @@ import {
   AppTable,
   AppMenu,
   PageHeader,
+  PermissionGate,
 } from "@/components";
 import { ROUTES } from "@/constants";
 import { formatCurrency, formatDate } from "@/utils";
@@ -247,17 +248,19 @@ const BankSlipsDesktopPage = ({
               >
                 Refresh
               </AppButton>
-              <AppButton
-                variant="filled"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleCreate}
-                sx={primaryButtonSx}
-              >
-                New Slip
-              </AppButton>
+              <PermissionGate permission="bank-slip:create">
+                <AppButton
+                  variant="filled"
+                  colorVariant="success"
+                  size="small"
+                  rounded="md"
+                  startIcon={<FiPlus />}
+                  onClick={handleCreate}
+                  sx={primaryButtonSx}
+                >
+                  New Slip
+                </AppButton>
+              </PermissionGate>
             </AppStack>
           }
           align="flex-start"

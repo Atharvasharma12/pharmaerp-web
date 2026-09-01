@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -13,6 +14,7 @@ import {
   updateMemberAccess,
   checkCompanyAccess,
   checkBranchAccess,
+  getMyAccess,
 } from "../store/accessControlThunk";
 
 import {
@@ -46,6 +48,8 @@ import {
   selectUpdateMemberAccessStatus,
   selectCheckCompanyAccessStatus,
   selectCheckBranchAccessStatus,
+  selectMyAccess,
+  selectGetMyAccessStatus,
 } from "../store/accessControlSelector";
 
 const useAccessControl = () => {
@@ -84,73 +88,95 @@ const useAccessControl = () => {
   const checkCompanyAccessStatus = useSelector(selectCheckCompanyAccessStatus);
   const checkBranchAccessStatus = useSelector(selectCheckBranchAccessStatus);
 
-  const submitCreateRole = (payload) => {
-    return dispatch(createRole(payload)).unwrap();
-  };
+  const myAccess = useSelector(selectMyAccess);
+  const getMyAccessStatus = useSelector(selectGetMyAccessStatus);
 
-  const fetchWorkspaceRoles = () => {
-    return dispatch(getWorkspaceRoles()).unwrap();
-  };
+  const submitCreateRole = useCallback(
+    (payload) => dispatch(createRole(payload)).unwrap(),
+    [dispatch],
+  );
 
-  const fetchRoleById = (roleId) => {
-    return dispatch(getRoleById(roleId)).unwrap();
-  };
+  const fetchWorkspaceRoles = useCallback(
+    () => dispatch(getWorkspaceRoles()).unwrap(),
+    [dispatch],
+  );
 
-  const submitUpdateRole = (roleId, payload) => {
-    return dispatch(updateRole({ roleId, payload })).unwrap();
-  };
+  const fetchRoleById = useCallback(
+    (roleId) => dispatch(getRoleById(roleId)).unwrap(),
+    [dispatch],
+  );
 
-  const submitDeleteRole = (roleId) => {
-    return dispatch(deleteRole(roleId)).unwrap();
-  };
+  const submitUpdateRole = useCallback(
+    (roleId, payload) => dispatch(updateRole({ roleId, payload })).unwrap(),
+    [dispatch],
+  );
 
-  const submitAssignRoleToMember = (memberUserId, payload) => {
-    return dispatch(assignRoleToMember({ memberUserId, payload })).unwrap();
-  };
+  const submitDeleteRole = useCallback(
+    (roleId) => dispatch(deleteRole(roleId)).unwrap(),
+    [dispatch],
+  );
 
-  const fetchAvailablePermissions = () => {
-    return dispatch(getAvailablePermissions()).unwrap();
-  };
+  const submitAssignRoleToMember = useCallback(
+    (memberUserId, payload) =>
+      dispatch(assignRoleToMember({ memberUserId, payload })).unwrap(),
+    [dispatch],
+  );
 
-  const fetchWorkspaceMemberAccessList = () => {
-    return dispatch(getWorkspaceMemberAccessList()).unwrap();
-  };
+  const fetchAvailablePermissions = useCallback(
+    () => dispatch(getAvailablePermissions()).unwrap(),
+    [dispatch],
+  );
 
-  const fetchMemberAccess = (memberUserId) => {
-    return dispatch(getMemberAccess(memberUserId)).unwrap();
-  };
+  const fetchWorkspaceMemberAccessList = useCallback(
+    () => dispatch(getWorkspaceMemberAccessList()).unwrap(),
+    [dispatch],
+  );
 
-  const submitUpdateMemberAccess = (memberUserId, payload) => {
-    return dispatch(updateMemberAccess({ memberUserId, payload })).unwrap();
-  };
+  const fetchMemberAccess = useCallback(
+    (memberUserId) => dispatch(getMemberAccess(memberUserId)).unwrap(),
+    [dispatch],
+  );
 
-  const verifyCompanyAccess = (companyId) => {
-    return dispatch(checkCompanyAccess(companyId)).unwrap();
-  };
+  const submitUpdateMemberAccess = useCallback(
+    (memberUserId, payload) =>
+      dispatch(updateMemberAccess({ memberUserId, payload })).unwrap(),
+    [dispatch],
+  );
 
-  const verifyBranchAccess = (branchId) => {
-    return dispatch(checkBranchAccess(branchId)).unwrap();
-  };
+  const verifyCompanyAccess = useCallback(
+    (companyId) => dispatch(checkCompanyAccess(companyId)).unwrap(),
+    [dispatch],
+  );
 
-  const clearError = () => {
+  const verifyBranchAccess = useCallback(
+    (branchId) => dispatch(checkBranchAccess(branchId)).unwrap(),
+    [dispatch],
+  );
+
+  const fetchMyAccess = useCallback(
+    () => dispatch(getMyAccess()).unwrap(),
+    [dispatch],
+  );
+
+  const clearError = useCallback(() => {
     dispatch(clearAccessControlError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearAccessControlMessage());
-  };
+  }, [dispatch]);
 
-  const removeCurrentRole = () => {
+  const removeCurrentRole = useCallback(() => {
     dispatch(clearCurrentRole());
-  };
+  }, [dispatch]);
 
-  const removeCurrentMemberAccess = () => {
+  const removeCurrentMemberAccess = useCallback(() => {
     dispatch(clearCurrentMemberAccess());
-  };
+  }, [dispatch]);
 
-  const removeMemberAccessCheck = () => {
+  const removeMemberAccessCheck = useCallback(() => {
     dispatch(clearMemberAccessCheck());
-  };
+  }, [dispatch]);
 
   return {
     roles,
@@ -181,6 +207,9 @@ const useAccessControl = () => {
     checkCompanyAccessStatus,
     checkBranchAccessStatus,
 
+    myAccess,
+    getMyAccessStatus,
+
     createRole: submitCreateRole,
     getWorkspaceRoles: fetchWorkspaceRoles,
     getRoleById: fetchRoleById,
@@ -195,6 +224,7 @@ const useAccessControl = () => {
 
     checkCompanyAccess: verifyCompanyAccess,
     checkBranchAccess: verifyBranchAccess,
+    getMyAccess: fetchMyAccess,
 
     clearError,
     clearMessage,

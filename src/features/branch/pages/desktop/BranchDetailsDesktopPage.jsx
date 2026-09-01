@@ -49,6 +49,7 @@ import {
   AppText,
   AppPageLoader,
   AppErrorState,
+  PermissionGate,
 } from "@/components";
 
 const BranchDetailsDesktopPage = ({
@@ -179,17 +180,19 @@ const BranchDetailsDesktopPage = ({
           </AppStack>
 
           <AppStack direction="row" align="center" gap={1}>
-            <AppButton
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiEdit3 />}
-              onClick={handleEdit}
-              sx={secondaryButtonSx}
-            >
-              Configure Terminal
-            </AppButton>
+            <PermissionGate permission="branch:update">
+              <AppButton
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiEdit3 />}
+                onClick={handleEdit}
+                sx={secondaryButtonSx}
+              >
+                Configure Terminal
+              </AppButton>
+            </PermissionGate>
             <AppMenu
               trigger={
                 <AppButton

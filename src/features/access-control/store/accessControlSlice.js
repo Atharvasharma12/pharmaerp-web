@@ -15,6 +15,7 @@ import {
   updateMemberAccess,
   checkCompanyAccess,
   checkBranchAccess,
+  getMyAccess,
 } from "./accessControlThunk";
 
 const initialState = {
@@ -28,6 +29,8 @@ const initialState = {
 
   companyAccessCheck: null,
   branchAccessCheck: null,
+
+  myAccess: null,
 
   status: API_STATUS.IDLE,
   error: null,
@@ -48,6 +51,8 @@ const initialState = {
 
   checkCompanyAccessStatus: API_STATUS.IDLE,
   checkBranchAccessStatus: API_STATUS.IDLE,
+
+  getMyAccessStatus: API_STATUS.IDLE,
 };
 
 const setPending = (state) => {
@@ -313,6 +318,20 @@ const accessControlSlice = createSlice({
       .addCase(checkBranchAccess.rejected, (state, action) => {
         state.checkBranchAccessStatus = API_STATUS.ERROR;
         state.error = action.payload || "Branch access check failed";
+      })
+
+      // GET MY ACCESS (current logged-in user's own permissions)
+      .addCase(getMyAccess.pending, (state) => {
+        state.getMyAccessStatus = API_STATUS.LOADING;
+        state.error = null;
+      })
+      .addCase(getMyAccess.fulfilled, (state, action) => {
+        state.getMyAccessStatus = API_STATUS.SUCCESS;
+        state.myAccess = action.payload || null;
+      })
+      .addCase(getMyAccess.rejected, (state, action) => {
+        state.getMyAccessStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to fetch your access permissions";
       });
   },
 });

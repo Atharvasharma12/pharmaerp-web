@@ -195,6 +195,10 @@ const InviteWorkspaceMemberPage = () => {
     }));
   }, []);
 
+  const hasCompanies = activeCompanies.length > 0;
+  const hasBranches = activeBranches.length > 0;
+  const canCreateOrInvite = hasCompanies && hasBranches;
+
   const validateForm = useCallback(() => {
     const errors = {};
     const mode = formData.mode;
@@ -204,6 +208,16 @@ const InviteWorkspaceMemberPage = () => {
     const password = normalizeText(formData.password);
     const roleId = normalizeText(formData.roleId);
     const notes = normalizeText(formData.notes);
+
+    if (!hasCompanies) {
+      errors.submit = "Please create at least one operating company before adding or inviting team members.";
+      return errors;
+    }
+
+    if (!hasBranches) {
+      errors.submit = "Please create at least one dispensary branch before adding or inviting team members.";
+      return errors;
+    }
 
     if (mode === "direct") {
       if (!fullName) {
@@ -251,7 +265,7 @@ const InviteWorkspaceMemberPage = () => {
     }
 
     return errors;
-  }, [formData, workspaceId]);
+  }, [formData, hasBranches, hasCompanies, workspaceId]);
 
   const handleChange = useCallback(
     (event) => {
@@ -441,6 +455,9 @@ const InviteWorkspaceMemberPage = () => {
     roles: activeRoles,
     companies: activeCompanies,
     branches: activeBranches,
+    hasCompanies,
+    hasBranches,
+    canCreateOrInvite,
 
     isLoading,
     isCheckingWorkspace,

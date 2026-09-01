@@ -1,4 +1,6 @@
-import { useState, useRef } from "react";
+// src/features/settings/components/tabs/ProfileTab.jsx
+
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Camera,
@@ -8,6 +10,8 @@ import {
   Check,
   Plus,
   ChevronDown,
+  Trash2,
+  User as UserIcon,
 } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 
@@ -16,6 +20,8 @@ import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useCompany from "@/features/company/hooks/useCompany";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useUser from "@/features/user/hooks/useUser";
+import useAuth from "@/features/auth/hooks/useAuth";
+import { usePermission } from "@/hooks";
 import {
   UIButton,
   UIInput,
@@ -25,6 +31,7 @@ import {
   UICardTitle,
   UICardDescription,
   UICardContent,
+  PermissionGate,
 } from "@/components/ui";
 
 const getWorkspaceFromItem = (item) => {
@@ -33,30 +40,77 @@ const getWorkspaceFromItem = (item) => {
 
 const ProfileTab = () => {
   const fileInputRef = useRef(null);
+  const { can } = usePermission();
 
-  // Context Hooks
+  // Redux Hooks
+  const {
+    user: profileUser,
+    fetchProfile,
+    fetchActiveContext,
+    updateProfile,
+    updateAvatar,
+    deleteAvatar,
+    updateActiveContext,
+  } = useUser();
+  const { user: authUser, changePassword } = useAuth();
   const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
   const { companies, currentCompany, setCurrentCompany, clearCurrentCompany } = useCompany();
   const { branches, currentBranch, setCurrentBranch, clearCurrentBranch } = useBranch();
-  const { updateActiveContext } = useUser();
+
+  const user = profileUser || authUser;
 
   // Dropdown Open States
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
 
-  // Profile Form State
+  // Profile Form State initialized from real Redux user data
   const [profileData, setProfileData] = useState({
-    name: "Anna",
-    surname: "Schulz",
-    email: "anna@storeadmin.com",
-    phone: "+1 (555) 000-0000",
-    role: "Store Admin",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop",
+    name: "",
+    surname: "",
+    email: "",
+    phone: "",
+    role: "",
+    avatar: "",
   });
 
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
+  const [profileErrorMsg, setProfileErrorMsg] = useState("");
+
+  // Fetch fresh profile from backend on mount
+  useEffect(() => {
+    fetchProfile?.().catch(() => null);
+    fetchActiveContext?.().catch(() => null);
+  }, []);
+
+  // Sync state with Redux user object
+  useEffect(() => {
+    if (user) {
+      const fullName = user.fullName || user.name || "";
+      const nameParts = fullName.trim().split(" ");
+      const firstName = user.firstName || nameParts[0] || "";
+      const lastName = user.lastName || nameParts.slice(1).join(" ") || "";
+      const resolvedRole =
+        user.roleName ||
+        user.role?.name ||
+        user.role ||
+        (Array.isArray(user.roles) ? user.roles[0]?.name || user.roles[0] : null) ||
+        "Member";
+
+      setProfileData({
+        name: firstName,
+        surname: lastName,
+        email: user.email || "",
+        phone: user.phone || user.phoneNumber || "",
+        role: String(resolvedRole).toUpperCase(),
+        avatar: user.avatarUrl || user.avatar || "",
+      });
+      setAvatarPreview(user.avatarUrl || user.avatar || null);
+    }
+  }, [user]);
 
   // Password Form State
   const [passwordData, setPasswordData] = useState({
@@ -70,6 +124,7 @@ const ProfileTab = () => {
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
+    setProfileErrorMsg("");
     setProfileData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -83,26 +138,76 @@ const ProfileTab = () => {
     fileInputRef.current?.click();
   };
 
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setProfileData((prev) => ({ ...prev, avatar: url }));
+    if (!file) return;
+
+    // Show local preview immediately
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarPreview(previewUrl);
+
+    // Upload to backend via Redux thunk
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    setIsUploadingAvatar(true);
+    setProfileErrorMsg("");
+    try {
+      await updateAvatar(formData);
+      setProfileSuccessMsg("Profile photo updated successfully!");
+      setTimeout(() => setProfileSuccessMsg(""), 3500);
+    } catch (err) {
+      setProfileErrorMsg(err || "Failed to upload profile photo");
+      setAvatarPreview(profileData.avatar || null);
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
-  const handleSaveProfile = (e) => {
-    e.preventDefault();
-    setIsSavingProfile(true);
-    setTimeout(() => {
-      setIsSavingProfile(false);
-      setProfileSuccessMsg("Profile information updated successfully!");
+  const handleDeletePhoto = async () => {
+    setIsUploadingAvatar(true);
+    setProfileErrorMsg("");
+    try {
+      await deleteAvatar();
+      setAvatarPreview(null);
+      setProfileData((prev) => ({ ...prev, avatar: "" }));
+      setProfileSuccessMsg("Profile photo removed successfully!");
       setTimeout(() => setProfileSuccessMsg(""), 3500);
-    }, 500);
+    } catch (err) {
+      setProfileErrorMsg(err || "Failed to remove profile photo");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
-  const handleSavePassword = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
+    setIsSavingProfile(true);
+    setProfileErrorMsg("");
+    setProfileSuccessMsg("");
+
+    const fullName = `${profileData.name} ${profileData.surname}`.trim();
+    const payload = {
+      fullName,
+      phone: profileData.phone,
+    };
+
+    try {
+      await updateProfile(payload);
+      setProfileSuccessMsg("Profile information updated successfully!");
+      setTimeout(() => setProfileSuccessMsg(""), 3500);
+    } catch (err) {
+      setProfileErrorMsg(err || "Failed to update profile information");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleSavePassword = async (e) => {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccessMsg("");
+
     if (!passwordData.currentPassword) {
       setPasswordError("Please enter your current password");
       return;
@@ -117,12 +222,19 @@ const ProfileTab = () => {
     }
 
     setIsSavingPassword(true);
-    setTimeout(() => {
-      setIsSavingPassword(false);
+    try {
+      await changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setPasswordSuccessMsg("Password changed successfully!");
       setTimeout(() => setPasswordSuccessMsg(""), 3500);
-    }, 600);
+    } catch (err) {
+      setPasswordError(err || "Failed to update password. Please verify current password.");
+    } finally {
+      setIsSavingPassword(false);
+    }
   };
 
   // Context Switch Handlers
@@ -180,6 +292,8 @@ const ProfileTab = () => {
     }
     setBranchMenuOpen(false);
   };
+
+  const displayName = `${profileData.name} ${profileData.surname}`.trim() || user?.email || "User";
 
   return (
     <div className="space-y-4">
@@ -252,15 +366,17 @@ const ProfileTab = () => {
                       <div className="p-2 text-center text-xs text-text-muted">No workspaces available</div>
                     )}
                   </div>
-                  <div className="my-1.5 border-t border-border/60" />
-                  <Link
-                    to={ROUTES.WORKSPACE}
-                    onClick={() => setWorkspaceMenuOpen(false)}
-                    className="flex items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary-soft"
-                  >
-                    <Plus size={13} />
-                    <span>Workspace Settings</span>
-                  </Link>
+                  <PermissionGate permission="workspace:update">
+                    <div className="my-1.5 border-t border-border/60" />
+                    <Link
+                      to={ROUTES.WORKSPACE}
+                      onClick={() => setWorkspaceMenuOpen(false)}
+                      className="flex items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary-soft"
+                    >
+                      <Plus size={13} />
+                      <span>Workspace Settings</span>
+                    </Link>
+                  </PermissionGate>
                 </div>
               )}
             </div>
@@ -321,15 +437,17 @@ const ProfileTab = () => {
                       <div className="p-2 text-center text-xs text-text-muted">No companies found</div>
                     )}
                   </div>
-                  <div className="my-1.5 border-t border-border/60" />
-                  <Link
-                    to={ROUTES.COMPANIES}
-                    onClick={() => setCompanyMenuOpen(false)}
-                    className="flex items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary-soft"
-                  >
-                    <Plus size={13} />
-                    <span>Manage Companies</span>
-                  </Link>
+                  <PermissionGate permission="company:view">
+                    <div className="my-1.5 border-t border-border/60" />
+                    <Link
+                      to={ROUTES.COMPANIES}
+                      onClick={() => setCompanyMenuOpen(false)}
+                      className="flex items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary-soft"
+                    >
+                      <Plus size={13} />
+                      <span>Manage Companies</span>
+                    </Link>
+                  </PermissionGate>
                 </div>
               )}
             </div>
@@ -390,15 +508,17 @@ const ProfileTab = () => {
                       <div className="p-2 text-center text-xs text-text-muted">No branches found</div>
                     )}
                   </div>
-                  <div className="my-1.5 border-t border-border/60" />
-                  <Link
-                    to={ROUTES.BRANCHES}
-                    onClick={() => setBranchMenuOpen(false)}
-                    className="flex items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary-soft"
-                  >
-                    <Plus size={13} />
-                    <span>Manage Branches</span>
-                  </Link>
+                  <PermissionGate permission="branch:view">
+                    <div className="my-1.5 border-t border-border/60" />
+                    <Link
+                      to={ROUTES.BRANCHES}
+                      onClick={() => setBranchMenuOpen(false)}
+                      className="flex items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary-soft"
+                    >
+                      <Plus size={13} />
+                      <span>Manage Branches</span>
+                    </Link>
+                  </PermissionGate>
                 </div>
               )}
             </div>
@@ -414,7 +534,7 @@ const ProfileTab = () => {
               Profile Information
             </UICardTitle>
             <UICardDescription className="mt-0.5 text-xs text-text-muted leading-relaxed">
-              Update your personal details and store administrator photo
+              Update your personal details and account photo
             </UICardDescription>
           </div>
           <div className="shrink-0">
@@ -442,16 +562,32 @@ const ProfileTab = () => {
                 {profileSuccessMsg}
               </UIAlert>
             )}
+            {profileErrorMsg && (
+              <UIAlert
+                type="error"
+                variant="soft"
+                className="mb-4 p-3 rounded-[10px] text-xs"
+              >
+                {profileErrorMsg}
+              </UIAlert>
+            )}
           </AnimatePresence>
 
           {/* User Photo & Info Row */}
           <div className="flex items-center gap-3.5">
             <div className="relative group cursor-pointer" onClick={handlePhotoClick}>
-              <img
-                src={profileData.avatar}
-                alt={profileData.name}
-                className="size-14 rounded-full object-cover ring-2 ring-border transition-transform group-hover:scale-105"
-              />
+              {avatarPreview ? (
+                <img
+                  src={avatarPreview}
+                  alt={displayName}
+                  className="size-14 rounded-full object-cover ring-2 ring-border transition-transform group-hover:scale-105"
+                />
+              ) : (
+                <div className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-lg ring-2 ring-border transition-transform group-hover:scale-105">
+                  {profileData.name?.[0]?.toUpperCase() || <UserIcon size={22} />}
+                </div>
+              )}
+
               <div className="absolute -bottom-0.5 -right-0.5 flex size-5.5 items-center justify-center rounded-full bg-primary text-primary-contrast shadow-xs ring-2 ring-surface transition-transform group-hover:scale-110">
                 <Camera size={11} />
               </div>
@@ -461,24 +597,39 @@ const ProfileTab = () => {
                 accept="image/*"
                 className="hidden"
                 onChange={handlePhotoUpload}
+                disabled={isUploadingAvatar}
               />
             </div>
 
             <div className="flex flex-col">
               <h3 className="text-sm font-bold text-text">
-                {profileData.name} {profileData.surname}
+                {displayName}
               </h3>
               <span className="text-xs text-text-muted">
                 {profileData.role}
               </span>
-              <button
-                type="button"
-                onClick={handlePhotoClick}
-                className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover hover:underline cursor-pointer"
-              >
-                <Camera size={12} />
-                <span>Change photo</span>
-              </button>
+              <div className="mt-0.5 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handlePhotoClick}
+                  disabled={isUploadingAvatar}
+                  className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover hover:underline cursor-pointer"
+                >
+                  <Camera size={12} />
+                  <span>{isUploadingAvatar ? "Uploading..." : "Change photo"}</span>
+                </button>
+                {avatarPreview && (
+                  <button
+                    type="button"
+                    onClick={handleDeletePhoto}
+                    disabled={isUploadingAvatar}
+                    className="flex items-center gap-1 text-xs font-semibold text-error hover:underline cursor-pointer"
+                  >
+                    <Trash2 size={12} />
+                    <span>Remove</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -488,7 +639,7 @@ const ProfileTab = () => {
               <UIInput
                 id="profile-name"
                 name="name"
-                label="Name"
+                label="First Name"
                 value={profileData.name}
                 onChange={handleProfileChange}
                 placeholder="First name"
@@ -497,11 +648,10 @@ const ProfileTab = () => {
               <UIInput
                 id="profile-surname"
                 name="surname"
-                label="Surname"
+                label="Last Name"
                 value={profileData.surname}
                 onChange={handleProfileChange}
                 placeholder="Last name"
-                required
               />
             </div>
 
@@ -511,9 +661,8 @@ const ProfileTab = () => {
               type="email"
               label="Email address"
               value={profileData.email}
-              onChange={handleProfileChange}
-              placeholder="name@example.com"
-              required
+              readOnly
+              helperText="Email is associated with your login credentials"
             />
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
@@ -528,10 +677,10 @@ const ProfileTab = () => {
               <UIInput
                 id="profile-role"
                 name="role"
-                label="Role"
+                label="Assigned Role"
                 value={profileData.role}
                 readOnly
-                helperText="Assigned by workspace administrator"
+                helperText="Managed by workspace access control"
               />
             </div>
           </form>
@@ -611,7 +760,7 @@ const ProfileTab = () => {
                 variant="primary"
                 size="sm"
                 isLoading={isSavingPassword}
-                disabled={!passwordData.newPassword}
+                disabled={!passwordData.currentPassword || !passwordData.newPassword}
                 loadingText="Updating..."
               >
                 Update password

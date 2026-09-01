@@ -1,79 +1,136 @@
-import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import { AppAlert, AppBox, AppHeading, AppText, AppCard } from "@/components";
+// src/features/dashboard/pages/desktop/MainDashboardDesktopPage.jsx
 
-const TopToast = ({ message, onClose }) => (
-  <div className="fixed left-1/2 top-4 z-[1400] w-[calc(100%-32px)] max-w-md -translate-x-1/2">
-    <AppAlert
-      severity="success"
-      variant="filled"
-      title={message}
-      closable
-      onClose={onClose}
-      sx={{ boxShadow: "var(--app-shadow-lg)" }}
-    />
-  </div>
-);
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { CheckCircle2, FileText, Download } from "lucide-react";
+import {
+  DashboardHeroBanner,
+  DashboardKpiGrid,
+  MonthlyRevenueChartCard,
+  InventoryDistributionCard,
+  InventoryOverviewTableCard,
+  SmartPharmacyInsightsCard,
+  DashboardActionCardsGrid,
+  GenerateReportModal,
+  QuickAddMedicineModal,
+} from "../../components";
+import { ROUTES } from "@/constants";
 
-const MainDashboardDesktopPage = () => {
-  const location = useLocation();
-  const [showToast, setShowToast] = useState(false);
+export const MainDashboardDesktopPage = () => {
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (location.state?.showWelcomeToast) {
-      setShowToast(true);
-      const timer = setTimeout(() => {
-        setShowToast(false);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [location.state]);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isAddMedicineModalOpen, setIsAddMedicineModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showNotification = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+  };
+
+  const handleGenerateReportSuccess = ({ reportType, timeframe, format }) => {
+    showNotification(
+      `📊 Report exported successfully (${format.toUpperCase()} • ${timeframe})`
+    );
+  };
+
+  const handleAddMedicineSuccess = (data) => {
+    showNotification(`✅ "${data.name}" added to inventory successfully.`);
+  };
 
   return (
-    <section className="min-h-screen bg-bg p-8">
-      {showToast && (
-        <TopToast
-          message="🎉 Welcome! Your 14-day free trial has started."
-          onClose={() => setShowToast(false)}
-        />
-      )}
-      
-      <AppBox sx={{ maxWidth: 1200, mx: "auto" }}>
-        <AppCard
-          variant="default"
-          rounded="xl"
-          bordered
-          sx={{
-            p: 4,
-            mb: 4,
-            bgcolor: "color-mix(in srgb, var(--app-color-primary) 5%, var(--app-color-surface))",
-            borderLeft: "5px solid var(--app-color-primary)",
-          }}
+    <section className="min-h-[100dvh] w-full bg-bg px-4 sm:px-6 lg:px-8 py-6 font-sans">
+      {/* Dynamic Action Toast */}
+      {toastMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: -20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="fixed top-6 right-8 z-50 flex items-center gap-2.5 rounded-2xl border border-primary/30 bg-surface/95 px-4 py-3 text-sm font-semibold text-text shadow-xl backdrop-blur-md"
         >
-          <AppHeading level={1} weight={800} sx={{ fontSize: "28px", mb: 1, color: "var(--app-color-text)" }}>
-            Welcome to PharmaERP!
-          </AppHeading>
-          <AppText variant="body1" sx={{ color: "var(--app-color-text-muted)", fontSize: "15px" }}>
-            We've set up your brand new workspace and started your 14-day free trial subscription. 
-            Use the Setup Center list to finish creating your companies, branch locations, and staff profiles!
-          </AppText>
-        </AppCard>
+          <CheckCircle2 className="size-5 text-primary shrink-0" />
+          <span>{toastMessage}</span>
+        </motion.div>
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <AppCard variant="default" rounded="lg" bordered sx={{ p: 3 }}>
-            <AppHeading level={3} weight={700} sx={{ fontSize: "16px", mb: 1.5 }}>Sales Overview</AppHeading>
-            <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)" }}>Get insights on your pharmacy branches' sales.</AppText>
-          </AppCard>
-          <AppCard variant="default" rounded="lg" bordered sx={{ p: 3 }}>
-            <AppHeading level={3} weight={700} sx={{ fontSize: "16px", mb: 1.5 }}>Inventory Stats</AppHeading>
-            <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)" }}>Monitor medicine stock, catalog, and low-stock alerts.</AppText>
-          </AppCard>
-          <AppCard variant="default" rounded="lg" bordered sx={{ p: 3 }}>
-            <AppHeading level={3} weight={700} sx={{ fontSize: "16px", mb: 1.5 }}>Quick Actions</AppHeading>
-            <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)" }}>Create bills, register customers, and place purchase orders.</AppText>
-          </AppCard>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* ── 1. Top Hero Greeting Banner ─────────────────────────────── */}
+        <DashboardHeroBanner
+          onGenerateReport={() => setIsReportModalOpen(true)}
+          onAddMedicine={() => setIsAddMedicineModalOpen(true)}
+        />
+
+        {/* ── 2. Top 6 KPI Metric Stat Cards Strip ───────────────────── */}
+        <DashboardKpiGrid
+          onCardClick={(card) => {
+            if (card.id === "total-revenue" || card.id === "todays-sales") {
+              // Nav or feedback
+            }
+          }}
+        />
+
+        {/* ── 3. Middle Performance & Distribution Grid (12-Col) ──────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          {/* Monthly Revenue Performance (8 Cols) */}
+          <div className="lg:col-span-8 flex flex-col">
+            <MonthlyRevenueChartCard className="h-full" />
+          </div>
+
+          {/* Inventory Distribution Donut (4 Cols) */}
+          <div className="lg:col-span-4 flex flex-col">
+            <InventoryDistributionCard className="h-full" />
+          </div>
         </div>
-      </AppBox>
+
+        {/* ── 4. Main Operational Grid: Inventory Table & AI Insights (12-Col) ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          {/* Inventory Overview Table (8 Cols) */}
+          <div className="lg:col-span-8 flex flex-col">
+            <InventoryOverviewTableCard
+              onAddMedicine={() => setIsAddMedicineModalOpen(true)}
+              onExport={() => showNotification("📥 Inventory CSV exported successfully.")}
+              className="h-full"
+            />
+          </div>
+
+          {/* Smart Pharmacy AI Insights Widget (4 Cols) */}
+          <div className="lg:col-span-4 flex flex-col">
+            <SmartPharmacyInsightsCard
+              onAnalyticsClick={() =>
+                showNotification("🔍 Loading predictive analytics and demand forecasting...")
+              }
+              className="h-full"
+            />
+          </div>
+        </div>
+
+        {/* ── 5. Bottom Row: 3 Operational Action Cards ───────────────── */}
+        <DashboardActionCardsGrid
+          onReorderClick={() => setIsAddMedicineModalOpen(true)}
+          onExpiryDetailsClick={() =>
+            showNotification("🗓 Opening batch expiry inspection schedule...")
+          }
+          onReviewOrdersClick={() =>
+            showNotification("📦 Navigating to supplier purchase order review...")
+          }
+        />
+      </div>
+
+      {/* ── Modals & Drawers ────────────────────────────────────────── */}
+      <GenerateReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        onGenerated={handleGenerateReportSuccess}
+      />
+
+      <QuickAddMedicineModal
+        isOpen={isAddMedicineModalOpen}
+        onClose={() => setIsAddMedicineModalOpen(false)}
+        onAdded={handleAddMedicineSuccess}
+      />
     </section>
   );
 };

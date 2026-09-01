@@ -2,6 +2,11 @@ export const selectBranch = (state) => state.branch;
 
 export const selectBranches = (state) => state.branch.branches;
 
+export const selectWorkspaceBranches = (state) =>
+  state.branch.workspaceBranches?.length
+    ? state.branch.workspaceBranches
+    : state.branch.branches;
+
 export const selectCurrentBranch = (state) => state.branch.currentBranch;
 
 // NEW: Added to select the branch being viewed or edited separately from global context

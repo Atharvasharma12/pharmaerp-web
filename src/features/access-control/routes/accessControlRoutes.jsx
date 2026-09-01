@@ -1,3 +1,4 @@
+import { Navigate } from "react-router-dom";
 import { ROUTES } from "@/constants";
 
 import {
@@ -6,8 +7,6 @@ import {
   CreateRolePage,
   EditRolePage,
   RoleDetailsPage,
-  MemberAccessPage,
-  AssignAccessPage,
   AssignRolePage,
   EditAccessPage,
   PermissionPage,
@@ -36,11 +35,11 @@ const accessControlRoutes = [
   },
   {
     path: ROUTES.MEMBER_ACCESS,
-    element: <MemberAccessPage />,
+    element: <Navigate to={ROUTES.WORKSPACE_MEMBERS} replace />,
   },
   {
     path: ROUTES.ASSIGN_ACCESS,
-    element: <AssignAccessPage />,
+    element: <Navigate to={ROUTES.WORKSPACE_MEMBERS} replace />,
   },
   {
     path: ROUTES.ASSIGN_ROLE,

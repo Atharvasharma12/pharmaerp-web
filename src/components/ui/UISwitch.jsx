@@ -104,10 +104,7 @@ export const UISwitch = forwardRef(
           />
 
           {/* Switch Track with Fluid Color Morph */}
-          <motion.div
-            animate={{
-              backgroundColor: isChecked ? undefined : undefined,
-            }}
+          <div
             className={cn(
               "relative inline-flex shrink-0 items-center rounded-full border border-transparent transition-colors duration-200 ease-out",
               "peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-surface",
@@ -116,17 +113,16 @@ export const UISwitch = forwardRef(
               trackClassName
             )}
           >
-            {/* Switch Thumb with Spring Physics & Press Stretch */}
+            {/* Switch Thumb with Direct Horizontal Translation (No layout lag) */}
             <motion.div
-              layout
               animate={{
                 x: isChecked ? currentSize.translateX : 0,
               }}
-              whileTap={!isDisabled ? { scaleX: 1.18 } : undefined}
+              whileTap={!isDisabled ? { scaleX: 1.15 } : undefined}
               transition={{
                 type: "spring",
-                stiffness: 650,
-                damping: 36,
+                stiffness: 700,
+                damping: 38,
               }}
               className={cn(
                 "flex items-center justify-center rounded-full bg-white dark:bg-neutral-100 shadow-sm pointer-events-none origin-left",
@@ -146,7 +142,7 @@ export const UISwitch = forwardRef(
                 </span>
               ) : null}
             </motion.div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Label & Description */}

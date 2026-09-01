@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+// src/features/access-control/pages/AccessControlPage.jsx
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
@@ -14,17 +16,16 @@ const normalizeText = (value) =>
     .trim()
     .toLowerCase();
 
-const getActiveCount = (items = [], statusKey = "status") =>
-  items.filter((item) => item?.[statusKey] === "active").length;
-
-const getRestrictedAccessCount = (items = []) =>
-  items.filter(
-    (item) =>
-      item?.accessAllCompanies === false || item?.accessAllBranches === false,
-  ).length;
-
-const getSystemRoleCount = (roles = []) =>
-  roles.filter((role) => Boolean(role?.isSystem)).length;
+const formatRoleName = (role) => {
+  const roleName = role?.name || role?.title || role?.code;
+  if (!roleName) return "-";
+  return String(roleName)
+    .replace(/_/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
 
 const AccessControlPage = () => {
   const navigate = useNavigate();
@@ -34,15 +35,12 @@ const AccessControlPage = () => {
   const {
     roles,
     permissions,
-    memberAccessList,
 
     getWorkspaceRoles,
     getAvailablePermissions,
-    getWorkspaceMemberAccessList,
 
     getWorkspaceRolesStatus,
     getAvailablePermissionsStatus,
-    getWorkspaceMemberAccessListStatus,
 
     error,
     message,
@@ -51,37 +49,30 @@ const AccessControlPage = () => {
     clearMessage,
   } = useAccessControl();
 
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
   const isLoadingRoles = getWorkspaceRolesStatus === API_STATUS.LOADING;
   const isLoadingPermissions =
     getAvailablePermissionsStatus === API_STATUS.LOADING;
-  const isLoadingMemberAccess =
-    getWorkspaceMemberAccessListStatus === API_STATUS.LOADING;
 
   const hasRolesError = getWorkspaceRolesStatus === API_STATUS.ERROR;
   const hasPermissionsError =
     getAvailablePermissionsStatus === API_STATUS.ERROR;
-  const hasMemberAccessError =
-    getWorkspaceMemberAccessListStatus === API_STATUS.ERROR;
 
-  const isLoading =
-    isLoadingRoles || isLoadingPermissions || isLoadingMemberAccess;
-  const hasError = hasRolesError || hasPermissionsError || hasMemberAccessError;
+  const isLoading = isLoadingRoles || isLoadingPermissions;
+  const hasError = hasRolesError || hasPermissionsError;
 
   const fetchAccessControlData = useCallback(async () => {
     const requests = [
       getWorkspaceRoles(),
       getAvailablePermissions(),
-      getWorkspaceMemberAccessList(),
     ];
 
     const results = await Promise.allSettled(requests);
-
     return results;
-  }, [
-    getAvailablePermissions,
-    getWorkspaceMemberAccessList,
-    getWorkspaceRoles,
-  ]);
+  }, [getAvailablePermissions, getWorkspaceRoles]);
 
   useEffect(() => {
     if (hasFetchedAccessControlData.current) return undefined;
@@ -94,10 +85,7 @@ const AccessControlPage = () => {
       clearError();
       clearMessage();
     };
-    // This should run only once on page mount.
-    // The ref guard prevents repeated API calls if hook callbacks are recreated.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [clearError, clearMessage, fetchAccessControlData]);
 
   useEffect(() => {
     if (!message) return undefined;
@@ -109,248 +97,82 @@ const AccessControlPage = () => {
     return () => window.clearTimeout(timer);
   }, [clearMessage, message]);
 
-  const mappedRoles = useMemo(
-    () => (Array.isArray(roles) ? roles : []),
-    [roles],
-  );
+  // Sort roles descending by member count
+  const mappedRoles = useMemo(() => {
+    const sourceRoles = Array.isArray(roles) ? roles : [];
+    return [...sourceRoles].sort((a, b) => {
+      const countA = a.membersCount ?? 0;
+      const countB = b.membersCount ?? 0;
+      if (countB !== countA) return countB - countA;
+      if (a.isSystem !== b.isSystem) return a.isSystem ? -1 : 1;
+      return String(a.name).localeCompare(String(b.name));
+    });
+  }, [roles]);
 
   const mappedPermissions = useMemo(
     () => (Array.isArray(permissions) ? permissions : []),
-    [permissions],
+    [permissions]
   );
 
-  const mappedMemberAccessList = useMemo(
-    () => (Array.isArray(memberAccessList) ? memberAccessList : []),
-    [memberAccessList],
-  );
+  const filteredRoles = useMemo(() => {
+    const q = normalizeText(search);
+    if (!q) return mappedRoles;
+    return mappedRoles.filter(
+      (r) =>
+        normalizeText(r.name).includes(q) ||
+        normalizeText(r.code).includes(q) ||
+        normalizeText(r.description).includes(q)
+    );
+  }, [mappedRoles, search]);
 
-  const permissionGroups = useMemo(() => {
-    const groups = mappedPermissions.reduce((acc, permission) => {
-      const group = normalizeText(permission).split(/[.:_]/)[0] || "general";
-
-      if (!acc[group]) {
-        acc[group] = {
-          id: group,
-          title: group
-            .split("-")
-            .filter(Boolean)
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(" "),
-          count: 0,
-        };
-      }
-
-      acc[group].count += 1;
-
-      return acc;
-    }, {});
-
-    return Object.values(groups).slice(0, 6);
-  }, [mappedPermissions]);
-
-  const dashboardStats = useMemo(() => {
-    const totalRoles = mappedRoles.length;
-    const activeRoles = getActiveCount(mappedRoles);
-    const totalPermissions = mappedPermissions.length;
-    const totalMemberAccess = mappedMemberAccessList.length;
-    const restrictedAccess = getRestrictedAccessCount(mappedMemberAccessList);
-
-    return [
-      {
-        id: "roles",
-        title: "Total Roles",
-        value: totalRoles || 8,
-        description: activeRoles
-          ? "Active roles"
-          : totalRoles
-            ? `${activeRoles} active roles`
-            : "Active roles",
-        colorVariant: "success",
-      },
-      {
-        id: "members",
-        title: "Total Members",
-        value: totalMemberAccess || 24,
-        description: "Workspace members",
-        colorVariant: "purple",
-      },
-      {
-        id: "companies",
-        title: "Companies",
-        value: 5,
-        description: "Active companies",
-        colorVariant: "info",
-      },
-      {
-        id: "branches",
-        title: "Branches",
-        value: 12,
-        description: "Across all companies",
-        colorVariant: "warning",
-      },
-      {
-        id: "permissions",
-        title: "Permissions",
-        value: totalPermissions || 96,
-        description: "System permissions",
-        colorVariant: "danger",
-      },
-    ];
-  }, [mappedMemberAccessList, mappedPermissions, mappedRoles]);
-
-  const recentRoles = useMemo(() => mappedRoles.slice(0, 5), [mappedRoles]);
-
-  const accessOverviewItems = useMemo(
-    () => [
-      {
-        id: "roles",
-        title: "Roles",
-        description:
-          "Create and manage roles for your workspace. Define permissions for each role.",
-        colorVariant: "success",
-        onClick: () => navigate(ROUTES.ROLES),
-      },
-      {
-        id: "memberAccess",
-        title: "Member Access",
-        description: "Assign roles and control access for workspace members.",
-        colorVariant: "info",
-        onClick: () => navigate(ROUTES.MEMBER_ACCESS),
-      },
-      {
-        id: "permissions",
-        title: "Permissions",
-        description: "View and manage all available permissions in the system.",
-        colorVariant: "purple",
-        onClick: () => navigate(ROUTES.PERMISSIONS),
-      },
-      {
-        id: "accessSummary",
-        title: "Access Summary",
-        description: "See who has access to which companies and branches.",
-        colorVariant: "warning",
-        onClick: () => navigate(ROUTES.MEMBER_ACCESS),
-      },
-    ],
-    [navigate],
-  );
-
-  const recentAccessActivity = useMemo(
-    () => [
-      {
-        id: "role-created",
-        title: recentRoles[0]
-          ? `New role “${recentRoles[0]?.name || recentRoles[0]?.title || "Pharmacist"}” created`
-          : "New role “Pharmacist” created",
-        description: "by Admin · 28 May 2024, 10:30 AM",
-        label: "Role",
-        colorVariant: "success",
-      },
-      {
-        id: "access-assigned",
-        title: "Access assigned to Rahul Verma",
-        description: "Company: MedPlus Pharmacy · 2 Branches",
-        label: "Member Access",
-        colorVariant: "info",
-      },
-      {
-        id: "permissions-updated",
-        title: "Permissions updated for role “Manager”",
-        description: "by Admin · 28 May 2024, 09:15 AM",
-        label: "Permissions",
-        colorVariant: "warning",
-      },
-    ],
-    [recentRoles],
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredRoles.length / pageSize));
+  const paginatedRoles = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredRoles.slice(start, start + pageSize);
+  }, [filteredRoles, currentPage, pageSize]);
 
   const stats = useMemo(() => {
     const totalRoles = mappedRoles.length;
-    const activeRoles = getActiveCount(mappedRoles);
-    const systemRoles = getSystemRoleCount(mappedRoles);
+    const systemRoles = mappedRoles.filter((r) => r.isSystem).length;
+    const customRoles = mappedRoles.filter((r) => !r.isSystem).length;
     const totalPermissions = mappedPermissions.length;
-    const totalMemberAccess = mappedMemberAccessList.length;
-    const restrictedAccess = getRestrictedAccessCount(mappedMemberAccessList);
 
     return [
       {
-        id: "roles",
-        title: "Roles",
+        id: "totalRoles",
+        title: "Total Roles",
         value: totalRoles,
-        description: `${activeRoles} active roles`,
+        description: "Configured roles",
         colorVariant: "primary",
-      },
-      {
-        id: "permissions",
-        title: "Permissions",
-        value: totalPermissions,
-        description: "Available permission keys",
-        colorVariant: "info",
       },
       {
         id: "systemRoles",
         title: "System Roles",
         value: systemRoles,
-        description: "Protected default roles",
-        colorVariant: "warning",
+        description: "Protected default tiers",
+        colorVariant: "purple",
       },
       {
-        id: "memberAccess",
-        title: "Member Access",
-        value: totalMemberAccess,
-        description: `${restrictedAccess} restricted members`,
-        colorVariant: "success",
-      },
-    ];
-  }, [mappedMemberAccessList, mappedPermissions, mappedRoles]);
-
-  const accessModules = useMemo(
-    () => [
-      {
-        id: "roles",
-        title: "Role Management",
-        description:
-          "Create custom workspace roles and manage permission sets.",
-        stat: mappedRoles.length,
-        statLabel: "roles",
-        colorVariant: "primary",
-        actionText: "Manage Roles",
-        onClick: () => navigate(ROUTES.ROLES),
+        id: "customRoles",
+        title: "Custom Roles",
+        value: customRoles,
+        description: "Workspace-specific",
+        colorVariant: "info",
       },
       {
         id: "permissions",
-        title: "Permission Catalog",
-        description:
-          "Review all backend-supported permissions available to roles.",
-        stat: mappedPermissions.length,
-        statLabel: "permissions",
-        colorVariant: "info",
-        actionText: "View Permissions",
-        onClick: () => navigate(ROUTES.PERMISSIONS),
-      },
-      {
-        id: "memberAccess",
-        title: "Member Access",
-        description:
-          "Control company and branch access for active workspace members.",
-        stat: mappedMemberAccessList.length,
-        statLabel: "members",
+        title: "Total Permissions",
+        value: totalPermissions,
+        description: "Security capabilities",
         colorVariant: "success",
-        actionText: "Manage Access",
-        onClick: () => navigate(ROUTES.MEMBER_ACCESS),
       },
-    ],
-    [
-      mappedMemberAccessList.length,
-      mappedPermissions.length,
-      mappedRoles.length,
-      navigate,
-    ],
-  );
+    ];
+  }, [mappedPermissions, mappedRoles]);
 
   const handleRefresh = useCallback(() => {
     clearError();
     clearMessage();
+    hasFetchedAccessControlData.current = false;
     fetchAccessControlData();
   }, [clearError, clearMessage, fetchAccessControlData]);
 
@@ -366,37 +188,51 @@ const AccessControlPage = () => {
     navigate(ROUTES.PERMISSIONS);
   }, [navigate]);
 
-  const handleViewMemberAccess = useCallback(() => {
-    navigate(ROUTES.MEMBER_ACCESS);
-  }, [navigate]);
+  const handleViewRole = useCallback(
+    (roleId) => {
+      navigate(ROUTES.ROLE_DETAILS.replace(":roleId", roleId));
+    },
+    [navigate]
+  );
+
+  const handleEditRole = useCallback(
+    (roleId) => {
+      navigate(ROUTES.EDIT_ROLE.replace(":roleId", roleId));
+    },
+    [navigate]
+  );
 
   const pageProps = {
     stats,
-    dashboardStats,
-    accessModules,
-    accessOverviewItems,
-    recentAccessActivity,
-    recentRoles,
-    permissionGroups,
-
-    roles: mappedRoles,
+    roles: filteredRoles,
+    paginatedRoles,
     permissions: mappedPermissions,
-    memberAccessList: mappedMemberAccessList,
+
+    search,
+    setSearch,
+    currentPage,
+    pageSize,
+    totalPages,
+    handlePageChange: setCurrentPage,
+    handlePageSizeChange: (size) => {
+      setPageSize(size);
+      setCurrentPage(1);
+    },
+
+    totalRolesCount: mappedRoles.length,
+    filteredRolesCount: filteredRoles.length,
 
     isLoading,
     hasError,
     error,
     message,
 
-    hasRoles: mappedRoles.length > 0,
-    hasPermissions: mappedPermissions.length > 0,
-    hasMemberAccessList: mappedMemberAccessList.length > 0,
-
     handleRefresh,
     handleCreateRole,
     handleViewRoles,
     handleViewPermissions,
-    handleViewMemberAccess,
+    handleViewRole,
+    handleEditRole,
 
     clearMessage,
   };

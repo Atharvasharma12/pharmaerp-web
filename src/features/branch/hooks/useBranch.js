@@ -21,6 +21,7 @@ import {
 
 import {
   selectBranches,
+  selectWorkspaceBranches,
   selectCurrentBranch,
   selectManagedBranch,
   selectBranchStatus,
@@ -38,6 +39,7 @@ const useBranch = () => {
   const dispatch = useDispatch();
 
   const branches = useSelector(selectBranches);
+  const workspaceBranches = useSelector(selectWorkspaceBranches);
   const currentBranch = useSelector(selectCurrentBranch);
   const managedBranch = useSelector(selectManagedBranch);
 
@@ -116,6 +118,7 @@ const useBranch = () => {
 
   return {
     branches,
+    workspaceBranches,
     currentBranch,
     managedBranch, // Exposed management state
 

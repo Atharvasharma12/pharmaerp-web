@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import { AppConfirmModal } from "@/components";
+import { UIConfirmDialog, uiToast } from "@/components/ui";
 
 import useAccessControl from "../hooks/useAccessControl";
 
@@ -241,7 +241,16 @@ const RolesPage = () => {
   const mappedRoles = useMemo(() => {
     const sourceRoles =
       Array.isArray(roles) && roles.length ? roles : dummyRoles;
-    return sourceRoles.map(mapRoleForView);
+    const mapped = sourceRoles.map(mapRoleForView);
+
+    // Sort by highest member count first (descending)
+    return mapped.sort((a, b) => {
+      const countA = a.membersCount ?? 0;
+      const countB = b.membersCount ?? 0;
+      if (countB !== countA) return countB - countA;
+      if (a.isSystem !== b.isSystem) return a.isSystem ? -1 : 1;
+      return String(a.displayName).localeCompare(String(b.displayName));
+    });
   }, [roles]);
 
   const filteredRoles = useMemo(() => {
@@ -501,20 +510,18 @@ const RolesPage = () => {
         <RolesDesktopPage {...pageProps} />
       )}
 
-      <AppConfirmModal
-        open={isDeleteModalOpen}
+      <UIConfirmDialog
+        isOpen={isDeleteModalOpen}
         onClose={closeDeleteModal}
         onConfirm={handleConfirmDeleteRole}
         title="Delete Role"
-        message={`Delete ${selectedRole?.displayName || "this role"}?`}
-        description="This role will be soft deleted and can no longer be assigned to workspace members. System roles cannot be deleted."
-        variant="error"
-        confirmLabel="Delete Role"
-        cancelLabel="Keep Role"
-        loading={isDeletingRole}
-        confirmDisabled={isDeletingRole}
-        cancelDisabled={isDeletingRole}
-        closeOnBackdrop={!isDeletingRole}
+        description={`Are you sure you want to delete "${selectedRole?.displayName || "this role"}"? Workspace members currently assigned to this role will lose associated permissions.`}
+        intent="danger"
+        confirmText="Delete Role"
+        cancelText="Keep Role"
+        itemName={selectedRole?.displayName}
+        itemDetails={`${selectedRole?.displayType || "Custom"} Role • ${selectedRole?.permissionCount || 0} Permissions`}
+        isLoading={isDeletingRole}
       />
     </>
   );

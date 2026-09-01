@@ -1,6 +1,7 @@
 # UI Build Instructions — PharmaERP (v3.0)
 
 > **Quick-reference operating instructions for building and redesigning any UI surface across PharmaERP.**
+> For converting image mockups into UI, see **[IMAGE_TO_UI_INSTRUCTIONS.md](./IMAGE_TO_UI_INSTRUCTIONS.md)**.
 > For reusable component specifications & motion physics, see **[REUSABLE_COMPONENTS_GUIDE.md](./REUSABLE_COMPONENTS_GUIDE.md)**.
 > For detailed visual standards, see **[DESIGN_STANDARDS.md](./DESIGN_STANDARDS.md)** and **[UI_GUIDE.md](./UI_GUIDE.md)**.
 
