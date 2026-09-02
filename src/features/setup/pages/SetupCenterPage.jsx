@@ -1,10 +1,9 @@
 // src/features/setup/pages/SetupCenterPage.jsx
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
-import { ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 
@@ -13,34 +12,10 @@ import {
   selectWorkspaceSetupStatus,
   selectWorkspaceSetupStatusVersion,
 } from "@/features/workspace/store/workspaceSelector";
-import { uiToast } from "@/components/ui";
+import { setupSteps as defaultSetupSteps } from "../constants/setupSteps";
 
 import SetupCenterDesktopPage from "./desktop/SetupCenterDesktopPage";
 import SetupCenterMobilePage from "./mobile/SetupCenterMobilePage";
-
-// 2 core active setup steps
-const setupStepsConfig = [
-  {
-    id: "company",
-    title: "Create Company",
-    description: "Add your pharmaceutical business details, GSTIN, PAN, and drug licenses.",
-    actionText: "Create Company",
-    route: ROUTES.CREATE_COMPANY,
-    completedRoute: ROUTES.COMPANIES,
-    requiredFields: [],
-    colorVariant: "primary",
-  },
-  {
-    id: "branch",
-    title: "Create Branch",
-    description: "Add your first pharmacy branch, store location, and POS billing counter.",
-    actionText: "Create Branch",
-    route: ROUTES.CREATE_BRANCH,
-    completedRoute: ROUTES.BRANCHES,
-    requiredFields: ["company"],
-    colorVariant: "info",
-  },
-];
 
 const SetupCenterPage = () => {
   const isMobile = useIsMobile();
@@ -48,16 +23,13 @@ const SetupCenterPage = () => {
   const dispatch = useDispatch();
 
   const { currentWorkspace, activeWorkspace } = useWorkspace();
-  const workspaceId = currentWorkspace?._id || activeWorkspace?._id;
+  const workspace = currentWorkspace || activeWorkspace || null;
+  const workspaceId = workspace?._id || workspace?.id;
 
-  // Single source of truth for setup status
+  // Single source of truth for all setup step completion
   const setupStatus = useSelector(selectWorkspaceSetupStatus);
+  // Incremented by createCompany/createBranch thunks → triggers this effect
   const setupVersion = useSelector(selectWorkspaceSetupStatusVersion);
-
-  const [selectedStepId, setSelectedStepId] = useState("company");
-  const [isLiveMode, setIsLiveMode] = useState(true);
-  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
-  const [isTestingStep, setIsTestingStep] = useState(false);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -75,7 +47,7 @@ const SetupCenterPage = () => {
 
   const mappedSetupSteps = useMemo(
     () =>
-      setupStepsConfig.map((step) => {
+      defaultSetupSteps.map((step) => {
         const locked = step.requiredFields.some((field) => !setupState[field]);
         const completed = Boolean(setupState[step.id]);
         const targetRoute = completed
@@ -101,6 +73,7 @@ const SetupCenterPage = () => {
     (step) => step.completed,
   ).length;
 
+  // Use API progress if available (accurate), else compute locally
   const progress =
     setupStatus?.progress?.percentage ??
     (mappedSetupSteps.length
@@ -111,69 +84,15 @@ const SetupCenterPage = () => {
     (step) => !step.completed && !step.locked,
   );
 
-  const canGoLive = completedStepsCount === mappedSetupSteps.length && mappedSetupSteps.length > 0;
-
-  // Auto-focus the next actionable step
-  useEffect(() => {
-    if (nextStep) {
-      setSelectedStepId(nextStep.id);
-    } else if (mappedSetupSteps.length > 0) {
-      setSelectedStepId(mappedSetupSteps[0].id);
-    }
-  }, [nextStep?.id]);
-
-  const selectedStep = mappedSetupSteps.find((s) => s.id === selectedStepId) || mappedSetupSteps[0] || null;
-
-  const handleRunDiagnostics = () => {
-    setIsRunningDiagnostics(true);
-    setTimeout(() => {
-      setIsRunningDiagnostics(false);
-      if (canGoLive) {
-        uiToast.success("All systems operational. Ready to Go Live!");
-      } else {
-        uiToast.info(`Setup in progress: ${completedStepsCount} of ${mappedSetupSteps.length} steps completed.`);
-      }
-    }, 750);
-  };
-
-  const handleTestStep = (step) => {
-    setIsTestingStep(true);
-    setTimeout(() => {
-      setIsTestingStep(false);
-      if (step.completed) {
-        uiToast.success(`Step verified: ${step.title} is active & configured.`);
-      } else if (step.locked) {
-        uiToast.warning(`Prerequisites missing: Complete previous steps before ${step.title}.`);
-      } else {
-        uiToast.info(`Step ready for configuration: ${step.title}.`);
-      }
-    }, 600);
-  };
-
-  const handleGoLive = () => {
-    if (canGoLive) {
-      uiToast.success("🚀 Congratulations! PharmaERP is live and ready for billing & inventory operations.");
-      navigate("/dashboard");
-    } else {
-      uiToast.warning("Please complete all setup steps before going live.");
-    }
-  };
+  const isAllCompleted = completedStepsCount === mappedSetupSteps.length && mappedSetupSteps.length > 0;
 
   const pageProps = {
+    workspace,
     mappedSetupSteps,
-    selectedStep,
-    onSelectStep: (step) => setSelectedStepId(step.id),
     completedStepsCount,
     progress,
     nextStep,
-    canGoLive,
-    isLiveMode,
-    onToggleLiveMode: () => setIsLiveMode((v) => !v),
-    onRunDiagnostics: handleRunDiagnostics,
-    isRunningDiagnostics,
-    onTestStep: handleTestStep,
-    isTestingStep,
-    onGoLive: handleGoLive,
+    isAllCompleted,
   };
 
   return isMobile ? (

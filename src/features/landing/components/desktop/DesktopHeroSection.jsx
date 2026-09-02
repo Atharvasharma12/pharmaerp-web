@@ -1,5 +1,4 @@
-// src/features/landing/components/desktop/DesktopHeroSection.jsx
-
+import { Link } from "react-router-dom";
 import {
   FiCalendar,
   FiCheckCircle,
@@ -13,6 +12,7 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 
+import { ROUTES } from "@/constants";
 import {
   AppBadge,
   AppBox,
@@ -98,6 +98,8 @@ const DesktopHeroSection = () => {
 
             <AppStack direction="row" gap={1.5} sx={{ mt: 2.5 }}>
               <AppButton
+                component={Link}
+                to={ROUTES.REGISTER}
                 variant="contained"
                 colorVariant="primary"
                 rounded="md"
@@ -114,6 +116,8 @@ const DesktopHeroSection = () => {
               </AppButton>
 
               <AppButton
+                component={Link}
+                to={ROUTES.LOGIN}
                 variant="outlined"
                 colorVariant="primary"
                 rounded="md"
@@ -126,7 +130,7 @@ const DesktopHeroSection = () => {
                   bgcolor: "var(--app-color-surface)",
                 }}
               >
-                Book a Demo
+                Sign In
               </AppButton>
             </AppStack>
 

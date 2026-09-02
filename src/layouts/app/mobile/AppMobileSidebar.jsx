@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants";
 import useAuth from "@/features/auth/hooks/useAuth";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
 import { usePermission } from "@/hooks";
 
 import {
@@ -20,13 +21,21 @@ const AppMobileSidebar = ({ open, onClose }) => {
   const navigate = useNavigate();
   const { user, logout, clearCredentials } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  const { isSetupComplete, companyCompleted, branchCompleted } = useSetupStatus();
   const { can, canAny, isOwner } = usePermission();
 
-  // Filter nav groups by current user's permissions and owner status
+  // Filter nav groups by permissions, owner status, and setup completion
   const visibleNavGroups = useMemo(
-    () => filterNavByPermission(SIDEBAR_NAV_GROUPS, can, canAny, isOwner),
+    () =>
+      filterNavByPermission(
+        SIDEBAR_NAV_GROUPS,
+        can,
+        canAny,
+        isOwner,
+        { isSetupComplete, companyCompleted, branchCompleted },
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [can, canAny, isOwner],
+    [can, canAny, isOwner, isSetupComplete, companyCompleted, branchCompleted],
   );
 
   const handleLogout = async () => {

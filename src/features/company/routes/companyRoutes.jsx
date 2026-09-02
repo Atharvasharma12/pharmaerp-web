@@ -1,4 +1,4 @@
-// src/features/company/routes/companyRoutes.js
+// src/features/company/routes/companyRoutes.jsx
 
 import { ROUTES } from "@/constants";
 
@@ -10,14 +10,17 @@ import {
   CompanySettingsPage,
 } from "../pages";
 
-const companyRoutes = [
-  {
-    path: ROUTES.COMPANIES,
-    element: <CompaniesPage />,
-  },
+export const createCompanyRoutes = [
   {
     path: ROUTES.CREATE_COMPANY,
     element: <CreateCompanyPage />,
+  },
+];
+
+export const existingCompanyRoutes = [
+  {
+    path: ROUTES.COMPANIES,
+    element: <CompaniesPage />,
   },
   {
     path: ROUTES.EDIT_COMPANY,
@@ -32,5 +35,7 @@ const companyRoutes = [
     element: <CompanySettingsPage />,
   },
 ];
+
+const companyRoutes = [...createCompanyRoutes, ...existingCompanyRoutes];
 
 export default companyRoutes;

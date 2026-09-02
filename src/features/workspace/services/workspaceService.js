@@ -102,6 +102,12 @@ const workspaceService = {
   getIncomingUserInvitations() {
     return apiClient.get(ENDPOINTS.WORKSPACE.USER_INBOX_INVITATIONS);
   },
+
+  // --- SETUP CENTER ---
+
+  getWorkspaceSetupStatus(workspaceId) {
+    return apiClient.get(ENDPOINTS.WORKSPACE.SETUP_STATUS(workspaceId));
+  },
 };
 
 export default workspaceService;

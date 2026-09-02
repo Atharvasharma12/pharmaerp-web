@@ -1,58 +1,55 @@
 // src/features/branch/pages/desktop/BranchesDesktopPage.jsx
 
-import { useMemo } from "react";
+import React from "react";
 import {
-  FiChevronLeft,
-  FiChevronRight,
-  FiDownload,
-  FiGitBranch,
-  FiMoreHorizontal,
-  FiPlus,
-  FiRefreshCw,
-  FiSearch,
-  FiUsers,
-  FiMail,
-  FiPhone,
-} from "react-icons/fi";
-
+  GitBranch,
+  Plus,
+  Download,
+  RotateCcw,
+  AlertTriangle,
+  Search,
+} from "lucide-react";
 import {
-  AppAlert,
-  AppBox,
-  AppBreadcrumb,
-  AppButton,
-  AppCard,
-  AppEmptyState,
-  AppErrorState,
-  AppHeading,
-  AppIconButton,
-  AppMenu,
-  AppSearchInput,
-  AppSelect,
-  AppStack,
-  AppStatusBadge,
-  AppTableSkeleton,
-  AppText,
-  HELP_SUPPORT_CARD,
-  PageHeader,
-  PageRightSidebar,
+  UIButton,
+  UISelect,
+  UIPagination,
+  UIEmptyState,
+  UIAlert,
+  UISkeleton,
+  UIPageHeader,
+  UIFilterToolbar,
   PermissionGate,
-} from "@/components";
-import { usePermission } from "@/hooks";
+} from "@/components/ui";
 
-const statusColorMap = {
-  active: "success",
-  inactive: "neutral",
-  suspended: "danger",
-};
+import {
+  BranchCard,
+  BranchTableView,
+  BranchEmployeesDrawer,
+} from "../../components";
 
-const BranchesDesktopPage = ({
+const SORT_OPTIONS = [
+  { value: "name_asc", label: "Name: A to Z" },
+  { value: "name_desc", label: "Name: Z to A" },
+  { value: "newest", label: "Newest First" },
+  { value: "oldest", label: "Oldest First" },
+  { value: "members", label: "Most Employees" },
+];
+
+export const BranchesDesktopPage = ({
   branches = [],
+  paginatedBranches = [],
   stats = [],
 
   filters,
+  sortBy,
+  onSortChange,
+  viewMode = "grid",
+  onViewModeChange,
+
   activeFilterChips = [],
   statusOptions = [],
   companyOptions = [],
+  branchTypeOptions = [],
 
   isLoading,
   hasError,
@@ -64,6 +61,12 @@ const BranchesDesktopPage = ({
   hasBranches,
   hasFilteredBranches,
 
+  currentPage = 1,
+  pageSize = 6,
+  totalPages = 1,
+  handlePageChange,
+  handlePageSizeChange,
+
   handleFilterChange,
   handleSearchChange,
   handleRemoveFilter,
@@ -73,771 +76,314 @@ const BranchesDesktopPage = ({
   handleViewBranch,
   handleEditBranch,
   handleOpenSettings,
+  handleViewEmployees,
   handleDeleteBranch,
   handleRefresh,
 
+  selectedBranchForEmployees,
+  isEmployeeDrawerOpen,
+  handleCloseEmployeesDrawer,
+
   clearMessage,
 }) => {
-  const showInitialSkeleton = isLoading && !hasBranches;
+  const activeCount =
+    stats.find((s) => s.id === "active")?.value ??
+    branches.filter((b) => (b.displayStatus || b.status) === "active").length;
+  const inactiveCount =
+    (stats.find((s) => s.id === "inactive")?.value || 0) +
+    (stats.find((s) => s.id === "suspended")?.value || 0);
 
-  const derivedOverview = useMemo(() => {
-    const total = branches.length || 1;
-    const active = branches.filter((b) => b.displayStatus === "active").length;
-    const inactive = branches.filter(
-      (b) => b.displayStatus === "inactive",
-    ).length;
-    const suspended = branches.filter(
-      (b) => b.displayStatus === "suspended",
-    ).length;
+  const shouldShowPagination =
+    hasFilteredBranches && filteredBranchesCount > pageSize;
 
-    return [
-      {
-        id: "active",
-        label: "Active",
-        value: active,
-        percent: Math.round((active / total) * 100),
-        color: "bg-primary",
-      },
-      {
-        id: "inactive",
-        label: "Inactive",
-        value: inactive,
-        percent: Math.round((inactive / total) * 100),
-        color: "bg-border-strong",
-      },
-      {
-        id: "suspended",
-        label: "Suspended",
-        value: suspended,
-        percent: Math.round((suspended / total) * 100),
-        color: "bg-warning",
-      },
+  const handleExportCSV = () => {
+    if (!branches.length) return;
+    const headers = [
+      "Branch Name",
+      "Company",
+      "Type",
+      "Status",
+      "Email",
+      "Phone",
+      "Location",
+      "Employees With Access",
     ];
-  }, [branches]);
+    const rows = branches.map((b) => [
+      `"${b.displayName || b.name || ""}"`,
+      `"${b.displayCompany || b.companyName || ""}"`,
+      `"${b.type || ""}"`,
+      `"${b.displayStatus || b.status || ""}"`,
+      `"${b.email || ""}"`,
+      `"${b.phones?.mobile || b.phone || ""}"`,
+      `"${b.locationSummary || ""}"`,
+      `"${b.memberCount ?? b.staffCount ?? 0}"`,
+    ]);
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `branches_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
-      {message ? <TopToast message={message} onClose={clearMessage} /> : null}
-
-      <div className="mx-auto w-full max-w-[1500px]">
-        <PageHeader
-          title="Branches"
-          subtitle="Manage all branches across your companies."
-          extra={
-            <AppBreadcrumb
-              size="small"
-              variant="text"
-              items={[
-                { label: "Branches" },
-                { label: "All Branches", current: true },
-              ]}
-              sx={breadcrumbSx}
-              itemSx={breadcrumbItemSx}
-              currentItemSx={breadcrumbCurrentSx}
-            />
-          }
-          actions={
-            <AppStack
-              direction="row"
-              align="center"
-              justify="flex-end"
-              gap={1.1}
-              sx={{ flexShrink: 0 }}
-            >
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="neutral"
-                rounded="md"
-                size="small"
-                startIcon={<FiDownload />}
-                sx={secondaryButtonSx}
-              >
-                Export
-              </AppButton>
-
-              <PermissionGate permission="branch:create">
-                <AppButton
-                  type="button"
-                  variant="contained"
-                  colorVariant="primary"
-                  rounded="md"
-                  size="small"
-                  startIcon={<FiPlus />}
-                  onClick={handleCreateBranch}
-                  sx={primaryButtonSx}
-                >
-                  Add Branch
-                </AppButton>
-              </PermissionGate>
-            </AppStack>
-          }
-          align="flex-start"
-          justify="space-between"
-          sx={pageHeaderSx}
-          contentSx={pageHeaderContentSx}
+    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-5 max-w-[1440px] mx-auto space-y-3.5">
+      {/* ── Global Error Banner ── */}
+      {error && !hasError && (
+        <UIAlert
+          intent="danger"
+          title="Something went wrong"
+          description={error}
+          onClose={clearMessage}
         />
+      )}
 
-        {error && !hasError ? (
-          <AppAlert
-            severity="error"
-            variant="soft"
-            title="Something went wrong"
-            closable
-            onClose={handleRefresh}
-            sx={alertSx}
-          >
-            {error}
-          </AppAlert>
-        ) : null}
+      {/* ── Standard UIPageHeader ── */}
+      <UIPageHeader
+        bordered={false}
+        compact
+        className="p-0 pb-0.5"
+        title={
+          <span className="flex items-center gap-2">
+            <span className="font-mono tabular-nums">{totalBranches}</span> Branches
+          </span>
+        }
+        description={
+          <span className="flex items-center gap-3.5 text-xs font-semibold mt-1">
+            <span className="inline-flex items-center gap-1.5 text-text">
+              <span className="size-2.5 rounded-full bg-success ring-2 ring-success/20" />
+              Active{" "}
+              <strong className="font-mono tabular-nums text-text font-bold">
+                {activeCount}
+              </strong>
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-text">
+              <span className="size-2.5 rounded-full bg-error ring-2 ring-error/20" />
+              Inactive{" "}
+              <strong className="font-mono tabular-nums text-text font-bold">
+                {inactiveCount}
+              </strong>
+            </span>
+          </span>
+        }
+        actions={
+          <div className="flex items-center gap-2 shrink-0">
+            <UIButton
+              type="button"
+              variant="outline"
+              size="sm"
+              startIcon={
+                <RotateCcw
+                  className={`size-3.5 text-text-muted ${
+                    isLoading ? "animate-spin" : ""
+                  }`}
+                />
+              }
+              onClick={handleRefresh}
+            >
+              Refresh
+            </UIButton>
 
-        <div className="mt-5 grid grid-cols-[minmax(0,1fr)_290px] gap-5">
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={tableCardSx}
-          >
-            <TableToolbar
-              filters={filters}
-              activeFilterChips={activeFilterChips}
-              statusOptions={statusOptions}
-              companyOptions={companyOptions}
-              handleFilterChange={handleFilterChange}
-              handleSearchChange={handleSearchChange}
-              handleRemoveFilter={handleRemoveFilter}
-              handleClearFilters={handleClearFilters}
-            />
+            <UIButton
+              type="button"
+              variant="outline"
+              size="sm"
+              startIcon={<Download className="size-3.5 text-text-muted" />}
+              onClick={handleExportCSV}
+            >
+              Export
+            </UIButton>
 
-            {hasError ? (
-              <AppErrorState
-                title="Unable to load operational branches"
-                description={error || "Please refresh and try again."}
-                actionText="Refresh"
-                onRetry={handleRefresh}
-                size="page"
-                sx={stateSx}
-              />
-            ) : showInitialSkeleton ? (
-              <AppTableSkeleton rows={8} columns={7} showHeader={false} />
-            ) : !hasBranches ? (
-              <AppEmptyState
-                title="No branches active"
-                description="Create custom branches to manage multi-location distribution inventories."
-                icon={<FiGitBranch />}
-                action={
-                  <AppButton
-                    variant="contained"
-                    colorVariant="primary"
-                    rounded="md"
-                    startIcon={<FiPlus />}
-                    onClick={handleCreateBranch}
-                  >
-                    Add Branch
-                  </AppButton>
-                }
-                size="page"
-                sx={stateSx}
-              />
-            ) : !hasFilteredBranches ? (
-              <AppEmptyState
-                title="No locations matched filters"
-                description="Refine your input search string or corporate account dependencies."
-                icon={<FiSearch />}
-                action={
-                  <AppButton
-                    variant="outlined"
-                    colorVariant="neutral"
-                    rounded="md"
-                    onClick={handleClearFilters}
-                  >
-                    Reset Filters
-                  </AppButton>
-                }
-                size="page"
-                sx={stateSx}
-              />
-            ) : (
-              <BranchesTable
-                branches={branches}
-                onView={handleViewBranch}
-                onEdit={handleEditBranch}
-                onSettings={handleOpenSettings}
-                onDelete={handleDeleteBranch}
-              />
+            <PermissionGate permission="branch:create">
+              <UIButton
+                type="button"
+                variant="primary"
+                size="sm"
+                startIcon={<Plus className="size-4" />}
+                onClick={handleCreateBranch}
+              >
+                Add Branch
+              </UIButton>
+            </PermissionGate>
+          </div>
+        }
+      />
+
+      {/* ── Enterprise UIFilterToolbar Component with Built-in View Switcher ── */}
+      <UIFilterToolbar
+        searchQuery={filters.search}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Search branch name, code, manager, or address..."
+        sortBy={sortBy}
+        onSortChange={onSortChange}
+        sortOptions={SORT_OPTIONS}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
+        activeFilterChips={activeFilterChips}
+        onClearFilters={handleClearFilters}
+        filters={
+          <>
+            {companyOptions.length > 1 && (
+              <div className="w-40">
+                <UISelect
+                  value={filters.company}
+                  onChange={(val) => handleFilterChange({ company: val })}
+                  options={companyOptions}
+                  placeholder="All Companies"
+                  size="sm"
+                />
+              </div>
             )}
 
-            {/* Pagination block displays dynamically strictly when entries exceed page ceiling */}
-            {hasBranches && totalBranches > 10 ? (
-              <TableFooter
-                totalBranches={totalBranches}
-                filteredBranchesCount={filteredBranchesCount}
-                handleClearFilters={handleClearFilters}
+            <div className="w-32">
+              <UISelect
+                value={filters.status}
+                onChange={(val) => handleFilterChange({ status: val })}
+                options={statusOptions}
+                placeholder="All Status"
+                size="sm"
               />
-            ) : null}
-          </AppCard>
-
-          <BranchesRightSidebar overviewData={derivedOverview} />
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const TopToast = ({ message, onClose }) => (
-  <div className="fixed left-1/2 top-4 z-[1400] w-[calc(100%-32px)] max-w-md -translate-x-1/2">
-    <AppAlert
-      severity="success"
-      variant="filled"
-      title={message}
-      closable
-      onClose={onClose}
-      sx={toastSx}
-    />
-  </div>
-);
-
-const TableToolbar = ({
-  filters,
-  activeFilterChips,
-  statusOptions,
-  companyOptions,
-  handleFilterChange,
-  handleSearchChange,
-  handleRemoveFilter,
-  handleClearFilters,
-}) => (
-  <div className="border-b border-border px-3.5 py-3">
-    <div className="grid grid-cols-[minmax(300px,1fr)_150px_128px_104px] items-center gap-3">
-      <AppSearchInput
-        name="search"
-        value={filters.search}
-        onChange={handleSearchChange}
-        placeholder="Search branches..."
-        clearable
-        onClear={() => handleSearchChange("")}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={searchSx}
-        inputSx={filterInputSx}
+            </div>
+          </>
+        }
       />
 
-      <AppSelect
-        name="company"
-        value={filters.company}
-        onChange={handleFilterChange}
-        options={companyOptions}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={selectSx}
-        inputSx={filterInputSx}
-      />
-
-      <AppSelect
-        name="status"
-        value={filters.status}
-        onChange={handleFilterChange}
-        options={statusOptions}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={selectSx}
-        inputSx={filterInputSx}
-      />
-
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiRefreshCw />}
-        onClick={handleClearFilters}
-        sx={clearButtonSx}
-      >
-        Reset
-      </AppButton>
-    </div>
-
-    {activeFilterChips.length ? (
-      <AppStack direction="row" align="center" gap={0.7} sx={chipsRowSx}>
-        {activeFilterChips.map((chip) => (
-          <button
-            key={chip.key}
+      {/* ── Main Content: Grid or List (Table) ── */}
+      {hasError ? (
+        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] text-center space-y-3 p-6">
+          <AlertTriangle className="size-9 text-error mx-auto" />
+          <h3 className="text-base font-bold text-text">
+            Unable to load branches list
+          </h3>
+          <p className="text-xs text-text-muted max-w-md mx-auto">
+            {error || "An error occurred while connecting to branch servers. Please retry."}
+          </p>
+          <UIButton
             type="button"
-            onClick={() => handleRemoveFilter(chip.key)}
-            className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-alt px-2 py-1 text-[11px] font-semibold text-text-muted transition hover:bg-surface-hover"
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            className="mt-1"
           >
-            {chip.label}
-          </button>
-        ))}
-
-        <button
-          type="button"
-          onClick={handleClearFilters}
-          className="text-[11px] font-semibold text-primary"
-        >
-          Clear all
-        </button>
-      </AppStack>
-    ) : null}
-  </div>
-);
-
-const BranchesTable = ({ branches, onView, onEdit, onSettings, onDelete }) => (
-  // Updated container classes: hides scrollbar tracks across Webkit, Firefox, and IE engines
-  <div className="w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-    <div className="min-w-[960px]">
-      <div className="grid grid-cols-[1.5fr_1.1fr_1.4fr_1.5fr_85px_95px_54px] border-b border-border bg-surface-alt px-3.5 py-2.5">
-        <HeaderCell>Branch</HeaderCell>
-        <HeaderCell>Type</HeaderCell>
-        <HeaderCell>Location</HeaderCell>
-        <HeaderCell>Contact Info</HeaderCell>
-        <HeaderCell>Staff</HeaderCell>
-        <HeaderCell>Status</HeaderCell>
-        <HeaderCell align="right">Actions</HeaderCell>
-      </div>
-
-      <div className="divide-y divide-border">
-        {branches.map((branch) => (
-          <BranchRow
-            key={branch._id}
-            branch={branch}
-            onView={onView}
-            onEdit={onEdit}
-            onSettings={onSettings}
-            onDelete={onDelete}
-          />
-        ))}
-      </div>
-    </div>
-  </div>
-);
-const HeaderCell = ({ children, align = "left" }) => (
-  <div
-    className={`text-[11.2px] font-bold leading-5 text-text-muted ${align === "right" ? "text-right" : "text-left"}`}
-  >
-    {children}
-  </div>
-);
-
-const BranchRow = ({ branch, onView, onEdit, onSettings, onDelete }) => (
-  <div className="grid min-h-[58px] grid-cols-[1.5fr_1.1fr_1.4fr_1.5fr_85px_95px_54px] items-center px-3.5 py-2 transition hover:bg-surface-hover/60">
-    <div className="flex items-center gap-3 min-w-0 h-full">
-      <div className="flex items-center justify-center shrink-0">
-        <IconBox icon={<FiGitBranch />} colorVariant="success" small />
-      </div>
-      <div className="flex flex-col min-w-0 justify-center">
-        <AppHeading level={3} weight={700} sx={branchNameSx}>
-          {branch.displayName || "-"}
-        </AppHeading>
-      </div>
-    </div>
-
-    <AppText variant="body2" sx={typeTextSx}>
-      {branch.type || "-"}
-    </AppText>
-
-    <AppBox sx={{ minWidth: 0 }}>
-      <AppText variant="body2" sx={tableTextSx}>
-        {branch.addressLine1 || "-"}
-      </AppText>
-      {branch.locationSummary && (
-        <AppText variant="body2" sx={subLocationTextSx}>
-          {branch.locationSummary}
-        </AppText>
-      )}
-    </AppBox>
-
-    <AppBox sx={{ minWidth: 0 }} className="space-y-0.5">
-      {branch.email ? (
-        <div className="flex items-center gap-1.5 min-w-0">
-          <FiMail className="text-[11px] text-text-muted shrink-0" />
-          <AppText variant="body2" sx={contactTextSx}>
-            {branch.email}
-          </AppText>
+            Retry Connection
+          </UIButton>
         </div>
-      ) : null}
-      {branch.phones?.mobile ? (
-        <div className="flex items-center gap-1.5 min-w-0">
-          <FiPhone className="text-[11px] text-text-muted shrink-0" />
-          <AppText variant="body2" sx={contactTextSx}>
-            {branch.phones.mobile}
-          </AppText>
-        </div>
-      ) : null}
-      {!branch.email && !branch.phones?.mobile ? (
-        <AppText variant="body2" sx={contactTextSx}>
-          -
-        </AppText>
-      ) : null}
-    </AppBox>
-
-    <AppStack direction="row" align="center" gap={0.5}>
-      <FiUsers className="text-[12px] text-text-muted" />
-      <AppText variant="body2" sx={staffCountSx}>
-        {branch.staffCount}
-      </AppText>
-    </AppStack>
-
-    <div>
-      <AppStatusBadge
-        status={branch.displayStatus}
-        label={branch.displayStatus || ""}
-        variant="soft"
-        size="small"
-        rounded="md"
-        colorVariant={statusColorMap[branch.displayStatus] || "neutral"}
-        sx={statusBadgeSx}
-      />
-    </div>
-
-    <div className="flex justify-end">
-      <BranchActions
-        branch={branch}
-        onView={onView}
-        onEdit={onEdit}
-        onSettings={onSettings}
-        onDelete={onDelete}
-      />
-    </div>
-  </div>
-);
-
-const BranchActions = ({ branch, onView, onEdit, onSettings, onDelete }) => {
-  const { can } = usePermission();
-
-  const items = [
-    { id: "view", label: "View Details", onClick: () => onView?.(branch) },
-    can("branch:update") && { id: "edit", label: "Edit Site Details", onClick: () => onEdit?.(branch) },
-    can("branch:update") && {
-      id: "settings",
-      label: "Module Sync",
-      onClick: () => onSettings?.(branch),
-    },
-    can("branch:delete") && { id: "divider", type: "divider" },
-    can("branch:delete") && {
-      id: "remove",
-      label: "Delete Branch",
-      danger: true,
-      disabled: Boolean(branch?.isPrimary),
-      onClick: () => onDelete?.(branch),
-    },
-  ].filter(Boolean);
-
-  return (
-    <AppMenu
-      trigger={
-        <button
-          type="button"
-          aria-label="Branch dropdown actions list trigger"
-          className="inline-flex h-auto w-auto items-center justify-center border-0 bg-transparent p-0 text-text-muted shadow-none outline-none transition hover:bg-transparent hover:text-primary focus:bg-transparent active:bg-transparent"
-        >
-          <FiMoreHorizontal className="text-[18px]" />
-        </button>
-      }
-      items={items}
-      dense
-      minWidth={170}
-    />
-  );
-};
-
-const TableFooter = ({
-  totalBranches,
-  filteredBranchesCount,
-  handleClearFilters,
-}) => (
-  <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
-    <AppText variant="body2" sx={footerTextSx}>
-      Showing {filteredBranchesCount > 0 ? 1 : 0} to {filteredBranchesCount} of{" "}
-      {totalBranches} branches
-    </AppText>
-
-    <AppStack direction="row" align="center" gap={1}>
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        endIcon={<FiChevronRight className="rotate-90" />}
-        sx={pageSizeButtonSx}
-      >
-        10 per page
-      </AppButton>
-
-      <AppIconButton
-        icon={<FiChevronLeft />}
-        variant="outlined"
-        colorVariant="neutral"
-        size="small"
-        rounded="md"
-        disabled
-      />
-
-      <span className="flex h-[31px] min-w-[31px] items-center justify-center rounded-md bg-primary px-2 text-[12px] font-bold text-text-inverse">
-        1
-      </span>
-
-      <AppIconButton
-        icon={<FiChevronRight />}
-        variant="outlined"
-        colorVariant="neutral"
-        size="small"
-        rounded="md"
-        onClick={handleClearFilters}
-        disabled={totalBranches <= 10}
-      />
-    </AppStack>
-  </div>
-);
-
-const BranchesRightSidebar = ({ overviewData = [] }) => (
-  <PageRightSidebar
-    spacing={4}
-    cards={[
-      {
-        title: "Branches Overview",
-        icon: null,
-        colorVariant: "success",
-        variant: "default",
-        custom: <OverviewChartCard overviewData={overviewData} />,
-      },
-      {
-        title: "Quick Actions",
-        icon: null,
-        colorVariant: "primary",
-        variant: "default",
-        custom: <SidebarQuickActions />,
-      },
-      HELP_SUPPORT_CARD,
-    ]}
-  />
-);
-
-const OverviewChartCard = ({ overviewData }) => {
-  const conicGradientStyle = useMemo(() => {
-    let currentPercentage = 0;
-    const segments = overviewData.map((item) => {
-      const start = currentPercentage;
-      currentPercentage += item.percent || 0;
-      return `var(--app-color-${item.id === "active" ? "primary" : item.id === "inactive" ? "border-strong" : "warning"}) ${start}% ${currentPercentage}%`;
-    });
-    return {
-      background: segments.length
-        ? `conic-gradient(${segments.join(", ")})`
-        : "var(--app-color-border)",
-    };
-  }, [overviewData]);
-
-  return (
-    <div>
-      <div
-        style={conicGradientStyle}
-        className="mx-auto mt-2 flex h-[86px] w-[86px] items-center justify-center rounded-full"
-      >
-        <div className="h-[45px] w-[45px] rounded-full bg-surface" />
-      </div>
-
-      <div className="mt-4 space-y-3">
-        {overviewData.map((item) => (
-          <div
-            key={item.id}
-            className="grid grid-cols-[1fr_auto] items-center gap-3"
-          >
-            <AppStack
-              direction="row"
-              align="center"
-              gap={0.8}
-              sx={{ minWidth: 0 }}
+      ) : isLoading && !hasBranches ? (
+        /* Shimmer Loading Grid */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="bg-surface rounded-2xl p-4 flex flex-col space-y-3 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
             >
-              <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
-              <AppText variant="body2" sx={overviewLabelSx}>
-                {item.label}
-              </AppText>
-            </AppStack>
-            <AppText variant="body2" sx={overviewValueSx}>
-              {item.value} ({item.percent || 0}%)
-            </AppText>
-          </div>
-        ))}
-      </div>
+              <div className="flex items-center gap-3">
+                <UISkeleton className="size-11 rounded-[12px]" />
+                <div className="space-y-1.5 flex-1">
+                  <UISkeleton className="h-4 w-32 rounded" />
+                  <UISkeleton className="h-3 w-20 rounded" />
+                </div>
+              </div>
+              <div className="w-full pt-3 border-t border-border/30 grid grid-cols-2 gap-3">
+                <UISkeleton className="h-6 rounded" />
+                <UISkeleton className="h-6 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : !hasBranches ? (
+        /* Empty State */
+        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+          <UIEmptyState
+            icon={<GitBranch className="size-9 text-primary" />}
+            title="No branches configured yet"
+            description="Create retail outlets, distribution warehouses, or dispensary units to manage multi-location inventories."
+            primaryAction={
+              <PermissionGate permission="branch:create">
+                <UIButton
+                  variant="primary"
+                  size="sm"
+                  startIcon={<Plus className="size-4" />}
+                  onClick={handleCreateBranch}
+                >
+                  Add First Branch
+                </UIButton>
+              </PermissionGate>
+            }
+          />
+        </div>
+      ) : !hasFilteredBranches ? (
+        /* Filter Empty State */
+        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+          <UIEmptyState
+            icon={<Search className="size-9 text-text-muted" />}
+            title="No matching branches found"
+            description="Try changing your search query, status, or company filter criteria."
+            primaryAction={
+              <UIButton variant="outline" size="sm" onClick={handleClearFilters}>
+                Clear Filters
+              </UIButton>
+            }
+          />
+        </div>
+      ) : (
+        /* ── Render Active View: Grid or List (Table) ── */
+        <>
+          {viewMode === "grid" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+              {paginatedBranches.map((branch) => (
+                <BranchCard
+                  key={branch._id}
+                  branch={branch}
+                  onView={handleViewBranch}
+                  onEdit={handleEditBranch}
+                  onSettings={handleOpenSettings}
+                  onViewEmployees={handleViewEmployees}
+                  onDelete={handleDeleteBranch}
+                />
+              ))}
+            </div>
+          ) : (
+            <BranchTableView
+              branches={paginatedBranches}
+              onView={handleViewBranch}
+              onEdit={handleEditBranch}
+              onSettings={handleOpenSettings}
+              onViewEmployees={handleViewEmployees}
+              onDelete={handleDeleteBranch}
+            />
+          )}
+        </>
+      )}
+
+      {/* ── Bottom Pagination Module ── */}
+      {shouldShowPagination && (
+        <div className="bg-surface rounded-xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] overflow-hidden">
+          <UIPagination
+            page={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredBranchesCount}
+            pageSize={pageSize}
+            pageSizeOptions={[6, 12, 24, 48]}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            showSummary
+            showPageSize
+          />
+        </div>
+      )}
+
+      {/* ── Slide-over Branch Employees & Access Drawer ── */}
+      <BranchEmployeesDrawer
+        isOpen={isEmployeeDrawerOpen}
+        onClose={handleCloseEmployeesDrawer}
+        branch={selectedBranchForEmployees}
+      />
     </div>
   );
 };
-
-const SidebarQuickActions = () => (
-  <div className="space-y-3">
-    <QuickActionItem text="Add New Branch" />
-    <QuickActionItem text="Import Branches" />
-    <QuickActionItem text="Manage Branch Groups" />
-    <QuickActionItem text="Bulk Update Status" />
-    <QuickActionItem text="Export Branches" />
-  </div>
-);
-
-const QuickActionItem = ({ text }) => (
-  <button
-    type="button"
-    className="flex w-full items-center gap-2 text-left text-[12px] font-semibold text-text-muted transition hover:text-primary"
-  >
-    <span className="text-[14px] text-text-muted/80">+</span>
-    {text}
-  </button>
-);
-
-const IconBox = ({ icon, colorVariant = "primary", small = false }) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      width: small ? 32 : 44,
-      height: small ? 32 : 44,
-      minWidth: small ? 32 : 44,
-      borderRadius: small ? "9px" : "12px",
-      bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
-      color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
-      fontSize: small ? "15px" : "22px",
-    }}
-  >
-    {icon}
-  </AppBox>
-);
-
-// CSS Token Variable Sets
-const pageHeaderSx = { width: "100%" };
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "25px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.45px",
-    color: "var(--app-color-text)",
-  },
-};
-const breadcrumbSx = { mb: 1 };
-const breadcrumbItemSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-const breadcrumbCurrentSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const secondaryButtonSx = {
-  height: 36,
-  minWidth: 86,
-  px: 1.5,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-const primaryButtonSx = {
-  height: 36,
-  minWidth: 124,
-  px: 1.7,
-  fontSize: "12px",
-  fontWeight: 700,
-};
-
-const alertSx = { mt: 3 };
-const tableCardSx = {
-  overflow: "hidden",
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-const searchSx = { width: "100%" };
-const selectSx = { width: "100%" };
-const filterInputSx = {
-  minHeight: 36,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-};
-const clearButtonSx = {
-  height: 36,
-  minWidth: 88,
-  px: 1.2,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-const chipsRowSx = { mt: 1.2, flexWrap: "wrap" };
-
-const branchNameSx = {
-  m: 0,
-  fontSize: "12.5px",
-  fontWeight: 700,
-  color: "var(--app-color-text)",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-};
-const typeTextSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text)",
-  textTransform: "capitalize",
-};
-const tableTextSx = {
-  fontSize: "12px",
-  fontWeight: 600,
-  color: "var(--app-color-text)",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-};
-const subLocationTextSx = {
-  mt: 0.2,
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-};
-const contactTextSx = {
-  fontSize: "11.5px",
-  color: "var(--app-color-text)",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-};
-const statusBadgeSx = {
-  height: 22,
-  px: 1.5,
-  fontSize: "10.5px",
-  textTransform: "capitalize",
-};
-const staffCountSx = {
-  fontSize: "12px",
-  fontWeight: 600,
-  color: "var(--app-color-text)",
-};
-
-const footerTextSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
-const pageSizeButtonSx = {
-  height: 32,
-  minWidth: 128,
-  justifyContent: "space-between",
-  px: 1.2,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-const stateSx = { minHeight: 360 };
-const overviewLabelSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-const overviewValueSx = {
-  fontSize: "12px",
-  fontWeight: 700,
-  color: "var(--app-color-text)",
-};
-const toastSx = { boxShadow: "0 16px 40px rgba(15, 23, 42, 0.18)" };
 
 export default BranchesDesktopPage;

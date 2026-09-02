@@ -1,6 +1,5 @@
-// src/features/landing/components/desktop/DesktopPricingSection.jsx
-
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   FiCheckCircle,
   FiCloud,
@@ -14,6 +13,7 @@ import { HiOutlineOfficeBuilding } from "react-icons/hi";
 import { BsDiamond } from "react-icons/bs";
 import { FaStar } from "react-icons/fa";
 
+import { ROUTES } from "@/constants";
 import {
   AppBadge,
   AppBox,
@@ -119,7 +119,7 @@ const DesktopPricingSection = () => {
   ];
 
   return (
-    <section className="w-full bg-bg py-9">
+    <section id="pricing" className="w-full bg-bg py-9 scroll-mt-20">
       <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
         <AppBox sx={{ mx: "auto", maxWidth: "64rem", textAlign: "center" }}>
           <AppBadge
@@ -549,6 +549,8 @@ const PricingCard = ({
 
       <AppBox sx={{ mt: 2.5 }}>
         <AppButton
+          component={Link}
+          to={ROUTES.REGISTER}
           fullWidth
           variant={popular ? "contained" : "outlined"}
           colorVariant={colorVariant}

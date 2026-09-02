@@ -1,31 +1,62 @@
 // src/features/setup/constants/setupSteps.js
-// Only 2 active steps for now.
-// To add more: append an entry here AND wire the matching controller + thunk.
+// 2 core setup steps for PharmaERP onboarding (Company & Branch)
 
 import { ROUTES } from "@/constants";
 
 export const setupSteps = [
   {
     id: "company",
+    stepNumber: "01",
+    category: "FOUNDATION",
     title: "Create Company",
-    description: "Add your pharmacy business details, GST, PAN, and licenses.",
+    subtitle: "Legal entity & tax registration",
+    description: "Register your legal pharmaceutical business entity, GSTIN, PAN, and drug licenses to establish your enterprise foundation.",
     actionText: "Create Company",
+    completedActionText: "Manage Companies",
     route: ROUTES.CREATE_COMPANY,
+    completedRoute: ROUTES.COMPANIES,
     completed: false,
     disabled: false,
     requiredFields: [],
+    estimatedTime: "2 mins",
     colorVariant: "primary",
+    checklist: [
+      "Legal Business Name & Pharmacy Type",
+      "GSTIN, PAN & Tax Profile Details",
+      "Drug License (Form 20B/21B) & FSSAI",
+      "Registered Head Office Address & Contact",
+    ],
+    highlights: [
+      "Mandatory for all accounting and tax compliance",
+      "Supports multi-company hierarchy under single workspace",
+    ],
   },
   {
     id: "branch",
+    stepNumber: "02",
+    category: "OPERATIONS",
     title: "Create Branch",
-    description: "Add your first store or pharmacy branch for operations.",
+    subtitle: "Store location & POS billing counter",
+    description: "Set up your first physical pharmacy outlet, store counter, or warehouse for daily sales, stock management, and POS billing.",
     actionText: "Create Branch",
+    completedActionText: "Manage Branches",
     route: ROUTES.CREATE_BRANCH,
+    completedRoute: ROUTES.BRANCHES,
     completed: false,
     disabled: true,
     requiredFields: ["company"],
+    estimatedTime: "2 mins",
     colorVariant: "info",
+    checklist: [
+      "Physical Outlet / Store Address & Contact",
+      "POS Billing Register & Invoicing Series Prefix",
+      "Local Inventory, Batch & Stock Storage Point",
+      "Branch Operating Schedule & Staff Assignment",
+    ],
+    highlights: [
+      "Unlocks daily POS billing and counter checkout",
+      "Enables local stock batch tracking and inventory alerts",
+    ],
   },
 ];
 

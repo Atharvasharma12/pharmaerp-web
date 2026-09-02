@@ -396,7 +396,7 @@ const RolesPage = () => {
   }, [fetchRoles]);
 
   const handleBackToAccessControl = useCallback(() => {
-    navigate(ROUTES.ACCESS_CONTROL);
+    navigate(ROUTES.ROLES);
   }, [navigate]);
 
   const handleCreateRole = useCallback(() => {

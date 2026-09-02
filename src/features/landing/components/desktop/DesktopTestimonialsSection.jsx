@@ -73,7 +73,7 @@ const DesktopTestimonialsSection = () => {
   ];
 
   return (
-    <section className="relative w-full overflow-hidden bg-bg py-10">
+    <section id="testimonials" className="relative w-full overflow-hidden bg-bg py-10 scroll-mt-20">
       <DecorDots className="left-0 top-[300px]" />
       <DecorDots className="right-0 bottom-[115px]" />
 

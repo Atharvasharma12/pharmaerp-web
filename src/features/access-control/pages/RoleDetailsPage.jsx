@@ -233,7 +233,7 @@ const RoleDetailsPage = () => {
   }, [navigate]);
 
   const handleBackToAccessControl = useCallback(() => {
-    navigate(ROUTES.ACCESS_CONTROL);
+    navigate(ROUTES.ROLES);
   }, [navigate]);
 
   const handleEditRole = useCallback(() => {

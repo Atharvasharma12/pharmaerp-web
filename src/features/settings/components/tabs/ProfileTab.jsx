@@ -50,19 +50,11 @@ const ProfileTab = () => {
     updateProfile,
     updateAvatar,
     deleteAvatar,
-    updateActiveContext,
   } = useUser();
   const { user: authUser, changePassword } = useAuth();
-  const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
-  const { companies, currentCompany, setCurrentCompany, clearCurrentCompany } = useCompany();
-  const { branches, currentBranch, setCurrentBranch, clearCurrentBranch } = useBranch();
+  const { currentWorkspace } = useWorkspace();
 
   const user = profileUser || authUser;
-
-  // Dropdown Open States
-  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
-  const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
-  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
 
   // Profile Form State initialized from real Redux user data
   const [profileData, setProfileData] = useState({
@@ -237,290 +229,64 @@ const ProfileTab = () => {
     }
   };
 
-  // Context Switch Handlers
-  const handleWorkspaceSelect = async (workspaceItem) => {
-    const workspace = getWorkspaceFromItem(workspaceItem);
-    if (!workspace?._id) return;
-
-    setCurrentWorkspace(workspace);
-    clearCurrentCompany();
-    clearCurrentBranch();
-
-    try {
-      await updateActiveContext({
-        workspaceId: workspace._id,
-        companyId: null,
-        branchId: null,
-      });
-    } catch (error) {
-      console.error("Failed to update active workspace context:", error);
-    }
-    setWorkspaceMenuOpen(false);
-  };
-
-  const handleCompanySelect = async (company) => {
-    if (!company?._id || !currentWorkspace?._id) return;
-
-    setCurrentCompany(company);
-    clearCurrentBranch();
-
-    try {
-      await updateActiveContext({
-        workspaceId: currentWorkspace._id,
-        companyId: company._id,
-        branchId: null,
-      });
-    } catch (error) {
-      console.error("Failed to update active company context:", error);
-    }
-    setCompanyMenuOpen(false);
-  };
-
-  const handleBranchSelect = async (branch) => {
-    if (!branch?._id || !currentWorkspace?._id || !currentCompany?._id) return;
-
-    setCurrentBranch(branch);
-
-    try {
-      await updateActiveContext({
-        workspaceId: currentWorkspace._id,
-        companyId: currentCompany._id,
-        branchId: branch._id,
-      });
-    } catch (error) {
-      console.error("Failed to update active branch context:", error);
-    }
-    setBranchMenuOpen(false);
-  };
-
   const displayName = `${profileData.name} ${profileData.surname}`.trim() || user?.email || "User";
 
   return (
     <div className="space-y-4">
-      {/* ── CARD 1: Active Organization & Context ─────────────── */}
+      {/* ── CARD 1: Active Workspace Info (Non-Selectable Card) ── */}
       <UICard variant="default" padding="none" className="p-4 sm:p-5 shadow-[var(--app-shadow-sm)]">
         <UICardHeader className="pb-3 border-b border-border/60 mb-0">
-          <UICardTitle as="h2" className="text-sm sm:text-base font-bold tracking-tight text-text">
-            Active Organization & Store Context
-          </UICardTitle>
-          <UICardDescription className="mt-0.5 text-xs text-text-muted leading-relaxed">
-            Switch your active workspace, operating company, and active dispensary branch
-          </UICardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <UICardTitle as="h2" className="text-sm sm:text-base font-bold tracking-tight text-text">
+                Active Workspace
+              </UICardTitle>
+              <UICardDescription className="mt-0.5 text-xs text-text-muted leading-relaxed">
+                Current organization environment and tenant configuration
+              </UICardDescription>
+            </div>
+            <span className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-success/10 border border-success/20 px-3 py-1 text-xs font-semibold text-success">
+              <span className="size-1.5 rounded-full bg-success animate-pulse" />
+              Active Workspace
+            </span>
+          </div>
         </UICardHeader>
         <UICardContent className="pt-3.5 space-y-0">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-            {/* Workspace Selector */}
-            <div className="relative">
-              <label className="mb-1.5 block text-xs font-semibold text-text">
-                Active Workspace
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  setWorkspaceMenuOpen(!workspaceMenuOpen);
-                  setCompanyMenuOpen(false);
-                  setBranchMenuOpen(false);
-                }}
-                className="flex w-full items-center justify-between gap-2.5 rounded-[12px] border border-border bg-surface px-3.5 py-2.5 text-left text-xs transition hover:border-border-strong hover:bg-surface-hover cursor-pointer"
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <div className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-primary-soft text-primary">
-                    <ShoppingBag size={15} />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="block truncate font-bold text-text">
-                      {currentWorkspace?.name || "Select Workspace"}
-                    </span>
-                    <span className="block text-[10px] text-text-muted">
-                      {currentWorkspace?.type || "Workspace"}
-                    </span>
-                  </div>
-                </div>
-                <ChevronDown size={14} className="shrink-0 text-text-muted" />
-              </button>
-
-              {workspaceMenuOpen && (
-                <div className="absolute left-0 top-[102%] z-30 w-full min-w-[240px] rounded-[12px] border border-border bg-surface p-1.5 shadow-[var(--app-shadow-lg)]">
-                  <div className="max-h-[200px] overflow-y-auto space-y-1">
-                    {workspaces?.length ? (
-                      workspaces.map((item) => {
-                        const ws = getWorkspaceFromItem(item);
-                        const isSelected = ws?._id === currentWorkspace?._id;
-                        return (
-                          <button
-                            key={ws?._id}
-                            type="button"
-                            onClick={() => handleWorkspaceSelect(item)}
-                            className={`flex w-full items-center justify-between gap-2 rounded-[8px] px-2.5 py-2 text-left text-xs transition cursor-pointer ${
-                              isSelected
-                                ? "bg-primary-soft text-primary font-semibold"
-                                : "text-text hover:bg-surface-hover"
-                            }`}
-                          >
-                            <span className="truncate">{ws?.name || "Untitled Workspace"}</span>
-                            {isSelected && <Check size={13} />}
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <div className="p-2 text-center text-xs text-text-muted">No workspaces available</div>
-                    )}
-                  </div>
-                  <PermissionGate permission="workspace:update">
-                    <div className="my-1.5 border-t border-border/60" />
-                    <Link
-                      to={ROUTES.WORKSPACE}
-                      onClick={() => setWorkspaceMenuOpen(false)}
-                      className="flex items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary-soft"
-                    >
-                      <Plus size={13} />
-                      <span>Workspace Settings</span>
-                    </Link>
-                  </PermissionGate>
-                </div>
-              )}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-surface-alt/40 p-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary font-bold">
+                <ShoppingBag size={18} />
+              </div>
+              <div className="min-w-0">
+                <span className="block text-[11px] font-semibold text-text-muted">Workspace Name</span>
+                <span className="block truncate text-xs font-bold text-text">
+                  {currentWorkspace?.name || "Workspace"}
+                </span>
+              </div>
             </div>
 
-            {/* Company Selector */}
-            <div className="relative">
-              <label className="mb-1.5 block text-xs font-semibold text-text">
-                Active Company
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  setCompanyMenuOpen(!companyMenuOpen);
-                  setWorkspaceMenuOpen(false);
-                  setBranchMenuOpen(false);
-                }}
-                className="flex w-full items-center justify-between gap-2.5 rounded-[12px] border border-border bg-surface px-3.5 py-2.5 text-left text-xs transition hover:border-border-strong hover:bg-surface-hover cursor-pointer"
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <div className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-primary-soft text-primary">
-                    <Briefcase size={15} />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="block truncate font-bold text-text">
-                      {currentCompany?.name || "Select Company"}
-                    </span>
-                    <span className="block text-[10px] text-text-muted">
-                      {currentCompany?.gstin || "Company"}
-                    </span>
-                  </div>
-                </div>
-                <ChevronDown size={14} className="shrink-0 text-text-muted" />
-              </button>
-
-              {companyMenuOpen && (
-                <div className="absolute left-0 top-[102%] z-30 w-full min-w-[240px] rounded-[12px] border border-border bg-surface p-1.5 shadow-[var(--app-shadow-lg)]">
-                  <div className="max-h-[200px] overflow-y-auto space-y-1">
-                    {companies?.length ? (
-                      companies.map((comp) => {
-                        const isSelected = comp?._id === currentCompany?._id;
-                        return (
-                          <button
-                            key={comp?._id}
-                            type="button"
-                            onClick={() => handleCompanySelect(comp)}
-                            className={`flex w-full items-center justify-between gap-2 rounded-[8px] px-2.5 py-2 text-left text-xs transition cursor-pointer ${
-                              isSelected
-                                ? "bg-primary-soft text-primary font-semibold"
-                                : "text-text hover:bg-surface-hover"
-                            }`}
-                          >
-                            <span className="truncate">{comp?.name || "Untitled Company"}</span>
-                            {isSelected && <Check size={13} />}
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <div className="p-2 text-center text-xs text-text-muted">No companies found</div>
-                    )}
-                  </div>
-                  <PermissionGate permission="company:view">
-                    <div className="my-1.5 border-t border-border/60" />
-                    <Link
-                      to={ROUTES.COMPANIES}
-                      onClick={() => setCompanyMenuOpen(false)}
-                      className="flex items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary-soft"
-                    >
-                      <Plus size={13} />
-                      <span>Manage Companies</span>
-                    </Link>
-                  </PermissionGate>
-                </div>
-              )}
+            <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-surface-alt/40 p-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-info/10 text-info font-bold font-mono text-xs">
+                #
+              </div>
+              <div className="min-w-0">
+                <span className="block text-[11px] font-semibold text-text-muted">Workspace Code</span>
+                <span className="block truncate text-xs font-mono font-bold text-text">
+                  {currentWorkspace?.workspaceCode || "WS-ENTERPRISE"}
+                </span>
+              </div>
             </div>
 
-            {/* Branch Selector */}
-            <div className="relative">
-              <label className="mb-1.5 block text-xs font-semibold text-text">
-                Active Branch
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  setBranchMenuOpen(!branchMenuOpen);
-                  setWorkspaceMenuOpen(false);
-                  setCompanyMenuOpen(false);
-                }}
-                className="flex w-full items-center justify-between gap-2.5 rounded-[12px] border border-border bg-surface px-3.5 py-2.5 text-left text-xs transition hover:border-border-strong hover:bg-surface-hover cursor-pointer"
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <div className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-primary-soft text-primary">
-                    <GitBranch size={15} />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="block truncate font-bold text-text">
-                      {currentBranch?.name || "Select Branch"}
-                    </span>
-                    <span className="block text-[10px] text-text-muted">
-                      {currentBranch?.city || "Dispensary"}
-                    </span>
-                  </div>
-                </div>
-                <ChevronDown size={14} className="shrink-0 text-text-muted" />
-              </button>
-
-              {branchMenuOpen && (
-                <div className="absolute left-0 top-[102%] z-30 w-full min-w-[240px] rounded-[12px] border border-border bg-surface p-1.5 shadow-[var(--app-shadow-lg)]">
-                  <div className="max-h-[200px] overflow-y-auto space-y-1">
-                    {branches?.length ? (
-                      branches.map((br) => {
-                        const isSelected = br?._id === currentBranch?._id;
-                        return (
-                          <button
-                            key={br?._id}
-                            type="button"
-                            onClick={() => handleBranchSelect(br)}
-                            className={`flex w-full items-center justify-between gap-2 rounded-[8px] px-2.5 py-2 text-left text-xs transition cursor-pointer ${
-                              isSelected
-                                ? "bg-primary-soft text-primary font-semibold"
-                                : "text-text hover:bg-surface-hover"
-                            }`}
-                          >
-                            <span className="truncate">{br?.name || "Untitled Branch"}</span>
-                            {isSelected && <Check size={13} />}
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <div className="p-2 text-center text-xs text-text-muted">No branches found</div>
-                    )}
-                  </div>
-                  <PermissionGate permission="branch:view">
-                    <div className="my-1.5 border-t border-border/60" />
-                    <Link
-                      to={ROUTES.BRANCHES}
-                      onClick={() => setBranchMenuOpen(false)}
-                      className="flex items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary-soft"
-                    >
-                      <Plus size={13} />
-                      <span>Manage Branches</span>
-                    </Link>
-                  </PermissionGate>
-                </div>
-              )}
+            <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-surface-alt/40 p-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success font-bold">
+                <Check size={16} />
+              </div>
+              <div className="min-w-0">
+                <span className="block text-[11px] font-semibold text-text-muted">Subscription Tier</span>
+                <span className="block truncate text-xs font-bold text-text">
+                  Free Tier Active
+                </span>
+              </div>
             </div>
           </div>
         </UICardContent>

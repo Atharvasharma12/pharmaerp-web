@@ -21,6 +21,7 @@ import {
   getPublicInvitationDetails,
   getIncomingUserInvitations,
   acceptIncomingInvitation,
+  getWorkspaceSetupStatus,
 } from "./workspaceThunk";
 
 const getWorkspaceFromItem = (item) => {
@@ -63,6 +64,11 @@ const initialState = {
 
   getIncomingUserInvitationsStatus: API_STATUS.IDLE,
   acceptIncomingInvitationStatus: API_STATUS.IDLE,
+
+  // Setup Center
+  setupStatus: null,
+  setupStatusVersion: 0,           // bump to trigger a refetch in SetupCenterPage
+  getWorkspaceSetupStatusStatus: API_STATUS.IDLE,
 };
 
 const setPending = (state) => {
@@ -104,6 +110,10 @@ const workspaceSlice = createSlice({
     clearLastCreatedMemberCredentials(state) {
       state.lastCreatedMemberCredentials = null;
     },
+    // Bump version so SetupCenterPage re-fetches after a create action succeeds
+    invalidateSetupStatus(state) {
+      state.setupStatusVersion += 1;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -141,8 +151,6 @@ const workspaceSlice = createSlice({
           (state.workspaces[0]
             ? getWorkspaceFromItem(state.workspaces[0])
             : null);
-
-        state.message = "Workspaces fetched successfully";
       })
       .addCase(getMyWorkspaces.rejected, (state, action) => {
         state.getMyWorkspacesStatus = API_STATUS.ERROR;
@@ -155,7 +163,6 @@ const workspaceSlice = createSlice({
         state.status = API_STATUS.SUCCESS;
         state.getWorkspaceStatus = API_STATUS.SUCCESS;
         state.currentWorkspace = action.payload || null;
-        state.message = "Workspace fetched successfully";
       })
       .addCase(getWorkspaceById.rejected, (state, action) => {
         setRejected(state, action);
@@ -218,7 +225,6 @@ const workspaceSlice = createSlice({
       .addCase(getWorkspaceMembers.fulfilled, (state, action) => {
         state.getWorkspaceMembersStatus = API_STATUS.SUCCESS;
         state.members = action.payload || [];
-        state.message = "Workspace members fetched successfully";
       })
       .addCase(getWorkspaceMembers.rejected, (state, action) => {
         state.getWorkspaceMembersStatus = API_STATUS.ERROR;
@@ -323,7 +329,6 @@ const workspaceSlice = createSlice({
       .addCase(getWorkspaceInvitations.fulfilled, (state, action) => {
         state.getWorkspaceInvitationsStatus = API_STATUS.SUCCESS;
         state.invitations = action.payload || [];
-        state.message = "Workspace invitations fetched successfully";
       })
       .addCase(getWorkspaceInvitations.rejected, (state, action) => {
         state.getWorkspaceInvitationsStatus = API_STATUS.ERROR;
@@ -463,6 +468,19 @@ const workspaceSlice = createSlice({
         state.acceptIncomingInvitationStatus = API_STATUS.ERROR;
         state.error = action.payload || "Failed to accept workspace invitation";
       });
+
+      // ── SETUP CENTER ──────────────────────────────────────────────────────
+      builder
+        .addCase(getWorkspaceSetupStatus.pending, (state) => {
+          state.getWorkspaceSetupStatusStatus = API_STATUS.LOADING;
+        })
+        .addCase(getWorkspaceSetupStatus.fulfilled, (state, action) => {
+          state.getWorkspaceSetupStatusStatus = API_STATUS.SUCCESS;
+          state.setupStatus = action.payload;
+        })
+        .addCase(getWorkspaceSetupStatus.rejected, (state) => {
+          state.getWorkspaceSetupStatusStatus = API_STATUS.ERROR;
+        });
   },
 });
 
@@ -475,6 +493,7 @@ export const {
   clearWorkspaceInvitations,
   clearIncomingInvitations,
   clearLastCreatedMemberCredentials,
+  invalidateSetupStatus,
 } = workspaceSlice.actions;
 
 export default workspaceSlice.reducer;

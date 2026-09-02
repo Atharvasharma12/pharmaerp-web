@@ -298,3 +298,19 @@ export const acceptIncomingInvitation = createAsyncThunk(
     }
   },
 );
+
+// --- SETUP CENTER ---
+
+export const getWorkspaceSetupStatus = createAsyncThunk(
+  "workspace/getWorkspaceSetupStatus",
+  async (workspaceId, { rejectWithValue }) => {
+    try {
+      const response =
+        await workspaceService.getWorkspaceSetupStatus(workspaceId);
+
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);

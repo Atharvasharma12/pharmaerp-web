@@ -3,13 +3,14 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import companyService from "../services/companyService";
 
 import { getErrorMessage } from "@/utils";
+import { invalidateSetupStatus } from "@/features/workspace/store/workspaceSlice";
 
 export const createCompany = createAsyncThunk(
   "company/createCompany",
-  async (payload, { rejectWithValue }) => {
+  async (payload, { rejectWithValue, dispatch }) => {
     try {
       const response = await companyService.createCompany(payload);
-
+      dispatch(invalidateSetupStatus()); // bump → Setup Center refetches
       return response.data?.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -68,3 +69,16 @@ export const deleteCompany = createAsyncThunk(
     }
   },
 );
+
+export const getCompanyEmployees = createAsyncThunk(
+  "company/getCompanyEmployees",
+  async (companyId, { rejectWithValue }) => {
+    try {
+      const response = await companyService.getCompanyEmployees(companyId);
+      return { companyId, employees: response.data?.data || [] };
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+

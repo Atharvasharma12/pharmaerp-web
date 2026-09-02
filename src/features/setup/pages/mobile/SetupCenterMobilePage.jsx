@@ -1,278 +1,337 @@
 // src/features/setup/pages/mobile/SetupCenterMobilePage.jsx
 
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Building2, 
-  Store, 
-  CheckCircle2, 
-  Lock, 
-  Plus, 
-  Sparkles, 
+import { motion } from "framer-motion";
+import {
+  Building2,
+  Store,
+  CheckCircle2,
+  Lock,
   ArrowRight,
-  Info,
+  Clock,
+  Sparkles,
+  Check,
+  PlusCircle,
+  HelpCircle,
+  Layers,
   ChevronRight,
-  ShieldCheck,
-  Zap
+  Package,
+  Truck,
+  UserPlus,
+  ShoppingCart,
+  QrCode,
+  Receipt,
+  ArrowUpRight,
 } from "lucide-react";
-import { 
-  UIButton, 
-  UIIconButton, 
-  UIBadge, 
-  UIDrawer 
-} from "@/components/ui";
-import { SetupStepInspector } from "../../components";
+import { ROUTES } from "@/constants";
+import { recommendedSteps } from "../../constants/recommendedSteps";
 
 const stepIcons = {
-  company: <Building2 className="w-5 h-5" />,
-  branch: <Store className="w-5 h-5" />,
+  company: Building2,
+  branch: Store,
 };
 
-const SetupCenterMobilePage = ({
+const recommendedIcons = {
+  Package: Package,
+  Truck: Truck,
+  UserPlus: UserPlus,
+  ShoppingCart: ShoppingCart,
+  QrCode: QrCode,
+  Receipt: Receipt,
+};
+
+export const SetupCenterMobilePage = ({
+  workspace = null,
   mappedSetupSteps = [],
-  selectedStep = null,
-  onSelectStep = () => {},
   completedStepsCount = 0,
   progress = 0,
   nextStep = null,
-  canGoLive = false,
-  onGoLive = () => {},
-  onTestStep = () => {},
-  isTestingStep = false,
+  isAllCompleted = false,
 }) => {
   const navigate = useNavigate();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeStep, setActiveStep] = useState(null);
 
-  const handleOpenInspector = (step) => {
-    setActiveStep(step);
-    onSelectStep(step);
-    setDrawerOpen(true);
-  };
-
-  const remainingSteps = mappedSetupSteps.length - completedStepsCount;
+  const workspaceName = workspace?.name || "My Pharmacy";
+  const workspaceCode = workspace?.workspaceCode || "WS-ENTERPRISE";
 
   return (
-    <section className="relative w-full min-h-[calc(100dvh-60px)] flex flex-col bg-bg text-text pb-16 overflow-x-hidden">
-      {/* 1. Mobile App Top Bar */}
-      <header className="sticky top-0 z-20 flex items-center justify-between gap-3 p-3.5 bg-surface/95 backdrop-blur-sm border-b border-border">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <UIIconButton
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/dashboard")}
-            aria-label="Back to Dashboard"
-            className="text-text-muted hover:text-text shrink-0 size-9"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </UIIconButton>
+    <section className="min-h-[calc(100vh-56px)] w-full bg-bg px-4 py-5 font-sans">
+      <div className="mx-auto w-full max-w-md space-y-5">
+        {/* ── 1. Mobile Header ──────────────────────────────────────────────── */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+              Workspace Activation
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-success/10 border border-success/20 px-2 py-0.5 text-[10px] font-semibold text-success">
+              <span className="size-1.5 rounded-full bg-success" />
+              Free Tier
+            </span>
+          </div>
 
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold text-text truncate">
+          <div className="flex items-center justify-between pt-0.5">
+            <h1 className="text-xl font-bold tracking-tight text-text">
               Setup Center
             </h1>
-            <p className="text-[11px] font-mono text-text-muted">
-              {completedStepsCount}/{mappedSetupSteps.length} Steps Done ({progress}%)
-            </p>
+            <span className="text-xs font-mono font-semibold text-text-muted">
+              {workspaceCode}
+            </span>
+          </div>
+
+          <p className="text-xs text-text-muted">
+            Complete the 2 core steps to activate billing & inventory.
+          </p>
+        </div>
+
+        {/* ── 2. Progress Metric Card ────────────────────────────────────────── */}
+        <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-text">
+                {isAllCompleted ? "🎉 All Steps Complete" : "Activation Progress"}
+              </h2>
+              <p className="text-[11px] text-text-muted">
+                {completedStepsCount} of {mappedSetupSteps.length} steps configured
+              </p>
+            </div>
+
+            <div className="text-right">
+              <span className="text-2xl font-black text-primary">{progress}%</span>
+            </div>
+          </div>
+
+          <div className="h-2 w-full overflow-hidden rounded-full bg-surface-alt border border-border/50">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="h-full rounded-full bg-primary"
+            />
           </div>
         </div>
 
-        <div>
-          {canGoLive ? (
-            <UIButton
-              size="sm"
-              variant="primary"
-              onClick={onGoLive}
-              startIcon={<Sparkles className="w-3.5 h-3.5" />}
-              className="text-xs font-bold h-8 bg-success hover:bg-success/90 text-white shadow-xs px-2.5"
-            >
-              Go Live
-            </UIButton>
-          ) : nextStep ? (
-            <UIButton
-              size="sm"
-              variant="primary"
-              onClick={nextStep.onClick}
-              endIcon={<ArrowRight className="w-3.5 h-3.5" />}
-              className="text-xs font-bold h-8 shadow-xs px-2.5"
-            >
-              Continue
-            </UIButton>
-          ) : null}
-        </div>
-      </header>
+        {/* ── 3. Card-Wise Setup Steps (Mobile Stack) ────────────────────────── */}
+        <div className="space-y-3.5">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-text-muted px-1">
+            Setup Steps ({completedStepsCount}/{mappedSetupSteps.length})
+          </h2>
 
-      {/* 2. Stepped Flow Canvas Container */}
-      <div className="relative flex-1 p-4 sm:p-6 flex flex-col items-center">
-        {/* Subtle Dot Grid Canvas Backdrop */}
-        <div 
-          className="absolute inset-0 pointer-events-none opacity-30"
-          style={{
-            backgroundImage: "radial-gradient(circle, var(--app-color-border-strong) 1px, transparent 1px)",
-            backgroundSize: "20px 20px",
-          }}
-        />
-
-        {/* Top Progress Capsule */}
-        <div className="relative z-10 mb-4">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 text-slate-100 dark:bg-slate-100 dark:text-slate-900 text-[11.5px] font-bold tracking-tight shadow-sm">
-            {canGoLive ? (
-              <>
-                <CheckCircle2 className="w-3 h-3 text-success" />
-                All steps completed — Ready to launch
-              </>
-            ) : (
-              <>
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                Complete {remainingSteps} {remainingSteps === 1 ? "step" : "steps"} to activate
-              </>
-            )}
-          </span>
-        </div>
-
-        {/* Vertical Stepped Flow Cards */}
-        <div className="relative z-10 w-full max-w-[420px] space-y-0">
-          {mappedSetupSteps.map((step, index) => {
-            const isLast = index === mappedSetupSteps.length - 1;
-            const Icon = stepIcons[step.id] || <Building2 className="w-5 h-5" />;
+          {mappedSetupSteps.map((step) => {
+            const Icon = stepIcons[step.id] || Layers;
 
             return (
-              <React.Fragment key={step.id}>
-                {/* Step Card */}
-                <div
-                  onClick={() => handleOpenInspector(step)}
-                  className={`w-full p-4 rounded-2xl bg-surface border transition-all duration-150 active:scale-[0.98] shadow-xs cursor-pointer ${
-                    step.completed
-                      ? "border-border hover:border-success/50"
-                      : step.locked
-                        ? "border-border/60 opacity-75"
-                        : "border-primary/50 ring-1 ring-primary/20 shadow-sm"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              <div
+                key={step.id}
+                className={`rounded-2xl border p-4 shadow-sm transition-all ${
+                  step.completed
+                    ? "border-success/30 bg-surface/90"
+                    : step.locked
+                      ? "border-border/60 bg-surface-alt/40 opacity-80"
+                      : "border-primary/40 bg-surface shadow-primary/5"
+                }`}
+              >
+                {/* Header Row */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`flex size-6 items-center justify-center rounded-lg text-[10px] font-black ${
                         step.completed
-                          ? "bg-success-soft text-success"
+                          ? "bg-success text-white"
                           : step.locked
-                            ? "bg-surface-alt text-text-muted"
-                            : "bg-primary-soft text-primary"
-                      }`}>
-                        {Icon}
+                            ? "bg-surface-alt border border-border text-text-muted"
+                            : "bg-primary text-white"
+                      }`}
+                    >
+                      {step.stepNumber}
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                      {step.category}
+                    </span>
+                  </div>
+
+                  {step.completed ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-success/10 border border-success/30 px-2 py-0.5 text-[10px] font-bold text-success">
+                      <Check className="size-3 stroke-[3]" />
+                      Done
+                    </span>
+                  ) : step.locked ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-alt border border-border px-2 py-0.5 text-[10px] font-semibold text-text-muted">
+                      <Lock className="size-2.5 text-text-muted" />
+                      Locked
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/30 px-2 py-0.5 text-[10px] font-bold text-primary">
+                      Ready
+                    </span>
+                  )}
+                </div>
+
+                {/* Main Body */}
+                <div className="mt-3 flex items-start gap-3">
+                  <div
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-xl border ${
+                      step.completed
+                        ? "border-success/30 bg-success/10 text-success"
+                        : step.locked
+                          ? "border-border bg-surface-alt text-text-muted"
+                          : "border-primary/20 bg-primary/10 text-primary"
+                    }`}
+                  >
+                    <Icon className="size-5" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-bold text-text truncate">
+                      {step.title}
+                    </h3>
+                    <p className="text-[11px] text-text-muted mt-0.5 line-clamp-2">
+                      {step.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Checklist Summary */}
+                <div className="mt-3 rounded-xl bg-surface-alt/60 border border-border/40 p-2.5 space-y-1">
+                  {step.checklist?.slice(0, 3).map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-1.5 text-[11px] font-medium text-text truncate"
+                    >
+                      <CheckCircle2
+                        className={`size-3 shrink-0 ${
+                          step.completed ? "text-success" : "text-primary/70"
+                        }`}
+                      />
+                      <span className="truncate">{item}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Action CTA */}
+                <div className="mt-3 pt-2.5 border-t border-border/60">
+                  {step.completed ? (
+                    <button
+                      type="button"
+                      onClick={step.onClick}
+                      className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 py-2.5 text-xs font-bold text-primary active:bg-primary/20 transition-colors cursor-pointer"
+                    >
+                      <span>{step.completedActionText || "View Details"}</span>
+                      <ArrowRight className="size-3.5" />
+                    </button>
+                  ) : step.locked ? (
+                    <div className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-surface-alt py-2 text-xs font-semibold text-text-muted">
+                      <Lock className="size-3 text-text-muted" />
+                      <span>Complete Company First</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={step.onClick}
+                      className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-white shadow-md active:scale-[0.98] transition-all cursor-pointer"
+                    >
+                      <span>{step.actionText}</span>
+                      <ArrowRight className="size-3.5 text-white" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── 4. Celebratory Mobile Banner ──────────────────────────────────── */}
+        {isAllCompleted && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-2xl border border-success/30 bg-gradient-to-br from-success/10 to-primary/5 p-4 space-y-3"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🚀</span>
+              <div>
+                <h3 className="text-sm font-bold text-text">Workspace Operational!</h3>
+                <p className="text-[11px] text-text-muted">
+                  Your store is ready for products, purchases, and POS billing.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.DASHBOARD)}
+              className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-white shadow-md active:scale-[0.98] transition-all cursor-pointer"
+            >
+              <span>Go to Dashboard</span>
+              <ArrowRight className="size-3.5 text-white" />
+            </button>
+          </motion.div>
+        )}
+
+        {/* ── 5. Recommended Steps for Later (Small Cards) ──────────────────── */}
+        {isAllCompleted && (
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-text">
+                  Recommended Next Steps
+                </h2>
+                <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] font-bold text-primary">
+                  Optional
+                </span>
+              </div>
+              <span className="text-[10px] text-text-muted font-medium">
+                {recommendedSteps.length} Steps
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              {recommendedSteps.map((rec) => {
+                const Icon = recommendedIcons[rec.iconName] || Package;
+
+                return (
+                  <div
+                    key={rec.id}
+                    onClick={() => navigate(rec.route)}
+                    className="group rounded-2xl border border-border bg-surface p-3.5 shadow-xs active:bg-surface-alt transition-colors flex items-center justify-between gap-3 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+                        <Icon className="size-4" />
                       </div>
 
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <h2 className="text-sm font-bold text-text truncate">
-                            {step.title}
-                          </h2>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xs font-bold text-text truncate">
+                            {rec.title}
+                          </h3>
                         </div>
-                        <p className="text-[11.5px] text-text-muted truncate mt-0.5">
-                          {step.id === "company" ? "Business Profile & Registration" : "Store & Pharmacy Location"}
+                        <p className="text-[10px] text-text-muted truncate mt-0.5">
+                          {rec.description}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {step.completed ? (
-                        <UIBadge variant="soft" color="success" size="sm">
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Done
-                        </UIBadge>
-                      ) : step.locked ? (
-                        <UIBadge variant="soft" color="neutral" size="sm">
-                          <Lock className="w-3 h-3 mr-1" />
-                          Locked
-                        </UIBadge>
-                      ) : (
-                        <UIBadge variant="soft" color="primary" size="sm">
-                          Active
-                        </UIBadge>
-                      )}
-                      <ChevronRight className="w-4 h-4 text-text-muted" />
+                    <div className="shrink-0 flex items-center gap-1 text-primary">
+                      <ChevronRight className="size-4" />
                     </div>
                   </div>
-
-                  <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-text-muted">
-                      Prerequisites: {step.locked ? "Complete Step 1" : "Ready"}
-                    </span>
-
-                    <UIButton
-                      size="sm"
-                      variant={step.completed ? "outline" : "primary"}
-                      disabled={step.locked}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        step.onClick();
-                      }}
-                      className="text-xs font-semibold h-7 px-3"
-                    >
-                      {step.completed ? "Manage" : step.actionText || "Start"}
-                    </UIButton>
-                  </div>
-                </div>
-
-                {/* Stepped Connector */}
-                <div className="flex flex-col items-center my-1.5">
-                  <div className={`w-0.5 h-5 ${step.completed ? "bg-primary" : "bg-border-strong border-dashed"}`} />
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-bold z-10 ${
-                    step.completed 
-                      ? "bg-primary text-white border-primary" 
-                      : "bg-surface text-text-muted border-border"
-                  }`}>
-                    <Plus className="w-2.5 h-2.5" />
-                  </div>
-                  <div className={`w-0.5 h-5 ${step.completed ? "bg-primary" : "bg-border-strong border-dashed"}`} />
-                </div>
-              </React.Fragment>
-            );
-          })}
-
-          {/* Go Live Terminal Node */}
-          <div
-            onClick={canGoLive ? onGoLive : undefined}
-            className={`w-full p-3.5 rounded-2xl border text-center transition-all duration-150 flex items-center justify-center gap-2 ${
-              canGoLive
-                ? "bg-success text-white border-success shadow-md cursor-pointer active:scale-95 font-bold text-xs"
-                : "bg-surface-alt text-text-muted border-border cursor-default font-semibold text-xs"
-            }`}
-          >
-            {canGoLive ? (
-              <>
-                <Sparkles className="w-4 h-4" />
-                <span>Go Live — Launch ERP Suite</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </>
-            ) : (
-              <>
-                <span className="w-2 h-2 rounded-full bg-text-muted/40" />
-                <span>Go Live Milestone</span>
-              </>
-            )}
+                );
+              })}
+            </div>
           </div>
+        )}
+
+        {/* ── 6. Quick Help ─────────────────────────────────────────────────── */}
+        <div className="rounded-2xl border border-border bg-surface p-3.5 space-y-1 text-center">
+          <div className="flex items-center justify-center gap-1 text-xs font-bold text-text">
+            <HelpCircle className="size-3.5 text-primary" />
+            <span>Need Help with Setup?</span>
+          </div>
+          <p className="text-[11px] text-text-muted">
+            All details can be updated anytime from your Settings & Branch pages.
+          </p>
         </div>
       </div>
-
-      {/* 3. Slide-up Inspector Bottom Sheet */}
-      <UIDrawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        position="bottom"
-        size="lg"
-        className="max-h-[85vh] p-0"
-      >
-        <div className="h-full flex flex-col">
-          <SetupStepInspector
-            step={activeStep || selectedStep}
-            allSteps={mappedSetupSteps}
-            onClose={() => setDrawerOpen(false)}
-            onTestStep={onTestStep}
-            isTesting={isTestingStep}
-          />
-        </div>
-      </UIDrawer>
     </section>
   );
 };

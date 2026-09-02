@@ -26,3 +26,13 @@ export const selectUpdateCompanyStatus = (state) =>
 
 export const selectDeleteCompanyStatus = (state) =>
   state.company.deleteCompanyStatus;
+
+export const selectCompanyEmployees = (state) =>
+  state.company?.companyEmployees || {};
+
+export const selectCompanyEmployeesByCompanyId = (companyId) => (state) =>
+  state.company?.companyEmployees?.[companyId] || [];
+
+export const selectGetCompanyEmployeesStatus = (companyId) => (state) =>
+  state.company?.getCompanyEmployeesStatus?.[companyId] || "IDLE";
+

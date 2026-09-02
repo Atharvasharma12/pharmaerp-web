@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import {
   Plus,
-  Upload,
   Download,
   MoreHorizontal,
   Mail,
@@ -25,8 +24,9 @@ import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants";
 import {
   UIButton,
-  UIIconButton,
-  UISearchInput,
+  UIPageHeader,
+  UIFilterToolbar,
+  UI_TOOLBAR_VIEWS,
   UISelect,
   UIPagination,
   UIDropdown,
@@ -39,6 +39,7 @@ import {
   UIAlert,
   PermissionGate,
 } from "@/components/ui";
+import { WorkspaceMembersTableView } from "../../components";
 import { usePermission } from "@/hooks";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +52,8 @@ export default function WorkspaceMembersDesktopPage({
   activeFilterChips = [],
   statusOptions = [],
   roleOptions = [],
+  viewMode = UI_TOOLBAR_VIEWS.GRID,
+  onViewModeChange,
   isLoading,
   hasError,
   error,
@@ -93,22 +96,11 @@ export default function WorkspaceMembersDesktopPage({
     (stats.find((s) => s.id === "suspended")?.value || 0);
 
   // Condition to hide pagination when total records don't exceed single page
-  const shouldShowPagination = hasFilteredMembers && filteredMembersCount > pageSize;
+  const shouldShowPagination =
+    hasFilteredMembers && filteredMembersCount > pageSize;
 
   return (
     <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-5 max-w-[1440px] mx-auto space-y-3.5">
-      {/* Feedback Toast */}
-      {message && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full px-4">
-          <UIAlert
-            intent="success"
-            title={message}
-            onClose={clearMessage}
-            className="shadow-lg"
-          />
-        </div>
-      )}
-
       {/* Global Error Banner */}
       {error && !hasError && (
         <UIAlert
@@ -176,13 +168,18 @@ export default function WorkspaceMembersDesktopPage({
         </div>
       )}
 
-      {/* 1. Header Area with Minimal Padding */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1">
-        <div>
-          <h1 className="text-xl lg:text-2xl font-extrabold text-text tracking-tight flex items-center gap-2">
+      {/* ── 1. Standard UIPageHeader ── */}
+      <UIPageHeader
+        bordered={false}
+        compact
+        className="p-0 pb-0.5"
+        title={
+          <span className="flex items-center gap-2">
             <span className="font-mono tabular-nums">{totalMembers}</span> Members
-          </h1>
-          <div className="flex items-center gap-3.5 text-xs font-semibold mt-1">
+          </span>
+        }
+        description={
+          <span className="flex items-center gap-3.5 text-xs font-semibold mt-1">
             <span className="inline-flex items-center gap-1.5 text-text">
               <span className="size-2.5 rounded-full bg-success ring-2 ring-success/20" />
               Active{" "}
@@ -197,99 +194,103 @@ export default function WorkspaceMembersDesktopPage({
                 {inactiveCount}
               </strong>
             </span>
-          </div>
-        </div>
-
-        {/* Action Buttons: Import, Export, Add Member */}
-        <div className="flex items-center gap-2 shrink-0">
-          <UIButton
-            type="button"
-            variant="outline"
-            size="sm"
-            startIcon={<Upload className="size-3.5 text-text-muted" />}
-            onClick={handleViewInvitations}
-          >
-            Import
-          </UIButton>
-
-          <UIButton
-            type="button"
-            variant="outline"
-            size="sm"
-            startIcon={<Download className="size-3.5 text-text-muted" />}
-            onClick={handleExportCSV}
-          >
-            Export
-          </UIButton>
-
-          <PermissionGate permission="workspace-member:create">
+          </span>
+        }
+        actions={
+          <div className="flex items-center gap-2 shrink-0">
             <UIButton
               type="button"
-              variant="primary"
+              variant="outline"
               size="sm"
-              startIcon={<Plus className="size-4" />}
-              onClick={handleInviteMember}
+              startIcon={
+                <RotateCcw
+                  className={`size-3.5 text-text-muted ${
+                    isLoading ? "animate-spin" : ""
+                  }`}
+                />
+              }
+              onClick={handleRefresh}
             >
-              Add Member
+              Refresh
             </UIButton>
-          </PermissionGate>
-        </div>
-      </div>
 
-      {/* 2. Compact Search & Filter Toolbar */}
-      <div className="bg-surface border border-border/60 rounded-xl p-2.5 px-3 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
-        <div className="flex-1 min-w-[220px]">
-          <UISearchInput
-            placeholder="Search member name, email or phone..."
-            value={filters.search}
-            onChange={handleSearchChange}
-            onClear={() => handleSearchChange("")}
-            size="sm"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="w-32">
-            <UISelect
-              value={filters.role}
-              onChange={(val) => handleFilterChange({ role: val })}
-              options={roleOptions}
-              placeholder="All Roles"
-              size="sm"
-            />
-          </div>
-
-          <div className="w-32">
-            <UISelect
-              value={filters.status}
-              onChange={(val) => handleFilterChange({ status: val })}
-              options={statusOptions}
-              placeholder="All Status"
-              size="sm"
-            />
-          </div>
-
-          {activeFilterChips.length > 0 && (
             <UIButton
               type="button"
-              variant="ghost"
-              size="xs"
-              startIcon={<RotateCcw className="size-3 text-text-muted" />}
-              onClick={handleClearFilters}
+              variant="outline"
+              size="sm"
+              startIcon={<Mail className="size-3.5 text-primary" />}
+              onClick={handleViewInvitations}
             >
-              Reset
+              Pending Invitations
             </UIButton>
-          )}
-        </div>
-      </div>
 
-      {/* 3. Main Card Grid Stream */}
+            <UIButton
+              type="button"
+              variant="outline"
+              size="sm"
+              startIcon={<Download className="size-3.5 text-text-muted" />}
+              onClick={handleExportCSV}
+            >
+              Export
+            </UIButton>
+
+            <PermissionGate permission="workspace-member:create">
+              <UIButton
+                type="button"
+                variant="primary"
+                size="sm"
+                startIcon={<Plus className="size-4" />}
+                onClick={handleInviteMember}
+              >
+                Add Member
+              </UIButton>
+            </PermissionGate>
+          </div>
+        }
+      />
+
+      {/* ── 2. Standard UIFilterToolbar Component with View Switcher ── */}
+      <UIFilterToolbar
+        searchQuery={filters.search}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Search member name, email or phone..."
+        activeFilterChips={activeFilterChips}
+        onClearFilters={handleClearFilters}
+        showViewSwitcher={true}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
+        filters={
+          <>
+            <div className="w-36">
+              <UISelect
+                value={filters.role}
+                onChange={(val) => handleFilterChange({ role: val })}
+                options={roleOptions}
+                placeholder="All Roles"
+                size="sm"
+              />
+            </div>
+
+            <div className="w-32">
+              <UISelect
+                value={filters.status}
+                onChange={(val) => handleFilterChange({ status: val })}
+                options={statusOptions}
+                placeholder="All Status"
+                size="sm"
+              />
+            </div>
+          </>
+        }
+      />
+
+      {/* ── 3. Main Card Grid / Table Stream ── */}
       {isLoading && !hasMembers ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {Array.from({ length: 6 }).map((_, idx) => (
             <div
               key={idx}
-              className="bg-surface rounded-2xl p-4 flex flex-col items-center space-y-3 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+              className="bg-surface rounded-2xl p-4 flex flex-col items-center space-y-3 shadow-xs border border-border"
             >
               <UISkeleton className="size-18 rounded-full" />
               <UISkeleton className="h-4 w-28 rounded" />
@@ -302,25 +303,27 @@ export default function WorkspaceMembersDesktopPage({
           ))}
         </div>
       ) : !hasMembers ? (
-        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+        <div className="py-10 bg-surface rounded-2xl shadow-xs border border-border">
           <UIEmptyState
             icon={<Users className="size-9 text-primary" />}
             title="No workspace members yet"
             description="Start building your pharmacy team roster by adding or inviting members."
             primaryAction={
-              <UIButton
-                variant="primary"
-                size="sm"
-                startIcon={<Plus className="size-4" />}
-                onClick={handleInviteMember}
-              >
-                Add Member
-              </UIButton>
+              <PermissionGate permission="workspace-member:create">
+                <UIButton
+                  variant="primary"
+                  size="sm"
+                  startIcon={<Plus className="size-4" />}
+                  onClick={handleInviteMember}
+                >
+                  Add Member
+                </UIButton>
+              </PermissionGate>
             }
           />
         </div>
       ) : !hasFilteredMembers ? (
-        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+        <div className="py-10 bg-surface rounded-2xl shadow-xs border border-border">
           <UIEmptyState
             icon={<Search className="size-9 text-text-muted" />}
             title="No matching members found"
@@ -332,6 +335,15 @@ export default function WorkspaceMembersDesktopPage({
             }
           />
         </div>
+      ) : viewMode === UI_TOOLBAR_VIEWS.LIST ? (
+        <WorkspaceMembersTableView
+          members={paginatedMembers}
+          onViewDetails={handleViewMemberDetails}
+          onChangeStatus={handleChangeMemberStatus}
+          onRemove={handleRemoveMember}
+          onManageAccess={handleManageAccess}
+          onResetPassword={handleOpenResetPassword}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {paginatedMembers.map((member) => {
@@ -378,9 +390,9 @@ export default function WorkspaceMembersDesktopPage({
         </div>
       )}
 
-      {/* 4. Bottom Pagination Module (Shown ONLY when records exceed page size) */}
+      {/* ── 4. Bottom Pagination Module ── */}
       {shouldShowPagination && (
-        <div className="bg-surface rounded-xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] overflow-hidden">
+        <div className="bg-surface rounded-xl shadow-xs border border-border overflow-hidden">
           <UIPagination
             page={currentPage}
             totalPages={totalPages}
@@ -401,7 +413,7 @@ export default function WorkspaceMembersDesktopPage({
 /**
  * MemberCard Component
  * - Displays Companies and Branches assigned to member
- * - Soft borderless elevation with two-tone background shading
+ * - Crisp borders with distinct non-blending bottom section
  * - Active dropdown stacking and hover isolation
  */
 function MemberCard({
@@ -470,16 +482,16 @@ function MemberCard({
     <div
       onClick={onCardClick}
       className={cn(
-        "bg-surface rounded-2xl shadow-xs transition-all duration-200 flex flex-col relative border-0",
+        "bg-surface rounded-2xl shadow-xs transition-all duration-200 flex flex-col relative border border-border overflow-hidden",
         isDropdownOpen
           ? "z-50 ring-2 ring-primary/40 shadow-xl"
           : hasAnyDropdownOpen
-          ? "z-0 ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
-          : "z-10 ring-1 ring-black/[0.04] dark:ring-white/[0.06] hover:z-20 hover:ring-primary/40 hover:shadow-md cursor-pointer group active:scale-[0.99]"
+          ? "z-0"
+          : "z-10 hover:z-20 hover:border-border-strong hover:shadow-md cursor-pointer group active:scale-[0.99]"
       )}
     >
-      {/* Top Section: Avatar, Name, Role (bg-surface, rounded-t-2xl) */}
-      <div className="bg-surface p-4 pt-3.5 relative flex flex-col items-center text-center rounded-t-2xl">
+      {/* Top Section: Avatar, Name, Role */}
+      <div className="bg-surface p-4 pt-3.5 relative flex flex-col items-center text-center">
         {/* Enlarged Three-Dots Context Menu (z-50) */}
         <div
           className="absolute top-3 right-3 z-50"
@@ -490,6 +502,7 @@ function MemberCard({
             onOpenChange={onDropdownOpenChange}
             align="right"
             placement="bottom"
+            usePortal={true}
           >
             <UIDropdownTrigger asChild>
               <button
@@ -624,41 +637,41 @@ function MemberCard({
         </div>
       </div>
 
-      {/* Bottom Section: Shaded Color Background (bg-surface-alt/75, rounded-b-2xl) */}
-      <div className="bg-surface-alt/75 border-t border-border/30 p-3.5 space-y-2 text-left flex-1 flex flex-col justify-between rounded-b-2xl">
-        {/* 2-Column Metadata Grid: Company Access & Branch Access */}
+      {/* Bottom Section: Theme-Native Elevated Strip (Adapts cleanly to all color themes and dark mode) */}
+      <div className="bg-surface-alt/60 border-t border-border/70 p-3.5 space-y-2.5 text-left flex-1 flex flex-col justify-between">
+        {/* 2-Column Metadata Grid: Company Access & Branch Access Tiles */}
         <div className="w-full grid grid-cols-2 gap-2 text-left">
-          <div className="min-w-0 pr-1">
-            <span className="block text-[10.5px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
-              <Building2 className="size-3 text-text-muted/70 shrink-0" />
+          <div className="rounded-xl bg-surface/90 border border-border/70 p-2.5 shadow-2xs transition-colors">
+            <span className="block text-[10.5px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
+              <Building2 className="size-3.5 text-primary shrink-0" />
               Companies
             </span>
-            <span className="block text-xs font-semibold text-text truncate mt-0.5">
+            <span className="block text-xs font-bold text-text truncate mt-1">
               {companyAccessLabel}
             </span>
           </div>
 
-          <div className="min-w-0 pl-1">
-            <span className="block text-[10.5px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
-              <GitBranch className="size-3 text-text-muted/70 shrink-0" />
+          <div className="rounded-xl bg-surface/90 border border-border/70 p-2.5 shadow-2xs transition-colors">
+            <span className="block text-[10.5px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
+              <GitBranch className="size-3.5 text-primary shrink-0" />
               Branches
             </span>
-            <span className="block text-xs font-semibold text-text truncate mt-0.5">
+            <span className="block text-xs font-bold text-text truncate mt-1">
               {branchAccessLabel}
             </span>
           </div>
         </div>
 
         {/* Contact Details List (Email & Phone) */}
-        <div className="w-full space-y-1.5 pt-1.5 border-t border-border/30 text-left">
+        <div className="w-full space-y-1.5 pt-2 border-t border-border/60 text-left">
           <div className="flex items-center gap-2 text-xs text-text-muted hover:text-text truncate transition-colors">
             <Mail className="size-3.5 shrink-0 text-text-muted" />
-            <span className="truncate">{member.displayEmail || "-"}</span>
+            <span className="truncate font-medium">{member.displayEmail || "-"}</span>
           </div>
 
           <div className="flex items-center gap-2 text-xs text-text-muted hover:text-text truncate transition-colors">
             <Phone className="size-3.5 shrink-0 text-text-muted" />
-            <span className="font-mono tabular-nums truncate">
+            <span className="font-mono tabular-nums font-medium truncate">
               {member.displayPhone || "-"}
             </span>
           </div>

@@ -123,6 +123,15 @@ export default function RolesDesktopPage({
             Refresh
           </UIButton>
 
+          <UIButton
+            variant="outline"
+            size="sm"
+            onClick={handleViewPermissions}
+            startIcon={<FileKey className="size-4 text-primary" />}
+          >
+            Permission Catalog
+          </UIButton>
+
           <PermissionGate permission="role:create">
             <UIButton
               variant="primary"
@@ -130,7 +139,7 @@ export default function RolesDesktopPage({
               onClick={handleCreateRole}
               startIcon={<Plus className="size-4" />}
             >
-              Manage Roles
+              Create Role
             </UIButton>
           </PermissionGate>
 

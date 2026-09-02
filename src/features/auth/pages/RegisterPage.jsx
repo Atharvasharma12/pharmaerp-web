@@ -114,7 +114,7 @@ const RegisterPage = () => {
 
       dispatch(clearSignupData());
 
-      navigate(ROUTES.DASHBOARD, {
+      navigate(ROUTES.SETUP_CENTER, {
         replace: true,
         state: { showWelcomeToast: true },
       });

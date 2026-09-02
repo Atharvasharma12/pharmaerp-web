@@ -1,81 +1,13 @@
+// src/components/ui/UIPageHeader.jsx
+
 import React, { forwardRef } from "react";
-import { ChevronRight, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UIIconButton } from "./UIIconButton";
 
 /**
  * ============================================================================
- * 1. UIPageBreadcrumbs (#16 companion)
- * ============================================================================
- */
-const UIPageBreadcrumbs = forwardRef(
-  ({ items = [], className, ...props }, ref) => {
-    if (!items || items.length === 0) return null;
-
-    return (
-      <nav
-        ref={ref}
-        aria-label="Breadcrumb"
-        className={cn("flex items-center gap-1.5 text-xs text-text-muted mb-2 sm:mb-2.5", className)}
-        {...props}
-      >
-        <ol className="flex items-center flex-wrap gap-1.5 list-none p-0 m-0">
-          {items.map((item, index) => {
-            const isLast = index === items.length - 1;
-            const isClickable = Boolean(item.href || item.onClick);
-
-            return (
-              <li key={index} className="flex items-center gap-1.5 min-w-0">
-                {index > 0 && (
-                  <ChevronRight
-                    className="size-3.5 text-text-muted/50 shrink-0 select-none"
-                    aria-hidden="true"
-                  />
-                )}
-                {item.icon && (
-                  <span className="shrink-0 text-text-muted/70 flex items-center">
-                    {item.icon}
-                  </span>
-                )}
-                {isClickable && !isLast ? (
-                  <a
-                    href={item.href || "#"}
-                    onClick={(e) => {
-                      if (item.onClick) {
-                        e.preventDefault();
-                        item.onClick(e);
-                      }
-                    }}
-                    className="hover:text-text transition-colors duration-150 truncate max-w-[140px] sm:max-w-[200px] font-medium"
-                  >
-                    {item.label}
-                  </a>
-                ) : (
-                  <span
-                    className={cn(
-                      "truncate max-w-[160px] sm:max-w-[240px]",
-                      isLast
-                        ? "text-text font-semibold cursor-default"
-                        : "text-text-muted font-medium"
-                    )}
-                    aria-current={isLast ? "page" : undefined}
-                  >
-                    {item.label}
-                  </span>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-      </nav>
-    );
-  }
-);
-UIPageBreadcrumbs.displayName = "UIPageBreadcrumbs";
-
-/**
- * ============================================================================
- * 2. UIPageTitle (#17 Component)
+ * 1. UIPageTitle (#17 Component)
  * ============================================================================
  * Desktop: 28px, Weight 800, Line Height 1.2
  * Mobile:  22px, Weight 800, Line Height 1.2
@@ -99,7 +31,7 @@ UIPageTitle.displayName = "UIPageTitle";
 
 /**
  * ============================================================================
- * 3. UIPageDescription (#18 Component)
+ * 2. UIPageDescription (#18 Component)
  * ============================================================================
  * Desktop: 15px, Weight 400, Line Height 1.6, max-w-3xl
  * Mobile:  14px, Weight 400, Line Height 1.55
@@ -122,7 +54,7 @@ UIPageDescription.displayName = "UIPageDescription";
 
 /**
  * ============================================================================
- * 4. UIPageHeaderHeading
+ * 3. UIPageHeaderHeading
  * ============================================================================
  */
 const UIPageHeaderHeading = forwardRef(
@@ -140,7 +72,7 @@ UIPageHeaderHeading.displayName = "UIPageHeaderHeading";
 
 /**
  * ============================================================================
- * 5. UIPageActions
+ * 4. UIPageActions
  * ============================================================================
  */
 const UIPageActions = forwardRef(
@@ -164,7 +96,7 @@ UIPageActions.displayName = "UIPageActions";
 
 /**
  * ============================================================================
- * 6. UIPageHeader (#16 Component)
+ * 5. UIPageHeader Component
  * ============================================================================
  */
 const UIPageHeader = forwardRef(
@@ -173,7 +105,6 @@ const UIPageHeader = forwardRef(
       title,
       description,
       badge,
-      breadcrumbs,
       backButton,
       actions,
       sticky = false,
@@ -203,13 +134,6 @@ const UIPageHeader = forwardRef(
         {...props}
       >
         <div className={cn("w-full flex flex-col gap-3", contentClassName)}>
-          {/* Breadcrumbs Slot */}
-          {Array.isArray(breadcrumbs) ? (
-            <UIPageBreadcrumbs items={breadcrumbs} />
-          ) : (
-            breadcrumbs
-          )}
-
           {/* Main Top Row: Left Heading + Right Actions */}
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             {/* Left Column: Back button + Title + Badges + Description */}
@@ -274,11 +198,9 @@ export {
   UIPageTitle,
   UIPageDescription,
   UIPageActions,
-  UIPageBreadcrumbs,
   UIPageHeaderHeading,
   UIPageTitle as PageTitle,
   UIPageDescription as PageDescription,
-  UIPageBreadcrumbs as PageBreadcrumbs,
   UIPageHeaderHeading as PageHeaderHeading,
 };
 

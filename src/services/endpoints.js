@@ -71,6 +71,10 @@ export const ENDPOINTS = {
 
     // --- NEW USER PROFILE INCOMING INVITATIONS ENDPOINT MAP ---
     USER_INBOX_INVITATIONS: "/organization/workspaces/user-inbox/invitations",
+
+    // --- SETUP CENTER ---
+    SETUP_STATUS: (workspaceId) =>
+      `/organization/workspaces/${workspaceId}/setup-status`,
   },
 
   COMPANY: {
@@ -79,6 +83,10 @@ export const ENDPOINTS = {
     LIST: "/organization/companies",
 
     BY_ID: (companyId) => `/organization/companies/${companyId}`,
+
+    MEMBERS: (companyId) => `/organization/companies/${companyId}/members`,
+
+    EMPLOYEES: (companyId) => `/organization/companies/${companyId}/employees`,
   },
 
   BRANCH: {
@@ -89,6 +97,10 @@ export const ENDPOINTS = {
     WORKSPACE_LIST: "/organization/branches/workspace/all",
 
     BY_ID: (branchId) => `/organization/branches/${branchId}`,
+
+    MEMBERS: (branchId) => `/organization/branches/${branchId}/members`,
+
+    EMPLOYEES: (branchId) => `/organization/branches/${branchId}/employees`,
   },
 
   CUSTOMER: {

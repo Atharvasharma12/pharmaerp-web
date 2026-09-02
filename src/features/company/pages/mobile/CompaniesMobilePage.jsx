@@ -1,758 +1,503 @@
 // src/features/company/pages/mobile/CompaniesMobilePage.jsx
 
-import { useMemo } from "react";
+import React, { useState } from "react";
 import {
-  FiBriefcase,
-  FiChevronLeft,
-  FiChevronRight,
-  FiFilter,
-  FiMoreHorizontal,
-  FiPlus,
-  FiRefreshCw,
-  FiSearch,
-  FiUsers,
-  FiCalendar,
-  FiHeart,
-  FiActivity,
-  FiEye,
-  FiEdit2,
-  FiSettings,
-  FiTrash2,
-} from "react-icons/fi";
-
+  Building2,
+  Plus,
+  Filter,
+  Download,
+  RotateCcw,
+  Search,
+  MoreHorizontal,
+  Eye,
+  Edit3,
+  Settings,
+  Users,
+  Trash2,
+  X,
+  MapPin,
+  LayoutGrid,
+  List,
+} from "lucide-react";
 import {
-  AppBox,
-  AppButton,
-  AppCard,
-  AppHeading,
-  AppIconButton,
-  AppMenu,
-  AppSearchInput,
-  AppSelect,
-  AppStack,
-  AppStatusBadge,
-  AppTag,
-  AppText,
+  UISearchInput,
+  UIButton,
+  UIBadge,
+  UIEmptyState,
+  UIDropdown,
+  UIDropdownTrigger,
+  UIDropdownMenu,
+  UIDropdownItem,
+  UIDropdownDivider,
+  UIDrawer,
+  UISelect,
+  UIPagination,
+  UISkeleton,
   PermissionGate,
-} from "@/components";
+  UI_TOOLBAR_VIEWS as VIEW_MODES,
+} from "@/components/ui";
+import { CompanyEmployeesDrawer, CompanyTableView } from "../../components";
+import { cn } from "@/lib/utils";
 
-const companyIconMap = {
-  proprietorship: <FiBriefcase />,
-  partnership: <FiUsers />,
-  llp: <FiActivity />,
-  private_limited: <FiBriefcase />,
-  public_limited: <FiBriefcase />,
-  other: <FiBriefcase />,
-  pharmacy: <FiBriefcase />,
-  healthcare: <FiActivity />,
-  distribution: <FiBriefcase />,
-  laboratory: <FiActivity />,
-  wellness: <FiHeart />,
-  retail: <FiBriefcase />,
+const formatMemberCount = (company) => {
+  const count = company?.memberCount ?? company?.membersCount ?? 0;
+  return `${count} ${count === 1 ? "Member" : "Members"}`;
 };
 
-const companyColorMap = {
-  proprietorship: "primary",
-  partnership: "info",
-  llp: "warning",
-  private_limited: "success",
-  public_limited: "purple",
-  other: "neutral",
-  pharmacy: "primary",
-  healthcare: "purple",
-  distribution: "warning",
-  laboratory: "success",
-  wellness: "error",
-  retail: "info",
+const formatLocation = (company) => {
+  if (company?.locationSummary) return company.locationSummary;
+  const parts = [
+    company?.address?.addressLine1,
+    company?.address?.city,
+    company?.address?.state,
+  ].filter(Boolean);
+  if (parts.length) return parts.join(", ");
+  return company?.address?.city || company?.address?.state || "India";
 };
 
-const statusColorMap = {
-  active: "success",
-  inactive: "neutral",
-  suspended: "danger",
-};
-
-const CompaniesMobilePage = ({
+export const CompaniesMobilePage = ({
   companies = [],
+  paginatedCompanies = [],
+  stats = [],
   filters,
+  sortBy,
+  onSortChange,
+  viewMode = VIEW_MODES.GRID,
+  onViewModeChange,
   statusOptions = [],
   companyTypeOptions = [],
   totalCompanies = 0,
   filteredCompaniesCount = 0,
+  hasCompanies,
   hasFilteredCompanies,
+  isLoading,
+  currentPage = 1,
+  pageSize = 6,
+  totalPages = 1,
+  handlePageChange,
+  handlePageSizeChange,
   handleFilterChange,
   handleSearchChange,
+  handleRemoveFilter,
   handleClearFilters,
   handleCreateCompany,
   handleViewCompany,
   handleEditCompany,
   handleOpenSettings,
+  handleViewEmployees,
   handleDeleteCompany,
+  handleRefresh,
+  activeFilterChips = [],
+  selectedCompanyForEmployees,
+  isEmployeeDrawerOpen,
+  handleCloseEmployeesDrawer,
 }) => {
-  const resolveTargetSignature = (typeStr = "", nameStr = "") => {
-    const normalizedName = nameStr.toLowerCase();
-    if (normalizedName.includes("pharmacy")) return "pharmacy";
-    if (normalizedName.includes("healthcare")) return "healthcare";
-    if (normalizedName.includes("distribution")) return "distribution";
-    if (
-      normalizedName.includes("labs") ||
-      normalizedName.includes("laboratory")
-    )
-      return "laboratory";
-    if (normalizedName.includes("wellness")) return "wellness";
-    if (normalizedName.includes("retail")) return "retail";
-    return typeStr.toLowerCase() || "other";
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+
+  const activeCount =
+    stats.find((s) => s.id === "active")?.value ??
+    companies.filter((c) => c.status === "active").length;
+  const inactiveCount =
+    (stats.find((s) => s.id === "inactive")?.value || 0) +
+    (stats.find((s) => s.id === "suspended")?.value || 0);
+
+  const shouldShowPagination = hasFilteredCompanies && filteredCompaniesCount > pageSize;
+  const displayList = paginatedCompanies.length ? paginatedCompanies : companies;
+
+  const handleExportCSV = () => {
+    if (!companies.length) return;
+    const headers = [
+      "Company Name",
+      "Type",
+      "Status",
+      "Email",
+      "Phone",
+      "Location",
+      "Employees",
+    ];
+    const rows = companies.map((c) => [
+      `"${c.displayName || c.name || ""}"`,
+      `"${c.displayType || c.type || ""}"`,
+      `"${c.status || ""}"`,
+      `"${c.displayEmail || c.email || ""}"`,
+      `"${c.displayPhone || ""}"`,
+      `"${c.locationSummary || ""}"`,
+      `"${c.memberCount ?? 0}"`,
+    ]);
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `companies_mobile_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const shouldRenderPagination = hasFilteredCompanies && totalCompanies > 10;
-
   return (
-    <section className="w-full bg-bg">
-      <AppBox sx={containerSx}>
-        {/* Expanded Width Page Title Header */}
-        <AppBox sx={headerWrapperSx}>
-          <AppStack
-            direction="row"
-            align="center"
-            justify="space-between"
-            gap={1}
+    <div className="w-full bg-bg text-text p-2.5 sm:p-3 pb-20 space-y-2.5 max-w-[480px] mx-auto">
+      {/* ── 1. Header Area with Minimal Padding ── */}
+      <div className="flex flex-col gap-2 pt-0.5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-extrabold text-text tracking-tight flex items-center gap-1.5">
+              <span className="font-mono tabular-nums">{totalCompanies}</span> Companies
+            </h1>
+            <div className="flex items-center gap-3 text-xs font-semibold mt-0.5">
+              <span className="inline-flex items-center gap-1 text-text">
+                <span className="size-2 rounded-full bg-success ring-2 ring-success/20" />
+                Active{" "}
+                <strong className="font-mono tabular-nums text-text font-bold">
+                  {activeCount}
+                </strong>
+              </span>
+              <span className="inline-flex items-center gap-1 text-text">
+                <span className="size-2 rounded-full bg-error ring-2 ring-error/20" />
+                Inactive{" "}
+                <strong className="font-mono tabular-nums text-text font-bold">
+                  {inactiveCount}
+                </strong>
+              </span>
+            </div>
+          </div>
+
+          <PermissionGate permission="company:create">
+            <UIButton
+              type="button"
+              variant="primary"
+              size="sm"
+              startIcon={<Plus className="size-3.5" />}
+              onClick={handleCreateCompany}
+            >
+              Add Company
+            </UIButton>
+          </PermissionGate>
+        </div>
+
+        {/* Action Toolbar */}
+        <div className="flex items-center gap-2">
+          <UIButton
+            type="button"
+            variant="outline"
+            size="xs"
+            fullWidth
+            startIcon={
+              <RotateCcw
+                className={`size-3.5 text-text-muted ${
+                  isLoading ? "animate-spin" : ""
+                }`}
+              />
+            }
+            onClick={handleRefresh}
           >
-            <AppBox sx={{ minWidth: 0, flex: 1 }}>
-              <AppHeading level={1} weight={800} sx={pageTitleSx}>
-                Companies
-              </AppHeading>
-              <AppText variant="body2" weight={600} sx={pageSubtitleSx}>
-                Manage all companies in your workspace.
-              </AppText>
-            </AppBox>
+            Refresh
+          </UIButton>
 
-            <PermissionGate permission="company:create">
-              <AppButton
-                variant="contained"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleCreateCompany}
-                sx={addCompanyBtnSx}
-              >
-                Add Company
-              </AppButton>
-            </PermissionGate>
-          </AppStack>
-        </AppBox>
+          <UIButton
+            type="button"
+            variant="outline"
+            size="xs"
+            fullWidth
+            startIcon={<Download className="size-3.5 text-text-muted" />}
+            onClick={handleExportCSV}
+          >
+            Export
+          </UIButton>
+        </div>
+      </div>
 
-        {/* Max Width Filter Layout Row */}
-        <AppBox sx={filterSectionSx}>
-          <div className="grid grid-cols-[1fr_auto] gap-2">
-            <AppSearchInput
-              name="search"
+      {/* ── 2. Compact Search & Filter Toolbar with View Switcher ── */}
+      <div className="bg-surface border border-border/60 rounded-xl p-2.5 shadow-2xs space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <UISearchInput
+              placeholder="Search companies..."
               value={filters.search}
               onChange={handleSearchChange}
-              placeholder="Search by name, email or phone..."
-              clearable
               onClear={() => handleSearchChange("")}
-              size="small"
-              variant="bordered"
-              rounded="md"
-              sx={searchBarSx}
-              inputSx={inputOverrideSx}
-            />
-            <AppButton
-              variant="outlined"
-              colorVariant="neutral"
-              size="small"
-              rounded="md"
-              startIcon={<FiFilter />}
-              sx={filterToggleBtnSx}
-            >
-              Filters
-            </AppButton>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <AppSelect
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              options={statusOptions}
-              size="small"
-              variant="bordered"
-              rounded="md"
-              sx={selectInputSx}
-              inputSx={inputOverrideSx}
-            />
-            <AppSelect
-              name="type"
-              value={filters.type}
-              onChange={handleFilterChange}
-              options={companyTypeOptions}
-              size="small"
-              variant="bordered"
-              rounded="md"
-              sx={selectInputSx}
-              inputSx={inputOverrideSx}
+              size="sm"
             />
           </div>
-        </AppBox>
 
-        {/* Edge-Aligned Counter Actions Bar */}
-        <AppBox sx={metaActionRowSx}>
-          <AppText variant="body2" weight={700} sx={countLabelTextSx}>
-            Total Companies: {totalCompanies}
-          </AppText>
-          <AppButton
-            variant="text"
-            colorVariant="neutral"
-            size="small"
-            startIcon={<FiRefreshCw />}
-            onClick={handleClearFilters}
-            sx={resetTextLinkSx}
-          >
-            Reset
-          </AppButton>
-        </AppBox>
-
-        {/* High Density Main Listing Stream */}
-        <AppBox sx={listingListWrapperSx}>
-          {!hasFilteredCompanies ? (
-            <AppCard
-              variant="default"
-              rounded="md"
-              bordered
-              padding="md"
-              sx={emptyCardContainerSx}
+          {/* Segmented View Switcher */}
+          <div className="flex items-center rounded-lg border border-border bg-surface-alt/75 p-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => onViewModeChange?.(VIEW_MODES.GRID)}
+              className={cn(
+                "flex items-center justify-center p-1.5 rounded-md transition-all text-xs cursor-pointer",
+                viewMode === VIEW_MODES.GRID
+                  ? "bg-surface text-primary shadow-xs font-bold"
+                  : "text-text-muted hover:text-text"
+              )}
+              title="Grid View"
             >
-              <AppStack
-                direction="column"
-                align="center"
-                justify="center"
-                gap={1}
-                sx={{ py: 4, width: "100%" }}
-              >
-                <FiSearch className="text-[28px] text-text-muted/60" />
-                <AppHeading
-                  level={3}
-                  weight={700}
-                  align="center"
-                  sx={{ m: 0, fontSize: "13px", width: "100%" }}
-                >
-                  No match found
-                </AppHeading>
-                <AppText
-                  variant="body2"
-                  align="center"
-                  sx={emptyStateSubTextSx}
-                >
-                  Refine keywords or reset dropdown properties to inspect
-                  workspace targets.
-                </AppText>
-              </AppStack>
-            </AppCard>
-          ) : (
-            <AppStack direction="column" gap={1}>
-              {companies.map((company) => {
-                const targetKey = resolveTargetSignature(
-                  company.type,
-                  company.displayName,
-                );
-                const contextualIcon = companyIconMap[targetKey] || (
-                  <FiBriefcase />
-                );
-                const contextualColor = companyColorMap[targetKey] || "primary";
-
-                return (
-                  <AppCard
-                    key={company._id}
-                    variant="default"
-                    rounded="lg"
-                    bordered
-                    shadow="none"
-                    padding="none"
-                    onClick={() => handleViewCompany(company)}
-                    sx={companyListingItemCardSx}
-                  >
-                    {/* Top Segment: Row Information Blocks */}
-                    <AppStack
-                      direction="row"
-                      align="flex-start"
-                      justify="space-between"
-                      gap={1}
-                    >
-                      <AppStack direction="row" align="center" gap={1}>
-                        <AppBox
-                          sx={{
-                            ...avatarIconFrameSx,
-                            bgcolor: `var(--app-color-${contextualColor}-soft)`,
-                            color: `var(--app-color-${contextualColor})`,
-                          }}
-                        >
-                          {contextualIcon}
-                        </AppBox>
-
-                        <AppBox sx={{ minWidth: 0 }}>
-                          <AppHeading
-                            level={2}
-                            weight={800}
-                            sx={companyCardTitleTextSx}
-                          >
-                            {company.displayName}
-                          </AppHeading>
-                          <AppText variant="body2" sx={companyCardSubTextSx}>
-                            {company.displayEmail || "no-email@workspace.com"}
-                          </AppText>
-                          <AppText variant="body2" sx={companyCardPhoneTextSx}>
-                            {company.displayPhone ||
-                              company.phones?.mobile ||
-                              "-"}
-                          </AppText>
-                        </AppBox>
-                      </AppStack>
-
-                      {/* Wraps actions explicitly to isolate click bubbles */}
-                      <AppStack
-                        direction="row"
-                        align="center"
-                        gap={0.25}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                        }}
-                      >
-                        <AppStatusBadge
-                          status={company.status}
-                          label={company.status || ""}
-                          variant="soft"
-                          size="small"
-                          rounded="md"
-                          colorVariant={
-                            statusColorMap[company.status] || "neutral"
-                          }
-                          sx={statusBadgeOverrideSx}
-                        />
-                        <RowActionDropdownTrigger
-                          company={company}
-                          onView={handleViewCompany}
-                          onEdit={handleEditCompany}
-                          onSettings={handleOpenSettings}
-                          onDelete={handleDeleteCompany}
-                        />
-                      </AppStack>
-                    </AppStack>
-
-                    <div className="w-full h-[1px] bg-divider my-2" />
-
-                    {/* Bottom Segment: Tags & Inline Indicators */}
-                    <AppStack
-                      direction="row"
-                      align="center"
-                      justify="space-between"
-                      gap={1}
-                    >
-                      <AppTag
-                        label={company.displayType || "Other"}
-                        variant="soft"
-                        colorVariant={contextualColor}
-                        rounded="sm"
-                        sx={categoryTagOverrideSx}
-                      />
-
-                      <AppStack direction="row" align="center" gap={1.2}>
-                        <AppStack
-                          direction="row"
-                          align="center"
-                          gap={0.4}
-                          sx={inlineMetaMetricFrameSx}
-                        >
-                          <FiUsers className="text-[12px]" />
-                          <AppText
-                            variant="body2"
-                            weight={600}
-                            sx={inlineMetaValueTextSx}
-                          >
-                            {company.memberCount || company.membersCount || 0}{" "}
-                            members
-                          </AppText>
-                        </AppStack>
-
-                        <AppStack
-                          direction="row"
-                          align="center"
-                          gap={0.4}
-                          sx={inlineMetaMetricFrameSx}
-                        >
-                          <FiCalendar className="text-[12px]" />
-                          <AppText
-                            variant="body2"
-                            weight={600}
-                            sx={inlineMetaValueTextSx}
-                          >
-                            {company.displayCreatedAt || "Just now"}
-                          </AppText>
-                        </AppStack>
-                      </AppStack>
-                    </AppStack>
-                  </AppCard>
-                );
-              })}
-            </AppStack>
-          )}
-        </AppBox>
-
-        {/* Intelligent Conditional Pagination Module */}
-        {shouldRenderPagination && (
-          <AppBox sx={paginationFooterWrapperSx}>
-            <AppStack
-              direction="row"
-              align="center"
-              justify="space-between"
-              gap={1}
+              <LayoutGrid className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onViewModeChange?.(VIEW_MODES.LIST)}
+              className={cn(
+                "flex items-center justify-center p-1.5 rounded-md transition-all text-xs cursor-pointer",
+                viewMode === VIEW_MODES.LIST
+                  ? "bg-surface text-primary shadow-xs font-bold"
+                  : "text-text-muted hover:text-text"
+              )}
+              title="List View"
             >
-              <AppSelect
-                name="pageSizeSelect"
-                value="10"
-                options={[{ label: "10 per page", value: "10" }]}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={pageSizeSelectSx}
-                inputSx={paginationInputBoxOverrideSx}
-              />
+              <List className="size-3.5" />
+            </button>
+          </div>
+        </div>
 
-              <AppStack direction="row" align="center" gap={0.5}>
-                <AppIconButton
-                  icon={<FiChevronLeft />}
-                  variant="outlined"
-                  colorVariant="neutral"
-                  size="small"
-                  rounded="md"
-                  disabled
-                  sx={paginationArrowBtnSx}
-                />
-                <span className="flex h-[30px] min-w-[30px] items-center justify-center rounded-md bg-primary text-[11.5px] font-bold text-text-inverse shadow-sm">
-                  1
-                </span>
-                <span className="flex h-[30px] min-w-[30px] items-center justify-center rounded-md border border-border bg-surface text-[11.5px] font-bold text-text transition active:bg-surface-active">
-                  2
-                </span>
-                <AppIconButton
-                  icon={<FiChevronRight />}
-                  variant="outlined"
-                  colorVariant="neutral"
-                  size="small"
-                  rounded="md"
-                  sx={paginationArrowBtnSx}
-                />
-              </AppStack>
-            </AppStack>
+        <div className="grid grid-cols-2 gap-2">
+          <UISelect
+            value={filters.type}
+            onChange={(val) => handleFilterChange({ type: val })}
+            options={companyTypeOptions}
+            placeholder="All Types"
+            size="sm"
+          />
+          <UISelect
+            value={filters.status}
+            onChange={(val) => handleFilterChange({ status: val })}
+            options={statusOptions}
+            placeholder="All Status"
+            size="sm"
+          />
+        </div>
 
-            <AppText variant="body2" align="center" sx={paginationCountLabelSx}>
-              Showing 1 to {filteredCompaniesCount} of {totalCompanies}{" "}
-              companies
-            </AppText>
-          </AppBox>
+        {activeFilterChips.length > 0 && (
+          <div className="flex justify-end">
+            <UIButton
+              type="button"
+              variant="ghost"
+              size="xs"
+              startIcon={<RotateCcw className="size-3 text-text-muted" />}
+              onClick={handleClearFilters}
+            >
+              Reset Filters
+            </UIButton>
+          </div>
         )}
-      </AppBox>
-    </section>
+      </div>
+
+      {/* ── 3. Company Cards Stream / List ── */}
+      {isLoading && !hasCompanies ? (
+        <div className="space-y-2.5">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="bg-surface rounded-2xl p-4 flex flex-col items-center space-y-2.5 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+            >
+              <UISkeleton className="size-16 rounded-[12px]" />
+              <UISkeleton className="h-4 w-28 rounded" />
+              <UISkeleton className="h-3 w-20 rounded" />
+              <div className="w-full pt-2.5 border-t border-border/30 grid grid-cols-2 gap-2">
+                <UISkeleton className="h-6 rounded" />
+                <UISkeleton className="h-6 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : !hasCompanies ? (
+        <div className="py-8 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+          <UIEmptyState
+            icon={<Building2 className="size-8 text-primary" />}
+            title="No companies yet"
+            description="Add business units or company profiles to manage operations."
+            primaryAction={
+              <PermissionGate permission="company:create">
+                <UIButton
+                  variant="primary"
+                  size="sm"
+                  startIcon={<Plus className="size-3.5" />}
+                  onClick={handleCreateCompany}
+                >
+                  Add Company
+                </UIButton>
+              </PermissionGate>
+            }
+          />
+        </div>
+      ) : !hasFilteredCompanies ? (
+        <div className="py-8 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+          <UIEmptyState
+            icon={<Search className="size-8 text-text-muted" />}
+            title="No matching companies"
+            description="Try changing your search keywords or active filters."
+            primaryAction={
+              <UIButton variant="outline" size="sm" onClick={handleClearFilters}>
+                Clear Filters
+              </UIButton>
+            }
+          />
+        </div>
+      ) : viewMode === VIEW_MODES.LIST ? (
+        <CompanyTableView
+          companies={displayList}
+          onView={handleViewCompany}
+          onEdit={handleEditCompany}
+          onSettings={handleOpenSettings}
+          onViewEmployees={handleViewEmployees}
+          onDelete={handleDeleteCompany}
+        />
+      ) : (
+        <div className="space-y-2.5">
+          {displayList.map((company) => {
+            const name = company.displayName || company.name || "Untitled";
+            const type = company.displayType || company.type || "Proprietorship";
+            const memberCountText = formatMemberCount(company);
+            const location = formatLocation(company);
+            const status = company.status || "active";
+
+            return (
+              <div
+                key={company._id}
+                onClick={() => handleViewCompany(company)}
+                className="bg-surface rounded-2xl shadow-xs transition-all duration-150 flex flex-col relative border-0 ring-1 ring-black/[0.04] dark:ring-white/[0.06] hover:ring-primary/40 p-3.5 space-y-2.5 cursor-pointer active:scale-[0.99]"
+              >
+                {/* Header Row */}
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary-soft text-primary font-bold text-xs uppercase border border-primary/20">
+                      <Building2 className="size-5" />
+                    </div>
+
+                    <div className="min-w-0">
+                      <h3 className="text-base font-bold text-text tracking-tight truncate">
+                        {name}
+                      </h3>
+                      <p className="text-xs text-text-muted font-medium truncate capitalize mt-0.5">
+                        {type}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions & Status */}
+                  <div
+                    className="flex items-center gap-1.5 shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <UIBadge
+                      variant="soft"
+                      color={status === "active" ? "success" : "neutral"}
+                      className="text-[10px] capitalize font-semibold py-0 px-1.5"
+                    >
+                      {status}
+                    </UIBadge>
+
+                    <UIDropdown align="right">
+                      <UIDropdownTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label="Actions menu"
+                          className="size-8 rounded-xl flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-hover transition-colors cursor-pointer"
+                        >
+                          <MoreHorizontal className="size-5" />
+                        </button>
+                      </UIDropdownTrigger>
+
+                      <UIDropdownMenu width="w-48" className="shadow-2xl border border-border/60">
+                        <UIDropdownItem
+                          icon={<Eye className="size-4 text-primary" />}
+                          onClick={() => handleViewCompany(company)}
+                        >
+                          View Details
+                        </UIDropdownItem>
+                        <UIDropdownItem
+                          icon={<Edit3 className="size-4" />}
+                          onClick={() => handleEditCompany(company)}
+                        >
+                          Edit Company
+                        </UIDropdownItem>
+                        <UIDropdownItem
+                          icon={<Users className="size-4" />}
+                          onClick={() => handleViewEmployees?.(company)}
+                        >
+                          Staff & Access
+                        </UIDropdownItem>
+                        <UIDropdownItem
+                          icon={<Settings className="size-4" />}
+                          onClick={() => handleOpenSettings(company)}
+                        >
+                          Module Settings
+                        </UIDropdownItem>
+                        <UIDropdownDivider />
+                        <UIDropdownItem
+                          destructive
+                          icon={<Trash2 className="size-4" />}
+                          onClick={() => handleDeleteCompany(company)}
+                        >
+                          Delete Profile
+                        </UIDropdownItem>
+                      </UIDropdownMenu>
+                    </UIDropdown>
+                  </div>
+                </div>
+
+                {/* Shaded 2-Column Metadata Strip */}
+                <div className="bg-surface-alt/75 border-t border-border/30 p-2.5 rounded-xl grid grid-cols-2 gap-2 text-left">
+                  <div>
+                    <span className="block text-[10px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
+                      <Users className="size-3 text-text-muted/70 shrink-0" />
+                      Members Access
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewEmployees?.(company);
+                      }}
+                      className="block text-xs font-bold text-primary font-mono tabular-nums text-left mt-0.5 hover:underline"
+                    >
+                      {memberCountText}
+                    </button>
+                  </div>
+
+                  <div>
+                    <span className="block text-[10px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
+                      <MapPin className="size-3 text-text-muted/70 shrink-0" />
+                      Location
+                    </span>
+                    <p className="block text-xs font-semibold text-text truncate mt-0.5" title={location}>
+                      {location}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── 4. Bottom Pagination ── */}
+      {shouldShowPagination && (
+        <div className="bg-surface rounded-xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] overflow-hidden">
+          <UIPagination
+            page={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredCompaniesCount}
+            pageSize={pageSize}
+            pageSizeOptions={[6, 12, 24]}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            showSummary
+            showPageSize={false}
+          />
+        </div>
+      )}
+
+      {/* ── Employee Access Drawer ── */}
+      <CompanyEmployeesDrawer
+        isOpen={isEmployeeDrawerOpen}
+        onClose={handleCloseEmployeesDrawer}
+        company={selectedCompanyForEmployees}
+      />
+    </div>
   );
-};
-
-// Dropdown Action Trigger Menu component featuring multiple layers of event cancellation safeguards
-const RowActionDropdownTrigger = ({
-  company,
-  onView,
-  onEdit,
-  onSettings,
-  onDelete,
-}) => {
-  const menuConfigItems = [
-    {
-      id: "view",
-      label: "View Details",
-      icon: <FiEye />,
-      onClick: () => onView?.(company),
-    },
-    {
-      id: "edit",
-      label: "Edit Company",
-      icon: <FiEdit2 />,
-      onClick: () => onEdit?.(company),
-    },
-    {
-      id: "settings",
-      label: "Module Settings",
-      icon: <FiSettings />,
-      onClick: () => onSettings?.(company),
-    },
-    { id: "divider_row", type: "divider" },
-    {
-      id: "remove",
-      label: "Remove Profile",
-      icon: <FiTrash2 />,
-      danger: true,
-      onClick: () => onDelete?.(company),
-    },
-  ];
-
-  return (
-    <AppMenu
-      trigger={
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-          }}
-          className="inline-flex h-7 w-7 items-center justify-center border-0 bg-transparent p-0 text-text-muted transition hover:text-text focus:outline-none"
-        >
-          <FiMoreHorizontal className="text-[17px]" />
-        </button>
-      }
-      triggerProps={{
-        onClick: (e) => {
-          e.stopPropagation();
-          e.preventDefault();
-        },
-      }}
-      items={menuConfigItems}
-      dense
-      minWidth={165}
-    />
-  );
-};
-
-/* Architectural Style Definitions Dictionary */
-const containerSx = {
-  position: "relative",
-  zIndex: 1,
-  width: "100%",
-  maxWidth: { xs: 430, sm: 460 },
-  mx: "auto",
-  px: 0,
-  pt: 0,
-  pb: 0,
-};
-
-const headerWrapperSx = {
-  pt: 1.5,
-  pb: 1.25,
-  px: 0.5,
-};
-
-const pageTitleSx = {
-  m: 0,
-  fontSize: "21px",
-  lineHeight: 1.15,
-  letterSpacing: "-0.4px",
-  color: "var(--app-color-text)",
-};
-
-const pageSubtitleSx = {
-  mt: 0.2,
-  fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const addCompanyBtnSx = {
-  height: 32,
-  fontSize: "11px",
-  fontWeight: 750,
-  px: 1.2,
-  boxShadow: "var(--app-shadow-xs)",
-  "& .MuiButton-startIcon": {
-    marginRight: "4px",
-    fontSize: "12px",
-  },
-};
-
-const filterSectionSx = {
-  px: 0.5,
-  pb: 1.25,
-};
-
-const searchBarSx = {
-  width: "100%",
-};
-
-const filterToggleBtnSx = {
-  height: 35,
-  fontSize: "11.5px",
-  fontWeight: 650,
-  borderColor: "var(--app-color-border)",
-  color: "var(--app-color-text)",
-  px: 1.2,
-  "& .MuiButton-startIcon": {
-    marginRight: "4px",
-    fontSize: "12px",
-  },
-};
-
-const selectInputSx = {
-  width: "100%",
-};
-
-const inputOverrideSx = {
-  height: 35,
-  fontSize: "11.5px",
-  bgcolor: "var(--app-color-surface)",
-  color: "var(--app-color-text)",
-};
-
-const metaActionRowSx = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  px: 0.5,
-  py: 0.75,
-  borderTop: "1px solid var(--app-color-divider)",
-  borderBottom: "1px solid var(--app-color-divider)",
-  bgcolor: "var(--app-color-surface-alt)",
-};
-
-const countLabelTextSx = {
-  fontSize: "11.5px",
-  color: "var(--app-color-text-muted)",
-};
-
-const resetTextLinkSx = {
-  p: 0,
-  minWidth: "auto",
-  height: "auto",
-  fontSize: "11px",
-  fontWeight: 750,
-  color: "var(--app-color-text)",
-  "& .MuiButton-startIcon": {
-    marginRight: "3px",
-    fontSize: "10.5px",
-  },
-};
-
-const listingListWrapperSx = {
-  px: 0.5,
-  py: 1.25,
-  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, transparent)",
-  overflowY: "auto",
-  msOverflowStyle: "none",
-  scrollbarWidth: "none",
-  "&::-webkit-scrollbar": {
-    display: "none",
-    width: 0,
-    height: 0,
-  },
-};
-
-const emptyCardContainerSx = {
-  borderColor: "var(--app-color-border)",
-  bgcolor: "var(--app-color-surface)",
-  width: "100%",
-};
-
-const emptyStateSubTextSx = {
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-  px: 2,
-  textAlign: "center",
-  width: "100%",
-};
-
-const companyListingItemCardSx = {
-  p: 1.2,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  boxShadow: "var(--app-shadow-xs)",
-  cursor: "pointer",
-  transition: "background-color 0.1s ease",
-  "&:hover": {
-    bgcolor: "var(--app-color-surface)",
-  },
-};
-
-const avatarIconFrameSx = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 36,
-  height: 36,
-  borderRadius: "8px",
-  fontSize: "16px",
-  flexShrink: 0,
-};
-
-const companyCardTitleTextSx = {
-  m: 0,
-  fontSize: "12.5px",
-  lineHeight: 1.2,
-  color: "var(--app-color-text)",
-};
-
-const companyCardSubTextSx = {
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
-  mt: 0.15,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-
-const companyCardPhoneTextSx = {
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
-  mt: 0.05,
-};
-
-const statusBadgeOverrideSx = {
-  height: 18,
-  fontSize: "9px",
-  fontWeight: 750,
-  px: 1,
-  textTransform: "capitalize",
-};
-
-const categoryTagOverrideSx = {
-  height: 18,
-  fontSize: "9px",
-  fontWeight: 700,
-  px: 1,
-  textTransform: "capitalize",
-};
-
-const inlineMetaMetricFrameSx = {
-  color: "var(--app-color-text-muted)",
-};
-
-const inlineMetaValueTextSx = {
-  fontSize: "10px",
-  lineHeight: 1,
-};
-
-const paginationFooterWrapperSx = {
-  px: 0.5,
-  pt: 1.25,
-  pb: 2,
-  borderTop: "1px solid var(--app-color-divider)",
-};
-
-const pageSizeSelectSx = {
-  width: 112,
-};
-
-const paginationInputBoxOverrideSx = {
-  height: 30,
-  fontSize: "11px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const paginationArrowBtnSx = {
-  height: 30,
-  width: 30,
-  minWidth: 30,
-  borderColor: "var(--app-color-border)",
-};
-
-const paginationCountLabelSx = {
-  mt: 1,
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
 };
 
 export default CompaniesMobilePage;

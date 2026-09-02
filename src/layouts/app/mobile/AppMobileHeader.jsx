@@ -12,6 +12,7 @@ import {
 
 import { ROUTES } from "@/constants";
 import { usePermission } from "@/hooks";
+import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
 import {
   HeaderNotifications,
   HeaderProfileDropdown,
@@ -30,7 +31,37 @@ const getPageTitle = (pathname) => {
   if (pathname.startsWith("/parties")) return "Parties";
   if (pathname.startsWith("/finance")) return "Finance";
   if (pathname.startsWith("/marketplace")) return "Marketplace";
-  if (pathname.startsWith("/access-control")) return "Access Control";
+  if (
+    pathname.startsWith("/roles-permissions/create") ||
+    pathname.startsWith("/access-control/roles/create")
+  ) {
+    return "Create Role";
+  }
+  if (
+    pathname.includes("/edit") &&
+    (pathname.startsWith("/roles-permissions") ||
+      pathname.startsWith("/access-control"))
+  ) {
+    return "Edit Role";
+  }
+  if (
+    pathname.startsWith("/roles-permissions/permissions") ||
+    pathname.startsWith("/access-control/permissions")
+  ) {
+    return "Permissions";
+  }
+  if (
+    pathname.startsWith("/roles-permissions/") ||
+    pathname.startsWith("/access-control/roles/")
+  ) {
+    return "Role Details";
+  }
+  if (
+    pathname.startsWith("/roles-permissions") ||
+    pathname.startsWith("/access-control")
+  ) {
+    return "Roles & Permissions";
+  }
   if (pathname.startsWith("/branches")) return "Branches";
   if (pathname.startsWith("/companies")) return "Companies";
   if (pathname.startsWith("/workspace")) return "Workspace";
@@ -48,6 +79,7 @@ const AppMobileHeader = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { can, canAny, isOwner } = usePermission();
+  const { isSetupComplete } = useSetupStatus();
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -108,20 +140,25 @@ const AppMobileHeader = ({ onMenuClick }) => {
           </AnimatePresence>
         </div>
 
-        {/* Right: Search Toggle, Modular Notifications, and Modular Profile */}
+        {/* Right: Search & Notifications (only if setup is complete), Profile */}
         <div className="flex shrink-0 items-center gap-1.5">
-          <UIIconButton
-            type="button"
-            onClick={() => setSearchOpen(!searchOpen)}
-            aria-label="Search"
-            variant={searchOpen ? "secondary" : "ghost"}
-            size="sm"
-            className="rounded-full"
-          >
-            <Search className="size-4" />
-          </UIIconButton>
+          {isSetupComplete && (
+            <>
+              <UIIconButton
+                type="button"
+                onClick={() => setSearchOpen(!searchOpen)}
+                aria-label="Search"
+                variant={searchOpen ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-full"
+              >
+                <Search className="size-4" />
+              </UIIconButton>
 
-          <HeaderNotifications />
+              <HeaderNotifications />
+            </>
+          )}
+
           <HeaderProfileDropdown />
         </div>
       </div>

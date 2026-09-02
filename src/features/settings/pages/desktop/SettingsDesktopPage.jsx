@@ -14,21 +14,30 @@ import BillingTab from "../../components/tabs/BillingTab";
 import IntegrationsTab from "../../components/tabs/IntegrationsTab";
 
 export const SETTINGS_TABS = [
-  { id: "profile", label: "Profile", icon: <User className="size-3.5" /> },
-  { id: "appearance", label: "Appearance", icon: <Palette className="size-3.5" /> },
-  { id: "notifications", label: "Notifications", icon: <Bell className="size-3.5" /> },
-  { id: "security", label: "Security", icon: <Lock className="size-3.5" /> },
-  { id: "billing", label: "Billing", icon: <CreditCard className="size-3.5" />, permission: "subscription:view" },
-  { id: "integrations", label: "Integrations", icon: <Plug className="size-3.5" />, permission: "workspace:update" },
+  { id: "profile", label: "Profile", icon: <User className="size-3.5" />, requireSetup: false },
+  { id: "appearance", label: "Appearance", icon: <Palette className="size-3.5" />, requireSetup: false },
+  { id: "security", label: "Security", icon: <Lock className="size-3.5" />, requireSetup: false },
+  { id: "notifications", label: "Notifications", icon: <Bell className="size-3.5" />, requireSetup: true },
+  { id: "billing", label: "Billing", icon: <CreditCard className="size-3.5" />, permission: "subscription:view", requireSetup: true },
+  { id: "integrations", label: "Integrations", icon: <Plug className="size-3.5" />, permission: "workspace:update", requireSetup: true },
 ];
 
-const SettingsDesktopPage = ({ activeTab = "profile", onTabChange }) => {
+const SettingsDesktopPage = ({
+  activeTab = "profile",
+  onTabChange,
+  isSetupComplete = true,
+}) => {
   const { can } = usePermission();
 
-  // Filter visible tabs based on user permissions
+  // Filter visible tabs based on user permissions and setup completion
   const visibleTabs = useMemo(
-    () => SETTINGS_TABS.filter((t) => !t.permission || can(t.permission)),
-    [can]
+    () =>
+      SETTINGS_TABS.filter((t) => {
+        if (t.requireSetup && !isSetupComplete) return false;
+        if (t.permission && !can(t.permission)) return false;
+        return true;
+      }),
+    [can, isSetupComplete]
   );
 
   const renderTabContent = () => {
@@ -56,7 +65,7 @@ const SettingsDesktopPage = ({ activeTab = "profile", onTabChange }) => {
         {/* Standardized Page Header */}
         <UIPageHeader
           title="Settings"
-          description="Manage your account profile, appearance, notifications, security, billing, and third-party integrations."
+          description="Manage your account profile, appearance, security, notifications, billing, and third-party integrations."
           bordered={false}
           compact={true}
           className="pb-0 pt-0"

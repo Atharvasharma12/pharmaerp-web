@@ -1,5 +1,4 @@
-// src/features/landing/components/desktop/DesktopCTASection.jsx
-
+import { Link } from "react-router-dom";
 import {
   FiArrowRight,
   FiCalendar,
@@ -7,6 +6,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 
+import { ROUTES } from "@/constants";
 import {
   AppBadge,
   AppBox,
@@ -91,6 +91,8 @@ const DesktopCTASection = () => {
 
             <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <AppButton
+                component={Link}
+                to={ROUTES.REGISTER}
                 variant="contained"
                 colorVariant="primary"
                 rounded="md"
@@ -107,6 +109,8 @@ const DesktopCTASection = () => {
               </AppButton>
 
               <AppButton
+                component={Link}
+                to={ROUTES.LOGIN}
                 variant="outlined"
                 colorVariant="primary"
                 rounded="md"
@@ -119,7 +123,7 @@ const DesktopCTASection = () => {
                   bgcolor: "var(--app-color-surface)",
                 }}
               >
-                Book a Demo
+                Sign In
               </AppButton>
             </div>
 

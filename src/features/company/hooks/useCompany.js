@@ -7,6 +7,7 @@ import {
   getCompanyById,
   updateCompany,
   deleteCompany,
+  getCompanyEmployees,
 } from "../store/companyThunk";
 
 import {
@@ -30,6 +31,7 @@ import {
   selectGetCompanyStatus,
   selectUpdateCompanyStatus,
   selectDeleteCompanyStatus,
+  selectCompanyEmployees,
 } from "../store/companySelector";
 
 const useCompany = () => {
@@ -38,6 +40,7 @@ const useCompany = () => {
   const companies = useSelector(selectCompanies);
   const currentCompany = useSelector(selectCurrentCompany);
   const managedCompany = useSelector(selectManagedCompany);
+  const companyEmployees = useSelector(selectCompanyEmployees);
 
   const status = useSelector(selectCompanyStatus);
   const error = useSelector(selectCompanyError);
@@ -63,6 +66,11 @@ const useCompany = () => {
 
   const fetchCompanyById = useCallback(
     (companyId) => dispatch(getCompanyById(companyId)).unwrap(),
+    [dispatch],
+  );
+
+  const fetchCompanyEmployees = useCallback(
+    (companyId) => dispatch(getCompanyEmployees(companyId)).unwrap(),
     [dispatch],
   );
 
@@ -113,6 +121,7 @@ const useCompany = () => {
     companies,
     currentCompany,
     managedCompany,
+    companyEmployees,
 
     status,
     error,
@@ -127,6 +136,7 @@ const useCompany = () => {
     createCompany: submitCreateCompany,
     getWorkspaceCompanies: fetchWorkspaceCompanies,
     getCompanyById: fetchCompanyById,
+    getCompanyEmployees: fetchCompanyEmployees,
     updateCompany: submitUpdateCompany,
     deleteCompany: submitDeleteCompany,
 

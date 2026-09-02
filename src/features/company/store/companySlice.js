@@ -6,12 +6,15 @@ import {
   getCompanyById,
   updateCompany,
   deleteCompany,
+  getCompanyEmployees,
 } from "./companyThunk";
 
 const initialState = {
   companies: [],
   currentCompany: null,
   managedCompany: null,
+
+  companyEmployees: {}, // { [companyId]: [employeeObjects] }
 
   status: API_STATUS.IDLE,
   error: null,
@@ -22,6 +25,7 @@ const initialState = {
   getCompanyStatus: API_STATUS.IDLE,
   updateCompanyStatus: API_STATUS.IDLE,
   deleteCompanyStatus: API_STATUS.IDLE,
+  getCompanyEmployeesStatus: {}, // { [companyId]: API_STATUS }
 };
 
 const setPending = (state) => {
@@ -90,7 +94,6 @@ const companySlice = createSlice({
 
         // Keep active company in memory if already set; otherwise let layout handle initial assignment
         state.currentCompany = state.currentCompany || null;
-        state.message = "Companies fetched successfully";
       })
       .addCase(getWorkspaceCompanies.rejected, (state, action) => {
         state.getWorkspaceCompaniesStatus = API_STATUS.ERROR;
@@ -103,7 +106,6 @@ const companySlice = createSlice({
         state.status = API_STATUS.SUCCESS;
         state.getCompanyStatus = API_STATUS.SUCCESS;
         state.managedCompany = action.payload || null;
-        state.message = "Company fetched successfully";
       })
       .addCase(getCompanyById.rejected, (state, action) => {
         setRejected(state, action);
@@ -158,6 +160,23 @@ const companySlice = createSlice({
       .addCase(deleteCompany.rejected, (state, action) => {
         state.deleteCompanyStatus = API_STATUS.ERROR;
         state.error = action.payload || "Company delete failed";
+      })
+
+      // GET COMPANY EMPLOYEES
+      .addCase(getCompanyEmployees.pending, (state, action) => {
+        const companyId = action.meta.arg;
+        state.getCompanyEmployeesStatus[companyId] = API_STATUS.LOADING;
+      })
+      .addCase(getCompanyEmployees.fulfilled, (state, action) => {
+        const { companyId, employees } = action.payload || {};
+        if (companyId) {
+          state.getCompanyEmployeesStatus[companyId] = API_STATUS.SUCCESS;
+          state.companyEmployees[companyId] = employees || [];
+        }
+      })
+      .addCase(getCompanyEmployees.rejected, (state, action) => {
+        const companyId = action.meta.arg;
+        state.getCompanyEmployeesStatus[companyId] = API_STATUS.ERROR;
       });
   },
 });

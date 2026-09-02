@@ -3,9 +3,10 @@
 import React, { useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Sparkles } from "lucide-react";
 
 import { ROUTES } from "@/constants";
+import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
 import {
   HeaderSearchBar,
   HeaderNotifications,
@@ -38,9 +39,40 @@ const getPageTitle = (pathname) => {
   if (pathname.startsWith("/branches/") && pathname.split("/").length > 2) return "Branch Details";
   if (pathname.startsWith("/branches")) return "Branches";
 
-  if (pathname.startsWith("/access-control/roles/create")) return "Create Role";
-  if (pathname.startsWith("/access-control/roles/edit")) return "Edit Role";
-  if (pathname.startsWith("/access-control")) return "Access Control";
+  // Roles & Permissions
+  if (
+    pathname.startsWith("/roles-permissions/create") ||
+    pathname.startsWith("/access-control/roles/create")
+  ) {
+    return "Create Role";
+  }
+  if (
+    pathname.includes("/edit") &&
+    (pathname.startsWith("/roles-permissions") ||
+      pathname.startsWith("/access-control"))
+  ) {
+    return "Edit Role";
+  }
+  if (
+    pathname.startsWith("/roles-permissions/permissions") ||
+    pathname.startsWith("/access-control/permissions")
+  ) {
+    return "Permission Catalog";
+  }
+  if (
+    (pathname.startsWith("/roles-permissions/") &&
+      pathname.split("/").filter(Boolean).length > 1) ||
+    (pathname.startsWith("/access-control/roles/") &&
+      pathname.split("/").filter(Boolean).length > 2)
+  ) {
+    return "Role Details";
+  }
+  if (
+    pathname.startsWith("/roles-permissions") ||
+    pathname.startsWith("/access-control")
+  ) {
+    return "Roles & Permissions";
+  }
 
   // Parties
   if (pathname.startsWith("/parties/customers/create")) return "Add Customer";
@@ -113,16 +145,16 @@ const getPageTitle = (pathname) => {
  * Route-to-Traversible-Breadcrumbs Generator
  * Strictly produces only traversible, registered routes and excludes "workspace"
  */
-const getBreadcrumbs = (pathname) => {
+const getBreadcrumbs = (pathname, isSetupComplete = false) => {
   if (!pathname || pathname === "/" || pathname === ROUTES.HOME || pathname.startsWith("/dashboard")) {
     return [{ label: "Dashboard", to: null }];
   }
 
-  const root = { label: "Dashboard", to: ROUTES.DASHBOARD };
+  const root = { label: "Dashboard", to: isSetupComplete ? ROUTES.DASHBOARD : null };
 
   // Setup Center
   if (pathname.startsWith("/setup")) {
-    return [root, { label: "Setup Center", to: null }];
+    return [{ label: "Workspace", to: null }, { label: "Setup Center", to: null }];
   }
 
   // Members & Staff
@@ -210,26 +242,57 @@ const getBreadcrumbs = (pathname) => {
     ];
   }
 
-  // Access Control
-  if (pathname === "/access-control" || pathname === ROUTES.ACCESS_CONTROL) {
-    return [root, { label: "Access Control", to: null }];
+  // Roles & Permissions
+  if (pathname === "/roles-permissions" || pathname === ROUTES.ROLES) {
+    return [root, { label: "Roles & Permissions", to: null }];
   }
-  if (pathname.startsWith("/access-control/roles/create")) {
+  if (
+    pathname.startsWith("/roles-permissions/create") ||
+    pathname.startsWith("/access-control/roles/create")
+  ) {
     return [
       root,
-      { label: "Access Control", to: ROUTES.ACCESS_CONTROL },
+      { label: "Roles & Permissions", to: ROUTES.ROLES },
       { label: "Create Role", to: null },
     ];
   }
-  if (pathname.startsWith("/access-control/roles/edit")) {
+  if (
+    pathname.includes("/edit") &&
+    (pathname.startsWith("/roles-permissions") ||
+      pathname.startsWith("/access-control"))
+  ) {
     return [
       root,
-      { label: "Access Control", to: ROUTES.ACCESS_CONTROL },
+      { label: "Roles & Permissions", to: ROUTES.ROLES },
       { label: "Edit Role", to: null },
     ];
   }
-  if (pathname.startsWith("/access-control")) {
-    return [root, { label: "Access Control", to: null }];
+  if (
+    pathname.startsWith("/roles-permissions/permissions") ||
+    pathname.startsWith("/access-control/permissions") ||
+    pathname === ROUTES.PERMISSIONS
+  ) {
+    return [
+      root,
+      { label: "Roles & Permissions", to: ROUTES.ROLES },
+      { label: "Permission Catalog", to: null },
+    ];
+  }
+  if (
+    pathname.startsWith("/roles-permissions/") ||
+    pathname.startsWith("/access-control/roles/")
+  ) {
+    return [
+      root,
+      { label: "Roles & Permissions", to: ROUTES.ROLES },
+      { label: "Role Details", to: null },
+    ];
+  }
+  if (
+    pathname.startsWith("/roles-permissions") ||
+    pathname.startsWith("/access-control")
+  ) {
+    return [root, { label: "Roles & Permissions", to: null }];
   }
 
   // Parties: Customers & Suppliers
@@ -526,8 +589,13 @@ const getBreadcrumbs = (pathname) => {
 export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
   const effectiveWidth = sidebarWidth ?? (sidebarCollapsed ? 68 : 240);
   const location = useLocation();
+  const { isSetupComplete, completedCount } = useSetupStatus();
+
   const pageTitle = useMemo(() => getPageTitle(location.pathname), [location.pathname]);
-  const breadcrumbs = useMemo(() => getBreadcrumbs(location.pathname), [location.pathname]);
+  const breadcrumbs = useMemo(
+    () => getBreadcrumbs(location.pathname, isSetupComplete),
+    [location.pathname, isSetupComplete]
+  );
 
   return (
     <header
@@ -575,14 +643,24 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
           </nav>
         </div>
 
-        {/* ── CENTER: Modern Command Search Bar ────────────────────── */}
+        {/* ── CENTER: Modern Command Search Bar / Setup Status Badge ── */}
         <div className="mx-4 flex flex-1 justify-center max-w-[480px] lg:max-w-[540px]">
-          <HeaderSearchBar />
+          {isSetupComplete ? (
+            <HeaderSearchBar />
+          ) : (
+            <Link
+              to={ROUTES.SETUP_CENTER}
+              className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary hover:bg-primary/15 transition-all shadow-xs"
+            >
+              <Sparkles className="size-3.5" />
+              <span>Workspace Setup in Progress ({completedCount}/2 Complete) — Click to Finish</span>
+            </Link>
+          )}
         </div>
 
-        {/* ── RIGHT: Notifications & User Profile ──────────────────── */}
+        {/* ── RIGHT: Notifications (only if setup complete) & User Profile ── */}
         <div className="flex shrink-0 items-center gap-3">
-          <HeaderNotifications />
+          {isSetupComplete && <HeaderNotifications />}
           <HeaderProfileDropdown />
         </div>
       </div>

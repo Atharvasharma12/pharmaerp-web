@@ -2,21 +2,15 @@ import { Navigate } from "react-router-dom";
 import { ROUTES } from "@/constants";
 
 import {
-  AccessControlPage,
   RolesPage,
   CreateRolePage,
   EditRolePage,
   RoleDetailsPage,
-  AssignRolePage,
-  EditAccessPage,
   PermissionPage,
 } from "../pages";
 
 const accessControlRoutes = [
-  {
-    path: ROUTES.ACCESS_CONTROL,
-    element: <AccessControlPage />,
-  },
+  // Primary Roles & Permissions Routes
   {
     path: ROUTES.ROLES,
     element: <RolesPage />,
@@ -34,24 +28,30 @@ const accessControlRoutes = [
     element: <RoleDetailsPage />,
   },
   {
-    path: ROUTES.MEMBER_ACCESS,
-    element: <Navigate to={ROUTES.WORKSPACE_MEMBERS} replace />,
-  },
-  {
-    path: ROUTES.ASSIGN_ACCESS,
-    element: <Navigate to={ROUTES.WORKSPACE_MEMBERS} replace />,
-  },
-  {
-    path: ROUTES.ASSIGN_ROLE,
-    element: <AssignRolePage />,
-  },
-  {
-    path: ROUTES.EDIT_ACCESS,
-    element: <EditAccessPage />,
-  },
-  {
     path: ROUTES.PERMISSIONS,
     element: <PermissionPage />,
+  },
+
+  // Legacy route redirects
+  {
+    path: "/access-control",
+    element: <Navigate to={ROUTES.ROLES} replace />,
+  },
+  {
+    path: "/access-control/roles",
+    element: <Navigate to={ROUTES.ROLES} replace />,
+  },
+  {
+    path: "/access-control/roles/create",
+    element: <Navigate to={ROUTES.CREATE_ROLE} replace />,
+  },
+  {
+    path: "/access-control/permissions",
+    element: <Navigate to={ROUTES.PERMISSIONS} replace />,
+  },
+  {
+    path: "/access-control/*",
+    element: <Navigate to={ROUTES.ROLES} replace />,
   },
 ];
 

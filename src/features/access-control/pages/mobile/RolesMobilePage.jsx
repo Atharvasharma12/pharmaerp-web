@@ -11,6 +11,7 @@ import {
   Trash2,
   Users,
   Lock,
+  FileKey,
 } from "lucide-react";
 
 import {
@@ -34,6 +35,7 @@ export default function RolesMobilePage({
   filters = { search: "", status: "all", type: "all" },
   statusOptions = [],
   typeOptions = [],
+  isLoading = false,
   totalRoles = 0,
   filteredRolesCount = 0,
   hasFilteredRoles = false,
@@ -42,6 +44,7 @@ export default function RolesMobilePage({
   handleClearFilters,
   handleRefresh,
   handleCreateRole,
+  handleViewPermissions,
   handleViewRole,
   handleEditRole,
   handleDeleteRole,
@@ -64,20 +67,20 @@ export default function RolesMobilePage({
           </div>
 
           <div className="flex items-center gap-1.5">
-            <UIIconButton
+            <UIButton
               variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              aria-label="Refresh roles"
+              size="xs"
+              onClick={handleViewPermissions}
+              startIcon={<FileKey className="size-3 text-primary" />}
             >
-              <RotateCcw className="size-3.5 text-text-muted" />
-            </UIIconButton>
+              Permissions
+            </UIButton>
 
             <UIButton
               variant="primary"
-              size="sm"
+              size="xs"
               onClick={handleCreateRole}
-              startIcon={<Plus className="size-3.5" />}
+              startIcon={<Plus className="size-3" />}
             >
               Add
             </UIButton>

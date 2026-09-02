@@ -324,23 +324,35 @@ export default function WorkspaceMemberDetailsPage() {
     };
   }, [isOwner, accessFormData.accessAllCompanies, accessFormData.accessAllBranches, assignedCompanies.length, assignedBranches.length]);
 
+  const isPrimary = Boolean(member?.isPrimary);
+  const emailVerified = Boolean(user?.emailVerified);
+  const phoneVerified = Boolean(user?.phoneVerified);
+  const notes = member?.notes || null;
+  const roleDescription = member?.roleId?.description || member?.role?.description || null;
+  const joinedViaInvitationId = member?.joinedViaInvitationId || null;
+
   const sharedProps = {
     member,
     user,
     displayName,
     displayEmail,
+    emailVerified,
     displayPhone,
+    phoneVerified,
     displayRole,
+    roleDescription,
     userCode,
     isOwner,
+    isPrimary,
     status,
     joinedDate,
     lastActiveFormatted,
+    notes,
+    joinedViaInvitationId,
     assignedCompanies,
     assignedBranches,
     accessSummary,
     isLoading,
-    onBack: handleBack,
     onOpenResetPassword: () => setIsResetPasswordOpen(true),
     onOpenAccessModal: () => {
       getWorkspaceBranches().catch(() => {});

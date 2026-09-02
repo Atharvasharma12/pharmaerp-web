@@ -3,14 +3,18 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ChevronRight, X } from "lucide-react";
+import { Search, ChevronRight, X, Lock } from "lucide-react";
 
 import { usePermission } from "@/hooks";
+import { ROUTES } from "@/constants";
+import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
+import { uiToast } from "@/components/ui";
 import { getAccessibleSearchCommands } from "./accessibleSearchCommands";
 
 const HeaderSearchBar = ({ className = "" }) => {
   const navigate = useNavigate();
   const { can, canAny, isOwner } = usePermission();
+  const { isSetupComplete, companyCompleted } = useSetupStatus();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -30,20 +34,54 @@ const HeaderSearchBar = ({ className = "" }) => {
     return getAccessibleSearchCommands(can, canAny, isOwner);
   }, [can, canAny, isOwner]);
 
+  // Tag commands with setup locked status
+  const commandsWithLockStatus = useMemo(() => {
+    return accessibleCommands.map((cmd) => {
+      let isLocked = false;
+
+      if (!isSetupComplete) {
+        const path = cmd.path || "";
+        const id = cmd.id || "";
+
+        if (
+          path === ROUTES.SETUP_CENTER ||
+          path === ROUTES.SETTINGS ||
+          path === ROUTES.HELP_CENTER ||
+          id === "setup-center" ||
+          id === "settings" ||
+          id === "help"
+        ) {
+          isLocked = false;
+        } else if (id === "companies" || path.startsWith("/companies")) {
+          isLocked = false;
+        } else if (id === "branches" || path.startsWith("/branches")) {
+          isLocked = !companyCompleted;
+        } else {
+          isLocked = true;
+        }
+      }
+
+      return {
+        ...cmd,
+        isLocked,
+      };
+    });
+  }, [accessibleCommands, isSetupComplete, companyCompleted]);
+
   // Filter commands by user query
   const filteredCommands = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) {
       // Show default top accessible navigation & quick actions
-      return accessibleCommands.slice(0, 8);
+      return commandsWithLockStatus.slice(0, 8);
     }
-    return accessibleCommands.filter(
+    return commandsWithLockStatus.filter(
       (cmd) =>
         cmd.label.toLowerCase().includes(query) ||
         (cmd.fullLabel && cmd.fullLabel.toLowerCase().includes(query)) ||
         (cmd.category && cmd.category.toLowerCase().includes(query))
     );
-  }, [accessibleCommands, searchQuery]);
+  }, [commandsWithLockStatus, searchQuery]);
 
   // Reset selectedIndex whenever filtered items change or popover opens
   useEffect(() => {
@@ -63,6 +101,18 @@ const HeaderSearchBar = ({ className = "" }) => {
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, []);
+
+  const handleSelectCommand = (cmd) => {
+    if (cmd.isLocked) {
+      uiToast.info("Setup Required", `Complete setup to unlock ${cmd.label}`);
+      navigate(ROUTES.SETUP_CENTER);
+    } else {
+      navigate(cmd.path);
+    }
+    setSearchFocused(false);
+    setSearchQuery("");
+    searchInputRef.current?.blur();
+  };
 
   // Keyboard navigation within the search input
   const handleInputKeyDown = (e) => {
@@ -84,7 +134,7 @@ const HeaderSearchBar = ({ className = "" }) => {
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (filteredCommands[selectedIndex]) {
-        handleSelectCommand(filteredCommands[selectedIndex].path);
+        handleSelectCommand(filteredCommands[selectedIndex]);
       }
     } else if (e.key === "Escape") {
       setSearchFocused(false);
@@ -103,13 +153,6 @@ const HeaderSearchBar = ({ className = "" }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleSelectCommand = (path) => {
-    navigate(path);
-    setSearchFocused(false);
-    setSearchQuery("");
-    searchInputRef.current?.blur();
-  };
 
   return (
     <div
@@ -182,8 +225,10 @@ const HeaderSearchBar = ({ className = "" }) => {
                       key={cmd.id || cmd.path || cmd.label}
                       type="button"
                       onMouseEnter={() => setSelectedIndex(idx)}
-                      onClick={() => handleSelectCommand(cmd.path)}
+                      onClick={() => handleSelectCommand(cmd)}
                       className={`flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-2 text-left text-xs transition active:scale-[0.98] ${
+                        cmd.isLocked ? "opacity-60" : ""
+                      } ${
                         isSelected
                           ? "bg-primary-soft/60 text-primary font-bold shadow-2xs"
                           : "text-text hover:bg-surface-hover"
@@ -200,7 +245,14 @@ const HeaderSearchBar = ({ className = "" }) => {
                           <Icon className="size-3.5" />
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="truncate">{cmd.label}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate">{cmd.label}</span>
+                            {cmd.isLocked && (
+                              <span className="inline-flex items-center gap-0.5 rounded px-1 py-0.2 text-[9px] font-semibold bg-surface-alt text-text-muted border border-border/60">
+                                <Lock className="size-2" /> Locked
+                              </span>
+                            )}
+                          </div>
                           {cmd.fullLabel && cmd.fullLabel !== cmd.label && (
                             <span className="text-[10px] text-text-muted/70 truncate">
                               {cmd.fullLabel}

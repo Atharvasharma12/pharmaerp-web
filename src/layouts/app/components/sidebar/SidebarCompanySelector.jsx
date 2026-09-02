@@ -1,8 +1,8 @@
 // src/layouts/app/components/sidebar/SidebarCompanySelector.jsx
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronsUpDown,
@@ -20,9 +20,10 @@ import useCompany from "@/features/company/hooks/useCompany";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useUser from "@/features/user/hooks/useUser";
-import { UITabs, UISkeleton, UIButton } from "@/components/ui";
+import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
+import { UITabs, UISkeleton } from "@/components/ui";
 
-const SELECTOR_TABS = [
+const ALL_SELECTOR_TABS = [
   { id: "company", label: "Company", icon: <Building2 className="size-3.5" /> },
   { id: "branch", label: "Branch", icon: <Store className="size-3.5" /> },
 ];
@@ -30,15 +31,25 @@ const SELECTOR_TABS = [
 /**
  * Clean Company Initial / Logo Badge
  */
-const CompanyAvatar = ({ company, size = "md", className = "" }) => {
-  const name = company?.name || "Company";
-  const initial = name.charAt(0).toUpperCase();
-
+const CompanyAvatar = ({ company, size = "md", className = "", isSetupPending = false }) => {
   const sizeClasses = {
     sm: "size-6 text-[11px] rounded-[5px]",
     md: "size-7.5 text-xs rounded-[7px]",
     lg: "size-8.5 text-[13px] rounded-[8px]",
   };
+
+  if (isSetupPending) {
+    return (
+      <div
+        className={`${sizeClasses[size] || sizeClasses.md} flex shrink-0 items-center justify-center bg-primary/10 text-primary font-bold border border-primary/20 shadow-2xs ${className}`}
+      >
+        <Building2 className="size-4" />
+      </div>
+    );
+  }
+
+  const name = company?.name || "Company";
+  const initial = name.charAt(0).toUpperCase();
 
   if (company?.logo) {
     return (
@@ -93,6 +104,7 @@ const SidebarCompanySelector = ({
   onClose,
   showClose = false,
 }) => {
+  const navigate = useNavigate();
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
 
@@ -112,11 +124,28 @@ const SidebarCompanySelector = ({
     getCompanyBranchesStatus,
   } = useBranch();
   const { updateActiveContext } = useUser();
+  const { isSetupComplete, companyCompleted, branchCompleted } = useSetupStatus();
 
   // Active Tab inside dropdown: "company" | "branch"
   const [activeTab, setActiveTab] = useState("company");
   const [isOpen, setIsOpen] = useState(false);
   const [isSwitchingBranch, setIsSwitchingBranch] = useState(false);
+
+  // Filter available tabs based on setup completion:
+  // If company is NOT created yet, only show Company tab
+  const availableTabs = useMemo(() => {
+    if (!companyCompleted) {
+      return [{ id: "company", label: "Company", icon: <Building2 className="size-3.5" /> }];
+    }
+    return ALL_SELECTOR_TABS;
+  }, [companyCompleted]);
+
+  // Ensure active tab doesn't get stuck on branch if company is incomplete
+  useEffect(() => {
+    if (!companyCompleted && activeTab !== "company") {
+      setActiveTab("company");
+    }
+  }, [companyCompleted, activeTab]);
 
   const [dropdownCoords, setDropdownCoords] = useState({
     top: 0,
@@ -203,7 +232,7 @@ const SidebarCompanySelector = ({
     };
   }, [isOpen]);
 
-  // Switch Company Handler: Immediately open Branch tab with skeleton loading
+  // Switch Company Handler: Immediately open Branch tab if branch is completed
   const handleSelectCompany = async (company) => {
     if (!company?._id) return;
 
@@ -211,7 +240,10 @@ const SidebarCompanySelector = ({
       setCurrentCompany(company);
       clearCurrentBranch();
       setIsSwitchingBranch(true);
-      setActiveTab("branch");
+
+      if (branchCompleted) {
+        setActiveTab("branch");
+      }
 
       try {
         if (currentWorkspace?._id) {
@@ -227,7 +259,7 @@ const SidebarCompanySelector = ({
       } finally {
         setIsSwitchingBranch(false);
       }
-    } else {
+    } else if (branchCompleted) {
       setActiveTab("branch");
     }
   };
@@ -268,8 +300,16 @@ const SidebarCompanySelector = ({
     setCollapsedTooltip(null);
   };
 
-  const companyName = currentCompany?.name || "Select Company";
-  const branchName = currentBranch?.name || "Select Branch";
+  // Clean dynamic names reflecting setup rules without parenthetical steps
+  const companyName = !companyCompleted
+    ? "Create Company"
+    : currentCompany?.name || "Select Company";
+
+  const branchName = !companyCompleted
+    ? "Create Company First"
+    : !branchCompleted
+      ? "Create Branch"
+      : currentBranch?.name || "Select Branch";
 
   // ─────────────────────────────────────────────────────────────────────────────
   // 1. COLLAPSED MINI-RAIL VIEW (68px)
@@ -294,7 +334,11 @@ const SidebarCompanySelector = ({
               : "hover:bg-surface-hover hover:ring-1 hover:ring-border"
           }`}
         >
-          <CompanyAvatar company={currentCompany} size="md" />
+          <CompanyAvatar
+            company={currentCompany}
+            size="md"
+            isSetupPending={!companyCompleted}
+          />
         </button>
 
         {onToggleCollapse && (
@@ -351,7 +395,7 @@ const SidebarCompanySelector = ({
                 {/* Reusable UITabs Primitive */}
                 <div className="mb-2">
                   <UITabs
-                    tabs={SELECTOR_TABS}
+                    tabs={availableTabs}
                     activeTab={activeTab}
                     onChange={(tabId) => setActiveTab(tabId)}
                     variant="segmented"
@@ -403,8 +447,9 @@ const SidebarCompanySelector = ({
                               );
                             })
                           ) : (
-                            <div className="p-3 text-center text-xs text-text-muted">
-                              No companies found
+                            <div className="p-3 text-center text-xs text-text-muted space-y-1">
+                              <p className="font-semibold text-text">No companies created yet</p>
+                              <p className="text-[11px]">Set up your legal entity to continue.</p>
                             </div>
                           )}
                         </div>
@@ -417,13 +462,13 @@ const SidebarCompanySelector = ({
                           className="flex w-full items-center gap-2 rounded-[8px] px-2 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
                         >
                           <Plus className="size-3.5 stroke-[2.5]" />
-                          <span>New Company</span>
+                          <span>{companyCompleted ? "New Company" : "Create First Company"}</span>
                         </Link>
                       </div>
                     )}
 
-                    {/* Tab 2: Branch List */}
-                    {activeTab === "branch" && (
+                    {/* Tab 2: Branch List (Only accessible if company is completed) */}
+                    {activeTab === "branch" && companyCompleted && (
                       <div>
                         <div className="max-h-[220px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-0.5">
                           {isBranchLoading ? (
@@ -457,8 +502,9 @@ const SidebarCompanySelector = ({
                               );
                             })
                           ) : (
-                            <div className="p-3 text-center text-xs text-text-muted">
-                              No branches found
+                            <div className="p-3 text-center text-xs text-text-muted space-y-1">
+                              <p className="font-semibold text-text">No branch created yet</p>
+                              <p className="text-[11px]">Add your primary branch to complete setup.</p>
                             </div>
                           )}
                         </div>
@@ -468,10 +514,10 @@ const SidebarCompanySelector = ({
                         <Link
                           to={ROUTES.CREATE_BRANCH}
                           onClick={() => setIsOpen(false)}
-                          className="flex w-full items-center gap-2 rounded-[8px] px-2 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
+                          className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
                         >
                           <Plus className="size-3.5 stroke-[2.5]" />
-                          <span>New Branch</span>
+                          <span>{branchCompleted ? "New Branch" : "Create First Branch"}</span>
                         </Link>
                       </div>
                     )}
@@ -505,7 +551,11 @@ const SidebarCompanySelector = ({
         }`}
       >
         <div className="flex min-w-0 items-center gap-2.5">
-          <CompanyAvatar company={currentCompany} size="md" />
+          <CompanyAvatar
+            company={currentCompany}
+            size="md"
+            isSetupPending={!companyCompleted}
+          />
 
           <div className="min-w-0 flex-1">
             <div className="truncate text-[13px] font-bold text-text leading-tight">
@@ -571,7 +621,7 @@ const SidebarCompanySelector = ({
               {/* Reusable UITabs Primitive */}
               <div className="mb-2">
                 <UITabs
-                  tabs={SELECTOR_TABS}
+                  tabs={availableTabs}
                   activeTab={activeTab}
                   onChange={(tabId) => setActiveTab(tabId)}
                   variant="segmented"
@@ -624,8 +674,9 @@ const SidebarCompanySelector = ({
                             );
                           })
                         ) : (
-                          <div className="py-4 text-center text-xs text-text-muted">
-                            No companies available
+                          <div className="py-4 text-center text-xs text-text-muted space-y-1">
+                            <p className="font-semibold text-text">No companies created yet</p>
+                            <p className="text-[11px]">Set up your legal entity to continue.</p>
                           </div>
                         )}
                       </div>
@@ -638,13 +689,13 @@ const SidebarCompanySelector = ({
                         className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
                       >
                         <Plus className="size-3.5 stroke-[2.5]" />
-                        <span>New Company</span>
+                        <span>{companyCompleted ? "New Company" : "Create First Company"}</span>
                       </Link>
                     </div>
                   )}
 
-                  {/* TAB 2: Branch List (Scrollbar hidden) */}
-                  {activeTab === "branch" && (
+                  {/* TAB 2: Branch List (Only accessible if company is completed) */}
+                  {activeTab === "branch" && companyCompleted && (
                     <div>
                       <div className="max-h-[220px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-0.5 pr-0.5">
                         {isBranchLoading ? (
@@ -679,8 +730,9 @@ const SidebarCompanySelector = ({
                             );
                           })
                         ) : (
-                          <div className="py-4 text-center text-xs text-text-muted">
-                            No branches available
+                          <div className="py-4 text-center text-xs text-text-muted space-y-1">
+                            <p className="font-semibold text-text">No branch created yet</p>
+                            <p className="text-[11px]">Add your first branch location.</p>
                           </div>
                         )}
                       </div>
@@ -693,7 +745,7 @@ const SidebarCompanySelector = ({
                         className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
                       >
                         <Plus className="size-3.5 stroke-[2.5]" />
-                        <span>New Branch</span>
+                        <span>{branchCompleted ? "New Branch" : "Create First Branch"}</span>
                       </Link>
                     </div>
                   )}

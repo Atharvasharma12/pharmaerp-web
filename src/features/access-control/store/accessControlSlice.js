@@ -105,7 +105,6 @@ const accessControlSlice = createSlice({
       .addCase(getAvailablePermissions.fulfilled, (state, action) => {
         state.getAvailablePermissionsStatus = API_STATUS.SUCCESS;
         state.permissions = action.payload || [];
-        state.message = "Permissions fetched successfully";
       })
       .addCase(getAvailablePermissions.rejected, (state, action) => {
         state.getAvailablePermissionsStatus = API_STATUS.ERROR;
@@ -141,7 +140,6 @@ const accessControlSlice = createSlice({
       .addCase(getWorkspaceRoles.fulfilled, (state, action) => {
         state.getWorkspaceRolesStatus = API_STATUS.SUCCESS;
         state.roles = action.payload || [];
-        state.message = "Roles fetched successfully";
       })
       .addCase(getWorkspaceRoles.rejected, (state, action) => {
         state.getWorkspaceRolesStatus = API_STATUS.ERROR;
@@ -153,15 +151,11 @@ const accessControlSlice = createSlice({
         state.status = API_STATUS.LOADING;
         state.getRoleStatus = API_STATUS.LOADING;
         state.error = null;
-        state.message = null;
       })
       .addCase(getRoleById.fulfilled, (state, action) => {
         state.status = API_STATUS.SUCCESS;
         state.getRoleStatus = API_STATUS.SUCCESS;
-
         state.currentRole = action.payload || null;
-
-        state.message = "Role fetched successfully";
       })
       .addCase(getRoleById.rejected, (state, action) => {
         setRejected(state, action);
@@ -237,10 +231,7 @@ const accessControlSlice = createSlice({
       })
       .addCase(getWorkspaceMemberAccessList.fulfilled, (state, action) => {
         state.getWorkspaceMemberAccessListStatus = API_STATUS.SUCCESS;
-
         state.memberAccessList = action.payload || [];
-
-        state.message = "Member access list fetched successfully";
       })
       .addCase(getWorkspaceMemberAccessList.rejected, (state, action) => {
         state.getWorkspaceMemberAccessListStatus = API_STATUS.ERROR;
@@ -254,10 +245,7 @@ const accessControlSlice = createSlice({
       })
       .addCase(getMemberAccess.fulfilled, (state, action) => {
         state.getMemberAccessStatus = API_STATUS.SUCCESS;
-
         state.currentMemberAccess = action.payload || null;
-
-        state.message = "Member access fetched successfully";
       })
       .addCase(getMemberAccess.rejected, (state, action) => {
         state.getMemberAccessStatus = API_STATUS.ERROR;
@@ -293,10 +281,7 @@ const accessControlSlice = createSlice({
       })
       .addCase(checkCompanyAccess.fulfilled, (state, action) => {
         state.checkCompanyAccessStatus = API_STATUS.SUCCESS;
-
         state.companyAccessCheck = action.payload;
-
-        state.message = "Company access checked successfully";
       })
       .addCase(checkCompanyAccess.rejected, (state, action) => {
         state.checkCompanyAccessStatus = API_STATUS.ERROR;
@@ -310,10 +295,7 @@ const accessControlSlice = createSlice({
       })
       .addCase(checkBranchAccess.fulfilled, (state, action) => {
         state.checkBranchAccessStatus = API_STATUS.SUCCESS;
-
         state.branchAccessCheck = action.payload;
-
-        state.message = "Branch access checked successfully";
       })
       .addCase(checkBranchAccess.rejected, (state, action) => {
         state.checkBranchAccessStatus = API_STATUS.ERROR;

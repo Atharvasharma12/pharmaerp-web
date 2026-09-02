@@ -1,10 +1,8 @@
-﻿# Setup Center Flow Redesign - Task Tracker
+# Workspace Member Detail Page Simplification - Task Tracker
 
 | # | Task | File | Status |
 |---|------|------|--------|
-| 1 | Create SetupFlowHeader component | src/features/setup/components/SetupFlowHeader.jsx | [x] |
-| 2 | Create SetupStepInspector component | src/features/setup/components/SetupStepInspector.jsx | [x] |
-| 3 | Create SetupFlowCanvas component | src/features/setup/components/SetupFlowCanvas.jsx | [x] |
-| 4 | Refactor SetupCenterDesktopPage & SetupCenterPage | src/features/setup/pages/desktop/SetupCenterDesktopPage.jsx | [x] |
-| 5 | Refactor SetupCenterMobilePage with mobile stepped flow | src/features/setup/pages/mobile/SetupCenterMobilePage.jsx | [x] |
-| 6 | Verify build (npx vite build) & multi-device responsiveness | Multi-file | [x] |
+| 1 | Update Parent Page Controller (`WorkspaceMemberDetailsPage.jsx`) to provide verified backend fields and clean handlers | `src/features/workspace/pages/WorkspaceMemberDetailsPage.jsx` | [x] |
+| 2 | Redesign Desktop Surface (`WorkspaceMemberDetailsDesktopPage.jsx`): remove back button, remove activity chart, remove dummy fields, implement pure backend field cards | `src/features/workspace/pages/desktop/WorkspaceMemberDetailsDesktopPage.jsx` | [x] |
+| 3 | Redesign Mobile Surface (`WorkspaceMemberDetailsMobilePage.jsx`): remove back button, remove activity tab/chart, align with backend schema & 44px ergonomics | `src/features/workspace/pages/mobile/WorkspaceMemberDetailsMobilePage.jsx` | [x] |
+| 4 | Run Build & Quality Verification (`npm run build`) | `npm run build` | [x] |

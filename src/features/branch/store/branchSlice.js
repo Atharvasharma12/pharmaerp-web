@@ -7,6 +7,7 @@ import {
   getBranchById,
   updateBranch,
   deleteBranch,
+  getBranchEmployees,
 } from "./branchThunk";
 
 const initialState = {
@@ -14,6 +15,7 @@ const initialState = {
   workspaceBranches: [],
   currentBranch: null,
   managedBranch: null,
+  branchEmployees: {},
 
   status: API_STATUS.IDLE,
   error: null,
@@ -25,6 +27,7 @@ const initialState = {
   getBranchStatus: API_STATUS.IDLE,
   updateBranchStatus: API_STATUS.IDLE,
   deleteBranchStatus: API_STATUS.IDLE,
+  getBranchEmployeesStatus: {},
 };
 
 const branchSlice = createSlice({
@@ -46,6 +49,7 @@ const branchSlice = createSlice({
     clearBranches(state) {
       state.branches = [];
       state.workspaceBranches = [];
+      state.branchEmployees = {};
     },
     clearManagedBranch(state) {
       state.managedBranch = null;
@@ -82,7 +86,6 @@ const branchSlice = createSlice({
         state.getCompanyBranchesStatus = API_STATUS.SUCCESS;
         state.branches = Array.isArray(action.payload) ? action.payload : [];
         state.currentBranch = state.currentBranch || null;
-        state.message = "Branches fetched successfully";
       })
       .addCase(getCompanyBranches.rejected, (state, action) => {
         state.getCompanyBranchesStatus = API_STATUS.ERROR;
@@ -102,7 +105,6 @@ const branchSlice = createSlice({
           state.branches = list;
         }
         state.currentBranch = state.currentBranch || null;
-        state.message = "Workspace branches fetched successfully";
       })
       .addCase(getWorkspaceBranches.rejected, (state, action) => {
         state.getWorkspaceBranchesStatus = API_STATUS.ERROR;
@@ -117,7 +119,6 @@ const branchSlice = createSlice({
       .addCase(getBranchById.fulfilled, (state, action) => {
         state.getBranchStatus = API_STATUS.SUCCESS;
         state.managedBranch = action.payload || null;
-        state.message = "Branch fetched successfully";
       })
       .addCase(getBranchById.rejected, (state, action) => {
         state.getBranchStatus = API_STATUS.ERROR;
@@ -176,6 +177,23 @@ const branchSlice = createSlice({
       .addCase(deleteBranch.rejected, (state, action) => {
         state.deleteBranchStatus = API_STATUS.ERROR;
         state.error = action.payload || "Failed to delete branch";
+      })
+
+      // GET BRANCH EMPLOYEES
+      .addCase(getBranchEmployees.pending, (state, action) => {
+        const branchId = action.meta.arg;
+        state.getBranchEmployeesStatus[branchId] = API_STATUS.LOADING;
+      })
+      .addCase(getBranchEmployees.fulfilled, (state, action) => {
+        const { branchId, employees } = action.payload || {};
+        if (branchId) {
+          state.getBranchEmployeesStatus[branchId] = API_STATUS.SUCCESS;
+          state.branchEmployees[branchId] = employees || [];
+        }
+      })
+      .addCase(getBranchEmployees.rejected, (state, action) => {
+        const branchId = action.meta.arg;
+        state.getBranchEmployeesStatus[branchId] = API_STATUS.ERROR;
       });
   },
 });

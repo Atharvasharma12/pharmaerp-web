@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import {
   Plus,
-  Upload,
   Download,
   MoreHorizontal,
   Mail,
@@ -20,15 +19,17 @@ import {
   Eye,
   Building2,
   GitBranch,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants";
 import {
   UIButton,
-  UIIconButton,
   UISearchInput,
   UISelect,
   UIPagination,
+  UI_TOOLBAR_VIEWS,
   UIDropdown,
   UIDropdownTrigger,
   UIDropdownMenu,
@@ -37,7 +38,9 @@ import {
   UIEmptyState,
   UISkeleton,
   UIAlert,
+  PermissionGate,
 } from "@/components/ui";
+import { WorkspaceMembersTableView } from "../../components";
 import { cn } from "@/lib/utils";
 
 export default function WorkspaceMembersMobilePage({
@@ -49,6 +52,8 @@ export default function WorkspaceMembersMobilePage({
   activeFilterChips = [],
   statusOptions = [],
   roleOptions = [],
+  viewMode = UI_TOOLBAR_VIEWS.GRID,
+  onViewModeChange,
   isLoading,
   hasError,
   error,
@@ -67,6 +72,7 @@ export default function WorkspaceMembersMobilePage({
   handleFilterChange,
   handleSearchChange,
   handleClearFilters,
+  handleRefresh,
   handleInviteMember,
   handleViewInvitations,
   handleViewMemberDetails,
@@ -88,23 +94,12 @@ export default function WorkspaceMembersMobilePage({
     (stats.find((s) => s.id === "suspended")?.value || 0);
 
   // Condition to hide pagination when total records don't exceed single page
-  const shouldShowPagination = hasFilteredMembers && filteredMembersCount > pageSize;
+  const shouldShowPagination =
+    hasFilteredMembers && filteredMembersCount > pageSize;
 
   return (
     <div className="w-full bg-bg text-text p-2.5 sm:p-3 pb-16 space-y-2.5 max-w-[480px] mx-auto">
-      {/* Toast */}
-      {message && (
-        <div className="fixed top-3 left-3 right-3 z-50">
-          <UIAlert
-            intent="success"
-            title={message}
-            onClose={clearMessage}
-            className="shadow-md"
-          />
-        </div>
-      )}
-
-      {/* Error */}
+      {/* Global Error Banner */}
       {error && !hasError && (
         <UIAlert
           intent="danger"
@@ -157,7 +152,7 @@ export default function WorkspaceMembersMobilePage({
         </div>
       )}
 
-      {/* 1. Header Area with Minimal Padding */}
+      {/* ── 1. Header Area with Minimal Padding ── */}
       <div className="flex flex-col gap-2 pt-0.5">
         <div className="flex items-center justify-between">
           <div>
@@ -182,28 +177,36 @@ export default function WorkspaceMembersMobilePage({
             </div>
           </div>
 
-          <UIButton
-            type="button"
-            variant="primary"
-            size="sm"
-            startIcon={<Plus className="size-3.5" />}
-            onClick={handleInviteMember}
-          >
-            Add Member
-          </UIButton>
+          <PermissionGate permission="workspace-member:create">
+            <UIButton
+              type="button"
+              variant="primary"
+              size="sm"
+              startIcon={<Plus className="size-3.5" />}
+              onClick={handleInviteMember}
+            >
+              Add Member
+            </UIButton>
+          </PermissionGate>
         </div>
 
         {/* Action Toolbar */}
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-3 gap-1.5">
           <UIButton
             type="button"
             variant="outline"
             size="xs"
             fullWidth
-            startIcon={<Upload className="size-3.5 text-text-muted" />}
-            onClick={handleViewInvitations}
+            startIcon={
+              <RotateCcw
+                className={`size-3 text-text-muted ${
+                  isLoading ? "animate-spin" : ""
+                }`}
+              />
+            }
+            onClick={handleRefresh}
           >
-            Import
+            Refresh
           </UIButton>
 
           <UIButton
@@ -211,7 +214,18 @@ export default function WorkspaceMembersMobilePage({
             variant="outline"
             size="xs"
             fullWidth
-            startIcon={<Download className="size-3.5 text-text-muted" />}
+            startIcon={<Mail className="size-3 text-primary" />}
+            onClick={handleViewInvitations}
+          >
+            Invitations
+          </UIButton>
+
+          <UIButton
+            type="button"
+            variant="outline"
+            size="xs"
+            fullWidth
+            startIcon={<Download className="size-3 text-text-muted" />}
             onClick={handleExportCSV}
           >
             Export
@@ -219,15 +233,49 @@ export default function WorkspaceMembersMobilePage({
         </div>
       </div>
 
-      {/* 2. Compact Search & Filter Toolbar */}
+      {/* ── 2. Compact Search, Filter & View Switcher Toolbar ── */}
       <div className="bg-surface border border-border/60 rounded-xl p-2.5 shadow-2xs space-y-2">
-        <UISearchInput
-          placeholder="Search members..."
-          value={filters.search}
-          onChange={handleSearchChange}
-          onClear={() => handleSearchChange("")}
-          size="sm"
-        />
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <UISearchInput
+              placeholder="Search members..."
+              value={filters.search}
+              onChange={handleSearchChange}
+              onClear={() => handleSearchChange("")}
+              size="sm"
+            />
+          </div>
+
+          {/* Segmented View Switcher */}
+          <div className="flex items-center rounded-lg border border-border bg-surface-alt/60 p-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => onViewModeChange?.(UI_TOOLBAR_VIEWS.GRID)}
+              aria-label="Grid view"
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                viewMode === UI_TOOLBAR_VIEWS.GRID
+                  ? "bg-surface text-primary shadow-xs"
+                  : "text-text-muted hover:text-text"
+              )}
+            >
+              <LayoutGrid className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onViewModeChange?.(UI_TOOLBAR_VIEWS.LIST)}
+              aria-label="List view"
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                viewMode === UI_TOOLBAR_VIEWS.LIST
+                  ? "bg-surface text-primary shadow-xs"
+                  : "text-text-muted hover:text-text"
+              )}
+            >
+              <List className="size-4" />
+            </button>
+          </div>
+        </div>
 
         <div className="grid grid-cols-2 gap-2">
           <UISelect
@@ -261,13 +309,13 @@ export default function WorkspaceMembersMobilePage({
         )}
       </div>
 
-      {/* 3. Member Cards Stream with Company & Branch Access */}
+      {/* ── 3. Member Cards / Table Stream ── */}
       {isLoading && !hasMembers ? (
         <div className="space-y-2.5">
           {Array.from({ length: 3 }).map((_, idx) => (
             <div
               key={idx}
-              className="bg-surface rounded-2xl p-4 flex flex-col items-center space-y-2.5 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+              className="bg-surface rounded-2xl p-4 flex flex-col items-center space-y-2.5 shadow-xs border border-border"
             >
               <UISkeleton className="size-16 rounded-full" />
               <UISkeleton className="h-4 w-28 rounded" />
@@ -280,25 +328,27 @@ export default function WorkspaceMembersMobilePage({
           ))}
         </div>
       ) : !hasMembers ? (
-        <div className="py-8 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+        <div className="py-8 bg-surface rounded-2xl shadow-xs border border-border">
           <UIEmptyState
             icon={<Users className="size-8 text-primary" />}
-            title="No members yet"
-            description="Invite team members to collaborate in this workspace."
+            title="No workspace members yet"
+            description="Start building your pharmacy team roster by adding or inviting members."
             primaryAction={
-              <UIButton
-                variant="primary"
-                size="sm"
-                startIcon={<Plus className="size-3.5" />}
-                onClick={handleInviteMember}
-              >
-                Add Member
-              </UIButton>
+              <PermissionGate permission="workspace-member:create">
+                <UIButton
+                  variant="primary"
+                  size="sm"
+                  startIcon={<Plus className="size-3.5" />}
+                  onClick={handleInviteMember}
+                >
+                  Add Member
+                </UIButton>
+              </PermissionGate>
             }
           />
         </div>
       ) : !hasFilteredMembers ? (
-        <div className="py-8 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+        <div className="py-8 bg-surface rounded-2xl shadow-xs border border-border">
           <UIEmptyState
             icon={<Search className="size-8 text-text-muted" />}
             title="No matching members"
@@ -310,6 +360,15 @@ export default function WorkspaceMembersMobilePage({
             }
           />
         </div>
+      ) : viewMode === UI_TOOLBAR_VIEWS.LIST ? (
+        <WorkspaceMembersTableView
+          members={paginatedMembers}
+          onViewDetails={handleViewMemberDetails}
+          onChangeStatus={handleChangeMemberStatus}
+          onRemove={handleRemoveMember}
+          onManageAccess={handleManageAccess}
+          onResetPassword={handleOpenResetPassword}
+        />
       ) : (
         <div className="space-y-2.5">
           {paginatedMembers.map((member) => {
@@ -317,7 +376,7 @@ export default function WorkspaceMembersMobilePage({
             const hasAnyDropdownOpen = activeDropdownMemberId !== null;
 
             return (
-              <MobileMemberCard
+              <MemberCard
                 key={member._id}
                 member={member}
                 isDropdownOpen={isDropdownOpen}
@@ -356,9 +415,9 @@ export default function WorkspaceMembersMobilePage({
         </div>
       )}
 
-      {/* 4. Bottom Pagination (Shown ONLY when records exceed page size) */}
+      {/* ── 4. Bottom Pagination ── */}
       {shouldShowPagination && (
-        <div className="bg-surface rounded-xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] overflow-hidden">
+        <div className="bg-surface rounded-xl shadow-xs border border-border overflow-hidden">
           <UIPagination
             page={currentPage}
             totalPages={totalPages}
@@ -376,7 +435,11 @@ export default function WorkspaceMembersMobilePage({
   );
 }
 
-function MobileMemberCard({
+/**
+ * Mobile MemberCard Component
+ * - Distinct high contrast bottom card section
+ */
+function MemberCard({
   member,
   isDropdownOpen,
   hasAnyDropdownOpen,
@@ -412,7 +475,6 @@ function MobileMemberCard({
       .join("");
   };
 
-  // Company and Branch Access counts / labels
   const companyAccessLabel = isOwner
     ? "All Companies"
     : member?.accessAllCompanies
@@ -441,17 +503,17 @@ function MobileMemberCard({
     <div
       onClick={onCardClick}
       className={cn(
-        "bg-surface rounded-2xl shadow-xs transition-all duration-150 flex flex-col relative border-0",
+        "bg-surface rounded-2xl shadow-xs transition-all duration-150 flex flex-col relative border border-border overflow-hidden cursor-pointer active:scale-[0.99]",
         isDropdownOpen
-          ? "z-50 ring-2 ring-primary/40 shadow-lg"
+          ? "z-50 ring-2 ring-primary/40 shadow-xl"
           : hasAnyDropdownOpen
-          ? "z-0 ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
-          : "z-10 ring-1 ring-black/[0.04] dark:ring-white/[0.06] hover:z-20 hover:ring-primary/40 hover:shadow-xs cursor-pointer active:scale-[0.99]"
+          ? "z-0"
+          : "z-10 hover:border-border-strong hover:shadow-md group"
       )}
     >
-      {/* Top Section (bg-surface, rounded-t-2xl) */}
-      <div className="bg-surface p-3.5 pt-3 relative flex flex-col items-center text-center rounded-t-2xl">
-        {/* Enlarged Three-Dots Menu (z-50, non-clipping) */}
+      {/* Top Section */}
+      <div className="bg-surface p-3.5 pt-3 relative flex flex-col items-center text-center">
+        {/* Three-Dots Menu */}
         <div
           className="absolute top-2.5 right-2.5 z-50"
           onClick={(e) => e.stopPropagation()}
@@ -461,6 +523,7 @@ function MobileMemberCard({
             onOpenChange={onDropdownOpenChange}
             align="right"
             placement="bottom"
+            usePortal={true}
           >
             <UIDropdownTrigger asChild>
               <button
@@ -493,7 +556,7 @@ function MobileMemberCard({
                   onManageAccess?.(member);
                 }}
               >
-                Access & Roles
+                Manage Access
               </UIDropdownItem>
               <UIDropdownItem
                 icon={<Key className="size-4" />}
@@ -591,41 +654,41 @@ function MobileMemberCard({
         </div>
       </div>
 
-      {/* Shaded Bottom Section: Company & Branch Metadata */}
-      <div className="bg-surface-alt/75 border-t border-border/30 p-3 space-y-1.5 text-left rounded-b-2xl">
-        {/* 2-Column Metadata Grid */}
+      {/* Bottom Section: Theme-Native Elevated Strip (Adapts cleanly to all color themes and dark mode) */}
+      <div className="bg-surface-alt/60 border-t border-border/70 p-3 space-y-2 text-left">
+        {/* 2-Column Metadata Grid: Company & Branch Tiles */}
         <div className="w-full grid grid-cols-2 gap-2 text-left">
-          <div className="min-w-0 pr-1">
-            <span className="block text-[10px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
-              <Building2 className="size-3 text-text-muted/70 shrink-0" />
+          <div className="rounded-xl bg-surface/90 border border-border/70 p-2 shadow-2xs transition-colors">
+            <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
+              <Building2 className="size-3 text-primary shrink-0" />
               Companies
             </span>
-            <span className="block text-xs font-semibold text-text truncate mt-0.5">
+            <span className="block text-xs font-bold text-text truncate mt-0.5">
               {companyAccessLabel}
             </span>
           </div>
 
-          <div className="min-w-0 pl-1">
-            <span className="block text-[10px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
-              <GitBranch className="size-3 text-text-muted/70 shrink-0" />
+          <div className="rounded-xl bg-surface/90 border border-border/70 p-2 shadow-2xs transition-colors">
+            <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
+              <GitBranch className="size-3 text-primary shrink-0" />
               Branches
             </span>
-            <span className="block text-xs font-semibold text-text font-mono tabular-nums mt-0.5 truncate">
+            <span className="block text-xs font-bold text-text truncate mt-0.5">
               {branchAccessLabel}
             </span>
           </div>
         </div>
 
         {/* Contact Details List */}
-        <div className="w-full space-y-1 pt-1 border-t border-border/30 text-left">
-          <div className="flex items-center gap-2 text-xs text-text-muted truncate">
+        <div className="w-full space-y-1 pt-1.5 border-t border-border/60 text-left">
+          <div className="flex items-center gap-2 text-xs text-text-muted hover:text-text truncate transition-colors">
             <Mail className="size-3.5 shrink-0 text-text-muted" />
-            <span className="truncate">{member.displayEmail || "-"}</span>
+            <span className="truncate font-medium">{member.displayEmail || "-"}</span>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-text-muted truncate">
+          <div className="flex items-center gap-2 text-xs text-text-muted hover:text-text truncate transition-colors">
             <Phone className="size-3.5 shrink-0 text-text-muted" />
-            <span className="font-mono tabular-nums truncate">
+            <span className="font-mono tabular-nums font-medium truncate">
               {member.displayPhone || "-"}
             </span>
           </div>

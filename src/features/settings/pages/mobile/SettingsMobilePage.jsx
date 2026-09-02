@@ -13,13 +13,22 @@ import SecurityTab from "../../components/tabs/SecurityTab";
 import BillingTab from "../../components/tabs/BillingTab";
 import IntegrationsTab from "../../components/tabs/IntegrationsTab";
 
-const SettingsMobilePage = ({ activeTab = "profile", onTabChange }) => {
+const SettingsMobilePage = ({
+  activeTab = "profile",
+  onTabChange,
+  isSetupComplete = true,
+}) => {
   const { can } = usePermission();
 
-  // Filter visible tabs based on user permissions
+  // Filter visible tabs based on user permissions and setup completion
   const visibleTabs = useMemo(
-    () => SETTINGS_TABS.filter((t) => !t.permission || can(t.permission)),
-    [can]
+    () =>
+      SETTINGS_TABS.filter((t) => {
+        if (t.requireSetup && !isSetupComplete) return false;
+        if (t.permission && !can(t.permission)) return false;
+        return true;
+      }),
+    [can, isSetupComplete]
   );
 
   const renderTabContent = () => {
@@ -46,7 +55,7 @@ const SettingsMobilePage = ({ activeTab = "profile", onTabChange }) => {
       <div className="w-full space-y-3.5">
         <UIPageHeader
           title="Settings"
-          description="Manage your profile, theme, and store preferences."
+          description="Manage your profile, theme, and account preferences."
           bordered={false}
           compact={true}
           className="pb-0 pt-0"

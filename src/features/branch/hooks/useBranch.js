@@ -8,6 +8,7 @@ import {
   getBranchById,
   updateBranch,
   deleteBranch,
+  getBranchEmployees,
 } from "../store/branchThunk";
 
 import {
@@ -24,6 +25,7 @@ import {
   selectWorkspaceBranches,
   selectCurrentBranch,
   selectManagedBranch,
+  selectBranchEmployees,
   selectBranchStatus,
   selectBranchError,
   selectBranchMessage,
@@ -42,6 +44,7 @@ const useBranch = () => {
   const workspaceBranches = useSelector(selectWorkspaceBranches);
   const currentBranch = useSelector(selectCurrentBranch);
   const managedBranch = useSelector(selectManagedBranch);
+  const branchEmployees = useSelector(selectBranchEmployees);
 
   const status = useSelector(selectBranchStatus);
   const error = useSelector(selectBranchError);
@@ -92,6 +95,11 @@ const useBranch = () => {
     [dispatch],
   );
 
+  const fetchBranchEmployees = useCallback(
+    (branchId) => dispatch(getBranchEmployees(branchId)).unwrap(),
+    [dispatch],
+  );
+
   const clearError = useCallback(() => {
     dispatch(clearBranchError());
   }, [dispatch]);
@@ -120,7 +128,8 @@ const useBranch = () => {
     branches,
     workspaceBranches,
     currentBranch,
-    managedBranch, // Exposed management state
+    managedBranch,
+    branchEmployees,
 
     status,
     error,
@@ -139,6 +148,7 @@ const useBranch = () => {
     getBranchById: fetchBranchById,
     updateBranch: submitUpdateBranch,
     deleteBranch: submitDeleteBranch,
+    getBranchEmployees: fetchBranchEmployees,
 
     clearError,
     clearMessage,
@@ -146,7 +156,7 @@ const useBranch = () => {
     setCurrentBranch: saveCurrentBranch,
     clearCurrentBranch: removeCurrentBranch,
     clearBranches: removeBranches,
-    clearManagedBranch: removeManagedBranch, // Clean-up handler for pages
+    clearManagedBranch: removeManagedBranch,
   };
 };
 

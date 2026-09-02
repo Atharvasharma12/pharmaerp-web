@@ -60,7 +60,7 @@ const DesktopWorkflowSection = () => {
   ];
 
   return (
-    <section className="w-full bg-bg py-10">
+    <section id="workflow" className="w-full bg-bg py-10 scroll-mt-20">
       <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
         <div className="mx-auto max-w-4xl text-center">
           <AppBadge

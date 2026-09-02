@@ -64,8 +64,18 @@ const LoginPage = () => {
     }
 
     try {
-      await login(payload);
-      navigate(ROUTES.SETUP_CENTER, { replace: true });
+      const result = await login(payload);
+      const isComplete = Boolean(
+        (result?.user?.activeContext?.companyId && result?.user?.activeContext?.branchId) ||
+        result?.setupStatus?.isComplete ||
+        result?.setupStatus?.progress?.percentage === 100
+      );
+
+      if (isComplete) {
+        navigate(ROUTES.DASHBOARD, { replace: true });
+      } else {
+        navigate(ROUTES.SETUP_CENTER, { replace: true });
+      }
     } catch {
       // Error handled in auth state
     }

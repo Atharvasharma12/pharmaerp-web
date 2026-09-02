@@ -8,7 +8,14 @@ import {
   AppLayout,
 } from "@/layouts";
 
-import { GuestRoute, ProtectedRoute, WorkspaceRequiredRoute, PermissionGuard } from "@/guards";
+import {
+  GuestRoute,
+  ProtectedRoute,
+  WorkspaceRequiredRoute,
+  PermissionGuard,
+  SetupCenterGuard,
+  CompanyRequiredGuard,
+} from "@/guards";
 
 import authRoutes from "@/features/auth/routes/authRoutes";
 import userRoutes from "@/features/user/routes/userRoutes";
@@ -18,7 +25,7 @@ import workspaceRoutes from "@/features/workspace/routes/workspaceRoutes";
 import setupRoutes from "@/features/setup/routes/setupRoutes";
 import dashboardRoutes from "@/features/dashboard/routes/dashboardRoutes";
 
-import companyRoutes from "@/features/company/routes/companyRoutes";
+import { createCompanyRoutes, existingCompanyRoutes } from "@/features/company/routes/companyRoutes";
 import branchRoutes from "@/features/branch/routes/branchRoutes";
 import accessControlRoutes from "@/features/access-control/routes/accessControlRoutes";
 import catalogRoutes from "@/features/catalog/routes/catalogRoutes";
@@ -168,10 +175,6 @@ export const router = createBrowserRouter([
         element: <HomePage />,
       },
       {
-        path: "/help-center",
-        element: <HomePage />,
-      },
-      {
         path: "/privacy-policy",
         element: <HomePage />,
       },
@@ -206,17 +209,7 @@ export const router = createBrowserRouter([
     element: <AcceptInvitationPage />,
   },
 
-  // Setup + User
-  {
-    element: (
-      <ProtectedRoute>
-        <AppLayout />
-      </ProtectedRoute>
-    ),
-    children: [...setupRoutes, ...userRoutes, ...settingsRoutes],
-  },
-
-  // ERP Application
+  // Protected ERP Application & Setup Onboarding
   {
     element: (
       <ProtectedRoute>
@@ -226,200 +219,211 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      ...dashboardRoutes,
+      // ── Step 1 & Core Essentials (Always accessible once workspace exists) ──
+      ...setupRoutes,
+      ...userRoutes,
       ...settingsRoutes,
-
-      // Organization & Members
-      ...guardRouteList(workspaceRoutes, "workspace", {
-        [ROUTES.WORKSPACE_MEMBERS]: "workspace-member:view",
-        "/members/:memberId": "workspace-member:view",
-        [ROUTES.WORKSPACE_INVITATIONS]: "workspace-member:view",
-        [ROUTES.INVITE_WORKSPACE_MEMBER]: "workspace-member:create",
-      }),
-      ...guardRouteList(companyRoutes, "company"),
-      ...guardRouteList(branchRoutes, "branch"),
-
-      // Access Control
-      ...guardRouteList(accessControlRoutes, "role", {
-        [ROUTES.ASSIGN_ROLE]: "member-access:update",
-        [ROUTES.EDIT_ACCESS]: "member-access:update",
-        [ROUTES.MEMBER_ACCESS]: "role:view",
-        [ROUTES.ASSIGN_ACCESS]: "role:view",
-      }),
-
-      // Parties
-      ...partiesRoutes.map((route) => ({
-        ...route,
-        element: (
-          <PermissionGuard permissions={["customer:view", "supplier:view"]}>
-            {route.element}
-          </PermissionGuard>
-        ),
-      })),
-      ...guardRouteList(customerRoutes, "customer"),
-      ...guardRouteList(supplierRoutes, "supplier"),
-
-      // Subscriptions
-      ...subscriptionRoutes.map((route) => ({
-        ...route,
-        element: (
-          <PermissionGuard permission="subscription:view">
-            {route.element}
-          </PermissionGuard>
-        ),
-      })),
-
-      // Finance & Chart of Accounts
-      ...financeRoutes.map((route) => ({
-        ...route,
-        element: (
-          <PermissionGuard
-            permissions={[
-              "account:view",
-              "journal-voucher:view",
-              "ledger:view",
-              "report:view",
-            ]}
-          >
-            {route.element}
-          </PermissionGuard>
-        ),
-      })),
-      ...chartOfAccountsRoutes.map((route) => ({
-        ...route,
-        element: (
-          <PermissionGuard
-            permissions={[
-              "account:view",
-              "account-group:view",
-              "account-balance:view",
-            ]}
-          >
-            {route.element}
-          </PermissionGuard>
-        ),
-      })),
-      ...guardRouteList(accountRoutes, "account"),
-      ...guardRouteList(accountGroupRoutes, "account-group"),
-      ...accountBalanceRoutes.map((route) => ({
-        ...route,
-        element: (
-          <PermissionGuard permission="account-balance:view">
-            {route.element}
-          </PermissionGuard>
-        ),
-      })),
-      ...guardRouteList(financialPeriodRoutes, "financial-period"),
-      ...guardRouteList(journalVoucherRoutes, "journal-voucher"),
-      ...ledgerRoutes.map((route) => ({
-        ...route,
-        element: (
-          <PermissionGuard permission="ledger:view">
-            {route.element}
-          </PermissionGuard>
-        ),
-      })),
-      ...reportsRoutes.map((route) => ({
-        ...route,
-        element: (
-          <PermissionGuard permission="report:view">
-            {route.element}
-          </PermissionGuard>
-        ),
-      })),
-
-      // Treasury
-      ...treasuryRoutes.map((route) => ({
-        ...route,
-        element: (
-          <PermissionGuard
-            permissions={[
-              "bank-account:view",
-              "cash-account:view",
-              "fund-transfer:view",
-              "cheque:view",
-              "payment-qr:view",
-              "bank-slip:view",
-              "cash-denomination:view",
-            ]}
-          >
-            {route.element}
-          </PermissionGuard>
-        ),
-      })),
-      ...guardRouteList(bankAccountRoutes, "bank-account"),
-      ...guardRouteList(cashAccountRoutes, "cash-account"),
-      ...guardRouteList(fundTransferRoutes, "fund-transfer"),
-      ...guardRouteList(chequeRoutes, "cheque"),
-      ...guardRouteList(paymentQrRoutes, "payment-qr"),
-      ...guardRouteList(bankSlipRoutes, "bank-slip"),
-      ...bankTransactionRoutes.map((route) => ({
-        ...route,
-        element: (
-          <PermissionGuard permission="bank-transaction:view">
-            {route.element}
-          </PermissionGuard>
-        ),
-      })),
-      ...cashTransactionRoutes.map((route) => ({
-        ...route,
-        element: (
-          <PermissionGuard permission="cash-transaction:view">
-            {route.element}
-          </PermissionGuard>
-        ),
-      })),
-      ...guardRouteList(cashDenominationRoutes, "cash-denomination"),
-
-      // Inventory & Catalog
-      ...catalogRoutes.map((route) => ({
-        ...route,
-        element: (
-          <PermissionGuard
-            permissions={[
-              "product:view",
-              "global-product:view",
-              "category:view",
-              "hsn:view",
-              "manufacturer:view",
-              "salt:view",
-              "uom:view",
-              "product-form:view",
-              "bank-master:view",
-            ]}
-          >
-            {route.element}
-          </PermissionGuard>
-        ),
-      })),
-      ...guardRouteList(workspaceProductRoutes, "product"),
-      ...globalProductRoutes.map((route) => ({
-        ...route,
-        element: (
-          <PermissionGuard permission="global-product:view">
-            {route.element}
-          </PermissionGuard>
-        ),
-      })),
-      ...guardRouteList(hsnMasterRoutes, "hsn"),
-      ...guardRouteList(manufacturerMasterRoutes, "manufacturer"),
-      ...guardRouteList(uomMasterRoutes, "uom"),
-      ...guardRouteList(categoryMasterRoutes, "category"),
-      ...guardRouteList(productFormMasterRoutes, "product-form"),
-      ...guardRouteList(saltMasterRoutes, "salt"),
-      ...guardRouteList(bankMasterRoutes, "bank-master"),
-
-      // Marketplace
-      ...guardRouteList(marketplaceStoreRoutes, "marketplace-store"),
-      ...guardRouteList(marketplaceProductRoutes, "marketplace-product"),
-
-      // Sales & POS, Invoicing & Purchases
-      ...guardRouteList(salesRoutes, "pos"),
-      ...guardRouteList(billingRoutes, "bill"),
-      ...guardRouteList(purchasesRoutes, "purchase"),
-
-      // Help Center
       ...helpCenterRoutes,
+      ...guardRouteList(createCompanyRoutes, "company"),
+
+      // ── Guarded by CompanyRequiredGuard (Requires Step 1 Company to be created) ──
+      {
+        element: <CompanyRequiredGuard />,
+        children: [
+          ...guardRouteList(existingCompanyRoutes, "company"),
+          ...guardRouteList(branchRoutes, "branch"),
+        ],
+      },
+
+      // ── Guarded Operational Application (Requires 100% Setup Complete) ──
+      {
+        element: <SetupCenterGuard />,
+        children: [
+          ...dashboardRoutes,
+
+          // Organization & Members
+          ...guardRouteList(workspaceRoutes, "workspace", {
+            [ROUTES.WORKSPACE_MEMBERS]: "workspace-member:view",
+            "/members/:memberId": "workspace-member:view",
+            [ROUTES.WORKSPACE_INVITATIONS]: "workspace-member:view",
+            [ROUTES.INVITE_WORKSPACE_MEMBER]: "workspace-member:create",
+          }),
+
+          // Roles & Permissions
+          ...guardRouteList(accessControlRoutes, "role"),
+
+          // Parties
+          ...partiesRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard permissions={["customer:view", "supplier:view"]}>
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+          ...guardRouteList(customerRoutes, "customer"),
+          ...guardRouteList(supplierRoutes, "supplier"),
+
+          // Subscriptions
+          ...subscriptionRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard permission="subscription:view">
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+
+          // Finance & Chart of Accounts
+          ...financeRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard
+                permissions={[
+                  "account:view",
+                  "journal-voucher:view",
+                  "ledger:view",
+                  "report:view",
+                ]}
+              >
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+          ...chartOfAccountsRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard
+                permissions={[
+                  "account:view",
+                  "account-group:view",
+                  "account-balance:view",
+                ]}
+              >
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+          ...guardRouteList(accountRoutes, "account"),
+          ...guardRouteList(accountGroupRoutes, "account-group"),
+          ...accountBalanceRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard permission="account-balance:view">
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+          ...guardRouteList(financialPeriodRoutes, "financial-period"),
+          ...guardRouteList(journalVoucherRoutes, "journal-voucher"),
+          ...ledgerRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard permission="ledger:view">
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+          ...reportsRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard permission="report:view">
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+
+          // Treasury
+          ...treasuryRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard
+                permissions={[
+                  "bank-account:view",
+                  "cash-account:view",
+                  "fund-transfer:view",
+                  "cheque:view",
+                  "payment-qr:view",
+                  "bank-slip:view",
+                  "cash-denomination:view",
+                ]}
+              >
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+          ...guardRouteList(bankAccountRoutes, "bank-account"),
+          ...guardRouteList(cashAccountRoutes, "cash-account"),
+          ...guardRouteList(fundTransferRoutes, "fund-transfer"),
+          ...guardRouteList(chequeRoutes, "cheque"),
+          ...guardRouteList(paymentQrRoutes, "payment-qr"),
+          ...guardRouteList(bankSlipRoutes, "bank-slip"),
+          ...bankTransactionRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard permission="bank-transaction:view">
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+          ...cashTransactionRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard permission="cash-transaction:view">
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+          ...guardRouteList(cashDenominationRoutes, "cash-denomination"),
+
+          // Inventory & Catalog
+          ...catalogRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard
+                permissions={[
+                  "product:view",
+                  "global-product:view",
+                  "category:view",
+                  "hsn:view",
+                  "manufacturer:view",
+                  "salt:view",
+                  "uom:view",
+                  "product-form:view",
+                  "bank-master:view",
+                ]}
+              >
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+          ...guardRouteList(workspaceProductRoutes, "product"),
+          ...globalProductRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard permission="global-product:view">
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+          ...guardRouteList(hsnMasterRoutes, "hsn"),
+          ...guardRouteList(manufacturerMasterRoutes, "manufacturer"),
+          ...guardRouteList(uomMasterRoutes, "uom"),
+          ...guardRouteList(categoryMasterRoutes, "category"),
+          ...guardRouteList(productFormMasterRoutes, "product-form"),
+          ...guardRouteList(saltMasterRoutes, "salt"),
+          ...guardRouteList(bankMasterRoutes, "bank-master"),
+
+          // Marketplace
+          ...guardRouteList(marketplaceStoreRoutes, "marketplace-store"),
+          ...guardRouteList(marketplaceProductRoutes, "marketplace-product"),
+
+          // Sales & POS, Invoicing & Purchases
+          ...guardRouteList(salesRoutes, "pos"),
+          ...guardRouteList(billingRoutes, "bill"),
+          ...guardRouteList(purchasesRoutes, "purchase"),
+        ],
+      },
     ],
   },
 

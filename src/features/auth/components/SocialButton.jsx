@@ -39,7 +39,7 @@ const SocialButton = ({
       fullWidth={fullWidth}
       startIcon={<GoogleIcon />}
       className={cn(
-        "h-[46px] rounded-[8px] px-4 text-sm font-semibold shadow-[var(--app-shadow-xs)] hover:shadow-[var(--app-shadow-sm)] gap-2.5",
+        "h-[42px] rounded-[8px] px-4 text-sm font-semibold shadow-[var(--app-shadow-xs)] hover:shadow-[var(--app-shadow-sm)] gap-2.5",
         className
       )}
     >

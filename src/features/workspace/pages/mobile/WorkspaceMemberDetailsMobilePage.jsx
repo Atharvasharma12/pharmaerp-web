@@ -2,27 +2,32 @@
 
 import React, { useState } from "react";
 import {
-  ArrowLeft,
   Mail,
   Phone,
   Calendar,
   Clock,
   Key,
-  Settings,
+  Shield,
   UserCheck,
   UserMinus,
   Building2,
   GitBranch,
-  ChevronRight,
+  Settings,
   Copy,
   Check,
-  Activity,
-  Store,
+  CheckCircle2,
+  User,
+  MoreVertical,
 } from "lucide-react";
 import {
   UIButton,
   UIBadge,
   UISkeleton,
+  UIDropdown,
+  UIDropdownTrigger,
+  UIDropdownMenu,
+  UIDropdownItem,
+  UIDropdownDivider,
   uiToast,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -32,25 +37,30 @@ export default function WorkspaceMemberDetailsMobilePage({
   user,
   displayName,
   displayEmail,
+  emailVerified,
   displayPhone,
+  phoneVerified,
   displayRole,
+  roleDescription,
   userCode,
   isOwner,
+  isPrimary,
   status,
   joinedDate,
   lastActiveFormatted,
+  notes,
+  joinedViaInvitationId,
   assignedCompanies = [],
   assignedBranches = [],
   accessSummary,
   isLoading,
-  onBack,
   onOpenResetPassword,
   onOpenAssignRole,
   onOpenAccessModal,
   onToggleStatus,
   onRemoveMember,
 }) {
-  const [activeTab, setActiveTab] = useState("overview"); // overview, activity, access
+  const [activeTab, setActiveTab] = useState("overview"); // overview, role, access
   const [copiedKey, setCopiedKey] = useState(null);
 
   const copyToClipboard = (text, key, label) => {
@@ -73,11 +83,7 @@ export default function WorkspaceMemberDetailsMobilePage({
 
   if (isLoading && !member) {
     return (
-      <div className="min-h-screen bg-bg text-text p-3 space-y-4 pb-20">
-        <div className="flex items-center gap-3">
-          <UISkeleton className="h-9 w-9 rounded-lg" />
-          <UISkeleton className="h-6 w-36 rounded" />
-        </div>
+      <div className="min-h-screen bg-bg text-text p-3 space-y-4 pb-24">
         <UISkeleton className="h-56 rounded-2xl" />
         <UISkeleton className="h-44 rounded-2xl" />
         <UISkeleton className="h-44 rounded-2xl" />
@@ -86,45 +92,99 @@ export default function WorkspaceMemberDetailsMobilePage({
   }
 
   return (
-    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 space-y-3.5 pb-24 max-w-lg mx-auto">
-      {/* 1. Top Bar */}
-      <div className="flex items-center justify-between gap-2 pt-1">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <UIButton
-            variant="outline"
-            size="sm"
-            startIcon={<ArrowLeft className="size-4" />}
-            onClick={onBack}
-            className="min-h-[40px] min-w-[40px] p-0 flex items-center justify-center"
-            aria-label="Back to members"
-          />
-          <div className="min-w-0">
-            <h1 className="text-base font-bold text-text truncate">
-              {displayName}
-            </h1>
-            <p className="text-[11px] text-text-muted truncate">
-              {displayRole}
-            </p>
+    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 space-y-3.5 pb-28 max-w-lg mx-auto">
+      {/* 1. Mobile Profile Hero Card with Top Corner Badges & Actions Dropdown */}
+      <div className="bg-surface rounded-2xl p-4.5 relative flex flex-col items-center text-center space-y-3 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+        {/* Top Row: Badges (Left) & Actions Menu (Right) */}
+        <div className="w-full flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <UIBadge
+              variant="soft"
+              color={
+                status === "active"
+                  ? "success"
+                  : status === "suspended"
+                  ? "error"
+                  : "warning"
+              }
+              size="xs"
+            >
+              <span className="capitalize">{status}</span>
+            </UIBadge>
+
+            {isOwner && (
+              <UIBadge variant="soft" color="primary" size="xs">
+                Owner
+              </UIBadge>
+            )}
           </div>
+
+          {/* Action Menu Dropdown */}
+          <UIDropdown align="right" placement="bottom">
+            <UIDropdownTrigger asChild>
+              <button
+                type="button"
+                className="size-8 rounded-xl bg-surface-alt hover:bg-surface-hover text-text-muted hover:text-text flex items-center justify-center transition-all border border-border/40 cursor-pointer active:scale-95"
+                title="Member Actions"
+                aria-label="Member Actions"
+              >
+                <MoreVertical className="size-4" />
+              </button>
+            </UIDropdownTrigger>
+            <UIDropdownMenu width="w-52">
+              <UIDropdownItem
+                icon={<Key className="size-4" />}
+                onClick={onOpenResetPassword}
+                disabled={isOwner}
+              >
+                Reset Password
+              </UIDropdownItem>
+              <UIDropdownItem
+                icon={<Shield className="size-4" />}
+                onClick={onOpenAssignRole}
+                disabled={isOwner}
+              >
+                Change Role
+              </UIDropdownItem>
+              <UIDropdownItem
+                icon={<Settings className="size-4" />}
+                onClick={onOpenAccessModal}
+                disabled={isOwner}
+              >
+                Manage Access
+              </UIDropdownItem>
+              <UIDropdownDivider />
+              {status === "active" ? (
+                <UIDropdownItem
+                  icon={<Clock className="size-4 text-warning" />}
+                  onClick={() => onToggleStatus("inactive")}
+                  disabled={isOwner}
+                >
+                  Deactivate Member
+                </UIDropdownItem>
+              ) : (
+                <UIDropdownItem
+                  icon={<UserCheck className="size-4 text-success" />}
+                  onClick={() => onToggleStatus("active")}
+                  disabled={isOwner}
+                >
+                  Activate Member
+                </UIDropdownItem>
+              )}
+              <UIDropdownItem
+                icon={<UserMinus className="size-4" />}
+                destructive
+                onClick={onRemoveMember}
+                disabled={isOwner}
+              >
+                Remove Member
+              </UIDropdownItem>
+            </UIDropdownMenu>
+          </UIDropdown>
         </div>
 
-        <UIBadge
-          variant="soft"
-          color={
-            status === "active"
-              ? "success"
-              : status === "suspended"
-              ? "error"
-              : "warning"
-          }
-        >
-          <span className="capitalize">{status}</span>
-        </UIBadge>
-      </div>
-
-      {/* 2. Mobile Profile Hero Card */}
-      <div className="bg-surface rounded-2xl p-4.5 flex flex-col items-center text-center space-y-3 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-        <div className="relative">
+        {/* Circular Avatar */}
+        <div className="relative mt-0.5">
           {user?.avatar?.url ? (
             <img
               src={user.avatar.url}
@@ -149,9 +209,9 @@ export default function WorkspaceMemberDetailsMobilePage({
         </div>
 
         <div className="space-y-0.5">
-          <h2 className="text-base font-bold text-text tracking-tight">
+          <h1 className="text-base font-bold text-text tracking-tight">
             {displayName}
-          </h2>
+          </h1>
           <p className="text-xs text-text-muted font-medium">
             {displayRole} • Joined {joinedDate}
           </p>
@@ -164,17 +224,17 @@ export default function WorkspaceMemberDetailsMobilePage({
           )}
         </div>
 
-        {/* Action Buttons: 3 Round Buttons */}
-        <div className="flex items-center justify-center gap-3 pt-1 w-full">
+        {/* Quick Contact Action Buttons */}
+        <div className="flex items-center justify-center gap-2 pt-1 w-full">
           <button
             type="button"
             onClick={() => copyToClipboard(displayEmail, "m_email", "Email")}
-            className="flex-1 py-2 px-3 rounded-xl bg-surface-alt hover:bg-surface-hover flex items-center justify-center gap-2 text-xs font-semibold text-text border border-border/40 active:scale-95 transition-all min-h-[44px]"
+            className="flex-1 py-2 px-3 rounded-xl bg-surface-alt hover:bg-surface-hover flex items-center justify-center gap-1.5 text-xs font-semibold text-text border border-border/40 active:scale-95 transition-all min-h-[44px]"
           >
             {copiedKey === "m_email" ? (
-              <Check className="size-4 text-success" />
+              <Check className="size-3.5 text-success" />
             ) : (
-              <Mail className="size-4 text-text-muted" />
+              <Mail className="size-3.5 text-text-muted" />
             )}
             <span>Email</span>
           </button>
@@ -182,34 +242,24 @@ export default function WorkspaceMemberDetailsMobilePage({
           <button
             type="button"
             onClick={() => copyToClipboard(displayPhone, "m_phone", "Phone")}
-            className="flex-1 py-2 px-3 rounded-xl bg-surface-alt hover:bg-surface-hover flex items-center justify-center gap-2 text-xs font-semibold text-text border border-border/40 active:scale-95 transition-all min-h-[44px]"
+            className="flex-1 py-2 px-3 rounded-xl bg-surface-alt hover:bg-surface-hover flex items-center justify-center gap-1.5 text-xs font-semibold text-text border border-border/40 active:scale-95 transition-all min-h-[44px]"
           >
             {copiedKey === "m_phone" ? (
-              <Check className="size-4 text-success" />
+              <Check className="size-3.5 text-success" />
             ) : (
-              <Phone className="size-4 text-text-muted" />
+              <Phone className="size-3.5 text-text-muted" />
             )}
             <span>Call</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenResetPassword}
-            disabled={isOwner}
-            className="py-2 px-3 rounded-xl bg-surface-alt hover:bg-surface-hover flex items-center justify-center text-xs font-semibold text-text border border-border/40 active:scale-95 transition-all min-h-[44px] disabled:opacity-40"
-            title="Reset Password"
-          >
-            <Key className="size-4 text-text-muted" />
           </button>
         </div>
       </div>
 
-      {/* 3. Segmented Tab Selector */}
+      {/* 2. Segmented Tab Selector */}
       <div className="flex items-center bg-surface-alt p-1 rounded-xl border border-border/40">
         {[
-          { key: "overview", label: "Information" },
-          { key: "activity", label: "Activity" },
-          { key: "access", label: "Stores & Scope" },
+          { key: "overview", label: "Details" },
+          { key: "role", label: "Security & Role" },
+          { key: "access", label: "Store Access" },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -227,13 +277,13 @@ export default function WorkspaceMemberDetailsMobilePage({
         ))}
       </div>
 
-      {/* 4. Tab Content */}
+      {/* 3. Tab Content */}
       {activeTab === "overview" && (
         <div className="space-y-3.5">
-          {/* General Info Card */}
+          {/* General & Contact Info Card */}
           <div className="bg-surface rounded-2xl p-4 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] space-y-3">
             <h3 className="text-xs font-bold text-text uppercase tracking-wider">
-              General & Contact Details
+              Profile & Contact Information
             </h3>
             <div className="space-y-2.5 text-xs divide-y divide-border/30">
               <div className="pt-1 first:pt-0 flex items-center justify-between">
@@ -242,88 +292,94 @@ export default function WorkspaceMemberDetailsMobilePage({
               </div>
               <div className="pt-2 flex items-center justify-between">
                 <span className="text-text-muted">Email</span>
-                <span className="font-medium text-text truncate max-w-[180px]">{displayEmail}</span>
+                <div className="flex items-center gap-1.5 truncate max-w-[200px]">
+                  <span className="font-medium text-text truncate">{displayEmail}</span>
+                  {emailVerified && <CheckCircle2 className="size-3 text-success shrink-0" />}
+                </div>
               </div>
               <div className="pt-2 flex items-center justify-between">
                 <span className="text-text-muted">Phone</span>
-                <span className="font-mono tabular-nums font-medium text-text">{displayPhone}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono tabular-nums font-semibold text-text">{displayPhone}</span>
+                  {phoneVerified && <CheckCircle2 className="size-3 text-success shrink-0" />}
+                </div>
+              </div>
+              <div className="pt-2 flex items-center justify-between">
+                <span className="text-text-muted">User Code</span>
+                <span className="font-mono tabular-nums font-semibold text-text">
+                  {userCode ? `#USR-${userCode}` : "-"}
+                </span>
+              </div>
+              <div className="pt-2 flex items-center justify-between">
+                <span className="text-text-muted">Account Type</span>
+                <span className="font-semibold text-text">
+                  {isOwner ? "Workspace Owner" : "Staff Member"}
+                </span>
+              </div>
+              <div className="pt-2 flex items-center justify-between">
+                <span className="text-text-muted">Primary Account</span>
+                <span className="font-semibold text-text">{isPrimary ? "Yes" : "No"}</span>
               </div>
               <div className="pt-2 flex items-center justify-between">
                 <span className="text-text-muted">Joined Date</span>
                 <span className="font-mono tabular-nums font-semibold text-text">{joinedDate}</span>
               </div>
-            </div>
-          </div>
-
-          {/* Employment & Clearance Card */}
-          <div className="bg-surface rounded-2xl p-4 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] space-y-3">
-            <h3 className="text-xs font-bold text-text uppercase tracking-wider">
-              Employment & Role Scope
-            </h3>
-            <div className="space-y-2.5 text-xs divide-y divide-border/30">
-              <div className="pt-1 first:pt-0 flex items-center justify-between">
-                <span className="text-text-muted">Job Role</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-text">{displayRole}</span>
-                  {!isOwner && (
-                    <button
-                      type="button"
-                      onClick={onOpenAssignRole}
-                      className="text-xs text-primary font-semibold hover:underline"
-                    >
-                      Change
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="pt-2 flex items-center justify-between">
-                <span className="text-text-muted">Department</span>
-                <span className="font-semibold text-text">
-                  {displayRole === "Owner" ? "Leadership" : "Pharmacy Dispensary"}
-                </span>
-              </div>
-              <div className="pt-2 flex items-center justify-between">
-                <span className="text-text-muted">Status</span>
-                <span className="font-bold capitalize text-success">{status}</span>
-              </div>
               <div className="pt-2 flex items-center justify-between">
                 <span className="text-text-muted">Last Active</span>
                 <span className="font-mono tabular-nums font-semibold text-text">{lastActiveFormatted}</span>
               </div>
+              <div className="pt-2 flex items-center justify-between">
+                <span className="text-text-muted">Onboarding Origin</span>
+                <span className="font-medium text-text">
+                  {joinedViaInvitationId ? "Invited by Email" : "Direct Creation"}
+                </span>
+              </div>
+              {notes && (
+                <div className="pt-2 space-y-1">
+                  <span className="text-text-muted block">Notes</span>
+                  <p className="text-text font-normal leading-relaxed">{notes}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {activeTab === "activity" && (
-        <div className="bg-surface rounded-2xl p-4 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] space-y-4">
-          <h3 className="text-xs font-bold text-text uppercase tracking-wider">
-            Weekly Operational Activity
-          </h3>
-          <div className="flex items-end justify-between gap-2 h-36 pt-2 pb-2">
-            {[
-              { day: "Mon", h: 75 },
-              { day: "Tue", h: 88 },
-              { day: "Wed", h: 100 },
-              { day: "Thu", h: 75 },
-              { day: "Fri", h: 62 },
-              { day: "Sat", h: 38 },
-              { day: "Sun", h: 88 },
-            ].map((bar, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
-                <div className="w-full max-w-[20px] h-full flex items-end justify-center rounded-full bg-surface-alt/70 p-0.5">
-                  <div
-                    style={{ height: `${bar.h}%` }}
-                    className="w-full bg-primary rounded-full"
-                  />
-                </div>
-                <span className="text-[10px] font-medium text-text-muted">{bar.day}</span>
+      {activeTab === "role" && (
+        <div className="space-y-3.5">
+          <div className="bg-surface rounded-2xl p-4 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-text uppercase tracking-wider">
+                Security Role Scope
+              </h3>
+              {!isOwner && (
+                <button
+                  type="button"
+                  onClick={onOpenAssignRole}
+                  className="text-xs text-primary font-semibold hover:underline"
+                >
+                  Change Role
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2.5 text-xs divide-y divide-border/30">
+              <div className="pt-1 first:pt-0 flex items-center justify-between">
+                <span className="text-text-muted">Assigned Role</span>
+                <span className="font-bold text-text">{displayRole}</span>
               </div>
-            ))}
+
+              <div className="pt-2 space-y-1">
+                <span className="text-text-muted block">Role Description</span>
+                <p className="text-text font-normal leading-relaxed text-[11.5px]">
+                  {roleDescription ||
+                    (isOwner
+                      ? "Full administrative authority over workspace settings, operating companies, branches, and member clearances."
+                      : "Standard operational role clearance.")}
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="text-[11px] text-text-muted pt-2 border-t border-border/30 text-center">
-            Average 6.2 daily operational sessions logged.
-          </p>
         </div>
       )}
 
@@ -332,7 +388,7 @@ export default function WorkspaceMemberDetailsMobilePage({
           <div className="bg-surface rounded-2xl p-4 shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-text uppercase tracking-wider">
-                Store Facility Clearance
+                Store & Branch Clearance
               </h3>
               <UIButton
                 variant="outline"
@@ -344,28 +400,74 @@ export default function WorkspaceMemberDetailsMobilePage({
               </UIButton>
             </div>
 
-            <div className="bg-surface-alt/70 rounded-xl p-3 border border-border/40 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-text">
-                  {assignedCompanies[0]?.name || "Central Pharmacy Store"}
-                </span>
-                <span className="size-2 rounded-full bg-success" />
+            <div className="space-y-2.5 text-xs divide-y divide-border/30">
+              <div className="pt-1 first:pt-0 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-text-muted flex items-center gap-1">
+                    <Building2 className="size-3.5" /> Company Access
+                  </span>
+                  <span className="font-semibold text-primary">
+                    {accessSummary?.companyLabel || "Authorized"}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {isOwner || accessSummary?.isAllCompanies ? (
+                    <div className="p-2 rounded-lg bg-surface-alt/60 text-[11px] text-text">
+                      All Workspace Companies
+                    </div>
+                  ) : assignedCompanies.length > 0 ? (
+                    assignedCompanies.map((c) => (
+                      <div
+                        key={c._id || c}
+                        className="p-1.5 px-2 rounded-lg bg-surface-alt/60 text-[11px] text-text flex items-center justify-between"
+                      >
+                        <span className="truncate">{c.name || c}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-1.5 text-[11px] text-text-muted">
+                      No specific companies assigned
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="text-[11px] text-text-muted">
-                {assignedBranches[0]?.name || "Main Dispensary & Store Branch"}
-              </p>
-              <div className="h-1.5 w-full bg-surface rounded-full overflow-hidden mt-2">
-                <div
-                  className="h-full bg-primary rounded-full"
-                  style={{ width: isOwner || accessSummary?.isAllCompanies ? "100%" : "75%" }}
-                />
+
+              <div className="pt-2 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-text-muted flex items-center gap-1">
+                    <GitBranch className="size-3.5" /> Branch Access
+                  </span>
+                  <span className="font-semibold text-primary">
+                    {accessSummary?.branchLabel || "Authorized"}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {isOwner || accessSummary?.isAllBranches ? (
+                    <div className="p-2 rounded-lg bg-surface-alt/60 text-[11px] text-text">
+                      All Operating Branches
+                    </div>
+                  ) : assignedBranches.length > 0 ? (
+                    assignedBranches.map((b) => (
+                      <div
+                        key={b._id || b}
+                        className="p-1.5 px-2 rounded-lg bg-surface-alt/60 text-[11px] text-text flex items-center justify-between"
+                      >
+                        <span className="truncate">{b.name || b}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-1.5 text-[11px] text-text-muted">
+                      No specific branches assigned
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 5. Fixed Mobile Bottom Bar */}
+      {/* 4. Fixed Mobile Bottom Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-3 bg-surface/90 backdrop-blur-md border-t border-border/60 z-40 flex items-center gap-2 max-w-lg mx-auto">
         <UIButton
           variant="primary"

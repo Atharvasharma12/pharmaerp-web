@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import { UIConfirmDialog } from "@/components/ui";
+import { UIConfirmDialog, UI_TOOLBAR_VIEWS } from "@/components/ui";
 import { ResetMemberPasswordModal } from "../components";
 
 import useWorkspace from "../hooks/useWorkspace";
@@ -192,6 +192,7 @@ const WorkspaceMembersPage = () => {
   );
 
   const [filters, setFilters] = useState(initialFilters);
+  const [viewMode, setViewMode] = useState(UI_TOOLBAR_VIEWS.GRID);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
 
@@ -630,6 +631,8 @@ const WorkspaceMembersPage = () => {
     activeFilterChips,
     statusOptions,
     roleOptions,
+    viewMode,
+    onViewModeChange: setViewMode,
 
     isLoading,
     isMutating,

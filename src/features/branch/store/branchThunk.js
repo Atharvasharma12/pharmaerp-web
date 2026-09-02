@@ -3,13 +3,14 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import branchService from "../services/branchService";
 
 import { getErrorMessage } from "@/utils";
+import { invalidateSetupStatus } from "@/features/workspace/store/workspaceSlice";
 
 export const createBranch = createAsyncThunk(
   "branch/createBranch",
-  async (payload, { rejectWithValue }) => {
+  async (payload, { rejectWithValue, dispatch }) => {
     try {
       const response = await branchService.createBranch(payload);
-
+      dispatch(invalidateSetupStatus()); // bump → Setup Center refetches
       return response.data?.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -76,6 +77,19 @@ export const deleteBranch = createAsyncThunk(
       const response = await branchService.deleteBranch(branchId);
 
       return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const getBranchEmployees = createAsyncThunk(
+  "branch/getBranchEmployees",
+  async (branchId, { rejectWithValue }) => {
+    try {
+      const response = await branchService.getBranchEmployees(branchId);
+      const employees = response.data?.data || response.data || response || [];
+      return { branchId, employees: Array.isArray(employees) ? employees : [] };
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }

@@ -1,11 +1,11 @@
 // src/features/company/pages/CompaniesPage.jsx
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import { AppConfirmModal } from "@/components";
+import { UIConfirmDialog, UI_TOOLBAR_VIEWS } from "@/components/ui";
 
 import useCompany from "../hooks/useCompany";
 import { CompaniesMobilePage } from "./mobile";
@@ -119,8 +119,14 @@ const CompaniesPage = () => {
   } = useCompany();
 
   const [filters, setFilters] = useState(initialFilters);
+  const [sortBy, setSortBy] = useState("name_asc");
+  const [viewMode, setViewMode] = useState(UI_TOOLBAR_VIEWS.GRID);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedCompanyForEmployees, setSelectedCompanyForEmployees] = useState(null);
+  const [isEmployeeDrawerOpen, setIsEmployeeDrawerOpen] = useState(false);
 
   const isLoading = getWorkspaceCompaniesStatus === API_STATUS.LOADING;
   const isDeleting = deleteCompanyStatus === API_STATUS.LOADING;
@@ -153,10 +159,10 @@ const CompaniesPage = () => {
     [companies],
   );
 
-  const filteredCompanies = useMemo(() => {
+  const filteredAndSortedCompanies = useMemo(() => {
     const search = normalizeText(filters.search);
 
-    return mappedCompanies.filter((company) => {
+    const filtered = mappedCompanies.filter((company) => {
       const matchesSearch =
         !search ||
         normalizeText(company.displayName).includes(search) ||
@@ -176,7 +182,44 @@ const CompaniesPage = () => {
 
       return matchesSearch && matchesStatus && matchesType;
     });
-  }, [mappedCompanies, filters]);
+
+    return filtered.sort((a, b) => {
+      if (sortBy === "name_asc") {
+        return (a.displayName || "").localeCompare(b.displayName || "");
+      }
+      if (sortBy === "name_desc") {
+        return (b.displayName || "").localeCompare(a.displayName || "");
+      }
+      if (sortBy === "newest") {
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      }
+      if (sortBy === "oldest") {
+        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      }
+      if (sortBy === "members") {
+        const countA = a.memberCount ?? a.membersCount ?? 0;
+        const countB = b.memberCount ?? b.membersCount ?? 0;
+        return countB - countA;
+      }
+      return 0;
+    });
+  }, [mappedCompanies, filters, sortBy]);
+
+  const totalPages = Math.ceil(filteredAndSortedCompanies.length / pageSize) || 1;
+
+  const paginatedCompanies = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredAndSortedCompanies.slice(startIndex, startIndex + pageSize);
+  }, [filteredAndSortedCompanies, currentPage, pageSize]);
+
+  const handlePageChange = useCallback((newPage) => {
+    setCurrentPage(newPage);
+  }, []);
+
+  const handlePageSizeChange = useCallback((newSize) => {
+    setPageSize(Number(newSize));
+    setCurrentPage(1);
+  }, []);
 
   const stats = useMemo(() => {
     const total = mappedCompanies.length;
@@ -247,6 +290,7 @@ const CompaniesPage = () => {
   }, [filters]);
 
   const handleFilterChange = useCallback((eventOrValue) => {
+    setCurrentPage(1);
     if (eventOrValue?.target) {
       const { name, value } = eventOrValue.target;
       setFilters((prev) => ({ ...prev, [name]: value }));
@@ -255,16 +299,18 @@ const CompaniesPage = () => {
     setFilters((prev) => ({ ...prev, ...eventOrValue }));
   }, []);
 
-  const handleSearchChange = useCallback((event) => {
-    const value = event?.target?.value ?? event;
-    setFilters((prev) => ({ ...prev, search: value }));
+  const handleSearchChange = useCallback((value) => {
+    setCurrentPage(1);
+    setFilters((prev) => ({ ...prev, search: value ?? "" }));
   }, []);
 
   const handleRemoveFilter = useCallback((key) => {
+    setCurrentPage(1);
     setFilters((prev) => ({ ...prev, [key]: initialFilters[key] }));
   }, []);
 
   const handleClearFilters = useCallback(() => {
+    setCurrentPage(1);
     setFilters(initialFilters);
   }, []);
 
@@ -296,6 +342,16 @@ const CompaniesPage = () => {
     [navigate],
   );
 
+  const handleOpenEmployeesDrawer = useCallback((company) => {
+    setSelectedCompanyForEmployees(company || null);
+    setIsEmployeeDrawerOpen(true);
+  }, []);
+
+  const handleCloseEmployeesDrawer = useCallback(() => {
+    setIsEmployeeDrawerOpen(false);
+    setSelectedCompanyForEmployees(null);
+  }, []);
+
   const handleRequestDeleteCompany = useCallback((company) => {
     setSelectedCompany(company || null);
     setIsDeleteModalOpen(true);
@@ -326,11 +382,26 @@ const CompaniesPage = () => {
   }, [clearError, clearMessage, fetchCompanies]);
 
   const pageProps = {
-    companies: filteredCompanies,
+    companies: filteredAndSortedCompanies,
+    paginatedCompanies,
     allCompanies: mappedCompanies,
     stats,
 
     filters,
+    sortBy,
+    onSortChange: (val) => {
+      setSortBy(val);
+      setCurrentPage(1);
+    },
+    viewMode,
+    onViewModeChange: setViewMode,
+
+    currentPage,
+    pageSize,
+    totalPages,
+    handlePageChange,
+    handlePageSizeChange,
+
     activeFilterChips,
     statusOptions,
     companyTypeOptions,
@@ -342,9 +413,9 @@ const CompaniesPage = () => {
     message,
 
     totalCompanies: mappedCompanies.length,
-    filteredCompaniesCount: filteredCompanies.length,
+    filteredCompaniesCount: filteredAndSortedCompanies.length,
     hasCompanies: mappedCompanies.length > 0,
-    hasFilteredCompanies: filteredCompanies.length > 0,
+    hasFilteredCompanies: filteredAndSortedCompanies.length > 0,
 
     handleFilterChange,
     handleSearchChange,
@@ -355,8 +426,13 @@ const CompaniesPage = () => {
     handleViewCompany,
     handleEditCompany,
     handleOpenSettings,
+    handleViewEmployees: handleOpenEmployeesDrawer,
     handleDeleteCompany: handleRequestDeleteCompany,
     handleRefresh,
+
+    selectedCompanyForEmployees,
+    isEmployeeDrawerOpen,
+    handleCloseEmployeesDrawer,
 
     clearMessage,
   };
@@ -369,25 +445,20 @@ const CompaniesPage = () => {
         <CompaniesDesktopPage {...pageProps} />
       )}
 
-      <AppConfirmModal
-        open={isDeleteModalOpen}
+      <UIConfirmDialog
+        isOpen={isDeleteModalOpen}
         onClose={handleCloseDeleteModal}
-        onCancel={handleCloseDeleteModal}
         onConfirm={handleConfirmDeleteCompany}
         title="Delete Company Record"
-        message={
+        description={
           selectedCompany
-            ? `Delete ${selectedCompany.displayName}?`
-            : "Delete Company?"
+            ? `Are you sure you want to delete ${selectedCompany.displayName}? This will remove the company from active workspaces.`
+            : "Are you sure you want to delete this company profile?"
         }
-        description="This will execute a soft-delete process on your workspace asset profile. Connected branches will remain suspended until remapped."
-        variant="error"
-        confirmLabel="Delete Company"
-        cancelLabel="Keep Profile"
+        confirmText="Delete Company"
+        cancelText="Keep Profile"
+        variant="destructive"
         loading={isDeleting}
-        confirmDisabled={isDeleting}
-        cancelDisabled={isDeleting}
-        closeOnBackdrop={!isDeleting}
       />
     </>
   );

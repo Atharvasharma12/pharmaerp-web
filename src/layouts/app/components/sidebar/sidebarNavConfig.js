@@ -32,6 +32,7 @@ import {
   BarChart3,
   GitBranch,
   ShieldAlert,
+  ShieldCheck,
   Contact,
 } from "lucide-react";
 
@@ -104,10 +105,10 @@ export const SIDEBAR_NAV_GROUPS = [
             permission: "workspace-member:view",
           },
           {
-            id: "access-control",
-            label: "Access Control",
-            path: ROUTES.ACCESS_CONTROL,
-            icon: ShieldAlert,
+            id: "roles-permissions",
+            label: "Roles & Permissions",
+            path: ROUTES.ROLES,
+            icon: ShieldCheck,
             permission: "role:view",
           },
         ],

@@ -1,11 +1,11 @@
 // src/features/branch/pages/BranchesPage.jsx
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import { AppConfirmModal } from "@/components";
+import { UIConfirmDialog, UI_TOOLBAR_VIEWS } from "@/components/ui";
 
 import useBranch from "../hooks/useBranch";
 import useCompany from "@/features/company/hooks/useCompany";
@@ -19,10 +19,21 @@ const statusOptions = [
   { label: "Suspended", value: "suspended" },
 ];
 
+const branchTypeOptions = [
+  { label: "Type: All", value: "all" },
+  { label: "Retail / Pharmacy", value: "retail" },
+  { label: "Hospital / Clinical", value: "hospital" },
+  { label: "Wholesale / Distribution", value: "wholesale" },
+  { label: "Warehouse", value: "warehouse" },
+  { label: "Dispensary", value: "dispensary" },
+  { label: "Other", value: "other" },
+];
+
 const initialFilters = {
   search: "",
   status: "all",
   company: "all",
+  type: "all",
 };
 
 const normalizeText = (value) =>
@@ -61,11 +72,8 @@ const formatDate = (value) => {
   });
 };
 
-const getBranchDisplayName = (branch) => branch?.name || "Branch";
-
 const mapBranchForView = (branch) => {
   const addressBlock = formatBranchAddress(branch?.address);
-  // Safely fallback to database populated fields without injecting placeholder names
   const companyNameStr = branch?.companyId?.name || branch?.companyName || "";
 
   return {
@@ -76,11 +84,13 @@ const mapBranchForView = (branch) => {
     displayCode: branch?.branchCode || "",
     addressLine1: addressBlock.line1,
     locationSummary: addressBlock.summary,
-    displayManager: branch?.pharmacist?.name || "",
-    displayManagerRole: branch?.pharmacist?.name ? "Pharmacist" : "",
+    displayManager: branch?.pharmacist?.name || branch?.manager?.name || "",
+    displayManagerRole: branch?.pharmacist?.name ? "Pharmacist" : "Manager",
     displayStatus: branch?.status || "active",
-    staffCount: branch?.staffCount || branch?.membersCount || 0,
+    memberCount:
+      branch?.memberCount ?? branch?.staffCount ?? branch?.membersCount ?? 0,
     displayCreatedAt: formatDate(branch?.createdAt),
+    displayUpdatedAt: formatDate(branch?.updatedAt),
   };
 };
 
@@ -89,7 +99,6 @@ const BranchesPage = () => {
   const isMobile = useIsMobile();
   const hasFetchedRef = useRef(false);
 
-  // Read the active workspace company context driving the application layout tree
   const { currentCompany } = useCompany();
 
   const {
@@ -105,10 +114,15 @@ const BranchesPage = () => {
   } = useBranch();
 
   const [filters, setFilters] = useState(initialFilters);
+  const [sortBy, setSortBy] = useState("name_asc");
+  const [viewMode, setViewMode] = useState(UI_TOOLBAR_VIEWS.GRID);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedBranchForEmployees, setSelectedBranchForEmployees] = useState(null);
+  const [isEmployeeDrawerOpen, setIsEmployeeDrawerOpen] = useState(false);
 
-  // Standardize loading status flags across UI frames safely
   const isLoading =
     getCompanyBranchesStatus === API_STATUS.LOADING || !currentCompany?._id;
   const isDeleting = deleteBranchStatus === API_STATUS.LOADING;
@@ -124,7 +138,6 @@ const BranchesPage = () => {
     }
   }, [getCompanyBranches, currentCompany?._id]);
 
-  // Re-evaluate layout fetches whenever companyId settles from core refresh waterfalls
   useEffect(() => {
     if (!currentCompany?._id) return;
     if (hasFetchedRef.current === currentCompany._id) return;
@@ -133,20 +146,11 @@ const BranchesPage = () => {
     fetchBranches();
   }, [currentCompany?._id, fetchBranches]);
 
-  useEffect(() => {
-    if (!message) return undefined;
-    const timer = window.setTimeout(() => {
-      clearMessage();
-    }, 2500);
-    return () => window.clearTimeout(timer);
-  }, [message, clearMessage]);
-
   const mappedBranches = useMemo(
     () => (Array.isArray(branches) ? branches : []).map(mapBranchForView),
     [branches],
   );
 
-  // Dynamically derive company selection options from actual loaded branches instead of using hardcoded lists
   const companyOptions = useMemo(() => {
     const options = [{ label: "Company: All", value: "all" }];
     const uniqueCompanies = new Map();
@@ -164,17 +168,18 @@ const BranchesPage = () => {
     return options;
   }, [mappedBranches]);
 
-  const filteredBranches = useMemo(() => {
+  const filteredAndSortedBranches = useMemo(() => {
     const search = normalizeText(filters.search);
 
-    return mappedBranches.filter((branch) => {
+    const filtered = mappedBranches.filter((branch) => {
       const matchesSearch =
         !search ||
         normalizeText(branch.displayName).includes(search) ||
         normalizeText(branch.displayCode).includes(search) ||
         normalizeText(branch.displayManager).includes(search) ||
         normalizeText(branch.addressLine1).includes(search) ||
-        normalizeText(branch.locationSummary).includes(search);
+        normalizeText(branch.locationSummary).includes(search) ||
+        normalizeText(branch.displayCompany).includes(search);
 
       const matchesStatus =
         filters.status === "all" || branch.displayStatus === filters.status;
@@ -182,9 +187,48 @@ const BranchesPage = () => {
       const matchesCompany =
         filters.company === "all" || branch.companySlug === filters.company;
 
-      return matchesSearch && matchesStatus && matchesCompany;
+      const matchesType =
+        filters.type === "all" || normalizeText(branch.type) === filters.type;
+
+      return matchesSearch && matchesStatus && matchesCompany && matchesType;
     });
-  }, [mappedBranches, filters]);
+
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "name_asc":
+          return (a.displayName || "").localeCompare(b.displayName || "");
+        case "name_desc":
+          return (b.displayName || "").localeCompare(a.displayName || "");
+        case "newest":
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        case "oldest":
+          return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        case "members":
+          return (b.memberCount || 0) - (a.memberCount || 0);
+        default:
+          return 0;
+      }
+    });
+  }, [mappedBranches, filters, sortBy]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredAndSortedBranches.length / pageSize)
+  );
+
+  const paginatedBranches = useMemo(() => {
+    const startIdx = (currentPage - 1) * pageSize;
+    return filteredAndSortedBranches.slice(startIdx, startIdx + pageSize);
+  }, [filteredAndSortedBranches, currentPage, pageSize]);
+
+  const handlePageChange = useCallback((newPage) => {
+    setCurrentPage(newPage);
+  }, []);
+
+  const handlePageSizeChange = useCallback((newSize) => {
+    setPageSize(newSize);
+    setCurrentPage(1);
+  }, []);
 
   const stats = useMemo(() => {
     const total = mappedBranches.length;
@@ -252,11 +296,20 @@ const BranchesPage = () => {
           filters.company,
       });
     }
+    if (filters.type !== "all") {
+      chips.push({
+        key: "type",
+        label:
+          branchTypeOptions.find((o) => o.value === filters.type)?.label ||
+          filters.type,
+      });
+    }
 
     return chips;
   }, [filters, companyOptions]);
 
   const handleFilterChange = useCallback((eventOrValue) => {
+    setCurrentPage(1);
     if (eventOrValue?.target) {
       const { name, value } = eventOrValue.target;
       setFilters((prev) => ({ ...prev, [name]: value }));
@@ -265,16 +318,18 @@ const BranchesPage = () => {
     setFilters((prev) => ({ ...prev, ...eventOrValue }));
   }, []);
 
-  const handleSearchChange = useCallback((event) => {
-    const value = event?.target?.value ?? event;
-    setFilters((prev) => ({ ...prev, search: value }));
+  const handleSearchChange = useCallback((value) => {
+    setCurrentPage(1);
+    setFilters((prev) => ({ ...prev, search: value ?? "" }));
   }, []);
 
   const handleRemoveFilter = useCallback((key) => {
+    setCurrentPage(1);
     setFilters((prev) => ({ ...prev, [key]: initialFilters[key] }));
   }, []);
 
   const handleClearFilters = useCallback(() => {
+    setCurrentPage(1);
     setFilters(initialFilters);
   }, []);
 
@@ -306,6 +361,16 @@ const BranchesPage = () => {
     [navigate],
   );
 
+  const handleOpenEmployeesDrawer = useCallback((branch) => {
+    setSelectedBranchForEmployees(branch || null);
+    setIsEmployeeDrawerOpen(true);
+  }, []);
+
+  const handleCloseEmployeesDrawer = useCallback(() => {
+    setIsEmployeeDrawerOpen(false);
+    setSelectedBranchForEmployees(null);
+  }, []);
+
   const handleRequestDeleteBranch = useCallback((branch) => {
     setSelectedBranch(branch || null);
     setIsDeleteModalOpen(true);
@@ -325,7 +390,7 @@ const BranchesPage = () => {
       setSelectedBranch(null);
       fetchBranches();
     } catch {
-      // Errors managed via base thunks
+      // Managed gracefully by standard slice errors
     }
   }, [deleteBranch, fetchBranches, selectedBranch]);
 
@@ -337,14 +402,30 @@ const BranchesPage = () => {
   }, [clearError, clearMessage, fetchBranches]);
 
   const pageProps = {
-    branches: filteredBranches,
+    branches: filteredAndSortedBranches,
+    paginatedBranches,
     allBranches: mappedBranches,
     stats,
 
     filters,
+    sortBy,
+    onSortChange: (val) => {
+      setSortBy(val);
+      setCurrentPage(1);
+    },
+    viewMode,
+    onViewModeChange: setViewMode,
+
+    currentPage,
+    pageSize,
+    totalPages,
+    handlePageChange,
+    handlePageSizeChange,
+
     activeFilterChips,
     statusOptions,
     companyOptions,
+    branchTypeOptions,
 
     isLoading,
     isDeleting,
@@ -353,9 +434,9 @@ const BranchesPage = () => {
     message,
 
     totalBranches: mappedBranches.length,
-    filteredBranchesCount: filteredBranches.length,
+    filteredBranchesCount: filteredAndSortedBranches.length,
     hasBranches: mappedBranches.length > 0,
-    hasFilteredBranches: filteredBranches.length > 0,
+    hasFilteredBranches: filteredAndSortedBranches.length > 0,
 
     handleFilterChange,
     handleSearchChange,
@@ -366,8 +447,13 @@ const BranchesPage = () => {
     handleViewBranch,
     handleEditBranch,
     handleOpenSettings,
+    handleViewEmployees: handleOpenEmployeesDrawer,
     handleDeleteBranch: handleRequestDeleteBranch,
     handleRefresh,
+
+    selectedBranchForEmployees,
+    isEmployeeDrawerOpen,
+    handleCloseEmployeesDrawer,
 
     clearMessage,
   };
@@ -380,25 +466,20 @@ const BranchesPage = () => {
         <BranchesDesktopPage {...pageProps} />
       )}
 
-      <AppConfirmModal
-        open={isDeleteModalOpen}
+      <UIConfirmDialog
+        isOpen={isDeleteModalOpen}
         onClose={handleCloseDeleteModal}
-        onCancel={handleCloseDeleteModal}
         onConfirm={handleConfirmDeleteBranch}
-        title="Delete Branch Location"
-        message={
+        title="Delete Branch Record"
+        description={
           selectedBranch
-            ? `Delete ${getBranchDisplayName(selectedBranch)}?`
-            : "Delete Branch?"
+            ? `Are you sure you want to delete ${selectedBranch.displayName || "this branch"}? Active stocks will be locked.`
+            : "Are you sure you want to delete this branch location?"
         }
-        description="This action removes the retail site record from operational modules. Active stocks will be locked."
-        variant="error"
-        confirmLabel="Delete Branch"
-        cancelLabel="Cancel"
+        confirmText="Delete Branch"
+        cancelText="Keep Branch"
+        variant="destructive"
         loading={isDeleting}
-        confirmDisabled={isDeleting}
-        cancelDisabled={isDeleting}
-        closeOnBackdrop={false}
       />
     </>
   );

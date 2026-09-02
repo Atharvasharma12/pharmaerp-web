@@ -2,14 +2,17 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   FileText,
   Plus,
   TrendingUp,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { UIButton } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { ROUTES } from "@/constants";
 import useAuth from "@/features/auth/hooks/useAuth";
 
 const getGreeting = () => {
@@ -24,6 +27,7 @@ export const DashboardHeroBanner = ({
   onAddMedicine,
   className,
 }) => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const userName =
     user?.fullName ||
@@ -72,8 +76,8 @@ export const DashboardHeroBanner = ({
       />
 
       <div className="relative z-10 flex flex-col justify-between gap-5 max-w-4xl">
-        {/* Top Operational Status Pill */}
-        <div className="flex items-center gap-2">
+        {/* Top Operational Status Pill & Setup Link */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
@@ -81,6 +85,15 @@ export const DashboardHeroBanner = ({
             </span>
             <span>All systems operational</span>
           </div>
+
+          <button
+            type="button"
+            onClick={() => navigate(ROUTES.SETUP_CENTER)}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted hover:text-primary transition-colors cursor-pointer"
+          >
+            <Sparkles className="size-3.5 text-primary" />
+            <span>Setup Center Settings &rarr;</span>
+          </button>
         </div>
 
         {/* Hero Greeting & Description */}
@@ -96,7 +109,7 @@ export const DashboardHeroBanner = ({
         {/* Action Buttons and Live Metrics Strip */}
         <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-border/70">
           {/* Left Action Buttons */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
             <UIButton
               variant="primary"
               size="sm"
@@ -113,6 +126,16 @@ export const DashboardHeroBanner = ({
               leftIcon={<Plus className="size-4" />}
             >
               Add Medicine
+            </UIButton>
+
+            <UIButton
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(ROUTES.SETUP_CENTER)}
+              leftIcon={<Sparkles className="size-4 text-primary" />}
+              className="border-border hover:bg-surface-hover text-text"
+            >
+              Setup Center
             </UIButton>
           </div>
 

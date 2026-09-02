@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronRight, ChevronDown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { UIBadge } from "@/components/ui";
+import { UIBadge, uiToast } from "@/components/ui";
+import { ROUTES } from "@/constants";
+import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
 
 /**
  * Check if a path or any child paths match the active pathname
@@ -17,6 +19,47 @@ const isBranchActive = (item, pathname) => {
   return false;
 };
 
+/**
+ * Evaluates whether an item is gated behind unfinished setup
+ */
+const checkIsItemLocked = (item, setupInfo) => {
+  const { isSetupComplete, companyCompleted } = setupInfo;
+  if (isSetupComplete) return false;
+
+  const path = item.path || "";
+  const id = item.id || "";
+
+  // Always accessible
+  if (
+    path === ROUTES.SETUP_CENTER ||
+    path === ROUTES.SETTINGS ||
+    path === ROUTES.HELP_CENTER ||
+    id === "setup-center" ||
+    id === "settings" ||
+    id === "help"
+  ) {
+    return false;
+  }
+
+  // Companies accessible in Step 1
+  if (id === "companies" || path === ROUTES.COMPANIES || path.includes("/companies")) {
+    return false;
+  }
+
+  // Branches accessible in Step 2 if company exists
+  if (id === "branches" || path === ROUTES.BRANCHES || path.includes("/branches")) {
+    return !companyCompleted;
+  }
+
+  // If item has children, check if any child is accessible
+  if (item.children && item.children.length > 0) {
+    return item.children.every((child) => checkIsItemLocked(child, setupInfo));
+  }
+
+  // All other operational routes require full setup
+  return true;
+};
+
 const SidebarItem = ({
   item,
   level = 1,
@@ -25,8 +68,13 @@ const SidebarItem = ({
   onExpand,
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const setupInfo = useSetupStatus();
+  const { isSetupComplete, completedCount, totalSteps } = setupInfo;
+
   const hasChildren = Boolean(item.children && item.children.length > 0);
   const activeInBranch = isBranchActive(item, location.pathname);
+  const isLocked = useMemo(() => checkIsItemLocked(item, setupInfo), [item, setupInfo]);
 
   // Auto-expand if active route is inside this branch
   const [isOpen, setIsOpen] = useState(activeInBranch);
@@ -54,20 +102,40 @@ const SidebarItem = ({
     setTooltipPos(null);
   };
 
+  const handleLockedClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    uiToast.info("Setup Required", `Complete setup to unlock ${item.label}`);
+    navigate(ROUTES.SETUP_CENTER);
+  };
+
   const Icon = item.icon;
+
+  // Dynamic badge for Setup Center vs custom badge
+  const displayBadge = useMemo(() => {
+    if (item.id === "setup-center" || item.path === ROUTES.SETUP_CENTER) {
+      if (!isSetupComplete) {
+        return `${completedCount}/${totalSteps}`;
+      }
+      return null;
+    }
+    return item.badge || null;
+  }, [item, isSetupComplete, completedCount, totalSteps]);
 
   // ── Collapsed Rail Mode ────────────────────────────────────────────
   if (collapsed) {
     const handleCollapsedParentClick = (e) => {
       setTooltipPos(null);
+      if (isLocked) {
+        handleLockedClick(e);
+        return;
+      }
+
       if (hasChildren) {
-        // Only open sidebar if the clicked item has children
         if (onExpand) {
           onExpand();
         }
         setIsOpen(true);
-
-        // Instant direct alignment without any smooth scrolling animation
         requestAnimationFrame(() => {
           itemRef.current?.scrollIntoView({
             behavior: "instant",
@@ -75,7 +143,6 @@ const SidebarItem = ({
           });
         });
       } else {
-        // Leaf item without children: DO NOT open sidebar, just navigate
         onItemClick?.(e);
       }
     };
@@ -87,7 +154,7 @@ const SidebarItem = ({
         onMouseLeave={handleMouseLeave}
         className="relative flex justify-center py-0.5"
       >
-        {item.path ? (
+        {item.path && !isLocked ? (
           <NavLink
             to={item.path}
             onClick={(e) => {
@@ -109,7 +176,7 @@ const SidebarItem = ({
             title={item.label}
             className={({ isActive }) =>
               cn(
-                "flex size-9 items-center justify-center rounded-[8px] transition-colors duration-150",
+                "flex size-9 items-center justify-center rounded-[8px] transition-colors duration-150 relative",
                 isActive
                   ? "bg-primary/10 text-primary"
                   : "text-text hover:bg-surface-hover"
@@ -117,6 +184,9 @@ const SidebarItem = ({
             }
           >
             {Icon && <Icon className="size-4" />}
+            {displayBadge && (
+              <span className="absolute -top-1 -right-1 size-2 rounded-full bg-primary" />
+            )}
           </NavLink>
         ) : (
           <button
@@ -124,13 +194,19 @@ const SidebarItem = ({
             onClick={handleCollapsedParentClick}
             title={item.label}
             className={cn(
-              "flex size-9 items-center justify-center rounded-[8px] transition-colors duration-150 cursor-pointer",
+              "flex size-9 items-center justify-center rounded-[8px] transition-colors duration-150 cursor-pointer relative",
+              isLocked && "opacity-50 hover:opacity-80",
               activeInBranch
                 ? "bg-primary/10 text-primary"
                 : "text-text hover:bg-surface-hover"
             )}
           >
             {Icon && <Icon className="size-4" />}
+            {isLocked && (
+              <span className="absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-surface border border-border text-text-muted">
+                <Lock className="size-2" />
+              </span>
+            )}
           </button>
         )}
 
@@ -148,11 +224,15 @@ const SidebarItem = ({
               className="pointer-events-none flex items-center gap-1.5 rounded-[6px] border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text shadow-[var(--app-shadow-lg)] whitespace-nowrap"
             >
               <span>{item.label}</span>
-              {item.children && (
+              {isLocked ? (
+                <span className="text-[10px] text-text-muted font-normal flex items-center gap-1 text-warning">
+                  <Lock className="size-2.5" /> (Locked)
+                </span>
+              ) : item.children ? (
                 <span className="text-[10px] text-text-muted font-normal">
                   ({item.children.length})
                 </span>
-              )}
+              ) : null}
             </div>,
             document.body
           )}
@@ -171,6 +251,7 @@ const SidebarItem = ({
             "flex h-9 w-full items-center justify-between gap-2.5 rounded-[8px] px-2.5",
             "text-[13px] font-medium text-text transition-colors duration-150 cursor-pointer select-none",
             "hover:bg-surface-hover",
+            isLocked && "opacity-60",
             activeInBranch && "text-text"
           )}
         >
@@ -185,11 +266,28 @@ const SidebarItem = ({
               />
             )}
             <span className="truncate text-[13px] font-medium text-text">{item.label}</span>
+            {isLocked && <Lock className="size-3 shrink-0 text-text-muted/60" />}
           </div>
 
           {/* Right: Expand/Collapse Arrow */}
           <span className="shrink-0 text-text-muted transition-transform duration-150">
             {isOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+          </span>
+        </button>
+      ) : isLocked ? (
+        <button
+          type="button"
+          onClick={handleLockedClick}
+          className="flex h-9 w-full items-center justify-between gap-2.5 rounded-[8px] px-2.5 text-[13px] font-medium text-text-muted transition-colors duration-150 select-none hover:bg-surface-hover opacity-60 hover:opacity-90 cursor-pointer text-left"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            {Icon && <Icon className="size-4 shrink-0 text-text-muted/70" />}
+            <span className="truncate text-[13px] font-medium text-text-muted">{item.label}</span>
+          </div>
+
+          <span className="inline-flex items-center gap-1 rounded-md bg-surface-alt px-1.5 py-0.5 text-[10px] font-semibold text-text-muted border border-border/60">
+            <Lock className="size-2.5" />
+            <span>Locked</span>
           </span>
         </button>
       ) : (
@@ -218,9 +316,13 @@ const SidebarItem = ({
             <span className="truncate text-[13px] font-medium text-current">{item.label}</span>
           </div>
 
-          {item.badge && (
-            <UIBadge variant="primary" size="xs">
-              {item.badge}
+          {displayBadge && (
+            <UIBadge
+              variant={item.id === "setup-center" && !isSetupComplete ? "primary" : "primary"}
+              size="xs"
+              className={item.id === "setup-center" && !isSetupComplete ? "animate-pulse font-bold" : ""}
+            >
+              {displayBadge}
             </UIBadge>
           )}
         </NavLink>

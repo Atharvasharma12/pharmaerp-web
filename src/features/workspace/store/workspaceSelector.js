@@ -84,3 +84,14 @@ export const selectGetIncomingUserInvitationsStatus = (state) =>
 
 export const selectAcceptIncomingInvitationStatus = (state) =>
   state.workspace.acceptIncomingInvitationStatus;
+
+// --- SETUP CENTER SELECTORS ---
+
+export const selectWorkspaceSetupStatus = (state) =>
+  state.workspace.setupStatus;
+
+export const selectWorkspaceSetupStatusVersion = (state) =>
+  state.workspace.setupStatusVersion;
+
+export const selectWorkspaceSetupStatusLoading = (state) =>
+  state.workspace.getWorkspaceSetupStatusStatus === "loading";

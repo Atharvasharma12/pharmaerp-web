@@ -35,17 +35,12 @@ export const ROUTES = {
   BRANCH_DETAILS: "/branches/:branchId",
   BRANCH_SETTINGS: "/branches/:branchId/settings",
 
-  // Access Control
-  ACCESS_CONTROL: "/access-control",
-  ROLES: "/access-control/roles",
-  CREATE_ROLE: "/access-control/roles/create",
-  EDIT_ROLE: "/access-control/roles/:roleId/edit",
-  ROLE_DETAILS: "/access-control/roles/:roleId",
-  MEMBER_ACCESS: "/access-control/member-access",
-  ASSIGN_ACCESS: "/access-control/member-access/assign",
-  ASSIGN_ROLE: "/access-control/roles/assign",
-  EDIT_ACCESS: "/access-control/member-access/:memberId/edit",
-  PERMISSIONS: "/access-control/permissions",
+  // Roles & Permissions
+  ROLES: "/roles-permissions",
+  CREATE_ROLE: "/roles-permissions/create",
+  EDIT_ROLE: "/roles-permissions/:roleId/edit",
+  ROLE_DETAILS: "/roles-permissions/:roleId",
+  PERMISSIONS: "/roles-permissions/permissions",
 
   // Parties
   PARTIES: "/parties",
