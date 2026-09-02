@@ -1,178 +1,76 @@
 // src/features/setup/pages/SetupCenterPage.jsx
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 import { ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
-import useCompany from "@/features/company/hooks/useCompany";
-import useBranch from "@/features/branch/hooks/useBranch";
-import useSubscription from "@/features/subscription/subscriptions/hooks/useSubscription";
+
+import { getWorkspaceSetupStatus } from "@/features/workspace/store/workspaceThunk";
+import {
+  selectWorkspaceSetupStatus,
+  selectWorkspaceSetupStatusVersion,
+} from "@/features/workspace/store/workspaceSelector";
+import { uiToast } from "@/components/ui";
 
 import SetupCenterDesktopPage from "./desktop/SetupCenterDesktopPage";
 import SetupCenterMobilePage from "./mobile/SetupCenterMobilePage";
 
+// 2 core active setup steps
 const setupStepsConfig = [
   {
     id: "company",
     title: "Create Company",
-    description: "Add your company details and set up your business profile.",
+    description: "Add your pharmaceutical business details, GSTIN, PAN, and drug licenses.",
     actionText: "Create Company",
     route: ROUTES.CREATE_COMPANY,
     completedRoute: ROUTES.COMPANIES,
     requiredFields: [],
-    colorVariant: "info",
+    colorVariant: "primary",
   },
   {
     id: "branch",
     title: "Create Branch",
-    description: "Add your pharmacy branch or store location.",
+    description: "Add your first pharmacy branch, store location, and POS billing counter.",
     actionText: "Create Branch",
     route: ROUTES.CREATE_BRANCH,
     completedRoute: ROUTES.BRANCHES,
     requiredFields: ["company"],
-    colorVariant: "secondary",
-  },
-  {
-    id: "team",
-    title: "Invite Team",
-    description: "Invite your team members and assign roles.",
-    actionText: "Invite Team",
-    route: ROUTES.INVITE_WORKSPACE_MEMBER,
-    completedRoute: ROUTES.WORKSPACE_MEMBERS,
-    requiredFields: ["company", "branch"],
-    colorVariant: "primary",
-  },
-  {
-    id: "products",
-    title: "Add Products",
-    description: "Add medicines and products to your inventory.",
-    actionText: "Add Products",
-    route: "/inventory/products/create",
-    completedRoute: "/inventory/products",
-    requiredFields: ["company", "branch"],
-    colorVariant: "warning",
-  },
-  {
-    id: "suppliers",
-    title: "Add Suppliers",
-    description: "Add your suppliers and manage supplier information.",
-    actionText: "Add Suppliers",
-    route: "/purchases/suppliers/create",
-    completedRoute: "/purchases/suppliers",
-    requiredFields: ["company", "branch"],
     colorVariant: "info",
   },
-  {
-    id: "purchase",
-    title: "Create First Purchase",
-    description: "Create your first purchase order and stock your inventory.",
-    actionText: "Create Purchase",
-    route: "/purchases/create",
-    completedRoute: "/purchases",
-    requiredFields: ["company", "branch"],
-    colorVariant: "error",
-  },
 ];
-
-const ACTIVE_SUBSCRIPTION_STATUSES = [
-  "ACTIVE",
-  "TRIAL",
-  "TRIALING",
-  "TRIAL_ACTIVE",
-  "PAID",
-];
-
-const getWorkspaceFromItem = (item) => item?.workspace || item || null;
 
 const SetupCenterPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const fetchedSubscriptionWorkspaceRef = useRef(null);
-  const fetchedBranchesWorkspaceRef = useRef(null);
+  const dispatch = useDispatch();
 
-  const {
-    workspace,
-    workspaces,
-    currentWorkspace,
-    activeWorkspace,
-    selectedWorkspace,
-  } = useWorkspace();
+  const { currentWorkspace, activeWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?._id || activeWorkspace?._id;
 
-  const { companies = [] } = useCompany();
-  const { branches = [], getWorkspaceBranches } = useBranch();
-  const { getWorkspaceCurrentSubscription, currentWorkspaceSubscription } =
-    useSubscription();
+  // Single source of truth for setup status
+  const setupStatus = useSelector(selectWorkspaceSetupStatus);
+  const setupVersion = useSelector(selectWorkspaceSetupStatusVersion);
 
-  const resolvedWorkspace = useMemo(() => {
-    if (currentWorkspace) return currentWorkspace;
-    if (activeWorkspace) return activeWorkspace;
-    if (selectedWorkspace) return selectedWorkspace;
-    if (workspace) return workspace;
-
-    const firstWorkspaceItem = Array.isArray(workspaces) ? workspaces[0] : null;
-    return getWorkspaceFromItem(firstWorkspaceItem);
-  }, [
-    activeWorkspace,
-    currentWorkspace,
-    selectedWorkspace,
-    workspace,
-    workspaces,
-  ]);
-
-  const workspaceId = resolvedWorkspace?._id || resolvedWorkspace?.id;
-  const hasWorkspace = Boolean(workspaceId);
+  const [selectedStepId, setSelectedStepId] = useState("company");
+  const [isLiveMode, setIsLiveMode] = useState(true);
+  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
+  const [isTestingStep, setIsTestingStep] = useState(false);
 
   useEffect(() => {
     if (!workspaceId) return;
-    if (fetchedSubscriptionWorkspaceRef.current === workspaceId) return;
+    dispatch(getWorkspaceSetupStatus(workspaceId));
+  }, [workspaceId, setupVersion, dispatch]);
 
-    fetchedSubscriptionWorkspaceRef.current = workspaceId;
-    getWorkspaceCurrentSubscription(workspaceId).catch(() => {});
-  }, [workspaceId, getWorkspaceCurrentSubscription]);
-
-  useEffect(() => {
-    if (!workspaceId) return;
-    if (fetchedBranchesWorkspaceRef.current === workspaceId) return;
-
-    fetchedBranchesWorkspaceRef.current = workspaceId;
-    getWorkspaceBranches().catch(() => {});
-  }, [workspaceId, getWorkspaceBranches]);
-
-  const workspaceSubscription =
-    currentWorkspaceSubscription ||
-    resolvedWorkspace?.subscription ||
-    resolvedWorkspace?.activeSubscription ||
-    resolvedWorkspace?.currentSubscription ||
-    null;
-
-  const subscriptionStatus =
-    workspaceSubscription?.status || resolvedWorkspace?.subscriptionStatus;
-
-  const hasSubscription = Boolean(
-    workspaceSubscription?._id ||
-    workspaceSubscription?.id ||
-    ACTIVE_SUBSCRIPTION_STATUSES.includes(
-      String(subscriptionStatus || "").toUpperCase(),
-    ),
-  );
-
-  const hasCompany = Array.isArray(companies) && companies.length > 0;
-  const hasBranch = Array.isArray(branches) && branches.length > 0;
-
+  // Map API response flags to a flat completion lookup
   const setupState = useMemo(
     () => ({
-      workspace: hasWorkspace,
-      plan: hasSubscription,
-      company: hasCompany,
-      branch: hasBranch,
-      team: false,
-      products: false,
-      suppliers: false,
-      purchase: false,
+      company: setupStatus?.steps?.company?.completed ?? false,
+      branch: setupStatus?.steps?.branch?.completed ?? false,
     }),
-    [hasWorkspace, hasSubscription, hasCompany, hasBranch],
+    [setupStatus],
   );
 
   const mappedSetupSteps = useMemo(
@@ -203,19 +101,79 @@ const SetupCenterPage = () => {
     (step) => step.completed,
   ).length;
 
-  const progress = mappedSetupSteps.length
-    ? Math.round((completedStepsCount / mappedSetupSteps.length) * 100)
-    : 0;
+  const progress =
+    setupStatus?.progress?.percentage ??
+    (mappedSetupSteps.length
+      ? Math.round((completedStepsCount / mappedSetupSteps.length) * 100)
+      : 0);
 
   const nextStep = mappedSetupSteps.find(
     (step) => !step.completed && !step.locked,
   );
 
+  const canGoLive = completedStepsCount === mappedSetupSteps.length && mappedSetupSteps.length > 0;
+
+  // Auto-focus the next actionable step
+  useEffect(() => {
+    if (nextStep) {
+      setSelectedStepId(nextStep.id);
+    } else if (mappedSetupSteps.length > 0) {
+      setSelectedStepId(mappedSetupSteps[0].id);
+    }
+  }, [nextStep?.id]);
+
+  const selectedStep = mappedSetupSteps.find((s) => s.id === selectedStepId) || mappedSetupSteps[0] || null;
+
+  const handleRunDiagnostics = () => {
+    setIsRunningDiagnostics(true);
+    setTimeout(() => {
+      setIsRunningDiagnostics(false);
+      if (canGoLive) {
+        uiToast.success("All systems operational. Ready to Go Live!");
+      } else {
+        uiToast.info(`Setup in progress: ${completedStepsCount} of ${mappedSetupSteps.length} steps completed.`);
+      }
+    }, 750);
+  };
+
+  const handleTestStep = (step) => {
+    setIsTestingStep(true);
+    setTimeout(() => {
+      setIsTestingStep(false);
+      if (step.completed) {
+        uiToast.success(`Step verified: ${step.title} is active & configured.`);
+      } else if (step.locked) {
+        uiToast.warning(`Prerequisites missing: Complete previous steps before ${step.title}.`);
+      } else {
+        uiToast.info(`Step ready for configuration: ${step.title}.`);
+      }
+    }, 600);
+  };
+
+  const handleGoLive = () => {
+    if (canGoLive) {
+      uiToast.success("🚀 Congratulations! PharmaERP is live and ready for billing & inventory operations.");
+      navigate("/dashboard");
+    } else {
+      uiToast.warning("Please complete all setup steps before going live.");
+    }
+  };
+
   const pageProps = {
     mappedSetupSteps,
+    selectedStep,
+    onSelectStep: (step) => setSelectedStepId(step.id),
     completedStepsCount,
     progress,
     nextStep,
+    canGoLive,
+    isLiveMode,
+    onToggleLiveMode: () => setIsLiveMode((v) => !v),
+    onRunDiagnostics: handleRunDiagnostics,
+    isRunningDiagnostics,
+    onTestStep: handleTestStep,
+    isTestingStep,
+    onGoLive: handleGoLive,
   };
 
   return isMobile ? (

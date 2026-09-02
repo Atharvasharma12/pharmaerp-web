@@ -1,4 +1,6 @@
 // src/features/setup/constants/setupSteps.js
+// Only 2 active steps for now.
+// To add more: append an entry here AND wire the matching controller + thunk.
 
 import { ROUTES } from "@/constants";
 
@@ -24,43 +26,6 @@ export const setupSteps = [
     disabled: true,
     requiredFields: ["company"],
     colorVariant: "info",
-  },
-  {
-    id: "team",
-    title: "Invite Team",
-    description: "Invite staff members and assign access to your workspace.",
-    actionText: "Invite Team",
-    route: ROUTES.INVITE_WORKSPACE_MEMBER,
-    completed: false,
-    disabled: true,
-    requiredFields: ["company"],
-    colorVariant: "warning",
-  },
-  {
-    id: "products",
-    title: "Add Products",
-    description: "Add medicines and products to prepare your catalog.",
-    actionText: "Add Products",
-    route: "/catalog/products",
-    completed: false,
-    disabled: true,
-    requiredFields: ["company", "branch"],
-    colorVariant: "error",
-  },
-  {
-    id: "purchase",
-    title: "Create First Purchase",
-    description: "Record your first purchase to add stock into inventory.",
-    actionText: "Create Purchase",
-    route: "/purchase/create",
-    completed: false,
-    disabled: true,
-    requiredFields: [
-      "company",
-      "branch",
-      "products",
-    ],
-    colorVariant: "primary",
   },
 ];
 
