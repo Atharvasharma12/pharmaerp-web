@@ -15,6 +15,7 @@ import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useCompany from "@/features/company/hooks/useCompany";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useUser from "@/features/user/hooks/useUser";
+import { usePermission } from "@/hooks";
 import { UITabs } from "@/components/ui";
 
 const getWorkspaceFromItem = (item) => {
@@ -23,7 +24,9 @@ const getWorkspaceFromItem = (item) => {
 
 const AppMobileContextSheet = ({ isOpen, onClose }) => {
   const { updateActiveContext } = useUser();
+  const { isOwner, can } = usePermission();
   const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace();
+
   const {
     companies,
     currentCompany,
@@ -229,13 +232,15 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
                 <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
                   Available Operations
                 </span>
-                <Link
-                  to={ROUTES.CREATE_COMPANY}
-                  onClick={onClose}
-                  className="text-[11px] font-bold text-primary flex items-center gap-1 bg-primary-soft/80 px-2.5 py-1.5 rounded-lg active:scale-95 transition"
-                >
-                  <FiPlus className="stroke-[3]" /> New Company
-                </Link>
+                {(isOwner || can("company:create")) && (
+                  <Link
+                    to={ROUTES.CREATE_COMPANY}
+                    onClick={onClose}
+                    className="text-[11px] font-bold text-primary flex items-center gap-1 bg-primary-soft/80 px-2.5 py-1.5 rounded-lg active:scale-95 transition"
+                  >
+                    <FiPlus className="stroke-[3]" /> New Company
+                  </Link>
+                )}
               </div>
 
               {companies?.length ? (
@@ -288,8 +293,13 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
               ) : (
                 <div className="text-center py-10 bg-bg/40 rounded-xl border border-dashed border-divider p-4">
                   <FiBriefcase className="text-text-muted/40 text-2xl mx-auto mb-2" />
-                  <p className="text-[12px] font-medium text-text-muted">
-                    No active operating contexts registered.
+                  <p className="text-[13px] font-bold text-text mb-1">
+                    {!isOwner ? "You don't have any company." : "No active operating contexts registered."}
+                  </p>
+                  <p className="text-[11px] font-medium text-text-muted">
+                    {!isOwner
+                      ? "No company access has been granted for your account in this workspace."
+                      : "Create your first company to begin operations."}
                   </p>
                 </div>
               )}
@@ -303,13 +313,15 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
                 <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
                   Select Hub Location
                 </span>
-                <Link
-                  to={ROUTES.CREATE_BRANCH}
-                  onClick={onClose}
-                  className="text-[11px] font-bold text-primary flex items-center gap-1 bg-primary-soft/80 px-2.5 py-1.5 rounded-lg active:scale-95 transition"
-                >
-                  <FiPlus className="stroke-[3]" /> New Branch
-                </Link>
+                {(isOwner || can("branch:create")) && (
+                  <Link
+                    to={ROUTES.CREATE_BRANCH}
+                    onClick={onClose}
+                    className="text-[11px] font-bold text-primary flex items-center gap-1 bg-primary-soft/80 px-2.5 py-1.5 rounded-lg active:scale-95 transition"
+                  >
+                    <FiPlus className="stroke-[3]" /> New Branch
+                  </Link>
+                )}
               </div>
 
               {branches?.length ? (
@@ -358,13 +370,19 @@ const AppMobileContextSheet = ({ isOpen, onClose }) => {
               ) : (
                 <div className="text-center py-10 bg-bg/40 rounded-xl border border-dashed border-divider p-4">
                   <FiMapPin className="text-text-muted/40 text-2xl mx-auto mb-2" />
-                  <p className="text-[12px] font-medium text-text-muted">
-                    No localized branches linked to this context.
+                  <p className="text-[13px] font-bold text-text mb-1">
+                    {!isOwner ? "No Branch Access" : "No localized branches linked to this context."}
+                  </p>
+                  <p className="text-[11px] font-medium text-text-muted">
+                    {!isOwner
+                      ? "No branches are assigned to your account under this company."
+                      : "Create your first branch location to proceed."}
                   </p>
                 </div>
               )}
             </div>
           )}
+
         </div>
       </div>
     </div>

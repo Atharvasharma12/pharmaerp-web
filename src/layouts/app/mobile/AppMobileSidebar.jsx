@@ -1,12 +1,16 @@
 // src/layouts/app/mobile/AppMobileSidebar.jsx
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import { ROUTES } from "@/constants";
 import useAuth from "@/features/auth/hooks/useAuth";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import useCompany from "@/features/company/hooks/useCompany";
+import useBranch from "@/features/branch/hooks/useBranch";
 import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
 import { usePermission } from "@/hooks";
+import { UIConfirmDialog } from "@/components/ui";
 
 import {
   SIDEBAR_NAV_GROUPS,
@@ -20,7 +24,11 @@ import { filterNavByPermission } from "../components/sidebar/filterNavByPermissi
 const AppMobileSidebar = ({ open, onClose }) => {
   const navigate = useNavigate();
   const { user, logout, clearCredentials } = useAuth();
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { currentWorkspace } = useWorkspace();
+  const { currentCompany } = useCompany();
+  const { currentBranch } = useBranch();
   const { isSetupComplete, companyCompleted, branchCompleted } = useSetupStatus();
   const { can, canAny, isOwner } = usePermission();
 
@@ -32,21 +40,33 @@ const AppMobileSidebar = ({ open, onClose }) => {
         can,
         canAny,
         isOwner,
-        { isSetupComplete, companyCompleted, branchCompleted },
+        { 
+          isSetupComplete, 
+          companyCompleted, 
+          branchCompleted, 
+          hasActiveCompany: !!currentCompany, 
+          hasActiveBranch: !!currentBranch 
+        },
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [can, canAny, isOwner, isSetupComplete, companyCompleted, branchCompleted],
+    [can, canAny, isOwner, isSetupComplete, companyCompleted, branchCompleted, currentCompany, currentBranch],
   );
 
-  const handleLogout = async () => {
+  const handleLogoutClick = () => {
+    setIsLogoutDialogOpen(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    setIsLoggingOut(true);
     try {
       await logout();
     } catch (err) {
       console.error("Logout failed:", err);
     } finally {
       clearCredentials();
+      setIsLogoutDialogOpen(false);
       onClose();
-      navigate(ROUTES.LOGIN, { replace: true });
+      window.location.href = ROUTES.LOGIN;
     }
   };
 
@@ -66,7 +86,7 @@ const AppMobileSidebar = ({ open, onClose }) => {
       <aside
         className={[
           "fixed inset-y-0 left-0 z-50 w-[275px] max-w-[85vw] border-r border-border bg-surface shadow-[var(--app-shadow-xl)]",
-          "transition-transform duration-250 ease-[cubic-bezier(0.32,0.72,0,1)] flex flex-col justify-between overflow-hidden",
+          "transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col justify-between overflow-hidden",
           open ? "translate-x-0" : "-translate-x-full",
         ].join(" ")}
       >
@@ -108,10 +128,24 @@ const AppMobileSidebar = ({ open, onClose }) => {
           <SidebarUserProfile
             user={user}
             collapsed={false}
-            onLogout={handleLogout}
+            onLogout={handleLogoutClick}
           />
         </div>
       </aside>
+
+      {/* Logout Confirmation Dialog */}
+      <UIConfirmDialog
+        isOpen={isLogoutDialogOpen}
+        onClose={() => setIsLogoutDialogOpen(false)}
+        onConfirm={handleConfirmLogout}
+        title="Sign out"
+        description="Are you sure you want to sign out of your account?"
+        intent="danger"
+        confirmText="Sign out"
+        cancelText="Cancel"
+        isLoading={isLoggingOut}
+        icon={<LogOut className="size-5 sm:size-6 text-error" />}
+      />
     </>
   );
 };

@@ -264,7 +264,25 @@ export default function WorkspaceMemberDetailsPage() {
   const handleSaveAccess = async () => {
     if (!memberUserId) return;
     try {
-      await updateMemberAccess(memberUserId, accessFormData);
+      const isAllCompanies = Boolean(accessFormData.accessAllCompanies);
+      const cleanCompanyIds = isAllCompanies
+        ? []
+        : (accessFormData.companyIds || []).map((id) => String(id?._id || id).trim());
+
+      const hasCompanyScope = isAllCompanies || cleanCompanyIds.length > 0;
+      const isAllBranches = hasCompanyScope && Boolean(accessFormData.accessAllBranches);
+      const cleanBranchIds = hasCompanyScope && !isAllBranches
+        ? (accessFormData.branchIds || []).map((id) => String(id?._id || id).trim())
+        : [];
+
+      const payload = {
+        accessAllCompanies: isAllCompanies,
+        accessAllBranches: isAllBranches,
+        companyIds: cleanCompanyIds,
+        branchIds: cleanBranchIds,
+      };
+
+      await updateMemberAccess(memberUserId, payload);
       setIsAccessModalOpen(false);
       uiToast.success("Access Updated", `Permissions and branch access updated for ${displayName}.`);
       if (workspaceId) {
@@ -317,12 +335,17 @@ export default function WorkspaceMemberDetailsPage() {
       isAllBranches,
       companyLabel: isAllCompanies
         ? "All Companies Authorized"
+        : assignedCompanies.length === 0
+        ? "No Companies Authorized"
         : `${assignedCompanies.length} ${assignedCompanies.length === 1 ? "Company" : "Companies"} Authorized`,
       branchLabel: isAllBranches
         ? "All Branches Authorized"
+        : assignedBranches.length === 0
+        ? "No Branches Authorized"
         : `${assignedBranches.length} ${assignedBranches.length === 1 ? "Branch" : "Branches"} Authorized`,
     };
   }, [isOwner, accessFormData.accessAllCompanies, accessFormData.accessAllBranches, assignedCompanies.length, assignedBranches.length]);
+
 
   const isPrimary = Boolean(member?.isPrimary);
   const emailVerified = Boolean(user?.emailVerified);

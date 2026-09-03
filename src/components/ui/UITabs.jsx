@@ -98,8 +98,8 @@ export const UITabs = forwardRef(
             "p-1.5 bg-surface-alt rounded-2xl border border-border/80 gap-1.5 overflow-hidden",
           variant === "segmented" &&
             (size === "xs"
-              ? "p-0.5 bg-neutral-200/70 dark:bg-neutral-800/80 rounded-lg gap-0.5 shadow-2xs overflow-hidden"
-              : "p-1 bg-neutral-200/80 dark:bg-neutral-800/90 rounded-xl gap-1 shadow-2xs overflow-hidden"),
+              ? "p-0.5 bg-surface-alt rounded-lg gap-0.5 shadow-2xs overflow-hidden"
+              : "p-1 bg-surface-alt rounded-xl gap-1 shadow-2xs overflow-hidden"),
           variant === "underline" &&
             "border-b border-border gap-4 sm:gap-6 pb-px overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden no-scrollbar",
           fullWidth && "w-full flex",

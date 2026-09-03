@@ -133,13 +133,6 @@ export const SIDEBAR_NAV_GROUPS = [
             icon: Truck,
             permission: "supplier:view",
           },
-          {
-            id: "all-parties",
-            label: "All Parties",
-            path: ROUTES.PARTIES,
-            icon: Contact,
-            permissions: ["customer:view", "supplier:view"],
-          },
         ],
       },
       {

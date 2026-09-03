@@ -1,8 +1,11 @@
-# Workspace Member Detail Page Simplification - Task Tracker
+# Tasks: Fix Company & Branch Member Access Count and Employee Drawers
 
-| # | Task | File | Status |
-|---|------|------|--------|
-| 1 | Update Parent Page Controller (`WorkspaceMemberDetailsPage.jsx`) to provide verified backend fields and clean handlers | `src/features/workspace/pages/WorkspaceMemberDetailsPage.jsx` | [x] |
-| 2 | Redesign Desktop Surface (`WorkspaceMemberDetailsDesktopPage.jsx`): remove back button, remove activity chart, remove dummy fields, implement pure backend field cards | `src/features/workspace/pages/desktop/WorkspaceMemberDetailsDesktopPage.jsx` | [x] |
-| 3 | Redesign Mobile Surface (`WorkspaceMemberDetailsMobilePage.jsx`): remove back button, remove activity tab/chart, align with backend schema & 44px ergonomics | `src/features/workspace/pages/mobile/WorkspaceMemberDetailsMobilePage.jsx` | [x] |
-| 4 | Run Build & Quality Verification (`npm run build`) | `npm run build` | [x] |
+- [x] 1. Backend: Update `company.service.js` to calculate and attach `memberCount` & `membersCount` in `getWorkspaceCompanies` and `getCompanyById`
+- [x] 2. Backend: Implement `getCompanyMembers` in `company.service.js`, `company.controller.js`, and register in `company.routes.js`
+- [x] 3. Backend: Update `branch.service.js`, `branch.controller.js`, and `branch.routes.js` for branch member counts and endpoints
+- [x] 4. Frontend: Enhance `companyService.js`, `branchService.js`, `CompanyEmployeesDrawer.jsx`, `BranchEmployeesDrawer.jsx` to correctly map member employee details
+- [x] 5. Frontend: Ensure `formatMemberCount` in `CompanyCard.jsx`, `CompanyTableView.jsx`, and `CompaniesMobilePage.jsx` handles all count fields
+- [x] 6. Frontend: Remove obsolete "Module Settings" dropdown action across Company and Branch cards/tables
+- [x] 7. Frontend: Redesign Employee Drawers with compact, beautiful SaaS UI, single-row footer buttons, pointer cursor, and member detail page redirect
+- [x] 8. Verification: Build frontend and verify code changes and contracts
+

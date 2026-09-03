@@ -87,6 +87,8 @@ export const WorkspaceMembersTableView = ({
                 ? "All Companies"
                 : member?.accessAllCompanies
                 ? "All Companies"
+                : (member?.companyCount === 0 || member?.companies?.length === 0 || member?.companyIds?.length === 0)
+                ? "No Companies"
                 : member?.companyCount !== undefined
                 ? `${member.companyCount} ${member.companyCount === 1 ? "Company" : "Companies"}`
                 : member?.companies?.length !== undefined
@@ -99,6 +101,8 @@ export const WorkspaceMembersTableView = ({
                 ? "All Branches"
                 : member?.accessAllBranches
                 ? "All Branches"
+                : (member?.branchCount === 0 || member?.branches?.length === 0 || member?.branchIds?.length === 0)
+                ? "No Branches"
                 : member?.branchCount !== undefined
                 ? `${member.branchCount} ${member.branchCount === 1 ? "Branch" : "Branches"}`
                 : member?.branches?.length !== undefined
@@ -106,6 +110,7 @@ export const WorkspaceMembersTableView = ({
                 : member?.branchIds?.length !== undefined
                 ? `${member.branchIds.length} ${member.branchIds.length === 1 ? "Branch" : "Branches"}`
                 : "No Branches";
+
 
               return (
                 <UITableRow

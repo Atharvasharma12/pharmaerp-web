@@ -3,14 +3,13 @@
 import React, { useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Sparkles } from "lucide-react";
+import { ChevronRight, Sparkles, Plus } from "lucide-react";
 
 import { ROUTES } from "@/constants";
 import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
 import {
   HeaderSearchBar,
   HeaderNotifications,
-  HeaderProfileDropdown,
 } from "@/layouts/app/components/header";
 
 /**
@@ -599,27 +598,30 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
 
   return (
     <header
-      className="fixed top-0 z-30 h-[62px] border-b border-border bg-surface/95 backdrop-blur-md transition-[left] duration-200 ease-out"
+      className="fixed top-0 z-30 h-[62px] border-b border-border bg-surface/95 backdrop-blur-md transition-[left] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
       style={{
         left: effectiveWidth,
         right: 0,
       }}
     >
-      <div className="flex h-full w-full items-center justify-between px-6">
+      <div className="flex h-full w-full items-center px-6 gap-4">
         {/* ── LEFT: Dynamic Page Title & Traversible Breadcrumbs ─────── */}
-        <div className="min-w-0 shrink-0 flex flex-col justify-center py-1">
-          <AnimatePresence mode="wait">
-            <motion.h1
-              key={pageTitle}
-              initial={{ opacity: 0, y: -2 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 2 }}
-              transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
-              className="truncate text-base lg:text-[16px] font-bold tracking-tight text-text leading-tight"
-            >
-              {pageTitle}
-            </motion.h1>
-          </AnimatePresence>
+        <div className="flex-1 min-w-0 shrink-0 flex flex-col justify-center py-1">
+          <div className="flex items-center gap-3">
+            <AnimatePresence mode="wait">
+              <motion.h1
+                key={pageTitle}
+                initial={{ opacity: 0, y: -2 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 2 }}
+                transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+                className="truncate text-base lg:text-[16px] font-bold tracking-tight text-text leading-tight"
+              >
+                {pageTitle}
+              </motion.h1>
+            </AnimatePresence>
+            <div id="header-stats-portal" className="flex items-center"></div>
+          </div>
 
           {/* TopBar Traversible Breadcrumb Trail */}
           <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[11px] text-text-muted mt-0.5 select-none">
@@ -643,25 +645,32 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
           </nav>
         </div>
 
-        {/* ── CENTER: Modern Command Search Bar / Setup Status Badge ── */}
-        <div className="mx-4 flex flex-1 justify-center max-w-[480px] lg:max-w-[540px]">
+        {/* ── RIGHT: Search Bar, Notifications, & POS Button ── */}
+        <div className="flex shrink-0 items-center justify-end gap-3 w-auto">
           {isSetupComplete ? (
-            <HeaderSearchBar />
+            <div className="w-[280px] lg:w-[400px]">
+              <HeaderSearchBar />
+            </div>
           ) : (
             <Link
               to={ROUTES.SETUP_CENTER}
-              className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary hover:bg-primary/15 transition-all shadow-xs"
+              className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary hover:bg-primary/15 transition-all shadow-xs mr-2"
             >
               <Sparkles className="size-3.5" />
-              <span>Workspace Setup in Progress ({completedCount}/2 Complete) — Click to Finish</span>
+              <span>Workspace Setup ({completedCount}/2)</span>
             </Link>
           )}
-        </div>
-
-        {/* ── RIGHT: Notifications (only if setup complete) & User Profile ── */}
-        <div className="flex shrink-0 items-center gap-3">
+          
           {isSetupComplete && <HeaderNotifications />}
-          <HeaderProfileDropdown />
+          
+          {/* POS Billing Plus Button */}
+          <Link
+            to="/sales"
+            className="flex items-center justify-center size-9 rounded-full bg-primary hover:bg-primary/90 transition-all hover:scale-105 active:scale-95 shadow-sm ring-2 ring-primary/20"
+            title="POS Billing"
+          >
+            <Plus className="size-5 text-white dark:text-white" color="white" />
+          </Link>
         </div>
       </div>
     </header>

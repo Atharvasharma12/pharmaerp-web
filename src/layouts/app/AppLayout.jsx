@@ -10,9 +10,11 @@ import useUser from "@/features/user/hooks/useUser";
 import useAccessControl from "@/features/access-control/hooks/useAccessControl";
 import { ScrollToTop } from "@/components";
 import { UIToastContainer } from "@/components/ui";
+import { AnimatePresence } from "framer-motion";
 
 import AppDesktopLayout from "./desktop/AppDesktopLayout";
 import AppMobileLayout from "./mobile/AppMobileLayout";
+import PremiumAppLoader from "./components/loader/PremiumAppLoader";
 
 const getWorkspaceFromItem = (item) => {
   return item?.workspace || item || null;
@@ -131,22 +133,17 @@ const AppLayout = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHardRefresh]);
 
-  // Render Loader Curtain on Refresh, serve layout instantly on navigation click redirects
-  if (!isSyncComplete) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-bg">
-        <div className="text-sm font-medium text-text-muted">
-          Syncing context with server...
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <ScrollToTop />
       <UIToastContainer position="bottom-right" />
-      {isMobile ? <AppMobileLayout /> : <AppDesktopLayout />}
+      <AnimatePresence mode="wait">
+        {!isSyncComplete ? (
+          <PremiumAppLoader key="loader" />
+        ) : (
+          isMobile ? <AppMobileLayout key="mobile" /> : <AppDesktopLayout key="desktop" />
+        )}
+      </AnimatePresence>
     </>
   );
 };

@@ -202,12 +202,6 @@ export const BranchTableView = ({
                         >
                           Staff & Access
                         </UIDropdownItem>
-                        <UIDropdownItem
-                          icon={<Settings className="w-4 h-4" />}
-                          onClick={() => onSettings?.(branch)}
-                        >
-                          Module Settings
-                        </UIDropdownItem>
                         <UIDropdownDivider />
                         <UIDropdownItem
                           destructive

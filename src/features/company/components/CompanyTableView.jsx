@@ -36,7 +36,11 @@ const STATUS_COLOR_MAP = {
 };
 
 const formatMemberCount = (company) => {
-  const count = company?.memberCount ?? company?.membersCount ?? 0;
+  const count =
+    company?.memberCount ??
+    company?.membersCount ??
+    company?.highlights?.totalMembers ??
+    0;
   return `${count} ${count === 1 ? "Member" : "Members"}`;
 };
 
@@ -196,12 +200,6 @@ export const CompanyTableView = ({
                           onClick={() => onViewEmployees?.(company)}
                         >
                           Staff & Access
-                        </UIDropdownItem>
-                        <UIDropdownItem
-                          icon={<Settings className="w-4 h-4" />}
-                          onClick={() => onSettings?.(company)}
-                        >
-                          Module Settings
                         </UIDropdownItem>
                         <UIDropdownDivider />
                         <UIDropdownItem

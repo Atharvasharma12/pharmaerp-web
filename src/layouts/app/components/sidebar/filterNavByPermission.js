@@ -23,6 +23,8 @@ const filterItem = (
     isSetupComplete = true,
     companyCompleted = false,
     branchCompleted = false,
+    hasActiveCompany = true,
+    hasActiveBranch = true,
   } = typeof setupOpts === "boolean"
     ? { isSetupComplete: setupOpts }
     : (setupOpts || {});
@@ -92,6 +94,29 @@ const filterItem = (
     return null;
   }
 
+  // Enforce Active Contexts for Non-Owners on Operational Routes
+  if (!isOwner) {
+    const COMPANY_DEPENDENT_NAV_IDS = [
+      "parties",
+      "inventory",
+      "finance",
+      "sales",
+    ];
+    
+    const BRANCH_DEPENDENT_NAV_IDS = [
+      "sales",
+      "treasury",
+    ];
+
+    if (!hasActiveCompany && COMPANY_DEPENDENT_NAV_IDS.includes(item.id)) {
+      return null;
+    }
+
+    if (!hasActiveBranch && BRANCH_DEPENDENT_NAV_IDS.includes(item.id)) {
+      return null;
+    }
+  }
+
   // Check array of permissions (user needs ANY one)
   if (item.permissions?.length) {
     const hasAny =
@@ -130,7 +155,7 @@ const filterItem = (
  * @param {function} canFn - can(permissionKey) -> boolean
  * @param {function} [canAnyFn] - canAny(permissionKeys) -> boolean
  * @param {boolean} [isOwner=false] - whether current user is owner
- * @param {object|boolean} [setupOpts=true] - { isSetupComplete, companyCompleted, branchCompleted } or boolean
+ * @param {object|boolean} [setupOpts=true] - { isSetupComplete, companyCompleted, branchCompleted, hasActiveCompany, hasActiveBranch } or boolean
  * @returns {object[]} filtered groups (empty groups are removed)
  */
 export const filterNavByPermission = (

@@ -129,6 +129,8 @@ export default function MemberAccessModal({
       ...prev,
       accessAllCompanies: isChecked,
       companyIds: isChecked ? (companies || []).map((c) => String(c._id).trim()) : [],
+      accessAllBranches: isChecked ? prev.accessAllBranches : false,
+      branchIds: isChecked ? prev.branchIds : [],
     }));
   };
 
@@ -152,7 +154,10 @@ export default function MemberAccessModal({
       }
 
       // If deselected, immediately prune branches belonging to that deselected company
-      const updatedBranchIds = isChecked
+      const hasAnyCompany = updatedCompanyIds.length > 0;
+      const updatedBranchIds = !hasAnyCompany
+        ? []
+        : isChecked
         ? prev.branchIds || []
         : (prev.branchIds || []).filter((bId) => {
             const rawBId = String(bId?._id || bId).trim();
@@ -167,9 +172,11 @@ export default function MemberAccessModal({
         ...prev,
         companyIds: updatedCompanyIds,
         branchIds: updatedBranchIds,
+        accessAllBranches: hasAnyCompany ? prev.accessAllBranches : false,
       };
     });
   };
+
 
   // Handler: Toggle All Branches
   const handleToggleAllBranches = (isChecked) => {

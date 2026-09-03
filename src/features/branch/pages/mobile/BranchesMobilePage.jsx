@@ -421,12 +421,6 @@ export const BranchesMobilePage = ({
                         >
                           Staff & Access
                         </UIDropdownItem>
-                        <UIDropdownItem
-                          icon={<Settings className="size-4" />}
-                          onClick={() => handleOpenSettings(branch)}
-                        >
-                          Module Settings
-                        </UIDropdownItem>
                         <UIDropdownDivider />
                         <UIDropdownItem
                           destructive

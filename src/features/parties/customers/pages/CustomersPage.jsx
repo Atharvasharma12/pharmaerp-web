@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks";
 import { AppConfirmModal } from "@/components";
 
 import useCustomer from "../hooks/useCustomer";
+import useCompany from "@/features/company/hooks/useCompany";
 import CustomersMobilePage from "./mobile/CustomersMobilePage";
 import CustomersDesktopPage from "./desktop/CustomersDesktopPage";
 
@@ -60,7 +61,8 @@ const mapCustomerForView = (customer) => {
 const CustomersPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const hasFetchedRef = useRef(false);
+  const { currentCompany } = useCompany();
+  const companyId = currentCompany?._id;
 
   const {
     customers,
@@ -77,6 +79,7 @@ const CustomersPage = () => {
   const [filters, setFilters] = useState(initialFilters);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState("grid");
 
   const isLoading = getCustomersStatus === API_STATUS.LOADING;
   const isDeleting = deleteCustomerStatus === API_STATUS.LOADING;
@@ -91,10 +94,9 @@ const CustomersPage = () => {
   }, [getCustomers]);
 
   useEffect(() => {
-    if (hasFetchedRef.current) return;
-    hasFetchedRef.current = true;
+    if (!companyId) return;
     fetchCustomers();
-  }, [fetchCustomers]);
+  }, [fetchCustomers, companyId]);
 
   useEffect(() => {
     if (!message) return undefined;
@@ -265,7 +267,6 @@ const CustomersPage = () => {
   }, [deleteCustomer, selectedCustomer]);
 
   const handleRefresh = useCallback(() => {
-    hasFetchedRef.current = false;
     clearError();
     clearMessage();
     fetchCustomers();
@@ -279,6 +280,8 @@ const CustomersPage = () => {
 
     filters,
     activeFilterChips,
+    viewMode,
+    onViewModeChange: setViewMode,
 
     isLoading,
     isDeleting,

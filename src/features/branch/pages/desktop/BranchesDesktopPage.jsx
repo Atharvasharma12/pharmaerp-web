@@ -8,6 +8,7 @@ import {
   RotateCcw,
   AlertTriangle,
   Search,
+  Filter,
 } from "lucide-react";
 import {
   UIButton,
@@ -19,7 +20,15 @@ import {
   UIPageHeader,
   UIFilterToolbar,
   PermissionGate,
+  UIModal,
+  UIModalHeader,
+  UIModalTitle,
+  UIModalDescription,
+  UIModalBody,
+  UIModalFooter,
+  UIIconButton
 } from "@/components/ui";
+import { TopBarStats } from "@/layouts/app/components/header";
 
 import {
   BranchCard,
@@ -93,6 +102,14 @@ export const BranchesDesktopPage = ({
     (stats.find((s) => s.id === "inactive")?.value || 0) +
     (stats.find((s) => s.id === "suspended")?.value || 0);
 
+  const topBarStats = [
+    { label: "Total", value: totalBranches, intent: "primary" },
+    { label: "Active", value: activeCount, intent: "success" },
+    { label: "Inactive", value: inactiveCount, intent: "error" },
+  ];
+
+  const [isFilterModalOpen, setIsFilterModalOpen] = React.useState(false);
+
   const shouldShowPagination =
     hasFilteredBranches && filteredBranchesCount > pageSize;
 
@@ -131,7 +148,7 @@ export const BranchesDesktopPage = ({
   };
 
   return (
-    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-5 max-w-[1440px] mx-auto space-y-3.5">
+    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-0 max-w-[1440px] mx-auto space-y-2.5">
       {/* ── Global Error Banner ── */}
       {error && !hasError && (
         <UIAlert
@@ -142,57 +159,46 @@ export const BranchesDesktopPage = ({
         />
       )}
 
-      {/* ── Standard UIPageHeader ── */}
-      <UIPageHeader
-        bordered={false}
-        compact
-        className="p-0 pb-0.5"
-        title={
-          <span className="flex items-center gap-2">
-            <span className="font-mono tabular-nums">{totalBranches}</span> Branches
-          </span>
-        }
-        description={
-          <span className="flex items-center gap-3.5 text-xs font-semibold mt-1">
-            <span className="inline-flex items-center gap-1.5 text-text">
-              <span className="size-2.5 rounded-full bg-success ring-2 ring-success/20" />
-              Active{" "}
-              <strong className="font-mono tabular-nums text-text font-bold">
-                {activeCount}
-              </strong>
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-text">
-              <span className="size-2.5 rounded-full bg-error ring-2 ring-error/20" />
-              Inactive{" "}
-              <strong className="font-mono tabular-nums text-text font-bold">
-                {inactiveCount}
-              </strong>
-            </span>
-          </span>
+      {/* ── TopBar Stats Teleport ── */}
+      <TopBarStats stats={topBarStats} />
+
+      {/* ── Enterprise UIFilterToolbar Component with Built-in View Switcher ── */}
+      <UIFilterToolbar
+        searchQuery={filters.search}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Search branch name, code, manager, or address..."
+        activeFilterChips={activeFilterChips}
+        onClearFilters={handleClearFilters}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
+        filters={
+          <UIButton
+            variant="outline"
+            size="sm"
+            startIcon={<Filter className="size-4" />}
+            onClick={() => setIsFilterModalOpen(true)}
+            className="w-10 px-0 sm:w-auto sm:px-3 justify-center"
+          >
+            <span className="hidden sm:inline">Filter</span>
+          </UIButton>
         }
         actions={
-          <div className="flex items-center gap-2 shrink-0">
-            <UIButton
-              type="button"
-              variant="outline"
+          <div className="flex items-center gap-2 shrink-0 border-l border-border pl-2 ml-1">
+            <UIIconButton
+              variant="ghost"
               size="sm"
-              startIcon={
-                <RotateCcw
-                  className={`size-3.5 text-text-muted ${
-                    isLoading ? "animate-spin" : ""
-                  }`}
-                />
-              }
+              className="text-text-muted hover:text-text h-9 w-9"
               onClick={handleRefresh}
+              title="Refresh"
             >
-              Refresh
-            </UIButton>
+              <RotateCcw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
+            </UIIconButton>
 
             <UIButton
               type="button"
               variant="outline"
               size="sm"
-              startIcon={<Download className="size-3.5 text-text-muted" />}
+              startIcon={<Download className="size-4" />}
               onClick={handleExportCSV}
             >
               Export
@@ -213,22 +219,21 @@ export const BranchesDesktopPage = ({
         }
       />
 
-      {/* ── Enterprise UIFilterToolbar Component with Built-in View Switcher ── */}
-      <UIFilterToolbar
-        searchQuery={filters.search}
-        onSearchChange={handleSearchChange}
-        searchPlaceholder="Search branch name, code, manager, or address..."
-        sortBy={sortBy}
-        onSortChange={onSortChange}
-        sortOptions={SORT_OPTIONS}
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange}
-        activeFilterChips={activeFilterChips}
-        onClearFilters={handleClearFilters}
-        filters={
-          <>
+      {/* ── Filter Modal ── */}
+      <UIModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        className="overflow-visible"
+      >
+        <UIModalHeader>
+          <UIModalTitle>Filter Branches</UIModalTitle>
+          <UIModalDescription>Select criteria to filter the branch list.</UIModalDescription>
+        </UIModalHeader>
+        <UIModalBody className="overflow-visible">
+          <div className="space-y-5 py-2">
             {companyOptions.length > 1 && (
-              <div className="w-40">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-text-muted">Company</label>
                 <UISelect
                   value={filters.company}
                   onChange={(val) => handleFilterChange({ company: val })}
@@ -238,8 +243,8 @@ export const BranchesDesktopPage = ({
                 />
               </div>
             )}
-
-            <div className="w-32">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted">Status</label>
               <UISelect
                 value={filters.status}
                 onChange={(val) => handleFilterChange({ status: val })}
@@ -248,9 +253,37 @@ export const BranchesDesktopPage = ({
                 size="sm"
               />
             </div>
-          </>
-        }
-      />
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted">Type</label>
+              <UISelect
+                value={filters.type}
+                onChange={(val) => handleFilterChange({ type: val })}
+                options={branchTypeOptions}
+                placeholder="All Types"
+                size="sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted">Sort By</label>
+              <UISelect
+                value={sortBy}
+                onChange={onSortChange}
+                options={SORT_OPTIONS}
+                placeholder="Sort By..."
+                size="sm"
+              />
+            </div>
+          </div>
+        </UIModalBody>
+        <UIModalFooter>
+          <UIButton variant="ghost" onClick={() => handleClearFilters()}>
+            Clear Filters
+          </UIButton>
+          <UIButton variant="primary" onClick={() => setIsFilterModalOpen(false)}>
+            Apply Filters
+          </UIButton>
+        </UIModalFooter>
+      </UIModal>
 
       {/* ── Main Content: Grid or List (Table) ── */}
       {hasError ? (
@@ -260,7 +293,8 @@ export const BranchesDesktopPage = ({
             Unable to load branches list
           </h3>
           <p className="text-xs text-text-muted max-w-md mx-auto">
-            {error || "An error occurred while connecting to branch servers. Please retry."}
+            {error ||
+              "An error occurred while connecting to branch servers. Please retry."}
           </p>
           <UIButton
             type="button"
@@ -272,7 +306,7 @@ export const BranchesDesktopPage = ({
             Retry Connection
           </UIButton>
         </div>
-      ) : isLoading && !hasBranches ? (
+      ) : isLoading ? (
         /* Shimmer Loading Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {Array.from({ length: 6 }).map((_, idx) => (
@@ -323,7 +357,11 @@ export const BranchesDesktopPage = ({
             title="No matching branches found"
             description="Try changing your search query, status, or company filter criteria."
             primaryAction={
-              <UIButton variant="outline" size="sm" onClick={handleClearFilters}>
+              <UIButton
+                variant="outline"
+                size="sm"
+                onClick={handleClearFilters}
+              >
                 Clear Filters
               </UIButton>
             }

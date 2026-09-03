@@ -20,8 +20,10 @@ import useCompany from "@/features/company/hooks/useCompany";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useUser from "@/features/user/hooks/useUser";
+import { usePermission } from "@/hooks";
 import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
 import { UITabs, UISkeleton } from "@/components/ui";
+
 
 const ALL_SELECTOR_TABS = [
   { id: "company", label: "Company", icon: <Building2 className="size-3.5" /> },
@@ -109,6 +111,7 @@ const SidebarCompanySelector = ({
   const dropdownRef = useRef(null);
 
   const { currentWorkspace } = useWorkspace();
+  const { isOwner, can } = usePermission();
   const {
     companies = [],
     currentCompany,
@@ -131,28 +134,8 @@ const SidebarCompanySelector = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isSwitchingBranch, setIsSwitchingBranch] = useState(false);
 
-  // Filter available tabs based on setup completion:
-  // If company is NOT created yet, only show Company tab
-  const availableTabs = useMemo(() => {
-    if (!companyCompleted) {
-      return [{ id: "company", label: "Company", icon: <Building2 className="size-3.5" /> }];
-    }
-    return ALL_SELECTOR_TABS;
-  }, [companyCompleted]);
-
-  // Ensure active tab doesn't get stuck on branch if company is incomplete
-  useEffect(() => {
-    if (!companyCompleted && activeTab !== "company") {
-      setActiveTab("company");
-    }
-  }, [companyCompleted, activeTab]);
-
-  const [dropdownCoords, setDropdownCoords] = useState({
-    top: 0,
-    left: 0,
-    width: 235,
-  });
-  const [collapsedTooltip, setCollapsedTooltip] = useState(null);
+  const canCreateCompany = isOwner || can("company:create");
+  const canCreateBranch = isOwner || can("branch:create");
 
   const isCompanyLoading =
     getWorkspaceCompaniesStatus === API_STATUS.LOADING ||
@@ -161,6 +144,36 @@ const SidebarCompanySelector = ({
   const isBranchLoading =
     isSwitchingBranch ||
     getCompanyBranchesStatus === API_STATUS.LOADING;
+
+  const hasNoCompanyAccess = !isOwner && !isCompanyLoading && companies.length === 0;
+  const hasNoBranchAccess = !isOwner && !isBranchLoading && companies.length > 0 && branches.length === 0;
+
+  // Filter available tabs based on setup completion and access
+  const availableTabs = useMemo(() => {
+    if (hasNoCompanyAccess) {
+      return [{ id: "company", label: "Company", icon: <Building2 className="size-3.5" /> }];
+    }
+    if (!companyCompleted && isOwner) {
+      return [{ id: "company", label: "Company", icon: <Building2 className="size-3.5" /> }];
+    }
+    return ALL_SELECTOR_TABS;
+  }, [hasNoCompanyAccess, companyCompleted, isOwner]);
+
+  // Ensure active tab doesn't get stuck on branch if company is incomplete or has no access
+  useEffect(() => {
+    if ((!companyCompleted || hasNoCompanyAccess) && activeTab !== "company") {
+      setActiveTab("company");
+    }
+  }, [companyCompleted, hasNoCompanyAccess, activeTab]);
+
+
+  const [dropdownCoords, setDropdownCoords] = useState({
+    top: 0,
+    left: 0,
+    width: 235,
+  });
+  const [collapsedTooltip, setCollapsedTooltip] = useState(null);
+
 
   // Rock-solid position calculation without subpixel jitter
   const updateDropdownPosition = useCallback(() => {
@@ -301,15 +314,22 @@ const SidebarCompanySelector = ({
   };
 
   // Clean dynamic names reflecting setup rules without parenthetical steps
-  const companyName = !companyCompleted
+  const companyName = hasNoCompanyAccess
+    ? "You don't have any company."
+    : !companyCompleted && isOwner
     ? "Create Company"
     : currentCompany?.name || "Select Company";
 
-  const branchName = !companyCompleted
+  const branchName = hasNoCompanyAccess
+    ? "No Company Access"
+    : hasNoBranchAccess
+    ? "No Branch Access"
+    : !companyCompleted
     ? "Create Company First"
-    : !branchCompleted
+    : !branchCompleted && isOwner
       ? "Create Branch"
       : currentBranch?.name || "Select Branch";
+
 
   // ─────────────────────────────────────────────────────────────────────────────
   // 1. COLLAPSED MINI-RAIL VIEW (68px)
@@ -446,6 +466,11 @@ const SidebarCompanySelector = ({
                                 </button>
                               );
                             })
+                          ) : hasNoCompanyAccess ? (
+                            <div className="p-3 text-center text-xs text-text-muted space-y-1 bg-surface-alt/40 rounded-[8px] border border-dashed border-border/70">
+                              <p className="font-semibold text-text">You don't have any company.</p>
+                              <p className="text-[11px]">No company access is granted for your account in this workspace.</p>
+                            </div>
                           ) : (
                             <div className="p-3 text-center text-xs text-text-muted space-y-1">
                               <p className="font-semibold text-text">No companies created yet</p>
@@ -454,16 +479,19 @@ const SidebarCompanySelector = ({
                           )}
                         </div>
 
-                        <div className="my-1.5 border-t border-border/70" />
-
-                        <Link
-                          to={ROUTES.CREATE_COMPANY}
-                          onClick={() => setIsOpen(false)}
-                          className="flex w-full items-center gap-2 rounded-[8px] px-2 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
-                        >
-                          <Plus className="size-3.5 stroke-[2.5]" />
-                          <span>{companyCompleted ? "New Company" : "Create First Company"}</span>
-                        </Link>
+                        {canCreateCompany && (
+                          <>
+                            <div className="my-1.5 border-t border-border/70" />
+                            <Link
+                              to={ROUTES.CREATE_COMPANY}
+                              onClick={() => setIsOpen(false)}
+                              className="flex w-full items-center gap-2 rounded-[8px] px-2 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
+                            >
+                              <Plus className="size-3.5 stroke-[2.5]" />
+                              <span>{companyCompleted ? "New Company" : "Create First Company"}</span>
+                            </Link>
+                          </>
+                        )}
                       </div>
                     )}
 
@@ -501,6 +529,11 @@ const SidebarCompanySelector = ({
                                 </button>
                               );
                             })
+                          ) : hasNoBranchAccess ? (
+                            <div className="p-3 text-center text-xs text-text-muted space-y-1 bg-surface-alt/40 rounded-[8px] border border-dashed border-border/70">
+                              <p className="font-semibold text-text">No branch access</p>
+                              <p className="text-[11px]">No branches are assigned to your account under this company.</p>
+                            </div>
                           ) : (
                             <div className="p-3 text-center text-xs text-text-muted space-y-1">
                               <p className="font-semibold text-text">No branch created yet</p>
@@ -509,18 +542,22 @@ const SidebarCompanySelector = ({
                           )}
                         </div>
 
-                        <div className="my-1.5 border-t border-border/70" />
-
-                        <Link
-                          to={ROUTES.CREATE_BRANCH}
-                          onClick={() => setIsOpen(false)}
-                          className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
-                        >
-                          <Plus className="size-3.5 stroke-[2.5]" />
-                          <span>{branchCompleted ? "New Branch" : "Create First Branch"}</span>
-                        </Link>
+                        {canCreateBranch && (
+                          <>
+                            <div className="my-1.5 border-t border-border/70" />
+                            <Link
+                              to={ROUTES.CREATE_BRANCH}
+                              onClick={() => setIsOpen(false)}
+                              className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
+                            >
+                              <Plus className="size-3.5 stroke-[2.5]" />
+                              <span>{branchCompleted ? "New Branch" : "Create First Branch"}</span>
+                            </Link>
+                          </>
+                        )}
                       </div>
                     )}
+
                   </motion.div>
                 </AnimatePresence>
               </motion.div>
@@ -673,82 +710,99 @@ const SidebarCompanySelector = ({
                               </button>
                             );
                           })
-                        ) : (
-                          <div className="py-4 text-center text-xs text-text-muted space-y-1">
-                            <p className="font-semibold text-text">No companies created yet</p>
-                            <p className="text-[11px]">Set up your legal entity to continue.</p>
-                          </div>
+                          ) : hasNoCompanyAccess ? (
+                            <div className="py-4 px-3 text-center text-xs text-text-muted space-y-1 bg-surface-alt/40 rounded-[10px] border border-dashed border-border/70">
+                              <p className="font-semibold text-text">You don't have any company.</p>
+                              <p className="text-[11px]">No company access is granted for your account in this workspace.</p>
+                            </div>
+                          ) : (
+                            <div className="py-4 text-center text-xs text-text-muted space-y-1">
+                              <p className="font-semibold text-text">No companies created yet</p>
+                              <p className="text-[11px]">Set up your legal entity to continue.</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {canCreateCompany && (
+                          <>
+                            <div className="my-1.5 border-t border-border/70" />
+                            <Link
+                              to={ROUTES.CREATE_COMPANY}
+                              onClick={() => setIsOpen(false)}
+                              className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
+                            >
+                              <Plus className="size-3.5 stroke-[2.5]" />
+                              <span>{companyCompleted ? "New Company" : "Create First Company"}</span>
+                            </Link>
+                          </>
                         )}
                       </div>
+                    )}
 
-                      <div className="my-1.5 border-t border-border/70" />
-
-                      <Link
-                        to={ROUTES.CREATE_COMPANY}
-                        onClick={() => setIsOpen(false)}
-                        className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
-                      >
-                        <Plus className="size-3.5 stroke-[2.5]" />
-                        <span>{companyCompleted ? "New Company" : "Create First Company"}</span>
-                      </Link>
-                    </div>
-                  )}
-
-                  {/* TAB 2: Branch List (Only accessible if company is completed) */}
-                  {activeTab === "branch" && companyCompleted && (
-                    <div>
-                      <div className="max-h-[220px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-0.5 pr-0.5">
-                        {isBranchLoading ? (
-                          <SelectorSkeletonList count={3} iconType="branch" />
-                        ) : branches?.length ? (
-                          branches.map((br) => {
-                            const isSelected = br?._id === currentBranch?._id;
-                            return (
-                              <button
-                                key={br?._id}
-                                type="button"
-                                onClick={() => handleSelectBranch(br)}
-                                className={`flex w-full cursor-pointer items-center justify-between gap-2.5 rounded-[8px] px-2.5 py-2 text-left transition-all active:scale-[0.98] ${
-                                  isSelected
-                                    ? "bg-primary-soft/60 text-primary font-bold"
-                                    : "text-text hover:bg-surface-hover"
-                                }`}
-                              >
-                                <div className="flex min-w-0 items-center gap-2.5">
-                                  <div className="flex size-6 shrink-0 items-center justify-center rounded-[5px] bg-primary/10 text-primary">
-                                    <Store className="size-3.5" />
+                    {/* TAB 2: Branch List (Only accessible if company is completed) */}
+                    {activeTab === "branch" && companyCompleted && (
+                      <div>
+                        <div className="max-h-[220px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-0.5 pr-0.5">
+                          {isBranchLoading ? (
+                            <SelectorSkeletonList count={3} iconType="branch" />
+                          ) : branches?.length ? (
+                            branches.map((br) => {
+                              const isSelected = br?._id === currentBranch?._id;
+                              return (
+                                <button
+                                  key={br?._id}
+                                  type="button"
+                                  onClick={() => handleSelectBranch(br)}
+                                  className={`flex w-full cursor-pointer items-center justify-between gap-2.5 rounded-[8px] px-2.5 py-2 text-left transition-all active:scale-[0.98] ${
+                                    isSelected
+                                      ? "bg-primary-soft/60 text-primary font-bold"
+                                      : "text-text hover:bg-surface-hover"
+                                  }`}
+                                >
+                                  <div className="flex min-w-0 items-center gap-2.5">
+                                    <div className="flex size-6 shrink-0 items-center justify-center rounded-[5px] bg-primary/10 text-primary">
+                                      <Store className="size-3.5" />
+                                    </div>
+                                    <span className="truncate text-[13px] font-semibold text-text">
+                                      {br?.name}
+                                    </span>
                                   </div>
-                                  <span className="truncate text-[13px] font-semibold text-text">
-                                    {br?.name}
-                                  </span>
-                                </div>
 
-                                {isSelected && (
-                                  <Check className="size-4 shrink-0 text-primary stroke-[2.5]" />
-                                )}
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <div className="py-4 text-center text-xs text-text-muted space-y-1">
-                            <p className="font-semibold text-text">No branch created yet</p>
-                            <p className="text-[11px]">Add your first branch location.</p>
-                          </div>
+                                  {isSelected && (
+                                    <Check className="size-4 shrink-0 text-primary stroke-[2.5]" />
+                                  )}
+                                </button>
+                              );
+                            })
+                          ) : hasNoBranchAccess ? (
+                            <div className="py-4 px-3 text-center text-xs text-text-muted space-y-1 bg-surface-alt/40 rounded-[10px] border border-dashed border-border/70">
+                              <p className="font-semibold text-text">No branch access</p>
+                              <p className="text-[11px]">No branches are assigned to your account under this company.</p>
+                            </div>
+                          ) : (
+                            <div className="py-4 text-center text-xs text-text-muted space-y-1">
+                              <p className="font-semibold text-text">No branch created yet</p>
+                              <p className="text-[11px]">Add your first branch location.</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {canCreateBranch && (
+                          <>
+                            <div className="my-1.5 border-t border-border/70" />
+                            <Link
+                              to={ROUTES.CREATE_BRANCH}
+                              onClick={() => setIsOpen(false)}
+                              className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
+                            >
+                              <Plus className="size-3.5 stroke-[2.5]" />
+                              <span>{branchCompleted ? "New Branch" : "Create First Branch"}</span>
+                            </Link>
+                          </>
                         )}
                       </div>
+                    )}
 
-                      <div className="my-1.5 border-t border-border/70" />
-
-                      <Link
-                        to={ROUTES.CREATE_BRANCH}
-                        onClick={() => setIsOpen(false)}
-                        className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
-                      >
-                        <Plus className="size-3.5 stroke-[2.5]" />
-                        <span>{branchCompleted ? "New Branch" : "Create First Branch"}</span>
-                      </Link>
-                    </div>
-                  )}
                 </motion.div>
               </AnimatePresence>
             </motion.div>

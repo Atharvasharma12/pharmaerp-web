@@ -26,7 +26,7 @@ const AppDesktopLayout = () => {
 
       {/* Main Content Area smoothly adjusting to sidebar width */}
       <div
-        className="flex min-w-0 flex-1 flex-col transition-[margin-left] duration-200 ease-out"
+        className="flex min-w-0 flex-1 flex-col transition-[margin-left] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
         style={{ marginLeft: 0 }}
       >
         <AppDesktopHeader

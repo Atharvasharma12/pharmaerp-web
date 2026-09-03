@@ -9,3 +9,9 @@ export {
   SetupCenterGuard as SetupGuard,
   CompanyRequiredGuard,
 } from "./SetupCenterGuard";
+
+export { default as ActiveCompanyGuard } from "./ActiveCompanyGuard";
+export * from "./ActiveCompanyGuard";
+
+export { default as ActiveBranchGuard } from "./ActiveBranchGuard";
+export * from "./ActiveBranchGuard";

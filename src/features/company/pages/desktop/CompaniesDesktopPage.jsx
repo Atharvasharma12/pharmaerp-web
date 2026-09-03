@@ -1,6 +1,6 @@
 // src/features/company/pages/desktop/CompaniesDesktopPage.jsx
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Building2,
   Plus,
@@ -8,6 +8,7 @@ import {
   RotateCcw,
   AlertTriangle,
   Search,
+  Filter
 } from "lucide-react";
 import {
   UIButton,
@@ -16,10 +17,17 @@ import {
   UIEmptyState,
   UIAlert,
   UISkeleton,
-  UIPageHeader,
   UIFilterToolbar,
   PermissionGate,
+  UIModal,
+  UIModalHeader,
+  UIModalTitle,
+  UIModalDescription,
+  UIModalBody,
+  UIModalFooter,
+  UIIconButton
 } from "@/components/ui";
+import { createPortal } from "react-dom";
 
 import {
   CompanyCard,
@@ -95,6 +103,8 @@ export const CompaniesDesktopPage = ({
   const shouldShowPagination =
     hasFilteredCompanies && filteredCompaniesCount > pageSize;
 
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
   const handleExportCSV = () => {
     if (!companies.length) return;
     const headers = [
@@ -128,7 +138,7 @@ export const CompaniesDesktopPage = ({
   };
 
   return (
-    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-5 max-w-[1440px] mx-auto space-y-3.5">
+    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-0 max-w-[1440px] mx-auto space-y-2.5">
       {/* ── Global Error Banner ── */}
       {error && !hasError && (
         <UIAlert
@@ -139,69 +149,84 @@ export const CompaniesDesktopPage = ({
         />
       )}
 
-      {/* ── Standard UIPageHeader ── */}
-      <UIPageHeader
-        bordered={false}
-        compact
-        className="p-0 pb-0.5"
-        title={
-          <span className="flex items-center gap-2">
-            <span className="font-mono tabular-nums">{totalCompanies}</span> Companies
-          </span>
-        }
-        description={
-          <span className="flex items-center gap-3.5 text-xs font-semibold mt-1">
-            <span className="inline-flex items-center gap-1.5 text-text">
-              <span className="size-2.5 rounded-full bg-success ring-2 ring-success/20" />
+      {/* ── Header Stats Portal ── */}
+      {document.getElementById("header-stats-portal") &&
+        createPortal(
+          <div className="flex items-center gap-3 text-[11px] font-semibold bg-surface-alt/50 px-2 py-0.5 rounded-md border border-border">
+            <span className="inline-flex items-center gap-1 text-text">
+              <span className="size-2 rounded-full bg-primary ring-2 ring-primary/20" />
+              Total{" "}
+              <strong className="font-mono tabular-nums text-text font-bold">
+                {totalCompanies}
+              </strong>
+            </span>
+            <span className="inline-flex items-center gap-1 text-text">
+              <span className="size-2 rounded-full bg-success ring-2 ring-success/20" />
               Active{" "}
               <strong className="font-mono tabular-nums text-text font-bold">
                 {activeCount}
               </strong>
             </span>
-            <span className="inline-flex items-center gap-1.5 text-text">
-              <span className="size-2.5 rounded-full bg-error ring-2 ring-error/20" />
+            <span className="inline-flex items-center gap-1 text-text">
+              <span className="size-2 rounded-full bg-error ring-2 ring-error/20" />
               Inactive{" "}
               <strong className="font-mono tabular-nums text-text font-bold">
                 {inactiveCount}
               </strong>
             </span>
-          </span>
+          </div>,
+          document.getElementById("header-stats-portal")
+        )}
+
+      {/* ── Enterprise UIFilterToolbar Component with Built-in View Switcher ── */}
+      <UIFilterToolbar
+        searchQuery={filters.search}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Search company name, email, or code..."
+        activeFilterChips={activeFilterChips}
+        onClearFilters={handleClearFilters}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
+        filters={
+          <UIButton
+            variant="outline"
+            size="sm"
+            startIcon={<Filter className="size-4" />}
+            onClick={() => setIsFilterModalOpen(true)}
+            className="w-10 px-0 sm:w-auto sm:px-3 justify-center"
+          >
+            <span className="hidden sm:inline">Filter</span>
+          </UIButton>
         }
         actions={
-          <div className="flex items-center gap-2 shrink-0">
-            <UIButton
-              type="button"
-              variant="outline"
+          <div className="flex items-center gap-2 shrink-0 border-l border-border pl-2 ml-1">
+            <UIIconButton
+              variant="ghost"
               size="sm"
-              startIcon={
-                <RotateCcw
-                  className={`size-3.5 text-text-muted ${
-                    isLoading ? "animate-spin" : ""
-                  }`}
-                />
-              }
+              className="text-text-muted hover:text-text h-9 w-9"
               onClick={handleRefresh}
+              title="Refresh"
             >
-              Refresh
-            </UIButton>
+              <RotateCcw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
+            </UIIconButton>
 
             <UIButton
-              type="button"
               variant="outline"
               size="sm"
-              startIcon={<Download className="size-3.5 text-text-muted" />}
+              className="h-9"
               onClick={handleExportCSV}
+              startIcon={<Download className="size-4 text-text-muted" />}
             >
               Export
             </UIButton>
 
             <PermissionGate permission="company:create">
               <UIButton
-                type="button"
                 variant="primary"
                 size="sm"
-                startIcon={<Plus className="size-4" />}
+                className="h-9"
                 onClick={handleCreateCompany}
+                startIcon={<Plus className="size-4" />}
               >
                 Add Company
               </UIButton>
@@ -210,42 +235,51 @@ export const CompaniesDesktopPage = ({
         }
       />
 
-      {/* ── Enterprise UIFilterToolbar Component with Built-in View Switcher ── */}
-      <UIFilterToolbar
-        searchQuery={filters.search}
-        onSearchChange={handleSearchChange}
-        searchPlaceholder="Search company name, email, or code..."
-        sortBy={sortBy}
-        onSortChange={onSortChange}
-        sortOptions={SORT_OPTIONS}
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange}
-        activeFilterChips={activeFilterChips}
-        onClearFilters={handleClearFilters}
-        filters={
-          <>
-            <div className="w-36">
+      <UIModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        className="overflow-visible"
+      >
+        <UIModalHeader>
+          <UIModalTitle>Filter Companies</UIModalTitle>
+          <UIModalDescription>Select criteria to filter the company list.</UIModalDescription>
+        </UIModalHeader>
+        <UIModalBody className="overflow-visible">
+          <div className="space-y-5 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted">Type</label>
               <UISelect
                 value={filters.type}
                 onChange={(val) => handleFilterChange({ type: val })}
                 options={companyTypeOptions}
                 placeholder="All Types"
-                size="sm"
               />
             </div>
-
-            <div className="w-32">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted">Status</label>
               <UISelect
                 value={filters.status}
                 onChange={(val) => handleFilterChange({ status: val })}
                 options={statusOptions}
                 placeholder="All Status"
-                size="sm"
               />
             </div>
-          </>
-        }
-      />
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted">Sort By</label>
+              <UISelect
+                value={sortBy}
+                onChange={onSortChange}
+                options={SORT_OPTIONS}
+                placeholder="Sort By"
+              />
+            </div>
+          </div>
+        </UIModalBody>
+        <UIModalFooter>
+          <UIButton variant="outline" onClick={() => handleClearFilters()}>Clear</UIButton>
+          <UIButton variant="primary" onClick={() => setIsFilterModalOpen(false)}>Apply</UIButton>
+        </UIModalFooter>
+      </UIModal>
 
       {/* ── Main Content: Grid or List (Table) ── */}
       {hasError ? (
@@ -255,7 +289,8 @@ export const CompaniesDesktopPage = ({
             Unable to load companies list
           </h3>
           <p className="text-xs text-text-muted max-w-md mx-auto">
-            {error || "An error occurred while connecting to workspace servers. Please retry."}
+            {error ||
+              "An error occurred while connecting to workspace servers. Please retry."}
           </p>
           <UIButton
             type="button"
@@ -267,7 +302,7 @@ export const CompaniesDesktopPage = ({
             Retry Connection
           </UIButton>
         </div>
-      ) : isLoading && !hasCompanies ? (
+      ) : isLoading ? (
         /* Shimmer Loading Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {Array.from({ length: 6 }).map((_, idx) => (
@@ -318,7 +353,11 @@ export const CompaniesDesktopPage = ({
             title="No matching companies found"
             description="Try changing your search query, status, or type filter criteria."
             primaryAction={
-              <UIButton variant="outline" size="sm" onClick={handleClearFilters}>
+              <UIButton
+                variant="outline"
+                size="sm"
+                onClick={handleClearFilters}
+              >
                 Clear Filters
               </UIButton>
             }

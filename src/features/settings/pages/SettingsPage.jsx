@@ -34,9 +34,8 @@ const SettingsPage = () => {
 
   const tabConfig = TAB_CONFIG[activeTab];
 
-  // 1. Guard against accessing setup-dependent tabs before workspace setup is 100% complete
   if (tabConfig?.requireSetup && !isSetupComplete) {
-    return <Navigate to={ROUTES.SETTINGS} replace />;
+    return <Navigate to={`${ROUTES.SETTINGS}/profile`} replace />;
   }
 
   // 2. Guard against missing user permissions
@@ -45,11 +44,7 @@ const SettingsPage = () => {
   }
 
   const handleTabChange = (newTab) => {
-    if (newTab === "profile") {
-      navigate(ROUTES.SETTINGS);
-    } else {
-      navigate(`${ROUTES.SETTINGS}/${newTab}`);
-    }
+    navigate(`${ROUTES.SETTINGS}/${newTab}`);
   };
 
   if (isMobile) {

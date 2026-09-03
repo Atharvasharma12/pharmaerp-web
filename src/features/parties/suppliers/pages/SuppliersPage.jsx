@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks";
 import { AppConfirmModal } from "@/components";
 
 import useSupplier from "../hooks/useSupplier";
+import useCompany from "@/features/company/hooks/useCompany";
 import SuppliersMobilePage from "./mobile/SuppliersMobilePage";
 import SuppliersDesktopPage from "./desktop/SuppliersDesktopPage";
 
@@ -59,7 +60,8 @@ const mapSupplierForView = (supplier) => {
 const SuppliersPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const hasFetchedRef = useRef(false);
+  const { currentCompany } = useCompany();
+  const companyId = currentCompany?._id;
 
   const {
     suppliers,
@@ -76,6 +78,7 @@ const SuppliersPage = () => {
   const [filters, setFilters] = useState(initialFilters);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState("grid");
 
   const isLoading = getSuppliersStatus === API_STATUS.LOADING;
   const isDeleting = deleteSupplierStatus === API_STATUS.LOADING;
@@ -90,10 +93,9 @@ const SuppliersPage = () => {
   }, [getSuppliers]);
 
   useEffect(() => {
-    if (hasFetchedRef.current) return;
-    hasFetchedRef.current = true;
+    if (!companyId) return;
     fetchSuppliers();
-  }, [fetchSuppliers]);
+  }, [fetchSuppliers, companyId]);
 
   useEffect(() => {
     if (!message) return undefined;
@@ -262,7 +264,6 @@ const SuppliersPage = () => {
   }, [deleteSupplier, selectedSupplier]);
 
   const handleRefresh = useCallback(() => {
-    hasFetchedRef.current = false;
     clearError();
     clearMessage();
     fetchSuppliers();
@@ -276,6 +277,8 @@ const SuppliersPage = () => {
 
     filters,
     activeFilterChips,
+    viewMode,
+    onViewModeChange: setViewMode,
 
     isLoading,
     isDeleting,

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import { UIConfirmDialog, uiToast } from "@/components/ui";
+import { UIConfirmDialog, uiToast, UI_TOOLBAR_VIEWS } from "@/components/ui";
 
 import useAccessControl from "../hooks/useAccessControl";
 
@@ -196,6 +196,7 @@ const RolesPage = () => {
   const hasFetchedRolesRef = useRef(false);
 
   const [filters, setFilters] = useState(initialFilters);
+  const [viewMode, setViewMode] = useState(UI_TOOLBAR_VIEWS.GRID);
   const [selectedRole, setSelectedRole] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
@@ -292,31 +293,27 @@ const RolesPage = () => {
     return [
       {
         id: "total",
-        title: "Total Roles",
+        label: "Total",
         value: total,
-        description: "Active roles",
-        colorVariant: "success",
+        intent: "primary",
       },
       {
         id: "system",
-        title: "System Roles",
+        label: "System",
         value: system,
-        description: "Default system roles",
-        colorVariant: "purple",
+        intent: "success",
       },
       {
         id: "custom",
-        title: "Custom Roles",
+        label: "Custom",
         value: custom,
-        description: "Workspace custom roles",
-        colorVariant: "info",
+        intent: "default",
       },
       {
         id: "inactive",
-        title: "Inactive Roles",
+        label: "Inactive",
         value: inactive,
-        description: "Disabled roles",
-        colorVariant: "warning",
+        intent: "warning",
       },
     ];
   }, [mappedRoles]);
@@ -474,6 +471,9 @@ const RolesPage = () => {
     activeFilterChips,
     statusOptions,
     typeOptions,
+    
+    viewMode,
+    onViewModeChange: setViewMode,
 
     isLoading,
     hasError,

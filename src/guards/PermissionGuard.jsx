@@ -12,10 +12,10 @@
 //   fallback    - ReactNode: custom fallback. Defaults to <AccessDeniedPage />.
 //   children    - ReactNode: content to render if permission is granted.
 
-import { Outlet } from "react-router-dom";
+import { Outlet, Navigate } from "react-router-dom";
+import { ROUTES } from "@/constants";
 
 import usePermission from "@/hooks/usePermission";
-import AccessDeniedPage from "@/pages/AccessDeniedPage";
 
 const PermissionGuard = ({
   permission,
@@ -47,8 +47,10 @@ const PermissionGuard = ({
   if (!hasAccess) {
     return (
       fallback || (
-        <AccessDeniedPage
-          requiredPermission={requireOwner ? "Owner Access Required" : (permissions || permission)}
+        <Navigate 
+          to={ROUTES.DASHBOARD} 
+          replace 
+          state={{ unauthorizedPermission: true }} 
         />
       )
     );

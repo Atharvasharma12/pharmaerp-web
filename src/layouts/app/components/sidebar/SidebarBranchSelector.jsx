@@ -18,11 +18,13 @@ import useBranch from "@/features/branch/hooks/useBranch";
 import useCompany from "@/features/company/hooks/useCompany";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useUser from "@/features/user/hooks/useUser";
+import { usePermission } from "@/hooks";
 
 const SidebarBranchSelector = ({ collapsed = false }) => {
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
 
+  const { isOwner, can } = usePermission();
   const { currentWorkspace } = useWorkspace();
   const { currentCompany } = useCompany();
   const {
@@ -31,6 +33,9 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
     setCurrentBranch,
   } = useBranch();
   const { updateActiveContext } = useUser();
+
+  const canCreateBranch = isOwner || can("branch:create");
+
 
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownCoords, setDropdownCoords] = useState({
@@ -143,8 +148,15 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
     setCollapsedTooltip(null);
   };
 
-  const activeBranchName = currentBranch?.name || "Select Branch";
-  const activeBranchCity = currentBranch?.city || currentBranch?.addressLine1 || "Dispensary / Hub";
+  const hasNoBranchAccess = !isOwner && branches.length === 0;
+
+  const activeBranchName = hasNoBranchAccess
+    ? "No Branch Access"
+    : currentBranch?.name || "Select Branch";
+
+  const activeBranchCity = hasNoBranchAccess
+    ? "No authorized branch"
+    : currentBranch?.city || currentBranch?.addressLine1 || "Dispensary / Hub";
 
   // ─────────────────────────────────────────────────────────────────────────────
   // 1. COLLAPSED MINI-RAIL VIEW
@@ -247,6 +259,10 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
                         </button>
                       );
                     })
+                  ) : hasNoBranchAccess ? (
+                    <div className="p-3 text-center text-xs text-text-muted">
+                      No branch access assigned
+                    </div>
                   ) : (
                     <div className="p-3 text-center text-xs text-text-muted">
                       No branches found
@@ -254,16 +270,19 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
                   )}
                 </div>
 
-                <div className="my-1 border-t border-border/70" />
-
-                <Link
-                  to={ROUTES.CREATE_BRANCH}
-                  onClick={() => setIsOpen(false)}
-                  className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
-                >
-                  <Plus className="size-3.5 stroke-[2.5]" />
-                  <span>New Branch</span>
-                </Link>
+                {canCreateBranch && (
+                  <>
+                    <div className="my-1 border-t border-border/70" />
+                    <Link
+                      to={ROUTES.CREATE_BRANCH}
+                      onClick={() => setIsOpen(false)}
+                      className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
+                    >
+                      <Plus className="size-3.5 stroke-[2.5]" />
+                      <span>New Branch</span>
+                    </Link>
+                  </>
+                )}
               </motion.div>
             )}
           </AnimatePresence>,
@@ -374,6 +393,11 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
                       </button>
                     );
                   })
+                ) : hasNoBranchAccess ? (
+                  <div className="py-4 text-center text-xs text-text-muted">
+                    <Store className="size-5 mx-auto mb-1 opacity-40" />
+                    <p>No branch access assigned</p>
+                  </div>
                 ) : (
                   <div className="py-4 text-center text-xs text-text-muted">
                     <Store className="size-5 mx-auto mb-1 opacity-40" />
@@ -382,27 +406,35 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
                 )}
               </div>
 
-              <div className="my-1 border-t border-border/70" />
+              {(canCreateBranch || isOwner) && (
+                <>
+                  <div className="my-1 border-t border-border/70" />
 
-              <div className="space-y-0.5">
-                <Link
-                  to={ROUTES.CREATE_BRANCH}
-                  onClick={() => setIsOpen(false)}
-                  className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
-                >
-                  <Plus className="size-3.5 stroke-[2.5]" />
-                  <span>New Branch</span>
-                </Link>
+                  <div className="space-y-0.5">
+                    {canCreateBranch && (
+                      <Link
+                        to={ROUTES.CREATE_BRANCH}
+                        onClick={() => setIsOpen(false)}
+                        className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-soft active:scale-[0.98]"
+                      >
+                        <Plus className="size-3.5 stroke-[2.5]" />
+                        <span>New Branch</span>
+                      </Link>
+                    )}
 
-                <Link
-                  to={ROUTES.BRANCHES}
-                  onClick={() => setIsOpen(false)}
-                  className="flex w-full items-center justify-between rounded-[8px] px-2.5 py-1.5 text-xs font-medium text-text-muted transition hover:bg-surface-hover hover:text-text active:scale-[0.98]"
-                >
-                  <span>Manage Branches</span>
-                  <ExternalLink className="size-3 opacity-60" />
-                </Link>
-              </div>
+                    {isOwner && (
+                      <Link
+                        to={ROUTES.BRANCHES}
+                        onClick={() => setIsOpen(false)}
+                        className="flex w-full items-center justify-between rounded-[8px] px-2.5 py-1.5 text-xs font-medium text-text-muted transition hover:bg-surface-hover hover:text-text active:scale-[0.98]"
+                      >
+                        <span>Manage Branches</span>
+                        <ExternalLink className="size-3 opacity-60" />
+                      </Link>
+                    )}
+                  </div>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>,
@@ -411,5 +443,6 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
     </div>
   );
 };
+
 
 export default SidebarBranchSelector;

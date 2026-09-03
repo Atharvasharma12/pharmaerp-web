@@ -1,12 +1,16 @@
 // src/layouts/app/desktop/AppDesktopSidebar.jsx
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import { ROUTES } from "@/constants";
 import useAuth from "@/features/auth/hooks/useAuth";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import useCompany from "@/features/company/hooks/useCompany";
+import useBranch from "@/features/branch/hooks/useBranch";
 import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
 import { usePermission } from "@/hooks";
+import { UIConfirmDialog } from "@/components/ui";
 
 import {
   SIDEBAR_NAV_GROUPS,
@@ -28,7 +32,11 @@ const AppDesktopSidebar = ({
 }) => {
   const navigate = useNavigate();
   const { user, logout, clearCredentials } = useAuth();
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { currentWorkspace } = useWorkspace();
+  const { currentCompany } = useCompany();
+  const { currentBranch } = useBranch();
   const { isSetupComplete, companyCompleted, branchCompleted } = useSetupStatus();
   const { can, canAny, isOwner } = usePermission();
 
@@ -40,20 +48,32 @@ const AppDesktopSidebar = ({
         can,
         canAny,
         isOwner,
-        { isSetupComplete, companyCompleted, branchCompleted },
+        { 
+          isSetupComplete, 
+          companyCompleted, 
+          branchCompleted, 
+          hasActiveCompany: !!currentCompany, 
+          hasActiveBranch: !!currentBranch 
+        },
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [can, canAny, isOwner, isSetupComplete, companyCompleted, branchCompleted],
+    [can, canAny, isOwner, isSetupComplete, companyCompleted, branchCompleted, currentCompany, currentBranch],
   );
 
-  const handleLogout = async () => {
+  const handleLogoutClick = () => {
+    setIsLogoutDialogOpen(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    setIsLoggingOut(true);
     try {
       await logout();
     } catch (err) {
       console.error("Logout failed:", err);
     } finally {
       clearCredentials();
-      navigate(ROUTES.LOGIN, { replace: true });
+      setIsLogoutDialogOpen(false);
+      window.location.href = ROUTES.LOGIN;
     }
   };
 
@@ -69,11 +89,11 @@ const AppDesktopSidebar = ({
 
   return (
     <div
-      className="relative shrink-0 transition-[width] duration-200 ease-out"
+      className="relative shrink-0 transition-[width] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
       style={{ width: currentWidth }}
     >
       <aside
-        className="fixed left-0 top-0 z-30 h-[100dvh] border-r border-border bg-surface shadow-xs transition-[width] duration-200 ease-out overflow-hidden flex flex-col justify-between"
+        className="fixed left-0 top-0 z-30 h-[100dvh] border-r border-border bg-surface shadow-xs transition-[width] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden flex flex-col justify-between"
         style={{ width: currentWidth }}
       >
         {/* ── TOP: Company & Branch Tabbed Selector ───────────────────── */}
@@ -117,10 +137,24 @@ const AppDesktopSidebar = ({
           <SidebarUserProfile
             user={user}
             collapsed={collapsed}
-            onLogout={handleLogout}
+            onLogout={handleLogoutClick}
           />
         </div>
       </aside>
+
+      {/* Logout Confirmation Dialog */}
+      <UIConfirmDialog
+        isOpen={isLogoutDialogOpen}
+        onClose={() => setIsLogoutDialogOpen(false)}
+        onConfirm={handleConfirmLogout}
+        title="Sign out"
+        description="Are you sure you want to sign out of your account?"
+        intent="danger"
+        confirmText="Sign out"
+        cancelText="Cancel"
+        isLoading={isLoggingOut}
+        icon={<LogOut className="size-5 sm:size-6 text-error" />}
+      />
     </div>
   );
 };

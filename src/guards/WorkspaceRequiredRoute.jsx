@@ -5,6 +5,8 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { ROUTES, API_STATUS } from "@/constants";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import PremiumAppLoader from "@/layouts/app/components/loader/PremiumAppLoader";
+import { AnimatePresence } from "framer-motion";
 
 const WorkspaceRequiredRoute = ({ children }) => {
   const location = useLocation();
@@ -32,11 +34,9 @@ const WorkspaceRequiredRoute = ({ children }) => {
 
   if (isLoading || !hasFetched) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg">
-        <div className="text-sm font-medium text-text-muted">
-          Loading workspace...
-        </div>
-      </div>
+      <AnimatePresence mode="wait">
+        <PremiumAppLoader key="loader" message="Loading workspace..." />
+      </AnimatePresence>
     );
   }
 

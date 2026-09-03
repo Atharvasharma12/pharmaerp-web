@@ -10,7 +10,10 @@ import {
   Key,
   MapPin,
   UserCheck,
+  CheckCircle2,
+  XCircle,
   Clock,
+  Filter,
   Shield,
   UserMinus,
   Users,
@@ -35,10 +38,18 @@ import {
   UIDropdownItem,
   UIDropdownDivider,
   UIEmptyState,
-  UISkeleton,
   UIAlert,
+  UISkeleton,
   PermissionGate,
+  UIModal,
+  UIModalHeader,
+  UIModalTitle,
+  UIModalDescription,
+  UIModalBody,
+  UIModalFooter,
+  UIIconButton,
 } from "@/components/ui";
+import { TopBarStats } from "@/layouts/app/components/header";
 import { WorkspaceMembersTableView } from "../../components";
 import { usePermission } from "@/hooks";
 import { cn } from "@/lib/utils";
@@ -52,6 +63,7 @@ export default function WorkspaceMembersDesktopPage({
   activeFilterChips = [],
   statusOptions = [],
   roleOptions = [],
+  companyOptions = [],
   viewMode = UI_TOOLBAR_VIEWS.GRID,
   onViewModeChange,
   isLoading,
@@ -71,7 +83,6 @@ export default function WorkspaceMembersDesktopPage({
   handlePageSizeChange,
   handleFilterChange,
   handleSearchChange,
-  handleRemoveFilter,
   handleClearFilters,
   handleRefresh,
   handleInviteMember,
@@ -91,16 +102,22 @@ export default function WorkspaceMembersDesktopPage({
   const activeCount =
     stats.find((s) => s.id === "active")?.value ??
     members.filter((m) => m.status === "active").length;
-  const inactiveCount =
-    (stats.find((s) => s.id === "inactive")?.value || 0) +
-    (stats.find((s) => s.id === "suspended")?.value || 0);
+  const inactiveCount = stats.inactiveCount ?? 0;
+
+  const topBarStats = [
+    { label: "Total", value: totalMembers, intent: "primary" },
+    { label: "Active", value: activeCount, intent: "success" },
+    { label: "Inactive", value: inactiveCount, intent: "error" },
+  ];
+
+  const [isFilterModalOpen, setIsFilterModalOpen] = React.useState(false);
 
   // Condition to hide pagination when total records don't exceed single page
   const shouldShowPagination =
     hasFilteredMembers && filteredMembersCount > pageSize;
 
   return (
-    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-5 max-w-[1440px] mx-auto space-y-3.5">
+    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-0 max-w-[1440px] mx-auto space-y-2.5">
       {/* Global Error Banner */}
       {error && !hasError && (
         <UIAlert
@@ -120,9 +137,13 @@ export default function WorkspaceMembersDesktopPage({
                 <Building2 className="size-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold">Operating Company Required</h3>
+                <h3 className="text-sm font-bold">
+                  Operating Company Required
+                </h3>
                 <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
-                  Before you can add or invite team members, you must first create at least one company. Staff members require assigned company clearances.
+                  Before you can add or invite team members, you must first
+                  create at least one company. Staff members require assigned
+                  company clearances.
                 </p>
               </div>
             </div>
@@ -148,9 +169,13 @@ export default function WorkspaceMembersDesktopPage({
                 <GitBranch className="size-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold">Dispensary Branch Required</h3>
+                <h3 className="text-sm font-bold">
+                  Dispensary Branch Required
+                </h3>
                 <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
-                  You have created a company, but you need at least one dispensary branch before adding staff so they can be granted store access.
+                  You have created a company, but you need at least one
+                  dispensary branch before adding staff so they can be granted
+                  store access.
                 </p>
               </div>
             </div>
@@ -168,57 +193,47 @@ export default function WorkspaceMembersDesktopPage({
         </div>
       )}
 
-      {/* ── 1. Standard UIPageHeader ── */}
-      <UIPageHeader
-        bordered={false}
-        compact
-        className="p-0 pb-0.5"
-        title={
-          <span className="flex items-center gap-2">
-            <span className="font-mono tabular-nums">{totalMembers}</span> Members
-          </span>
-        }
-        description={
-          <span className="flex items-center gap-3.5 text-xs font-semibold mt-1">
-            <span className="inline-flex items-center gap-1.5 text-text">
-              <span className="size-2.5 rounded-full bg-success ring-2 ring-success/20" />
-              Active{" "}
-              <strong className="font-mono tabular-nums text-text font-bold">
-                {activeCount}
-              </strong>
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-text">
-              <span className="size-2.5 rounded-full bg-error ring-2 ring-error/20" />
-              Inactive{" "}
-              <strong className="font-mono tabular-nums text-text font-bold">
-                {inactiveCount}
-              </strong>
-            </span>
-          </span>
+      {/* ── TopBar Stats Teleport ── */}
+      <TopBarStats stats={topBarStats} />
+
+      {/* ── 2. Standard UIFilterToolbar Component with View Switcher ── */}
+      <UIFilterToolbar
+        searchQuery={filters.search}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Search member name, email or phone..."
+        activeFilterChips={activeFilterChips}
+        onClearFilters={handleClearFilters}
+        showViewSwitcher={true}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
+        filters={
+          <UIButton
+            variant="outline"
+            size="sm"
+            startIcon={<Filter className="size-4" />}
+            onClick={() => setIsFilterModalOpen(true)}
+            className="w-10 px-0 sm:w-auto sm:px-3 justify-center"
+          >
+            <span className="hidden sm:inline">Filter</span>
+          </UIButton>
         }
         actions={
-          <div className="flex items-center gap-2 shrink-0">
-            <UIButton
-              type="button"
-              variant="outline"
+          <div className="flex items-center gap-2 shrink-0 border-l border-border pl-2 ml-1">
+            <UIIconButton
+              variant="ghost"
               size="sm"
-              startIcon={
-                <RotateCcw
-                  className={`size-3.5 text-text-muted ${
-                    isLoading ? "animate-spin" : ""
-                  }`}
-                />
-              }
+              className="text-text-muted hover:text-text h-9 w-9"
               onClick={handleRefresh}
+              title="Refresh"
             >
-              Refresh
-            </UIButton>
+              <RotateCcw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
+            </UIIconButton>
 
             <UIButton
               type="button"
               variant="outline"
               size="sm"
-              startIcon={<Mail className="size-3.5 text-primary" />}
+              startIcon={<Mail className="size-4 text-primary" />}
               onClick={handleViewInvitations}
             >
               Pending Invitations
@@ -228,7 +243,7 @@ export default function WorkspaceMembersDesktopPage({
               type="button"
               variant="outline"
               size="sm"
-              startIcon={<Download className="size-3.5 text-text-muted" />}
+              startIcon={<Download className="size-4" />}
               onClick={handleExportCSV}
             >
               Export
@@ -249,19 +264,20 @@ export default function WorkspaceMembersDesktopPage({
         }
       />
 
-      {/* ── 2. Standard UIFilterToolbar Component with View Switcher ── */}
-      <UIFilterToolbar
-        searchQuery={filters.search}
-        onSearchChange={handleSearchChange}
-        searchPlaceholder="Search member name, email or phone..."
-        activeFilterChips={activeFilterChips}
-        onClearFilters={handleClearFilters}
-        showViewSwitcher={true}
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange}
-        filters={
-          <>
-            <div className="w-36">
+      {/* ── Filter Modal ── */}
+      <UIModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        className="overflow-visible"
+      >
+        <UIModalHeader>
+          <UIModalTitle>Filter Members</UIModalTitle>
+          <UIModalDescription>Select criteria to filter the workspace members list.</UIModalDescription>
+        </UIModalHeader>
+        <UIModalBody className="overflow-visible">
+          <div className="space-y-5 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted">Role</label>
               <UISelect
                 value={filters.role}
                 onChange={(val) => handleFilterChange({ role: val })}
@@ -270,8 +286,20 @@ export default function WorkspaceMembersDesktopPage({
                 size="sm"
               />
             </div>
-
-            <div className="w-32">
+            {companyOptions.length > 1 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-text-muted">Company</label>
+                <UISelect
+                  value={filters.company}
+                  onChange={(val) => handleFilterChange({ company: val })}
+                  options={companyOptions}
+                  placeholder="All Companies"
+                  size="sm"
+                />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted">Status</label>
               <UISelect
                 value={filters.status}
                 onChange={(val) => handleFilterChange({ status: val })}
@@ -280,12 +308,20 @@ export default function WorkspaceMembersDesktopPage({
                 size="sm"
               />
             </div>
-          </>
-        }
-      />
+          </div>
+        </UIModalBody>
+        <UIModalFooter>
+          <UIButton variant="ghost" onClick={() => handleClearFilters()}>
+            Clear Filters
+          </UIButton>
+          <UIButton variant="primary" onClick={() => setIsFilterModalOpen(false)}>
+            Apply Filters
+          </UIButton>
+        </UIModalFooter>
+      </UIModal>
 
       {/* ── 3. Main Card Grid / Table Stream ── */}
-      {isLoading && !hasMembers ? (
+      {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {Array.from({ length: 6 }).map((_, idx) => (
             <div
@@ -329,7 +365,11 @@ export default function WorkspaceMembersDesktopPage({
             title="No matching members found"
             description="Try changing your search query, status, or role filter criteria."
             primaryAction={
-              <UIButton variant="outline" size="sm" onClick={handleClearFilters}>
+              <UIButton
+                variant="outline"
+                size="sm"
+                onClick={handleClearFilters}
+              >
                 Clear Filters
               </UIButton>
             }
@@ -457,26 +497,34 @@ function MemberCard({
   const companyAccessLabel = isOwner
     ? "All Companies"
     : member?.accessAllCompanies
-    ? "All Companies"
-    : member?.companyCount !== undefined
-    ? `${member.companyCount} ${member.companyCount === 1 ? "Company" : "Companies"}`
-    : member?.companies?.length !== undefined
-    ? `${member.companies.length} ${member.companies.length === 1 ? "Company" : "Companies"}`
-    : member?.companyIds?.length !== undefined
-    ? `${member.companyIds.length} ${member.companyIds.length === 1 ? "Company" : "Companies"}`
-    : "No Companies";
+      ? "All Companies"
+      : member?.companyCount === 0 ||
+          member?.companies?.length === 0 ||
+          member?.companyIds?.length === 0
+        ? "No Companies"
+        : member?.companyCount !== undefined
+          ? `${member.companyCount} ${member.companyCount === 1 ? "Company" : "Companies"}`
+          : member?.companies?.length !== undefined
+            ? `${member.companies.length} ${member.companies.length === 1 ? "Company" : "Companies"}`
+            : member?.companyIds?.length !== undefined
+              ? `${member.companyIds.length} ${member.companyIds.length === 1 ? "Company" : "Companies"}`
+              : "No Companies";
 
   const branchAccessLabel = isOwner
     ? "All Branches"
     : member?.accessAllBranches
-    ? "All Branches"
-    : member?.branchCount !== undefined
-    ? `${member.branchCount} ${member.branchCount === 1 ? "Branch" : "Branches"}`
-    : member?.branches?.length !== undefined
-    ? `${member.branches.length} ${member.branches.length === 1 ? "Branch" : "Branches"}`
-    : member?.branchIds?.length !== undefined
-    ? `${member.branchIds.length} ${member.branchIds.length === 1 ? "Branch" : "Branches"}`
-    : "No Branches";
+      ? "All Branches"
+      : member?.branchCount === 0 ||
+          member?.branches?.length === 0 ||
+          member?.branchIds?.length === 0
+        ? "No Branches"
+        : member?.branchCount !== undefined
+          ? `${member.branchCount} ${member.branchCount === 1 ? "Branch" : "Branches"}`
+          : member?.branches?.length !== undefined
+            ? `${member.branches.length} ${member.branches.length === 1 ? "Branch" : "Branches"}`
+            : member?.branchIds?.length !== undefined
+              ? `${member.branchIds.length} ${member.branchIds.length === 1 ? "Branch" : "Branches"}`
+              : "No Branches";
 
   return (
     <div
@@ -486,8 +534,8 @@ function MemberCard({
         isDropdownOpen
           ? "z-50 ring-2 ring-primary/40 shadow-xl"
           : hasAnyDropdownOpen
-          ? "z-0"
-          : "z-10 hover:z-20 hover:border-border-strong hover:shadow-md cursor-pointer group active:scale-[0.99]"
+            ? "z-0"
+            : "z-10 hover:z-20 hover:border-border-strong hover:shadow-md cursor-pointer group active:scale-[0.99]",
       )}
     >
       {/* Top Section: Avatar, Name, Role */}
@@ -512,13 +560,16 @@ function MemberCard({
                   "size-9 rounded-xl flex items-center justify-center transition-colors cursor-pointer border-0",
                   isDropdownOpen
                     ? "bg-primary-soft text-primary"
-                    : "text-text-muted hover:text-text hover:bg-surface-hover"
+                    : "text-text-muted hover:text-text hover:bg-surface-hover",
                 )}
               >
                 <MoreHorizontal className="size-5" />
               </button>
             </UIDropdownTrigger>
-            <UIDropdownMenu width="w-52" className="shadow-2xl border border-border/60">
+            <UIDropdownMenu
+              width="w-52"
+              className="shadow-2xl border border-border/60"
+            >
               <UIDropdownItem
                 icon={<Eye className="size-4 text-primary" />}
                 onClick={(e) => {
@@ -626,7 +677,7 @@ function MemberCard({
           <h3
             className={cn(
               "text-base font-bold text-text tracking-tight truncate px-2 transition-colors",
-              !hasAnyDropdownOpen && "group-hover:text-primary"
+              !hasAnyDropdownOpen && "group-hover:text-primary",
             )}
           >
             {member.displayName}
@@ -637,11 +688,11 @@ function MemberCard({
         </div>
       </div>
 
-      {/* Bottom Section: Theme-Native Elevated Strip (Adapts cleanly to all color themes and dark mode) */}
-      <div className="bg-surface-alt/60 border-t border-border/70 p-3.5 space-y-2.5 text-left flex-1 flex flex-col justify-between">
+      {/* Bottom Section */}
+      <div className="bg-surface border-t border-border/40 p-4 pt-3 space-y-3 text-left flex-1 flex flex-col justify-between">
         {/* 2-Column Metadata Grid: Company Access & Branch Access Tiles */}
-        <div className="w-full grid grid-cols-2 gap-2 text-left">
-          <div className="rounded-xl bg-surface/90 border border-border/70 p-2.5 shadow-2xs transition-colors">
+        <div className="w-full grid grid-cols-2 gap-2.5 text-left">
+          <div className="rounded-xl bg-surface-alt/50 border border-border/40 p-2.5 shadow-2xs transition-colors">
             <span className="block text-[10.5px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
               <Building2 className="size-3.5 text-primary shrink-0" />
               Companies
@@ -651,7 +702,7 @@ function MemberCard({
             </span>
           </div>
 
-          <div className="rounded-xl bg-surface/90 border border-border/70 p-2.5 shadow-2xs transition-colors">
+          <div className="rounded-xl bg-surface-alt/50 border border-border/40 p-2.5 shadow-2xs transition-colors">
             <span className="block text-[10.5px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
               <GitBranch className="size-3.5 text-primary shrink-0" />
               Branches
@@ -666,7 +717,9 @@ function MemberCard({
         <div className="w-full space-y-1.5 pt-2 border-t border-border/60 text-left">
           <div className="flex items-center gap-2 text-xs text-text-muted hover:text-text truncate transition-colors">
             <Mail className="size-3.5 shrink-0 text-text-muted" />
-            <span className="truncate font-medium">{member.displayEmail || "-"}</span>
+            <span className="truncate font-medium">
+              {member.displayEmail || "-"}
+            </span>
           </div>
 
           <div className="flex items-center gap-2 text-xs text-text-muted hover:text-text truncate transition-colors">

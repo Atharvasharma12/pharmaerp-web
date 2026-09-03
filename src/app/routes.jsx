@@ -15,6 +15,8 @@ import {
   PermissionGuard,
   SetupCenterGuard,
   CompanyRequiredGuard,
+  ActiveCompanyGuard,
+  ActiveBranchGuard,
 } from "@/guards";
 
 import authRoutes from "@/features/auth/routes/authRoutes";
@@ -48,7 +50,6 @@ import saltMasterRoutes from "@/features/salt-master/routes/saltMasterRoutes";
 import bankMasterRoutes from "@/features/bank-master/routes/bankMasterRoutes";
 import marketplaceStoreRoutes from "@/features/marketplace/stores/routes/marketplaceStoreRoutes";
 import marketplaceProductRoutes from "@/features/marketplace/products/routes/marketplaceProductRoutes";
-import partiesRoutes from "@/features/parties/routes/partiesRoutes";
 import customerRoutes from "@/features/parties/customers/routes/customerRoutes";
 import supplierRoutes from "@/features/parties/suppliers/routes/supplierRoutes";
 import financeRoutes from "@/features/finance/routes/financeRoutes";
@@ -252,18 +253,6 @@ export const router = createBrowserRouter([
           // Roles & Permissions
           ...guardRouteList(accessControlRoutes, "role"),
 
-          // Parties
-          ...partiesRoutes.map((route) => ({
-            ...route,
-            element: (
-              <PermissionGuard permissions={["customer:view", "supplier:view"]}>
-                {route.element}
-              </PermissionGuard>
-            ),
-          })),
-          ...guardRouteList(customerRoutes, "customer"),
-          ...guardRouteList(supplierRoutes, "supplier"),
-
           // Subscriptions
           ...subscriptionRoutes.map((route) => ({
             ...route,
@@ -274,7 +263,15 @@ export const router = createBrowserRouter([
             ),
           })),
 
-          // Finance & Chart of Accounts
+          // ── Guarded by ActiveCompanyGuard (Requires active company selection) ──
+          {
+            element: <ActiveCompanyGuard />,
+            children: [
+              // Parties
+          ...guardRouteList(customerRoutes, "customer"),
+          ...guardRouteList(supplierRoutes, "supplier"),
+
+              // Finance & Chart of Accounts
           ...financeRoutes.map((route) => ({
             ...route,
             element: (
@@ -333,7 +330,11 @@ export const router = createBrowserRouter([
             ),
           })),
 
-          // Treasury
+              // ── Guarded by ActiveBranchGuard (Requires active branch selection) ──
+              {
+                element: <ActiveBranchGuard />,
+                children: [
+                  // Treasury
           ...treasuryRoutes.map((route) => ({
             ...route,
             element: (
@@ -374,9 +375,11 @@ export const router = createBrowserRouter([
               </PermissionGuard>
             ),
           })),
-          ...guardRouteList(cashDenominationRoutes, "cash-denomination"),
+                  ...guardRouteList(cashDenominationRoutes, "cash-denomination"),
+                ],
+              },
 
-          // Inventory & Catalog
+              // Inventory & Catalog
           ...catalogRoutes.map((route) => ({
             ...route,
             element: (
@@ -414,14 +417,21 @@ export const router = createBrowserRouter([
           ...guardRouteList(saltMasterRoutes, "salt"),
           ...guardRouteList(bankMasterRoutes, "bank-master"),
 
-          // Marketplace
-          ...guardRouteList(marketplaceStoreRoutes, "marketplace-store"),
-          ...guardRouteList(marketplaceProductRoutes, "marketplace-product"),
+              // Marketplace
+              ...guardRouteList(marketplaceStoreRoutes, "marketplace-store"),
+              ...guardRouteList(marketplaceProductRoutes, "marketplace-product"),
 
-          // Sales & POS, Invoicing & Purchases
-          ...guardRouteList(salesRoutes, "pos"),
-          ...guardRouteList(billingRoutes, "bill"),
-          ...guardRouteList(purchasesRoutes, "purchase"),
+              {
+                element: <ActiveBranchGuard />,
+                children: [
+                  // Sales & POS, Invoicing & Purchases
+                  ...guardRouteList(salesRoutes, "pos"),
+                  ...guardRouteList(billingRoutes, "bill"),
+                  ...guardRouteList(purchasesRoutes, "purchase"),
+                ],
+              },
+            ],
+          },
         ],
       },
     ],

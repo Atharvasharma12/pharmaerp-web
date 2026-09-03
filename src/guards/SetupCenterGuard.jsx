@@ -4,6 +4,8 @@ import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { ROUTES } from "@/constants";
 import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
+import PremiumAppLoader from "@/layouts/app/components/loader/PremiumAppLoader";
+import { AnimatePresence } from "framer-motion";
 
 /**
  * SetupCenterGuard
@@ -19,17 +21,12 @@ export const SetupCenterGuard = ({ children }) => {
   const { isSetupComplete, isLoading, setupStatus, workspaceId } =
     useSetupStatus();
 
-  // If workspace is present and status is actively loading its initial payload
-  if (isLoading && !setupStatus && workspaceId) {
+  // If workspace is present and status hasn't hydrated yet (either loading or about to load)
+  if (!setupStatus && workspaceId) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-bg">
-        <div className="flex flex-col items-center gap-2.5">
-          <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <span className="text-xs font-semibold text-text-muted">
-            Checking workspace setup status...
-          </span>
-        </div>
-      </div>
+      <AnimatePresence mode="wait">
+        <PremiumAppLoader key="loader" message="Checking workspace setup status..." />
+      </AnimatePresence>
     );
   }
 
@@ -59,16 +56,12 @@ export const CompanyRequiredGuard = ({ children }) => {
   const { companyCompleted, isLoading, setupStatus, workspaceId } =
     useSetupStatus();
 
-  if (isLoading && !setupStatus && workspaceId) {
+  // If workspace is present and status hasn't hydrated yet (either loading or about to load)
+  if (!setupStatus && workspaceId) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-bg">
-        <div className="flex flex-col items-center gap-2.5">
-          <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <span className="text-xs font-semibold text-text-muted">
-            Verifying company prerequisite...
-          </span>
-        </div>
-      </div>
+      <AnimatePresence mode="wait">
+        <PremiumAppLoader key="loader" message="Verifying company prerequisite..." />
+      </AnimatePresence>
     );
   }
 

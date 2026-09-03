@@ -1,87 +1,70 @@
 // src/features/parties/customers/pages/desktop/CustomersDesktopPage.jsx
 
-import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
 import {
-  FiArrowLeft,
-  FiChevronLeft,
-  FiChevronRight,
-  FiDownload,
-  FiMoreHorizontal,
-  FiPlus,
-  FiRefreshCw,
-  FiSearch,
-  FiUsers,
-  FiPhone,
-  FiMail,
-  FiEye,
-  FiEdit2,
-  FiTrash2,
-  FiUserCheck,
-  FiUserMinus,
-  FiUserX,
-} from "react-icons/fi";
-import { LuStore } from "react-icons/lu";
-import { HiOutlineBuildingOffice2 } from "react-icons/hi2";
-
+  Users,
+  Plus,
+  Download,
+  RotateCcw,
+  Search,
+  MoreVertical,
+  AlertTriangle,
+  Eye,
+  Edit3,
+  Trash2,
+  Filter
+} from "lucide-react";
 import {
-  AppAlert,
-  AppBox,
-  AppBreadcrumb,
-  AppButton,
-  AppCard,
-  AppEmptyState,
-  AppErrorState,
-  AppHeading,
-  AppIconButton,
-  AppMenu,
-  AppSearchInput,
-  AppSelect,
-  AppStack,
-  AppStatusBadge,
-  AppTable,
-  AppTableSkeleton,
-  AppTag,
-  AppText,
-  HELP_SUPPORT_CARD,
-  PageRightSidebar,
+  UIButton,
+  UISelect,
+  UIPagination,
+  UIEmptyState,
+  UIAlert,
+  UISkeleton,
+  UIPageHeader,
+  UIFilterToolbar,
   PermissionGate,
-} from "@/components";
-import { usePermission } from "@/hooks";
+  UIDropdown,
+  UIDropdownTrigger,
+  UIDropdownMenu,
+  UIDropdownItem,
+  UIDropdownDivider,
+  UIModal,
+  UIModalHeader,
+  UIModalTitle,
+  UIModalDescription,
+  UIModalBody,
+  UIModalFooter,
+  UIIconButton,
+} from "@/components/ui";
+import { TopBarStats } from "@/layouts/app/components/header";
+import { AppTable } from "@/components";
 
-const typeColorMap = {
-  retail: "success",
-  wholesale: "primary",
-  hospital: "purple",
-  clinic: "warning",
-  corporate: "info",
-  other: "neutral",
-};
-
-const statusColorMap = {
-  active: "success",
-  inactive: "neutral",
-  blocked: "danger",
-};
-
-const getCategoryIcon = (type = "") => {
-  const normType = String(type).toLowerCase();
-  if (normType === "hospital") {
-    return <HiOutlineBuildingOffice2 />;
-  }
-  return <LuStore />;
-};
+const SORT_OPTIONS = [
+  { value: "name_asc", label: "Name: A to Z" },
+  { value: "name_desc", label: "Name: Z to A" },
+  { value: "newest", label: "Newest First" },
+  { value: "oldest", label: "Oldest First" },
+];
 
 const CustomersDesktopPage = ({
   customers = [],
+  paginatedCustomers: propPaginatedCustomers, // Allow passing paginated if handled by parent
   stats,
-  typeDistribution = [],
+  
   filters,
+  sortBy,
+  onSortChange,
+  viewMode = "grid",
+  onViewModeChange,
   activeFilterChips = [],
+
   isLoading,
+  isDeleting,
   hasError,
   error,
   message,
+
   totalCustomers = 0,
   filteredCustomersCount = 0,
   hasCustomers,
@@ -100,868 +83,545 @@ const CustomersDesktopPage = ({
 
   clearMessage,
 }) => {
-  const showInitialSkeleton = isLoading && !hasCustomers;
-  const navigate = useNavigate();
+  // Local pagination if parent doesn't provide it
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
 
-  const columns = useMemo(
-    () => [
-      {
-        id: "customerName",
-        key: "displayName",
-        label: "Customer Name",
-        minWidth: 220,
-        render: (_, customer) => (
-          <div className="flex items-center gap-3 min-w-0 h-full">
-            <div className="flex items-center justify-center shrink-0">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-alt border border-border text-text-muted">
-                {getCategoryIcon(customer.customerType || customer.type)}
-              </span>
-            </div>
-            <div className="flex flex-col min-w-0 justify-center">
-              <AppHeading level={3} weight={700} sx={customerNameSx}>
-                {customer?.displayName || "-"}
-              </AppHeading>
-              {customer?.displayEmail && (
-                <AppText variant="body2" sx={customerSubTextSx}>
-                  {customer.displayEmail}
-                </AppText>
-              )}
-            </div>
-          </div>
-        ),
-      },
-      {
-        id: "customerType",
-        key: "displayType",
-        label: "Customer Type",
-        width: 140,
-        render: (_, customer) => (
-          <AppTag
-            label={customer.displayType || "Retail"}
-            variant="soft"
-            colorVariant={typeColorMap[String(customer.customerType || customer.type).toLowerCase()] || "neutral"}
-            rounded="md"
-            sx={roleTagSx}
-          />
-        ),
-      },
-      {
-        id: "mobile",
-        key: "displayMobile",
-        label: "Mobile",
-        width: 140,
-        render: (_, customer) => (
-          <AppText variant="body2" sx={tableValueMutedSx}>
-            {customer.displayMobile || "-"}
-          </AppText>
-        ),
-      },
-      {
-        id: "email",
-        key: "displayEmail",
-        label: "Email",
-        width: 180,
-        render: (_, customer) => (
-          <AppText variant="body2" sx={tableValueMutedSx}>
-            {customer.displayEmail || "—"}
-          </AppText>
-        ),
-      },
-      {
-        id: "creditLimit",
-        key: "displayCreditLimit",
-        label: "Credit Limit",
-        width: 150,
-        render: (_, customer) => (
-          <AppText variant="body2" sx={{ fontSize: "12px", fontWeight: 700 }}>
-            ₹ {customer.displayCreditLimit.toLocaleString("en-IN", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </AppText>
-        ),
-      },
-      {
-        id: "status",
-        key: "displayStatus",
-        label: "Status",
-        width: 120,
-        render: (_, customer) => (
-          <AppStatusBadge
-            status={String(customer.displayStatus).toLowerCase()}
-            label={customer.displayStatus || ""}
-            variant="soft"
-            size="small"
-            rounded="md"
-            colorVariant={statusColorMap[String(customer.displayStatus).toLowerCase()] || "neutral"}
-            sx={statusBadgeSx}
-          />
-        ),
-      },
-      {
-        id: "actions",
-        key: "actions",
-        label: "Actions",
-        align: "right",
-        width: 80,
-        render: (_, customer) => (
-          <CustomerActions
-            customer={customer}
-            onView={handleViewCustomer}
-            onEdit={handleEditCustomer}
-            onDelete={handleDeleteCustomer}
-          />
-        ),
-      },
-    ],
-    [handleViewCustomer, handleEditCustomer, handleDeleteCustomer],
+  const paginatedCustomers = propPaginatedCustomers || customers.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
   );
+  
+  const totalPages = Math.ceil(filteredCustomersCount / pageSize) || 1;
+
+  const handlePageChange = (newPage) => setCurrentPage(newPage);
+  const handlePageSizeChange = (newSize) => {
+    setPageSize(newSize);
+    setCurrentPage(1);
+  };
+
+  const getInitials = (name) => {
+    if (!name) return "NA";
+    return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+  };
+
+  const getStatusColor = (status) => {
+    const s = String(status).toLowerCase();
+    if (s === "active") return "success";
+    if (s === "inactive") return "error";
+    if (s === "blocked") return "warning";
+    return "primary";
+  };
+
+  const getAddressText = (party) => {
+    const addr = party?.address || party?.billingAddress || party?.shippingAddress;
+    
+    const parts = [];
+    if (addr?.city) parts.push(addr.city);
+    else if (addr?.district) parts.push(addr.district);
+    
+    if (addr?.state) parts.push(addr.state);
+    else if (addr?.pincode) parts.push(addr.pincode);
+    
+    if (parts.length > 0) {
+      return parts.join(", ");
+    }
+    
+    return "No Address";
+  };
+
+  const getRandomCompany = (id) => {
+    const companies = [
+      { name: "Starlink", color: "text-[#8B5CF6] border-[#8B5CF6]/20 bg-[#F5F3FF]" },
+      { name: "Marvel", color: "text-[#94A3B8] border-[#94A3B8]/20 bg-[#F1F5F9]" },
+      { name: "BMW", color: "text-[#EAB308] border-[#EAB308]/20 bg-[#FEF9C3]" },
+      { name: "MBM", color: "text-[#0EA5E9] border-[#0EA5E9]/20 bg-[#E0F2FE]" },
+      { name: "KFC", color: "text-[#94A3B8] border-[#94A3B8]/20 bg-[#F1F5F9]" },
+      { name: "TATA", color: "text-[#EC4899] border-[#EC4899]/20 bg-[#FDF2F8]" },
+      { name: "Saltbox", color: "text-[#3B82F6] border-[#3B82F6]/20 bg-[#EFF6FF]" },
+      { name: "TOYOTA", color: "text-[#EF4444] border-[#EF4444]/20 bg-[#FEF2F2]" },
+      { name: "Clorio", color: "text-[#06B6D4] border-[#06B6D4]/20 bg-[#ECFEFF]" },
+      { name: "TikTok", color: "text-[#64748B] border-[#64748B]/20 bg-[#F8FAFC]" },
+      { name: "Dribbble", color: "text-[#8B5CF6] border-[#8B5CF6]/20 bg-[#F5F3FF]" },
+      { name: "Behance", color: "text-[#F97316] border-[#F97316]/20 bg-[#FFF7ED]" }
+    ];
+    const hash = String(id).split("").reduce((a, b) => a + b.charCodeAt(0), 0);
+    return companies[hash % companies.length];
+  };
+
+  const activeCount = stats?.active ?? customers.filter(c => String(c.displayStatus).toLowerCase() === 'active').length;
+  const inactiveCount = stats?.inactive ?? customers.filter(c => String(c.displayStatus).toLowerCase() === 'inactive').length;
+  const blockedCount = stats?.blocked ?? customers.filter(c => String(c.displayStatus).toLowerCase() === 'blocked').length;
+
+  const topBarStats = [
+    { label: "Total", value: totalCustomers, intent: "primary" },
+    { label: "Active", value: activeCount, intent: "success" },
+    { label: "Inactive", value: inactiveCount, intent: "error" },
+    { label: "Blocked", value: blockedCount, intent: "warning" },
+  ];
+
+  const [isFilterModalOpen, setIsFilterModalOpen] = React.useState(false);
+
+  const shouldShowPagination = hasFilteredCustomers && filteredCustomersCount > pageSize;
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
-      {message ? <TopToast message={message} onClose={clearMessage} /> : null}
+    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-0 max-w-[1440px] mx-auto space-y-2.5">
+      {error && !hasError && (
+        <UIAlert
+          intent="danger"
+          title="Something went wrong"
+          description={error}
+          onClose={clearMessage}
+        />
+      )}
 
-      <div className="mx-auto w-full max-w-[1500px]">
-        <AppBox
-          display="flex"
-          alignItems="flex-start"
-          justifyContent="space-between"
-          sx={pageHeaderSx}
-        >
-          <AppBox sx={pageHeaderContentSx}>
-            <AppHeading level={1} weight={650}>
-              Customers
-            </AppHeading>
-            <AppText variant="body2" sx={pageHeaderSubtitleSx}>
-              View and manage all your customer records.
-            </AppText>
-            <AppBreadcrumb
-              size="small"
-              variant="text"
-              items={[
-                { label: "Dashboard", onClick: () => navigate("/") },
-                { label: "Parties", onClick: () => navigate("/parties") },
-                { label: "Customers", current: true },
-              ]}
-              sx={breadcrumbSx}
-              itemSx={breadcrumbItemSx}
-              currentItemSx={breadcrumbCurrentSx}
-            />
-          </AppBox>
+      {/* ── TopBar Stats Teleport ── */}
+      <TopBarStats stats={topBarStats} />
 
-          <AppStack
-            direction="row"
-            align="center"
-            justify="flex-end"
-            gap={1.1}
-            sx={{ flexShrink: 0 }}
+      {/* ── Enterprise UIFilterToolbar Component ── */}
+      <UIFilterToolbar
+        searchQuery={filters.search}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Search customer name, email, or mobile..."
+        sortBy={sortBy}
+        onSortChange={onSortChange}
+        sortOptions={SORT_OPTIONS}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
+        activeFilterChips={activeFilterChips}
+        onClearFilters={handleClearFilters}
+        filters={
+          <UIButton
+            variant="outline"
+            size="sm"
+            startIcon={<Filter className="size-4" />}
+            onClick={() => setIsFilterModalOpen(true)}
+            className="w-10 px-0 sm:w-auto sm:px-3 justify-center"
           >
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiArrowLeft />}
-              onClick={() => navigate("/parties")}
-              sx={secondaryButtonSx}
-            >
-              Back
-            </AppButton>
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiRefreshCw />}
+            <span className="hidden sm:inline">Filter</span>
+          </UIButton>
+        }
+        actions={
+          <div className="flex items-center gap-2 shrink-0 border-l border-border pl-2 ml-1">
+            <UIIconButton
+              variant="ghost"
+              size="sm"
+              className="text-text-muted hover:text-text h-9 w-9"
               onClick={handleRefresh}
-              loading={isLoading}
-              disabled={isLoading}
-              sx={secondaryButtonSx}
+              title="Refresh"
             >
-              Refresh
-            </AppButton>
+              <RotateCcw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
+            </UIIconButton>
+
+            <UIButton
+              type="button"
+              variant="outline"
+              size="sm"
+              startIcon={<Download className="size-4" />}
+              // onClick={handleExportCSV}
+            >
+              Export
+            </UIButton>
+
             <PermissionGate permission="customer:create">
-              <AppButton
+              <UIButton
                 type="button"
-                variant="contained"
-                colorVariant="success"
-                rounded="md"
-                size="small"
-                startIcon={<FiPlus />}
+                variant="primary"
+                size="sm"
+                startIcon={<Plus className="size-4" />}
                 onClick={handleCreateCustomer}
-                sx={primaryButtonSx}
               >
                 Add Customer
-              </AppButton>
+              </UIButton>
             </PermissionGate>
-          </AppStack>
-        </AppBox>
-
-        {error && !hasError ? (
-          <AppAlert
-            severity="error"
-            variant="soft"
-            title="Something went wrong"
-            closable
-            onClose={handleRefresh}
-            sx={alertSx}
-          >
-            {error}
-          </AppAlert>
-        ) : null}
-
-        <div className="mt-5 grid grid-cols-[minmax(0,1fr)_290px] gap-5">
-          <AppCard
-            variant="default"
-            rounded="lg"
-            bordered
-            shadow="sm"
-            padding="none"
-            sx={tableCardSx}
-          >
-            <TableToolbar
-              filters={filters}
-              activeFilterChips={activeFilterChips}
-              handleFilterChange={handleFilterChange}
-              handleSearchChange={handleSearchChange}
-              handleRemoveFilter={handleRemoveFilter}
-              handleClearFilters={handleClearFilters}
-            />
-
-            {hasError ? (
-              <AppErrorState
-                title="Unable to load customers list"
-                description={error || "Please refresh and try again."}
-                actionText="Refresh"
-                onRetry={handleRefresh}
-                size="page"
-                sx={stateSx}
-              />
-            ) : showInitialSkeleton ? (
-              <AppTableSkeleton rows={8} columns={7} showHeader={false} />
-            ) : !hasCustomers ? (
-              <AppEmptyState
-                title="No customers configured yet"
-                description="Add customer profiles to start recording invoices and pipeline terms."
-                icon={<FiUsers />}
-                action={
-                  <AppButton
-                    variant="contained"
-                    colorVariant="success"
-                    rounded="md"
-                    startIcon={<FiPlus />}
-                    onClick={handleCreateCustomer}
-                  >
-                    Add Customer
-                  </AppButton>
-                }
-                size="page"
-                sx={stateSx}
-              />
-            ) : !hasFilteredCustomers ? (
-              <AppEmptyState
-                title="No customer records match"
-                description="Try changing your search keywords or filter dropdown definitions."
-                icon={<FiSearch />}
-                action={
-                  <AppButton
-                    variant="outlined"
-                    colorVariant="neutral"
-                    rounded="md"
-                    onClick={handleClearFilters}
-                  >
-                    Reset Filters
-                  </AppButton>
-                }
-                size="page"
-                sx={stateSx}
-              />
-            ) : (
-              <AppTable
-                columns={columns}
-                rows={customers}
-                getRowId={(row) => row.id || row._id}
-                dense
-                bordered={false}
-                rounded={false}
-                hover
-                stickyHeader
-                minWidth={980}
-                maxHeight="calc(100vh - 340px)"
-                sx={tableSx}
-                headSx={tableHeadSx}
-                cellSx={tableCellSx}
-              />
-            )}
-
-            {hasCustomers && totalCustomers > 10 ? (
-              <TableFooter
-                totalCustomers={totalCustomers}
-                filteredCustomersCount={filteredCustomersCount}
-                handleClearFilters={handleClearFilters}
-              />
-            ) : null}
-          </AppCard>
-
-          <CustomersRightSidebar stats={stats} typeDistribution={typeDistribution} />
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const TopToast = ({ message, onClose }) => (
-  <div className="fixed left-1/2 top-4 z-[1400] w-[calc(100%-32px)] max-w-md -translate-x-1/2">
-    <AppAlert
-      severity="success"
-      variant="filled"
-      title={message}
-      closable
-      onClose={onClose}
-      sx={toastSx}
-    />
-  </div>
-);
-
-const TableToolbar = ({
-  filters,
-  activeFilterChips,
-  handleFilterChange,
-  handleSearchChange,
-  handleRemoveFilter,
-  handleClearFilters,
-}) => (
-  <div className="border-b border-border px-3.5 py-3">
-    <div className="grid grid-cols-[minmax(300px,1fr)_128px_150px_104px] items-center gap-3">
-      <AppSearchInput
-        name="search"
-        value={filters.search}
-        onChange={handleSearchChange}
-        placeholder="Search customers..."
-        clearable
-        onClear={() => handleSearchChange("")}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={searchSx}
-        inputSx={filterInputSx}
+          </div>
+        }
       />
 
-      <AppSelect
-        name="status"
-        value={filters.status}
-        onChange={handleFilterChange}
-        placeholder="Status"
-        options={[
-          { label: "Status: All", value: "all" },
-          { label: "Active", value: "active" },
-          { label: "Inactive", value: "inactive" },
-          { label: "Blocked", value: "blocked" },
-        ]}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={selectSx}
-        inputSx={filterInputSx}
-      />
-
-      <AppSelect
-        name="type"
-        value={filters.type}
-        onChange={handleFilterChange}
-        placeholder="Customer Type"
-        options={[
-          { label: "Type: All", value: "all" },
-          { label: "Retail", value: "retail" },
-          { label: "Wholesale", value: "wholesale" },
-          { label: "Hospital", value: "hospital" },
-          { label: "Clinic", value: "clinic" },
-          { label: "Corporate", value: "corporate" },
-        ]}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={selectSx}
-        inputSx={filterInputSx}
-      />
-
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiRefreshCw />}
-        onClick={handleClearFilters}
-        sx={clearButtonSx}
+      {/* ── Filter Modal ── */}
+      <UIModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        className="overflow-visible"
       >
-        Reset
-      </AppButton>
-    </div>
+        <UIModalHeader>
+          <UIModalTitle>Filter Customers</UIModalTitle>
+          <UIModalDescription>Select criteria to filter the customers list.</UIModalDescription>
+        </UIModalHeader>
+        <UIModalBody className="overflow-visible">
+          <div className="space-y-5 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted">Type</label>
+              <UISelect
+                value={filters.type}
+                onChange={(val) => handleFilterChange({ type: val })}
+                options={[
+                  { label: "All Types", value: "all" },
+                  { label: "Retail", value: "retail" },
+                  { label: "Wholesale", value: "wholesale" },
+                  { label: "Hospital", value: "hospital" },
+                  { label: "Clinic", value: "clinic" },
+                  { label: "Corporate", value: "corporate" },
+                ]}
+                placeholder="All Types"
+                size="sm"
+              />
+            </div>
 
-    {activeFilterChips.length ? (
-      <AppStack direction="row" align="center" gap={0.7} sx={chipsRowSx}>
-        {activeFilterChips.map((chip) => (
-          <button
-            key={chip.key}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted">Status</label>
+              <UISelect
+                value={filters.status}
+                onChange={(val) => handleFilterChange({ status: val })}
+                options={[
+                  { label: "All Status", value: "all" },
+                  { label: "Active", value: "active" },
+                  { label: "Inactive", value: "inactive" },
+                  { label: "Blocked", value: "blocked" },
+                ]}
+                placeholder="All Status"
+                size="sm"
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted">Sort By</label>
+              <UISelect
+                value={sortBy}
+                onChange={onSortChange}
+                options={SORT_OPTIONS}
+                placeholder="Sort By..."
+                size="sm"
+              />
+            </div>
+          </div>
+        </UIModalBody>
+        <UIModalFooter>
+          <UIButton variant="ghost" onClick={() => handleClearFilters()}>
+            Clear Filters
+          </UIButton>
+          <UIButton variant="primary" onClick={() => setIsFilterModalOpen(false)}>
+            Apply Filters
+          </UIButton>
+        </UIModalFooter>
+      </UIModal>
+
+      {/* ── Main Content: Grid or List (Table) ── */}
+      {hasError ? (
+        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] text-center space-y-3 p-6">
+          <AlertTriangle className="size-9 text-error mx-auto" />
+          <h3 className="text-base font-bold text-text">
+            Unable to load customers list
+          </h3>
+          <p className="text-xs text-text-muted max-w-md mx-auto">
+            {error || "An error occurred while connecting to servers. Please retry."}
+          </p>
+          <UIButton
             type="button"
-            onClick={() => handleRemoveFilter(chip.key)}
-            className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-alt px-2 py-1 text-[11px] font-semibold text-text-muted transition hover:bg-surface-hover"
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            className="mt-1"
           >
-            {chip.label}
-          </button>
-        ))}
+            Retry Connection
+          </UIButton>
+        </div>
+      ) : isLoading ? (
+        /* Shimmer Loading Grid */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <div key={idx} className="bg-surface rounded-2xl border border-border shadow-xs p-5">
+              <div className="flex items-center gap-3.5">
+                <UISkeleton className="size-10 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <UISkeleton className="h-3.5 w-24 rounded" />
+                  <UISkeleton className="h-2.5 w-16 rounded" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-6">
+                <div className="space-y-2">
+                  <UISkeleton className="h-2.5 w-12 rounded" />
+                  <UISkeleton className="h-3.5 w-20 rounded" />
+                </div>
+                <div className="space-y-2">
+                  <UISkeleton className="h-2.5 w-12 rounded" />
+                  <UISkeleton className="h-3.5 w-24 rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : !hasCustomers ? (
+        /* Empty State */
+        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+          <UIEmptyState
+            icon={<Users className="size-9 text-primary" />}
+            title="No customers configured yet"
+            description="Add customer profiles to start recording invoices and pipeline terms."
+            primaryAction={
+              <PermissionGate permission="customer:create">
+                <UIButton
+                  variant="primary"
+                  size="sm"
+                  startIcon={<Plus className="size-4" />}
+                  onClick={handleCreateCustomer}
+                >
+                  Add Customer
+                </UIButton>
+              </PermissionGate>
+            }
+          />
+        </div>
+      ) : !hasFilteredCustomers ? (
+        /* Filter Empty State */
+        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+          <UIEmptyState
+            icon={<Search className="size-9 text-text-muted" />}
+            title="No matching customers found"
+            description="Try changing your search query, status, or type filter criteria."
+            primaryAction={
+              <UIButton variant="outline" size="sm" onClick={handleClearFilters}>
+                Clear Filters
+              </UIButton>
+            }
+          />
+        </div>
+      ) : (
+        /* ── Render Active View: Grid or List (Table) ── */
+        <>
+          {viewMode === "grid" || !viewMode ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {paginatedCustomers.map((customer) => {
+                const co = getRandomCompany(customer.id || customer._id);
+                return (
+                <div 
+                  key={customer.id || customer._id} 
+                  className="bg-surface rounded-2xl border border-border shadow-xs p-5 flex flex-col hover:border-border-hover transition-all hover:shadow-sm cursor-pointer"
+                  onClick={() => handleViewCustomer(customer)}
+                >
+                  {/* Header */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3.5">
+                      {customer.customerType === "corporate" ? (
+                        <div className="size-10 shrink-0 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-[15px]">
+                          {getInitials(customer.displayName)}
+                        </div>
+                      ) : customer.customerType === "hospital" ? (
+                        <div className="size-10 shrink-0 rounded-full bg-warning/10 border border-warning/20 flex items-center justify-center text-warning font-bold text-[15px]">
+                          {getInitials(customer.displayName)}
+                        </div>
+                      ) : (
+                        <div className="size-10 shrink-0 rounded-full bg-surface-alt border border-border flex items-center justify-center overflow-hidden">
+                          <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${customer.displayName}&backgroundColor=b6e3f4,c0aede,d1d4f9`} className="size-full object-cover" alt="Avatar" />
+                        </div>
+                      )}
+                      
+                      <div>
+                        <h4 className="text-[14px] font-bold text-text mb-0.5 leading-snug">{customer.displayName}</h4>
+                        <p className="text-[11px] font-semibold text-text-muted flex items-center gap-1.5">
+                          <span className={`size-1.5 rounded-full shrink-0 ${String(customer.displayStatus).toLowerCase() === 'active' ? 'bg-success' : 'bg-error'}`}></span> 
+                          <span className="truncate max-w-[120px]">{getAddressText(customer)}</span>
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <UIDropdown align="right">
+                        <UIDropdownTrigger asChild>
+                          <UIIconButton
+                            variant="ghost"
+                            size="sm"
+                            className="text-text-muted hover:text-text p-1.5 -mr-1.5 rounded-md hover:bg-surface-hover transition-colors h-8 w-8"
+                          >
+                            <MoreVertical className="w-[18px] h-[18px]" />
+                          </UIIconButton>
+                        </UIDropdownTrigger>
+            
+                        <UIDropdownMenu width="w-48">
+                          <UIDropdownItem
+                            icon={<Eye className="w-4 h-4" />}
+                            onClick={() => handleViewCustomer(customer)}
+                          >
+                            View Details
+                          </UIDropdownItem>
+                          <UIDropdownItem
+                            icon={<Edit3 className="w-4 h-4" />}
+                            onClick={() => handleEditCustomer(customer)}
+                          >
+                            Edit Customer
+                          </UIDropdownItem>
+                          <UIDropdownDivider />
+                          <UIDropdownItem
+                            destructive
+                            icon={<Trash2 className="w-4 h-4" />}
+                            onClick={() => handleDeleteCustomer(customer)}
+                          >
+                            Delete Profile
+                          </UIDropdownItem>
+                        </UIDropdownMenu>
+                      </UIDropdown>
+                    </div>
+                  </div>
+                  
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-4 mt-6">
+                    <div>
+                      <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1">Mobile</p>
+                      <p className="text-[13px] font-semibold text-text">{customer.displayMobile || "-"}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1">Email</p>
+                      <p className="text-[13px] font-semibold text-text truncate" title={customer.displayEmail}>{customer.displayEmail || "-"}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Footer Badges */}
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/50">
+                    <div>
+                      <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1.5">Type</p>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-border text-[10.5px] font-bold text-text-muted bg-surface-alt">
+                        {customer.displayType || "Retail"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1.5">Code</p>
+                      <span className="inline-flex items-center text-[10.5px] font-bold text-text">
+                        {customer.displayCode || "-"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )})}
+            </div>
+          ) : (
+            <div className="bg-surface rounded-xl shadow-xs border border-border overflow-hidden">
+              <AppTable
+                columns={[
+                  {
+                    id: "name",
+                    key: "displayName",
+                    label: "Customer Name",
+                    render: (_, row) => (
+                      <div className="flex items-center gap-3">
+                        <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                          {getInitials(row.displayName)}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-[13px] text-text">{row.displayName}</p>
+                          <p className="text-[11px] text-text-muted">{row.displayEmail || "-"}</p>
+                        </div>
+                      </div>
+                    )
+                  },
+                  {
+                    id: "code",
+                    key: "displayCode",
+                    label: "Code",
+                    render: (_, row) => <span className="font-mono text-xs">{row.displayCode || "-"}</span>
+                  },
+                  {
+                    id: "type",
+                    key: "displayType",
+                    label: "Type",
+                    render: (_, row) => (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-[5px] border border-[#E2E8F0] text-[10.5px] font-bold text-[#64748B] bg-white">
+                        {row.displayType || "Retail"}
+                      </span>
+                    )
+                  },
+                  {
+                    id: "mobile",
+                    key: "displayMobile",
+                    label: "Mobile",
+                    render: (_, row) => <span className="text-xs text-[#334155]">{row.displayMobile || "-"}</span>
+                  },
+                  {
+                    id: "status",
+                    key: "displayStatus",
+                    label: "Status",
+                    render: (_, row) => (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-[5px] text-[10.5px] font-bold
+                        ${getStatusColor(row.displayStatus) === 'success' ? 'bg-[#ECFDF5] text-[#10B981]' : ''}
+                        ${getStatusColor(row.displayStatus) === 'error' ? 'bg-[#FEF2F2] text-[#EF4444]' : ''}
+                        ${getStatusColor(row.displayStatus) === 'warning' ? 'bg-[#FFFBEB] text-[#F59E0B]' : ''}
+                        ${getStatusColor(row.displayStatus) === 'primary' ? 'bg-[#F1F5F9] text-[#64748B]' : ''}
+                      `}>
+                        {row.displayStatus}
+                      </span>
+                    )
+                  },
+                  {
+                    id: "actions",
+                    key: "actions",
+                    label: "",
+                    align: "right",
+                    render: (_, row) => (
+                      <div onClick={(e) => e.stopPropagation()} className="flex justify-end">
+                        <UIDropdown align="right">
+                          <UIDropdownTrigger asChild>
+                            <UIIconButton
+                              variant="ghost"
+                              size="sm"
+                              className="text-[#94A3B8] hover:text-[#475569] p-1 rounded hover:bg-[#F1F5F9] transition-colors h-8 w-8"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </UIIconButton>
+                          </UIDropdownTrigger>
+              
+                          <UIDropdownMenu width="w-48">
+                            <UIDropdownItem
+                              icon={<Eye className="w-4 h-4" />}
+                              onClick={() => handleViewCustomer(row)}
+                            >
+                              View Details
+                            </UIDropdownItem>
+                            <UIDropdownItem
+                              icon={<Edit3 className="w-4 h-4" />}
+                              onClick={() => handleEditCustomer(row)}
+                            >
+                              Edit Customer
+                            </UIDropdownItem>
+                            <UIDropdownDivider />
+                            <UIDropdownItem
+                              destructive
+                              icon={<Trash2 className="w-4 h-4" />}
+                              onClick={() => handleDeleteCustomer(row)}
+                            >
+                              Delete Profile
+                            </UIDropdownItem>
+                          </UIDropdownMenu>
+                        </UIDropdown>
+                      </div>
+                    )
+                  }
+                ]}
+                rows={paginatedCustomers}
+                hover
+                bordered={false}
+              />
+            </div>
+          )}
+        </>
+      )}
 
-        <button
-          type="button"
-          onClick={handleClearFilters}
-          className="text-[11px] font-semibold text-primary"
-        >
-          Clear all
-        </button>
-      </AppStack>
-    ) : null}
-  </div>
-);
-
-const CustomerActions = ({ customer, onView, onEdit, onDelete }) => {
-  const { can } = usePermission();
-
-  const items = [
-    { id: "view", label: "View Details", icon: <FiEye />, onClick: () => onView?.(customer) },
-    can("customer:update") && { id: "edit", label: "Edit Customer", icon: <FiEdit2 />, onClick: () => onEdit?.(customer) },
-    can("customer:delete") && { id: "divider", type: "divider" },
-    can("customer:delete") && {
-      id: "remove",
-      label: "Remove Profile",
-      icon: <FiTrash2 />,
-      danger: true,
-      onClick: () => onDelete?.(customer),
-    },
-  ].filter(Boolean);
-
-  return (
-    <AppMenu
-      trigger={
-        <button
-          type="button"
-          aria-label="Customer actions list trigger"
-          className="inline-flex h-auto w-auto items-center justify-center border-0 bg-transparent p-0 text-text-muted shadow-none outline-none transition hover:bg-transparent hover:text-primary focus:bg-transparent active:bg-transparent"
-        >
-          <FiMoreHorizontal className="text-[18px]" />
-        </button>
-      }
-      items={items}
-      dense
-      minWidth={170}
-    />
-  );
-};
-
-
-
-const TableFooter = ({
-  totalCustomers,
-  filteredCustomersCount,
-  handleClearFilters,
-}) => (
-  <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
-    <AppText variant="body2" sx={footerTextSx}>
-      Showing {filteredCustomersCount > 0 ? 1 : 0} to {filteredCustomersCount} of {totalCustomers} customers
-    </AppText>
-
-    <AppStack direction="row" align="center" gap={1}>
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        endIcon={<FiChevronRight className="rotate-90" />}
-        sx={pageSizeButtonSx}
-      >
-        10 per page
-      </AppButton>
-
-      <AppIconButton
-        icon={<FiChevronLeft />}
-        variant="outlined"
-        colorVariant="neutral"
-        size="small"
-        rounded="md"
-        disabled
-      />
-
-      <span className="flex h-[31px] min-w-[31px] items-center justify-center rounded-md bg-primary px-2 text-[12px] font-bold text-text-inverse">
-        1
-      </span>
-
-      <AppIconButton
-        icon={<FiChevronRight />}
-        variant="outlined"
-        colorVariant="neutral"
-        size="small"
-        rounded="md"
-        onClick={handleClearFilters}
-        disabled={totalCustomers <= 10}
-      />
-    </AppStack>
-  </div>
-);
-
-const CustomersRightSidebar = ({ stats, typeDistribution = [] }) => {
-  return (
-    <PageRightSidebar
-      spacing={4}
-      cards={[
-        {
-          title: "Customers Summary",
-          icon: null,
-          colorVariant: "success",
-          variant: "default",
-          custom: <CustomersSummaryWidget stats={stats} />,
-        },
-        {
-          title: "Customer Type",
-          icon: null,
-          colorVariant: "primary",
-          variant: "default",
-          custom: <TypeDistributionList typeDistribution={typeDistribution} />,
-        },
-        {
-          title: "Quick Actions",
-          icon: null,
-          colorVariant: "primary",
-          variant: "default",
-          custom: <SidebarQuickActions />,
-        },
-        HELP_SUPPORT_CARD,
-      ]}
-    />
-  );
-};
-
-const CustomersSummaryWidget = ({ stats }) => {
-  return (
-    <div className="space-y-3.5">
-      {/* Total */}
-      <AppStack direction="row" align="center" justify="space-between">
-        <AppStack direction="row" align="center" gap={1.2}>
-          <IconBox icon={<FiUsers />} colorVariant="success" small />
-          <div>
-            <AppText variant="body2" sx={sidebarRowTitleSx}>
-              Total Customers
-            </AppText>
-            <AppText variant="body2" sx={sidebarRowDescSx}>
-              Total customer records
-            </AppText>
-          </div>
-        </AppStack>
-        <AppText variant="body2" sx={sidebarRowValueSx}>
-          {stats.total.toLocaleString()}
-        </AppText>
-      </AppStack>
-
-      {/* Active */}
-      <AppStack direction="row" align="center" justify="space-between">
-        <AppStack direction="row" align="center" gap={1.2}>
-          <IconBox icon={<FiUserCheck />} colorVariant="success" small />
-          <div>
-            <AppText variant="body2" sx={sidebarRowTitleSx}>
-              Active Customers
-            </AppText>
-            <AppText variant="body2" sx={sidebarRowDescSx}>
-              Active customers logs
-            </AppText>
-          </div>
-        </AppStack>
-        <AppText variant="body2" sx={sidebarRowValueActiveSx}>
-          {stats.active.toLocaleString()}
-        </AppText>
-      </AppStack>
-
-      {/* Inactive */}
-      <AppStack direction="row" align="center" justify="space-between">
-        <AppStack direction="row" align="center" gap={1.2}>
-          <IconBox icon={<FiUserMinus />} colorVariant="neutral" small />
-          <div>
-            <AppText variant="body2" sx={sidebarRowTitleSx}>
-              Inactive Customers
-            </AppText>
-            <AppText variant="body2" sx={sidebarRowDescSx}>
-              Dormant client logs
-            </AppText>
-          </div>
-        </AppStack>
-        <AppText variant="body2" sx={sidebarRowValueMutedSx}>
-          {stats.inactive.toLocaleString()}
-        </AppText>
-      </AppStack>
-
-      {/* Blocked */}
-      <AppStack direction="row" align="center" justify="space-between">
-        <AppStack direction="row" align="center" gap={1.2}>
-          <IconBox icon={<FiUserX />} colorVariant="danger" small />
-          <div>
-            <AppText variant="body2" sx={sidebarRowTitleSx}>
-              Blocked Customers
-            </AppText>
-            <AppText variant="body2" sx={sidebarRowDescSx}>
-              Suspended credit terms
-            </AppText>
-          </div>
-        </AppStack>
-        <AppText variant="body2" sx={sidebarRowValueDangerSx}>
-          {stats.blocked.toLocaleString()}
-        </AppText>
-      </AppStack>
+      {/* ── 4. Bottom Pagination Module ── */}
+      {shouldShowPagination && (
+        <div className="bg-surface rounded-xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] overflow-hidden">
+          <UIPagination
+            page={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredCustomersCount}
+            pageSize={pageSize}
+            pageSizeOptions={[12, 24, 48]}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            showSummary
+            showPageSize
+          />
+        </div>
+      )}
     </div>
   );
-};
-
-const TypeDistributionList = ({ typeDistribution = [] }) => (
-  <div className="space-y-2.5">
-    {typeDistribution.map((item) => (
-      <div key={item.name} className="flex items-center justify-between text-[11.5px] font-semibold text-text">
-        <div className="flex items-center gap-2">
-          <span
-            className="h-2 w-2 rounded-full inline-block"
-            style={{ backgroundColor: item.color }}
-          />
-          <span>{item.name}</span>
-        </div>
-        <span className="text-text-muted font-bold">{item.count.toLocaleString()}</span>
-      </div>
-    ))}
-  </div>
-);
-
-const SidebarQuickActions = () => (
-  <div className="space-y-3">
-    <QuickActionItem text="Import Customers" />
-    <QuickActionItem text="Export Customers" />
-    <QuickActionItem text="Customer Groups" />
-    <QuickActionItem text="Merge Customers" />
-  </div>
-);
-
-const QuickActionItem = ({ text }) => (
-  <button
-    type="button"
-    className="flex w-full items-center gap-2 text-left text-[12px] font-semibold text-text-muted transition hover:text-primary"
-  >
-    <span className="text-[14px] text-text-muted/80">+</span>
-    {text}
-  </button>
-);
-
-const IconBox = ({ icon, colorVariant = "primary", small = false }) => (
-  <AppBox
-    display="flex"
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      width: small ? 32 : 44,
-      height: small ? 32 : 44,
-      minWidth: small ? 32 : 44,
-      borderRadius: small ? "9px" : "12px",
-      bgcolor: `var(--app-color-${colorVariant}-soft, var(--app-color-primary-soft))`,
-      color: `var(--app-color-${colorVariant}, var(--app-color-primary))`,
-      fontSize: small ? "15px" : "22px",
-    }}
-  >
-    {icon}
-  </AppBox>
-);
-
-// Style definitions
-const pageHeaderSx = { width: "100%" };
-const pageHeaderSubtitleSx = {
-  mt: 0.55,
-  fontSize: "13px",
-  lineHeight: "20px",
-  color: "var(--app-color-text-muted)",
-};
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "25px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.45px",
-    color: "var(--app-color-text)",
-  },
-};
-const breadcrumbSx = { mb: 1 };
-const breadcrumbItemSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-const breadcrumbCurrentSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const secondaryButtonSx = {
-  height: 36,
-  minWidth: 86,
-  px: 1.5,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-const primaryButtonSx = {
-  height: 36,
-  minWidth: 124,
-  px: 1.7,
-  fontSize: "12px",
-  fontWeight: 700,
-};
-
-const tableCardSx = {
-  overflow: "hidden",
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-const tableSx = {
-  "& .MuiTableContainer-root": {
-    borderRadius: 0,
-    scrollbarWidth: "none",
-    msOverflowStyle: "none",
-    "&::-webkit-scrollbar": { display: "none" },
-  },
-};
-const tableHeadSx = {
-  bgcolor: "var(--app-color-surface-alt)",
-  "& .MuiTableCell-root": {
-    fontSize: "11.2px",
-    fontWeight: 750,
-    color: "var(--app-color-text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-  },
-};
-const tableCellSx = {
-  py: 1.2,
-  fontSize: "12px",
-  borderColor: "var(--app-color-border)",
-};
-const tableValueMutedSx = {
-  fontSize: "12px",
-  fontWeight: 550,
-  color: "var(--app-color-text-muted)",
-};
-const alertSx = { mt: 3 };
-const searchSx = { width: "100%" };
-const selectSx = { width: "100%" };
-const filterInputSx = {
-  minHeight: 36,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-};
-const clearButtonSx = {
-  height: 36,
-  minWidth: 88,
-  px: 1.2,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-const chipsRowSx = { mt: 1.2, flexWrap: "wrap" };
-
-const customerNameSx = {
-  m: 0,
-  fontSize: "12.5px",
-  fontWeight: 700,
-  color: "var(--app-color-text)",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-};
-const customerSubTextSx = {
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-};
-const roleTagSx = {
-  height: 22,
-  px: 1.2,
-  fontSize: "10.5px",
-  fontWeight: 700,
-};
-const statusBadgeSx = {
-  height: 22,
-  px: 1.2,
-  fontSize: "10.5px",
-  fontWeight: 700,
-  textTransform: "capitalize",
-};
-
-const footerTextSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-const pageSizeButtonSx = {
-  height: 31,
-  fontSize: "11.5px",
-  borderColor: "var(--app-color-border)",
-  color: "var(--app-color-text-muted)",
-  "& .MuiButton-endIcon": {
-    marginLeft: "4px",
-  },
-};
-
-const overviewLabelSx = {
-  fontSize: "12px",
-  fontWeight: 600,
-  color: "var(--app-color-text-muted)",
-};
-const overviewValueSx = {
-  fontSize: "12px",
-  fontWeight: 700,
-  color: "var(--app-color-text)",
-};
-
-const stateSx = {
-  minHeight: 390,
-};
-
-const sidebarRowTitleSx = {
-  fontSize: "12px",
-  fontWeight: 700,
-  color: "var(--app-color-text)",
-  lineHeight: 1.2,
-};
-const sidebarRowDescSx = {
-  fontSize: "10.5px",
-  color: "var(--app-color-text-muted)",
-  mt: 0.15,
-};
-const sidebarRowValueSx = {
-  fontSize: "13px",
-  fontWeight: 700,
-  color: "var(--app-color-text)",
-};
-const sidebarRowValueActiveSx = {
-  fontSize: "13px",
-  fontWeight: 700,
-  color: "var(--app-color-success)",
-};
-const sidebarRowValueMutedSx = {
-  fontSize: "13px",
-  fontWeight: 700,
-  color: "var(--app-color-text-muted)",
-};
-const sidebarRowValueDangerSx = {
-  fontSize: "13px",
-  fontWeight: 700,
-  color: "var(--app-color-danger)",
-};
-const toastSx = {
-  boxShadow: "var(--app-shadow-lg)",
 };
 
 export default CustomersDesktopPage;
