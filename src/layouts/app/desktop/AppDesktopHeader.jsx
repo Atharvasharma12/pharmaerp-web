@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Sparkles, Plus } from "lucide-react";
+import { ChevronRight, Sparkles, Plus, Layers } from "lucide-react";
 
 import { ROUTES } from "@/constants";
 import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
@@ -585,16 +585,46 @@ const getBreadcrumbs = (pathname, isSetupComplete = false) => {
   ];
 };
 
+
+import { UploadExistingInventoryBtn, ProductFacilityTableDialog } from "@/components";
+import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
+import useUser from "@/features/user/hooks/useUser";
+
 export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
   const effectiveWidth = sidebarWidth ?? (sidebarCollapsed ? 68 : 240);
   const location = useLocation();
   const { isSetupComplete, completedCount } = useSetupStatus();
+
+  // State for Stock Matrix dialog
+  const [isStockMatrixOpen, setIsStockMatrixOpen] = React.useState(false);
+
 
   const pageTitle = useMemo(() => getPageTitle(location.pathname), [location.pathname]);
   const breadcrumbs = useMemo(
     () => getBreadcrumbs(location.pathname, isSetupComplete),
     [location.pathname, isSetupComplete]
   );
+
+  // Global Keyboard Shortcut: Shift + I -> Open Existing Inventory Upload
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.shiftKey && (e.key === "I" || e.key === "i")) {
+        // Prevent typing Shift+I inside input / textarea fields
+        const targetTag = e.target?.tagName?.toLowerCase();
+        if (targetTag === "input" || targetTag === "textarea" || e.target?.isContentEditable) {
+          return;
+        }
+        e.preventDefault();
+        const uploadBtn = document.getElementById("header-upload-inventory-btn");
+        if (uploadBtn) {
+          uploadBtn.click();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <header
@@ -645,7 +675,7 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
           </nav>
         </div>
 
-        {/* ── RIGHT: Search Bar, Notifications, & POS Button ── */}
+        {/* ── RIGHT: Search Bar, Import Button, Notifications, & POS Button ── */}
         <div className="flex shrink-0 items-center justify-end gap-3 w-auto">
           {isSetupComplete ? (
             <div className="w-[280px] lg:w-[400px]">
@@ -660,8 +690,38 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
               <span>Workspace Setup ({completedCount}/2)</span>
             </Link>
           )}
+
+          {/* Product Facility Stock Matrix Button */}
+          <button
+            type="button"
+            id="header-facility-matrix-btn"
+            onClick={() => setIsStockMatrixOpen(true)}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 shadow-2xs transition-all"
+            title="Stock Matrix (Shift + I)"
+          >
+            <Layers className="size-3.5 text-primary-600" />
+            <span>Stock Matrix</span>
+          </button>
+
+          {/* Upload Existing Inventory Button */}
+          <UploadExistingInventoryBtn
+            id="header-upload-inventory-btn"
+            variant="outlined"
+            size="small"
+            className="hidden sm:inline-flex rounded-full text-xs shadow-2xs hover:bg-primary-50 transition-all border-gray-200"
+            title="Import Inventory"
+          >
+            Upload Inventory
+          </UploadExistingInventoryBtn>
           
           {isSetupComplete && <HeaderNotifications />}
+
+          {/* Product Facility Table Dialog */}
+          <ProductFacilityTableDialog
+            open={isStockMatrixOpen}
+            onClose={() => setIsStockMatrixOpen(false)}
+          />
+
           
           {/* POS Billing Plus Button */}
           <Link

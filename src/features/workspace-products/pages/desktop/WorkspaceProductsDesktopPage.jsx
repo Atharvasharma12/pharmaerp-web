@@ -39,6 +39,7 @@ import {
   HELP_SUPPORT_CARD,
   PageRightSidebar,
   PermissionGate,
+  UploadExistingInventoryBtn,
 } from "@/components";
 import { usePermission } from "@/hooks";
 
@@ -287,18 +288,12 @@ const WorkspaceProductsDesktopPage = ({
               Refresh
             </AppButton>
             <PermissionGate permission="product:create">
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="neutral"
-                rounded="md"
-                size="small"
-                startIcon={<FiUpload />}
+              <UploadExistingInventoryBtn
                 onClick={handleImportWorkspaceProducts}
                 sx={secondaryButtonSx}
               >
-                Import
-              </AppButton>
+                Import Stock
+              </UploadExistingInventoryBtn>
             </PermissionGate>
             <PermissionGate permission="product:create">
               <AppButton

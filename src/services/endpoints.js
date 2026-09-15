@@ -357,6 +357,9 @@ export const ENDPOINTS = {
   },
 
   WORKSPACE_PRODUCTS: {
+    // Import products
+    IMPORT: "/catalog/products/import",
+
     // Search before creating a workspace product
     SEARCH_BEFORE_CREATE: "/catalog/products/search",
 
@@ -371,6 +374,8 @@ export const ENDPOINTS = {
 
     // Get product by code
     BY_CODE: (productCode) => `/catalog/products/code/${productCode}`,
+    // New endpoint for product facility batches query with filters
+    BATCHES_QUERY: "/catalog/products/workspace-product/batches/query",
   },
 
   GLOBAL_PRODUCTS: {
