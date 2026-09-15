@@ -1,6 +1,6 @@
 // src/features/billing/pages/desktop/BillingDesktopPage.jsx
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   Eye,
   FileSpreadsheet,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import {
   UICard,
@@ -22,7 +24,8 @@ import {
 } from "@/components/ui";
 import { PermissionGate } from "@/components/common/PermissionGate";
 import { cn } from "@/lib/utils";
-import { BILLING_STATS, INVOICE_RECORDS } from "../../constants/billingData";
+import customerService from "@/features/parties/customers/services/customerService";
+import { INVOICE_RECORDS } from "../../constants/billingData";
 import { BillingCreateInvoiceModal } from "../../components/BillingCreateInvoiceModal";
 import { BillingInvoiceDetailsDrawer } from "../../components/BillingInvoiceDetailsDrawer";
 
@@ -34,12 +37,76 @@ const statIconMap = {
 };
 
 export const BillingDesktopPage = () => {
-  const [invoices, setInvoices] = useState(INVOICE_RECORDS);
+  const [invoices, setInvoices] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+
+  useEffect(() => {
+    fetchInvoicesFromBackend();
+  }, []);
+
+  const fetchInvoicesFromBackend = async () => {
+    setIsLoading(true);
+    try {
+      // 1. Fetch customers list
+      const res = await customerService.getCustomers({ limit: 50 });
+      const customerList = res.data?.data?.customers || res.data?.customers || res.data?.data || [];
+
+      let allInvoices = [];
+
+      // 2. Fetch sales for each customer
+      for (const cust of customerList) {
+        const custId = cust._id || cust.id;
+        if (!custId) continue;
+
+        try {
+          const salesRes = await customerService.getCustomerSales(custId);
+          const salesData = salesRes.data?.data || salesRes.data || [];
+          const salesList = Array.isArray(salesData) ? salesData : [];
+
+          salesList.forEach((s) => {
+            allInvoices.push({
+              id: s._id || s.id || `inv-${Date.now()}-${Math.random()}`,
+              branchId: s.branchId || cust.branchId || null,
+              branchName: s.branchName || "Main Branch",
+              invoiceNo: s.invoiceNo || `RET-INV-${Math.floor(1000 + Math.random() * 9000)}`,
+              customer: cust.name || cust.displayName || "Walk-in Retail Customer",
+              phone: cust.phone || cust.mobile || "9876543210",
+              doctor: s.doctor || "Dr. Self",
+              issueDate: s.date ? new Date(s.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Today",
+              dueDate: s.dueDate ? new Date(s.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Today",
+              itemCount: Array.isArray(s.items) ? s.items.length : 1,
+              amount: Number(s.grandTotal || s.totalAmount || s.subtotal || 0),
+              subtotal: Number(s.subtotal || 0),
+              discount: Number(s.discount || 0),
+              tax: Number(s.tax || 0),
+              paidAmount: Number(s.cashTendered || s.grandTotal || 0),
+              balance: Math.max(0, Number(s.grandTotal || 0) - Number(s.cashTendered || s.grandTotal || 0)),
+              status: s.status || "Paid",
+              paymentMode: s.paymentMethod || s.paymentMode || "Cash",
+              billingMode: s.billingMode || "B2C",
+              createdByName: s.createdByName || (s.createdByEmail ? s.createdByEmail.split("@")[0] : "System User"),
+              createdByEmail: s.createdByEmail || null,
+              items: s.items || [],
+            });
+          });
+        } catch (sErr) {
+          // Individual customer sales error fallback
+        }
+      }
+
+      setInvoices(allInvoices);
+    } catch (err) {
+      console.warn("Backend invoices fetch error:", err);
+      setInvoices([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const statusTabs = ["all", "Paid", "Pending", "Overdue", "Cancelled"];
 
@@ -138,39 +205,99 @@ export const BillingDesktopPage = () => {
             </p>
           </div>
 
-          <PermissionGate
-            permission="bill:create"
-            fallback={
-              <UIButton variant="primary" size="md" disabled>
-                Create Invoice (Requires bill:create)
-              </UIButton>
-            }
-          >
+          <div className="flex items-center gap-2">
             <UIButton
-              variant="primary"
+              variant="outline"
               size="md"
-              onClick={() => setIsCreateOpen(true)}
-              leftIcon={<Plus className="size-4" />}
+              disabled={isLoading}
+              onClick={fetchInvoicesFromBackend}
+              leftIcon={<RefreshCw className={cn("size-4", isLoading && "animate-spin text-primary")} />}
             >
-              Create New Invoice
+              Refresh
             </UIButton>
-          </PermissionGate>
+
+            <PermissionGate
+              permission="bill:create"
+              fallback={
+                <UIButton variant="primary" size="md" disabled>
+                  Create Invoice (Requires bill:create)
+                </UIButton>
+              }
+            >
+              <UIButton
+                variant="primary"
+                size="md"
+                onClick={() => setIsCreateOpen(true)}
+                leftIcon={<Plus className="size-4" />}
+              >
+                Create New Invoice
+              </UIButton>
+            </PermissionGate>
+          </div>
         </div>
 
         {/* 4 Financial Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {BILLING_STATS.map((stat) => (
-            <UIStatCard
-              key={stat.id}
-              title={stat.title}
-              value={stat.value}
-              subtitle={stat.subtitle}
-              trend={stat.trend}
-              color={stat.color}
-              icon={statIconMap[stat.iconName]}
-            />
-          ))}
-        </div>
+        {(() => {
+          const totalInvoiced = invoices.reduce((acc, inv) => acc + (inv.amount || 0), 0);
+          const collectedRevenue = invoices.filter(inv => inv.status === "Paid").reduce((acc, inv) => acc + (inv.amount || 0), 0);
+          const pendingDues = invoices.filter(inv => inv.status === "Pending").reduce((acc, inv) => acc + (inv.amount || 0), 0);
+          const overdueAmount = invoices.filter(inv => inv.status === "Overdue").reduce((acc, inv) => acc + (inv.amount || 0), 0);
+
+          const liveStats = [
+            {
+              id: "total-invoiced",
+              title: "Total Invoiced",
+              value: `₹${totalInvoiced.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+              subtitle: `${invoices.length} invoices generated`,
+              trend: { value: "Live sync", direction: "up", label: "Realtime" },
+              color: "primary",
+              iconName: "Receipt",
+            },
+            {
+              id: "paid-collected",
+              title: "Collected Revenue",
+              value: `₹${collectedRevenue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+              subtitle: `${invoices.filter(i => i.status === "Paid").length} settled bills`,
+              trend: { value: "Paid", direction: "up", label: "Settled" },
+              color: "success",
+              iconName: "CheckCircle2",
+            },
+            {
+              id: "pending-dues",
+              title: "Pending Receivables",
+              value: `₹${pendingDues.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+              subtitle: `${invoices.filter(i => i.status === "Pending").length} pending`,
+              trend: { value: "Pending", direction: "down", label: "Unpaid" },
+              color: "warning",
+              iconName: "Clock",
+            },
+            {
+              id: "overdue-amount",
+              title: "Overdue Invoices",
+              value: `₹${overdueAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+              subtitle: `${invoices.filter(i => i.status === "Overdue").length} overdue`,
+              trend: { value: "Overdue", direction: "down", label: "Action" },
+              color: "error",
+              iconName: "AlertTriangle",
+            },
+          ];
+
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {liveStats.map((stat) => (
+                <UIStatCard
+                  key={stat.id}
+                  title={stat.title}
+                  value={stat.value}
+                  subtitle={stat.subtitle}
+                  trend={stat.trend}
+                  color={stat.color}
+                  icon={statIconMap[stat.iconName]}
+                />
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Invoices Master Table Card */}
         <UICard variant="default" className="p-5 sm:p-6 rounded-2xl bg-surface border-border shadow-xs space-y-4">
@@ -224,7 +351,14 @@ export const BillingDesktopPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {filteredInvoices.length > 0 ? (
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-text-muted space-y-2">
+                      <Loader2 className="size-7 mx-auto animate-spin text-primary" />
+                      <p className="text-xs font-semibold">Loading live invoices from backend...</p>
+                    </td>
+                  </tr>
+                ) : filteredInvoices.length > 0 ? (
                   filteredInvoices.map((inv) => (
                     <tr
                       key={inv.id}

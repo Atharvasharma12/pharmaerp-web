@@ -59,6 +59,10 @@ const customerService = {
     return apiClient.get(ENDPOINTS.CUSTOMER.SALES(customerId));
   },
 
+  recordCustomerSale(customerId, payload) {
+    return apiClient.post(ENDPOINTS.CUSTOMER.SALES(customerId), payload);
+  },
+
   /*
   |--------------------------------------------------------------------------
   | Payments

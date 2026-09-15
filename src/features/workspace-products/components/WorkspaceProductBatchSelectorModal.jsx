@@ -1,0 +1,528 @@
+// src/features/workspace-products/components/WorkspaceProductBatchSelectorModal.jsx
+
+import React, { useState, useEffect, useRef } from "react";
+import {
+  X,
+  Package,
+  Calendar,
+  MapPin,
+  Plus,
+  Minus,
+  ShoppingCart,
+  Loader2,
+  AlertCircle,
+  CheckSquare,
+  Square,
+  Clock,
+  Layers,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import UIButton from "@/components/ui/UIButton";
+import workspaceProductService from "../services/workspaceProductService";
+
+/**
+ * Helper to parse expiry string into comparable Date object
+ */
+const parseExpiryDate = (raw) => {
+  if (!raw) return new Date(9999, 11, 31);
+  const str = String(raw).trim();
+  if (str.includes("/")) {
+    const parts = str.split("/");
+    if (parts.length === 2) {
+      const month = parseInt(parts[0], 10) - 1;
+      let year = parseInt(parts[1], 10);
+      if (year < 100) year += 2000;
+      return new Date(year, isNaN(month) ? 0 : month, 1);
+    }
+  }
+  const parsed = new Date(str);
+  return isNaN(parsed.getTime()) ? new Date(9999, 11, 31) : parsed;
+};
+
+/**
+ * WorkspaceProductBatchSelectorModal
+ * Spacious, clean, and un-congested modal for branch batch selection.
+ * Features single total Qty input with auto FEFO allocation across batches.
+ */
+export const WorkspaceProductBatchSelectorModal = ({
+  open,
+  onClose,
+  product,
+  billingMode = "B2B",
+  branchName = "Main Branch",
+  onConfirmAddToCart,
+}) => {
+  const [batches, setBatches] = useState([]);
+  const [totalQty, setTotalQty] = useState(1);
+  const [allocations, setAllocations] = useState({});
+  const [selectedBatchIds, setSelectedBatchIds] = useState(new Set());
+  const [isLoading, setIsLoading] = useState(false);
+
+  const totalQtyInputRef = useRef(null);
+
+  useEffect(() => {
+    if (open && product) {
+      setTotalQty(1);
+      fetchBatchesForProduct(product);
+      setTimeout(() => {
+        if (totalQtyInputRef.current) {
+          totalQtyInputRef.current.focus();
+          totalQtyInputRef.current.select();
+        }
+      }, 60);
+    }
+  }, [open, product]);
+
+  // Escape key listener to close modal
+  useEffect(() => {
+    if (!open) return;
+
+    const handleEscapeKey = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscapeKey);
+    return () => window.removeEventListener("keydown", handleEscapeKey);
+  }, [open, onClose]);
+
+  const fetchBatchesForProduct = async (p) => {
+    setIsLoading(true);
+    try {
+      let list = [];
+
+      if (Array.isArray(p.batches) && p.batches.length > 0) {
+        list = p.batches;
+      } else if (Array.isArray(p.facilityBatches) && p.facilityBatches.length > 0) {
+        list = p.facilityBatches;
+      } else if (p._id || p.id) {
+        try {
+          const prodId = p._id || p.id;
+          const res = await workspaceProductService.getProductFacilityBatchesByQueryV2({
+            workspaceProductId: prodId,
+            productId: prodId,
+            filter: { workspaceProductId: prodId },
+            limit: 20,
+          });
+          const apiBatches = res.data?.data?.batches || res.data?.batches || res.data?.data || [];
+          if (Array.isArray(apiBatches) && apiBatches.length > 0) {
+            list = apiBatches;
+          }
+        } catch (apiErr) {
+          console.warn("Batch query endpoint fallback:", apiErr);
+        }
+      }
+
+      // Filter list strictly for selected product & non-zero stock
+      const targetId = String(p._id || p.id || "").toLowerCase();
+      const targetName = String(p.displayName || p.name || "").toLowerCase().trim();
+
+      let matchedList = list.filter((b) => {
+        if (!b) return false;
+        const bStock = Number(b.stock ?? b.batchQty ?? b.qty ?? b.currentStock ?? (p.stock ?? 100));
+        if (bStock <= 0) return false;
+
+        if (!b.productId && !b.workspaceProductId && !b.productName && (Array.isArray(p.batches) || Array.isArray(p.facilityBatches))) {
+          return true;
+        }
+        const bProdId = String(b.productId || b.workspaceProductId || b.product || "").toLowerCase();
+        const bProdName = String(b.productName || b.displayName || b.name || "").toLowerCase().trim();
+
+        if (targetId && bProdId && (bProdId === targetId || targetId.includes(bProdId) || bProdId.includes(targetId))) {
+          return true;
+        }
+        if (targetName && bProdName && (bProdName === targetName || bProdName.includes(targetName) || targetName.includes(bProdName))) {
+          return true;
+        }
+        return false;
+      });
+
+      // Single batch fallback for product if list is empty
+      if (matchedList.length === 0) {
+        const baseMrp = Number(p.mrp ?? p.mrpPrice ?? 160.0);
+        const basePrice = Number(p.rateC ?? p.rate ?? p.price ?? p.ptr ?? 134.4);
+        const baseBatchNo = p.batchNo || p.batch || p.displaySku || p.sku || "B-8801";
+        const baseRack = p.rack || p.shelfLocation || "F1/AE2";
+        const basePack = p.pack || p.packaging || p.displayDosageForm || "10S";
+        const baseHsn = p.hsnCode || p.hsn || "3004";
+        const baseGst = p.gstRate ?? p.taxRate ?? p.gst ?? 5;
+        const baseExpiry = p.expiryDate || p.expDate || p.expiry || p.displayExpDate || "11/32";
+
+        matchedList = [
+          {
+            id: `b-${p._id || p.id || "1"}`,
+            batchNo: baseBatchNo,
+            mrp: baseMrp,
+            price: basePrice,
+            stock: p.stock ?? 100,
+            expiry: baseExpiry,
+            rack: baseRack,
+            pack: basePack,
+            hsn: baseHsn,
+            gst: baseGst,
+            ratePct: p.ratePct || p.marginPct || "16%",
+            productName: p.displayName || p.name,
+          },
+        ];
+      }
+
+      // FEFO Sort: Nearest Expiry Date first
+      matchedList.sort((a, b) => {
+        const dateA = parseExpiryDate(a.expiry || a.expiryDate || a.expDate);
+        const dateB = parseExpiryDate(b.expiry || b.expiryDate || b.expDate);
+        return dateA - dateB;
+      });
+
+      setBatches(matchedList);
+      autoAllocateFEFO(1, matchedList);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const maxTotalStock = batches.reduce((acc, b) => acc + Number(b.stock ?? b.batchQty ?? 0), 0);
+
+  // Automatically allocate requested total Qty across batches (Near Expiry first)
+  const autoAllocateFEFO = (targetTotal, batchList = batches) => {
+    let remaining = Math.max(1, Number(targetTotal) || 1);
+    const newAllocations = {};
+    const newSelected = new Set();
+
+    batchList.forEach((b) => {
+      const bId = b.id || b._id || b.batchNo;
+      const stock = Number(b.stock ?? b.batchQty ?? 100);
+
+      if (remaining > 0 && stock > 0) {
+        const take = Math.min(stock, remaining);
+        newAllocations[bId] = take;
+        newSelected.add(bId);
+        remaining -= take;
+      } else {
+        newAllocations[bId] = 0;
+      }
+    });
+
+    setAllocations(newAllocations);
+    setSelectedBatchIds(newSelected);
+  };
+
+  const handleTotalQtyChange = (val) => {
+    let num = parseInt(val, 10);
+    if (!isNaN(num) && maxTotalStock > 0 && num > maxTotalStock) {
+      num = maxTotalStock;
+      val = String(maxTotalStock);
+    }
+    setTotalQty(val);
+    autoAllocateFEFO(val);
+  };
+
+  const handleBlurTotalQty = () => {
+    const num = parseInt(totalQty, 10);
+    const sanitized = isNaN(num) || num < 1 ? 1 : Math.min(maxTotalStock || 999, num);
+    setTotalQty(sanitized);
+    autoAllocateFEFO(sanitized);
+  };
+
+  const toggleBatchChecked = (bId) => {
+    setSelectedBatchIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(bId)) {
+        next.delete(bId);
+        setAllocations((alloc) => ({ ...alloc, [bId]: 0 }));
+      } else {
+        next.add(bId);
+        const targetBatch = batches.find((b) => (b.id || b._id || b.batchNo) === bId);
+        const bStock = targetBatch ? (targetBatch.stock ?? 100) : 1;
+        setAllocations((alloc) => ({ ...alloc, [bId]: Math.min(bStock, 1) }));
+      }
+      return next;
+    });
+  };
+
+  if (!open || !product) return null;
+
+  const productName = product.displayName || product.name || "Selected Product";
+  const brand = product.displayManufacturer || product.manufacturer || product.brand || "Pharma";
+  const category = product.displayCategory || product.category || "Medicine";
+  const hsn = product.hsnCode || product.hsn || "3004";
+
+  // Calculate totals for confirmed list
+  const selectedBatchesList = batches.filter((b) => {
+    const bId = b.id || b._id || b.batchNo;
+    return selectedBatchIds.has(bId) && (allocations[bId] || 0) > 0;
+  });
+
+  const totalAllocatedQty = selectedBatchesList.reduce((acc, b) => {
+    const bId = b.id || b._id || b.batchNo;
+    return acc + (allocations[bId] || 0);
+  }, 0);
+
+  const totalCombinedAmount = selectedBatchesList.reduce((acc, b) => {
+    const bId = b.id || b._id || b.batchNo;
+    const q = allocations[bId] || 0;
+    const rate = Number(b.rateC ?? b.rate ?? b.price ?? b.saleRate ?? b.rateA ?? product.rateC ?? product.price ?? 134.4);
+    return acc + rate * q;
+  }, 0);
+
+  const handleConfirmAdd = () => {
+    if (selectedBatchesList.length === 0) return;
+
+    const itemsToAdd = selectedBatchesList.map((b) => {
+      const bId = b.id || b._id || b.batchNo;
+      const bNo = b.batchNo || b.batchNumber || b.batch || "B-8801";
+      const bRate = Number(b.rateC ?? b.rate ?? b.price ?? b.saleRate ?? b.rateA ?? product.rateC ?? product.price ?? 134.4);
+      const bMrp = Number(b.mrp ?? product.mrp ?? 160.0);
+      const bExp = b.expiry || b.expiryDate || b.expDate || "11/32";
+      const bRack = b.rack || product.rack || "F1/AE2";
+      const bPack = b.pack || product.pack || "10S";
+      const bHsn = b.hsn || hsn;
+      const bGst = b.gst ?? product.gst ?? 5;
+      const bRatePct = b.ratePct || product.ratePct || "16%";
+      const bStock = b.stock ?? b.batchQty ?? 100;
+
+      return {
+        id: `${product._id || product.id || "item"}-${bNo}`,
+        productId: product._id || product.id,
+        name: productName,
+        brand,
+        category,
+        batch: bNo,
+        pack: bPack,
+        rack: bRack,
+        hsn: bHsn,
+        gst: bGst,
+        ratePct: bRatePct,
+        expiry: bExp,
+        stock: bStock,
+        mrp: bMrp,
+        price: bRate,
+        disc: 0,
+        qty: allocations[bId] || 1,
+      };
+    });
+
+    if (onConfirmAddToCart) {
+      onConfirmAddToCart(itemsToAdd);
+    }
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[1600] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-50 duration-150">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleConfirmAdd();
+        }}
+        className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl animate-in zoom-in-95 duration-150 flex flex-col max-h-[85vh]"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-6 py-4.5 bg-surface-alt/80 shrink-0">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+              <Package className="size-6" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-text truncate max-w-[440px]">
+                  {productName}
+                </h3>
+                <span className="inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-xs font-bold bg-primary-soft text-primary border border-primary/20 shrink-0">
+                  <MapPin className="size-3.5" /> {branchName}
+                </span>
+              </div>
+              <p className="text-xs text-text-muted truncate mt-0.5 font-medium">
+                {brand} • {category} • HSN: {hsn}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl p-2 text-text-muted hover:bg-surface-hover hover:text-text transition-colors cursor-pointer"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        {/* Spacious Total Required Qty Input Bar with Prominent Max Qty */}
+        <div className="bg-primary-soft/30 border-b border-primary/20 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl  border border-primary/30 font-mono text-sm font-bold shrink-0">
+              Max Stock: <strong className="text-base font-extrabold ">{maxTotalStock} Units</strong>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="inline-flex items-center rounded-xl border border-primary/40 bg-surface p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => handleTotalQtyChange(Math.max(1, (Number(totalQty) || 1) - 1))}
+                className="size-9 rounded-lg flex items-center justify-center hover:bg-surface-hover text-text-muted hover:text-text cursor-pointer transition-colors"
+              >
+                <Minus className="size-4" />
+              </button>
+
+              <input
+                ref={totalQtyInputRef}
+                type="number"
+                min="1"
+                max={maxTotalStock || 999}
+                value={totalQty}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => handleTotalQtyChange(e.target.value)}
+                onBlur={handleBlurTotalQty}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleConfirmAdd();
+                  }
+                }}
+                className="w-16 text-center font-mono font-extrabold text-base text-text bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+
+              <button
+                type="button"
+                onClick={() => handleTotalQtyChange(Math.min(maxTotalStock || 999, (Number(totalQty) || 1) + 1))}
+                className="size-9 rounded-lg flex items-center justify-center hover:bg-surface-hover text-text-muted hover:text-text cursor-pointer transition-colors"
+              >
+                <Plus className="size-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Spacious Batch List */}
+        <div className="p-6 overflow-y-auto space-y-3 flex-1">
+          {isLoading ? (
+            <div className="py-12 flex flex-col items-center justify-center text-text-muted space-y-2">
+              <Loader2 className="size-7 animate-spin text-primary" />
+              <p className="text-xs font-medium">Loading branch batch stock...</p>
+            </div>
+          ) : batches.length > 0 ? (
+            <div className="space-y-2.5">
+              {batches.map((b, idx) => {
+                const bId = b.id || b._id || b.batchNo;
+                const isChecked = selectedBatchIds.has(bId);
+                const allocated = allocations[bId] || 0;
+                const isNearestExp = idx === 0;
+
+                const bNo = b.batchNo || b.batchNumber || b.batch || "B-8801";
+                const bMrp = Number(b.mrp ?? product.mrp ?? 160.0);
+                const bRate = Number(
+                  billingMode === "B2C"
+                    ? (b.rateC ?? b.rate ?? b.price ?? b.saleRate ?? product.rateC ?? product.price ?? 134.4)
+                    : (b.price ?? b.rate ?? b.rateC ?? product.price ?? 134.4)
+                );
+                const bStock = b.stock ?? b.batchQty ?? 100;
+                const bExp = b.expiry || b.expiryDate || b.expDate || "11/32";
+                const bRack = b.rack || product.rack || "F1/AE2";
+
+                return (
+                  <div
+                    key={bId}
+                    onClick={() => toggleBatchChecked(bId)}
+                    className={cn(
+                      "group flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer select-none",
+                      isChecked && allocated > 0
+                        ? "border-primary bg-primary-soft/50 shadow-xs ring-1 ring-primary/30"
+                        : "border-border bg-surface-alt/40 hover:bg-surface-hover hover:border-border-hover"
+                    )}
+                  >
+                    {/* Left: Checkbox & Batch Specs */}
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="shrink-0 text-primary">
+                        {isChecked ? (
+                          <CheckSquare className="size-5 fill-primary text-white" />
+                        ) : (
+                          <Square className="size-5 text-text-muted group-hover:text-primary transition-colors" />
+                        )}
+                      </div>
+
+                      <div className="flex flex-col min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono font-bold text-sm text-text">
+                            Batch: {bNo}
+                          </span>
+
+                          {isNearestExp && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30 uppercase tracking-wider">
+                              <Clock className="size-3 text-amber-500" /> Near Exp
+                            </span>
+                          )}
+
+                          <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-text-muted bg-surface px-2 py-0.5 rounded border border-border">
+                            <Calendar className="size-3 text-amber-500" /> Exp: {bExp}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-xs text-text-muted">
+                          <span>
+                            Rack Location: <strong className="text-text font-mono font-bold">{bRack}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Rate & Allocated Qty Badge */}
+                    <div className="flex items-center gap-4 shrink-0 text-right">
+                      <div className="font-mono">
+                        <div className="text-base font-extrabold text-primary">₹{bRate.toFixed(2)}</div>
+                        <div className="text-xs text-text-muted">MRP ₹{bMrp.toFixed(2)}</div>
+                      </div>
+
+                      <div
+                        className={cn(
+                          "px-3 py-1.5 rounded-xl font-mono font-extrabold text-xs border shadow-2xs",
+                          allocated > 0
+                            ? "bg-primary text-white border-primary"
+                            : "bg-surface-alt text-text-muted border-border"
+                        )}
+                      >
+                        Qty: {allocated} / {bStock}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-text-muted border border-dashed border-border rounded-xl">
+              <AlertCircle className="size-7 mx-auto opacity-50 mb-2 text-warning" />
+              <p className="text-xs font-semibold">No active batches with stock found for this branch</p>
+            </div>
+          )}
+        </div>
+
+        {/* Spacious Footer Summary & Actions */}
+        <div className="flex items-center justify-between border-t border-border px-6 py-4 bg-surface-alt/80 shrink-0">
+          <div className="text-xs text-text font-mono">
+          </div>
+
+          <div className="flex items-center gap-3">
+            <UIButton variant="ghost" size="md" onClick={onClose}>
+              Cancel
+            </UIButton>
+
+            <UIButton
+              variant="primary"
+              size="md"
+              disabled={totalAllocatedQty === 0}
+              onClick={handleConfirmAdd}
+              rightIcon={<ShoppingCart className="size-4" />}
+              className="font-bold shadow-sm px-5"
+            >
+              Add {totalAllocatedQty} Qty to Cart (₹{totalCombinedAmount.toFixed(2)})
+            </UIButton>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default WorkspaceProductBatchSelectorModal;

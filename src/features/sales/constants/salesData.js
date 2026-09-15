@@ -131,14 +131,16 @@ export const POS_AVAILABLE_MEDICINES = [
   },
 ];
 
+// B2C Default Customers
 export const POS_DEFAULT_CUSTOMERS = [
   {
     id: "cust-walkin",
-    name: "Walk-in Customer",
+    name: "Walk-in Retail Customer",
     phone: "9876543210",
     email: "",
     doctor: "Dr. Self",
     creditBalance: 0,
+    billingType: "B2C",
   },
   {
     id: "cust-1",
@@ -147,6 +149,7 @@ export const POS_DEFAULT_CUSTOMERS = [
     email: "rahul.s@example.com",
     doctor: "Dr. Arvind Mehta (Cardiology)",
     creditBalance: 450,
+    billingType: "B2C",
   },
   {
     id: "cust-2",
@@ -155,13 +158,70 @@ export const POS_DEFAULT_CUSTOMERS = [
     email: "priya.p@example.com",
     doctor: "Dr. Sunita Rao (Pediatrics)",
     creditBalance: 0,
+    billingType: "B2C",
+  },
+];
+
+// B2B Commercial Parties (Wholesalers & Retailers)
+export const POS_B2B_PARTIES = [
+  {
+    id: "b2b-w1",
+    name: "Apex Pharma Wholesalers Pvt Ltd",
+    companyName: "Apex Pharma Wholesalers Pvt Ltd",
+    partyType: "wholesaler", // "wholesaler" | "retailer"
+    gstin: "27AAACA1234A1Z5",
+    dlNo: "20B-MH-27-991823 / 21B-MH-27-991824",
+    phone: "9820011223",
+    email: "sales@apexpharma.com",
+    address: "Plot 42, Industrial Estate, Mumbai, MH - 400013",
+    creditLimit: 500000,
+    paymentTerms: "Net 30 Days",
+    defaultDiscount: 15, // 15% wholesale discount
+    billingType: "B2B",
   },
   {
-    id: "cust-3",
-    name: "Amit Verma",
-    phone: "9834567890",
-    email: "amit.v@example.com",
-    doctor: "Dr. R. K. Gupta (Internal Med)",
-    creditBalance: 1200,
+    id: "b2b-w2",
+    name: "Metro Medico Wholesale Distributors",
+    companyName: "Metro Medico Wholesale Distributors",
+    partyType: "wholesaler",
+    gstin: "27BBBPM9876C1Z8",
+    dlNo: "20B-MH-27-551234 / 21B-MH-27-551235",
+    phone: "9833445566",
+    email: "orders@metromedico.in",
+    address: "Shop 12, Wholesale Pharma Market, Pune, MH - 411002",
+    creditLimit: 250000,
+    paymentTerms: "Net 15 Days",
+    defaultDiscount: 12,
+    billingType: "B2B",
+  },
+  {
+    id: "b2b-r1",
+    name: "Care Chemists & Druggists (Retail Pharmacy)",
+    companyName: "Care Chemists & Druggists",
+    partyType: "retailer",
+    gstin: "27CCCPC4321D1Z2",
+    dlNo: "20B-MH-27-772109 / 21B-MH-27-772110",
+    phone: "9877889900",
+    email: "carechemists@gmail.com",
+    address: "Station Road, Dadar, Mumbai, MH - 400014",
+    creditLimit: 100000,
+    paymentTerms: "Net 15 Days",
+    defaultDiscount: 10,
+    billingType: "B2B",
+  },
+  {
+    id: "b2b-r2",
+    name: "City Medicos Retail Outlet",
+    companyName: "City Medicos Retail Outlet",
+    partyType: "retailer",
+    gstin: "27DDDPM6543E1Z9",
+    dlNo: "20B-MH-27-334455 / 21B-MH-27-334456",
+    phone: "9899001122",
+    email: "contact@citymedicos.com",
+    address: "Main Market, Thane, MH - 400601",
+    creditLimit: 150000,
+    paymentTerms: "Net 30 Days",
+    defaultDiscount: 10,
+    billingType: "B2B",
   },
 ];
