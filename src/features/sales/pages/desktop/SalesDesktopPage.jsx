@@ -33,6 +33,7 @@ import {
   WorkspaceProductSearchBar,
   WorkspaceProductBatchSelectorModal,
   B2cCustomerSearchBar,
+  B2bCustomerSearchBar,
 } from "@/components";
 import { PermissionGate } from "@/components/common/PermissionGate";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,8 @@ export const SalesDesktopPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const [selectedB2cCustomer, setSelectedB2cCustomer] = useState(null);
-  const [selectedB2bParty, setSelectedB2bParty] = useState(POS_B2B_PARTIES[0]);
+  const [selectedB2bParty, setSelectedB2bParty] = useState(null);
+  const [b2bPartiesFromBackend, setB2bPartiesFromBackend] = useState([]);
 
   const activeCustomer =
     billingMode === "B2C"
@@ -73,6 +75,7 @@ export const SalesDesktopPage = () => {
 
   const searchBarRef = useRef(null);
   const customerSearchBarRef = useRef(null);
+  const b2bCustomerSearchBarRef = useRef(null);
 
   // Auto-focus handler: focuses Customer Search Bar first if customer not selected, else Product Search Bar
   useEffect(() => {
@@ -89,6 +92,8 @@ export const SalesDesktopPage = () => {
       if (e.key && e.key.length === 1) {
         if (billingMode === "B2C" && !selectedB2cCustomer) {
           customerSearchBarRef.current?.focus();
+        } else if (billingMode === "B2B" && !selectedB2bParty) {
+          b2bCustomerSearchBarRef.current?.focus();
         } else {
           searchBarRef.current?.focus();
         }
@@ -97,7 +102,7 @@ export const SalesDesktopPage = () => {
 
     window.addEventListener("keydown", handleGlobalTyping);
     return () => window.removeEventListener("keydown", handleGlobalTyping);
-  }, [isBatchModalOpen, isCheckoutOpen, isReceiptOpen, billingMode, selectedB2cCustomer]);
+  }, [isBatchModalOpen, isCheckoutOpen, isReceiptOpen, billingMode, selectedB2cCustomer, selectedB2bParty]);
 
   // Ctrl + Enter (or Cmd + Enter) keyboard shortcut to Proceed to Checkout
   useEffect(() => {
@@ -115,6 +120,45 @@ export const SalesDesktopPage = () => {
     return () => window.removeEventListener("keydown", handleCtrlEnter);
   }, [cart]);
 
+  useEffect(() => {
+    const fetchB2bParties = async () => {
+      try {
+        const types = b2bPartyType === "all" ? "retail,wholesale" : (b2bPartyType === "wholesaler" ? "wholesale" : "retail");
+        const res = await customerService.getCustomers({
+          status: "active",
+          customerType: types,
+          limit: 100,
+        });
+        const customers = res.data?.data?.customers || res.data?.customers || [];
+        const mapped = customers.map((c) => ({
+          ...c,
+          id: c._id || c.id,
+          name: c.name,
+          companyName: c.companyName || c.name,
+          gstin: c.gstNumber || "N/A",
+          partyType: c.customerType,
+          creditLimit: c.creditLimit || 0,
+          creditDays: c.creditDays || 0,
+        }));
+        setB2bPartiesFromBackend(mapped);
+        
+        if (mapped.length > 0) {
+          setSelectedB2bParty(prev => {
+             const stillExists = prev && mapped.find(m => m.id === prev.id);
+             return stillExists ? prev : null;
+          });
+        } else {
+          setSelectedB2bParty(null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch B2B parties:", err);
+      }
+    };
+    if (billingMode === "B2B") {
+      fetchB2bParties();
+    }
+  }, [b2bPartyType, billingMode]);
+
   const categories = ["all", "Tablet", "Capsule", "Syrup", "Injection"];
 
   const filteredMedicines = POS_AVAILABLE_MEDICINES.filter((item) => {
@@ -130,10 +174,7 @@ export const SalesDesktopPage = () => {
     return matchesQuery && matchesCategory;
   });
 
-  const filteredB2bParties = POS_B2B_PARTIES.filter((p) => {
-    if (b2bPartyType === "all") return true;
-    return p.partyType === b2bPartyType;
-  });
+  const filteredB2bParties = b2bPartiesFromBackend;
 
   const getGstRate = (p) => {
     if (!p) return 5;
@@ -461,9 +502,6 @@ export const SalesDesktopPage = () => {
             type="button"
             onClick={() => {
               setBillingMode("B2B");
-              if (filteredB2bParties.length > 0) {
-                setSelectedB2bParty(filteredB2bParties[0]);
-              }
             }}
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
@@ -511,69 +549,76 @@ export const SalesDesktopPage = () => {
         ) : (
           /* B2B Commercial Party Bar (Wholesaler vs Retailer) */
           <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              {/* Party Type Filter (Wholesaler vs Retailer) */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-text-muted uppercase tracking-wider mr-1">
-                  Party Type:
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setB2bPartyType("all")}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                    b2bPartyType === "all"
-                      ? "bg-purple-600 text-white shadow-xs"
-                      : "bg-surface-alt text-text-muted hover:text-text border border-border"
-                  )}
-                >
-                  All B2B Parties
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setB2bPartyType("wholesaler")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                    b2bPartyType === "wholesaler"
-                      ? "bg-purple-600 text-white shadow-xs"
-                      : "bg-surface-alt text-text-muted hover:text-text border border-border"
-                  )}
-                >
-                  <Briefcase className="size-3.5" />
-                  Wholesaler
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setB2bPartyType("retailer")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                    b2bPartyType === "retailer"
-                      ? "bg-purple-600 text-white shadow-xs"
-                      : "bg-surface-alt text-text-muted hover:text-text border border-border"
-                  )}
-                >
-                  <Store className="size-3.5" />
-                  Retailer
-                </button>
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="flex flex-col gap-3 flex-1 max-w-xl">
+                <div className="w-full">
+                  <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider block mb-1">
+                    Search & Select Commercial Party (B2B)
+                  </span>
+                  <B2bCustomerSearchBar
+                    ref={b2bCustomerSearchBarRef}
+                    selectedCustomer={selectedB2bParty}
+                    onSelectCustomer={(party) => {
+                      setSelectedB2bParty(party);
+                      setTimeout(() => searchBarRef.current?.focus(), 80);
+                    }}
+                    b2bPartyType={b2bPartyType}
+                    placeholder="Search B2B party by name, GST, or phone..."
+                    size="sm"
+                  />
+                </div>
+
+                {/* Party Type Filter (Wholesaler vs Retailer) */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider mr-1">
+                    Party Type:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setB2bPartyType("all")}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      b2bPartyType === "all"
+                        ? "bg-purple-600 text-white shadow-xs"
+                        : "bg-surface-alt text-text-muted hover:text-text border border-border"
+                    )}
+                  >
+                    All B2B Parties
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setB2bPartyType("wholesaler")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      b2bPartyType === "wholesaler"
+                        ? "bg-purple-600 text-white shadow-xs"
+                        : "bg-surface-alt text-text-muted hover:text-text border border-border"
+                    )}
+                  >
+                    <Briefcase className="size-3.5" />
+                    Wholesaler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setB2bPartyType("retailer")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      b2bPartyType === "retailer"
+                        ? "bg-purple-600 text-white shadow-xs"
+                        : "bg-surface-alt text-text-muted hover:text-text border border-border"
+                    )}
+                  >
+                    <Store className="size-3.5" />
+                    Retailer
+                  </button>
+                </div>
               </div>
 
-              {/* Select B2B Party Dropdown */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-text-muted">Select Party:</span>
-                <select
-                  value={selectedB2bParty.id}
-                  onChange={(e) => {
-                    const party = POS_B2B_PARTIES.find((p) => p.id === e.target.value);
-                    if (party) setSelectedB2bParty(party);
-                  }}
-                  className="bg-surface-alt text-xs font-bold text-text border border-border rounded-lg px-3 py-1.5 outline-none cursor-pointer max-w-[320px]"
-                >
-                  {filteredB2bParties.map((party) => (
-                    <option key={party.id} value={party.id}>
-                      {party.name} [{party.partyType.toUpperCase()}]
-                    </option>
-                  ))}
-                </select>
+              <div className="text-xs text-text-muted shrink-0 text-right bg-surface-alt/70 px-3 py-2 rounded-xl border border-border/60">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                  Invoice Mode
+                </span>
+                <span className="font-bold text-text">Commercial Tax Invoice</span>
               </div>
             </div>
 

@@ -156,6 +156,7 @@ export const POSTerminalPage = () => {
           search: debouncedB2bQuery || undefined,
           limit: 15,
           status: "active",
+          customerType: "retail,wholesale",
         });
         if (!cancelled) {
           const customers = res.data?.data?.customers || res.data?.customers || [];

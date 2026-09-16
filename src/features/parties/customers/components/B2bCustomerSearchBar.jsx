@@ -1,23 +1,22 @@
-// src/features/parties/customers/components/B2cCustomerSearchBar.jsx
+// src/features/parties/customers/components/B2bCustomerSearchBar.jsx
 
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from "react";
-import { Search, X, Loader2, User, Phone, Stethoscope, CreditCard, Plus, ChevronRight, Check } from "lucide-react";
+import { Search, X, Loader2, Building2, Phone, Briefcase, Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import customerService from "../services/customerService";
-import { POS_DEFAULT_CUSTOMERS } from "@/features/sales/constants/salesData";
 
 /**
- * B2cCustomerSearchBar
- * Dedicated search bar for B2C Retail Customers & Patients (excluding Wholesalers & Retailers).
- * Supports real-time debounced search by customer name, phone, email, or doctor name.
+ * B2bCustomerSearchBar
+ * Dedicated search bar for B2B Commercial Parties (Wholesalers & Retailers).
  */
-export const B2cCustomerSearchBar = forwardRef(
+export const B2bCustomerSearchBar = forwardRef(
   (
     {
       value: controlledValue,
       selectedCustomer,
       onSelectCustomer,
-      placeholder = "Search B2C customer by name, phone, or doctor...",
+      b2bPartyType = "all", // "all" | "wholesaler" | "retailer"
+      placeholder = "Search B2B party by name, phone, or GST...",
       size = "md", // "sm" | "md" | "lg"
       debounceMs = 250,
       disabled = false,
@@ -57,59 +56,34 @@ export const B2cCustomerSearchBar = forwardRef(
 
         const q = (query || "").trim().toLowerCase();
 
-        // 1. Filter local B2C retail customers
-        const localMatches = POS_DEFAULT_CUSTOMERS.filter((cust) => {
-          // Exclude any wholesaler or retailer parties
-          const partyType = (cust.partyType || "").toLowerCase();
-          if (partyType === "wholesaler" || partyType === "retailer") {
-            return false;
-          }
-
-          if (!q) return true;
-
-          const nameMatch = cust.name?.toLowerCase().includes(q);
-          const phoneMatch = cust.phone?.toLowerCase().includes(q);
-          const docMatch = cust.doctor?.toLowerCase().includes(q);
-          const emailMatch = cust.email?.toLowerCase().includes(q);
-
-          return nameMatch || phoneMatch || docMatch || emailMatch;
-        });
-
         let apiResults = [];
         try {
-          if (q) {
-            const res = await customerService.getCustomers({ search: q, limit: 10 });
+          if (q || !q) { // fetch default on mount
+            const types = b2bPartyType === "all" ? "retail,wholesale" : (b2bPartyType === "wholesaler" ? "wholesale" : "retail");
+            const res = await customerService.getCustomers({ search: q || undefined, customerType: types, limit: 10 });
             const list = res.data?.data?.customers || res.data?.customers || res.data?.data || [];
             if (Array.isArray(list)) {
-              // Filter out wholesaler and retailer parties from API response
-              apiResults = list.filter((c) => {
-                const type = (c.customerType || c.partyType || c.type || "").toLowerCase();
-                return type !== "wholesale" && type !== "wholesaler" && type !== "retail" && type !== "retailer";
-              });
+              apiResults = list;
             }
           }
         } catch (err) {
-          // Fallback gracefully to local matches if backend offline
-          console.warn("API Customer search fallback to local:", err);
+          console.warn("API Customer search failed:", err);
         }
 
-        // Combine local and API results removing duplicates
-        const combined = [...localMatches];
-        apiResults.forEach((apiCust) => {
-          if (!combined.some((c) => c.id === apiCust._id || c.id === apiCust.id || c.phone === apiCust.phone)) {
-            combined.push({
-              id: apiCust._id || apiCust.id,
-              name: apiCust.name || apiCust.displayName,
-              phone: apiCust.phone || apiCust.mobile || "",
-              email: apiCust.email || "",
-              doctor: apiCust.doctor || apiCust.prescribingDoctor || "Dr. Self",
-              creditBalance: apiCust.creditBalance || apiCust.balance || 0,
-              billingType: "B2C",
-            });
-          }
-        });
+        // Map API results
+        const mappedResults = apiResults.map((apiCust) => ({
+          id: apiCust._id || apiCust.id,
+          name: apiCust.name || apiCust.displayName,
+          companyName: apiCust.companyName || apiCust.name,
+          phone: apiCust.phone || apiCust.mobile || "",
+          gstin: apiCust.gstNumber || "",
+          partyType: apiCust.customerType || "wholesale",
+          creditLimit: apiCust.creditLimit || 0,
+          creditDays: apiCust.creditDays || 0,
+          billingType: "B2B",
+        }));
 
-        setResults(combined);
+        setResults(mappedResults);
         setIsLoading(false);
       },
       []
@@ -213,11 +187,11 @@ export const B2cCustomerSearchBar = forwardRef(
             inputClassName
           )}
         >
-          <div className="flex items-center text-emerald-600 dark:text-emerald-400 shrink-0 mr-2.5">
+          <div className="flex items-center text-purple-600 dark:text-purple-400 shrink-0 mr-2.5">
             {isLoading ? (
               <Loader2 className="size-4 animate-spin text-primary" />
             ) : (
-              <User className="size-4" />
+              <Building2 className="size-4" />
             )}
           </div>
 
@@ -256,8 +230,8 @@ export const B2cCustomerSearchBar = forwardRef(
           >
             {/* Dropdown Top Bar */}
             <div className="flex items-center justify-between border-b border-border/60 bg-surface-alt/60 px-3.5 py-2 text-[11px] font-semibold text-text-muted">
-              <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
-                <User className="size-3" /> Retail Customers & Patients (B2C)
+              <span className="flex items-center gap-1 text-purple-700 dark:text-purple-400">
+                <Building2 className="size-3" /> Commercial Parties (B2B)
               </span>
               <span className="text-[10px] text-text-muted/70">
                 {results.length} found
@@ -288,10 +262,10 @@ export const B2cCustomerSearchBar = forwardRef(
                             "flex size-8 shrink-0 items-center justify-center rounded-lg border transition-colors mt-0.5",
                             isSelected
                               ? "bg-primary text-white border-primary"
-                              : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                              : "bg-purple-500/10 text-purple-600 border-purple-500/20"
                           )}
                         >
-                          <User className="size-4" />
+                          <Building2 className="size-4" />
                         </div>
 
                         <div className="flex flex-col min-w-0 flex-1">
@@ -299,9 +273,9 @@ export const B2cCustomerSearchBar = forwardRef(
                             <span className="font-bold text-xs truncate text-text group-hover/item:text-primary transition-colors">
                               {cust.name}
                             </span>
-                            {cust.id === "cust-walkin" && (
-                              <span className="rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider">
-                                Walk-In
+                            {cust.partyType && (
+                              <span className="rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider">
+                                {cust.partyType}
                               </span>
                             )}
                           </div>
@@ -312,9 +286,9 @@ export const B2cCustomerSearchBar = forwardRef(
                                 <Phone className="size-3" /> {cust.phone}
                               </span>
                             )}
-                            {cust.doctor && (
+                            {cust.gstin && (
                               <span className="flex items-center gap-1 truncate max-w-[160px]">
-                                <Stethoscope className="size-3 text-blue-500" /> {cust.doctor}
+                                <Briefcase className="size-3 text-purple-500" /> {cust.gstin}
                               </span>
                             )}
                           </div>
@@ -322,9 +296,9 @@ export const B2cCustomerSearchBar = forwardRef(
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0 ml-2">
-                        {cust.creditBalance > 0 && (
-                          <span className="text-[10px] font-mono font-bold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                            Due: ₹{cust.creditBalance}
+                        {cust.creditLimit > 0 && (
+                          <span className="text-[10px] font-mono font-bold text-purple-600 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">
+                            Limit: ₹{cust.creditLimit}
                           </span>
                         )}
                         {isSelected && <Check className="size-4 text-primary" />}
@@ -334,9 +308,9 @@ export const B2cCustomerSearchBar = forwardRef(
                 })
               ) : !isLoading ? (
                 <div className="p-4 text-center">
-                  <p className="text-xs font-semibold text-text">No B2C customer found</p>
+                  <p className="text-xs font-semibold text-text">No B2B party found</p>
                   <p className="text-[11px] text-text-muted mt-0.5">
-                    No matching retail customer for &quot;{currentValue}&quot;
+                    No matching commercial party for &quot;{currentValue}&quot;
                   </p>
 
                   {showAddNewAction && (
@@ -345,17 +319,17 @@ export const B2cCustomerSearchBar = forwardRef(
                       onClick={() => {
                         const newCust = {
                           id: `cust-custom-${Date.now()}`,
-                          name: currentValue || "New Customer",
+                          name: currentValue || "New Party",
                           phone: "",
-                          doctor: "Dr. Self",
-                          billingType: "B2C",
+                          gstin: "",
+                          billingType: "B2B",
                         };
                         handleSelect(newCust);
                         if (onAddNewCustomer) onAddNewCustomer(currentValue);
                       }}
                       className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-primary/90 transition-all cursor-pointer"
                     >
-                      <Plus className="size-3.5" /> Use &quot;{currentValue}&quot; as Customer
+                      <Plus className="size-3.5" /> Use &quot;{currentValue}&quot; as Party
                     </button>
                   )}
                 </div>
@@ -368,5 +342,5 @@ export const B2cCustomerSearchBar = forwardRef(
   }
 );
 
-B2cCustomerSearchBar.displayName = "B2cCustomerSearchBar";
-export default B2cCustomerSearchBar;
+B2bCustomerSearchBar.displayName = "B2bCustomerSearchBar";
+export default B2bCustomerSearchBar;
