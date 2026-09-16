@@ -237,6 +237,15 @@ export const SalesDesktopPage = () => {
             : item
         );
       }
+
+      let basePrice = Number(medicine.price ?? 134.4);
+      if (billingMode === "B2B") {
+        basePrice = Number(medicine.rateB || medicine.rateb || (medicine.price ?? 134.4));
+        if (selectedB2bParty?.defaultDiscount) {
+          basePrice = Math.round(basePrice * (1 - selectedB2bParty.defaultDiscount / 100));
+        }
+      }
+
       return [
         ...prev,
         {
@@ -253,7 +262,7 @@ export const SalesDesktopPage = () => {
           expiry: getExpiryString(medicine),
           stock: medicine.stock ?? 100,
           mrp: Number(medicine.mrp ?? 160.0),
-          price: Number(medicine.price ?? 134.4),
+          price: basePrice,
           disc: Number(medicine.disc ?? 0),
           qty: medicine.qty || 1,
         },
@@ -278,8 +287,13 @@ export const SalesDesktopPage = () => {
 
       itemsList.forEach((item) => {
         let basePrice = item.price;
-        if (billingMode === "B2B" && selectedB2bParty?.defaultDiscount) {
-          basePrice = Math.round(basePrice * (1 - selectedB2bParty.defaultDiscount / 100));
+        if (billingMode === "B2B") {
+          // Use rateB for B2B billing if available
+          basePrice = Number(item.rateB || item.rateb || item.price || 0);
+          
+          if (selectedB2bParty?.defaultDiscount) {
+            basePrice = Math.round(basePrice * (1 - selectedB2bParty.defaultDiscount / 100));
+          }
         }
 
         const finalItem = {
@@ -393,8 +407,13 @@ export const SalesDesktopPage = () => {
   const estTax = cart.reduce((acc, item) => {
     const lineAmt = getItemAmount(item);
     const gstPct = Number(item.gst) || 5;
-    return acc + (lineAmt * gstPct) / 100;
+    
+    // B2B tax is exclusive (added on top), B2C is inclusive (already in lineAmt, we just extract it for display if needed)
+    // Actually, in the footer we show "estTax" that gets added to Subtotal ONLY if it's exclusive.
+    return billingMode === "B2B" ? acc + (lineAmt * gstPct) / 100 : acc;
   }, 0);
+  
+  // For B2C, cartSubtotal already includes tax. For B2B, it doesn't.
   const cartGrandTotal = Math.round(cartSubtotal + estTax);
 
   const handleCompleteSale = async (saleData) => {

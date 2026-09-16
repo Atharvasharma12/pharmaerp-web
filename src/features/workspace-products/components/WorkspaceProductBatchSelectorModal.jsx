@@ -170,12 +170,17 @@ export const WorkspaceProductBatchSelectorModal = ({
           5;
         const baseExpiry = p.expiryDate || p.expDate || p.expiry || p.displayExpDate || "11/32";
 
+        const baseRateB = Number(p.rateB ?? p.rateb ?? p.ptr ?? 0);
+        const baseRateA = Number(p.rateA ?? p.ratea ?? 0);
+
         matchedList = [
           {
             id: `b-${p._id || p.id || "1"}`,
             batchNo: baseBatchNo,
             mrp: baseMrp,
             price: basePrice,
+            rateB: baseRateB,
+            rateA: baseRateA,
             stock: p.stock ?? 100,
             expiry: baseExpiry,
             rack: baseRack,
@@ -323,6 +328,9 @@ export const WorkspaceProductBatchSelectorModal = ({
       const bRatePct = b.ratePct || product.ratePct || "16%";
       const bStock = b.stock ?? b.batchQty ?? 100;
 
+      const bRateB = Number(b.rateB ?? b.rateb ?? b.ptr ?? product.rateB ?? product.rateb ?? product.ptr ?? 0);
+      const bRateA = Number(b.rateA ?? b.ratea ?? product.rateA ?? product.ratea ?? 0);
+
       return {
         id: `${product._id || product.id || "item"}-${bNo}`,
         productId: product._id || product.id,
@@ -339,6 +347,8 @@ export const WorkspaceProductBatchSelectorModal = ({
         stock: bStock,
         mrp: bMrp,
         price: bRate,
+        rateB: bRateB,
+        rateA: bRateA,
         disc: 0,
         qty: allocations[bId] || 1,
       };

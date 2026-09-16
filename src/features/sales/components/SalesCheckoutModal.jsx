@@ -36,17 +36,20 @@ export const SalesCheckoutModal = ({
     return sum + rate * qty;
   }, 0);
 
+  const isB2B = billingMode === "B2B";
+
   // Line-level item discounts sum
-  const schemeDiscount = items.reduce((sum, item) => {
+  const itemDiscount = items.reduce((sum, item) => {
     const rate = Number(item.price) || 0;
     const qty = Math.max(1, Number(item.qty) || 1);
     const discPct = Number(item.disc) || 0;
     return sum + (rate * qty * discPct) / 100;
   }, 0);
 
-  const subtotalAfterScheme = subtotal - schemeDiscount;
-  const extraDiscount = (subtotalAfterScheme * (Number(discountPercent) || 0)) / 100;
-  const grandTotal = Math.max(0, subtotalAfterScheme - extraDiscount);
+  const schemeDiscount = 0; // Configured at party/order level if needed
+
+  const subtotalAfterDiscounts = subtotal - itemDiscount - schemeDiscount;
+  const extraDiscountAmt = (subtotalAfterDiscounts * (Number(discountPercent) || 0)) / 100;
 
   // Calculate GST Breakdown grouped by tax rate
   const gstSlabMap = {};
@@ -59,10 +62,18 @@ export const SalesCheckoutModal = ({
     const lineFinal = lineSubtotal * (1 - (Number(discountPercent) || 0) / 100);
 
     const gstPct = Number(item.gst !== undefined && item.gst !== null ? item.gst : 5);
-    // Assuming prices are GST inclusive or GST rate tax extraction
-    // Taxable = lineFinal / (1 + gstPct/100)
-    const taxable = lineFinal / (1 + gstPct / 100);
-    const taxAmt = lineFinal - taxable;
+    
+    let taxable, taxAmt;
+    if (isB2B) {
+      // B2B prices are exclusive of tax, so tax is added ON TOP
+      taxable = lineFinal;
+      taxAmt = lineFinal * (gstPct / 100);
+    } else {
+      // B2C prices are inclusive of tax, so tax is EXTRACTED from total
+      taxable = lineFinal / (1 + gstPct / 100);
+      taxAmt = lineFinal - taxable;
+    }
+
     const halfTax = taxAmt / 2;
 
     if (!gstSlabMap[gstPct]) {
@@ -81,9 +92,10 @@ export const SalesCheckoutModal = ({
   const totalSgst = gstSlabs.reduce((acc, s) => acc + s.sgst, 0);
   const totalGst = gstSlabs.reduce((acc, s) => acc + s.total, 0);
 
+  const grandTotal = Math.max(0, totalTaxable + totalGst);
+
   const tenderedNum = Number(cashTendered) || 0;
   const changeDue = Math.max(0, tenderedNum - grandTotal);
-  const isB2B = billingMode === "B2B";
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -101,8 +113,9 @@ export const SalesCheckoutModal = ({
         partyType: isB2B ? customer?.partyType || "wholesaler" : "retail_consumer",
         items,
         subtotal,
+        itemDiscount,
         schemeDiscount,
-        extraDiscount,
+        extraDiscount: extraDiscountAmt,
         taxableAmount: totalTaxable,
         tax: totalGst,
         grandTotal,
@@ -276,7 +289,12 @@ export const SalesCheckoutModal = ({
               <span className="font-bold">₹{subtotal.toFixed(2)}</span>
             </div>
 
-            {billingMode !== "B2C" && (
+            <div className="flex justify-between text-text">
+              <span className="text-text-muted font-sans font-medium">Item Discount</span>
+              <span className="text-emerald-600 font-semibold">- ₹{itemDiscount.toFixed(2)}</span>
+            </div>
+
+            {billingMode !== "B2C" && schemeDiscount > 0 && (
               <div className="flex justify-between text-text">
                 <span className="text-text-muted font-sans font-medium">Scheme Discount</span>
                 <span className="text-emerald-600 font-semibold">- ₹{schemeDiscount.toFixed(2)}</span>
@@ -285,7 +303,7 @@ export const SalesCheckoutModal = ({
 
             <div className="flex justify-between text-text">
               <span className="text-text-muted font-sans font-medium">Extra Discount ({discountPercent}%)</span>
-              <span className="text-emerald-600 font-semibold">- ₹{extraDiscount.toFixed(2)}</span>
+              <span className="text-emerald-600 font-semibold">- ₹{extraDiscountAmt.toFixed(2)}</span>
             </div>
 
             <div className="flex justify-between text-text pt-1 border-t border-border/40">
