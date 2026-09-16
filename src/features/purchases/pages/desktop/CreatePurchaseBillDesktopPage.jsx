@@ -49,6 +49,9 @@ export const CreatePurchaseBillDesktopPage = () => {
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
+  // Extra Discount (applied on taxable subtotal in preview)
+  const [extraDiscountPct, setExtraDiscountPct] = useState(0);
+
   const searchBarRef = useRef(null);
   const supplierSearchBarRef = useRef(null);
 
@@ -192,28 +195,66 @@ export const CreatePurchaseBillDesktopPage = () => {
 
   const handleClearCart = () => setCart([]);
 
-  // Calculate row amounts (strictly Qty * Rate)
-  const getItemAmount = (item) => {
+  // Calculate item base amount (Qty * Rate)
+  const getItemBaseAmount = (item) => {
     const rate = Number(item.rate) || 0;
     const qty = Number(item.qty) || 0;
     return rate * qty;
   };
 
-  const cartSubtotal = cart.reduce((acc, item) => acc + getItemAmount(item), 0);
+  // Calculate item scheme discount amount
+  const getItemSchemeDiscount = (item) => {
+    const base = getItemBaseAmount(item);
+    const schPct = Number(item.schPct) || 0;
+    return (base * schPct) / 100;
+  };
+
+  // Calculate item trade discount amount (calculated after scheme discount)
+  const getItemTradeDiscount = (item) => {
+    const base = getItemBaseAmount(item);
+    const schAmt = getItemSchemeDiscount(item);
+    const afterScheme = base - schAmt;
+    const discPct = Number(item.disc) || 0;
+    return (afterScheme * discPct) / 100;
+  };
+
+  // Calculate item taxable amount: (Qty * Rate) - Scheme Disc - Trade Disc
+  const getItemTaxableAmount = (item) => {
+    const base = getItemBaseAmount(item);
+    const schAmt = getItemSchemeDiscount(item);
+    const discAmt = getItemTradeDiscount(item);
+    return Math.max(0, base - schAmt - discAmt);
+  };
+
+  // Legacy/line amount for table line display
+  const getItemAmount = (item) => getItemTaxableAmount(item);
+
+  const cartGrossTotal = cart.reduce((acc, item) => acc + getItemBaseAmount(item), 0);
+  const cartSchemeDiscount = cart.reduce((acc, item) => acc + getItemSchemeDiscount(item), 0);
+  const cartTradeDiscount = cart.reduce((acc, item) => acc + getItemTradeDiscount(item), 0);
+  const cartTaxableSubtotal = cart.reduce((acc, item) => acc + getItemTaxableAmount(item), 0);
+  const cartSubtotal = cartTaxableSubtotal;
+
+  // Extra Discount on taxable subtotal
+  const extraDiscountAmt = (cartTaxableSubtotal * (Number(extraDiscountPct) || 0)) / 100;
+  const cartTaxableAfterExtra = Math.max(0, cartTaxableSubtotal - extraDiscountAmt);
+
   const estTax = cart.reduce((acc, item) => {
-    const taxable = getItemAmount(item);
+    const taxable = getItemTaxableAmount(item);
+    const extraDiscFactor = 1 - (Number(extraDiscountPct) || 0) / 100;
+    const adjustedTaxable = taxable * extraDiscFactor;
     const gstPct = Number(item.gst) || 12;
-    return acc + (taxable * gstPct) / 100;
+    return acc + (adjustedTaxable * gstPct) / 100;
   }, 0);
 
-  const cartGrandTotal = Math.round(cartSubtotal + estTax);
+  const cartGrandTotal = Math.round(cartTaxableAfterExtra + estTax);
   const cartItemCount = cart.reduce((acc, item) => acc + (Number(item.qty) || 1), 0);
 
   const getTaxSlabBreakdown = () => {
     const slabs = {};
     cart.forEach((item) => {
       const gstPct = Number(item.gst) || 12;
-      const lineTaxable = getItemAmount(item);
+      const lineTaxable = getItemTaxableAmount(item);
       const lineTax = (lineTaxable * gstPct) / 100;
 
       if (!slabs[gstPct]) {
@@ -363,7 +404,7 @@ export const CreatePurchaseBillDesktopPage = () => {
         </div>
       </div>
 
-      {/* Terminal Cart */}
+      {/* Terminal Cart Full Width */}
       <div className="w-full">
         <UICard variant="default" className="p-6 rounded-2xl bg-surface border-border shadow-xs flex flex-col justify-between min-h-[620px] space-y-5">
           <div className="space-y-4">
@@ -625,17 +666,25 @@ export const CreatePurchaseBillDesktopPage = () => {
             </div>
           </div>
 
-          {/* Footer Calculation */}
+          {/* Footer Calculation Bar */}
           <div className="pt-4 border-t border-border/70 space-y-3">
             <div className="flex justify-end gap-6 text-sm">
               <div className="text-right space-y-1 text-text-muted">
-                <p>Subtotal:</p>
-                <p>Est. Tax:</p>
+                <p>Gross Amount (Qty × Rate):</p>
+                {cartSchemeDiscount > 0 && <p className="text-amber-600">Scheme Discount:</p>}
+                {cartTradeDiscount > 0 && <p className="text-amber-600">Trade Discount (Disc %):</p>}
+                <p className="font-semibold text-text">Taxable Subtotal:</p>
+                {extraDiscountAmt > 0 && <p className="text-orange-600">Extra Discount ({extraDiscountPct}%):</p>}
+                <p className="text-purple-600">Est. GST Tax:</p>
                 <p className="text-lg font-bold text-text mt-2">Grand Total:</p>
               </div>
               <div className="text-right space-y-1 font-mono font-medium">
-                <p>₹{cartSubtotal.toFixed(2)}</p>
-                <p>₹{estTax.toFixed(2)}</p>
+                <p>₹{cartGrossTotal.toFixed(2)}</p>
+                {cartSchemeDiscount > 0 && <p className="text-amber-600">-₹{cartSchemeDiscount.toFixed(2)}</p>}
+                {cartTradeDiscount > 0 && <p className="text-amber-600">-₹{cartTradeDiscount.toFixed(2)}</p>}
+                <p className="font-semibold text-text">₹{cartTaxableSubtotal.toFixed(2)}</p>
+                {extraDiscountAmt > 0 && <p className="text-orange-600">-₹{extraDiscountAmt.toFixed(2)}</p>}
+                <p className="text-purple-600">+₹{estTax.toFixed(2)}</p>
                 <p className="text-lg font-bold text-emerald-600 mt-2">₹{cartGrandTotal.toFixed(2)}</p>
               </div>
             </div>
@@ -658,7 +707,7 @@ export const CreatePurchaseBillDesktopPage = () => {
       <UIModal
         isOpen={isPreviewModalOpen}
         onClose={() => setIsPreviewModalOpen(false)}
-        size="xl"
+        size="3xl"
       >
         <UIModalHeader>
           <UIModalTitle className="flex items-center gap-2">
@@ -693,120 +742,150 @@ export const CreatePurchaseBillDesktopPage = () => {
             </div>
           </div>
 
-          {/* Cart Items Table Preview */}
-          <div className="overflow-x-auto rounded-xl border border-border bg-surface max-h-[300px]">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-border bg-surface-alt/80 text-[10px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">
-                  <th className="py-2 px-2.5">Product</th>
-                  <th className="py-2 px-2 font-mono">Batch</th>
-                  <th className="py-2 px-2 font-mono">Expiry</th>
-                  <th className="py-2 px-2 font-mono text-center">Qty</th>
-                  <th className="py-2 px-2 font-mono text-center">Free</th>
-                  <th className="py-2 px-2 font-mono text-center">SCH%</th>
-                  <th className="py-2 px-2 font-mono text-center">Disc%</th>
-                  <th className="py-2 px-2 font-mono text-right">MRP</th>
-                  <th className="py-2 px-2 font-mono">HSN</th>
-                  <th className="py-2 px-2 font-mono text-center">GST%</th>
-                  <th className="py-2 px-2 font-mono text-right">Rate</th>
-                  <th className="py-2 px-2 font-mono text-center">CRate%</th>
-                  <th className="py-2 px-2.5 font-mono text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {cart.map((item) => (
-                  <tr key={item.id} className="hover:bg-surface-hover/50">
-                    <td className="py-2 px-2.5 font-bold text-text truncate max-w-[130px]">{item.name}</td>
-                    <td className="py-2 px-2 font-mono text-[11px] text-text-muted">{item.batch || "-"}</td>
-                    <td className="py-2 px-2 font-mono text-[11px] text-text-muted">{item.expiry || "-"}</td>
-                    <td className="py-2 px-2 font-mono text-center font-bold text-text">{item.qty}</td>
-                    <td className="py-2 px-2 font-mono text-center text-text-muted">{item.freeQty || 0}</td>
-                    <td className="py-2 px-2 font-mono text-center text-text">{item.schPct || 0}%</td>
-                    <td className="py-2 px-2 font-mono text-center text-text">{item.disc || 0}%</td>
-                    <td className="py-2 px-2 font-mono text-right text-text">₹{Number(item.mrp || 0).toFixed(2)}</td>
-                    <td className="py-2 px-2 font-mono text-[11px] text-text-muted">{item.hsn || "-"}</td>
-                    <td className="py-2 px-2 font-mono text-center font-bold text-purple-600">{item.gst || 12}%</td>
-                    <td className="py-2 px-2 font-mono text-right font-bold text-text">₹{Number(item.rate || 0).toFixed(2)}</td>
-                    <td className="py-2 px-2 font-mono text-center text-text">{item.cRatePct || 0}%</td>
-                    <td className="py-2 px-2.5 font-mono text-right font-extrabold text-emerald-600">
-                      ₹{getItemAmount(item).toFixed(2)}
-                    </td>
+          {/* Main Content: Items Table (Left) + Summary & GST Slab (Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            {/* Left: Cart Items Table */}
+            <div className="lg:col-span-8 overflow-x-auto rounded-xl border border-border bg-surface max-h-[380px]">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-surface-alt/80 text-[10px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">
+                    <th className="py-2 px-2.5">Product</th>
+                    <th className="py-2 px-2 font-mono">Batch</th>
+                    <th className="py-2 px-2 font-mono">Expiry</th>
+                    <th className="py-2 px-2 font-mono text-center">Qty</th>
+                    <th className="py-2 px-2 font-mono text-center">Free</th>
+                    <th className="py-2 px-2 font-mono text-center">SCH%</th>
+                    <th className="py-2 px-2 font-mono text-center">Disc%</th>
+                    <th className="py-2 px-2 font-mono text-right">MRP</th>
+                    <th className="py-2 px-2 font-mono">HSN</th>
+                    <th className="py-2 px-2 font-mono text-center">GST%</th>
+                    <th className="py-2 px-2 font-mono text-right">Rate</th>
+                    <th className="py-2 px-2 font-mono text-center">CRate%</th>
+                    <th className="py-2 px-2.5 font-mono text-right">Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Side-by-Side: GST Tax Slab Breakdown & Bill Financial Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch pt-1">
-            {/* Left: GST Tax Slab Summary */}
-            <div className="space-y-1.5 flex flex-col justify-between bg-surface-alt/40 p-3 rounded-2xl border border-border">
-              <span className="text-[11px] font-bold text-text uppercase tracking-wider block">
-                GST Tax Slab Breakdown
-              </span>
-              <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-border bg-surface-alt/80 text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                      <th className="py-2 px-2.5">GST Slab</th>
-                      <th className="py-2 px-2 font-mono text-right">Taxable</th>
-                      <th className="py-2 px-2 font-mono text-right">CGST</th>
-                      <th className="py-2 px-2 font-mono text-right">SGST</th>
-                      <th className="py-2 px-2.5 font-mono text-right">Tax</th>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {cart.map((item) => (
+                    <tr key={item.id} className="hover:bg-surface-hover/50">
+                      <td className="py-2 px-2.5 font-bold text-text truncate max-w-[130px]">{item.name}</td>
+                      <td className="py-2 px-2 font-mono text-[11px] text-text-muted">{item.batch || "-"}</td>
+                      <td className="py-2 px-2 font-mono text-[11px] text-text-muted">{item.expiry || "-"}</td>
+                      <td className="py-2 px-2 font-mono text-center font-bold text-text">{item.qty}</td>
+                      <td className="py-2 px-2 font-mono text-center text-text-muted">{item.freeQty || 0}</td>
+                      <td className="py-2 px-2 font-mono text-center text-text">{item.schPct || 0}%</td>
+                      <td className="py-2 px-2 font-mono text-center text-text">{item.disc || 0}%</td>
+                      <td className="py-2 px-2 font-mono text-right text-text">₹{Number(item.mrp || 0).toFixed(2)}</td>
+                      <td className="py-2 px-2 font-mono text-[11px] text-text-muted">{item.hsn || "-"}</td>
+                      <td className="py-2 px-2 font-mono text-center font-bold text-purple-600">{item.gst || 12}%</td>
+                      <td className="py-2 px-2 font-mono text-right font-bold text-text">₹{Number(item.rate || 0).toFixed(2)}</td>
+                      <td className="py-2 px-2 font-mono text-center text-text">{item.cRatePct || 0}%</td>
+                      <td className="py-2 px-2.5 font-mono text-right font-extrabold text-emerald-600">
+                        ₹{getItemBaseAmount(item).toFixed(2)}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60 font-mono text-[11px]">
-                    {getTaxSlabBreakdown().map((slab) => (
-                      <tr key={slab.gstPct} className="hover:bg-surface-hover/50">
-                        <td className="py-1.5 px-2.5 font-bold text-purple-600 font-sans">
-                          {slab.gstPct}%
-                        </td>
-                        <td className="py-1.5 px-2 text-right font-medium text-text">
-                          ₹{slab.taxable.toFixed(2)}
-                        </td>
-                        <td className="py-1.5 px-2 text-right text-text-muted">
-                          ₹{slab.cgstAmt.toFixed(2)}
-                        </td>
-                        <td className="py-1.5 px-2 text-right text-text-muted">
-                          ₹{slab.sgstAmt.toFixed(2)}
-                        </td>
-                        <td className="py-1.5 px-2.5 text-right font-bold text-emerald-600">
-                          ₹{slab.totalTax.toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
-            {/* Right: Bill Summary Card */}
-            <div className="space-y-2 flex flex-col justify-between bg-surface-alt/60 p-4 rounded-2xl border border-border">
-              <span className="text-[11px] font-bold text-text uppercase tracking-wider block">
-                Bill Financial Summary
-              </span>
+            {/* Right: Bill Summary + GST Slab */}
+            <div className="lg:col-span-4 space-y-4">
+              {/* Bill Financial Summary */}
+              <div className="space-y-2 flex flex-col justify-between bg-surface-alt/60 p-3.5 rounded-2xl border border-border">
+                <span className="text-[11px] font-bold text-text uppercase tracking-wider block border-b border-border/60 pb-1">
+                  Bill Financial Summary
+                </span>
 
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between items-center text-text-muted pb-1 border-b border-border/60">
-                  <span>Total Items:</span>
-                  <span className="font-extrabold font-mono text-text text-sm">{cartItemCount} Items</span>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between items-center text-text-muted">
+                    <span>Gross Total:</span>
+                    <span className="font-bold font-mono text-text">₹{cartGrossTotal.toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-text-muted ">
+                    <span>Scheme Disc:</span>
+                    <span className="font-bold font-mono">-₹{cartSchemeDiscount.toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-text-muted">
+                    <span>Trade Disc:</span>
+                    <span className="font-bold font-mono">-₹{cartTradeDiscount.toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-text-muted">
+                    <span className="flex items-center gap-1.5">
+                      Extra Disc:
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={extraDiscountPct}
+                        onChange={(e) => setExtraDiscountPct(Math.min(100, Math.max(0, Number(e.target.value))))}
+                        className="w-12 text-center rounded-none border-0 border-b border-text-muted bg-transparent px-1 py-0.5 font-mono text-xs font-bold text-text outline-none focus:border-primary"
+                      />
+                      <span className="text-[10px] font-bold">%</span>
+                    </span>
+                    <span className="font-bold font-mono">-₹{extraDiscountAmt.toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-text font-semibold pt-1 border-t border-border/60">
+                    <span>Taxable After Extra Disc:</span>
+                    <span className="font-extrabold font-mono">₹{cartTaxableAfterExtra.toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-purple-600">
+                    <span>Est. GST Tax:</span>
+                    <span className="font-bold font-mono">+₹{estTax.toFixed(2)}</span>
+                  </div>
+
+                  <div className="pt-2 border-t border-border flex justify-between items-center">
+                    <span className="text-xs font-black text-text">Grand Total:</span>
+                    <span className="text-lg font-black font-mono text-emerald-600">
+                      ₹{cartGrandTotal.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
+              </div>
 
-                <div className="flex justify-between items-center text-text-muted">
-                  <span>Subtotal (Qty × Rate):</span>
-                  <span className="font-bold font-mono text-text">₹{cartSubtotal.toFixed(2)}</span>
-                </div>
-
-                <div className="flex justify-between items-center text-text-muted">
-                  <span>Est. GST Tax:</span>
-                  <span className="font-bold font-mono text-purple-600">₹{estTax.toFixed(2)}</span>
-                </div>
-
-                <div className="pt-2.5 border-t border-border flex justify-between items-center">
-                  <span className="text-sm font-extrabold text-text">Grand Total:</span>
-                  <span className="text-xl font-black font-mono text-emerald-600">
-                    ₹{cartGrandTotal.toFixed(2)}
-                  </span>
+              {/* GST Tax Slab Breakdown */}
+              <div className="space-y-1.5 flex flex-col justify-between bg-surface-alt/40 p-3 rounded-2xl border border-border">
+                <span className="text-[11px] font-bold text-text uppercase tracking-wider block">
+                  GST Tax Slab Breakdown
+                </span>
+                <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-border bg-surface-alt/80 text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                        <th className="py-2 px-2.5">Slab</th>
+                        <th className="py-2 px-2 font-mono text-right">Taxable</th>
+                        <th className="py-2 px-2 font-mono text-right">CGST</th>
+                        <th className="py-2 px-2 font-mono text-right">SGST</th>
+                        <th className="py-2 px-2.5 font-mono text-right">Tax</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60 font-mono text-[11px]">
+                      {getTaxSlabBreakdown().map((slab) => (
+                        <tr key={slab.gstPct} className="hover:bg-surface-hover/50">
+                          <td className="py-1.5 px-2.5 font-bold text-purple-600 font-sans">
+                            {slab.gstPct}%
+                          </td>
+                          <td className="py-1.5 px-2 text-right font-medium text-text">
+                            ₹{slab.taxable.toFixed(2)}
+                          </td>
+                          <td className="py-1.5 px-2 text-right text-text-muted">
+                            ₹{slab.cgstAmt.toFixed(2)}
+                          </td>
+                          <td className="py-1.5 px-2 text-right text-text-muted">
+                            ₹{slab.sgstAmt.toFixed(2)}
+                          </td>
+                          <td className="py-1.5 px-2.5 text-right font-bold text-emerald-600">
+                            ₹{slab.totalTax.toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -839,7 +918,7 @@ export const CreatePurchaseBillDesktopPage = () => {
             className="w-full sm:w-auto font-bold text-xs"
             rightIcon={<CheckCircle2 className="size-4" />}
           >
-            Confirm & Submit
+            Confirm & Submit (₹{cartGrandTotal.toFixed(2)})
           </UIButton>
         </UIModalFooter>
       </UIModal>
