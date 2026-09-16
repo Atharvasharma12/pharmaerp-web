@@ -93,6 +93,29 @@ export const SalesMobilePage = () => {
 
   const handleSelectWorkspaceProduct = (prod, details) => {
     const p = details || prod;
+    const hsnCode =
+      p.globalProduct?.hsn ||
+      p.globalProduct?.hsnCode ||
+      p.globalProduct?.hsnMaster?.code ||
+      p.globalProduct?.HsnMaster?.code ||
+      p.hsnCode ||
+      p.hsn ||
+      p.HsnMaster?.code ||
+      "30049099";
+
+    const gstRate =
+      p.globalProduct?.gstRate ??
+      p.globalProduct?.hsnMaster?.gstRate ??
+      p.globalProduct?.hsnMaster?.gst ??
+      p.globalProduct?.hsnTaxpercent ??
+      p.globalProduct?.HsnMaster?.gstRate ??
+      p.hsnTaxpercent ??
+      p.gstRate ??
+      p.taxRate ??
+      p.gst ??
+      p.HsnMaster?.gstRate ??
+      5;
+
     const formattedItem = {
       id: p._id || p.id || `ws-${Date.now()}`,
       name: p.displayName || p.name || "Workspace Product",
@@ -100,7 +123,8 @@ export const SalesMobilePage = () => {
       category: p.displayCategory || p.category || "General",
       batch: p.batch || p.displaySku || p.sku || "BATCH-2026",
       expDate: p.expDate || "12/28",
-      hsn: p.hsnCode || p.hsn || "30049099",
+      hsn: hsnCode,
+      gst: gstRate,
       stock: p.stock ?? 100,
       mrp: Number(p.mrp ?? p.price ?? 100),
       price: Number(p.price ?? p.mrp ?? 90),

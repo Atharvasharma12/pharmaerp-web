@@ -138,18 +138,40 @@ export const SalesDesktopPage = () => {
   const getGstRate = (p) => {
     if (!p) return 5;
     const val =
+      p.globalProduct?.gstRate ??
+      p.globalProduct?.hsnMaster?.gstRate ??
+      p.globalProduct?.hsnMaster?.gst ??
+      p.globalProduct?.hsnTaxpercent ??
+      p.globalProduct?.HsnMaster?.gstRate ??
+      p.hsnTaxpercent ??
       p.gstRate ??
       p.taxRate ??
       p.gst ??
       p.gstPercentage ??
       p.taxPercentage ??
       p.gstPct ??
+      p.HsnMaster?.gstRate ??
+      p.HsnMaster?.gst ??
       p.hsnMaster?.gstRate ??
       p.hsnMaster?.gst;
     if (val !== undefined && val !== null && val !== "") {
       return Number(val);
     }
     return 5;
+  };
+
+  const getHsnCode = (p) => {
+    if (!p) return "3004";
+    const val =
+      p.globalProduct?.hsn ||
+      p.globalProduct?.hsnCode ||
+      p.globalProduct?.hsnMaster?.code ||
+      p.globalProduct?.HsnMaster?.code ||
+      p.hsn ||
+      p.hsnCode ||
+      p.HsnMaster?.code ||
+      p.hsnMaster?.code;
+    return val ? String(val) : "3004";
   };
 
   const getExpiryString = (p) => {
@@ -184,7 +206,7 @@ export const SalesDesktopPage = () => {
           batch: medicine.batch || medicine.displaySku || medicine.sku || "bbbbb",
           pack: medicine.pack || medicine.packaging || medicine.displayDosageForm || "10S",
           rack: medicine.rack || medicine.shelfLocation || "F1/AE2",
-          hsn: medicine.hsn || medicine.hsnCode || "3004",
+          hsn: getHsnCode(medicine),
           gst: getGstRate(medicine),
           ratePct: medicine.ratePct || medicine.marginPct || "16%",
           expiry: getExpiryString(medicine),

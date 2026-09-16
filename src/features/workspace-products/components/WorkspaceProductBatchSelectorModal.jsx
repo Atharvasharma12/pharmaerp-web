@@ -147,8 +147,27 @@ export const WorkspaceProductBatchSelectorModal = ({
         const baseBatchNo = p.batchNo || p.batch || p.displaySku || p.sku || "B-8801";
         const baseRack = p.rack || p.shelfLocation || "F1/AE2";
         const basePack = p.pack || p.packaging || p.displayDosageForm || "10S";
-        const baseHsn = p.hsnCode || p.hsn || "3004";
-        const baseGst = p.gstRate ?? p.taxRate ?? p.gst ?? 5;
+        const baseHsn =
+          p.globalProduct?.hsn ||
+          p.globalProduct?.hsnCode ||
+          p.globalProduct?.hsnMaster?.code ||
+          p.globalProduct?.HsnMaster?.code ||
+          p.hsnCode ||
+          p.hsn ||
+          p.HsnMaster?.code ||
+          "3004";
+        const baseGst =
+          p.globalProduct?.gstRate ??
+          p.globalProduct?.hsnMaster?.gstRate ??
+          p.globalProduct?.hsnMaster?.gst ??
+          p.globalProduct?.hsnTaxpercent ??
+          p.globalProduct?.HsnMaster?.gstRate ??
+          p.gstRate ??
+          p.taxRate ??
+          p.hsnTaxpercent ??
+          p.gst ??
+          p.HsnMaster?.gstRate ??
+          5;
         const baseExpiry = p.expiryDate || p.expDate || p.expiry || p.displayExpDate || "11/32";
 
         matchedList = [
@@ -247,7 +266,28 @@ export const WorkspaceProductBatchSelectorModal = ({
   const productName = product.displayName || product.name || "Selected Product";
   const brand = product.displayManufacturer || product.manufacturer || product.brand || "Pharma";
   const category = product.displayCategory || product.category || "Medicine";
-  const hsn = product.hsnCode || product.hsn || "3004";
+  const hsn =
+    product.globalProduct?.hsn ||
+    product.globalProduct?.hsnCode ||
+    product.globalProduct?.hsnMaster?.code ||
+    product.globalProduct?.HsnMaster?.code ||
+    product.hsnCode ||
+    product.hsn ||
+    product.HsnMaster?.code ||
+    "3004";
+
+  const defaultGstRate =
+    product.globalProduct?.gstRate ??
+    product.globalProduct?.hsnMaster?.gstRate ??
+    product.globalProduct?.hsnMaster?.gst ??
+    product.globalProduct?.hsnTaxpercent ??
+    product.globalProduct?.HsnMaster?.gstRate ??
+    product.hsnTaxpercent ??
+    product.gstRate ??
+    product.taxRate ??
+    product.gst ??
+    product.HsnMaster?.gstRate ??
+    5;
 
   // Calculate totals for confirmed list
   const selectedBatchesList = batches.filter((b) => {
@@ -279,7 +319,7 @@ export const WorkspaceProductBatchSelectorModal = ({
       const bRack = b.rack || product.rack || "F1/AE2";
       const bPack = b.pack || product.pack || "10S";
       const bHsn = b.hsn || hsn;
-      const bGst = b.gst ?? product.gst ?? 5;
+      const bGst = b.gst ?? defaultGstRate;
       const bRatePct = b.ratePct || product.ratePct || "16%";
       const bStock = b.stock ?? b.batchQty ?? 100;
 

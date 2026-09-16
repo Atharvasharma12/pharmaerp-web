@@ -10,6 +10,8 @@ import useWorkspaceProduct from "../hooks/useWorkspaceProduct";
 import WorkspaceProductsDesktopPage from "./desktop/WorkspaceProductsDesktopPage";
 import WorkspaceProductsMobilePage from "./mobile/WorkspaceProductsMobilePage";
 
+import { ImportGstModal } from "../components";
+
 const normalizeText = (value) =>
   String(value || "")
     .trim()
@@ -31,13 +33,13 @@ const mapWorkspaceProductForView = (product) => {
     displayName: product?.name || "-",
     displaySku: product?.workspaceProductCode || "-",
     displayCategory: product?.category?.name || formatStringTitle(product?.productType || "Custom"),
-    displayManufacturer: product?.manufacturer?.name || product?.manufacturer || "-",
+    displayManufacturer: product?.manufacturer?.name || product?.manufacturer || product?.marketer || "-",
     displayDosageForm: product?.productForm?.name || product?.productForm || "-",
     displayStrength: Array.isArray(product?.composition) && product.composition.length > 0
       ? product.composition.map((c) => {
-          const saltName = c.salt?.name || (typeof c.salt === "object" && c.salt !== null ? c.salt.name : "Unknown");
-          return `${saltName} ${c.strength}${c.unit}`;
-        }).join(", ")
+        const saltName = c.salt?.name || (typeof c.salt === "object" && c.salt !== null ? c.salt.name : "Unknown");
+        return `${saltName} ${c.strength}${c.unit}`;
+      }).join(", ")
       : "-",
     displayStatus: product?.status || "inactive",
     displayAvailability: "Workspace",
@@ -322,6 +324,20 @@ const WorkspaceProductsPage = () => {
     navigate(ROUTES.WORKSPACE_PRODUCT_IMPORT);
   }, [navigate]);
 
+  const [isImportGstOpen, setIsImportGstOpen] = useState(false);
+
+  const handleOpenImportGst = useCallback(() => {
+    setIsImportGstOpen(true);
+  }, []);
+
+  const handleCloseImportGst = useCallback(() => {
+    setIsImportGstOpen(false);
+  }, []);
+
+  const handleImportGstSuccess = useCallback(() => {
+    handleRefresh();
+  }, [handleRefresh]);
+
   const pageProps = {
     products: mappedProducts,
     dashboardStats,
@@ -354,14 +370,24 @@ const WorkspaceProductsPage = () => {
     handleEditProduct,
     handleDeleteProduct,
     handleImportWorkspaceProducts,
+    handleOpenImportGst,
     handleBackToCatalog,
     clearMessage,
   };
 
-  return isMobile ? (
-    <WorkspaceProductsMobilePage {...pageProps} />
-  ) : (
-    <WorkspaceProductsDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <WorkspaceProductsMobilePage {...pageProps} />
+      ) : (
+        <WorkspaceProductsDesktopPage {...pageProps} />
+      )}
+      <ImportGstModal
+        open={isImportGstOpen}
+        onClose={handleCloseImportGst}
+        onSuccess={handleImportGstSuccess}
+      />
+    </>
   );
 };
 

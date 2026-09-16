@@ -4,3 +4,4 @@ export { default as WorkspaceProductSearchBar } from "./WorkspaceProductSearchBa
 export { default as WorkspaceProductDetailsModal } from "./WorkspaceProductDetailsModal";
 export { default as WorkspaceProductSearchModal } from "./WorkspaceProductSearchModal";
 export { default as WorkspaceProductBatchSelectorModal } from "./WorkspaceProductBatchSelectorModal";
+export { default as ImportGstModal } from "./ImportGstModal";

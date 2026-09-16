@@ -278,6 +278,9 @@ export const ROUTES = {
   // Billing & Invoices
   BILLING: "/billing",
 
+  // POS Billing Terminal
+  POS_TERMINAL: "/pos-terminal",
+
   // Purchases & Procurement
   PURCHASES: "/purchases",
 

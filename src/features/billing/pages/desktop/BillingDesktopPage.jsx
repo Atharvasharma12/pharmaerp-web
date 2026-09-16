@@ -1,6 +1,7 @@
 // src/features/billing/pages/desktop/BillingDesktopPage.jsx
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -15,6 +16,7 @@ import {
   FileSpreadsheet,
   Loader2,
   RefreshCw,
+  Store,
 } from "lucide-react";
 import {
   UICard,
@@ -24,6 +26,7 @@ import {
 } from "@/components/ui";
 import { PermissionGate } from "@/components/common/PermissionGate";
 import { cn } from "@/lib/utils";
+import { ROUTES } from "@/constants";
 import customerService from "@/features/parties/customers/services/customerService";
 import { INVOICE_RECORDS } from "../../constants/billingData";
 import { BillingCreateInvoiceModal } from "../../components/BillingCreateInvoiceModal";
@@ -37,6 +40,7 @@ const statIconMap = {
 };
 
 export const BillingDesktopPage = () => {
+  const navigate = useNavigate();
   const [invoices, setInvoices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -206,6 +210,15 @@ export const BillingDesktopPage = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <UIButton
+              variant="outline"
+              size="md"
+              onClick={() => navigate(ROUTES.POS_TERMINAL)}
+              leftIcon={<Store className="size-4" />}
+            >
+              POS Terminal
+            </UIButton>
+
             <UIButton
               variant="outline"
               size="md"

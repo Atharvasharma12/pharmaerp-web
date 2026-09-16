@@ -360,6 +360,9 @@ export const ENDPOINTS = {
     // Import products
     IMPORT: "/catalog/products/import",
 
+    // Import GST
+    IMPORT_GST: "/catalog/products/import-gst",
+
     // Search before creating a workspace product
     SEARCH_BEFORE_CREATE: "/catalog/products/search",
 

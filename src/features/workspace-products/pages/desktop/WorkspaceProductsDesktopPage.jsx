@@ -87,6 +87,7 @@ const WorkspaceProductsDesktopPage = ({
   handleEditProduct,
   handleDeleteProduct,
   handleImportWorkspaceProducts,
+  handleOpenImportGst,
   clearMessage,
 }) => {
   const showInitialSkeleton = isLoading && !hasProducts;
@@ -294,6 +295,20 @@ const WorkspaceProductsDesktopPage = ({
               >
                 Import Stock
               </UploadExistingInventoryBtn>
+            </PermissionGate>
+            <PermissionGate permission="product:create">
+              <AppButton
+                type="button"
+                variant="outlined"
+                colorVariant="neutral"
+                rounded="md"
+                size="small"
+                startIcon={<FiUpload />}
+                onClick={handleOpenImportGst}
+                sx={secondaryButtonSx}
+              >
+                Import GST
+              </AppButton>
             </PermissionGate>
             <PermissionGate permission="product:create">
               <AppButton

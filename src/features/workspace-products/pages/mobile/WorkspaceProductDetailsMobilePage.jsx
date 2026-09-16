@@ -407,9 +407,30 @@ const WorkspaceProductDetailsMobilePage = ({
                 </AppHeading>
                 <AppStack direction="column" gap={0.5} sx={{ mt: 1 }}>
                   <InfoRow
-                    label="Prescription Required"
-                    icon={<FiInfo />}
-                    value="No"
+                    label="HSN Code"
+                    icon={<FiHash />}
+                    value={safeProduct.hsn || safeProduct.HsnMaster?.code || "-"}
+                  />
+                  <InfoRow
+                    label="GST Tax Rate"
+                    icon={<FiTag />}
+                    value={
+                      safeProduct.hsnTaxpercent != null
+                        ? `${safeProduct.hsnTaxpercent}%`
+                        : safeProduct.HsnMaster?.gstRate != null
+                        ? `${safeProduct.HsnMaster.gstRate}%`
+                        : "-"
+                    }
+                  />
+                  <InfoRow
+                    label="MRP"
+                    icon={<FiTag />}
+                    value={`₹${safeProduct.mrp ?? 0}`}
+                  />
+                  <InfoRow
+                    label="PTR"
+                    icon={<FiTag />}
+                    value={`₹${safeProduct.ptr ?? 0}`}
                   />
                   <InfoRow
                     label="Shelf Life"
@@ -453,7 +474,11 @@ const WorkspaceProductDetailsMobilePage = ({
             </AppStack>
           )}
 
-          {currentTab !== "overview" && (
+          {(currentTab === "pricing" || currentTab === "packaging_pricing") && (
+            <MobilePricingTabSection product={safeProduct} />
+          )}
+
+          {currentTab !== "overview" && currentTab !== "pricing" && currentTab !== "packaging_pricing" && (
             <AppCard
               variant="default"
               rounded="lg"
@@ -505,6 +530,82 @@ const WorkspaceProductDetailsMobilePage = ({
         </AppButton>
       </AppBox>
     </section>
+  );
+};
+
+const MobilePricingTabSection = ({ product }) => {
+  const hsnCode = product?.hsn || product?.HsnMaster?.code || "-";
+  const gstRate =
+    product?.hsnTaxpercent != null
+      ? `${product.hsnTaxpercent}%`
+      : product?.HsnMaster?.gstRate != null
+      ? `${product.HsnMaster.gstRate}%`
+      : "-";
+
+  return (
+    <AppStack direction="column" gap={1.5}>
+      <AppHeading level={3} weight={800} sx={sectionTitleSx}>
+        Tax & Pricing Rates
+      </AppHeading>
+
+      <AppCard
+        variant="default"
+        rounded="lg"
+        bordered
+        shadow="none"
+        padding="none"
+        sx={manufacturerCardSx}
+      >
+        <AppHeading level={3} weight={800} sx={manufacturerTitleSx}>
+          Tax & HSN Compliance
+        </AppHeading>
+        <AppStack direction="column" gap={0.5} sx={{ mt: 1 }}>
+          <InfoRow label="HSN Code" icon={<FiHash />} value={hsnCode} />
+          <InfoRow label="GST Tax Rate" icon={<FiTag />} value={gstRate} />
+          <InfoRow label="Retailer Margin" icon={<FiActivity />} value={`${product?.retailerMarginPercent || 20}%`} />
+          <InfoRow label="Stockist Margin" icon={<FiActivity />} value={`${product?.stockistMarginPercent || 10}%`} />
+        </AppStack>
+      </AppCard>
+
+      <AppCard
+        variant="default"
+        rounded="lg"
+        bordered
+        shadow="none"
+        padding="none"
+        sx={manufacturerCardSx}
+      >
+        <AppHeading level={3} weight={800} sx={manufacturerTitleSx}>
+          Pricing Rates Matrix
+        </AppHeading>
+        <div className="grid grid-cols-2 gap-2 p-3">
+          <div className="p-2.5 rounded-lg border border-purple-soft/30 bg-purple-soft/10">
+            <span className="block text-[10px] font-bold text-text-muted uppercase">MRP</span>
+            <span className="block text-[15px] font-extrabold text-purple">₹{product?.mrp ?? 0}</span>
+          </div>
+          <div className="p-2.5 rounded-lg border border-border bg-surface-alt/40">
+            <span className="block text-[10px] font-bold text-text-muted uppercase">PTR</span>
+            <span className="block text-[15px] font-extrabold text-text">₹{product?.ptr ?? 0}</span>
+          </div>
+          <div className="p-2.5 rounded-lg border border-border bg-surface-alt/40">
+            <span className="block text-[10px] font-bold text-text-muted uppercase">PTS</span>
+            <span className="block text-[15px] font-extrabold text-text">₹{product?.pts ?? 0}</span>
+          </div>
+          <div className="p-2.5 rounded-lg border border-border bg-surface-alt/40">
+            <span className="block text-[10px] font-bold text-text-muted uppercase">Rate A</span>
+            <span className="block text-[15px] font-extrabold text-text">₹{product?.rateA ?? 0}</span>
+          </div>
+          <div className="p-2.5 rounded-lg border border-border bg-surface-alt/40">
+            <span className="block text-[10px] font-bold text-text-muted uppercase">Rate B</span>
+            <span className="block text-[15px] font-extrabold text-text">₹{product?.rateB ?? 0}</span>
+          </div>
+          <div className="p-2.5 rounded-lg border border-border bg-surface-alt/40">
+            <span className="block text-[10px] font-bold text-text-muted uppercase">Rate C</span>
+            <span className="block text-[15px] font-extrabold text-text">₹{product?.rateC ?? 0}</span>
+          </div>
+        </div>
+      </AppCard>
+    </AppStack>
   );
 };
 

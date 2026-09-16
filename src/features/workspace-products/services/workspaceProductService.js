@@ -109,6 +109,22 @@ const workspaceProductService = {
     }
     return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT, payload);
   },
+
+  importWorkspaceProductsGst(payload) {
+    if (payload instanceof FormData) {
+      return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT_GST, payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    }
+    if (payload?.file) {
+      const formData = new FormData();
+      formData.append("file", payload.file);
+      return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT_GST, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    }
+    return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT_GST, payload);
+  },
   /**
    * Get Product Facility Batches By Query V2
    * POST /catalog/products/workspace-product/batches/query
