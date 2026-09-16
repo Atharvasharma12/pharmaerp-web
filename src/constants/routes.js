@@ -283,6 +283,7 @@ export const ROUTES = {
 
   // Purchases & Procurement
   PURCHASES: "/purchases",
+  CREATE_PURCHASE_BILL: "/purchases/bills/create",
 
   // Help & Support
   HELP_CENTER: "/help-center",

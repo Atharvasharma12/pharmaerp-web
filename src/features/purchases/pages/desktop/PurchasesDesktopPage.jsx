@@ -1,6 +1,7 @@
 // src/features/purchases/pages/desktop/PurchasesDesktopPage.jsx
 
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -37,6 +38,7 @@ const statIconMap = {
 };
 
 export const PurchasesDesktopPage = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState(PURCHASE_ORDERS);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -138,23 +140,42 @@ export const PurchasesDesktopPage = () => {
             </p>
           </div>
 
-          <PermissionGate
-            permission="purchase:create"
-            fallback={
-              <UIButton variant="primary" size="md" disabled>
-                Create PO (Requires purchase:create)
-              </UIButton>
-            }
-          >
-            <UIButton
-              variant="primary"
-              size="md"
-              onClick={() => setIsCreateOpen(true)}
-              leftIcon={<Plus className="size-4" />}
+          <div className="flex items-center gap-3">
+            <PermissionGate
+              permission="purchase:create"
+              fallback={
+                <UIButton variant="primary" size="md" disabled>
+                  Create PO (Requires purchase:create)
+                </UIButton>
+              }
             >
-              Issue Purchase Order
-            </UIButton>
-          </PermissionGate>
+              <UIButton
+                variant="primary"
+                size="md"
+                onClick={() => setIsCreateOpen(true)}
+                leftIcon={<Plus className="size-4" />}
+              >
+                Issue Purchase Order
+              </UIButton>
+            </PermissionGate>
+            <PermissionGate
+              permission="purchase:create"
+              fallback={
+                <UIButton variant="primary" size="md" disabled>
+                  Enter Purchase Bill (Requires purchase:create)
+                </UIButton>
+              }
+            >
+              <UIButton
+                variant="primary"
+                size="md"
+                onClick={() => navigate("/purchases/bills/create")}
+                leftIcon={<FileSpreadsheet className="size-4" />}
+              >
+                Enter Purchase Bill
+              </UIButton>
+            </PermissionGate>
+          </div>
         </div>
 
         {/* 4 Stats Cards */}
