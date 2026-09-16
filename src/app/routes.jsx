@@ -70,6 +70,7 @@ import cashTransactionRoutes from "@/features/finance/treasury/cash-management/c
 import cashDenominationRoutes from "@/features/finance/treasury/cash-management/cash-denominations/routes/cashDenominationRoutes";
 import financialPeriodRoutes from "@/features/finance/financial-periods/routes/financialPeriodRoutes";
 import ledgerRoutes from "@/features/finance/ledger/routes/ledgerRoutes";
+import gstLedgerRoutes from "@/features/finance/gst-ledger/routes/gstLedgerRoutes";
 import reportsRoutes from "@/features/finance/reports/routes/reportsRoutes";
 
 import salesRoutes from "@/features/sales/routes/salesRoutes";
@@ -314,6 +315,14 @@ export const router = createBrowserRouter([
           ...guardRouteList(financialPeriodRoutes, "financial-period"),
           ...guardRouteList(journalVoucherRoutes, "journal-voucher"),
           ...ledgerRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard permission="ledger:view">
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
+          ...gstLedgerRoutes.map((route) => ({
             ...route,
             element: (
               <PermissionGuard permission="ledger:view">

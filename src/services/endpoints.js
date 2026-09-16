@@ -190,6 +190,11 @@ export const ENDPOINTS = {
     RECALCULATE: "/finance/ledger/recalculate",
   },
 
+  GST_LEDGER: {
+    GSTR1: "/finance/gst-ledger/gstr-1",
+    GSTR2: "/finance/gst-ledger/gstr-2",
+  },
+
   REPORTS: {
     TRIAL_BALANCE: "/finance/reports/trial-balance",
     GENERAL_LEDGER: "/finance/reports/general-ledger",

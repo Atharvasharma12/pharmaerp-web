@@ -73,6 +73,10 @@ export const ROUTES = {
   // Finance - Ledger
   LEDGER: "/finance/ledger",
 
+  // Finance - GST Ledger
+  GSTR1: "/finance/gst-ledger/gstr-1",
+  GSTR2: "/finance/gst-ledger/gstr-2",
+
   // Finance - Reports
   REPORTS: "/finance/reports",
   REPORT_VIEWER: "/finance/reports/:reportType",
