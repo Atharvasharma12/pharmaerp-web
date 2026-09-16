@@ -12,9 +12,10 @@ import {
   Receipt,
   Building2,
   FileSpreadsheet,
-  ArrowLeft
+  ArrowLeft,
+  X
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   UICard,
   UIButton,
@@ -28,10 +29,12 @@ import {
 } from "@/components";
 import { cn } from "@/lib/utils";
 import supplierService from "@/features/parties/suppliers/services/supplierService";
+import purchaseBillService from "@/features/purchases/services/purchaseBillService";
 import { SupplierSearchBar } from "@/components";
 
 export const CreatePurchaseBillDesktopPage = () => {
   const navigate = useNavigate();
+  const { billId } = useParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState(null);
 
@@ -42,7 +45,7 @@ export const CreatePurchaseBillDesktopPage = () => {
   const [rateBasis, setRateBasis] = useState("PTS"); // "PTS" or "PTR"
 
   // Invoice Details
-  const [invoiceNo, setInvoiceNo] = useState("");
+  const [purchaseBillNo, setPurchaseBillNo] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().split("T")[0]);
 
   const [selectedProductForBatches, setSelectedProductForBatches] = useState(null);
@@ -52,8 +55,48 @@ export const CreatePurchaseBillDesktopPage = () => {
   // Extra Discount (applied on taxable subtotal in preview)
   const [extraDiscountPct, setExtraDiscountPct] = useState(0);
 
+  // Submit loading state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const searchBarRef = useRef(null);
   const supplierSearchBarRef = useRef(null);
+
+  // Load existing bill if billId is present (Edit Mode)
+  useEffect(() => {
+    const loadBill = async () => {
+      if (!billId) return;
+      try {
+        const res = await purchaseBillService.getPurchaseBillById(billId);
+        const bill = res.data?.data;
+        if (bill) {
+          if (bill.supplierId) {
+            setSelectedSupplier({
+              ...bill.supplierId,
+              id: bill.supplierId._id,
+              name: bill.supplierId.businessName
+            });
+          }
+          setPurchaseBillNo(bill.purchaseBillNo || "");
+          setInvoiceDate(bill.invoiceDate || "");
+          setRateBasis(bill.rateBasis || "PTS");
+          setExtraDiscountPct(bill.extraDiscountPct || 0);
+
+          if (bill.items && Array.isArray(bill.items)) {
+            const loadedCart = bill.items.map(item => ({
+              ...item,
+              id: item._id || item.id || `${Date.now()}-${Math.random()}`,
+            }));
+            setCart(loadedCart);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load bill", err);
+        setToastMessage("❌ Failed to load purchase bill for editing");
+        setTimeout(() => setToastMessage(null), 4000);
+      }
+    };
+    loadBill();
+  }, [billId]);
 
   // Auto-focus handler
   useEffect(() => {
@@ -302,13 +345,64 @@ export const CreatePurchaseBillDesktopPage = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleFinalSubmit = () => {
-    setIsPreviewModalOpen(false);
-    setToastMessage(`✅ Purchase Bill ${invoiceNo || "INV-001"} submitted successfully.`);
-    setTimeout(() => {
-      setToastMessage(null);
-      navigate("/purchases");
-    }, 2000);
+  const handleFinalSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      const payload = {
+        supplierId: selectedSupplier?._id || selectedSupplier?.id,
+        purchaseBillNo,
+        invoiceDate,
+        rateBasis,
+        items: cart.map((item) => ({
+          productId: item.productId || null,
+          name: item.name,
+          pack: item.pack,
+          batch: item.batch,
+          expiry: item.expiry,
+          qty: Number(item.qty) || 0,
+          freeQty: Number(item.freeQty) || 0,
+          schPct: Number(item.schPct) || 0,
+          disc: Number(item.disc) || 0,
+          cRatePct: Number(item.cRatePct) || 0,
+          mrp: Number(item.mrp) || 0,
+          hsn: item.hsn || "",
+          gst: Number(item.gst) || 12,
+          rate: Number(item.rate) || 0,
+          amount: getItemTaxableAmount(item),
+        })),
+        extraDiscountPct: Number(extraDiscountPct) || 0,
+        extraDiscountAmt: extraDiscountAmt,
+        grossTotal: cartGrossTotal,
+        schemeDiscount: cartSchemeDiscount,
+        tradeDiscount: cartTradeDiscount,
+        taxableSubtotal: cartTaxableSubtotal,
+        taxableAfterExtraDisc: cartTaxableAfterExtra,
+        totalGst: estTax,
+        grandTotal: cartGrandTotal,
+        gstSlabs: getTaxSlabBreakdown(),
+      };
+
+      if (billId) {
+        await purchaseBillService.updatePurchaseBill(billId, payload);
+      } else {
+        await purchaseBillService.createPurchaseBill(payload);
+      }
+
+      setIsPreviewModalOpen(false);
+      setToastMessage(`✅ Purchase Bill ${purchaseBillNo || "saved"} successfully.`);
+      setTimeout(() => {
+        setToastMessage(null);
+        navigate("/purchases");
+      }, 2000);
+    } catch (error) {
+      const msg = error?.response?.data?.message || error?.message || "Failed to save purchase bill";
+      setToastMessage(`❌ ${msg}`);
+      setTimeout(() => setToastMessage(null), 4000);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -326,23 +420,23 @@ export const CreatePurchaseBillDesktopPage = () => {
       )}
 
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface p-4 rounded-2xl border border-border shadow-2xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface p-4 sm:p-5 rounded-2xl border border-border shadow-2xs">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-xl bg-surface-alt border border-border hover:bg-surface-hover transition-colors"
+          <UIButton
+            variant="ghost"
+            size="icon"
+            className="text-text-muted hover:text-text hover:bg-surface-hover shrink-0"
+            onClick={() => navigate("/purchases")}
           >
-            <ArrowLeft className="size-5 text-text-muted" />
-          </button>
+            <ArrowLeft className="size-5" />
+          </UIButton>
           <div>
-            <div className="flex items-center gap-2">
-              <FileSpreadsheet className="size-5 text-emerald-600" />
-              <h1 className="text-2xl font-extrabold text-text tracking-tight">
-                New Purchase Bill
-              </h1>
-            </div>
-            <p className="text-xs text-text-muted mt-0.5">
-              Enter inwards goods receipt and tax invoice details
+            <h1 className="text-xl font-bold text-text flex items-center gap-2">
+              <Receipt className="size-6 text-primary" />
+              {billId ? "Edit Purchase Bill" : "Enter Purchase Bill"}
+            </h1>
+            <p className="text-xs text-text-muted mt-1">
+              {billId ? "Update inwards bill details and items" : "Record inwards stock and purchase details from supplier"}
             </p>
           </div>
         </div>
@@ -366,14 +460,14 @@ export const CreatePurchaseBillDesktopPage = () => {
           <div className="flex gap-4">
             <div>
               <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">
-                Invoice No
+                Bill Number
               </span>
               <input
                 type="text"
-                className="h-8.5 text-xs px-2.5 rounded-lg border border-border bg-surface-alt w-32"
-                placeholder="INV-001"
-                value={invoiceNo}
-                onChange={(e) => setInvoiceNo(e.target.value)}
+                className="h-8.5 text-xs px-2.5 rounded-lg border border-border bg-surface-alt w-36"
+                placeholder="Auto-calculated"
+                value={purchaseBillNo}
+                onChange={(e) => setPurchaseBillNo(e.target.value)}
               />
             </div>
             <div>
@@ -710,13 +804,23 @@ export const CreatePurchaseBillDesktopPage = () => {
         size="3xl"
       >
         <UIModalHeader>
-          <UIModalTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="size-5 text-emerald-600" />
-            <span>Purchase Bill Preview</span>
-          </UIModalTitle>
-          <UIModalDescription>
-            Review inwards bill details, rates, and scheme discounts before final submission
-          </UIModalDescription>
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <UIModalTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="size-5 text-emerald-600" />
+                <span>{billId ? "Edit Purchase Bill Preview" : "Purchase Bill Preview"}</span>
+              </UIModalTitle>
+              <UIModalDescription>
+                Review inwards bill details, rates, and scheme discounts before final submission
+              </UIModalDescription>
+            </div>
+            <button
+              onClick={() => setIsPreviewModalOpen(false)}
+              className="p-1.5 rounded-full text-text-muted hover:text-text hover:bg-surface-hover transition-colors"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
         </UIModalHeader>
 
         <UIModalBody className="space-y-4">
@@ -729,8 +833,8 @@ export const CreatePurchaseBillDesktopPage = () => {
               </span>
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-text-muted block">Invoice No</span>
-              <span className="font-mono font-bold text-text block">{invoiceNo || "INV-001"}</span>
+              <span className="text-xs text-text-muted">Bill Number:</span>
+              <span className="font-mono font-bold text-text block">{purchaseBillNo || "Auto-calculated"}</span>
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-text-muted block">Invoice Date</span>
@@ -915,10 +1019,15 @@ export const CreatePurchaseBillDesktopPage = () => {
             variant="primary"
             size="sm"
             onClick={handleFinalSubmit}
+            disabled={isSubmitting}
             className="w-full sm:w-auto font-bold text-xs"
             rightIcon={<CheckCircle2 className="size-4" />}
           >
-            Confirm & Submit (₹{cartGrandTotal.toFixed(2)})
+            {isSubmitting
+              ? "Saving..."
+              : billId
+              ? `Update & Submit (₹${cartGrandTotal.toFixed(2)})`
+              : `Confirm & Submit (₹${cartGrandTotal.toFixed(2)})`}
           </UIButton>
         </UIModalFooter>
       </UIModal>

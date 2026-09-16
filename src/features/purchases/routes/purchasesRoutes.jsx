@@ -14,6 +14,10 @@ export const purchasesRoutes = [
     path: ROUTES.CREATE_PURCHASE_BILL,
     element: <CreatePurchaseBillPage />,
   },
+  {
+    path: ROUTES.EDIT_PURCHASE_BILL(),
+    element: <CreatePurchaseBillPage />,
+  },
 ];
 
 export default purchasesRoutes;

@@ -284,6 +284,7 @@ export const ROUTES = {
   // Purchases & Procurement
   PURCHASES: "/purchases",
   CREATE_PURCHASE_BILL: "/purchases/bills/create",
+  EDIT_PURCHASE_BILL: (billId = ":billId") => `/purchases/bills/${billId}/edit`,
 
   // Help & Support
   HELP_CENTER: "/help-center",

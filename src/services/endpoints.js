@@ -508,6 +508,14 @@ export const ENDPOINTS = {
     CHECK_SEATS: (workspaceId) =>
       `/subscription/subscriptions/workspace/${workspaceId}/check-seats`,
   },
+
+  PURCHASE_BILL: {
+    CREATE: "/catalog/purchase-bills",
+
+    LIST: "/catalog/purchase-bills",
+
+    BY_ID: (billId) => `/catalog/purchase-bills/${billId}`,
+  },
 };
 
 export default ENDPOINTS;
