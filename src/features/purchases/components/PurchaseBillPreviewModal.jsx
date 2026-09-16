@@ -1,8 +1,11 @@
+import React, { useState } from "react";
 import {
   FileSpreadsheet,
   X,
   Printer,
-  Edit2
+  Edit2,
+  PackagePlus,
+  Loader2
 } from "lucide-react";
 import {
   UIModal,
@@ -15,14 +18,30 @@ import {
 } from "@/components/ui";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants";
+import purchaseBillService from "../services/purchaseBillService";
 
-export const PurchaseBillPreviewModal = ({ bill, isOpen, onClose }) => {
+export const PurchaseBillPreviewModal = ({ bill, isOpen, onClose, onRefresh }) => {
   const navigate = useNavigate();
+  const [isIngesting, setIsIngesting] = useState(false);
 
   if (!isOpen || !bill) return null;
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleIngest = async () => {
+    try {
+      setIsIngesting(true);
+      await purchaseBillService.ingestPurchaseBill(bill._id || bill.id);
+      if (onRefresh) onRefresh();
+      onClose();
+    } catch (error) {
+      console.error("Failed to ingest stock", error);
+      alert(error?.response?.data?.message || "Failed to ingest stock. Please try again.");
+    } finally {
+      setIsIngesting(false);
+    }
   };
 
   return (
@@ -49,7 +68,7 @@ export const PurchaseBillPreviewModal = ({ bill, isOpen, onClose }) => {
 
       <UIModalBody className="space-y-4">
         {/* Summary Header */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-surface-alt/70 p-3.5 rounded-2xl border border-border text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 bg-surface-alt/70 p-3.5 rounded-2xl border border-border text-xs">
           <div>
             <span className="text-[10px] uppercase font-bold text-text-muted block">Supplier</span>
             <span className="font-extrabold text-emerald-700 block truncate">
@@ -57,7 +76,7 @@ export const PurchaseBillPreviewModal = ({ bill, isOpen, onClose }) => {
             </span>
           </div>
           <div>
-            <span className="text-xs text-text-muted">Bill Number:</span>
+            <span className="text-[10px] uppercase font-bold text-text-muted block">Bill Number</span>
             <span className="font-mono font-bold text-text block">{bill.purchaseBillNo || "-"}</span>
           </div>
           <div>
@@ -69,6 +88,14 @@ export const PurchaseBillPreviewModal = ({ bill, isOpen, onClose }) => {
           <div>
             <span className="text-[10px] uppercase font-bold text-text-muted block">Rate Basis</span>
             <span className="font-bold text-primary block">{bill.rateBasis || "PTS"}</span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-emerald-700 block">Amount Paid</span>
+            <span className="font-mono font-bold text-emerald-600 block">₹{(bill.amountPaid || 0).toFixed(2)}</span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-rose-700 block">Amount Due</span>
+            <span className="font-mono font-bold text-rose-600 block">₹{(bill.amountDue || 0).toFixed(2)}</span>
           </div>
         </div>
 
@@ -219,22 +246,40 @@ export const PurchaseBillPreviewModal = ({ bill, isOpen, onClose }) => {
         </div>
       </UIModalBody>
       <UIModalFooter className="justify-end bg-surface-alt/40 border-t border-border gap-2">
-        <UIButton variant="outline" size="sm" onClick={onClose} className="font-bold text-xs">
+        <UIButton variant="outline" size="sm" onClick={onClose} className="font-bold text-xs" disabled={isIngesting}>
           Close Preview
         </UIButton>
-        <UIButton
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            onClose();
-            navigate(ROUTES.EDIT_PURCHASE_BILL(bill._id || bill.id));
-          }}
-          className="font-bold text-xs hover:text-primary"
-          leftIcon={<Edit2 className="size-4" />}
-        >
-          Edit Bill
-        </UIButton>
-        <UIButton variant="primary" size="sm" onClick={handlePrint} className="font-bold text-xs" leftIcon={<Printer className="size-4" />}>
+        
+        {(bill.status === "CONFIRMED" || bill.status === "DRAFT") && (
+          <UIButton
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              onClose();
+              navigate(ROUTES.EDIT_PURCHASE_BILL(bill._id || bill.id));
+            }}
+            className="font-bold text-xs hover:text-primary"
+            leftIcon={<Edit2 className="size-4" />}
+            disabled={isIngesting}
+          >
+            Edit Bill
+          </UIButton>
+        )}
+
+        {(bill.status === "CONFIRMED" || bill.status === "DRAFT") && (
+          <UIButton
+            variant="primary"
+            size="sm"
+            onClick={handleIngest}
+            className="font-bold text-xs bg-emerald-600 hover:bg-emerald-700 border-emerald-600 hover:border-emerald-700 text-white"
+            leftIcon={isIngesting ? <Loader2 className="size-4 animate-spin" /> : <PackagePlus className="size-4" />}
+            disabled={isIngesting}
+          >
+            {isIngesting ? "Ingesting..." : "Ingest Stock"}
+          </UIButton>
+        )}
+
+        <UIButton variant="outline" size="sm" onClick={handlePrint} className="font-bold text-xs" leftIcon={<Printer className="size-4" />} disabled={isIngesting}>
           Print Bill
         </UIButton>
       </UIModalFooter>

@@ -28,7 +28,6 @@ import {
   PURCHASES_STATS,
   PURCHASE_SUPPLIERS,
 } from "../../constants/purchasesData";
-import { CreatePurchaseOrderModal } from "../../components/CreatePurchaseOrderModal";
 import { PurchaseBillPreviewModal } from "../../components/PurchaseBillPreviewModal";
 import purchaseBillService from "../../services/purchaseBillService";
 
@@ -46,7 +45,6 @@ export const PurchasesDesktopPage = () => {
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -54,6 +52,7 @@ export const PurchasesDesktopPage = () => {
     "all",
     "DRAFT",
     "CONFIRMED",
+    "RECEIVED",
     "CANCELLED",
   ];
 
@@ -100,28 +99,12 @@ export const PurchasesDesktopPage = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
-  const handleCreateSuccess = (newPO) => {
-    setToastMessage(`✅ Purchase Order "${newPO.poNumber}" created.`);
-    setTimeout(() => setToastMessage(null), 4000);
-    fetchBills();
-  };
-
-  const handleMarkReceived = (poId) => {
-    setToastMessage("✅ Stock intake confirmed. Inventory levels updated.");
-    setTimeout(() => setToastMessage(null), 3500);
-    fetchBills();
-  };
-
-  const handleCancelPO = (poId) => {
-    setToastMessage("⚠️ Purchase order cancelled.");
-    setTimeout(() => setToastMessage(null), 3000);
-    fetchBills();
-  };
-
   const getStatusBadge = (status) => {
     switch (status) {
       case "CONFIRMED":
         return <UIBadge variant="soft" intent="success">Confirmed</UIBadge>;
+      case "RECEIVED":
+        return <UIBadge variant="solid" intent="success">Received</UIBadge>;
       case "DRAFT":
         return <UIBadge variant="soft" intent="neutral">Draft</UIBadge>;
       case "CANCELLED":
@@ -159,23 +142,6 @@ export const PurchasesDesktopPage = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <PermissionGate
-              permission="purchase:create"
-              fallback={
-                <UIButton variant="primary" size="md" disabled>
-                  Create PO (Requires purchase:create)
-                </UIButton>
-              }
-            >
-              <UIButton
-                variant="primary"
-                size="md"
-                onClick={() => setIsCreateOpen(true)}
-                leftIcon={<Plus className="size-4" />}
-              >
-                Issue Purchase Order
-              </UIButton>
-            </PermissionGate>
             <PermissionGate
               permission="purchase:create"
               fallback={
@@ -352,18 +318,12 @@ export const PurchasesDesktopPage = () => {
         </UICard>
       </div>
 
-      {/* Create Modal */}
-      <CreatePurchaseOrderModal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        onCreated={handleCreateSuccess}
-      />
-
       {/* Details Modal */}
       <PurchaseBillPreviewModal
         bill={selectedBill}
         isOpen={Boolean(selectedBill)}
         onClose={() => setSelectedBill(null)}
+        onRefresh={fetchBills}
       />
     </section>
   );

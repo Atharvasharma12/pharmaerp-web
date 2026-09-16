@@ -55,6 +55,9 @@ export const CreatePurchaseBillDesktopPage = () => {
   // Extra Discount (applied on taxable subtotal in preview)
   const [extraDiscountPct, setExtraDiscountPct] = useState(0);
 
+  // Amount Paid
+  const [amountPaid, setAmountPaid] = useState(0);
+
   // Submit loading state
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -80,6 +83,7 @@ export const CreatePurchaseBillDesktopPage = () => {
           setInvoiceDate(bill.invoiceDate || "");
           setRateBasis(bill.rateBasis || "PTS");
           setExtraDiscountPct(bill.extraDiscountPct || 0);
+          setAmountPaid(bill.amountPaid || 0);
 
           if (bill.items && Array.isArray(bill.items)) {
             const loadedCart = bill.items.map(item => ({
@@ -292,6 +296,7 @@ export const CreatePurchaseBillDesktopPage = () => {
 
   const cartGrandTotal = Math.round(cartTaxableAfterExtra + estTax);
   const cartItemCount = cart.reduce((acc, item) => acc + (Number(item.qty) || 1), 0);
+  const amountDue = Number((cartGrandTotal - amountPaid).toFixed(2));
 
   const getTaxSlabBreakdown = () => {
     const slabs = {};
@@ -381,6 +386,8 @@ export const CreatePurchaseBillDesktopPage = () => {
         taxableAfterExtraDisc: cartTaxableAfterExtra,
         totalGst: estTax,
         grandTotal: cartGrandTotal,
+        amountPaid: Number(amountPaid) || 0,
+        amountDue,
         gstSlabs: getTaxSlabBreakdown(),
       };
 
@@ -406,7 +413,7 @@ export const CreatePurchaseBillDesktopPage = () => {
   };
 
   return (
-    <section className="min-h-[100dvh] w-full bg-bg px-4 sm:px-6 lg:px-8 py-6 font-sans space-y-5">
+    <section className="min-h-[100dvh] w-full bg-bg px-4 sm:px-6 lg:px-2 py-6 font-sans space-y-5">
       {toastMessage && (
         <motion.div
           initial={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -494,6 +501,20 @@ export const CreatePurchaseBillDesktopPage = () => {
                 <option value="PTR">PTR (Retailer)</option>
               </select>
             </div>
+            <div>
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">
+                Amount Paid
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                className="h-8.5 text-xs px-2.5 rounded-lg border border-border bg-surface-alt w-28 text-emerald-700 font-bold"
+                placeholder="0.00"
+                value={amountPaid === 0 ? "" : amountPaid}
+                onChange={(e) => setAmountPaid(Number(e.target.value))}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -545,11 +566,11 @@ export const CreatePurchaseBillDesktopPage = () => {
               />
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-border bg-surface-alt/30 max-h-[380px]">
+            <div className="overflow-x-auto overflow-y-auto rounded-xl border border-border bg-surface-alt/30 max-h-[320px]">
               {cart.length > 0 ? (
                 <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-border bg-surface-alt/80 text-[10.5px] font-bold text-text-muted uppercase tracking-wider select-none whitespace-nowrap">
+                  <thead className="sticky top-0 z-10 bg-surface-alt/95 backdrop-blur-sm shadow-sm">
+                    <tr className="border-b border-border text-[10.5px] font-bold text-text-muted uppercase tracking-wider select-none whitespace-nowrap">
                       <th className="py-2.5 px-3 min-w-[130px]">Product</th>
                       <th className="py-2.5 px-2 font-mono">Batch</th>
                       <th className="py-2.5 px-2 font-mono">Expiry</th>
@@ -825,7 +846,7 @@ export const CreatePurchaseBillDesktopPage = () => {
 
         <UIModalBody className="space-y-4">
           {/* Summary Header */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-surface-alt/70 p-3.5 rounded-2xl border border-border text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 bg-surface-alt/70 p-3.5 rounded-2xl border border-border text-xs">
             <div>
               <span className="text-[10px] uppercase font-bold text-text-muted block">Supplier</span>
               <span className="font-extrabold text-emerald-700 block truncate">
@@ -833,7 +854,7 @@ export const CreatePurchaseBillDesktopPage = () => {
               </span>
             </div>
             <div>
-              <span className="text-xs text-text-muted">Bill Number:</span>
+              <span className="text-[10px] uppercase font-bold text-text-muted block">Bill Number</span>
               <span className="font-mono font-bold text-text block">{purchaseBillNo || "Auto-calculated"}</span>
             </div>
             <div>
@@ -843,6 +864,14 @@ export const CreatePurchaseBillDesktopPage = () => {
             <div>
               <span className="text-[10px] uppercase font-bold text-text-muted block">Rate Basis</span>
               <span className="font-bold text-primary block">{rateBasis}</span>
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-emerald-700 block">Amount Paid</span>
+              <span className="font-mono font-bold text-emerald-600 block">₹{(amountPaid || 0).toFixed(2)}</span>
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-rose-700 block">Amount Due</span>
+              <span className="font-mono font-bold text-rose-600 block">₹{(amountDue || 0).toFixed(2)}</span>
             </div>
           </div>
 
@@ -1026,8 +1055,8 @@ export const CreatePurchaseBillDesktopPage = () => {
             {isSubmitting
               ? "Saving..."
               : billId
-              ? `Update & Submit (₹${cartGrandTotal.toFixed(2)})`
-              : `Confirm & Submit (₹${cartGrandTotal.toFixed(2)})`}
+                ? `Update & Submit (₹${cartGrandTotal.toFixed(2)})`
+                : `Confirm & Submit (₹${cartGrandTotal.toFixed(2)})`}
           </UIButton>
         </UIModalFooter>
       </UIModal>

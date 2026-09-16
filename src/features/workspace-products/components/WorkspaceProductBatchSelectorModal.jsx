@@ -334,6 +334,7 @@ export const WorkspaceProductBatchSelectorModal = ({
       return {
         id: `${product._id || product.id || "item"}-${bNo}`,
         productId: product._id || product.id,
+        batchId: bId,
         name: productName,
         brand,
         category,

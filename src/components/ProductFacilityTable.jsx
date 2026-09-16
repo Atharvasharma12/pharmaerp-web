@@ -149,13 +149,16 @@ const ProductFacilityTable = ({ data }) => {
       const payload = {
         page,
         limit,
-        filters: {},
+        filters: { inStockOnly: true },
       };
       if (selectedBranch) {
         payload.filters.facility = selectedBranch;
       }
       if (lowStockFilter) {
         payload.filters.lowStock = true;
+      }
+      if (search) {
+        payload.search = search;
       }
 
       const res = await workspaceProductService.getProductFacilityBatchesByQueryV2(payload);
@@ -317,7 +320,7 @@ const ProductFacilityTable = ({ data }) => {
       </div>
 
       {/* Main Stock Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden min-h-[60vh]">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>

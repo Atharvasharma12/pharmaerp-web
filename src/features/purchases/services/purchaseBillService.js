@@ -16,6 +16,10 @@ const purchaseBillService = {
   updatePurchaseBill(billId, payload) {
     return apiClient.put(ENDPOINTS.PURCHASE_BILL.BY_ID(billId), payload);
   },
+
+  ingestPurchaseBill(billId) {
+    return apiClient.post(`${ENDPOINTS.PURCHASE_BILL.BY_ID(billId)}/ingest`);
+  },
 };
 
 export default purchaseBillService;
