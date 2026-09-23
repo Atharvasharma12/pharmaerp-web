@@ -42,7 +42,7 @@ export const PurchasesDesktopPage = () => {
   const navigate = useNavigate();
   const [bills, setBills] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+  const [pagination, setPagination] = useState({ page: 1, limit: 5, total: 0 });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedBill, setSelectedBill] = useState(null);

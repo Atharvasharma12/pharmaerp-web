@@ -13,7 +13,8 @@ import {
   Building2,
   FileSpreadsheet,
   ArrowLeft,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -30,7 +31,128 @@ import {
 import { cn } from "@/lib/utils";
 import supplierService from "@/features/parties/suppliers/services/supplierService";
 import purchaseBillService from "@/features/purchases/services/purchaseBillService";
+import { Popover } from "@mui/material";
 import { SupplierSearchBar } from "@/components";
+import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
+import { PurchaseBillSchemeCheckModal } from "@/features/purchases/components/scheme-check/PurchaseBillSchemeCheckModal";
+import { PurchaseBillRateCheckModal } from "@/features/purchases/components/rate-check/PurchaseBillRateCheckModal";
+
+const BatchInputWithDropdown = ({ item, updateItemField }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [batches, setBatches] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleFocus = async (e) => {
+    setAnchorEl(e.currentTarget);
+    setIsOpen(true);
+    if (batches.length === 0 && !isLoading) {
+      setIsLoading(true);
+      try {
+        const res = await workspaceProductService.getProductFacilityBatchesByQueryV2({
+          filters: { product: item.productId },
+          limit: 20,
+        });
+        const apiBatches = res.data?.data?.batches || res.data?.batches || res.data?.data || [];
+        setBatches(apiBatches);
+      } catch (err) {
+        console.error("Failed to fetch batches:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setAnchorEl(null);
+  };
+
+  const filteredBatches = batches.filter(b => {
+    const bNo = b.batchNo || b.batchNumber || b.batch || "";
+    return bNo.toLowerCase().includes((item.batch || "").toLowerCase());
+  });
+
+  return (
+    <>
+      <input
+        type="text"
+        value={item.batch || ""}
+        onChange={(e) => {
+          updateItemField(item.id, "batch", e.target.value);
+          setIsOpen(true);
+          if (!anchorEl) setAnchorEl(e.currentTarget);
+        }}
+        onFocus={handleFocus}
+        className="w-20 rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-text focus:border-primary focus:outline-none"
+        placeholder="Batch"
+      />
+
+      <Popover
+        open={isOpen && Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        disableAutoFocus
+        disableEnforceFocus
+        disableRestoreFocus
+        disableScrollLock
+        PaperProps={{
+          sx: {
+            mt: 0.5,
+            backgroundColor: 'transparent',
+            boxShadow: 'none',
+            overflow: 'visible'
+          }
+        }}
+      >
+        <div className="w-48 bg-surface border border-border rounded-lg shadow-xl max-h-48 overflow-y-auto">
+          {isLoading ? (
+            <div className="p-2 text-center text-[10px] text-text-muted flex items-center justify-center gap-2">
+              <Loader2 className="size-3 animate-spin text-primary" /> Loading...
+            </div>
+          ) : filteredBatches.length > 0 ? (
+            <div className="py-1">
+              {filteredBatches.map(b => {
+                const bNo = b.batchNo || b.batchNumber || b.batch;
+                const bExp = b.expiry || b.expiryDate || b.expDate || "";
+                const bScheme = b.schemeDiscountPercent || 0;
+                const bStock = b.stock ?? b.batchQty ?? 0;
+
+                return (
+                  <div
+                    key={b.id || b._id || bNo}
+                    onClick={() => {
+                      updateItemField(item.id, "batch", bNo);
+                      updateItemField(item.id, "expiry", bExp);
+                      updateItemField(item.id, "schPct", bScheme);
+                      handleClose();
+                    }}
+                    className="px-2 py-1.5 hover:bg-surface-hover cursor-pointer border-b border-border/50 last:border-0"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-mono font-bold text-xs text-text">{bNo}</span>
+                      <span className="text-[10px] text-text-muted bg-surface-alt px-1 rounded font-mono">Qty: {bStock}</span>
+                    </div>
+                    <div className="flex gap-2 mt-0.5 text-[10px] text-text-muted">
+                      <span>Exp: {bExp || "N/A"}</span>
+                      {bScheme > 0 && <span className="text-emerald-600 font-semibold">Sch: {bScheme}%</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-2 text-center text-[10px] text-text-muted">
+              {item.batch ? "No matching batches" : "No existing batches"}
+            </div>
+          )}
+        </div>
+      </Popover>
+    </>
+  );
+};
 
 export const CreatePurchaseBillDesktopPage = () => {
   const navigate = useNavigate();
@@ -48,9 +170,9 @@ export const CreatePurchaseBillDesktopPage = () => {
   const [purchaseBillNo, setPurchaseBillNo] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().split("T")[0]);
 
-  const [selectedProductForBatches, setSelectedProductForBatches] = useState(null);
-  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isSchemeCheckModalOpen, setIsSchemeCheckModalOpen] = useState(false);
+  const [isRateCheckModalOpen, setIsRateCheckModalOpen] = useState(false);
 
   // Extra Discount (applied on taxable subtotal in preview)
   const [extraDiscountPct, setExtraDiscountPct] = useState(0);
@@ -105,7 +227,6 @@ export const CreatePurchaseBillDesktopPage = () => {
   // Auto-focus handler
   useEffect(() => {
     const handleGlobalTyping = (e) => {
-      if (isBatchModalOpen) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       const activeTag = document.activeElement?.tagName?.toLowerCase();
@@ -122,7 +243,7 @@ export const CreatePurchaseBillDesktopPage = () => {
 
     window.addEventListener("keydown", handleGlobalTyping);
     return () => window.removeEventListener("keydown", handleGlobalTyping);
-  }, [isBatchModalOpen, selectedSupplier]);
+  }, [selectedSupplier]);
 
   const getGstRate = (p) => {
     if (!p) return 12;
@@ -172,6 +293,9 @@ export const CreatePurchaseBillDesktopPage = () => {
       hsn: getHsnCode(p),
       gst: getGstRate(p),
       rate: baseRate,
+      retailerMarginPercent: Number(p.retailerMarginPercent || 20),
+      stockistMarginPercent: Number(p.stockistMarginPercent || 10),
+      workspaceProduct: p,
     };
 
     setCart((prev) => {
@@ -192,6 +316,11 @@ export const CreatePurchaseBillDesktopPage = () => {
     setSearchQuery("");
     searchBarRef.current?.clear?.();
     setToastMessage(`✅ Added ${newItem.name} to Purchase Bill.`);
+
+    setTimeout(() => {
+      searchBarRef.current?.focus();
+    }, 100);
+
     setTimeout(() => setToastMessage(null), 2500);
   };
 
@@ -341,12 +470,46 @@ export const CreatePurchaseBillDesktopPage = () => {
   };
 
   const handleRateCheck = () => {
-    setToastMessage(`🔍 Rate Check: All ${cart.length} item purchase rates verified.`);
-    setTimeout(() => setToastMessage(null), 3000);
+    setIsRateCheckModalOpen(true);
+  };
+
+  const handleApplyRateCheck = (editedRows) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        const pid = String(item.id || item.productId);
+        const edit = editedRows[pid];
+        if (edit) {
+          const newRateB = edit.rateB ?? item.rateB;
+          const newRateA = edit.rateA ?? item.rateA;
+          const newRate = rateBasis === "PTR" ? (newRateB ?? item.rate) : (newRateA ?? item.rate);
+          return {
+            ...item,
+            rateA: newRateA,
+            rateB: newRateB,
+            rateC: edit.rateC ?? item.rateC,
+            retailerMarginPercent: edit.derivedRetail ?? item.retailerMarginPercent,
+            rateCPercentage: edit.rateCPercentage ?? item.rateCPercentage,
+            rate: newRate,
+          };
+        }
+        return item;
+      })
+    );
   };
 
   const handleSchemeCheck = () => {
-    setToastMessage(`📋 Scheme Check: Scheme discounts & free qty verified for ${cart.length} items.`);
+    setIsSchemeCheckModalOpen(true);
+  };
+
+  const handleApplySchemeCheck = (updatedSaleSchemesMap) => {
+    setCart(prev => prev.map(item => {
+      const pid = String(item.id || item.productId);
+      if (updatedSaleSchemesMap[pid] !== undefined) {
+        return { ...item, saleScheme: updatedSaleSchemesMap[pid] };
+      }
+      return item;
+    }));
+    setToastMessage("✅ Sale schemes applied successfully.");
     setTimeout(() => setToastMessage(null), 3000);
   };
 
@@ -459,7 +622,14 @@ export const CreatePurchaseBillDesktopPage = () => {
             <SupplierSearchBar
               ref={supplierSearchBarRef}
               selectedSupplier={selectedSupplier}
-              onSelectSupplier={(cust) => setSelectedSupplier(cust)}
+              onSelectSupplier={(cust) => {
+                setSelectedSupplier(cust);
+                if (cust) {
+                  setTimeout(() => {
+                    searchBarRef.current?.focus();
+                  }, 100);
+                }
+              }}
               placeholder="Search supplier by name, GST, or phone..."
               size="sm"
             />
@@ -602,12 +772,9 @@ export const CreatePurchaseBillDesktopPage = () => {
 
                           {/* 2. Batch */}
                           <td className="py-2 px-2">
-                            <input
-                              type="text"
-                              value={item.batch || ""}
-                              onChange={(e) => updateItemField(item.id, "batch", e.target.value)}
-                              className="w-16 rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-text focus:border-primary focus:outline-none"
-                              placeholder="Batch"
+                            <BatchInputWithDropdown
+                              item={item}
+                              updateItemField={updateItemField}
                             />
                           </td>
 
@@ -1060,6 +1227,26 @@ export const CreatePurchaseBillDesktopPage = () => {
           </UIButton>
         </UIModalFooter>
       </UIModal>
+
+      {/* Scheme Check Modal */}
+      <PurchaseBillSchemeCheckModal
+        isOpen={isSchemeCheckModalOpen}
+        onClose={() => setIsSchemeCheckModalOpen(false)}
+        items={cart}
+        onApply={handleApplySchemeCheck}
+      />
+
+      {/* Rate Check Modal */}
+      <PurchaseBillRateCheckModal
+        isOpen={isRateCheckModalOpen}
+        onClose={() => setIsRateCheckModalOpen(false)}
+        items={cart}
+        onApply={handleApplyRateCheck}
+        purchaseBillNo={purchaseBillNo || "New Bill"}
+        supplierName={selectedSupplier?.businessName || "Unknown Supplier"}
+        purchaseBillDate={invoiceDate}
+        initialRateBasis={rateBasis}
+      />
     </section>
   );
 };

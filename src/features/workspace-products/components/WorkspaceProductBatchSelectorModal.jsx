@@ -173,9 +173,7 @@ export const WorkspaceProductBatchSelectorModal = ({
         try {
           const prodId = p._id || p.id;
           const res = await workspaceProductService.getProductFacilityBatchesByQueryV2({
-            workspaceProductId: prodId,
-            productId: prodId,
-            filter: { workspaceProductId: prodId },
+            filters: { product: prodId },
             limit: 20,
           });
           const apiBatches = res.data?.data?.batches || res.data?.batches || res.data?.data || [];
@@ -480,6 +478,7 @@ export const WorkspaceProductBatchSelectorModal = ({
         schemeDiscountPercent: bSchemeDiscountPercent,
         freeQty: schemeResult.freeQty,
         schemeApply: schemeResult.schemeApply,
+        workspaceProduct: product,
       };
     });
 

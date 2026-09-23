@@ -16,7 +16,7 @@ const AppPagination = ({
   onChange,
   totalItems,
   pageSize,
-  pageSizeOptions = [10, 25, 50, 100],
+  pageSizeOptions = [5, 10, 25],
   onPageSizeChange,
   showPageSize = false,
   showSummary = true,
@@ -315,9 +315,9 @@ const AppPagination = ({
             },
 
             "& .MuiPaginationItem-previousNext, & .MuiPaginationItem-firstLast":
-              {
-                color: t.text,
-              },
+            {
+              color: t.text,
+            },
 
             "& .MuiPaginationItem-root.Mui-disabled": {
               backgroundColor:
