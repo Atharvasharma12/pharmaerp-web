@@ -16,7 +16,8 @@ import {
   UICard,
   UIButton,
   UIBadge,
-} from "@/components/ui";
+  WorkspaceProductSearchBar,
+} from "@/components";
 import { PermissionGate } from "@/components/common/PermissionGate";
 import { cn } from "@/lib/utils";
 import {
@@ -31,9 +32,7 @@ export const SalesMobilePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedCustomer, setSelectedCustomer] = useState(POS_DEFAULT_CUSTOMERS[0]);
-  const [cart, setCart] = useState([
-    { ...POS_AVAILABLE_MEDICINES[0], qty: 1 },
-  ]);
+  const [cart, setCart] = useState([]);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState(null);
@@ -92,6 +91,49 @@ export const SalesMobilePage = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const handleSelectWorkspaceProduct = (prod, details) => {
+    const p = details || prod;
+    const hsnCode =
+      p.globalProduct?.hsn ||
+      p.globalProduct?.hsnCode ||
+      p.globalProduct?.hsnMaster?.code ||
+      p.globalProduct?.HsnMaster?.code ||
+      p.hsnCode ||
+      p.hsn ||
+      p.HsnMaster?.code ||
+      "30049099";
+
+    const gstRate =
+      p.globalProduct?.gstRate ??
+      p.globalProduct?.hsnMaster?.gstRate ??
+      p.globalProduct?.hsnMaster?.gst ??
+      p.globalProduct?.hsnTaxpercent ??
+      p.globalProduct?.HsnMaster?.gstRate ??
+      p.hsnTaxpercent ??
+      p.gstRate ??
+      p.taxRate ??
+      p.gst ??
+      p.HsnMaster?.gstRate ??
+      5;
+
+    const formattedItem = {
+      id: p._id || p.id || `ws-${Date.now()}`,
+      name: p.displayName || p.name || "Workspace Product",
+      brand: p.displayManufacturer || p.manufacturer || p.brand || "Workspace",
+      category: p.displayCategory || p.category || "General",
+      batch: p.batch || p.displaySku || p.sku || "BATCH-2026",
+      expDate: p.expDate || "12/28",
+      hsn: hsnCode,
+      gst: gstRate,
+      stock: p.stock ?? 100,
+      mrp: Number(p.mrp ?? p.price ?? 100),
+      price: Number(p.price ?? p.mrp ?? 90),
+    };
+    handleAddToCart(formattedItem);
+    setToastMessage(`Added "${formattedItem.name}" to cart.`);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   return (
     <section className="min-h-[100dvh] w-full bg-bg px-3.5 pt-3 pb-24 font-sans space-y-4">
       {/* Toast Notification */}
@@ -144,15 +186,15 @@ export const SalesMobilePage = () => {
 
       {activeTab === "catalog" ? (
         <div className="space-y-3">
-          {/* Search Box */}
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-text-muted" />
-            <input
-              type="text"
+          {/* Workspace Product Search Bar */}
+          <div>
+            <WorkspaceProductSearchBar
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search medicines..."
-              className="w-full rounded-xl border border-border bg-surface-alt/70 pl-9 pr-3 py-2 text-xs text-text placeholder:text-text-muted focus:border-primary focus:outline-none"
+              onSelectProduct={handleSelectWorkspaceProduct}
+              placeholder="Search workspace product..."
+              size="sm"
+              showDetailsPreview
             />
           </div>
 

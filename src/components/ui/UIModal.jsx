@@ -9,6 +9,8 @@ const modalSizes = {
   md: "max-w-lg", // ~512px (default)
   lg: "max-w-2xl", // ~672px
   xl: "max-w-4xl", // ~896px
+  "2xl": "max-w-5xl", // ~1024px
+  "3xl": "max-w-7xl", // ~1280px
   full: "max-w-[calc(100vw-2rem)] min-h-[calc(100vh-2rem)]",
 };
 

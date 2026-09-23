@@ -114,9 +114,14 @@ export const ENDPOINTS = {
 
     OUTSTANDING: (customerId) => `/parties/customers/${customerId}/outstanding`,
 
-    SALES: (customerId) => `/parties/customers/${customerId}/sales`,
-
     PAYMENTS: (customerId) => `/parties/customers/${customerId}/payments`,
+  },
+
+  SALES: {
+    INVOICES: {
+      ALL: "/sales/invoices",
+      BY_CUSTOMER: (customerId) => `/sales/invoices/customer/${customerId}`,
+    }
   },
 
   SUPPLIER: {
@@ -188,6 +193,11 @@ export const ENDPOINTS = {
     LIST: "/finance/ledger",
 
     RECALCULATE: "/finance/ledger/recalculate",
+  },
+
+  GST_LEDGER: {
+    GSTR1: "/finance/gst-ledger/gstr-1",
+    GSTR2: "/finance/gst-ledger/gstr-2",
   },
 
   REPORTS: {
@@ -357,6 +367,12 @@ export const ENDPOINTS = {
   },
 
   WORKSPACE_PRODUCTS: {
+    // Import products
+    IMPORT: "/catalog/products/import",
+
+    // Import GST
+    IMPORT_GST: "/catalog/products/import-gst",
+
     // Search before creating a workspace product
     SEARCH_BEFORE_CREATE: "/catalog/products/search",
 
@@ -371,6 +387,8 @@ export const ENDPOINTS = {
 
     // Get product by code
     BY_CODE: (productCode) => `/catalog/products/code/${productCode}`,
+    // New endpoint for product facility batches query with filters
+    BATCHES_QUERY: "/catalog/products/workspace-product/batches/query",
   },
 
   GLOBAL_PRODUCTS: {
@@ -499,6 +517,14 @@ export const ENDPOINTS = {
 
     CHECK_SEATS: (workspaceId) =>
       `/subscription/subscriptions/workspace/${workspaceId}/check-seats`,
+  },
+
+  PURCHASE_BILL: {
+    CREATE: "/catalog/purchase-bills",
+
+    LIST: "/catalog/purchase-bills",
+
+    BY_ID: (billId) => `/catalog/purchase-bills/${billId}`,
   },
 };
 

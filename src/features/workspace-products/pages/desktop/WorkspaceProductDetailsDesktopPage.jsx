@@ -298,7 +298,10 @@ const WorkspaceProductDetailsDesktopPage = ({
           {currentTab === "overview" && (
             <OverviewTabSection product={safeProduct} />
           )}
-          {currentTab !== "overview" && (
+          {(currentTab === "pricing" || currentTab === "packaging_pricing") && (
+            <PricingTabSection product={safeProduct} />
+          )}
+          {currentTab !== "overview" && currentTab !== "pricing" && currentTab !== "packaging_pricing" && (
             <AppCard
               variant="default"
               rounded="lg"
@@ -328,6 +331,114 @@ const WorkspaceProductDetailsDesktopPage = ({
     </section>
   );
 };
+
+/* ==========================================================================
+    PRICING & HSN/GST TAB PANEL SECTION
+   ========================================================================== */
+const PricingTabSection = ({ product }) => {
+  const hsnCode = product?.hsn || product?.HsnMaster?.code || "-";
+  const gstRate =
+    product?.hsnTaxpercent != null
+      ? `${product.hsnTaxpercent}%`
+      : product?.HsnMaster?.gstRate != null
+      ? `${product.HsnMaster.gstRate}%`
+      : "-";
+  const hsnDescription =
+    product?.HsnMaster?.description || "Pharmaceutical Product HSN Code";
+
+  return (
+    <div className="space-y-4">
+      {/* Grid 1: Tax & Compliance + Margins */}
+      <div className="grid grid-cols-2 gap-4 items-start">
+        <AppCard
+          variant="default"
+          rounded="lg"
+          bordered
+          padding="none"
+          sx={sectionCardSx}
+        >
+          <SectionHeader title="Tax & HSN Compliance" />
+          <div className="p-4 space-y-3.5">
+            <StatusTrackingRow label="HSN Code" value={hsnCode} />
+            <StatusTrackingRow
+              label="GST Tax Rate"
+              value={
+                <AppTag
+                  label={gstRate}
+                  colorVariant="purple"
+                  variant="soft"
+                  rounded="md"
+                  sx={{ height: 20, fontSize: "11px", fontWeight: 700 }}
+                />
+              }
+            />
+            <StatusTrackingRow label="HSN Description" value={hsnDescription} />
+          </div>
+        </AppCard>
+
+        <AppCard
+          variant="default"
+          rounded="lg"
+          bordered
+          padding="none"
+          sx={sectionCardSx}
+        >
+          <SectionHeader title="Trade Margins" />
+          <div className="p-4 space-y-3.5">
+            <StatusTrackingRow
+              label="Retailer Margin"
+              value={`${product?.retailerMarginPercent || 20}%`}
+            />
+            <StatusTrackingRow
+              label="Stockist Margin"
+              value={`${product?.stockistMarginPercent || 10}%`}
+            />
+          </div>
+        </AppCard>
+      </div>
+
+      {/* Grid 2: Detailed Pricing Rates */}
+      <AppCard
+        variant="default"
+        rounded="lg"
+        bordered
+        padding="none"
+        sx={sectionCardSx}
+      >
+        <SectionHeader title="Pricing Rates Matrix" />
+        <div className="grid grid-cols-6 gap-3 p-4 text-center">
+          <PriceRateCell label="MRP" value={`₹${product?.mrp ?? 0}`} isPrimary />
+          <PriceRateCell label="PTR" value={`₹${product?.ptr ?? 0}`} />
+          <PriceRateCell label="PTS" value={`₹${product?.pts ?? 0}`} />
+          <PriceRateCell label="Rate A" value={`₹${product?.rateA ?? 0}`} />
+          <PriceRateCell label="Rate B" value={`₹${product?.rateB ?? 0}`} />
+          <PriceRateCell label="Rate C" value={`₹${product?.rateC ?? 0}`} />
+        </div>
+      </AppCard>
+    </div>
+  );
+};
+
+const PriceRateCell = ({ label, value, isPrimary }) => (
+  <div
+    className={`p-3 rounded-xl border ${
+      isPrimary
+        ? "bg-purple-soft/20 border-purple-soft text-purple"
+        : "bg-surface-alt/40 border-border"
+    }`}
+  >
+    <span className="block text-[10.5px] font-bold text-text-muted uppercase tracking-wider">
+      {label}
+    </span>
+    <span
+      className={`block mt-1 text-[15px] font-extrabold ${
+        isPrimary ? "text-purple" : "text-text"
+      }`}
+    >
+      {value}
+    </span>
+  </div>
+);
 
 /* ==========================================================================
     1. OVERVIEW TAB PANEL GRAPHICS MODULES
@@ -404,14 +515,28 @@ const OverviewTabSection = ({ product }) => {
           padding="none"
           sx={sectionCardSx}
         >
-          <SectionHeader title="Quick Info" />
+          <SectionHeader title="Quick Info & Tax" />
           <div className="p-4 space-y-3.5">
             <StatusTrackingRow
               label="Product Type"
               value={product?.displayType || "Medicine"}
             />
-            <StatusTrackingRow label="Prescription Required" value="No" />
-            <StatusTrackingRow label="Discard After" value="-" />
+            <StatusTrackingRow
+              label="HSN Code"
+              value={product?.hsn || product?.HsnMaster?.code || "-"}
+            />
+            <StatusTrackingRow
+              label="GST Tax Rate"
+              value={
+                product?.hsnTaxpercent != null
+                  ? `${product.hsnTaxpercent}%`
+                  : product?.HsnMaster?.gstRate != null
+                  ? `${product.HsnMaster.gstRate}%`
+                  : "-"
+              }
+            />
+            <StatusTrackingRow label="MRP" value={`₹${product?.mrp ?? 0}`} />
+            <StatusTrackingRow label="PTR" value={`₹${product?.ptr ?? 0}`} />
             <StatusTrackingRow label="Shelf Life" value="24 Months" />
             <StatusTrackingRow
               label="Storage"

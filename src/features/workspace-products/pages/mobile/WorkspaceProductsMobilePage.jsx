@@ -43,6 +43,7 @@ const WorkspaceProductsMobilePage = ({
   handleViewProductDetails,
   handleCreateProduct,
   handleEditProduct,
+  handleOpenImportGst,
   currentPage,
   pageSize = 10,
   totalProducts = 0,
@@ -66,16 +67,29 @@ const WorkspaceProductsMobilePage = ({
                 Manage products within your workspace
               </AppText>
             </AppBox>
-            <AppButton
-              variant="contained"
-              colorVariant="success"
-              rounded="md"
-              startIcon={<FiPlus />}
-              onClick={handleCreateProduct}
-              sx={greenAddProductBtnSx}
-            >
-              Add Product
-            </AppButton>
+            <AppStack direction="row" align="center" spacing={1}>
+              {handleOpenImportGst && (
+                <AppButton
+                  variant="outlined"
+                  colorVariant="neutral"
+                  rounded="md"
+                  size="small"
+                  onClick={handleOpenImportGst}
+                >
+                  Import GST
+                </AppButton>
+              )}
+              <AppButton
+                variant="contained"
+                colorVariant="success"
+                rounded="md"
+                startIcon={<FiPlus />}
+                onClick={handleCreateProduct}
+                sx={greenAddProductBtnSx}
+              >
+                Add Product
+              </AppButton>
+            </AppStack>
           </AppStack>
         </AppBox>
 

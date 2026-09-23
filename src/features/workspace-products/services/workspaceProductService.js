@@ -80,6 +80,58 @@ const workspaceProductService = {
   deleteWorkspaceProduct(productId) {
     return apiClient.delete(ENDPOINTS.WORKSPACE_PRODUCTS.BY_ID(productId));
   },
+
+  /**
+   * Detect Inventory File & Brand Mappings
+   * POST /catalog/products/detect
+   */
+  detectInventoryProducts(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient.post("/catalog/products/detect", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  importWorkspaceProducts(payload) {
+    if (payload instanceof FormData) {
+      return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT, payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    }
+    if (payload?.file) {
+      const formData = new FormData();
+      formData.append("file", payload.file);
+      if (payload.branchId) formData.append("branchId", payload.branchId);
+      return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    }
+    return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT, payload);
+  },
+
+  importWorkspaceProductsGst(payload) {
+    if (payload instanceof FormData) {
+      return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT_GST, payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    }
+    if (payload?.file) {
+      const formData = new FormData();
+      formData.append("file", payload.file);
+      return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT_GST, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    }
+    return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT_GST, payload);
+  },
+  /**
+   * Get Product Facility Batches By Query V2
+   * POST /catalog/products/workspace-product/batches/query
+   */
+  getProductFacilityBatchesByQueryV2(payload = {}) {
+    return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.BATCHES_QUERY, payload);
+  },
 };
 
 export default workspaceProductService;

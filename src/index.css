@@ -513,3 +513,14 @@ body {
 .auto-hide-scrollbar:focus::-webkit-scrollbar-thumb {
   background-color: var(--app-color-border-strong);
 }
+
+/* Remove number input up/down stepper spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

@@ -41,6 +41,8 @@ import HomePage from "@/pages/HomePage";
 import UIShowcasePage from "@/pages/UIShowcasePage";
 
 import { LandingPage } from "@/features/landing";
+import TransferOrdersPage from "@/pages/inventory/TransferOrdersPage";
+import CreateTransferOrderPage from "@/pages/inventory/CreateTransferOrderPage";
 import hsnMasterRoutes from "@/features/hsn-master/routes/hsnMasterRoutes";
 import manufacturerMasterRoutes from "@/features/manufacturer-master/routes/manufacturerMasterRoutes";
 import uomMasterRoutes from "@/features/uom-master/routes/uomMasterRoutes";
@@ -70,6 +72,7 @@ import cashTransactionRoutes from "@/features/finance/treasury/cash-management/c
 import cashDenominationRoutes from "@/features/finance/treasury/cash-management/cash-denominations/routes/cashDenominationRoutes";
 import financialPeriodRoutes from "@/features/finance/financial-periods/routes/financialPeriodRoutes";
 import ledgerRoutes from "@/features/finance/ledger/routes/ledgerRoutes";
+import gstLedgerRoutes from "@/features/finance/gst-ledger/routes/gstLedgerRoutes";
 import reportsRoutes from "@/features/finance/reports/routes/reportsRoutes";
 
 import salesRoutes from "@/features/sales/routes/salesRoutes";
@@ -321,6 +324,14 @@ export const router = createBrowserRouter([
               </PermissionGuard>
             ),
           })),
+          ...gstLedgerRoutes.map((route) => ({
+            ...route,
+            element: (
+              <PermissionGuard permission="ledger:view">
+                {route.element}
+              </PermissionGuard>
+            ),
+          })),
           ...reportsRoutes.map((route) => ({
             ...route,
             element: (
@@ -380,6 +391,14 @@ export const router = createBrowserRouter([
               },
 
               // Inventory & Catalog
+          {
+            path: "/inventory/transfer-orders",
+            element: <TransferOrdersPage />,
+          },
+          {
+            path: "/inventory/transfer-orders/create",
+            element: <CreateTransferOrderPage />,
+          },
           ...catalogRoutes.map((route) => ({
             ...route,
             element: (

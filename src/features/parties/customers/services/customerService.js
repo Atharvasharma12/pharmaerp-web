@@ -49,15 +49,6 @@ const customerService = {
     return apiClient.get(ENDPOINTS.CUSTOMER.OUTSTANDING(customerId));
   },
 
-  /*
-  |--------------------------------------------------------------------------
-  | Sales
-  |--------------------------------------------------------------------------
-  */
-
-  getCustomerSales(customerId) {
-    return apiClient.get(ENDPOINTS.CUSTOMER.SALES(customerId));
-  },
 
   /*
   |--------------------------------------------------------------------------

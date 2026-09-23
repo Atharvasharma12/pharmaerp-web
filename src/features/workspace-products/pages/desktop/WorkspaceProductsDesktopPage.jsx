@@ -39,6 +39,7 @@ import {
   HELP_SUPPORT_CARD,
   PageRightSidebar,
   PermissionGate,
+  UploadExistingInventoryBtn,
 } from "@/components";
 import { usePermission } from "@/hooks";
 
@@ -86,6 +87,7 @@ const WorkspaceProductsDesktopPage = ({
   handleEditProduct,
   handleDeleteProduct,
   handleImportWorkspaceProducts,
+  handleOpenImportGst,
   clearMessage,
 }) => {
   const showInitialSkeleton = isLoading && !hasProducts;
@@ -287,6 +289,14 @@ const WorkspaceProductsDesktopPage = ({
               Refresh
             </AppButton>
             <PermissionGate permission="product:create">
+              <UploadExistingInventoryBtn
+                onClick={handleImportWorkspaceProducts}
+                sx={secondaryButtonSx}
+              >
+                Import Stock
+              </UploadExistingInventoryBtn>
+            </PermissionGate>
+            <PermissionGate permission="product:create">
               <AppButton
                 type="button"
                 variant="outlined"
@@ -294,10 +304,10 @@ const WorkspaceProductsDesktopPage = ({
                 rounded="md"
                 size="small"
                 startIcon={<FiUpload />}
-                onClick={handleImportWorkspaceProducts}
+                onClick={handleOpenImportGst}
                 sx={secondaryButtonSx}
               >
-                Import
+                Import GST
               </AppButton>
             </PermissionGate>
             <PermissionGate permission="product:create">

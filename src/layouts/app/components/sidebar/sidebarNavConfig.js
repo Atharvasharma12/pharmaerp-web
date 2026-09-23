@@ -159,6 +159,13 @@ export const SIDEBAR_NAV_GROUPS = [
             permission: "product:view",
           },
           {
+            id: "transfer-orders",
+            label: "Transfer Orders",
+            path: "/inventory/transfer-orders",
+            icon: Boxes,
+            permission: "product:view",
+          },
+          {
             id: "catalog",
             label: "Global Catalog",
             path: ROUTES.CATALOG,
@@ -420,6 +427,28 @@ export const SIDEBAR_NAV_GROUPS = [
             path: ROUTES.LEDGER,
             icon: BookOpen,
             permission: "ledger:view",
+          },
+          {
+            id: "gst-ledger",
+            label: "GST Ledger",
+            icon: FileCheck2, // Reusing an icon for now
+            permissions: ["ledger:view"], // Or a specific gst permission if needed
+            children: [
+              {
+                id: "gstr-1",
+                label: "GSTR-1",
+                path: ROUTES.GSTR1,
+                icon: FileText,
+                permission: "ledger:view",
+              },
+              {
+                id: "gstr-2",
+                label: "GSTR-2",
+                path: ROUTES.GSTR2,
+                icon: FileText,
+                permission: "ledger:view",
+              },
+            ],
           },
           {
             id: "periods",

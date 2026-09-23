@@ -73,6 +73,10 @@ export const ROUTES = {
   // Finance - Ledger
   LEDGER: "/finance/ledger",
 
+  // Finance - GST Ledger
+  GSTR1: "/finance/gst-ledger/gstr-1",
+  GSTR2: "/finance/gst-ledger/gstr-2",
+
   // Finance - Reports
   REPORTS: "/finance/reports",
   REPORT_VIEWER: "/finance/reports/:reportType",
@@ -278,8 +282,13 @@ export const ROUTES = {
   // Billing & Invoices
   BILLING: "/billing",
 
+  // POS Billing Terminal
+  POS_TERMINAL: "/pos-terminal",
+
   // Purchases & Procurement
   PURCHASES: "/purchases",
+  CREATE_PURCHASE_BILL: "/purchases/bills/create",
+  EDIT_PURCHASE_BILL: (billId = ":billId") => `/purchases/bills/${billId}/edit`,
 
   // Help & Support
   HELP_CENTER: "/help-center",

@@ -1,0 +1,1176 @@
+// src/features/billing/pages/POSTerminalPage.jsx
+
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Search,
+  Plus,
+  Minus,
+  Trash2,
+  ShoppingCart,
+  User,
+  Building2,
+  CreditCard,
+  Banknote,
+  Smartphone,
+  Landmark,
+  Receipt,
+  X,
+  Check,
+  ChevronDown,
+  Package,
+  Hash,
+  Loader2,
+  Keyboard,
+  Clock,
+  Percent,
+  IndianRupee,
+  BadgePercent,
+  ArrowLeft,
+  FileText,
+  Zap,
+  Store,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import customerService from "@/features/parties/customers/services/customerService";
+import invoiceService from "@/features/sales/services/invoiceService";
+import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
+
+/* ─────────────── CONSTANTS ─────────────── */
+const BILLING_MODES = [
+  { id: "B2C", label: "B2C · Retail", icon: User, description: "Walk-in customers" },
+  { id: "B2B", label: "B2B · Party", icon: Building2, description: "Wholesale / Retailers" },
+];
+
+const PAYMENT_METHODS = [
+  { id: "Cash", label: "Cash", icon: Banknote, color: "text-emerald-500" },
+  { id: "UPI", label: "UPI", icon: Smartphone, color: "text-violet-500" },
+  { id: "Card", label: "Card", icon: CreditCard, color: "text-blue-500" },
+  { id: "Bank Transfer", label: "Bank", icon: Landmark, color: "text-amber-500" },
+  { id: "Credit", label: "Credit", icon: FileText, color: "text-rose-500" },
+];
+
+const B2B_CUSTOMER_TYPES = ["wholesale", "hospital", "clinic", "corporate", "other"];
+
+const CUSTOMER_TYPE_BADGES = {
+  wholesale: { label: "Wholesale", color: "bg-violet-500/15 text-violet-400 border-violet-500/20" },
+  hospital: { label: "Hospital", color: "bg-blue-500/15 text-blue-400 border-blue-500/20" },
+  clinic: { label: "Clinic", color: "bg-teal-500/15 text-teal-400 border-teal-500/20" },
+  corporate: { label: "Corporate", color: "bg-amber-500/15 text-amber-400 border-amber-500/20" },
+  other: { label: "Other", color: "bg-neutral-500/15 text-neutral-400 border-neutral-500/20" },
+  retail: { label: "Retail", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" },
+};
+
+/* ─────────────── HELPERS ─────────────── */
+const generateInvoiceNo = () => {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(2);
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const seq = Math.floor(1000 + Math.random() * 9000);
+  return `POS-${yy}${mm}-${seq}`;
+};
+
+const formatCurrency = (val) =>
+  `₹${Number(val || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const formatTime = () =>
+  new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+
+const formatDate = () =>
+  new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+/* ─────────────── DEBOUNCE HOOK ─────────────── */
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+};
+
+/* ─────────────────────────────────────────────────────────────────
+   MAIN COMPONENT
+   ───────────────────────────────────────────────────────────────── */
+export const POSTerminalPage = () => {
+  /* ── Clock ── */
+  const [currentTime, setCurrentTime] = useState(formatTime());
+  useEffect(() => {
+    const t = setInterval(() => setCurrentTime(formatTime()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  /* ── Invoice ── */
+  const [invoiceNo] = useState(() => generateInvoiceNo());
+
+  /* ── Billing Mode ── */
+  const [billingMode, setBillingMode] = useState("B2C");
+
+  /* ── Customer (B2C) ── */
+  const [b2cName, setB2cName] = useState("");
+  const [b2cPhone, setB2cPhone] = useState("");
+
+  /* ── Customer (B2B) ── */
+  const [b2bSearchQuery, setB2bSearchQuery] = useState("");
+  const [b2bResults, setB2bResults] = useState([]);
+  const [b2bSearching, setB2bSearching] = useState(false);
+  const [b2bDropdownOpen, setB2bDropdownOpen] = useState(false);
+  const [selectedParty, setSelectedParty] = useState(null);
+  const debouncedB2bQuery = useDebounce(b2bSearchQuery, 300);
+  const b2bInputRef = useRef(null);
+  const b2bDropdownRef = useRef(null);
+
+  /* ── Product Search ── */
+  const [productQuery, setProductQuery] = useState("");
+  const [productResults, setProductResults] = useState([]);
+  const [productSearching, setProductSearching] = useState(false);
+  const [productDropdownOpen, setProductDropdownOpen] = useState(false);
+  const debouncedProductQuery = useDebounce(productQuery, 300);
+  const productInputRef = useRef(null);
+  const productDropdownRef = useRef(null);
+
+  /* ── Cart ── */
+  const [cartItems, setCartItems] = useState([]);
+  const [discount, setDiscount] = useState(0);
+  const [discountType, setDiscountType] = useState("percent"); // "percent" | "flat"
+
+  /* ── Payment ── */
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [cashTendered, setCashTendered] = useState("");
+
+  /* ── UI State ── */
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  /* ────────────────── B2B SEARCH ────────────────── */
+  useEffect(() => {
+    if (billingMode !== "B2B") {
+      setB2bResults([]);
+      return;
+    }
+    let cancelled = false;
+
+    const search = async () => {
+      setB2bSearching(true);
+      try {
+        const res = await customerService.getCustomers({
+          search: debouncedB2bQuery || undefined,
+          limit: 15,
+          status: "active",
+          customerType: "retail,wholesale",
+        });
+        if (!cancelled) {
+          const customers = res.data?.data?.customers || res.data?.customers || [];
+          setB2bResults(customers);
+          if (debouncedB2bQuery.length > 0) {
+            setB2bDropdownOpen(customers.length > 0);
+          }
+        }
+      } catch (err) {
+        console.warn("B2B search error:", err);
+        if (!cancelled) setB2bResults([]);
+      } finally {
+        if (!cancelled) setB2bSearching(false);
+      }
+    };
+    search();
+    return () => { cancelled = true; };
+  }, [debouncedB2bQuery, billingMode]);
+
+  /* ────────────────── PRODUCT SEARCH ────────────────── */
+  useEffect(() => {
+    let cancelled = false;
+
+    const search = async () => {
+      setProductSearching(true);
+      try {
+        const res = await workspaceProductService.getWorkspaceProducts({
+          search: debouncedProductQuery || undefined,
+          limit: 15,
+          status: "active",
+        });
+        if (!cancelled) {
+          const products =
+            res.data?.data?.products ||
+            res.data?.products ||
+            res.data?.data ||
+            [];
+          setProductResults(Array.isArray(products) ? products : []);
+          if (debouncedProductQuery.length > 0) {
+            setProductDropdownOpen(products.length > 0);
+          }
+        }
+      } catch (err) {
+        console.warn("Product search error:", err);
+        if (!cancelled) setProductResults([]);
+      } finally {
+        if (!cancelled) setProductSearching(false);
+      }
+    };
+    search();
+    return () => { cancelled = true; };
+  }, [debouncedProductQuery]);
+
+  /* ────────────────── CLICK OUTSIDE ────────────────── */
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (b2bDropdownRef.current && !b2bDropdownRef.current.contains(e.target) &&
+        b2bInputRef.current && !b2bInputRef.current.contains(e.target)) {
+        setB2bDropdownOpen(false);
+      }
+      if (productDropdownRef.current && !productDropdownRef.current.contains(e.target) &&
+        productInputRef.current && !productInputRef.current.contains(e.target)) {
+        setProductDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  /* ────────────────── KEYBOARD SHORTCUTS ────────────────── */
+  useEffect(() => {
+    const handler = (e) => {
+      // F2 — Focus product search (new item)
+      if (e.key === "F2") {
+        e.preventDefault();
+        productInputRef.current?.focus();
+      }
+      // F5 — Focus cash tendered
+      if (e.key === "F5") {
+        e.preventDefault();
+        document.getElementById("pos-cash-tendered")?.focus();
+      }
+      // Escape — Clear search fields
+      if (e.key === "Escape") {
+        setProductQuery("");
+        setProductDropdownOpen(false);
+        setB2bDropdownOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  /* ────────────────── B2B PARTY SELECT ────────────────── */
+  const handleSelectParty = useCallback((party) => {
+    setSelectedParty(party);
+    setB2bSearchQuery(party.name || "");
+    setB2bDropdownOpen(false);
+  }, []);
+
+  const handleClearParty = useCallback(() => {
+    setSelectedParty(null);
+    setB2bSearchQuery("");
+    setB2bResults([]);
+    setTimeout(() => b2bInputRef.current?.focus(), 50);
+  }, []);
+
+  /* ────────────────── PRODUCT ADD TO CART ────────────────── */
+  const handleAddProduct = useCallback((product) => {
+    const pid = product._id || product.id;
+    setCartItems((prev) => {
+      const existing = prev.find((ci) => ci.productId === pid);
+      if (existing) {
+        return prev.map((ci) =>
+          ci.productId === pid ? { ...ci, qty: ci.qty + 1 } : ci
+        );
+      }
+
+      // Determine price from product structure
+      const mrp = Number(product.mrp || product.sellingPrice || product.price || 0);
+      const ptr = Number(product.ptr || product.purchasePrice || 0);
+      const gstRate = Number(product.gstRate || product.gstPercentage || 0);
+
+      return [
+        ...prev,
+        {
+          productId: pid,
+          name: product.name || product.productName || "Unknown Product",
+          productCode: product.productCode || "",
+          batchNo: product.batchNumber || product.batchNo || "",
+          expiryDate: product.expiryDate || null,
+          qty: 1,
+          mrp,
+          rate: mrp,
+          ptr,
+          gstRate,
+          itemDiscount: 0,
+          manufacturer: product.manufacturer?.name || product.manufacturerName || "",
+          pack: product.pack || product.packSize || "",
+        },
+      ];
+    });
+    setProductQuery("");
+    setProductDropdownOpen(false);
+    setTimeout(() => productInputRef.current?.focus(), 50);
+  }, []);
+
+  /* ────────────────── CART OPERATIONS ────────────────── */
+  const updateCartItem = useCallback((productId, field, value) => {
+    setCartItems((prev) =>
+      prev.map((ci) =>
+        ci.productId === productId ? { ...ci, [field]: value } : ci
+      )
+    );
+  }, []);
+
+  const removeCartItem = useCallback((productId) => {
+    setCartItems((prev) => prev.filter((ci) => ci.productId !== productId));
+  }, []);
+
+  const incrementQty = useCallback((productId) => {
+    setCartItems((prev) =>
+      prev.map((ci) =>
+        ci.productId === productId ? { ...ci, qty: ci.qty + 1 } : ci
+      )
+    );
+  }, []);
+
+  const decrementQty = useCallback((productId) => {
+    setCartItems((prev) =>
+      prev.map((ci) =>
+        ci.productId === productId
+          ? { ...ci, qty: Math.max(1, ci.qty - 1) }
+          : ci
+      )
+    );
+  }, []);
+
+  /* ────────────────── CALCULATIONS ────────────────── */
+  const calculations = useMemo(() => {
+    let subtotal = 0;
+    let totalGst = 0;
+    let totalItemDiscount = 0;
+
+    cartItems.forEach((ci) => {
+      const lineTotal = ci.qty * ci.rate;
+      const lineItemDiscount = ci.itemDiscount || 0;
+      const lineTaxable = lineTotal - lineItemDiscount;
+      const lineGst = lineTaxable * (ci.gstRate / 100);
+
+      subtotal += lineTotal;
+      totalGst += lineGst;
+      totalItemDiscount += lineItemDiscount;
+    });
+
+    const taxableAmount = subtotal - totalItemDiscount;
+    let billDiscount = 0;
+    if (discountType === "percent") {
+      billDiscount = (taxableAmount + totalGst) * (discount / 100);
+    } else {
+      billDiscount = Number(discount) || 0;
+    }
+
+    const grandTotal = Math.round(taxableAmount + totalGst - billDiscount);
+    const cashTenderedNum = Number(cashTendered) || 0;
+    const changeReturn = Math.max(0, cashTenderedNum - grandTotal);
+
+    return {
+      subtotal,
+      totalItemDiscount,
+      taxableAmount,
+      totalGst,
+      billDiscount,
+      grandTotal,
+      changeReturn,
+      totalItems: cartItems.reduce((sum, ci) => sum + ci.qty, 0),
+    };
+  }, [cartItems, discount, discountType, cashTendered]);
+
+  /* ────────────────── SUBMIT BILL ────────────────── */
+  const handleSubmitBill = async () => {
+    if (cartItems.length === 0) {
+      setToast({ type: "error", message: "Add at least one product to the cart." });
+      setTimeout(() => setToast(null), 3000);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Determine customer
+      let customerId = null;
+      let customerName = "Walk-in Customer";
+
+      if (billingMode === "B2B" && selectedParty) {
+        customerId = selectedParty._id || selectedParty.id;
+        customerName = selectedParty.name;
+      } else if (billingMode === "B2C") {
+        customerName = b2cName || "Walk-in Customer";
+      }
+
+      const salePayload = {
+        invoiceNo,
+        billingMode,
+        date: new Date().toISOString(),
+        items: cartItems.map((ci) => ({
+          productId: ci.productId,
+          name: ci.name,
+          productCode: ci.productCode,
+          batchNo: ci.batchNo,
+          qty: ci.qty,
+          mrp: ci.mrp,
+          rate: ci.rate,
+          gstRate: ci.gstRate,
+          itemDiscount: ci.itemDiscount,
+          total: ci.qty * ci.rate,
+        })),
+        subtotal: calculations.subtotal,
+        discount: calculations.billDiscount + calculations.totalItemDiscount,
+        tax: calculations.totalGst,
+        grandTotal: calculations.grandTotal,
+        paymentMethod,
+        cashTendered: Number(cashTendered) || calculations.grandTotal,
+        customerName,
+        customerPhone: billingMode === "B2C" ? b2cPhone : (selectedParty?.mobile || ""),
+      };
+
+      if (customerId) {
+        // B2B — record sale against the existing customer
+        await invoiceService.recordCustomerSale(customerId, salePayload);
+      } else if (billingMode === "B2C" && b2cName) {
+        // For B2C with a named customer, create the customer first, then record
+        try {
+          const createRes = await customerService.createCustomer({
+            name: b2cName || "Walk-in Customer",
+            mobile: b2cPhone || null,
+            customerType: "retail",
+          });
+          const newCustomer = createRes.data?.data || createRes.data;
+          const newId = newCustomer?._id || newCustomer?.id;
+          if (newId) {
+            await invoiceService.recordCustomerSale(newId, salePayload);
+          }
+        } catch (createErr) {
+          // If customer creation fails (e.g. duplicate), just show success for the bill
+          console.warn("B2C customer creation skipped:", createErr);
+        }
+      }
+
+      setToast({ type: "success", message: `✅ Invoice ${invoiceNo} billed successfully! Grand Total: ${formatCurrency(calculations.grandTotal)}` });
+      setTimeout(() => {
+        setToast(null);
+        // Reset form for next bill
+        window.location.reload();
+      }, 3000);
+    } catch (err) {
+      console.error("Submit bill error:", err);
+      setToast({ type: "error", message: "❌ Failed to submit bill. Please try again." });
+      setTimeout(() => setToast(null), 4000);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /* ────────────────── NEW BILL (RESET) ────────────────── */
+  const handleNewBill = () => {
+    window.location.reload();
+  };
+
+  /* ═══════════════════════════════════════════════════════════
+     RENDER
+     ═══════════════════════════════════════════════════════════ */
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-bg font-sans overflow-hidden">
+      {/* ──────────── TOAST ──────────── */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -30, scale: 0.95 }}
+            className={cn(
+              "fixed top-5 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-2xl text-sm font-semibold shadow-2xl border backdrop-blur-xl",
+              toast.type === "success"
+                ? "bg-success-soft/90 text-success border-success/30"
+                : "bg-error-soft/90 text-error border-error/30"
+            )}
+          >
+            {toast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ──────────── TOP BAR ──────────── */}
+      <header className="flex items-center justify-between px-5 py-2.5 border-b border-border bg-surface/80 backdrop-blur-sm shrink-0">
+        {/* Left — Logo & Invoice */}
+        <div className="flex items-center gap-4">
+          <a
+            href="/billing"
+            className="flex items-center gap-2 text-text-muted hover:text-primary transition-colors group"
+          >
+            <ArrowLeft className="size-4 group-hover:-translate-x-0.5 transition-transform" />
+            <span className="text-xs font-semibold">Back</span>
+          </a>
+          <div className="h-6 w-px bg-border" />
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-xl bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center shadow-md">
+              <Store className="size-4 text-primary-contrast" />
+            </div>
+            <div>
+              <h1 className="text-sm font-extrabold text-text tracking-tight leading-none">
+                POS Terminal
+              </h1>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] font-mono font-bold text-primary">
+                  {invoiceNo}
+                </span>
+                <span className="text-[10px] text-text-muted">·</span>
+                <span className="text-[10px] text-text-muted">{formatDate()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Center — Billing Mode Toggle */}
+        <div className="flex items-center gap-1 bg-surface-alt p-1 rounded-xl border border-border">
+          {BILLING_MODES.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => {
+                setBillingMode(mode.id);
+                setSelectedParty(null);
+                setB2bSearchQuery("");
+                setB2bResults([]);
+              }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                billingMode === mode.id
+                  ? "bg-surface text-primary shadow-sm border border-primary/20"
+                  : "text-text-muted hover:text-text"
+              )}
+            >
+              <mode.icon className="size-3.5" />
+              <span>{mode.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Right — Clock & Shortcuts */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-text-muted">
+            <Clock className="size-3.5" />
+            <span className="text-xs font-mono font-semibold tabular-nums">{currentTime}</span>
+          </div>
+          <div className="h-5 w-px bg-border" />
+          <div className="flex items-center gap-1.5">
+            <kbd className="px-1.5 py-0.5 rounded-md bg-surface-alt border border-border text-[9px] font-mono font-bold text-text-muted">F2</kbd>
+            <span className="text-[9px] text-text-muted">Search</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <kbd className="px-1.5 py-0.5 rounded-md bg-surface-alt border border-border text-[9px] font-mono font-bold text-text-muted">F5</kbd>
+            <span className="text-[9px] text-text-muted">Pay</span>
+          </div>
+        </div>
+      </header>
+
+      {/* ──────────── MAIN BODY (Split View) ──────────── */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* ═══════════ LEFT PANEL — Products & Cart ═══════════ */}
+        <div className="flex flex-col flex-1 border-r border-border overflow-hidden">
+          {/* Product Search Bar */}
+          <div className="p-4 pb-3 border-b border-border/50 bg-surface/40 shrink-0">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-text-muted" />
+              {productSearching && (
+                <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 size-4 text-primary animate-spin" />
+              )}
+              <input
+                ref={productInputRef}
+                id="pos-product-search"
+                type="text"
+                value={productQuery}
+                onChange={(e) => {
+                  setProductQuery(e.target.value);
+                  setProductDropdownOpen(true);
+                }}
+                onFocus={() => { setProductDropdownOpen(true); }}
+                placeholder="Search products by name, code, or barcode... (F2)"
+                autoComplete="off"
+                className="w-full rounded-xl border border-border bg-surface pl-10 pr-10 py-3 text-sm text-text placeholder:text-text-muted/60 focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none transition-all"
+              />
+
+              {/* Product Dropdown */}
+              <AnimatePresence>
+                {productDropdownOpen && productResults.length > 0 && (
+                  <motion.div
+                    ref={productDropdownRef}
+                    initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 right-0 mt-1.5 rounded-xl border border-border bg-surface shadow-2xl z-50 max-h-[320px] overflow-y-auto"
+                  >
+                    {productResults.map((product, idx) => {
+                      const pid = product._id || product.id;
+                      const name = product.name || product.productName || "Unnamed";
+                      const code = product.productCode || "";
+                      const manufacturer = product.manufacturer?.name || product.manufacturerName || "";
+                      const mrp = Number(product.mrp || product.sellingPrice || product.price || 0);
+                      const pack = product.pack || product.packSize || "";
+
+                      return (
+                        <button
+                          key={pid || idx}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleAddProduct(product)}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover/70 transition-colors text-left cursor-pointer border-b border-border/30 last:border-b-0"
+                        >
+                          <div className="size-9 rounded-lg bg-primary-soft flex items-center justify-center shrink-0">
+                            <Package className="size-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-text truncate">{name}</span>
+                              {pack && (
+                                <span className="text-[10px] font-mono text-text-muted bg-surface-alt px-1.5 py-0.5 rounded-md border border-border/50 shrink-0">{pack}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {code && (
+                                <span className="text-[10px] font-mono text-primary/70">{code}</span>
+                              )}
+                              {manufacturer && (
+                                <span className="text-[10px] text-text-muted truncate">· {manufacturer}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-xs font-extrabold text-text font-mono">{formatCurrency(mrp)}</div>
+                            <div className="text-[10px] text-text-muted">MRP</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Cart Table */}
+          <div className="flex-1 overflow-y-auto">
+            {cartItems.length === 0 ? (
+              /* Empty Cart State */
+              <div className="flex flex-col items-center justify-center h-full gap-4 text-text-muted">
+                <div className="size-20 rounded-2xl bg-surface-alt/70 border border-border flex items-center justify-center">
+                  <ShoppingCart className="size-10 text-text-muted/40" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-text/60">Cart is empty</p>
+                  <p className="text-xs text-text-muted mt-1">
+                    Search and add products to start billing
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <kbd className="px-2 py-1 rounded-lg bg-surface-alt border border-border text-[10px] font-mono font-bold text-text-muted">F2</kbd>
+                  <span className="text-[10px] text-text-muted">to quick-search products</span>
+                </div>
+              </div>
+            ) : (
+              /* Cart Items Table */
+              <table className="w-full text-left border-collapse">
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-surface-alt/80 backdrop-blur-sm border-b border-border text-[10px] font-bold text-text-muted uppercase tracking-widest">
+                    <th className="py-2.5 px-4 font-bold">#</th>
+                    <th className="py-2.5 px-3 font-bold">Product</th>
+                    <th className="py-2.5 px-3 text-center font-bold">Qty</th>
+                    <th className="py-2.5 px-3 text-right font-bold">Rate</th>
+                    <th className="py-2.5 px-3 text-right font-bold">GST%</th>
+                    <th className="py-2.5 px-3 text-right font-bold">Amount</th>
+                    <th className="py-2.5 px-2 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  <AnimatePresence>
+                    {cartItems.map((ci, idx) => {
+                      const lineTotal = ci.qty * ci.rate;
+                      const lineGst = (lineTotal - (ci.itemDiscount || 0)) * (ci.gstRate / 100);
+                      const lineAmount = lineTotal - (ci.itemDiscount || 0) + lineGst;
+
+                      return (
+                        <motion.tr
+                          key={ci.productId}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="group hover:bg-surface-hover/40 transition-colors"
+                        >
+                          {/* # */}
+                          <td className="py-3 px-4 text-xs font-mono text-text-muted">{idx + 1}</td>
+
+                          {/* Product */}
+                          <td className="py-3 px-3">
+                            <div className="flex flex-col">
+                              <span className="text-xs font-bold text-text leading-tight">{ci.name}</span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {ci.productCode && (
+                                  <span className="text-[10px] font-mono text-primary/70">{ci.productCode}</span>
+                                )}
+                                {ci.batchNo && (
+                                  <span className="text-[10px] text-text-muted">Batch: {ci.batchNo}</span>
+                                )}
+                                {ci.manufacturer && (
+                                  <span className="text-[10px] text-text-muted truncate">· {ci.manufacturer}</span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Qty */}
+                          <td className="py-3 px-3">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => decrementQty(ci.productId)}
+                                className="size-6 rounded-lg border border-border bg-surface-alt flex items-center justify-center hover:bg-surface-hover transition-colors cursor-pointer"
+                              >
+                                <Minus className="size-3 text-text-muted" />
+                              </button>
+                              <input
+                                type="number"
+                                min="1"
+                                value={ci.qty}
+                                onChange={(e) => updateCartItem(ci.productId, "qty", Math.max(1, Number(e.target.value) || 1))}
+                                className="w-12 text-center rounded-lg border border-border bg-surface py-1 text-xs font-bold text-text font-mono focus:border-primary focus:outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => incrementQty(ci.productId)}
+                                className="size-6 rounded-lg border border-border bg-surface-alt flex items-center justify-center hover:bg-surface-hover transition-colors cursor-pointer"
+                              >
+                                <Plus className="size-3 text-text-muted" />
+                              </button>
+                            </div>
+                          </td>
+
+                          {/* Rate */}
+                          <td className="py-3 px-3 text-right">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={ci.rate}
+                              onChange={(e) => updateCartItem(ci.productId, "rate", Number(e.target.value) || 0)}
+                              className="w-20 text-right rounded-lg border border-border bg-surface py-1 px-2 text-xs font-bold text-text font-mono focus:border-primary focus:outline-none"
+                            />
+                          </td>
+
+                          {/* GST% */}
+                          <td className="py-3 px-3 text-right">
+                            <span className="text-xs font-mono text-text-muted">{ci.gstRate}%</span>
+                          </td>
+
+                          {/* Amount */}
+                          <td className="py-3 px-3 text-right">
+                            <span className="text-xs font-extrabold text-text font-mono tabular-nums">
+                              {formatCurrency(lineAmount)}
+                            </span>
+                          </td>
+
+                          {/* Remove */}
+                          <td className="py-3 px-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => removeCartItem(ci.productId)}
+                              className="size-7 rounded-lg flex items-center justify-center text-text-muted hover:text-error hover:bg-error-soft/50 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Cart Footer Summary Bar */}
+          {cartItems.length > 0 && (
+            <div className="flex items-center justify-between px-5 py-2.5 border-t border-border bg-surface-alt/50 shrink-0">
+              <div className="flex items-center gap-4 text-xs text-text-muted">
+                <span>
+                  <span className="font-bold text-text">{cartItems.length}</span> items
+                </span>
+                <span>·</span>
+                <span>
+                  <span className="font-bold text-text">{calculations.totalItems}</span> qty
+                </span>
+              </div>
+              <div className="text-sm font-extrabold text-primary font-mono tabular-nums">
+                {formatCurrency(calculations.grandTotal)}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ═══════════ RIGHT PANEL — Customer, Payment, Submit ═══════════ */}
+        <div className="w-[380px] xl:w-[420px] flex flex-col bg-surface/50 overflow-y-auto shrink-0">
+          <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+            {/* ─── Customer Card ─── */}
+            <div className="rounded-xl border border-border bg-surface p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                {billingMode === "B2C" ? (
+                  <User className="size-4 text-primary" />
+                ) : (
+                  <Building2 className="size-4 text-primary" />
+                )}
+                <span className="text-xs font-bold text-text uppercase tracking-wider">
+                  {billingMode === "B2C" ? "Customer Details" : "Party Details (B2B)"}
+                </span>
+              </div>
+
+              {billingMode === "B2C" ? (
+                /* ── B2C: Manual Name Entry ── */
+                <div className="space-y-2.5">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Customer Name</label>
+                    <input
+                      type="text"
+                      value={b2cName}
+                      onChange={(e) => setB2cName(e.target.value)}
+                      placeholder="Walk-in Customer"
+                      className="w-full rounded-lg border border-border bg-surface-alt/50 px-3 py-2 text-xs text-text placeholder:text-text-muted/50 focus:border-primary focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={b2cPhone}
+                      onChange={(e) => setB2cPhone(e.target.value)}
+                      placeholder="9876543210"
+                      className="w-full rounded-lg border border-border bg-surface-alt/50 px-3 py-2 text-xs text-text font-mono placeholder:text-text-muted/50 focus:border-primary focus:outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* ── B2B: Autocomplete Party Search ── */
+                <div className="space-y-2.5">
+                  {/* Selected Party Display */}
+                  {selectedParty ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="rounded-xl border border-primary/20 bg-primary-soft/30 p-3 space-y-2"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-extrabold text-text">{selectedParty.name}</span>
+                            {selectedParty.customerType && CUSTOMER_TYPE_BADGES[selectedParty.customerType] && (
+                              <span className={cn(
+                                "px-1.5 py-0.5 rounded-md text-[9px] font-bold border",
+                                CUSTOMER_TYPE_BADGES[selectedParty.customerType].color
+                              )}>
+                                {CUSTOMER_TYPE_BADGES[selectedParty.customerType].label}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1">
+                            {selectedParty.customerCode && (
+                              <span className="text-[10px] font-mono text-primary">{selectedParty.customerCode}</span>
+                            )}
+                            {selectedParty.mobile && (
+                              <span className="text-[10px] text-text-muted font-mono">{selectedParty.mobile}</span>
+                            )}
+                          </div>
+                          {selectedParty.gstNumber && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className="text-[10px] text-text-muted">GST:</span>
+                              <span className="text-[10px] font-mono font-semibold text-text">{selectedParty.gstNumber}</span>
+                            </div>
+                          )}
+                          {selectedParty.billingAddress?.city && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <span className="text-[10px] text-text-muted">
+                                {[selectedParty.billingAddress.city, selectedParty.billingAddress.state].filter(Boolean).join(", ")}
+                              </span>
+                            </div>
+                          )}
+                          {(selectedParty.creditLimit > 0 || selectedParty.creditDays > 0) && (
+                            <div className="flex items-center gap-3 mt-1.5 pt-1.5 border-t border-border/50">
+                              {selectedParty.creditLimit > 0 && (
+                                <span className="text-[10px] text-text-muted">
+                                  Credit: <span className="font-bold text-text">{formatCurrency(selectedParty.creditLimit)}</span>
+                                </span>
+                              )}
+                              {selectedParty.creditDays > 0 && (
+                                <span className="text-[10px] text-text-muted">
+                                  Days: <span className="font-bold text-text">{selectedParty.creditDays}</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleClearParty}
+                          className="size-6 rounded-lg flex items-center justify-center text-text-muted hover:text-error hover:bg-error-soft/30 transition-all cursor-pointer shrink-0"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    /* B2B Search Input */
+                    <div className="relative">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Search Party</label>
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-text-muted" />
+                          {b2bSearching && (
+                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-3.5 text-primary animate-spin" />
+                          )}
+                          <input
+                            ref={b2bInputRef}
+                            type="text"
+                            value={b2bSearchQuery}
+                            onChange={(e) => {
+                              setB2bSearchQuery(e.target.value);
+                              setB2bDropdownOpen(true);
+                            }}
+                            onFocus={() => { setB2bDropdownOpen(true); }}
+                            placeholder="Type party name, code, or mobile..."
+                            autoComplete="off"
+                            className="w-full rounded-lg border border-border bg-surface-alt/50 pl-9 pr-9 py-2 text-xs text-text placeholder:text-text-muted/50 focus:border-primary focus:outline-none transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      {/* B2B Dropdown */}
+                      <AnimatePresence>
+                        {b2bDropdownOpen && b2bResults.length > 0 && (
+                          <motion.div
+                            ref={b2bDropdownRef}
+                            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute top-full left-0 right-0 mt-1 rounded-xl border border-border bg-surface shadow-2xl z-50 max-h-[240px] overflow-y-auto"
+                          >
+                            {b2bResults.map((party) => {
+                              const pid = party._id || party.id;
+                              const badge = CUSTOMER_TYPE_BADGES[party.customerType] || CUSTOMER_TYPE_BADGES.other;
+
+                              return (
+                                <button
+                                  key={pid}
+                                  type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onClick={() => handleSelectParty(party)}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-surface-hover/70 transition-colors text-left cursor-pointer border-b border-border/30 last:border-b-0"
+                                >
+                                  <div className="size-8 rounded-lg bg-primary-soft flex items-center justify-center shrink-0">
+                                    <Building2 className="size-3.5 text-primary" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-bold text-text truncate">{party.name}</span>
+                                      <span className={cn(
+                                        "px-1.5 py-0.5 rounded-md text-[9px] font-bold border shrink-0",
+                                        badge.color
+                                      )}>
+                                        {badge.label}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                      {party.customerCode && (
+                                        <span className="text-[10px] font-mono text-primary/70">{party.customerCode}</span>
+                                      )}
+                                      {party.mobile && (
+                                        <span className="text-[10px] font-mono text-text-muted">· {party.mobile}</span>
+                                      )}
+                                      {party.gstNumber && (
+                                        <span className="text-[10px] font-mono text-text-muted">· GST: {party.gstNumber}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+
+                  {/* Fallback: No match message */}
+                  {!selectedParty && b2bSearchQuery.length >= 2 && !b2bSearching && b2bResults.length === 0 && (
+                    <div className="text-[10px] text-text-muted bg-warning-soft/30 border border-warning/20 rounded-lg px-3 py-2">
+                      No B2B parties found for "{b2bSearchQuery}". Create a new party from the Parties module.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ─── Bill Summary ─── */}
+            <div className="rounded-xl border border-border bg-surface p-4 space-y-2.5">
+              <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                <Receipt className="size-4 text-primary" />
+                <span className="text-xs font-bold text-text uppercase tracking-wider">Bill Summary</span>
+              </div>
+
+              <div className="space-y-1.5 text-xs font-mono">
+                <div className="flex justify-between text-text-muted">
+                  <span>Subtotal</span>
+                  <span className="tabular-nums">{formatCurrency(calculations.subtotal)}</span>
+                </div>
+                {calculations.totalItemDiscount > 0 && (
+                  <div className="flex justify-between text-text-muted">
+                    <span>Item Discounts</span>
+                    <span className="tabular-nums text-error">-{formatCurrency(calculations.totalItemDiscount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-text-muted">
+                  <span>GST</span>
+                  <span className="tabular-nums">{formatCurrency(calculations.totalGst)}</span>
+                </div>
+
+                {/* Bill Discount */}
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-text-muted text-xs flex-shrink-0">Discount</span>
+                  <div className="flex items-center gap-1 flex-1 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setDiscountType(discountType === "percent" ? "flat" : "percent")}
+                      className="size-6 rounded-md border border-border bg-surface-alt flex items-center justify-center hover:bg-surface-hover transition-colors cursor-pointer"
+                      title={discountType === "percent" ? "Percentage discount" : "Flat discount"}
+                    >
+                      {discountType === "percent" ? (
+                        <Percent className="size-3 text-text-muted" />
+                      ) : (
+                        <IndianRupee className="size-3 text-text-muted" />
+                      )}
+                    </button>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={discount}
+                      onChange={(e) => setDiscount(Number(e.target.value) || 0)}
+                      className="w-16 text-right rounded-md border border-border bg-surface-alt/50 py-1 px-2 text-xs font-mono text-text focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+                {calculations.billDiscount > 0 && (
+                  <div className="flex justify-between text-error">
+                    <span>Bill Discount</span>
+                    <span className="tabular-nums">-{formatCurrency(calculations.billDiscount)}</span>
+                  </div>
+                )}
+
+                {/* Grand Total */}
+                <div className="flex justify-between pt-2 mt-1 border-t border-border text-sm font-extrabold text-text">
+                  <span>Grand Total</span>
+                  <span className="text-primary tabular-nums">{formatCurrency(calculations.grandTotal)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ─── Payment Method ─── */}
+            <div className="rounded-xl border border-border bg-surface p-4 space-y-3">
+              <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                <CreditCard className="size-4 text-primary" />
+                <span className="text-xs font-bold text-text uppercase tracking-wider">Payment</span>
+              </div>
+
+              <div className="grid grid-cols-5 gap-1.5">
+                {PAYMENT_METHODS.map((pm) => (
+                  <button
+                    key={pm.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(pm.id)}
+                    className={cn(
+                      "flex flex-col items-center gap-1 py-2 px-1 rounded-lg border text-[10px] font-semibold transition-all cursor-pointer",
+                      paymentMethod === pm.id
+                        ? "bg-primary-soft/40 border-primary/30 text-primary shadow-sm"
+                        : "bg-surface-alt/30 border-border text-text-muted hover:border-primary/20 hover:text-text"
+                    )}
+                  >
+                    <pm.icon className={cn("size-4", paymentMethod === pm.id ? "text-primary" : pm.color)} />
+                    <span>{pm.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Cash Tendered */}
+              {paymentMethod === "Cash" && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="space-y-2 pt-1"
+                >
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Cash Tendered (F5)</label>
+                    <input
+                      id="pos-cash-tendered"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={cashTendered}
+                      onChange={(e) => setCashTendered(e.target.value)}
+                      placeholder={String(calculations.grandTotal)}
+                      className="w-full rounded-lg border border-border bg-surface-alt/50 px-3 py-2 text-sm text-text font-mono font-bold placeholder:text-text-muted/40 focus:border-primary focus:outline-none transition-colors"
+                    />
+                  </div>
+                  {calculations.changeReturn > 0 && (
+                    <div className="flex justify-between items-center bg-success-soft/30 border border-success/20 rounded-lg px-3 py-2">
+                      <span className="text-xs font-semibold text-success">Change Return</span>
+                      <span className="text-sm font-extrabold text-success font-mono tabular-nums">
+                        {formatCurrency(calculations.changeReturn)}
+                      </span>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </div>
+          </div>
+
+          {/* ─── Action Buttons (sticky bottom) ─── */}
+          <div className="p-4 border-t border-border bg-surface/80 backdrop-blur-sm space-y-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleSubmitBill}
+              disabled={submitting || cartItems.length === 0}
+              className={cn(
+                "w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-extrabold transition-all cursor-pointer",
+                cartItems.length > 0 && !submitting
+                  ? "bg-gradient-to-r from-primary to-primary-hover text-primary-contrast shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99]"
+                  : "bg-surface-alt text-text-disabled border border-border cursor-not-allowed"
+              )}
+            >
+              {submitting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Zap className="size-4" />
+              )}
+              <span>
+                {submitting
+                  ? "Processing..."
+                  : cartItems.length > 0
+                    ? `Bill ${formatCurrency(calculations.grandTotal)}`
+                    : "Add items to bill"}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleNewBill}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-text-muted bg-surface-alt/50 border border-border hover:bg-surface-hover hover:text-text transition-all cursor-pointer"
+            >
+              <Plus className="size-3.5" />
+              <span>New Bill</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default POSTerminalPage;
