@@ -83,6 +83,8 @@ export const CreatePurchaseBillMobilePage = () => {
       hsn: getHsnCode(p),
       gst: getGstRate(p),
       rate: baseRate,
+      retailerMarginPercent: Number(p.retailerMarginPercent || 20),
+      stockistMarginPercent: Number(p.stockistMarginPercent || 10),
     };
 
     setCart((prev) => {
