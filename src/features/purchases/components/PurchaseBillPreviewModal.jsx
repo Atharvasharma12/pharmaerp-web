@@ -19,12 +19,18 @@ import {
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants";
 import purchaseBillService from "../services/purchaseBillService";
+import useCompany from "@/features/company/hooks/useCompany";
 
 export const PurchaseBillPreviewModal = ({ bill, isOpen, onClose, onRefresh }) => {
   const navigate = useNavigate();
   const [isIngesting, setIsIngesting] = useState(false);
+  const { currentCompany } = useCompany();
 
   if (!isOpen || !bill) return null;
+
+  const companyGstin = currentCompany?.gstin || "";
+  const supplierGstin = bill?.supplierId?.gstNumber || bill?.supplierId?.gstin || "";
+  const isIgst = Boolean(companyGstin && supplierGstin && companyGstin.substring(0, 2) !== supplierGstin.substring(0, 2));
 
   const handlePrint = () => {
     window.print();
@@ -206,8 +212,13 @@ export const PurchaseBillPreviewModal = ({ bill, isOpen, onClose, onRefresh }) =
                     <tr className="border-b border-border bg-surface-alt/80 text-[10px] font-bold text-text-muted uppercase tracking-wider">
                       <th className="py-2 px-2.5">Slab</th>
                       <th className="py-2 px-2 font-mono text-right">Taxable</th>
-                      <th className="py-2 px-2 font-mono text-right">CGST</th>
-                      <th className="py-2 px-2 font-mono text-right">SGST</th>
+                      {!isIgst && (
+                        <>
+                          <th className="py-2 px-2 font-mono text-right">CGST</th>
+                          <th className="py-2 px-2 font-mono text-right">SGST</th>
+                        </>
+                      )}
+                      {isIgst && <th className="py-2 px-2 font-mono text-right">IGST</th>}
                       <th className="py-2 px-2.5 font-mono text-right">Tax</th>
                     </tr>
                   </thead>
@@ -220,12 +231,21 @@ export const PurchaseBillPreviewModal = ({ bill, isOpen, onClose, onRefresh }) =
                         <td className="py-1.5 px-2 text-right font-medium text-text">
                           ₹{Number(slab.taxable || 0).toFixed(2)}
                         </td>
-                        <td className="py-1.5 px-2 text-right text-text-muted">
-                          ₹{Number(slab.cgstAmt || 0).toFixed(2)}
-                        </td>
-                        <td className="py-1.5 px-2 text-right text-text-muted">
-                          ₹{Number(slab.sgstAmt || 0).toFixed(2)}
-                        </td>
+                        {!isIgst && (
+                          <>
+                            <td className="py-1.5 px-2 text-right text-text-muted">
+                              ₹{Number(slab.cgstAmt || slab.totalTax / 2 || 0).toFixed(2)}
+                            </td>
+                            <td className="py-1.5 px-2 text-right text-text-muted">
+                              ₹{Number(slab.sgstAmt || slab.totalTax / 2 || 0).toFixed(2)}
+                            </td>
+                          </>
+                        )}
+                        {isIgst && (
+                          <td className="py-1.5 px-2 text-right text-text-muted">
+                            ₹{Number(slab.totalTax || 0).toFixed(2)}
+                          </td>
+                        )}
                         <td className="py-1.5 px-2.5 text-right font-bold text-emerald-600">
                           ₹{Number(slab.totalTax || 0).toFixed(2)}
                         </td>
@@ -233,7 +253,7 @@ export const PurchaseBillPreviewModal = ({ bill, isOpen, onClose, onRefresh }) =
                     ))}
                     {(!bill.gstSlabs || bill.gstSlabs.length === 0) && (
                       <tr>
-                        <td colSpan={5} className="py-2 text-center text-text-muted font-sans text-xs">
+                        <td colSpan={isIgst ? 4 : 5} className="py-2 text-center text-text-muted font-sans text-xs">
                           No tax slabs available
                         </td>
                       </tr>
