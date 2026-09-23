@@ -27,7 +27,8 @@ import {
 import { PermissionGate } from "@/components/common/PermissionGate";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants";
-import customerService from "@/features/parties/customers/services/customerService";
+
+import invoiceService from "@/features/sales/services/invoiceService";
 import { INVOICE_RECORDS } from "../../constants/billingData";
 import { BillingCreateInvoiceModal } from "../../components/BillingCreateInvoiceModal";
 import { BillingInvoiceDetailsDrawer } from "../../components/BillingInvoiceDetailsDrawer";
@@ -48,60 +49,55 @@ export const BillingDesktopPage = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalInvoices, setTotalInvoices] = useState(0);
 
   useEffect(() => {
     fetchInvoicesFromBackend();
-  }, []);
+  }, [currentPage]);
 
   const fetchInvoicesFromBackend = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch customers list
-      const res = await customerService.getCustomers({ limit: 50 });
-      const customerList = res.data?.data?.customers || res.data?.customers || res.data?.data || [];
+      const salesRes = await invoiceService.getAllCustomerSales({ page: currentPage, limit: 5 });
+      const result = salesRes.data?.data || {};
+      const salesData = result.data || [];
+      const salesList = Array.isArray(salesData) ? salesData : [];
+
+      if (result.meta && result.meta.total && result.meta.limit) {
+        setTotalPages(Math.ceil(result.meta.total / result.meta.limit));
+        setTotalInvoices(result.meta.total);
+      }
 
       let allInvoices = [];
-
-      // 2. Fetch sales for each customer
-      for (const cust of customerList) {
-        const custId = cust._id || cust.id;
-        if (!custId) continue;
-
-        try {
-          const salesRes = await customerService.getCustomerSales(custId);
-          const salesData = salesRes.data?.data || salesRes.data || [];
-          const salesList = Array.isArray(salesData) ? salesData : [];
-
-          salesList.forEach((s) => {
-            allInvoices.push({
-              id: s._id || s.id || `inv-${Date.now()}-${Math.random()}`,
-              branchId: s.branchId || cust.branchId || null,
-              branchName: s.branchName || "Main Branch",
-              invoiceNo: s.invoiceNo || `RET-INV-${Math.floor(1000 + Math.random() * 9000)}`,
-              customer: cust.name || cust.displayName || "Walk-in Retail Customer",
-              phone: cust.phone || cust.mobile || "9876543210",
-              doctor: s.doctor || "Dr. Self",
-              issueDate: s.date ? new Date(s.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Today",
-              dueDate: s.dueDate ? new Date(s.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Today",
-              itemCount: Array.isArray(s.items) ? s.items.length : 1,
-              amount: Number(s.grandTotal || s.totalAmount || s.subtotal || 0),
-              subtotal: Number(s.subtotal || 0),
-              discount: Number(s.discount || 0),
-              tax: Number(s.tax || 0),
-              paidAmount: Number(s.cashTendered || s.grandTotal || 0),
-              balance: Math.max(0, Number(s.grandTotal || 0) - Number(s.cashTendered || s.grandTotal || 0)),
-              status: s.status || "Paid",
-              paymentMode: s.paymentMethod || s.paymentMode || "Cash",
-              billingMode: s.billingMode || "B2C",
-              createdByName: s.createdByName || (s.createdByEmail ? s.createdByEmail.split("@")[0] : "System User"),
-              createdByEmail: s.createdByEmail || null,
-              items: s.items || [],
-            });
-          });
-        } catch (sErr) {
-          // Individual customer sales error fallback
-        }
-      }
+      salesList.forEach((s) => {
+        allInvoices.push({
+          id: s._id || s.id || `inv-${Date.now()}-${Math.random()}`,
+          branchId: s.branchId || null,
+          branchName: s.branchName || "Main Branch",
+          invoiceNo: s.invoiceNo || `RET-INV-${Math.floor(1000 + Math.random() * 9000)}`,
+          customer: s.customerName || "Walk-in Retail Customer",
+          phone: s.customerPhone || "9876543210",
+          doctor: s.doctor || "Dr. Self",
+          issueDate: s.date ? new Date(s.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Today",
+          dueDate: s.dueDate ? new Date(s.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Today",
+          itemCount: Array.isArray(s.items) ? s.items.length : 1,
+          amount: Number(s.grandTotal || s.totalAmount || s.subtotal || 0),
+          subtotal: Number(s.subtotal || 0),
+          discount: Number(s.discount || 0),
+          tax: Number(s.tax || 0),
+          paidAmount: Number(s.cashTendered || s.grandTotal || 0),
+          balance: Math.max(0, Number(s.grandTotal || 0) - Number(s.cashTendered || s.grandTotal || 0)),
+          status: s.status || "Paid",
+          paymentMode: s.paymentMethod || s.paymentMode || "Cash",
+          billingMode: s.billingMode || "B2C",
+          createdByName: s.createdByName || (s.createdByEmail ? s.createdByEmail.split("@")[0] : "System User"),
+          createdByEmail: s.createdByEmail || null,
+          items: s.items || [],
+        });
+      });
 
       setInvoices(allInvoices);
     } catch (err) {
@@ -223,11 +219,32 @@ export const BillingDesktopPage = () => {
               variant="outline"
               size="md"
               disabled={isLoading}
-              onClick={fetchInvoicesFromBackend}
+              onClick={() => { setCurrentPage(1); fetchInvoicesFromBackend(); }}
               leftIcon={<RefreshCw className={cn("size-4", isLoading && "animate-spin text-primary")} />}
             >
               Refresh
             </UIButton>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center gap-2 mt-2">
+              <UIButton
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              >
+                ‹ Prev
+              </UIButton>
+              <span className="text-sm">Page {currentPage} of {totalPages}</span>
+              <UIButton
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+              >
+                Next ›
+              </UIButton>
+            </div>
 
             <PermissionGate
               permission="bill:create"
@@ -442,8 +459,27 @@ export const BillingDesktopPage = () => {
           {/* Table Footer */}
           <div className="flex items-center justify-between pt-3 border-t border-border/70 text-xs text-text-muted">
             <span className="font-mono tabular-nums">
-              Showing {filteredInvoices.length} of {invoices.length} invoices
+              Showing {totalInvoices} of {invoices.length} invoices
             </span>
+            <div className="flex items-center gap-2 mt-2">
+              <UIButton
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              >
+                ‹ Prev
+              </UIButton>
+              <span className="text-sm">Page {currentPage} of {totalPages}</span>
+              <UIButton
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+              >
+                Next ›
+              </UIButton>
+            </div>
           </div>
         </UICard>
       </div>

@@ -114,9 +114,14 @@ export const ENDPOINTS = {
 
     OUTSTANDING: (customerId) => `/parties/customers/${customerId}/outstanding`,
 
-    SALES: (customerId) => `/parties/customers/${customerId}/sales`,
-
     PAYMENTS: (customerId) => `/parties/customers/${customerId}/payments`,
+  },
+
+  SALES: {
+    INVOICES: {
+      ALL: "/sales/invoices",
+      BY_CUSTOMER: (customerId) => `/sales/invoices/customer/${customerId}`,
+    }
   },
 
   SUPPLIER: {

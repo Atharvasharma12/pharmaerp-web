@@ -586,7 +586,7 @@ const getBreadcrumbs = (pathname, isSetupComplete = false) => {
 };
 
 
-import { UploadExistingInventoryBtn, ProductFacilityTableDialog } from "@/components";
+import { ProductFacilityTableDialog } from "@/components";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
 import useUser from "@/features/user/hooks/useUser";
 
@@ -703,17 +703,6 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
             <span>Stock Matrix</span>
           </button>
 
-          {/* Upload Existing Inventory Button */}
-          <UploadExistingInventoryBtn
-            id="header-upload-inventory-btn"
-            variant="outlined"
-            size="small"
-            className="hidden sm:inline-flex rounded-full text-xs shadow-2xs hover:bg-primary-50 transition-all border-gray-200"
-            title="Import Inventory"
-          >
-            Upload Inventory
-          </UploadExistingInventoryBtn>
-          
           {isSetupComplete && <HeaderNotifications />}
 
           {/* Product Facility Table Dialog */}
@@ -722,7 +711,7 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
             onClose={() => setIsStockMatrixOpen(false)}
           />
 
-          
+
           {/* POS Billing Plus Button */}
           <Link
             to="/sales"

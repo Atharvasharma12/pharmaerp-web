@@ -49,19 +49,6 @@ const customerService = {
     return apiClient.get(ENDPOINTS.CUSTOMER.OUTSTANDING(customerId));
   },
 
-  /*
-  |--------------------------------------------------------------------------
-  | Sales
-  |--------------------------------------------------------------------------
-  */
-
-  getCustomerSales(customerId) {
-    return apiClient.get(ENDPOINTS.CUSTOMER.SALES(customerId));
-  },
-
-  recordCustomerSale(customerId, payload) {
-    return apiClient.post(ENDPOINTS.CUSTOMER.SALES(customerId), payload);
-  },
 
   /*
   |--------------------------------------------------------------------------

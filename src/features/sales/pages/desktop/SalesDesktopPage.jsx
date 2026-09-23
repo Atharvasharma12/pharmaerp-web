@@ -45,6 +45,7 @@ import {
 import { SalesCheckoutModal } from "../../components/SalesCheckoutModal";
 import { SalesReceiptModal } from "../../components/SalesReceiptModal";
 import customerService from "@/features/parties/customers/services/customerService";
+import invoiceService from "@/features/sales/services/invoiceService";
 
 export const SalesDesktopPage = () => {
   const [billingMode, setBillingMode] = useState("B2C"); // "B2C" | "B2B"
@@ -435,7 +436,7 @@ export const SalesDesktopPage = () => {
     // Post to backend API
     if (targetCustomerId) {
       const activeBranchId = saleData.items?.[0]?.branchId || saleData.items?.[0]?.facilityId || null;
-      await customerService.recordCustomerSale(targetCustomerId, {
+      await invoiceService.recordCustomerSale(targetCustomerId, {
         invoiceNo: saleData.invoiceNo,
         billingMode,
         branchId: activeBranchId,

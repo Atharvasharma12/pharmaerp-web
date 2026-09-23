@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import customerService from "@/features/parties/customers/services/customerService";
+import invoiceService from "@/features/sales/services/invoiceService";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
 
 /* ─────────────── CONSTANTS ─────────────── */
@@ -425,7 +426,7 @@ export const POSTerminalPage = () => {
 
       if (customerId) {
         // B2B — record sale against the existing customer
-        await customerService.recordCustomerSale(customerId, salePayload);
+        await invoiceService.recordCustomerSale(customerId, salePayload);
       } else if (billingMode === "B2C" && b2cName) {
         // For B2C with a named customer, create the customer first, then record
         try {
@@ -437,7 +438,7 @@ export const POSTerminalPage = () => {
           const newCustomer = createRes.data?.data || createRes.data;
           const newId = newCustomer?._id || newCustomer?.id;
           if (newId) {
-            await customerService.recordCustomerSale(newId, salePayload);
+            await invoiceService.recordCustomerSale(newId, salePayload);
           }
         } catch (createErr) {
           // If customer creation fails (e.g. duplicate), just show success for the bill
