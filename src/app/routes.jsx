@@ -41,6 +41,8 @@ import HomePage from "@/pages/HomePage";
 import UIShowcasePage from "@/pages/UIShowcasePage";
 
 import { LandingPage } from "@/features/landing";
+import TransferOrdersPage from "@/pages/inventory/TransferOrdersPage";
+import CreateTransferOrderPage from "@/pages/inventory/CreateTransferOrderPage";
 import hsnMasterRoutes from "@/features/hsn-master/routes/hsnMasterRoutes";
 import manufacturerMasterRoutes from "@/features/manufacturer-master/routes/manufacturerMasterRoutes";
 import uomMasterRoutes from "@/features/uom-master/routes/uomMasterRoutes";
@@ -389,6 +391,14 @@ export const router = createBrowserRouter([
               },
 
               // Inventory & Catalog
+          {
+            path: "/inventory/transfer-orders",
+            element: <TransferOrdersPage />,
+          },
+          {
+            path: "/inventory/transfer-orders/create",
+            element: <CreateTransferOrderPage />,
+          },
           ...catalogRoutes.map((route) => ({
             ...route,
             element: (

@@ -15,6 +15,44 @@ import {
 import { UIModal, UIButton, UIBadge } from "@/components/ui";
 import { PermissionGate } from "@/components/common/PermissionGate";
 
+/** Safe number parser */
+const safeNum = (v) => {
+  const n = Number(v);
+  return isNaN(n) ? 0 : n;
+};
+
+/**
+ * Compute scheme discount threshold check.
+ * Returns whether scheme applies based on quarter/half/full tiers.
+ */
+const computeSchemeDiscount = (qty, schemePercent) => {
+  const normalizedQty = safeNum(qty);
+  const normalizedScheme = safeNum(schemePercent);
+  if (normalizedQty <= 0 || normalizedScheme <= 0) {
+    return { schemeApply: false, finalDiscountPercent: 0 };
+  }
+
+  // Special case: 50% scheme — apply directly when qty >= 2
+  if (normalizedScheme === 50) {
+    if (normalizedQty < 2) {
+      return { schemeApply: false, finalDiscountPercent: 0 };
+    }
+    return { schemeApply: true, finalDiscountPercent: normalizedScheme };
+  }
+
+  const fullFreeQty = (normalizedQty * normalizedScheme) / (100 - normalizedScheme);
+  const quarterThreshold = (normalizedScheme / (100 - normalizedScheme)) / 0.4;
+  const halfThreshold = quarterThreshold * 2;
+  const fullThreshold = quarterThreshold * 4;
+
+  let schemeApply = false;
+  if (fullFreeQty >= quarterThreshold) {
+    schemeApply = true;
+  }
+
+  return { schemeApply, finalDiscountPercent: schemeApply ? normalizedScheme : 0 };
+};
+
 export const SalesCheckoutModal = ({
   isOpen,
   onClose,
@@ -38,7 +76,7 @@ export const SalesCheckoutModal = ({
 
   const isB2B = billingMode === "B2B";
 
-  // Line-level item discounts sum
+  // Line-level item discounts sum (from editable Disc % column)
   const itemDiscount = items.reduce((sum, item) => {
     const rate = Number(item.price) || 0;
     const qty = Math.max(1, Number(item.qty) || 1);
@@ -46,7 +84,16 @@ export const SalesCheckoutModal = ({
     return sum + (rate * qty * discPct) / 100;
   }, 0);
 
-  const schemeDiscount = 0; // Configured at party/order level if needed
+  // Scheme discount (from schemeDiscountPercent — only if qty crosses threshold)
+  const schemeDiscount = isB2B ? items.reduce((sum, item) => {
+    if (!item?.schemeDiscountPercent) return sum;
+    const rate = Number(item.price) || 0;
+    const qty = Math.max(1, Number(item.qty) || 1);
+    const schemePct = Number(item.schemeDiscountPercent) || 0;
+    const schemeCheck = computeSchemeDiscount(qty, schemePct);
+    if (!schemeCheck.schemeApply) return sum;
+    return sum + (rate * qty * schemePct) / 100;
+  }, 0) : 0;
 
   const subtotalAfterDiscounts = subtotal - itemDiscount - schemeDiscount;
   const extraDiscountAmt = (subtotalAfterDiscounts * (Number(discountPercent) || 0)) / 100;
@@ -57,12 +104,19 @@ export const SalesCheckoutModal = ({
     const rate = Number(item.price) || 0;
     const qty = Math.max(1, Number(item.qty) || 1);
     const discPct = Number(item.disc) || 0;
-    const lineSubtotal = rate * qty * (1 - discPct / 100);
+    // Only apply scheme disc if qty crosses threshold
+    const rawSchemePct = isB2B ? (Number(item.schemeDiscountPercent) || 0) : 0;
+    const schemeCheck = computeSchemeDiscount(qty, rawSchemePct);
+    const schemePct = schemeCheck.schemeApply ? rawSchemePct : 0;
+    // Apply both item disc and scheme disc
+    const lineSubtotal = rate * qty * (1 - discPct / 100) * (1 - schemePct / 100);
+
     // Apply extra discount proportion
     const lineFinal = lineSubtotal * (1 - (Number(discountPercent) || 0) / 100);
 
+
     const gstPct = Number(item.gst !== undefined && item.gst !== null ? item.gst : 5);
-    
+
     let taxable, taxAmt;
     if (isB2B) {
       // B2B prices are exclusive of tax, so tax is added ON TOP
@@ -153,11 +207,10 @@ export const SalesCheckoutModal = ({
                 {isB2B ? "B2B Commercial Tax Invoice Preview" : "B2C Retail Sale Preview & Billing"}
               </h2>
               <span
-                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                  isB2B
-                    ? "bg-purple-500/10 text-purple-600 border border-purple-500/20"
-                    : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                }`}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${isB2B
+                  ? "bg-purple-500/10 text-purple-600 border border-purple-500/20"
+                  : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                  }`}
               >
                 {isB2B ? `B2B ${customer?.partyType || "Commercial"}` : "B2C Retail"}
               </span>
@@ -191,11 +244,10 @@ export const SalesCheckoutModal = ({
                   key={mode.id}
                   type="button"
                   onClick={() => setPaymentMode(mode.id)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                    isSelected
-                      ? "border-primary bg-primary-soft text-primary shadow-xs ring-1 ring-primary"
-                      : "border-border bg-surface-alt/60 text-text hover:bg-surface-hover"
-                  }`}
+                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${isSelected
+                    ? "border-primary bg-primary-soft text-primary shadow-xs ring-1 ring-primary"
+                    : "border-border bg-surface-alt/60 text-text hover:bg-surface-hover"
+                    }`}
                 >
                   <Icon className="size-4 mb-1" />
                   <span>{mode.label}</span>
@@ -216,11 +268,10 @@ export const SalesCheckoutModal = ({
                     key={pct}
                     type="button"
                     onClick={() => setDiscountPercent(pct)}
-                    className={`px-2 py-1 rounded-lg border text-xs font-semibold transition-all ${
-                      Number(discountPercent) === pct
-                        ? "border-primary bg-primary text-white"
-                        : "border-border bg-surface-alt/70 text-text hover:bg-surface-hover"
-                    }`}
+                    className={`px-2 py-1 rounded-lg border text-xs font-semibold transition-all ${Number(discountPercent) === pct
+                      ? "border-primary bg-primary text-white"
+                      : "border-border bg-surface-alt/70 text-text hover:bg-surface-hover"
+                      }`}
                   >
                     {pct}%
                   </button>

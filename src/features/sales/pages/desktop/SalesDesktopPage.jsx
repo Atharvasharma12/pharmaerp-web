@@ -47,6 +47,61 @@ import { SalesReceiptModal } from "../../components/SalesReceiptModal";
 import customerService from "@/features/parties/customers/services/customerService";
 import invoiceService from "@/features/sales/services/invoiceService";
 
+/** Safe number parser */
+const safeNum = (v) => {
+  const n = Number(v);
+  return isNaN(n) ? 0 : n;
+};
+
+/**
+ * Compute scheme discount for a given qty and scheme %.
+ * Applies schemePercent as a direct discount (no free qty).
+ * Uses quarter/half/full threshold tiers.
+ */
+const computeSchemeDiscount = (qty, schemePercent) => {
+  const normalizedQty = safeNum(qty);
+  const normalizedScheme = safeNum(schemePercent);
+  if (normalizedQty <= 0 || normalizedScheme <= 0) {
+    return { freeQty: 0, schemeDiscountPercent: 0, finalDiscountPercent: 0, schemeApply: false };
+  }
+
+  // Special case: 50% scheme — apply full discount directly when qty >= 2
+  if (normalizedScheme === 50) {
+    if (normalizedQty < 2) {
+      return { freeQty: 0, schemeDiscountPercent: 0, finalDiscountPercent: 0, schemeApply: false };
+    }
+    return { freeQty: 0, schemeDiscountPercent: normalizedScheme, finalDiscountPercent: normalizedScheme, schemeApply: true };
+  }
+
+  const fullFreeQty = (normalizedQty * normalizedScheme) / (100 - normalizedScheme);
+  const quarterThreshold = (normalizedScheme / (100 - normalizedScheme)) / 0.4;
+  const halfThreshold = quarterThreshold * 2;
+  const fullThreshold = quarterThreshold * 4;
+
+  let discountFraction = 0;
+  let schemeApply = false;
+
+  if (fullFreeQty >= fullThreshold) {
+    discountFraction = 1;
+    schemeApply = true;
+  } else if (fullFreeQty >= halfThreshold) {
+    discountFraction = 0.5;
+    schemeApply = true;
+  } else if (fullFreeQty >= quarterThreshold) {
+    discountFraction = 0.25;
+    schemeApply = true;
+  }
+
+  const finalDiscountPercent = schemeApply ? normalizedScheme * discountFraction : 0;
+
+  return {
+    freeQty: 0,
+    schemeDiscountPercent: finalDiscountPercent,
+    finalDiscountPercent,
+    schemeApply,
+  };
+};
+
 export const SalesDesktopPage = () => {
   const [billingMode, setBillingMode] = useState("B2C"); // "B2C" | "B2B"
   const [b2bPartyType, setB2bPartyType] = useState("all"); // "all" | "wholesaler" | "retailer"
@@ -142,11 +197,11 @@ export const SalesDesktopPage = () => {
           creditDays: c.creditDays || 0,
         }));
         setB2bPartiesFromBackend(mapped);
-        
+
         if (mapped.length > 0) {
           setSelectedB2bParty(prev => {
-             const stillExists = prev && mapped.find(m => m.id === prev.id);
-             return stillExists ? prev : null;
+            const stillExists = prev && mapped.find(m => m.id === prev.id);
+            return stillExists ? prev : null;
           });
         } else {
           setSelectedB2bParty(null);
@@ -266,6 +321,7 @@ export const SalesDesktopPage = () => {
           price: basePrice,
           disc: Number(medicine.disc ?? 0),
           qty: medicine.qty || 1,
+          schemeDiscountPercent: medicine.schemeDiscountPercent || 0
         },
       ];
     });
@@ -291,7 +347,7 @@ export const SalesDesktopPage = () => {
         if (billingMode === "B2B") {
           // Use rateB for B2B billing if available
           basePrice = Number(item.rateB || item.rateb || item.price || 0);
-          
+
           if (selectedB2bParty?.defaultDiscount) {
             basePrice = Math.round(basePrice * (1 - selectedB2bParty.defaultDiscount / 100));
           }
@@ -395,10 +451,15 @@ export const SalesDesktopPage = () => {
     setCart([]);
   };
 
-  // Line item amount calculation: Rate * Qty * (1 - Disc/100)
+  // Line item amount calculation
+  // B2B: Rate * Qty (no disc deducted here — all discounts applied in Invoice Preview)
+  // B2C: Rate * Qty * (1 - Disc/100)
   const getItemAmount = (item) => {
     const rate = Number(item.price) || 0;
     const qty = Math.max(1, Number(item.qty) || 1);
+    if (billingMode === "B2B") {
+      return rate * qty;
+    }
     const disc = Math.max(0, Math.min(100, Number(item.disc) || 0));
     return rate * qty * (1 - disc / 100);
   };
@@ -408,12 +469,12 @@ export const SalesDesktopPage = () => {
   const estTax = cart.reduce((acc, item) => {
     const lineAmt = getItemAmount(item);
     const gstPct = Number(item.gst) || 5;
-    
+
     // B2B tax is exclusive (added on top), B2C is inclusive (already in lineAmt, we just extract it for display if needed)
     // Actually, in the footer we show "estTax" that gets added to Subtotal ONLY if it's exclusive.
     return billingMode === "B2B" ? acc + (lineAmt * gstPct) / 100 : acc;
   }, 0);
-  
+
   // For B2C, cartSubtotal already includes tax. For B2B, it doesn't.
   const cartGrandTotal = Math.round(cartSubtotal + estTax);
 
@@ -762,7 +823,11 @@ export const SalesDesktopPage = () => {
                       <th className="py-2.5 px-2">Rack</th>
                       <th className="py-2.5 px-2 font-mono">HSN</th>
                       <th className="py-2.5 px-2 font-mono">GST %</th>
-                      <th className="py-2.5 px-2 font-mono">Rate %</th>
+                      {billingMode === "B2C" ? (
+                        <th className="py-2.5 px-2 font-mono">Rate %</th>
+                      ) : cart.some((i) => Number(i.schemeDiscountPercent) > 0) && (
+                        <th className="py-2.5 px-2 font-mono">Scheme Disc %</th>
+                      )}
                       <th className="py-2.5 px-2 font-mono text-right">MRP</th>
                       <th className="py-2.5 px-2 font-mono text-right">Rate</th>
                       {billingMode !== "B2C" && <th className="py-2.5 px-2 font-mono text-center">Disc %</th>}
@@ -813,10 +878,19 @@ export const SalesDesktopPage = () => {
                             {item.gst !== undefined && item.gst !== null ? `${item.gst}%` : `${getGstRate(item)}%`}
                           </td>
 
-                          {/* 7. Rate % */}
-                          <td className="py-2 px-2 font-mono text-[11px] text-emerald-600 font-semibold">
-                            {item.ratePct}
-                          </td>
+                          {/* 7. Rate % (B2C) / Scheme Disc % (B2B, only if applied) */}
+                          {billingMode === "B2C" ? (
+                            <td className="py-2 px-2 font-mono text-[11px] text-emerald-600 font-semibold">
+                              {item.ratePct}
+                            </td>
+                          ) : cart.some((i) => Number(i.schemeDiscountPercent) > 0) && (() => {
+                            const schemeCheck = computeSchemeDiscount(Number(item.qty) || 1, Number(item.schemeDiscountPercent) || 0);
+                            return (
+                              <td className="py-2 px-2 font-mono text-[11px] text-emerald-600 font-semibold">
+                                {schemeCheck.schemeApply ? item.schemeDiscountPercent : "-"}
+                              </td>
+                            );
+                          })()}
 
                           {/* 8. MRP */}
                           <td className="py-2 px-2 font-mono text-right text-text font-medium">
@@ -828,7 +902,7 @@ export const SalesDesktopPage = () => {
                             ₹{Number(item.price).toFixed(2)}
                           </td>
 
-                          {/* 10. Disc % (B2B only) */}
+                          {/* 10. Disc % (B2B only — separate editable discount) */}
                           {billingMode !== "B2C" && (
                             <td className="py-2 px-2 text-center">
                               <input

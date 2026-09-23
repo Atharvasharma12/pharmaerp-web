@@ -39,6 +39,73 @@ const parseExpiryDate = (raw) => {
   return isNaN(parsed.getTime()) ? new Date(9999, 11, 31) : parsed;
 };
 
+/** Safe number parser */
+const safeNum = (v) => {
+  const n = Number(v);
+  return isNaN(n) ? 0 : n;
+};
+
+/**
+ * Compute scheme discount for a given qty and scheme %.
+ * Applies schemePercent as a direct discount on the full available qty.
+ * No free qty is given — pure percentage discount.
+ * Uses quarter/half/full threshold tiers to determine how much of the scheme applies.
+ * Returns { freeQty, schemeDiscountPercent, finalDiscountPercent, schemeApply }
+ */
+const computeSchemeDiscount = (qty, schemePercent, stock, calculatedFreeQty) => {
+  const normalizedQty = safeNum(qty);
+  const normalizedScheme = safeNum(schemePercent);
+  if (normalizedQty <= 0 || normalizedScheme <= 0) {
+    return { freeQty: 0, schemeDiscountPercent: 0, finalDiscountPercent: 0, schemeApply: false };
+  }
+
+  // Special case: 50% scheme — apply full discount directly when qty >= 2
+  if (normalizedScheme === 50) {
+    if (normalizedQty < 2) {
+      return { freeQty: 0, schemeDiscountPercent: 0, finalDiscountPercent: 0, schemeApply: false };
+    }
+    return { freeQty: 0, schemeDiscountPercent: normalizedScheme, finalDiscountPercent: normalizedScheme, schemeApply: true };
+  }
+
+  // STEP 1 — CALCULATE FULL FREE QTY & SCHEME THRESHOLDS (same as original)
+  const fullFreeQty = (normalizedQty * normalizedScheme) / (100 - normalizedScheme);
+
+  const actualCalculatedFreeQty =
+    calculatedFreeQty !== undefined && calculatedFreeQty !== null
+      ? safeNum(calculatedFreeQty)
+      : fullFreeQty;
+
+  // SCHEME THRESHOLDS
+  const quarterThreshold = (normalizedScheme / (100 - normalizedScheme)) / 0.4;
+  const halfThreshold = quarterThreshold * 2;
+  const fullThreshold = quarterThreshold * 4;
+
+  // STEP 2 — DETERMINE TIER BASED ON CALCULATED FREE QTY vs THRESHOLDS
+  let discountFraction = 0;
+  let schemeApply = false;
+
+  if (actualCalculatedFreeQty >= fullThreshold) {
+    discountFraction = 1;       // Full scheme discount (100%)
+    schemeApply = true;
+  } else if (actualCalculatedFreeQty >= halfThreshold) {
+    discountFraction = 0.5;     // Half scheme discount (50%)
+    schemeApply = true;
+  } else if (actualCalculatedFreeQty >= quarterThreshold) {
+    discountFraction = 0.25;    // Quarter scheme discount (25%)
+    schemeApply = true;
+  }
+
+  // STEP 3 — APPLY FRACTION OF SCHEME AS DIRECT DISCOUNT (no free qty)
+  const finalDiscountPercent = schemeApply ? normalizedScheme * discountFraction : 0;
+
+  return {
+    freeQty: 0,
+    schemeDiscountPercent: finalDiscountPercent,
+    finalDiscountPercent,
+    schemeApply,
+  };
+};
+
 /**
  * WorkspaceProductBatchSelectorModal
  * Spacious, clean, and un-congested modal for branch batch selection.
@@ -59,10 +126,13 @@ export const WorkspaceProductBatchSelectorModal = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const totalQtyInputRef = useRef(null);
+  // Tracks whether user has manually toggled batch selection
+  const userManuallySelectedRef = useRef(false);
 
   useEffect(() => {
     if (open && product) {
       setTotalQty(1);
+      userManuallySelectedRef.current = false;
       fetchBatchesForProduct(product);
       setTimeout(() => {
         if (totalQtyInputRef.current) {
@@ -91,6 +161,7 @@ export const WorkspaceProductBatchSelectorModal = ({
 
   const fetchBatchesForProduct = async (p) => {
     setIsLoading(true);
+    userManuallySelectedRef.current = false;
     try {
       let list = [];
 
@@ -172,6 +243,7 @@ export const WorkspaceProductBatchSelectorModal = ({
 
         const baseRateB = Number(p.rateB ?? p.rateb ?? p.ptr ?? 0);
         const baseRateA = Number(p.rateA ?? p.ratea ?? 0);
+        const baseSchemeDiscountPercent = Number(p.schemeDiscountPercent ?? 0);
 
         matchedList = [
           {
@@ -189,6 +261,7 @@ export const WorkspaceProductBatchSelectorModal = ({
             gst: baseGst,
             ratePct: p.ratePct || p.marginPct || "16%",
             productName: p.displayName || p.name,
+            schemeDiscountPercent: baseSchemeDiscountPercent,
           },
         ];
       }
@@ -209,25 +282,71 @@ export const WorkspaceProductBatchSelectorModal = ({
 
   const maxTotalStock = batches.reduce((acc, b) => acc + Number(b.stock ?? b.batchQty ?? 0), 0);
 
-  // Automatically allocate requested total Qty across batches (Near Expiry first)
+  /**
+   * Allocate qty across batches.
+   * - If user has manually selected batches, allocate to those FIRST, then overflow to others in FEFO order.
+   * - If no manual selection (initial load), pure FEFO allocation.
+   */
   const autoAllocateFEFO = (targetTotal, batchList = batches) => {
     let remaining = Math.max(1, Number(targetTotal) || 1);
     const newAllocations = {};
     const newSelected = new Set();
 
-    batchList.forEach((b) => {
-      const bId = b.id || b._id || b.batchNo;
-      const stock = Number(b.stock ?? b.batchQty ?? 100);
+    if (userManuallySelectedRef.current && selectedBatchIds.size > 0) {
+      // User has manually picked batches — prioritize those first
+      const manualBatches = batchList.filter((b) => {
+        const bId = b.id || b._id || b.batchNo;
+        return selectedBatchIds.has(bId);
+      });
+      const otherBatches = batchList.filter((b) => {
+        const bId = b.id || b._id || b.batchNo;
+        return !selectedBatchIds.has(bId);
+      });
 
-      if (remaining > 0 && stock > 0) {
-        const take = Math.min(stock, remaining);
-        newAllocations[bId] = take;
-        newSelected.add(bId);
-        remaining -= take;
-      } else {
-        newAllocations[bId] = 0;
-      }
-    });
+      // Allocate to manually selected batches first
+      manualBatches.forEach((b) => {
+        const bId = b.id || b._id || b.batchNo;
+        const stock = Number(b.stock ?? b.batchQty ?? 100);
+        if (remaining > 0 && stock > 0) {
+          const take = Math.min(stock, remaining);
+          newAllocations[bId] = take;
+          newSelected.add(bId);
+          remaining -= take;
+        } else {
+          newAllocations[bId] = 0;
+          newSelected.add(bId); // keep it selected even if 0 allocated
+        }
+      });
+
+      // Overflow to remaining batches in FEFO order
+      otherBatches.forEach((b) => {
+        const bId = b.id || b._id || b.batchNo;
+        const stock = Number(b.stock ?? b.batchQty ?? 100);
+        if (remaining > 0 && stock > 0) {
+          const take = Math.min(stock, remaining);
+          newAllocations[bId] = take;
+          newSelected.add(bId);
+          remaining -= take;
+        } else {
+          newAllocations[bId] = 0;
+        }
+      });
+    } else {
+      // Pure FEFO allocation (initial load / no manual selection)
+      batchList.forEach((b) => {
+        const bId = b.id || b._id || b.batchNo;
+        const stock = Number(b.stock ?? b.batchQty ?? 100);
+
+        if (remaining > 0 && stock > 0) {
+          const take = Math.min(stock, remaining);
+          newAllocations[bId] = take;
+          newSelected.add(bId);
+          remaining -= take;
+        } else {
+          newAllocations[bId] = 0;
+        }
+      });
+    }
 
     setAllocations(newAllocations);
     setSelectedBatchIds(newSelected);
@@ -251,6 +370,7 @@ export const WorkspaceProductBatchSelectorModal = ({
   };
 
   const toggleBatchChecked = (bId) => {
+    userManuallySelectedRef.current = true;
     setSelectedBatchIds((prev) => {
       const next = new Set(prev);
       if (next.has(bId)) {
@@ -330,6 +450,11 @@ export const WorkspaceProductBatchSelectorModal = ({
 
       const bRateB = Number(b.rateB ?? b.rateb ?? b.ptr ?? product.rateB ?? product.rateb ?? product.ptr ?? 0);
       const bRateA = Number(b.rateA ?? b.ratea ?? product.rateA ?? product.ratea ?? 0);
+      const bSchemeDiscountPercent = Number(b.schemeDiscountPercent ?? product.schemeDiscountPercent ?? 0);
+
+      // Compute scheme discount for this batch's allocated qty
+      const batchQty = allocations[bId] || 1;
+      const schemeResult = computeSchemeDiscount(batchQty, bSchemeDiscountPercent, bStock, undefined);
 
       return {
         id: `${product._id || product.id || "item"}-${bNo}`,
@@ -350,8 +475,11 @@ export const WorkspaceProductBatchSelectorModal = ({
         price: bRate,
         rateB: bRateB,
         rateA: bRateA,
-        disc: 0,
-        qty: allocations[bId] || 1,
+        disc: schemeResult.finalDiscountPercent,
+        qty: batchQty,
+        schemeDiscountPercent: bSchemeDiscountPercent,
+        freeQty: schemeResult.freeQty,
+        schemeApply: schemeResult.schemeApply,
       };
     });
 
@@ -459,19 +587,30 @@ export const WorkspaceProductBatchSelectorModal = ({
               {batches.map((b, idx) => {
                 const bId = b.id || b._id || b.batchNo;
                 const isChecked = selectedBatchIds.has(bId);
-                const allocated = allocations[bId] || 0;
+                const allocated = allocations[bId];
                 const isNearestExp = idx === 0;
 
-                const bNo = b.batchNo || b.batchNumber || b.batch || "B-8801";
-                const bMrp = Number(b.mrp ?? product.mrp ?? 160.0);
+                const bNo = b.batchNo || b.batchNumber || b.batch;
+                const bMrp = Number(b.mrp ?? product.mrp);
                 const bRate = Number(
                   billingMode === "B2C"
-                    ? (b.rateC ?? b.rate ?? b.price ?? b.saleRate ?? product.rateC ?? product.price ?? 134.4)
-                    : (b.price ?? b.rate ?? b.rateC ?? product.price ?? 134.4)
+                    ? (b.rateC ?? b.rate ?? b.price ?? b.saleRate ?? product.rateC ?? product.price)
+                    : (b.price ?? b.rate ?? b.rateC ?? product.price)
                 );
-                const bStock = b.stock ?? b.batchQty ?? 100;
-                const bExp = b.expiry || b.expiryDate || b.expDate || "11/32";
-                const bRack = b.rack || product.rack || "F1/AE2";
+                const bStock = b.stock ?? b.batchQty;
+                const bExp = b.expiry || b.expiryDate || b.expDate;
+                const bRack = b.rack || product.rack
+                const bSchemeDiscount = b.schemeDiscountPercent || product.schemeDiscountPercent;
+
+                // --- Scheme Discount Calculation ---
+                const schemeResult = computeSchemeDiscount(
+                  allocated,
+                  safeNum(bSchemeDiscount),
+                  bStock,
+                  undefined // no override calculatedFreeQty
+                );
+                const discountPercent = schemeResult.finalDiscountPercent;
+                const discountedRate = bRate * (1 - discountPercent / 100);
 
                 return (
                   <div
@@ -511,10 +650,28 @@ export const WorkspaceProductBatchSelectorModal = ({
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-3 text-xs text-text-muted">
-                          <span>
-                            Rack Location: <strong className="text-text font-mono font-bold">{bRack}</strong>
-                          </span>
+                        <div className="flex items-center gap-3 text-xs text-text-muted flex-wrap">
+                          {
+                            bRack && (
+                              <span>
+                                Rack: <strong className="text-text font-mono font-bold">{bRack}</strong>
+                              </span>
+                            )
+                          }
+                          {
+                            bSchemeDiscount && (
+                              <span>
+                                Scheme: <strong className="text-text font-mono font-bold">{safeNum(bSchemeDiscount).toFixed(2)}%</strong>
+                              </span>
+                            )
+                          }
+
+
+                          {schemeResult.schemeApply && discountPercent > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 uppercase tracking-wider">
+                              sch dis: ₹{discountedRate.toFixed(2)}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

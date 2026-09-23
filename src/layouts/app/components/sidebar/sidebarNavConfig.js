@@ -159,6 +159,13 @@ export const SIDEBAR_NAV_GROUPS = [
             permission: "product:view",
           },
           {
+            id: "transfer-orders",
+            label: "Transfer Orders",
+            path: "/inventory/transfer-orders",
+            icon: Boxes,
+            permission: "product:view",
+          },
+          {
             id: "catalog",
             label: "Global Catalog",
             path: ROUTES.CATALOG,
