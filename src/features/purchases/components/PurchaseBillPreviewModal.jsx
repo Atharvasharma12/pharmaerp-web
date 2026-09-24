@@ -140,7 +140,7 @@ export const PurchaseBillPreviewModal = ({ bill, isOpen, onClose, onRefresh }) =
                     <td className="py-2 px-2 font-mono text-right text-text">₹{Number(item.mrp || 0).toFixed(2)}</td>
                     <td className="py-2 px-2 font-mono text-[11px] text-text-muted">{item.hsn || "-"}</td>
                     <td className="py-2 px-2 font-mono text-center font-bold text-purple-600">{item.gst || 12}%</td>
-                    <td className="py-2 px-2 font-mono text-right font-bold text-text">₹{Number(item.rate || 0).toFixed(2)}</td>
+                    <td className="py-2 px-2 font-mono text-right font-bold text-text">₹{Number((bill.rateBasis === "PTR" ? (item.rateB || item.finalRateB || item.rate) : (item.rateA || item.finalRateA || item.rate)) || 0).toFixed(2)}</td>
                     <td className="py-2 px-2 font-mono text-center text-text">{item.cRatePct || 0}%</td>
                     <td className="py-2 px-2.5 font-mono text-right font-extrabold text-emerald-600">
                       ₹{Number(item.amount || 0).toFixed(2)}

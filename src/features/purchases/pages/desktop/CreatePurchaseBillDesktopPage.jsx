@@ -473,22 +473,28 @@ export const CreatePurchaseBillDesktopPage = () => {
     setIsRateCheckModalOpen(true);
   };
 
-  const handleApplyRateCheck = (editedRows) => {
+  const handleApplyRateCheck = (editedRows, computedRows = []) => {
     setCart((prev) =>
       prev.map((item) => {
         const pid = String(item.id || item.productId);
         const edit = editedRows[pid];
-        if (edit) {
-          const newRateB = edit.rateB ?? item.rateB;
-          const newRateA = edit.rateA ?? item.rateA;
+        const computed = computedRows.find(r => String(r.id || r.productId) === pid);
+
+        if (edit || computed) {
+          const newRateB = edit?.rateB ?? computed?.rateB ?? item.rateB;
+          const newRateA = edit?.rateA ?? computed?.rateA ?? item.rateA;
+          const newRateC = edit?.rateC ?? computed?.rateC ?? item.rateC;
+          const derivedRetail = edit?.derivedRetail ?? computed?.retailerMarginPercent ?? item.retailerMarginPercent;
+          const rateCPercentage = edit?.rateCPercentage ?? computed?.rateCPercentage ?? item.rateCPercentage;
+
           const newRate = rateBasis === "PTR" ? (newRateB ?? item.rate) : (newRateA ?? item.rate);
           return {
             ...item,
             rateA: newRateA,
             rateB: newRateB,
-            rateC: edit.rateC ?? item.rateC,
-            retailerMarginPercent: edit.derivedRetail ?? item.retailerMarginPercent,
-            rateCPercentage: edit.rateCPercentage ?? item.rateCPercentage,
+            rateC: newRateC,
+            retailerMarginPercent: derivedRetail,
+            rateCPercentage: rateCPercentage,
             rate: newRate,
           };
         }
@@ -503,7 +509,7 @@ export const CreatePurchaseBillDesktopPage = () => {
 
   const handleApplySchemeCheck = (updatedSaleSchemesMap) => {
     setCart(prev => prev.map(item => {
-      const pid = String(item.id || item.productId);
+      const pid = String(item.id || "").split('-')[0] || String(item.productId);
       if (updatedSaleSchemesMap[pid] !== undefined) {
         return { ...item, saleScheme: updatedSaleSchemesMap[pid] };
       }
@@ -539,6 +545,13 @@ export const CreatePurchaseBillDesktopPage = () => {
           gst: Number(item.gst) || 12,
           rate: Number(item.rate) || 0,
           amount: getItemTaxableAmount(item),
+          rateA: Number(item.rateA) || 0,
+          rateB: Number(item.rateB) || 0,
+          rateC: Number(item.rateC) || 0,
+          finalRateA: Number(item.rateA) || 0,
+          finalRateB: Number(item.rateB) || 0,
+          finalRateC: Number(item.rateC) || 0,
+          saleScheme: Number(item.saleScheme) || 0,
         })),
         extraDiscountPct: Number(extraDiscountPct) || 0,
         extraDiscountAmt: extraDiscountAmt,
@@ -1077,7 +1090,7 @@ export const CreatePurchaseBillDesktopPage = () => {
                       <td className="py-2 px-2 font-mono text-right text-text">₹{Number(item.mrp || 0).toFixed(2)}</td>
                       <td className="py-2 px-2 font-mono text-[11px] text-text-muted">{item.hsn || "-"}</td>
                       <td className="py-2 px-2 font-mono text-center font-bold text-purple-600">{item.gst || 12}%</td>
-                      <td className="py-2 px-2 font-mono text-right font-bold text-text">₹{Number(item.rate || 0).toFixed(2)}</td>
+                      <td className="py-2 px-2 font-mono text-right font-bold text-text">₹{Number((rateBasis === "PTR" ? (item.rateB || item.rate) : (item.rateA || item.rate)) || 0).toFixed(2)}</td>
                       <td className="py-2 px-2 font-mono text-center text-text">{item.cRatePct || 0}%</td>
                       <td className="py-2 px-2.5 font-mono text-right font-extrabold text-emerald-600">
                         ₹{getItemBaseAmount(item).toFixed(2)}

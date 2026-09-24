@@ -88,8 +88,10 @@ export const computeRateCheckRow = (item, rateBasis = "PTS") => {
   const totalDiff = round2(diffPerUnit * qty);
   const status = getStatus(totalDiff);
 
-  const rateB = item.rateB ?? ptr;
-  const rateA = item.rateA ?? pts;
+  const defaultRateB = billPTR > ptr ? billPTR : ptr;
+  const defaultRateA = billPTS > pts ? billPTS : pts;
+  const rateB = item.rateB ?? defaultRateB;
+  const rateA = item.rateA ?? defaultRateA;
   
   const extraPct = expectedPTR > 0 && rateB > 0 ? Math.max(0, round2(((rateB - expectedPTR) / expectedPTR) * 100)) : 0;
   const rateAExtraPct = expectedPTS > 0 && rateA > 0 ? Math.max(0, round2(((rateA - expectedPTS) / expectedPTS) * 100)) : 0;
