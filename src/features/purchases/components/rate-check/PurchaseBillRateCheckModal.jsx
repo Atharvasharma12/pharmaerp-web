@@ -33,7 +33,7 @@ export const PurchaseBillRateCheckModal = ({
 
   const resolvedItems = useMemo(() => {
     return items.map((it) => {
-      const pid = String(it.productId || it._id || it.id || "");
+      const pid = String(it.id || it.productId || it._id || "");
       const edit = editedRows[pid];
 
       const defaultRetail = Number(it.workspaceProduct?.retailerMarginPercent || it.retailerMarginPercent || 0);
@@ -47,8 +47,8 @@ export const PurchaseBillRateCheckModal = ({
         stockistMarginPercent: stock,
         rateCPercentage: edit?.rateCPercentage ?? (it.cRatePct ? it.cRatePct : (it.workspaceProduct?.marginPercent ?? it.workspaceProduct?.margin ?? it.rateCPercentage ?? defaultRetail)),
         rateC: edit?.rateC ?? it.rateC,
-        rateB: edit?.rateB ?? it.rateB ?? 0,
-        rateA: edit?.rateA ?? it.rateA ?? 0,
+        rateB: edit?.rateB ?? it.rateB,
+        rateA: edit?.rateA ?? it.rateA,
       };
     });
   }, [items, editedRows]);
@@ -71,7 +71,7 @@ export const PurchaseBillRateCheckModal = ({
 
   const handleApply = () => {
     if (onApply) {
-      onApply(editedRows);
+      onApply(editedRows, rows);
     }
     onClose();
   };
@@ -161,7 +161,7 @@ export const PurchaseBillRateCheckModal = ({
                 </tr>
               ) : (
                 rows.map((row, idx) => {
-                  const pid = String(row.productId || row._id || row.id || idx);
+                  const pid = String(row.id || row.productId || row._id || idx);
                   const isSelected = selectedIndex === idx;
                   const diffColor = row.diffPerUnit > 0 ? "text-rose-600 font-bold" : row.diffPerUnit < 0 ? "text-emerald-600 font-bold" : "text-text-muted";
                   return (
@@ -194,7 +194,7 @@ export const PurchaseBillRateCheckModal = ({
                           value={row.rateB || ""}
                           onChange={(e) => handleRateChange(pid, "rateB", e.target.value)}
                           onClick={(e) => e.stopPropagation()}
-                          placeholder={row.expectedPTR.toFixed(2)}
+                          placeholder={row.rateB.toFixed(2)}
                         />
                       </td>
                       <td className="py-1 px-2 text-right">
@@ -204,7 +204,7 @@ export const PurchaseBillRateCheckModal = ({
                           value={row.rateA || ""}
                           onChange={(e) => handleRateChange(pid, "rateA", e.target.value)}
                           onClick={(e) => e.stopPropagation()}
-                          placeholder={row.expectedPTS.toFixed(2)}
+                          placeholder={row.rateA.toFixed(2)}
                         />
                       </td>
                       <td className="py-1 px-2 text-right">
