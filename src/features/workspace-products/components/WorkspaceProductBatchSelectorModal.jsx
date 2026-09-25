@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import UIButton from "@/components/ui/UIButton";
 import workspaceProductService from "../services/workspaceProductService";
+import useUser from "@/features/user/hooks/useUser";
 
 /**
  * Helper to parse expiry string into comparable Date object
@@ -119,6 +120,7 @@ export const WorkspaceProductBatchSelectorModal = ({
   branchName = "Main Branch",
   onConfirmAddToCart,
 }) => {
+  const { activeBranchId } = useUser();
   const [batches, setBatches] = useState([]);
   const [totalQty, setTotalQty] = useState(1);
   const [allocations, setAllocations] = useState({});
@@ -173,7 +175,7 @@ export const WorkspaceProductBatchSelectorModal = ({
         try {
           const prodId = p._id || p.id;
           const res = await workspaceProductService.getProductFacilityBatchesByQueryV2({
-            filters: { product: prodId },
+            filters: { product: prodId, facility_id: activeBranchId, branch_id: activeBranchId },
             limit: 20,
           });
           const apiBatches = res.data?.data?.batches || res.data?.batches || res.data?.data || [];
@@ -191,7 +193,13 @@ export const WorkspaceProductBatchSelectorModal = ({
 
       let matchedList = list.filter((b) => {
         if (!b) return false;
-        const bStock = Number(b.stock ?? b.batchQty ?? b.qty ?? b.currentStock ?? (p.stock ?? 100));
+
+        const bBranchId = String(b.branch_id || b.facility_id || b.facilityId || b.branchId || b.branch || "");
+        if (activeBranchId && bBranchId && bBranchId !== String(activeBranchId)) {
+          return false;
+        }
+
+        const bStock = Number(b.stock ?? b.batchQty ?? b.qty ?? b.currentStock ?? p.stock);
         if (bStock <= 0) return false;
 
         if (!b.productId && !b.workspaceProductId && !b.productName && (Array.isArray(p.batches) || Array.isArray(p.facilityBatches))) {
@@ -211,11 +219,11 @@ export const WorkspaceProductBatchSelectorModal = ({
 
       // Single batch fallback for product if list is empty
       if (matchedList.length === 0) {
-        const baseMrp = Number(p.mrp ?? p.mrpPrice ?? 160.0);
-        const basePrice = Number(p.rateC ?? p.rate ?? p.price ?? p.ptr ?? 134.4);
-        const baseBatchNo = p.batchNo || p.batch || p.displaySku || p.sku || "B-8801";
-        const baseRack = p.rack || p.shelfLocation || "F1/AE2";
-        const basePack = p.pack || p.packaging || p.displayDosageForm || "10S";
+        const baseMrp = Number(p.mrp ?? p.mrpPrice);
+        const basePrice = Number(p.rateC ?? p.rate ?? p.price ?? p.ptr);
+        const baseBatchNo = p.batchNo || p.batch || p.displaySku || p.sku;
+        const baseRack = p.rack || p.shelfLocation;
+        const basePack = p.pack || p.packaging || p.displayDosageForm;
         const baseHsn =
           p.globalProduct?.hsn ||
           p.globalProduct?.hsnCode ||
@@ -223,8 +231,7 @@ export const WorkspaceProductBatchSelectorModal = ({
           p.globalProduct?.HsnMaster?.code ||
           p.hsnCode ||
           p.hsn ||
-          p.HsnMaster?.code ||
-          "3004";
+          p.HsnMaster?.code;
         const baseGst =
           p.globalProduct?.gstRate ??
           p.globalProduct?.hsnMaster?.gstRate ??
@@ -235,9 +242,8 @@ export const WorkspaceProductBatchSelectorModal = ({
           p.taxRate ??
           p.hsnTaxpercent ??
           p.gst ??
-          p.HsnMaster?.gstRate ??
-          5;
-        const baseExpiry = p.expiryDate || p.expDate || p.expiry || p.displayExpDate || "11/32";
+          p.HsnMaster?.gstRate
+        const baseExpiry = p.expiryDate || p.expDate || p.expiry || p.displayExpDate;
 
         const baseRateB = Number(p.rateB ?? p.rateb ?? p.ptr ?? 0);
         const baseRateA = Number(p.rateA ?? p.ratea ?? 0);
@@ -251,13 +257,13 @@ export const WorkspaceProductBatchSelectorModal = ({
             price: basePrice,
             rateB: baseRateB,
             rateA: baseRateA,
-            stock: p.stock ?? 100,
+            stock: p.stock,
             expiry: baseExpiry,
             rack: baseRack,
             pack: basePack,
             hsn: baseHsn,
             gst: baseGst,
-            ratePct: p.ratePct || p.marginPct || "16%",
+            ratePct: p.ratePct || p.marginPct,
             productName: p.displayName || p.name,
             schemeDiscountPercent: baseSchemeDiscountPercent,
           },
@@ -548,9 +554,10 @@ export const WorkspaceProductBatchSelectorModal = ({
               <input
                 ref={totalQtyInputRef}
                 type="number"
+                disabled={maxTotalStock == 0}
                 min="1"
                 max={maxTotalStock || 999}
-                value={totalQty}
+                value={maxTotalStock == 0 ? 0 : totalQty}
                 onFocus={(e) => e.target.select()}
                 onChange={(e) => handleTotalQtyChange(e.target.value)}
                 onBlur={handleBlurTotalQty}
@@ -565,6 +572,7 @@ export const WorkspaceProductBatchSelectorModal = ({
 
               <button
                 type="button"
+                disabled={maxTotalStock == 0}
                 onClick={() => handleTotalQtyChange(Math.min(maxTotalStock || 999, (Number(totalQty) || 1) + 1))}
                 className="size-9 rounded-lg flex items-center justify-center hover:bg-surface-hover text-text-muted hover:text-text cursor-pointer transition-colors"
               >
@@ -718,7 +726,7 @@ export const WorkspaceProductBatchSelectorModal = ({
             <UIButton
               variant="primary"
               size="md"
-              disabled={totalAllocatedQty === 0}
+              disabled={totalAllocatedQty === 0 || maxTotalStock == 0}
               onClick={handleConfirmAdd}
               rightIcon={<ShoppingCart className="size-4" />}
               className="font-bold shadow-sm px-5"
