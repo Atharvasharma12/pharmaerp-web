@@ -1,6 +1,8 @@
 // src/features/parties/customers/pages/mobile/CustomerDetailsMobilePage.jsx
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useDispatch } from "react-redux";
+import { getCustomerSales, getCustomerLedger } from "../../store/customerThunk";
 import {
   FiArrowLeft,
   FiEdit3,
@@ -42,9 +44,9 @@ import { formatDate, formatCurrency } from "@/utils";
 
 const CustomerDetailsMobilePage = ({
   customer,
-  ledger = [],
+  ledger = {},
   outstanding,
-  sales = [],
+  sales = {},
   payments = [],
   isLoading,
   hasError,
@@ -78,10 +80,41 @@ const CustomerDetailsMobilePage = ({
   }
 
   const safeCustomer = customer || {};
+  const dispatch = useDispatch();
+
+  const salesData = Array.isArray(sales?.data) ? sales.data : [];
+  const salesMeta = sales?.meta || { totalSalesAmount: 0 };
+  const ledgerEntries = Array.isArray(ledger?.entries) ? ledger.entries : [];
+  const ledgerTotalDebit = ledger?.meta?.totalDebit || 0;
+  const ledgerTotalCredit = ledger?.meta?.totalCredit || 0;
+  const ledgerNetBal = ledgerTotalDebit - ledgerTotalCredit;
+
+  const combinedTx = useMemo(() => {
+    return [
+      ...salesData.map((s) => ({
+        id: s._id || s.invoiceNo || s.invoiceNumber,
+        type: "Sales Invoice",
+        refNo: s.invoiceNo || s.invoiceNumber,
+        date: s.date || s.invoiceDate || s.createdAt,
+        amount: s.grandTotal || s.totalAmount,
+        status: s.status || "Unpaid",
+        rawDate: new Date(s.date || s.invoiceDate || s.createdAt).getTime(),
+      })),
+      ...payments.map((p) => ({
+        id: p._id || p.paymentNumber,
+        type: "Payment",
+        refNo: p.paymentNumber,
+        date: p.paymentDate || p.createdAt,
+        amount: p.amount,
+        status: "Paid",
+        rawDate: new Date(p.paymentDate || p.createdAt).getTime(),
+      })),
+    ].sort((a, b) => b.rawDate - a.rawDate);
+  }, [salesData, payments]);
 
   const tabs = [
     { value: "overview", label: "Overview" },
-    { value: "transactions", label: `Txns (${sales.length + payments.length})` },
+    { value: "transactions", label: `Txns (${salesMeta.total || combinedTx.length})` },
     { value: "statement", label: "Statement" },
     { value: "documents", label: "Docs" },
   ];
@@ -267,7 +300,7 @@ const CustomerDetailsMobilePage = ({
               <div className="grid grid-cols-2 gap-2">
                 <CompactMetricCard
                   title="Total Sales"
-                  value={formatCurrency(sales.reduce((acc, s) => acc + (s.totalAmount || 0), 0))}
+                  value={formatCurrency(salesMeta.totalSalesAmount || 0)}
                   color="primary"
                 />
                 <CompactMetricCard
@@ -280,7 +313,7 @@ const CustomerDetailsMobilePage = ({
                     title="Outstanding Balance"
                     value={formatCurrency(
                       (Number(safeCustomer.openingBalance) || 0) * (safeCustomer.openingBalanceType === "dr" ? 1 : -1) +
-                      sales.reduce((acc, s) => acc + (s.totalAmount || 0), 0) -
+                      (salesMeta.totalSalesAmount || 0) -
                       payments.reduce((acc, p) => acc + (p.amount || 0), 0)
                     )}
                     color="danger"
@@ -293,15 +326,33 @@ const CustomerDetailsMobilePage = ({
           {/* Transactions List */}
           {currentTab === "transactions" && (
             <AppStack direction="column" gap={1}>
-              {sales.map((s) => (
-                <TxnMobileCard key={s._id} type="Sales Invoice" refNo={s.invoiceNumber} date={s.invoiceDate} amount={s.totalAmount} status={s.status} />
+              {combinedTx.map((tx) => (
+                <TxnMobileCard key={tx.id} type={tx.type} refNo={tx.refNo} date={tx.date} amount={tx.amount} status={tx.status} />
               ))}
-              {payments.map((p) => (
-                <TxnMobileCard key={p._id} type="Payment" refNo={p.paymentNumber} date={p.paymentDate} amount={p.amount} status="Paid" />
-              ))}
-              {sales.length === 0 && payments.length === 0 && (
+              {combinedTx.length === 0 && (
                 <div className="p-8 text-center text-text-muted text-[11.5px] bg-surface rounded-lg border border-border">
                   No transaction history found.
+                </div>
+              )}
+              {salesMeta.total > 5 && (
+                <div className="py-2 flex justify-between items-center px-2">
+                  <button
+                    type="button"
+                    onClick={() => dispatch(getCustomerSales({ customerId: safeCustomer._id, params: { page: (salesMeta.page || 1) - 1, limit: 5 } }))}
+                    disabled={(salesMeta.page || 1) <= 1}
+                    className="text-[12px] font-bold text-primary hover:underline disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-[10px] text-text-muted">Page {salesMeta.page || 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => dispatch(getCustomerSales({ customerId: safeCustomer._id, params: { page: (salesMeta.page || 1) + 1, limit: 5 } }))}
+                    disabled={(salesMeta.page || 1) >= Math.ceil(salesMeta.total / 5)}
+                    className="text-[12px] font-bold text-primary hover:underline disabled:opacity-50"
+                  >
+                    Next
+                  </button>
                 </div>
               )}
             </AppStack>
@@ -309,17 +360,62 @@ const CustomerDetailsMobilePage = ({
 
           {/* Statement */}
           {currentTab === "statement" && (
-            <AppCard variant="default" rounded="md" bordered padding="md" sx={emptyCardContainerSx}>
-              <AppStack direction="column" align="center" justify="center" gap={1} sx={{ py: 3, width: "100%" }}>
-                <FiFileText className="text-[28px] text-text-muted/60" />
-                <AppHeading level={3} weight={700} align="center" sx={{ m: 0, fontSize: "13px", width: "100%" }}>
-                  Ledger Statement
-                </AppHeading>
-                <AppText variant="body2" align="center" sx={tabFallbackDescSx}>
-                  Download the statement from the desktop interface to view full ledger details.
-                </AppText>
-              </AppStack>
-            </AppCard>
+            <AppStack direction="column" gap={1}>
+              <div className="grid grid-cols-2 gap-2 mb-1">
+                <CompactMetricCard title="Total Debit (Dr)" value={formatCurrency(ledgerTotalDebit)} color="danger" />
+                <CompactMetricCard title="Total Credit (Cr)" value={formatCurrency(ledgerTotalCredit)} color="success" />
+                <div className="col-span-2">
+                  <CompactMetricCard 
+                    title="Closing Balance" 
+                    value={`${formatCurrency(Math.abs(ledgerNetBal))} ${ledgerNetBal >= 0 ? "Dr" : "Cr"}`} 
+                    color="primary" 
+                  />
+                </div>
+              </div>
+
+              {ledgerEntries.map((entry) => (
+                <AppCard key={entry._id} variant="default" rounded="md" bordered shadow="none" sx={{ p: 1.5, bgcolor: "var(--app-color-surface)" }}>
+                  <AppStack direction="row" align="center" justify="space-between" gap={1}>
+                    <div>
+                      <span className="block text-[12px] font-bold text-text">{entry.voucherType}</span>
+                      <span className="block text-[10px] text-text-muted mt-0.5">{entry.voucherNumber} &bull; {formatDate(entry.voucherDate)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="block text-[12.5px] font-extrabold text-text">
+                        {entry.debit > 0 ? formatCurrency(entry.debit) + " Dr" : formatCurrency(entry.credit) + " Cr"}
+                      </span>
+                      <span className="block text-[10px] text-text-muted mt-0.5">Bal: {formatCurrency(Math.abs(entry.runningBalance))}</span>
+                    </div>
+                  </AppStack>
+                </AppCard>
+              ))}
+              {ledgerEntries.length === 0 && (
+                <div className="p-8 text-center text-text-muted text-[11.5px] bg-surface rounded-lg border border-border">
+                  No statement history found.
+                </div>
+              )}
+              {ledger?.total > 5 && (
+                <div className="py-2 flex justify-between items-center px-2">
+                  <button
+                    type="button"
+                    onClick={() => dispatch(getCustomerLedger({ customerId: safeCustomer._id, params: { page: (ledger.page || 1) - 1, limit: 5 } }))}
+                    disabled={(ledger.page || 1) <= 1}
+                    className="text-[12px] font-bold text-primary hover:underline disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-[10px] text-text-muted">Page {ledger.page || 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => dispatch(getCustomerLedger({ customerId: safeCustomer._id, params: { page: (ledger.page || 1) + 1, limit: 5 } }))}
+                    disabled={(ledger.page || 1) >= Math.ceil(ledger.total / 5)}
+                    className="text-[12px] font-bold text-primary hover:underline disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </AppStack>
           )}
 
           {/* Documents */}

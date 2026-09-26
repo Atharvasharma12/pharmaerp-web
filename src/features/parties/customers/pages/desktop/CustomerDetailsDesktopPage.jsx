@@ -1,6 +1,8 @@
 // src/features/parties/customers/pages/desktop/CustomerDetailsDesktopPage.jsx
 
 import { useMemo, useState } from "react";
+import { useDispatch } from "react-redux";
+import { getCustomerLedger, getCustomerSales } from "../../store/customerThunk";
 import {
   FiArrowLeft,
   FiRefreshCw,
@@ -46,9 +48,9 @@ import { formatDate, formatCurrency } from "@/utils";
 
 const CustomerDetailsDesktopPage = ({
   customer,
-  ledger = [],
+  ledger = {},
   outstanding,
-  sales = [],
+  sales = {},
   payments = [],
   isLoading,
   hasError,
@@ -86,28 +88,36 @@ const CustomerDetailsDesktopPage = ({
   const safeCustomer = customer || {};
 
   // Dynamically calculate metrics from sales/payments/outstanding
+  const salesData = Array.isArray(sales?.data) ? sales.data : [];
+  const salesMeta = sales?.meta || { totalSalesAmount: 0 };
+  
   const calculatedMetrics = useMemo(() => {
-    const totalSalesVal = sales.reduce((acc, s) => acc + (s.totalAmount || 0), 0);
-    const totalReceiptsVal = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
+    // Total sales now uses the precomputed total from the backend (or fallback to calculated)
+    const totalSalesVal = salesMeta.totalSalesAmount || 0;
     
-    // Outstanding = Opening Balance + Total Sales - Total Receipts
-    const opBal = Number(safeCustomer.openingBalance) || 0;
-    const opBalType = safeCustomer.openingBalanceType || "dr";
-    const opBalSigned = opBalType === "dr" ? opBal : -opBal;
-    
-    const outstandingVal = opBalSigned + totalSalesVal - totalReceiptsVal;
+    // Total receipts fallback (payments is still unpaginated dummy data for now)
+    const totalReceiptsVal = payments.reduce(
+      (acc, p) => acc + (p.amount || 0),
+      0
+    );
 
-    // Combine transactions
+    const outstandingVal =
+      (Number(safeCustomer.openingBalance) || 0) *
+        (safeCustomer.openingBalanceType === "dr" ? 1 : -1) +
+      totalSalesVal -
+      totalReceiptsVal;
+
+    // We only have the current page of sales, so allTransactions is now just the current page's transactions merged with payments
     const combinedTx = [
-      ...sales.map((s) => ({
-        id: s._id || s.invoiceNumber,
+      ...salesData.map((s) => ({
+        id: s._id || s.invoiceNo || s.invoiceNumber,
         type: "Sales Invoice",
-        refNo: s.invoiceNumber,
-        date: s.invoiceDate || s.createdAt,
-        dueDate: s.dueDate || "-",
-        amount: s.totalAmount,
+        refNo: s.invoiceNo || s.invoiceNumber,
+        date: s.date || s.invoiceDate || s.createdAt,
+        dueDate: s.dueDate || s.createdAt,
+        amount: s.grandTotal || s.totalAmount,
         status: s.status || "Unpaid",
-        rawDate: new Date(s.invoiceDate || s.createdAt).getTime(),
+        rawDate: new Date(s.date || s.invoiceDate || s.createdAt).getTime(),
       })),
       ...payments.map((p) => ({
         id: p._id || p.paymentNumber,
@@ -127,12 +137,13 @@ const CustomerDetailsDesktopPage = ({
       totalSales: totalSalesVal,
       totalReceipts: totalReceiptsVal,
       outstandingBalance: outstandingVal,
-      totalTransactions: combinedTx.length,
+      totalTransactions: salesMeta.total || combinedTx.length,
       lastTransactionDate: lastTxDate,
       recentTransactions: combinedTx.slice(0, 5),
       allTransactions: combinedTx,
+      salesMeta,
     };
-  }, [sales, payments, safeCustomer]);
+  }, [salesData, salesMeta, payments, safeCustomer]);
 
   // Tab Header Items
   const tabs = [
@@ -281,10 +292,10 @@ const CustomerDetailsDesktopPage = ({
             />
           )}
           {currentTab === "transactions" && (
-            <TransactionsTab metrics={calculatedMetrics} />
+            <TransactionsTab metrics={calculatedMetrics} customerId={safeCustomer._id} />
           )}
           {currentTab === "statement" && (
-            <StatementTab customer={safeCustomer} metrics={calculatedMetrics} />
+            <StatementTab customer={safeCustomer} ledger={ledger} />
           )}
           {currentTab === "documents" && (
             <DocumentsTab customer={safeCustomer} />
@@ -632,111 +643,177 @@ const OverviewTab = ({ customer, metrics, onTabChange, onEdit }) => {
 /* ==========================================================================
    2. TRANSACTIONS TAB
    ========================================================================== */
-const TransactionsTab = ({ metrics }) => (
-  <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
-    <div className="border-b border-border px-4 py-3.5 bg-surface-alt/10">
-      <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>Transaction Log Book</AppHeading>
-      <span className="block text-[11px] text-text-muted mt-0.5">Historical sales records, debit notes and payments received.</span>
-    </div>
-    <div className="w-full overflow-x-auto">
-      {metrics.allTransactions.length === 0 ? (
-        <div className="p-12 text-center text-text-muted text-[13px]">
-          No recorded transactions found for this customer record.
+const TransactionsTab = ({ metrics, customerId }) => {
+  const dispatch = useDispatch();
+  const salesMeta = metrics.salesMeta || { page: 1, total: metrics.totalTransactions };
+  const currentPage = salesMeta.page || 1;
+  const rowsPerPage = 5;
+  const totalPages = Math.ceil((salesMeta.total || metrics.totalTransactions) / rowsPerPage);
+
+  const currentRows = metrics.allTransactions;
+
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      dispatch(getCustomerSales({ customerId, params: { page: currentPage + 1, limit: rowsPerPage } }));
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentPage > 1) {
+      dispatch(getCustomerSales({ customerId, params: { page: currentPage - 1, limit: rowsPerPage } }));
+    }
+  };
+
+  return (
+    <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
+      <div className="border-b border-border px-4 py-3.5 bg-surface-alt/10 flex justify-between items-center">
+        <div>
+          <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>Transaction Log Book</AppHeading>
+          <span className="block text-[11px] text-text-muted mt-0.5">Historical sales records, debit notes and payments received.</span>
         </div>
-      ) : (
-        <table className="w-full border-collapse text-left text-[12.5px]">
-          <thead>
-            <tr className="border-b border-border bg-surface-alt/45 text-[11px] font-bold text-text-muted uppercase tracking-wider">
-              <th className="px-4 py-3">Transaction Type</th>
-              <th className="px-4 py-3">Reference No.</th>
-              <th className="px-4 py-3">Posting Date</th>
-              <th className="px-4 py-3">Due Date</th>
-              <th className="px-4 py-3 text-right">Amount</th>
-              <th className="px-4 py-3 text-center">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {metrics.allTransactions.map((tx) => (
-              <tr key={tx.id} className="hover:bg-surface-alt/20 transition">
-                <td className="px-4 py-3.5 font-bold text-text">{tx.type}</td>
-                <td className="px-4 py-3.5 font-mono text-text-muted">{tx.refNo || "-"}</td>
-                <td className="px-4 py-3.5 text-text-muted">{formatDate(tx.date)}</td>
-                <td className="px-4 py-3.5 text-text-muted">{tx.dueDate !== "-" ? formatDate(tx.dueDate) : "-"}</td>
-                <td className="px-4 py-3.5 text-right font-bold text-text">{formatCurrency(tx.amount)}</td>
-                <td className="px-4 py-3.5 text-center">
-                  <AppTag
-                    label={tx.status}
-                    colorVariant={
-                      tx.status.toLowerCase() === "paid" || tx.status.toLowerCase() === "completed"
-                        ? "success"
-                        : tx.status.toLowerCase() === "partial"
-                        ? "warning"
-                        : "danger"
-                    }
-                    variant="soft"
-                    rounded="md"
+      </div>
+      <div className="w-full overflow-x-auto">
+        {metrics.allTransactions.length === 0 ? (
+          <div className="p-12 text-center text-text-muted text-[13px]">
+            No recorded transactions found for this customer record.
+          </div>
+        ) : (
+          <>
+            <table className="w-full border-collapse text-left text-[12.5px]">
+              <thead>
+                <tr className="border-b border-border bg-surface-alt/45 text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                  <th className="px-4 py-3">Transaction Type</th>
+                  <th className="px-4 py-3">Reference No.</th>
+                  <th className="px-4 py-3">Posting Date</th>
+                  <th className="px-4 py-3">Due Date</th>
+                  <th className="px-4 py-3 text-right">Amount</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {currentRows.map((tx) => (
+                  <tr key={tx.id} className="hover:bg-surface-alt/20 transition">
+                    <td className="px-4 py-3.5 font-bold text-text">{tx.type}</td>
+                    <td className="px-4 py-3.5 font-mono text-text-muted">{tx.refNo || "-"}</td>
+                    <td className="px-4 py-3.5 text-text-muted">{formatDate(tx.date)}</td>
+                    <td className="px-4 py-3.5 text-text-muted">{tx.dueDate !== "-" ? formatDate(tx.dueDate) : "-"}</td>
+                    <td className="px-4 py-3.5 text-right font-bold text-text">{formatCurrency(tx.amount)}</td>
+                    <td className="px-4 py-3.5 text-center">
+                      <AppTag
+                        label={tx.status}
+                        colorVariant={
+                          tx.status.toLowerCase() === "paid" || tx.status.toLowerCase() === "completed"
+                            ? "success"
+                            : tx.status.toLowerCase() === "partial"
+                            ? "warning"
+                            : "danger"
+                        }
+                        variant="soft"
+                        rounded="md"
+                        size="small"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-border px-4 py-3 bg-surface">
+                <span className="text-[12px] text-text-muted">
+                  Page {currentPage} of {totalPages} (Total {salesMeta.total} entries)
+                </span>
+                <div className="flex space-x-2">
+                  <AppButton
+                    variant="outlined"
+                    colorVariant="neutral"
                     size="small"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  </AppCard>
-);
+                    onClick={handlePrev}
+                    disabled={currentPage === 1}
+                    sx={{ height: 28, fontSize: "11px", px: 2 }}
+                  >
+                    Previous
+                  </AppButton>
+                  <AppButton
+                    variant="outlined"
+                    colorVariant="neutral"
+                    size="small"
+                    onClick={handleNext}
+                    disabled={currentPage === totalPages}
+                    sx={{ height: 28, fontSize: "11px", px: 2 }}
+                  >
+                    Next
+                  </AppButton>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </AppCard>
+  );
+};
 
 /* ==========================================================================
    3. STATEMENT TAB
    ========================================================================== */
-const StatementTab = ({ customer, metrics }) => {
-  // Generate statement data: opening balance row, transactions with running balance
-  const statementRows = useMemo(() => {
-    const opBal = Number(customer.openingBalance) || 0;
-    const opBalType = customer.openingBalanceType || "dr";
-    
-    let runningBal = opBalType === "dr" ? opBal : -opBal;
+const StatementTab = ({ customer, ledger }) => {
+  const dispatch = useDispatch();
+  const ledgerEntries = Array.isArray(ledger?.entries) ? ledger.entries : [];
+  const currentPage = ledger?.page || 1;
+  const totalEntries = ledger?.total || 0;
+  const totalDebit = ledger?.meta?.totalDebit || 0;
+  const totalCredit = ledger?.meta?.totalCredit || 0;
+  const netBalance = totalDebit - totalCredit;
+  const rowsPerPage = 5;
+  const totalPages = Math.ceil(totalEntries / rowsPerPage);
 
-    const rows = [
-      {
+  // Generate statement data from actual backend ledger entries
+  const statementRows = useMemo(() => {
+    const rows = [];
+    
+    ledgerEntries.forEach((entry) => {
+      rows.push({
+        id: entry._id,
+        date: entry.voucherDate,
+        particulars: entry.narration || `${entry.voucherType} (Ref: ${entry.voucherNumber})`,
+        debit: entry.debit,
+        credit: entry.credit,
+        balance: entry.runningBalance,
+        isOpening: false,
+      });
+    });
+
+    // Only show Opening Balance at the bottom of the last page
+    if (currentPage === totalPages || totalPages === 0) {
+      const opBal = Number(customer.openingBalance) || 0;
+      const opBalType = customer.openingBalanceType || "dr";
+      rows.push({
         id: "opening-bal",
         date: customer.createdAt || "2024-05-28",
         particulars: "Opening Balance",
         debit: opBalType === "dr" ? opBal : 0,
         credit: opBalType === "cr" ? opBal : 0,
-        balance: runningBal,
+        balance: opBalType === "dr" ? opBal : -opBal,
         isOpening: true,
-      },
-    ];
-
-    // Sort transactions chronologically ascending
-    const chronoTx = [...metrics.allTransactions].reverse();
-
-    chronoTx.forEach((tx) => {
-      let deb = 0;
-      let cred = 0;
-      if (tx.type === "Sales Invoice") {
-        deb = tx.amount;
-        runningBal += deb;
-      } else {
-        cred = tx.amount;
-        runningBal -= cred;
-      }
-
-      rows.push({
-        id: tx.id,
-        date: tx.date,
-        particulars: `${tx.type} (Ref: ${tx.refNo})`,
-        debit: deb,
-        credit: cred,
-        balance: runningBal,
-        isOpening: false,
       });
-    });
+    }
 
     return rows;
-  }, [customer, metrics]);
+  }, [customer, ledgerEntries, currentPage]);
+
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      dispatch(getCustomerLedger({ customerId: customer._id, params: { page: currentPage + 1, limit: rowsPerPage } }));
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentPage > 1) {
+      dispatch(getCustomerLedger({ customerId: customer._id, params: { page: currentPage - 1, limit: rowsPerPage } }));
+    }
+  };
 
   return (
     <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
@@ -780,7 +857,48 @@ const StatementTab = ({ customer, metrics }) => {
               </tr>
             ))}
           </tbody>
+          <tfoot className="bg-surface-alt/20">
+            <tr className="border-t-2 border-border font-bold text-[12.5px]">
+              <td colSpan="2" className="px-4 py-3 text-right">Grand Total Summary:</td>
+              <td className="px-4 py-3 text-right text-danger">{formatCurrency(totalDebit)}</td>
+              <td className="px-4 py-3 text-right text-success">{formatCurrency(totalCredit)}</td>
+              <td className="px-4 py-3 text-right">
+                {formatCurrency(Math.abs(netBalance))} {netBalance >= 0 ? "Dr" : "Cr"}
+              </td>
+            </tr>
+          </tfoot>
         </table>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-border px-4 py-3 bg-surface">
+            <span className="text-[12px] text-text-muted">
+              Page {currentPage} of {totalPages} (Total {totalEntries} entries)
+            </span>
+            <div className="flex space-x-2">
+              <AppButton
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                onClick={handlePrev}
+                disabled={currentPage === 1}
+                sx={{ height: 28, fontSize: "11px", px: 2 }}
+              >
+                Previous
+              </AppButton>
+              <AppButton
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                onClick={handleNext}
+                disabled={currentPage === totalPages}
+                sx={{ height: 28, fontSize: "11px", px: 2 }}
+              >
+                Next
+              </AppButton>
+            </div>
+          </div>
+        )}
       </div>
     </AppCard>
   );
