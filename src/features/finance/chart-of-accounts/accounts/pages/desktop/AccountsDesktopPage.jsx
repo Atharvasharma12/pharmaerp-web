@@ -34,6 +34,7 @@ import {
   PageHeader,
   AppMenu,
   PermissionGate,
+  AppTable,
 } from "@/components";
 import { usePermission } from "@/hooks";
 
