@@ -31,30 +31,94 @@ import workspaceProductService from "../features/workspace-products/services/wor
 /**
  * Helper to reliably parse date string, handling DD-MMM-YY
  */
+/**
+ * Helper to reliably parse date string across all browsers/devices,
+ * handling MM/YY, MM/YYYY, DD-MMM-YY, YYYY-MM-DD, MM-YY, etc.
+ */
 const parseDateSafely = (dateStr) => {
   if (!dateStr) return null;
-  // Check if it matches DD-MMM-YY or DD-MMM-YYYY (e.g., 01-Oct-27)
-  const parts = String(dateStr).split('-');
-  if (parts.length === 3) {
-    let year = parseInt(parts[2], 10);
-    // If year is 2 digits (e.g., 27), assume 2000s
-    if (year < 100) year += 2000;
+  if (dateStr instanceof Date && !isNaN(dateStr.getTime())) return dateStr;
 
-    const monthStr = parts[1].toLowerCase();
-    const months = {
-      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
-    };
+  const str = String(dateStr).trim();
 
-    const month = months[monthStr.substring(0, 3)];
-    const day = parseInt(parts[0], 10);
-
-    if (month !== undefined && !isNaN(day) && !isNaN(year)) {
-      const date = new Date(year, month, day);
-      if (!isNaN(date.getTime())) return date;
+  // 1) Handle Slash-separated strings (e.g., MM/YY, MM/YYYY, DD/MM/YYYY, YYYY/MM/DD)
+  if (str.includes("/")) {
+    const parts = str.split("/");
+    if (parts.length === 2) {
+      // MM/YY or MM/YYYY
+      let month = parseInt(parts[0], 10) - 1;
+      let year = parseInt(parts[1], 10);
+      if (year < 100) year += 2000;
+      if (!isNaN(month) && !isNaN(year) && month >= 0 && month < 12) {
+        return new Date(year, month, 1);
+      }
+    } else if (parts.length === 3) {
+      let year, month, day;
+      if (parts[0].length === 4) {
+        // YYYY/MM/DD
+        year = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10) - 1;
+        day = parseInt(parts[2], 10);
+      } else {
+        // DD/MM/YYYY or DD/MM/YY
+        day = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10) - 1;
+        year = parseInt(parts[2], 10);
+        if (year < 100) year += 2000;
+      }
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        const d = new Date(year, month, day);
+        if (!isNaN(d.getTime())) return d;
+      }
     }
   }
-  const fallback = new Date(dateStr);
+
+  // 2) Handle Hyphen-separated strings (e.g., DD-MMM-YY, YYYY-MM-DD, MM-YY, MM-YYYY)
+  if (str.includes("-")) {
+    const parts = str.split("-");
+    if (parts.length === 2) {
+      // MM-YY or MM-YYYY
+      let month = parseInt(parts[0], 10) - 1;
+      let year = parseInt(parts[1], 10);
+      if (year < 100) year += 2000;
+      if (!isNaN(month) && !isNaN(year) && month >= 0 && month < 12) {
+        return new Date(year, month, 1);
+      }
+    } else if (parts.length === 3) {
+      let year, month, day;
+      if (parts[0].length === 4) {
+        // YYYY-MM-DD (ISO date format)
+        year = parseInt(parts[0], 10);
+        month = parseInt(parts[1], 10) - 1;
+        day = parseInt(parts[2], 10);
+      } else {
+        // DD-MMM-YY or DD-MM-YYYY
+        year = parseInt(parts[2], 10);
+        if (year < 100) year += 2000;
+
+        const monthStr = parts[1].toLowerCase();
+        const months = {
+          jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+          jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+        };
+
+        if (months[monthStr.substring(0, 3)] !== undefined) {
+          month = months[monthStr.substring(0, 3)];
+        } else {
+          month = parseInt(parts[1], 10) - 1;
+        }
+        day = parseInt(parts[0], 10);
+      }
+
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        const d = new Date(year, month, day);
+        if (!isNaN(d.getTime())) return d;
+      }
+    }
+  }
+
+  // 3) Native Date parsing fallback
+  const fallback = new Date(str);
   return isNaN(fallback.getTime()) ? null : fallback;
 };
 
@@ -68,7 +132,8 @@ const formatExpDate = (expiryDate) => {
     return String(expiryDate);
   }
   const m = String(dateObj.getMonth() + 1).padStart(2, "0");
-  const y = String(dateObj.getFullYear()).slice(-2);
+  const fullYear = dateObj.getFullYear();
+  const y = String(fullYear).padStart(4, "0").slice(-2);
   return `${m}/${y}`;
 };
 
@@ -85,11 +150,11 @@ const HighlightedExpiryBadge = ({ expiryDate }) => {
     if (!dateObj) return null;
 
     const expMonth = dateObj.getMonth() + 1;
-    const expYear = Number(String(dateObj.getFullYear()).slice(-2));
+    const expYear = dateObj.getFullYear();
 
     const now = new Date();
     const currMonth = now.getMonth() + 1;
-    const currYear = Number(String(now.getFullYear()).slice(-2));
+    const currYear = now.getFullYear();
 
     if (expYear < currYear || (expYear === currYear && expMonth < currMonth)) {
       return "expired";
