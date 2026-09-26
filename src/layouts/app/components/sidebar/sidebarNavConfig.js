@@ -162,7 +162,7 @@ export const SIDEBAR_NAV_GROUPS = [
             id: "transfer-orders",
             label: "Transfer Orders",
             path: "/inventory/transfer-orders",
-            icon: Boxes,
+            icon: ArrowLeftRight,
             permission: "product:view",
           },
           {
