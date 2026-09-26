@@ -266,6 +266,14 @@ export const POSTerminalPage = () => {
   }, []);
 
   /* ────────────────── PRODUCT ADD TO CART ────────────────── */
+  const getSafeStr = (val) => {
+    if (!val) return "";
+    if (typeof val === "object" && val !== null) {
+      return val.name || val.productName || val.category || "";
+    }
+    return String(val);
+  };
+
   const handleAddProduct = useCallback((product) => {
     const pid = product._id || product.id;
     setCartItems((prev) => {
@@ -285,18 +293,18 @@ export const POSTerminalPage = () => {
         ...prev,
         {
           productId: pid,
-          name: product.name || product.productName || "Unknown Product",
-          productCode: product.productCode || "",
-          batchNo: product.batchNumber || product.batchNo || "",
-          expiryDate: product.expiryDate || null,
+          name: getSafeStr(product.name) || getSafeStr(product.productName) || "Unknown Product",
+          productCode: getSafeStr(product.productCode) || "",
+          batchNo: getSafeStr(product.batchNumber) || getSafeStr(product.batchNo) || "",
+          expiryDate: typeof product.expiryDate === "object" ? null : (product.expiryDate || null),
           qty: 1,
           mrp,
           rate: mrp,
           ptr,
           gstRate,
           itemDiscount: 0,
-          manufacturer: product.manufacturer?.name || product.manufacturerName || "",
-          pack: product.pack || product.packSize || "",
+          manufacturer: getSafeStr(product.manufacturer) || getSafeStr(product.manufacturerName) || "",
+          pack: getSafeStr(product.pack) || getSafeStr(product.packSize) || "",
         },
       ];
     });
@@ -603,11 +611,11 @@ export const POSTerminalPage = () => {
                   >
                     {productResults.map((product, idx) => {
                       const pid = product._id || product.id;
-                      const name = product.name || product.productName || "Unnamed";
-                      const code = product.productCode || "";
-                      const manufacturer = product.manufacturer?.name || product.manufacturerName || "";
+                      const name = getSafeStr(product.name) || getSafeStr(product.productName) || "Unnamed";
+                      const code = getSafeStr(product.productCode) || "";
+                      const manufacturer = getSafeStr(product.manufacturer) || getSafeStr(product.manufacturerName) || "";
                       const mrp = Number(product.mrp || product.sellingPrice || product.price || 0);
-                      const pack = product.pack || product.packSize || "";
+                      const pack = getSafeStr(product.pack) || getSafeStr(product.packSize) || "";
 
                       return (
                         <button
@@ -707,13 +715,13 @@ export const POSTerminalPage = () => {
                               <span className="text-xs font-bold text-text leading-tight">{ci.name}</span>
                               <div className="flex items-center gap-2 mt-0.5">
                                 {ci.productCode && (
-                                  <span className="text-[10px] font-mono text-primary/70">{ci.productCode}</span>
-                                )}
-                                {ci.batchNo && (
-                                  <span className="text-[10px] text-text-muted">Batch: {ci.batchNo}</span>
+                                  <span className="text-[10px] font-mono text-primary/70">{getSafeStr(ci.productCode)}</span>
                                 )}
                                 {ci.manufacturer && (
-                                  <span className="text-[10px] text-text-muted truncate">· {ci.manufacturer}</span>
+                                  <span className="text-[10px] text-text-muted truncate">· {getSafeStr(ci.manufacturer)}</span>
+                                )}
+                                {ci.batchNo && (
+                                  <span className="text-[10px] text-text-muted">Batch: {getSafeStr(ci.batchNo)}</span>
                                 )}
                               </div>
                             </div>

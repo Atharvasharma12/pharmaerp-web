@@ -445,15 +445,15 @@ const ProductFacilityTable = ({ data }) => {
                       </td>
 
                       <td className="p-3 font-semibold text-gray-900">
-                        {row.name || "N/A"}
+                        {typeof row.name === "object" ? row.name?.name : (row.name || "N/A")}
                       </td>
 
                       <td className="p-3 text-gray-600 font-medium">
-                        {row.manufacturer || row.marketer || "FDC"}
+                        {typeof row.manufacturer === "object" ? row.manufacturer?.name : (row.manufacturer || typeof row.marketer === "object" ? row.marketer?.name : (row.marketer || "FDC"))}
                       </td>
 
                       <td className="p-3 text-gray-500">
-                        {row.pack || row.qty || "10x10"}
+                        {typeof row.pack === "object" ? row.pack?.name : (row.pack || row.qty || "10x10")}
                       </td>
 
                       <td className="p-3 font-mono font-medium text-gray-800">

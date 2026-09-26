@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
  * - Sub-components: `UIDrawer`, `UIDrawerHeader`, `UIDrawerTitle`, `UIDrawerDescription`, `UIDrawerBody`, `UIDrawerFooter`
  */
 
+let openDrawerCount = 0;
+
 export const UIDrawer = forwardRef(
   (
     {
@@ -51,9 +53,15 @@ export const UIDrawer = forwardRef(
     // Prevent body scroll when open
     useEffect(() => {
       if (isOpen) {
+        openDrawerCount++;
         document.body.style.overflow = "hidden";
+        
         return () => {
-          document.body.style.overflow = "unset";
+          openDrawerCount--;
+          if (openDrawerCount <= 0) {
+            openDrawerCount = 0;
+            document.body.style.overflow = "";
+          }
         };
       }
     }, [isOpen]);

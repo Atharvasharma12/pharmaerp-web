@@ -36,6 +36,7 @@ import { SupplierSearchBar } from "@/components";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
 import { PurchaseBillSchemeCheckModal } from "@/features/purchases/components/scheme-check/PurchaseBillSchemeCheckModal";
 import { PurchaseBillRateCheckModal } from "@/features/purchases/components/rate-check/PurchaseBillRateCheckModal";
+import { computeRateCheckRow } from "@/features/purchases/utils/rateCheckUtils";
 
 const BatchInputWithDropdown = ({ item, updateItemField }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -529,30 +530,43 @@ export const CreatePurchaseBillDesktopPage = () => {
         purchaseBillNo,
         invoiceDate,
         rateBasis,
-        items: cart.map((item) => ({
-          productId: item.productId || null,
-          name: item.name,
-          pack: item.pack,
-          batch: item.batch,
-          expiry: item.expiry,
-          qty: Number(item.qty) || 0,
-          freeQty: Number(item.freeQty) || 0,
-          schPct: Number(item.schPct) || 0,
-          disc: Number(item.disc) || 0,
-          cRatePct: Number(item.cRatePct) || 0,
-          mrp: Number(item.mrp) || 0,
-          hsn: item.hsn || "",
-          gst: Number(item.gst) || 12,
-          rate: Number(item.rate) || 0,
-          amount: getItemTaxableAmount(item),
-          rateA: Number(item.rateA) || 0,
-          rateB: Number(item.rateB) || 0,
-          rateC: Number(item.rateC) || 0,
-          finalRateA: Number(item.rateA) || 0,
-          finalRateB: Number(item.rateB) || 0,
-          finalRateC: Number(item.rateC) || 0,
-          saleScheme: Number(item.saleScheme) || 0,
-        })),
+        items: cart.map((item) => {
+          let rA = Number(item.rateA) || 0;
+          let rB = Number(item.rateB) || 0;
+          let rC = Number(item.rateC) || 0;
+          
+          if (!rA || !rB || !rC) {
+            const computed = computeRateCheckRow(item, rateBasis);
+            if (!rA) rA = computed.rateA || 0;
+            if (!rB) rB = computed.rateB || 0;
+            if (!rC) rC = computed.rateC || 0;
+          }
+
+          return {
+            productId: item.productId || null,
+            name: item.name,
+            pack: item.pack,
+            batch: item.batch,
+            expiry: item.expiry,
+            qty: Number(item.qty) || 0,
+            freeQty: Number(item.freeQty) || 0,
+            schPct: Number(item.schPct) || 0,
+            disc: Number(item.disc) || 0,
+            cRatePct: Number(item.cRatePct) || 0,
+            mrp: Number(item.mrp) || 0,
+            hsn: item.hsn || "",
+            gst: Number(item.gst) || 12,
+            rate: Number(item.rate) || 0,
+            amount: getItemTaxableAmount(item),
+            rateA: rA,
+            rateB: rB,
+            rateC: rC,
+            finalRateA: rA,
+            finalRateB: rB,
+            finalRateC: rC,
+            saleScheme: Number(item.saleScheme) || 0,
+          };
+        }),
         extraDiscountPct: Number(extraDiscountPct) || 0,
         extraDiscountAmt: extraDiscountAmt,
         grossTotal: cartGrossTotal,
