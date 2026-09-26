@@ -479,7 +479,7 @@ export const WorkspaceProductBatchSelectorModal = ({
         price: bRate,
         rateB: bRateB,
         rateA: bRateA,
-        disc: schemeResult.finalDiscountPercent,
+        disc: 0, // Set to 0 by default instead of schemeResult.finalDiscountPercent
         qty: batchQty,
         schemeDiscountPercent: bSchemeDiscountPercent,
         freeQty: schemeResult.freeQty,

@@ -160,6 +160,20 @@ export const SalesDesktopPage = () => {
     return () => window.removeEventListener("keydown", handleGlobalTyping);
   }, [isBatchModalOpen, isCheckoutOpen, isReceiptOpen, billingMode, selectedB2cCustomer, selectedB2bParty]);
 
+  const handleProceedToCheckout = () => {
+    if (billingMode === "B2C" && (!selectedB2cCustomer || !selectedB2cCustomer.name || selectedB2cCustomer.name.trim() === "")) {
+      setToastMessage("Please enter a customer name before creating the bill.");
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+    if (billingMode === "B2B" && (!selectedB2bParty || !selectedB2bParty.name || selectedB2bParty.name.trim() === "")) {
+      setToastMessage("Please select a B2B party before creating the bill.");
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+    setIsCheckoutOpen(true);
+  };
+
   // Ctrl + Enter (or Cmd + Enter) keyboard shortcut to Proceed to Checkout
   useEffect(() => {
     const handleCtrlEnter = (e) => {
@@ -167,14 +181,14 @@ export const SalesDesktopPage = () => {
       if (isCtrlOrCmd && e.key === "Enter") {
         e.preventDefault();
         if (cart.length > 0) {
-          setIsCheckoutOpen(true);
+          handleProceedToCheckout();
         }
       }
     };
 
     window.addEventListener("keydown", handleCtrlEnter);
     return () => window.removeEventListener("keydown", handleCtrlEnter);
-  }, [cart]);
+  }, [cart, billingMode, selectedB2cCustomer, selectedB2bParty]);
 
   useEffect(() => {
     const fetchB2bParties = async () => {
@@ -1006,7 +1020,7 @@ export const SalesDesktopPage = () => {
                 size="md"
                 className="w-full justify-center text-sm font-bold shadow-sm"
                 disabled={cart.length === 0}
-                onClick={() => setIsCheckoutOpen(true)}
+                onClick={handleProceedToCheckout}
                 rightIcon={<Receipt className="size-4" />}
               >
                 Proceed to {billingMode} Checkout (₹{cartGrandTotal}) <span className="ml-1.5 opacity-80 text-xs font-mono font-normal">(Ctrl + ↵)</span>

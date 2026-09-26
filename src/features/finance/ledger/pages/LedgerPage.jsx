@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { API_STATUS } from "@/constants";
 import useAccount from "@/features/finance/chart-of-accounts/accounts/hooks/useAccount";
@@ -10,6 +11,7 @@ import LedgerMobilePage from "./mobile/LedgerMobilePage";
 
 const LedgerPage = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   const {
     ledgerEntries,
@@ -42,7 +44,7 @@ const LedgerPage = () => {
 
   // Fetch accounts dropdown list on mount
   useEffect(() => {
-    getAccounts({ all: true }).catch((err) => {
+    getAccounts({ all: true, excludeCategories: "CUSTOMER,SUPPLIER" }).catch((err) => {
       console.error("Failed to load accounts for ledger dropdown:", err);
     });
   }, []);
@@ -67,9 +69,17 @@ const LedgerPage = () => {
   }, [currentPage, pageSize, filters.accountId, filters.startDate, filters.endDate]);
 
   const handleFilterChange = useCallback((name, value) => {
+    if (name === "accountId" && value === "REDIRECT_CUSTOMERS") {
+      navigate("/parties/customers");
+      return;
+    }
+    if (name === "accountId" && value === "REDIRECT_SUPPLIERS") {
+      navigate("/parties/suppliers");
+      return;
+    }
     setFilters((prev) => ({ ...prev, [name]: value }));
     setCurrentPage(1);
-  }, []);
+  }, [navigate]);
 
   const handlePageChange = useCallback((page) => {
     setCurrentPage(page);
@@ -105,9 +115,17 @@ const LedgerPage = () => {
 
   // Map accounts to simple key-value pairs
   const accountOptions = useMemo(() => {
+    const filteredAccounts = accounts.filter(
+      (acc) => 
+        acc.accountCategory !== "CUSTOMER" && !acc.accountCode?.startsWith("CUST-") &&
+        acc.accountCategory !== "SUPPLIER" && !acc.accountCode?.startsWith("SUPP-")
+    );
+
     return [
       { label: "All Accounts", value: "" },
-      ...accounts.map((acc) => ({
+      { label: "Customers (View all in Customers module)", value: "REDIRECT_CUSTOMERS" },
+      { label: "Suppliers (View all in Suppliers module)", value: "REDIRECT_SUPPLIERS" },
+      ...filteredAccounts.map((acc) => ({
         label: `${acc.accountName} (${acc.accountCode})`,
         value: acc._id,
       })),

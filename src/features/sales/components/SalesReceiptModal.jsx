@@ -58,11 +58,10 @@ export const SalesReceiptModal = ({ isOpen, onClose, saleData }) => {
                   {isB2B ? "B2B Tax Invoice Generated" : "B2C Retail Sale Completed"}
                 </h2>
                 <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                    isB2B
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${isB2B
                       ? "bg-purple-500/10 text-purple-600 border border-purple-500/20"
                       : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                  }`}
+                    }`}
                 >
                   {isB2B ? `B2B ${partyType.toUpperCase()}` : "B2C RETAIL"}
                 </span>

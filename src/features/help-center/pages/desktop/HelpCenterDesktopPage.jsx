@@ -181,11 +181,10 @@ export const HelpCenterDesktopPage = () => {
                   onClick={() =>
                     setSelectedCategory(isSelected ? null : cat.id)
                   }
-                  className={`p-5 rounded-2xl border transition-all flex flex-col justify-between group cursor-pointer shadow-xs ${
-                    isSelected
+                  className={`p-5 rounded-2xl border transition-all flex flex-col justify-between group cursor-pointer shadow-xs ${isSelected
                       ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-md"
                       : "border-border bg-surface hover:border-primary/40 hover:shadow-md"
-                  }`}
+                    }`}
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -262,9 +261,8 @@ export const HelpCenterDesktopPage = () => {
                   return (
                     <div
                       key={faq.id}
-                      className={`rounded-2xl border bg-surface shadow-xs transition-colors overflow-hidden ${
-                        isOpen ? "border-primary/40 shadow-sm" : "border-border hover:border-border/80"
-                      }`}
+                      className={`rounded-2xl border bg-surface shadow-xs transition-colors overflow-hidden ${isOpen ? "border-primary/40 shadow-sm" : "border-border hover:border-border/80"
+                        }`}
                     >
                       <button
                         type="button"
@@ -341,6 +339,37 @@ export const HelpCenterDesktopPage = () => {
               <p className="text-[11px] text-text-muted">
                 Daily automated cloud backups are active and verified.
               </p>
+            </div>
+            {/* Version Information Card */}
+            <div className="rounded-2xl border border-border bg-surface-alt/50 p-5 space-y-2 mt-4">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                Application Version
+              </span>
+              <div className="flex flex-col gap-2 text-[11px]">
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted">Semantic Version</span>
+                  <span className="font-mono font-bold text-text bg-surface border border-border px-2 py-0.5 rounded">v{__APP_VERSION__}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted">Last Deployment</span>
+                  <span className="font-mono font-bold text-text bg-surface border border-border px-2 py-0.5 rounded">
+                    {new Date(__BUILD_TIME__).toLocaleString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mt-1 pt-2 border-t border-border/50">
+                  <span className="font-bold text-text">Active Environment</span>
+                  <span className="font-mono font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded shadow-sm">
+                    {__APP_ENV__ === "local" ? "Localhost (Dev)" : `Vercel (${__APP_ENV__})`}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
