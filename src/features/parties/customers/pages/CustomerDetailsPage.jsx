@@ -59,7 +59,7 @@ const CustomerDetailsPage = () => {
     }
 
     try {
-      await getCustomerSales(customerId);
+      await getCustomerSales({ customerId, params: { page: 1, limit: 5 } });
     } catch (e) {
       console.error("Error fetching customer sales:", e);
     }
@@ -71,7 +71,7 @@ const CustomerDetailsPage = () => {
     }
 
     try {
-      await getCustomerLedger(customerId);
+      await getCustomerLedger({ customerId, params: { page: 1, limit: 5 } });
     } catch (e) {
       console.error("Error fetching customer ledger:", e);
     }

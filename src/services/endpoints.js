@@ -115,6 +115,8 @@ export const ENDPOINTS = {
     OUTSTANDING: (customerId) => `/parties/customers/${customerId}/outstanding`,
 
     PAYMENTS: (customerId) => `/parties/customers/${customerId}/payments`,
+
+    SALES: (customerId) => `/parties/customers/${customerId}/sales`,
   },
 
   SALES: {

@@ -35,8 +35,8 @@ const customerService = {
   |--------------------------------------------------------------------------
   */
 
-  getCustomerLedger(customerId) {
-    return apiClient.get(ENDPOINTS.CUSTOMER.LEDGER(customerId));
+  getCustomerLedger(customerId, params = {}) {
+    return apiClient.get(ENDPOINTS.CUSTOMER.LEDGER(customerId), { params });
   },
 
   /*
@@ -58,6 +58,16 @@ const customerService = {
 
   getCustomerPayments(customerId) {
     return apiClient.get(ENDPOINTS.CUSTOMER.PAYMENTS(customerId));
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | Sales
+  |--------------------------------------------------------------------------
+  */
+
+  getCustomerSales(customerId, params = {}) {
+    return apiClient.get(ENDPOINTS.CUSTOMER.SALES(customerId), { params });
   },
 };
 

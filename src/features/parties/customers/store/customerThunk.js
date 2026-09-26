@@ -89,11 +89,11 @@ export const deleteCustomer = createAsyncThunk(
 
 export const getCustomerLedger = createAsyncThunk(
   "customer/getCustomerLedger",
-  async (customerId, { rejectWithValue }) => {
+  async ({ customerId, params = {} }, { rejectWithValue }) => {
     try {
-      const response = await customerService.getCustomerLedger(customerId);
+      const response = await customerService.getCustomerLedger(customerId, params);
 
-      return response.data?.data || [];
+      return response.data?.data || {};
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -127,11 +127,11 @@ export const getCustomerOutstanding = createAsyncThunk(
 
 export const getCustomerSales = createAsyncThunk(
   "customer/getCustomerSales",
-  async (customerId, { rejectWithValue }) => {
+  async ({ customerId, params = {} }, { rejectWithValue }) => {
     try {
-      const response = await customerService.getCustomerSales(customerId);
+      const response = await customerService.getCustomerSales(customerId, params);
 
-      return response.data?.data || [];
+      return response.data?.data || {};
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }

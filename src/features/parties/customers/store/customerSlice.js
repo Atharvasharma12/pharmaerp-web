@@ -18,9 +18,9 @@ const initialState = {
   customers: [],
   currentCustomer: null,
 
-  ledger: [],
+  ledger: {},
   outstanding: null,
-  sales: [],
+  sales: {},
   payments: [],
 
   total: 0,
@@ -65,7 +65,7 @@ const customerSlice = createSlice({
     },
 
     clearCustomerLedger(state) {
-      state.ledger = [];
+      state.ledger = {};
     },
 
     clearCustomerOutstanding(state) {
@@ -73,7 +73,7 @@ const customerSlice = createSlice({
     },
 
     clearCustomerSales(state) {
-      state.sales = [];
+      state.sales = {};
     },
 
     clearCustomerPayments(state) {
