@@ -364,13 +364,19 @@ export const WorkspaceProductSearchBar = forwardRef(
             <div ref={listRef} className="max-h-[340px] overflow-y-auto p-1.5 space-y-1">
               {results.length > 0 ? (
                 results.map((product, idx) => {
+                  const getSafeStr = (val) => {
+                    if (!val) return null;
+                    if (typeof val === "object") return val.name || val.title || val.slug || val.id || null;
+                    return String(val);
+                  };
+
                   const isSelected = idx === selectedIndex;
-                  const name = product.displayName || product.name || "Unnamed Product";
-                  const sku = product.displaySku || product.sku || product.code || null;
-                  const category = product.displayCategory || product.category || null;
-                  const manufacturer = product.displayManufacturer || product.manufacturer || product.brand || null;
-                  const dosageForm = product.displayDosageForm || product.dosageForm || product.productType || null;
-                  const strength = product.displayStrength || product.strength || null;
+                  const name = getSafeStr(product.displayName || product.name || "Unnamed Product");
+                  const sku = getSafeStr(product.displaySku || product.sku || product.code);
+                  const category = getSafeStr(product.displayCategory || product.category);
+                  const manufacturer = getSafeStr(product.displayManufacturer || product.manufacturer || product.brand);
+                  const dosageForm = getSafeStr(product.displayDosageForm || product.dosageForm || product.productType);
+                  const strength = getSafeStr(product.displayStrength || product.strength);
                   const status = product.displayStatus || product.status || "active";
                   const isActive = status === "active";
 

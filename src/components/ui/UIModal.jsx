@@ -14,6 +14,8 @@ const modalSizes = {
   full: "max-w-[calc(100vw-2rem)] min-h-[calc(100vh-2rem)]",
 };
 
+let openModalCount = 0;
+
 export const UIModal = forwardRef(
   (
     {
@@ -33,10 +35,15 @@ export const UIModal = forwardRef(
     // Body scroll lock
     useEffect(() => {
       if (isOpen) {
-        const originalOverflow = document.body.style.overflow;
+        openModalCount++;
         document.body.style.overflow = "hidden";
+        
         return () => {
-          document.body.style.overflow = originalOverflow;
+          openModalCount--;
+          if (openModalCount <= 0) {
+            openModalCount = 0;
+            document.body.style.overflow = "";
+          }
         };
       }
     }, [isOpen]);
