@@ -372,7 +372,7 @@ export const CreatePurchaseBillDesktopPage = () => {
       freeQty: 0,
       schPct: 0,
       disc: 0,
-      cRatePct: 0,
+      cRatePct: Number(p.rateCPercentage || p.cRatePct || 0),
       mrp: baseMrp,
       hsn: getHsnCode(p),
       gst: getGstRate(p),
@@ -918,8 +918,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                             <input
                               type="number"
                               min="1"
-                              value={item.qty || 1}
-                              onChange={(e) => updateItemField(item.id, "qty", Math.max(1, Number(e.target.value)))}
+                              value={item.qty === 0 ? "" : (item.qty ?? "")}
+                              onChange={(e) => updateItemField(item.id, "qty", e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
                               className="w-12 text-center rounded border border-border bg-surface px-1 py-0.5 font-mono font-bold text-xs text-text outline-none focus:border-primary"
                               placeholder="Qty"
                             />
@@ -930,8 +930,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                             <input
                               type="number"
                               min="0"
-                              value={item.freeQty ?? 0}
-                              onChange={(e) => updateItemField(item.id, "freeQty", Math.max(0, Number(e.target.value)))}
+                              value={item.freeQty === 0 ? "" : (item.freeQty ?? "")}
+                              onChange={(e) => updateItemField(item.id, "freeQty", e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)))}
                               onBlur={() => handleFreeBlurOrTab(item)}
                               onKeyDown={(e) => {
                                 if (e.key === "Tab" && !e.shiftKey) {
@@ -950,8 +950,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               min="0"
                               max="100"
                               step="0.1"
-                              value={item.schPct ?? 0}
-                              onChange={(e) => updateItemField(item.id, "schPct", Number(e.target.value))}
+                              value={item.schPct === 0 ? "" : (item.schPct ?? "")}
+                              onChange={(e) => updateItemField(item.id, "schPct", e.target.value === "" ? 0 : Number(e.target.value))}
                               onBlur={() => handleSchBlurOrTab(item)}
                               onKeyDown={(e) => {
                                 if (e.key === "Tab" && !e.shiftKey) {
@@ -970,8 +970,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               min="0"
                               max="100"
                               step="0.1"
-                              value={item.disc ?? 0}
-                              onChange={(e) => updateItemField(item.id, "disc", Number(e.target.value))}
+                              value={item.disc === 0 ? "" : (item.disc ?? "")}
+                              onChange={(e) => updateItemField(item.id, "disc", e.target.value === "" ? 0 : Number(e.target.value))}
                               className="w-12 text-center rounded border border-border bg-surface px-1 py-0.5 font-mono text-xs text-text outline-none focus:border-primary"
                               placeholder="0"
                             />
@@ -983,8 +983,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               type="number"
                               min="0"
                               step="0.01"
-                              value={item.mrp ?? 0}
-                              onChange={(e) => updateItemField(item.id, "mrp", Number(e.target.value))}
+                              value={item.mrp === 0 ? "" : (item.mrp ?? "")}
+                              onChange={(e) => updateItemField(item.id, "mrp", e.target.value === "" ? 0 : Number(e.target.value))}
                               className="w-16 text-right rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-text focus:border-primary focus:outline-none"
                             />
                           </td>
@@ -1006,8 +1006,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               type="number"
                               min="0"
                               max="100"
-                              value={item.gst ?? 12}
-                              onChange={(e) => updateItemField(item.id, "gst", Number(e.target.value))}
+                              value={item.gst === 0 ? "" : (item.gst ?? "")}
+                              onChange={(e) => updateItemField(item.id, "gst", e.target.value === "" ? 0 : Number(e.target.value))}
                               className="w-12 text-center rounded border border-border bg-surface px-1 py-0.5 font-mono text-xs font-bold text-purple-600 focus:border-primary focus:outline-none"
                             />
                           </td>
@@ -1018,8 +1018,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               type="number"
                               min="0"
                               step="0.01"
-                              value={item.rate ?? 0}
-                              onChange={(e) => updateItemField(item.id, "rate", Number(e.target.value))}
+                              value={item.rate === 0 ? "" : (item.rate ?? "")}
+                              onChange={(e) => updateItemField(item.id, "rate", e.target.value === "" ? 0 : Number(e.target.value))}
                               className="w-18 text-right rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs font-bold text-text focus:border-primary focus:outline-none"
                             />
                           </td>
@@ -1031,8 +1031,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               min="0"
                               max="100"
                               step="0.1"
-                              value={item.cRatePct ?? 0}
-                              onChange={(e) => updateItemField(item.id, "cRatePct", Number(e.target.value))}
+                              value={item.cRatePct === 0 ? "" : (item.cRatePct ?? "")}
+                              onChange={(e) => updateItemField(item.id, "cRatePct", e.target.value === "" ? 0 : Number(e.target.value))}
                               className="w-12 text-center rounded border border-border bg-surface px-1 py-0.5 font-mono text-xs text-text outline-none focus:border-primary"
                               placeholder="0"
                             />
@@ -1079,7 +1079,7 @@ export const CreatePurchaseBillDesktopPage = () => {
                 {cartSchemeDiscount > 0 && <p className="text-amber-600">Scheme Discount:</p>}
                 {cartTradeDiscount > 0 && <p className="text-amber-600">Trade Discount (Disc %):</p>}
                 <p className="font-semibold text-text">Taxable Subtotal:</p>
-                {extraDiscountAmt > 0 && <p className="text-orange-600">Extra Discount ({extraDiscountPct}%):</p>}
+                {extraDiscountAmt !== 0 && <p className={extraDiscountAmt > 0 ? "text-orange-600" : "text-emerald-600"}>{extraDiscountAmt > 0 ? "Extra Discount" : "Extra Charge"} ({extraDiscountPct}%):</p>}
                 <p className="text-purple-600">Est. GST Tax:</p>
                 <p className="text-lg font-bold text-text mt-2">Grand Total:</p>
               </div>
@@ -1240,16 +1240,16 @@ export const CreatePurchaseBillDesktopPage = () => {
                       Extra Disc:
                       <input
                         type="number"
-                        min="0"
-                        max="100"
                         step="0.1"
-                        value={extraDiscountPct}
-                        onChange={(e) => setExtraDiscountPct(Math.min(100, Math.max(0, Number(e.target.value))))}
+                        value={extraDiscountPct === 0 ? "" : extraDiscountPct}
+                        onChange={(e) => setExtraDiscountPct(e.target.value === "" ? 0 : Number(e.target.value))}
                         className="w-12 text-center rounded-none border-0 border-b border-text-muted bg-transparent px-1 py-0.5 font-mono text-xs font-bold text-text outline-none focus:border-primary"
                       />
                       <span className="text-[10px] font-bold">%</span>
                     </span>
-                    <span className="font-bold font-mono">-₹{extraDiscountAmt.toFixed(2)}</span>
+                    <span className="font-bold font-mono">
+                      {extraDiscountAmt >= 0 ? "-" : "+"}₹{Math.abs(extraDiscountAmt).toFixed(2)}
+                    </span>
                   </div>
 
                   <div className="flex justify-between items-center text-text font-semibold pt-1 border-t border-border/60">

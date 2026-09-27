@@ -79,10 +79,18 @@ export const computeRateCheckRow = (item, rateBasis = "PTS") => {
   const expectedPTR = ptr;
   const expectedRate = rateBasis === "PTR" ? expectedPTR : expectedPTS;
 
-  const billPTR = billRate;
-  const billPTS = Number(item.billPts) || Number(item.billPTS) || calcPTS(billPTR, stock);
+  let billPTR, billPTS;
+  
+  if (rateBasis === "PTR") {
+    billPTR = billRate;
+    billPTS = Number(item.billPts) || Number(item.billPTS) || calcPTS(billPTR, stock);
+  } else {
+    // If rate basis is PTS, the entered bill rate is already the PTS
+    billPTS = billRate;
+    billPTR = Number(item.billPtr) || Number(item.billPTR) || (stock < 100 ? round2(billPTS / (1 - stock / 100)) : billPTS);
+  }
 
-  const compareTo = rateBasis === "PTR" ? billRate : billPTS;
+  const compareTo = rateBasis === "PTR" ? billPTR : billPTS;
   const diffPerUnit = round2(expectedRate - compareTo);
   const diffPct = expectedRate ? round2((diffPerUnit / expectedRate) * 100) : 0;
   const totalDiff = round2(diffPerUnit * qty);
