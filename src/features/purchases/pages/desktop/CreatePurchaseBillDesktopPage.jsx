@@ -77,6 +77,7 @@ const BatchInputWithDropdown = ({ item, updateItemField }) => {
   return (
     <>
       <input
+        id={`batch-input-${item.id}`}
         type="text"
         value={item.batch || ""}
         onChange={(e) => {
@@ -401,7 +402,12 @@ export const CreatePurchaseBillDesktopPage = () => {
     setToastMessage(`✅ Added ${newItem.name} to Purchase Bill.`);
 
     setTimeout(() => {
-      searchBarRef.current?.focus();
+      const batchInput = document.getElementById(`batch-input-${newItem.id}`);
+      if (batchInput) {
+        batchInput.focus();
+      } else {
+        searchBarRef.current?.focus();
+      }
     }, 100);
 
     setTimeout(() => setToastMessage(null), 2500);
@@ -578,6 +584,7 @@ export const CreatePurchaseBillDesktopPage = () => {
             rateC: newRateC,
             retailerMarginPercent: derivedRetail,
             rateCPercentage: rateCPercentage,
+            cRatePct: rateCPercentage,
             rate: newRate,
           };
         }
@@ -668,6 +675,8 @@ export const CreatePurchaseBillDesktopPage = () => {
       } else {
         await purchaseBillService.createPurchaseBill(payload);
       }
+
+
 
       setIsPreviewModalOpen(false);
       setToastMessage(`✅ Purchase Bill ${purchaseBillNo || "saved"} successfully.`);

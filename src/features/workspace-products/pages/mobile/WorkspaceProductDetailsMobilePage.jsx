@@ -564,6 +564,8 @@ const MobilePricingTabSection = ({ product }) => {
           <InfoRow label="GST Tax Rate" icon={<FiTag />} value={gstRate} />
           <InfoRow label="Retailer Margin" icon={<FiActivity />} value={`${product?.retailerMarginPercent || 20}%`} />
           <InfoRow label="Stockist Margin" icon={<FiActivity />} value={`${product?.stockistMarginPercent || 10}%`} />
+          <InfoRow label="B2C Discount" icon={<FiActivity />} value={`${product?.b2cDiscountPercent || 5}%`} />
+          <InfoRow label="C %" icon={<FiActivity />} value={`${product?.rateCPercentage || 0}%`} />
         </AppStack>
       </AppCard>
 
@@ -601,7 +603,7 @@ const MobilePricingTabSection = ({ product }) => {
           </div>
           <div className="p-2.5 rounded-lg border border-border bg-surface-alt/40">
             <span className="block text-[10px] font-bold text-text-muted uppercase">Rate C</span>
-            <span className="block text-[15px] font-extrabold text-text">₹{product?.rateC ?? 0}</span>
+            <span className="block text-[15px] font-extrabold text-text">₹{product?.finalRateC ?? 0}</span>
           </div>
         </div>
       </AppCard>

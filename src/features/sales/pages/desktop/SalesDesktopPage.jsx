@@ -328,7 +328,8 @@ export const SalesDesktopPage = () => {
           rack: medicine.rack || medicine.shelfLocation || "F1/AE2",
           hsn: getHsnCode(medicine),
           gst: getGstRate(medicine),
-          ratePct: medicine.ratePct || medicine.marginPct || "16%",
+          ratePct: medicine.rateCPercentage !== undefined && medicine.rateCPercentage !== null ? `${medicine.rateCPercentage}%` : (medicine.ratePct || medicine.marginPct || "16%"),
+          rateCPercentage: medicine.rateCPercentage,
           expiry: getExpiryString(medicine),
           stock: medicine.stock ?? 100,
           mrp: Number(medicine.mrp ?? 160.0),
@@ -895,7 +896,7 @@ export const SalesDesktopPage = () => {
                           {/* 7. Rate % (B2C) / Scheme Disc % (B2B, only if applied) */}
                           {billingMode === "B2C" ? (
                             <td className="py-2 px-2 font-mono text-[11px] text-emerald-600 font-semibold">
-                              {item.ratePct}
+                              {item.rateCPercentage !== undefined && item.rateCPercentage !== null ? `${item.rateCPercentage}%` : item.ratePct}
                             </td>
                           ) : cart.some((i) => Number(i.schemeDiscountPercent) > 0) && (() => {
                             const schemeCheck = computeSchemeDiscount(Number(item.qty) || 1, Number(item.schemeDiscountPercent) || 0);
