@@ -155,6 +155,86 @@ const BatchInputWithDropdown = ({ item, updateItemField }) => {
   );
 };
 
+const QuickCreateProductModal = ({ open, onClose, defaultName, onSuccess }) => {
+  const [name, setName] = useState(defaultName || "");
+  const [productType, setProductType] = useState("medicine");
+  const [pack, setPack] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (open) {
+      setName(defaultName || "");
+      setProductType("medicine");
+      setPack("");
+      setError(null);
+    }
+  }, [open, defaultName]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const payload = {
+        name: name.trim(),
+        productType,
+        pack: pack.trim(),
+        force: true
+      };
+      const res = await workspaceProductService.createWorkspaceProduct(payload);
+      const newProduct = res.data?.data || res.data;
+      onSuccess(newProduct);
+      onClose();
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || "Failed to create product");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <UIModal isOpen={open} onClose={onClose} className="max-w-md">
+      <form onSubmit={handleSubmit}>
+        <UIModalHeader>
+          <UIModalTitle>Create Quick Product</UIModalTitle>
+          <UIModalDescription>Add a new workspace product on the fly.</UIModalDescription>
+        </UIModalHeader>
+        <UIModalBody className="space-y-4 p-5">
+          {error && <div className="text-error text-sm font-semibold">{error}</div>}
+          <div>
+            <label className="text-xs font-bold text-text-muted">Product Name *</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Dolo 650 Tablet" required className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text" autoFocus />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-text-muted">Product Type *</label>
+              <select value={productType} onChange={e => setProductType(e.target.value)} className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text">
+                <option value="medicine">Medicine</option>
+                <option value="otc">OTC</option>
+                <option value="fmcg">FMCG</option>
+                <option value="equipment">Equipment</option>
+                <option value="general">General</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-text-muted">Pack</label>
+              <input type="text" value={pack} onChange={e => setPack(e.target.value)} placeholder="e.g. 10's" className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text" />
+            </div>
+          </div>
+        </UIModalBody>
+        <UIModalFooter>
+          <UIButton type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>Cancel</UIButton>
+          <UIButton type="submit" variant="primary" disabled={isSubmitting || !name.trim()}>
+            {isSubmitting ? "Creating..." : "Create Product"}
+          </UIButton>
+        </UIModalFooter>
+      </form>
+    </UIModal>
+  );
+};
+
 export const CreatePurchaseBillDesktopPage = () => {
   const navigate = useNavigate();
   const { billId } = useParams();
@@ -174,6 +254,8 @@ export const CreatePurchaseBillDesktopPage = () => {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isSchemeCheckModalOpen, setIsSchemeCheckModalOpen] = useState(false);
   const [isRateCheckModalOpen, setIsRateCheckModalOpen] = useState(false);
+  const [isQuickCreateModalOpen, setIsQuickCreateModalOpen] = useState(false);
+  const [quickCreateProductName, setQuickCreateProductName] = useState("");
 
   // Extra Discount (applied on taxable subtotal in preview)
   const [extraDiscountPct, setExtraDiscountPct] = useState(0);
@@ -757,9 +839,14 @@ export const CreatePurchaseBillDesktopPage = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onSelectProduct={handleSelectWorkspaceProduct}
+                onCreateProductClick={(query) => {
+                  setQuickCreateProductName(query);
+                  setIsQuickCreateModalOpen(true);
+                }}
                 placeholder="Search product / medicine to add to purchase bill..."
                 size="md"
                 showDetailsPreview
+                showQuickCreateAction
               />
             </div>
 
@@ -1273,6 +1360,13 @@ export const CreatePurchaseBillDesktopPage = () => {
         supplierName={selectedSupplier?.businessName || "Unknown Supplier"}
         purchaseBillDate={invoiceDate}
         initialRateBasis={rateBasis}
+      />
+
+      <QuickCreateProductModal
+        open={isQuickCreateModalOpen}
+        onClose={() => setIsQuickCreateModalOpen(false)}
+        defaultName={quickCreateProductName}
+        onSuccess={handleSelectWorkspaceProduct}
       />
     </section>
   );
