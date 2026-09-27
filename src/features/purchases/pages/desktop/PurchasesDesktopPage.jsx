@@ -249,8 +249,13 @@ export const PurchasesDesktopPage = () => {
 
                       {/* Supplier */}
                       <td className="py-3 px-4">
-                        <div className="flex flex-col">
+                        <div className="flex flex-col gap-0.5">
                           <span className="font-semibold text-text">{bill.supplierId?.businessName || "-"}</span>
+                          {bill.supplierInvoiceNo && (
+                            <span className="text-[10px] text-text-muted font-medium bg-surface-alt px-1.5 py-0.5 rounded w-fit border border-border/50">
+                              Inv: {bill.supplierInvoiceNo}
+                            </span>
+                          )}
                         </div>
                       </td>
 

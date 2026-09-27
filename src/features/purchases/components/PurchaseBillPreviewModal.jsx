@@ -84,6 +84,9 @@ export const PurchaseBillPreviewModal = ({ bill, isOpen, onClose, onRefresh }) =
           <div>
             <span className="text-[10px] uppercase font-bold text-text-muted block">Bill Number</span>
             <span className="font-mono font-bold text-text block">{bill.purchaseBillNo || "-"}</span>
+            {bill.supplierInvoiceNo && (
+              <span className="text-[9px] font-medium text-text-muted block mt-0.5">Inv: {bill.supplierInvoiceNo}</span>
+            )}
           </div>
           <div>
             <span className="text-[10px] uppercase font-bold text-text-muted block">Invoice Date</span>

@@ -336,6 +336,7 @@ export const CreatePurchaseBillDesktopPage = () => {
 
   // Invoice Details
   const [purchaseBillNo, setPurchaseBillNo] = useState("");
+  const [supplierInvoiceNo, setSupplierInvoiceNo] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().split("T")[0]);
 
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -374,6 +375,7 @@ export const CreatePurchaseBillDesktopPage = () => {
             });
           }
           setPurchaseBillNo(bill.purchaseBillNo || "");
+          setSupplierInvoiceNo(bill.supplierInvoiceNo || "");
           setInvoiceDate(bill.invoiceDate || "");
           setRateBasis(bill.rateBasis || "PTS");
           setExtraDiscountPct(bill.extraDiscountPct || 0);
@@ -705,6 +707,7 @@ export const CreatePurchaseBillDesktopPage = () => {
       const payload = {
         supplierId: selectedSupplier?._id || selectedSupplier?.id,
         purchaseBillNo,
+        supplierInvoiceNo,
         invoiceDate,
         rateBasis,
         items: cart.map((item) => {
@@ -848,14 +851,26 @@ export const CreatePurchaseBillDesktopPage = () => {
           <div className="flex gap-4">
             <div>
               <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">
-                Bill Number
+                Bill Number (Auto)
               </span>
               <input
                 type="text"
-                className="h-8.5 text-xs px-2.5 rounded-lg border border-border bg-surface-alt w-36"
+                className="h-8.5 text-xs px-2.5 rounded-lg border border-border bg-surface-alt w-32 cursor-not-allowed text-text-muted"
                 placeholder="Auto-calculated"
                 value={purchaseBillNo}
-                onChange={(e) => setPurchaseBillNo(e.target.value)}
+                disabled
+              />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">
+                Supplier Invoice No
+              </span>
+              <input
+                type="text"
+                className="h-8.5 text-xs px-2.5 rounded-lg border border-border bg-surface w-32 focus:border-primary focus:outline-none"
+                placeholder="Enter Invoice No"
+                value={supplierInvoiceNo}
+                onChange={(e) => setSupplierInvoiceNo(e.target.value)}
               />
             </div>
             <div>
@@ -1239,6 +1254,9 @@ export const CreatePurchaseBillDesktopPage = () => {
             <div>
               <span className="text-[10px] uppercase font-bold text-text-muted block">Bill Number</span>
               <span className="font-mono font-bold text-text block">{purchaseBillNo || "Auto-calculated"}</span>
+              {supplierInvoiceNo && (
+                <span className="text-[9px] font-medium text-text-muted block mt-0.5">Inv: {supplierInvoiceNo}</span>
+              )}
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-text-muted block">Invoice Date</span>

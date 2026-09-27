@@ -31,7 +31,8 @@ export const CreatePurchaseBillMobilePage = () => {
   const [cart, setCart] = useState([]);
   const [toastMessage, setToastMessage] = useState(null);
 
-  const [invoiceNo, setInvoiceNo] = useState("");
+  const [purchaseBillNo, setPurchaseBillNo] = useState("");
+  const [supplierInvoiceNo, setSupplierInvoiceNo] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [rateBasis, setRateBasis] = useState("PTS");
 
@@ -246,17 +247,31 @@ export const CreatePurchaseBillMobilePage = () => {
                   size="md"
                 />
              </div>
-             <div>
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">
-                  Invoice No
-                </span>
-                <input
-                  type="text"
-                  className="h-10 text-sm w-full px-3 rounded-xl border border-border bg-surface-alt"
-                  placeholder="INV-001"
-                  value={invoiceNo}
-                  onChange={(e) => setInvoiceNo(e.target.value)}
-                />
+             <div className="grid grid-cols-2 gap-2">
+               <div>
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">
+                    Bill Number (Auto)
+                  </span>
+                  <input
+                    type="text"
+                    className="h-10 text-sm w-full px-3 rounded-xl border border-border bg-surface-alt cursor-not-allowed text-text-muted"
+                    placeholder="Auto"
+                    value={purchaseBillNo}
+                    disabled
+                  />
+               </div>
+               <div>
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">
+                    Supplier Inv No
+                  </span>
+                  <input
+                    type="text"
+                    className="h-10 text-sm w-full px-3 rounded-xl border border-border bg-surface-alt"
+                    placeholder="INV-001"
+                    value={supplierInvoiceNo}
+                    onChange={(e) => setSupplierInvoiceNo(e.target.value)}
+                  />
+               </div>
              </div>
              <div>
                 <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">
