@@ -393,9 +393,15 @@ export const WorkspaceProductBatchSelectorModal = ({
 
   if (!open || !product) return null;
 
-  const productName = product.displayName || product.name || "Selected Product";
-  const brand = product.displayManufacturer || product.manufacturer || product.brand || "Pharma";
-  const category = product.displayCategory || product.category || "Medicine";
+  const getSafeStr = (val, fallback = "-") => {
+    if (!val) return fallback;
+    if (typeof val === "object") return val.name || val.title || val.slug || val.id || fallback;
+    return String(val);
+  };
+
+  const productName = getSafeStr(product.displayName || product.name, "Selected Product");
+  const brand = getSafeStr(product.displayManufacturer || product.manufacturer || product.brand, "Pharma");
+  const category = getSafeStr(product.displayCategory || product.category, "Medicine");
   const hsn =
     product.globalProduct?.hsn ||
     product.globalProduct?.hsnCode ||

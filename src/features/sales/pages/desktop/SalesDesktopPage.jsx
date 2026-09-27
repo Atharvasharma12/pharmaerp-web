@@ -34,6 +34,12 @@ import {
   WorkspaceProductBatchSelectorModal,
   B2cCustomerSearchBar,
   B2bCustomerSearchBar,
+  UIModal,
+  UIModalHeader,
+  UIModalTitle,
+  UIModalDescription,
+  UIModalBody,
+  UIModalFooter,
 } from "@/components";
 import { PermissionGate } from "@/components/common/PermissionGate";
 import { cn } from "@/lib/utils";
@@ -102,6 +108,83 @@ const computeSchemeDiscount = (qty, schemePercent) => {
   };
 };
 
+const QuickCreateCustomerModal = ({ open, onClose, defaultName, customerType, billingMode = "B2C", onSuccess }) => {
+  const [name, setName] = useState(defaultName || "");
+  const [mobile, setMobile] = useState("");
+  const [gstNumber, setGstNumber] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (open) {
+      setName(defaultName || "");
+      setMobile("");
+      setGstNumber("");
+      setError(null);
+    }
+  }, [open, defaultName]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const payload = {
+        name: name.trim(),
+        customerType: customerType,
+      };
+      if (mobile.trim()) payload.mobile = mobile.trim();
+      if (gstNumber.trim() && billingMode === "B2B") payload.gstNumber = gstNumber.trim().toUpperCase();
+
+      const res = await customerService.createCustomer(payload);
+      const newCustomer = res.data?.data || res.data;
+      onSuccess(newCustomer);
+      onClose();
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || "Failed to create customer");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <UIModal isOpen={open} onClose={onClose} className="max-w-md">
+      <form onSubmit={handleSubmit}>
+        <UIModalHeader>
+          <UIModalTitle>Create Quick {billingMode === "B2C" ? "B2C" : "B2B"} Customer</UIModalTitle>
+          <UIModalDescription>Add a new customer on the fly.</UIModalDescription>
+        </UIModalHeader>
+        <UIModalBody className="space-y-4 p-5">
+          {error && <div className="text-error text-sm font-semibold">{error}</div>}
+          <div>
+            <label className="text-xs font-bold text-text-muted">Customer Name *</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. John Doe or Acme Corp" required className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text" autoFocus />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-text-muted">Mobile Number</label>
+              <input type="text" value={mobile} onChange={e => setMobile(e.target.value)} placeholder="Optional" className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text" />
+            </div>
+            {billingMode === "B2B" && (
+              <div>
+                <label className="text-xs font-bold text-text-muted">GST Number</label>
+                <input type="text" value={gstNumber} onChange={e => setGstNumber(e.target.value)} placeholder="Optional" className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text uppercase" />
+              </div>
+            )}
+          </div>
+        </UIModalBody>
+        <UIModalFooter>
+          <UIButton type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>Cancel</UIButton>
+          <UIButton type="submit" variant="primary" disabled={isSubmitting || !name.trim()}>
+            {isSubmitting ? "Creating..." : "Create Customer"}
+          </UIButton>
+        </UIModalFooter>
+      </form>
+    </UIModal>
+  );
+};
+
 export const SalesDesktopPage = () => {
   const [billingMode, setBillingMode] = useState("B2C"); // "B2C" | "B2B"
   const [b2bPartyType, setB2bPartyType] = useState("all"); // "all" | "wholesaler" | "retailer"
@@ -112,6 +195,10 @@ export const SalesDesktopPage = () => {
   const [selectedB2cCustomer, setSelectedB2cCustomer] = useState(null);
   const [selectedB2bParty, setSelectedB2bParty] = useState(null);
   const [b2bPartiesFromBackend, setB2bPartiesFromBackend] = useState([]);
+
+  const [isQuickCreateCustomerModalOpen, setIsQuickCreateCustomerModalOpen] = useState(false);
+  const [quickCreateCustomerName, setQuickCreateCustomerName] = useState("");
+  const [quickCreateCustomerType, setQuickCreateCustomerType] = useState("retail");
 
   const activeCustomer =
     billingMode === "B2C"
@@ -629,6 +716,12 @@ export const SalesDesktopPage = () => {
                     setSelectedB2cCustomer(cust);
                     setTimeout(() => searchBarRef.current?.focus(), 80);
                   }}
+                  showAddNewAction={true}
+                  onAddNewCustomer={(name) => {
+                    setQuickCreateCustomerName(name);
+                    setQuickCreateCustomerType("other");
+                    setIsQuickCreateCustomerModalOpen(true);
+                  }}
                   placeholder="Type customer name, phone number, or doctor..."
                   size="sm"
                 />
@@ -659,6 +752,12 @@ export const SalesDesktopPage = () => {
                       setTimeout(() => searchBarRef.current?.focus(), 80);
                     }}
                     b2bPartyType={b2bPartyType}
+                    showAddNewAction={true}
+                    onAddNewCustomer={(name) => {
+                      setQuickCreateCustomerName(name);
+                      setQuickCreateCustomerType(b2bPartyType === "wholesaler" ? "wholesale" : "retail");
+                      setIsQuickCreateCustomerModalOpen(true);
+                    }}
                     placeholder="Search B2B party by name, GST, or phone..."
                     size="sm"
                   />
@@ -1055,6 +1154,21 @@ export const SalesDesktopPage = () => {
         product={selectedProductForBatches}
         billingMode={billingMode}
         onConfirmAddToCart={handleConfirmAddBatchToCart}
+      />
+
+      <QuickCreateCustomerModal
+        open={isQuickCreateCustomerModalOpen}
+        onClose={() => setIsQuickCreateCustomerModalOpen(false)}
+        defaultName={quickCreateCustomerName}
+        customerType={quickCreateCustomerType}
+        billingMode={billingMode}
+        onSuccess={(newCustomer) => {
+          if (billingMode === "B2C") {
+            setSelectedB2cCustomer(newCustomer);
+          } else {
+            setSelectedB2bParty(newCustomer);
+          }
+        }}
       />
     </section>
   );

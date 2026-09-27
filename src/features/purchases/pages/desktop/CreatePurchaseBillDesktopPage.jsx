@@ -236,6 +236,92 @@ const QuickCreateProductModal = ({ open, onClose, defaultName, onSuccess }) => {
   );
 };
 
+const QuickCreateSupplierModal = ({ open, onClose, defaultName, onSuccess }) => {
+  const [businessName, setBusinessName] = useState(defaultName || "");
+  const [supplierType, setSupplierType] = useState("distributor");
+  const [gstNumber, setGstNumber] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (open) {
+      setBusinessName(defaultName || "");
+      setSupplierType("distributor");
+      setGstNumber("");
+      setMobile("");
+      setError(null);
+    }
+  }, [open, defaultName]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!businessName.trim()) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const payload = {
+        businessName: businessName.trim(),
+        supplierType,
+      };
+      if (gstNumber.trim()) payload.gstNumber = gstNumber.trim().toUpperCase();
+      if (mobile.trim()) payload.mobile = mobile.trim();
+
+      const res = await supplierService.createSupplier(payload);
+      const newSupplier = res.data?.data || res.data;
+      onSuccess(newSupplier);
+      onClose();
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || "Failed to create supplier");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <UIModal isOpen={open} onClose={onClose} className="max-w-md">
+      <form onSubmit={handleSubmit}>
+        <UIModalHeader>
+          <UIModalTitle>Create Quick Supplier</UIModalTitle>
+          <UIModalDescription>Add a new supplier on the fly.</UIModalDescription>
+        </UIModalHeader>
+        <UIModalBody className="space-y-4 p-5">
+          {error && <div className="text-error text-sm font-semibold">{error}</div>}
+          <div>
+            <label className="text-xs font-bold text-text-muted">Business Name *</label>
+            <input type="text" value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="e.g. Lupin Ltd" required className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text" autoFocus />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-text-muted">Supplier Type *</label>
+              <select value={supplierType} onChange={e => setSupplierType(e.target.value)} className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text">
+                <option value="distributor">Distributor</option>
+                <option value="wholesaler">Wholesaler</option>
+                <option value="manufacturer">Manufacturer</option>
+                <option value="cfa">CFA</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-text-muted">GST Number</label>
+              <input type="text" value={gstNumber} onChange={e => setGstNumber(e.target.value)} placeholder="Optional" className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text uppercase" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-text-muted">Mobile Number</label>
+            <input type="text" value={mobile} onChange={e => setMobile(e.target.value)} placeholder="Optional" className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text" />
+          </div>
+        </UIModalBody>
+        <UIModalFooter>
+          <UIButton type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>Cancel</UIButton>
+          <UIButton type="submit" variant="primary" disabled={isSubmitting || !businessName.trim()}>
+            {isSubmitting ? "Creating..." : "Create Supplier"}
+          </UIButton>
+        </UIModalFooter>
+      </form>
+    </UIModal>
+  );
+};
+
 export const CreatePurchaseBillDesktopPage = () => {
   const navigate = useNavigate();
   const { billId } = useParams();
@@ -257,6 +343,8 @@ export const CreatePurchaseBillDesktopPage = () => {
   const [isRateCheckModalOpen, setIsRateCheckModalOpen] = useState(false);
   const [isQuickCreateModalOpen, setIsQuickCreateModalOpen] = useState(false);
   const [quickCreateProductName, setQuickCreateProductName] = useState("");
+  const [isQuickCreateSupplierModalOpen, setIsQuickCreateSupplierModalOpen] = useState(false);
+  const [quickCreateSupplierName, setQuickCreateSupplierName] = useState("");
 
   // Extra Discount (applied on taxable subtotal in preview)
   const [extraDiscountPct, setExtraDiscountPct] = useState(0);
@@ -747,6 +835,11 @@ export const CreatePurchaseBillDesktopPage = () => {
                     searchBarRef.current?.focus();
                   }, 100);
                 }
+              }}
+              showAddNewAction={true}
+              onAddNewSupplier={(name) => {
+                setQuickCreateSupplierName(name);
+                setIsQuickCreateSupplierModalOpen(true);
               }}
               placeholder="Search supplier by name, GST, or phone..."
               size="sm"
@@ -1376,6 +1469,18 @@ export const CreatePurchaseBillDesktopPage = () => {
         onClose={() => setIsQuickCreateModalOpen(false)}
         defaultName={quickCreateProductName}
         onSuccess={handleSelectWorkspaceProduct}
+      />
+
+      <QuickCreateSupplierModal
+        open={isQuickCreateSupplierModalOpen}
+        onClose={() => setIsQuickCreateSupplierModalOpen(false)}
+        defaultName={quickCreateSupplierName}
+        onSuccess={(newSupplier) => {
+          setSelectedSupplier(newSupplier);
+          setTimeout(() => {
+            searchBarRef.current?.focus();
+          }, 100);
+        }}
       />
     </section>
   );

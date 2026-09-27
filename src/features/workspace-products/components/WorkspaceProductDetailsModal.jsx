@@ -34,17 +34,23 @@ export const WorkspaceProductDetailsModal = ({
 }) => {
   if (!open) return null;
 
-  const name = product?.displayName || product?.name || "Workspace Product Details";
-  const sku = product?.displaySku || product?.sku || product?.code || "-";
-  const category = product?.displayCategory || product?.category || "-";
-  const manufacturer = product?.displayManufacturer || product?.manufacturer || product?.brand || "-";
-  const dosageForm = product?.displayDosageForm || product?.dosageForm || product?.productType || "-";
-  const strength = product?.displayStrength || product?.strength || "-";
+  const getSafeStr = (val, fallback = "-") => {
+    if (!val) return fallback;
+    if (typeof val === "object") return val.name || val.title || val.slug || val.id || fallback;
+    return String(val);
+  };
+
+  const name = getSafeStr(product?.displayName || product?.name, "Workspace Product Details");
+  const sku = getSafeStr(product?.displaySku || product?.sku || product?.code);
+  const category = getSafeStr(product?.displayCategory || product?.category);
+  const manufacturer = getSafeStr(product?.displayManufacturer || product?.manufacturer || product?.brand);
+  const dosageForm = getSafeStr(product?.displayDosageForm || product?.dosageForm || product?.productType);
+  const strength = getSafeStr(product?.displayStrength || product?.strength);
   const status = product?.displayStatus || product?.status || "active";
   const hsnCode = product?.hsnCode || product?.hsn || product?.hsnMaster?.hsnCode || "-";
   const gstRate = product?.gstRate ?? product?.taxRate ?? product?.gst ?? "-";
-  const saltComposition = product?.saltComposition || product?.saltMaster?.name || product?.salt || "-";
-  const uom = product?.unitOfMeasurement || product?.uomMaster?.name || product?.uom || "-";
+  const saltComposition = getSafeStr(product?.saltComposition || product?.saltMaster?.name || product?.salt);
+  const uom = getSafeStr(product?.unitOfMeasurement || product?.uomMaster?.name || product?.uom);
   const mrp = product?.mrp ?? product?.price ?? "-";
   const purchasePrice = product?.purchasePrice ?? product?.costPrice ?? "-";
   const notes = product?.notes || product?.description || null;
