@@ -11,10 +11,18 @@ import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
 /**
  * Check if a path or any child paths match the active pathname
  */
-const isBranchActive = (item, pathname) => {
-  if (item.path && pathname === item.path) return true;
+const isBranchActive = (item, pathname, search = "") => {
+  if (item.path) {
+    const hasQuery = item.path.includes("?");
+    if (hasQuery) {
+      const [itemPath, itemQuery] = item.path.split("?");
+      if (pathname === itemPath && search === `?${itemQuery}`) return true;
+    } else {
+      if (pathname === item.path) return true;
+    }
+  }
   if (item.children) {
-    return item.children.some((child) => isBranchActive(child, pathname));
+    return item.children.some((child) => isBranchActive(child, pathname, search));
   }
   return false;
 };
@@ -73,7 +81,7 @@ const SidebarItem = ({
   const { isSetupComplete, completedCount, totalSteps } = setupInfo;
 
   const hasChildren = Boolean(item.children && item.children.length > 0);
-  const activeInBranch = isBranchActive(item, location.pathname);
+  const activeInBranch = isBranchActive(item, location.pathname, location.search);
   const isLocked = useMemo(() => checkIsItemLocked(item, setupInfo), [item, setupInfo]);
 
   // Auto-expand if active route is inside this branch
@@ -156,7 +164,7 @@ const SidebarItem = ({
       >
         {item.path && !isLocked ? (
           <NavLink
-            to={item.path}
+            to={item.path.includes("?") ? { pathname: item.path.split("?")[0], search: `?${item.path.split("?")[1]}` } : item.path}
             onClick={(e) => {
               setTooltipPos(null);
               if (hasChildren) {
@@ -174,14 +182,17 @@ const SidebarItem = ({
               onItemClick?.(e);
             }}
             title={item.label}
-            className={({ isActive }) =>
-              cn(
+            className={() => {
+              const isItemActive = item.path.includes("?")
+                ? location.pathname === item.path.split("?")[0] && location.search === `?${item.path.split("?")[1]}`
+                : location.pathname === item.path;
+              return cn(
                 "flex size-9 items-center justify-center rounded-[8px] transition-colors duration-150 relative",
-                isActive
+                isItemActive
                   ? "bg-primary/10 text-primary"
                   : "text-text hover:bg-surface-hover"
-              )
-            }
+              );
+            }}
           >
             {Icon && <Icon className="size-4" />}
             {displayBadge && (
@@ -292,17 +303,20 @@ const SidebarItem = ({
         </button>
       ) : (
         <NavLink
-          to={item.path}
+          to={item.path.includes("?") ? { pathname: item.path.split("?")[0], search: `?${item.path.split("?")[1]}` } : item.path}
           onClick={onItemClick}
-          className={({ isActive }) =>
-            cn(
+          className={() => {
+            const isItemActive = item.path.includes("?")
+              ? location.pathname === item.path.split("?")[0] && location.search === `?${item.path.split("?")[1]}`
+              : location.pathname === item.path;
+            return cn(
               "flex h-9 items-center justify-between gap-2.5 rounded-[8px] px-2.5",
               "text-[13px] font-medium transition-colors duration-150 select-none",
-              isActive
+              isItemActive
                 ? "bg-primary/10 text-primary hover:bg-primary/15 font-medium"
                 : "text-text hover:bg-surface-hover"
-            )
-          }
+            );
+          }}
         >
           <div className="flex items-center gap-2.5 min-w-0">
             {Icon && (
@@ -316,16 +330,48 @@ const SidebarItem = ({
             <span className="truncate text-[13px] font-medium text-current">{item.label}</span>
           </div>
 
-          {displayBadge && (
-            <UIBadge
-              variant={item.id === "setup-center" && !isSetupComplete ? "primary" : "primary"}
-              size="xs"
-              className={item.id === "setup-center" && !isSetupComplete ? "animate-pulse font-bold" : ""}
-            >
-              {displayBadge}
-            </UIBadge>
-          )}
+          {/* Right side: Quick Filter Pills OR Badge */}
+          <div className="flex items-center gap-1 shrink-0">
+            {item.quickFilters && item.quickFilters.length > 0 && (
+              item.quickFilters.map((qf) => {
+                const isFilterActive =
+                  location.pathname === item.path &&
+                  location.search === `?segment=${qf.segment}`;
+
+                return (
+                  <span
+                    key={qf.segment}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      navigate(`${item.path}?segment=${qf.segment}`);
+                      onItemClick?.(e);
+                    }}
+                    className={cn(
+                      "inline-flex items-center px-1.5 py-0.5 rounded-[5px] text-[10px] font-bold cursor-pointer transition-all duration-150",
+                      isFilterActive
+                        ? "bg-primary text-white"
+                        : "bg-surface-alt text-text-muted hover:bg-surface-hover hover:text-text border border-border/60"
+                    )}
+                  >
+                    {qf.label}
+                  </span>
+                );
+              })
+            )}
+
+            {displayBadge && (
+              <UIBadge
+                variant={item.id === "setup-center" && !isSetupComplete ? "primary" : "primary"}
+                size="xs"
+                className={item.id === "setup-center" && !isSetupComplete ? "animate-pulse font-bold" : ""}
+              >
+                {displayBadge}
+              </UIBadge>
+            )}
+          </div>
         </NavLink>
+
       )}
 
       {/* Nested Children Tree */}

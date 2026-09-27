@@ -1,6 +1,7 @@
 // src/features/parties/customers/pages/desktop/CustomersDesktopPage.jsx
 
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Users,
   Plus,
@@ -12,7 +13,9 @@ import {
   Eye,
   Edit3,
   Trash2,
-  Filter
+  Filter,
+  Building2,
+  Contact,
 } from "lucide-react";
 import {
   UIButton,
@@ -39,6 +42,7 @@ import {
 } from "@/components/ui";
 import { TopBarStats } from "@/layouts/app/components/header";
 import { AppTable } from "@/components";
+import { ROUTES } from "@/constants";
 
 const SORT_OPTIONS = [
   { value: "name_asc", label: "Name: A to Z" },
@@ -82,7 +86,9 @@ const CustomersDesktopPage = ({
   handleRefresh,
 
   clearMessage,
+  activeSegment,
 }) => {
+  const segmentNavigate = useNavigate();
   // Local pagination if parent doesn't provide it
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
@@ -177,6 +183,51 @@ const CustomersDesktopPage = ({
 
       {/* ── TopBar Stats Teleport ── */}
       <TopBarStats stats={topBarStats} />
+
+      {/* ── B2B / B2C Segment Toggle ── */}
+      <div className="flex items-center gap-1.5 p-1 bg-surface rounded-xl border border-border shadow-xs w-fit">
+        <button
+          type="button"
+          onClick={() => segmentNavigate(`${ROUTES.CUSTOMERS}?segment=b2b`)}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all duration-200 cursor-pointer ${
+            activeSegment === "b2b"
+              ? "bg-primary text-white shadow-sm"
+              : "text-text-muted hover:bg-surface-hover hover:text-text"
+          }`}
+        >
+          <Building2 className="size-3.5" />
+          B2B
+        </button>
+        <button
+          type="button"
+          onClick={() => segmentNavigate(`${ROUTES.CUSTOMERS}?segment=b2c`)}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all duration-200 cursor-pointer ${
+            activeSegment === "b2c"
+              ? "bg-primary text-white shadow-sm"
+              : "text-text-muted hover:bg-surface-hover hover:text-text"
+          }`}
+        >
+          <Contact className="size-3.5" />
+          B2C
+        </button>
+        <button
+          type="button"
+          onClick={() => segmentNavigate(ROUTES.CUSTOMERS)}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all duration-200 cursor-pointer ${
+            !activeSegment
+              ? "bg-primary text-white shadow-sm"
+              : "text-text-muted hover:bg-surface-hover hover:text-text"
+          }`}
+        >
+          <Users className="size-3.5" />
+          All
+        </button>
+        {activeSegment && (
+          <span className="ml-1 text-[11px] font-medium text-text-muted">
+            {activeSegment === "b2b" ? "Retail & Wholesale" : "Hospital, Clinic, Corporate & Others"}
+          </span>
+        )}
+      </div>
 
       {/* ── Enterprise UIFilterToolbar Component ── */}
       <UIFilterToolbar

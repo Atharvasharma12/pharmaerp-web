@@ -125,6 +125,10 @@ export const SIDEBAR_NAV_GROUPS = [
             path: ROUTES.CUSTOMERS,
             icon: Users,
             permission: "customer:view",
+            quickFilters: [
+              { label: "B2B", segment: "b2b" },
+              { label: "B2C", segment: "b2c" },
+            ],
           },
           {
             id: "suppliers",

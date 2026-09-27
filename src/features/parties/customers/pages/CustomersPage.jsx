@@ -1,7 +1,7 @@
 // src/features/parties/customers/pages/CustomersPage.jsx
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
@@ -17,6 +17,10 @@ const initialFilters = {
   status: "all",
   type: "all",
 };
+
+// B2B covers retail & wholesale; B2C covers the rest
+const B2B_TYPES = ["retail", "wholesale"];
+const B2C_TYPES = ["hospital", "clinic", "corporate", "other"];
 
 const normalizeText = (value) =>
   String(value || "")
@@ -60,9 +64,13 @@ const mapCustomerForView = (customer) => {
 
 const CustomersPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const { currentCompany } = useCompany();
   const companyId = currentCompany?._id;
+
+  // Read segment from URL: "b2b" | "b2c" | null
+  const activeSegment = searchParams.get("segment") || null;
 
   const {
     customers,
@@ -128,9 +136,18 @@ const CustomersPage = () => {
       const matchesType =
         filters.type === "all" || normalizeText(customer.customerType || customer.type) === normalizeText(filters.type);
 
-      return matchesSearch && matchesStatus && matchesType;
+      // Segment-based filtering (B2B / B2C)
+      const customerType = normalizeText(customer.customerType || customer.type);
+      let matchesSegment = true;
+      if (activeSegment === "b2b") {
+        matchesSegment = B2B_TYPES.includes(customerType);
+      } else if (activeSegment === "b2c") {
+        matchesSegment = B2C_TYPES.includes(customerType);
+      }
+
+      return matchesSearch && matchesStatus && matchesType && matchesSegment;
     });
-  }, [mappedCustomers, filters]);
+  }, [mappedCustomers, filters, activeSegment]);
 
   const stats = useMemo(() => {
     const total = mappedCustomers.length;
@@ -277,6 +294,7 @@ const CustomersPage = () => {
     allCustomers: mappedCustomers,
     stats,
     typeDistribution,
+    activeSegment,
 
     filters,
     activeFilterChips,
