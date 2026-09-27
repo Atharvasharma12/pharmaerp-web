@@ -701,6 +701,50 @@ export const CreatePurchaseBillDesktopPage = () => {
 
   const handleFinalSubmit = async () => {
     if (isSubmitting) return;
+
+    if (!selectedSupplier?._id && !selectedSupplier?.id) {
+      setToastMessage("⚠️ Please select a supplier before saving.");
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    if (!supplierInvoiceNo || supplierInvoiceNo.trim() === "") {
+      setToastMessage("⚠️ Supplier Invoice No is mandatory.");
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    if (!cart || cart.length === 0) {
+      setToastMessage("⚠️ Please add at least one item to the bill.");
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    // Validate cart items
+    for (let i = 0; i < cart.length; i++) {
+      const item = cart[i];
+      if (!item.qty || Number(item.qty) < 1) {
+        setToastMessage(`⚠️ Item ${item.name} must have at least 1 quantity.`);
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      if (!item.batch || item.batch.trim() === "") {
+        setToastMessage(`⚠️ Batch is required for item ${item.name}.`);
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      if (!item.mrp || Number(item.mrp) <= 0) {
+        setToastMessage(`⚠️ MRP is required and must be > 0 for item ${item.name}.`);
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      if (!item.rate || Number(item.rate) <= 0) {
+        setToastMessage(`⚠️ Purchase Rate is required and must be > 0 for item ${item.name}.`);
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -791,7 +835,7 @@ export const CreatePurchaseBillDesktopPage = () => {
           initial={{ opacity: 0, y: -20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20 }}
-          className="fixed top-6 right-8 z-50 flex items-center gap-2.5 rounded-2xl border border-primary/30 bg-surface/95 px-4 py-3 text-sm font-semibold text-text shadow-xl backdrop-blur-md"
+          className="fixed top-6 right-8 z-[9999] flex items-center gap-2.5 rounded-2xl border border-primary/30 bg-surface/95 px-4 py-3 text-sm font-semibold text-text shadow-xl backdrop-blur-md"
         >
           <CheckCircle2 className="size-5 text-primary shrink-0" />
           <span>{toastMessage}</span>

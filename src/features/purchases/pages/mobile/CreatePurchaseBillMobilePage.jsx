@@ -175,12 +175,56 @@ export const CreatePurchaseBillMobilePage = () => {
   const cartItemCount = cart.reduce((acc, item) => acc + (Number(item.qty) || 1), 0);
 
   const handleSubmit = () => {
-    if (!selectedSupplier) {
-      setToastMessage("⚠️ Select supplier first.");
+    if (!selectedSupplier?._id && !selectedSupplier?.id) {
+      setToastMessage("⚠️ Please select a supplier before saving.");
       setActiveTab("details");
       setTimeout(() => setToastMessage(null), 3000);
       return;
     }
+
+    if (!supplierInvoiceNo || supplierInvoiceNo.trim() === "") {
+      setToastMessage("⚠️ Supplier Invoice No is mandatory.");
+      setActiveTab("details");
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    if (!cart || cart.length === 0) {
+      setToastMessage("⚠️ Please add at least one item to the bill.");
+      setActiveTab("catalog");
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    // Validate cart items
+    for (let i = 0; i < cart.length; i++) {
+      const item = cart[i];
+      if (!item.qty || Number(item.qty) < 1) {
+        setToastMessage(`⚠️ Item ${item.name} must have at least 1 quantity.`);
+        setActiveTab("cart");
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      if (!item.batch || item.batch.trim() === "") {
+        setToastMessage(`⚠️ Batch is required for item ${item.name}.`);
+        setActiveTab("cart");
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      if (!item.mrp || Number(item.mrp) <= 0) {
+        setToastMessage(`⚠️ MRP is required and must be > 0 for item ${item.name}.`);
+        setActiveTab("cart");
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      if (!item.rate || Number(item.rate) <= 0) {
+        setToastMessage(`⚠️ Purchase Rate is required and must be > 0 for item ${item.name}.`);
+        setActiveTab("cart");
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+    }
+
     setToastMessage(`✅ Purchase Bill submitted.`);
     setTimeout(() => {
       setToastMessage(null);
@@ -191,7 +235,7 @@ export const CreatePurchaseBillMobilePage = () => {
   return (
     <section className="min-h-[100dvh] w-full bg-bg px-3.5 pt-3 pb-24 font-sans space-y-4">
       {toastMessage && (
-        <div className="fixed top-4 left-4 right-4 z-50 flex items-center gap-2 rounded-xl border border-primary/30 bg-surface/95 p-3 text-xs font-semibold text-text shadow-xl backdrop-blur-md">
+        <div className="fixed top-4 left-4 right-4 z-[9999] flex items-center gap-2 rounded-xl border border-primary/30 bg-surface/95 p-3 text-xs font-semibold text-text shadow-xl backdrop-blur-md">
           <CheckCircle2 className="size-4 text-primary shrink-0" />
           <span>{toastMessage}</span>
         </div>
