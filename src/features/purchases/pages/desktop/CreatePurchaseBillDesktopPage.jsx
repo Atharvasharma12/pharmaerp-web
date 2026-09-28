@@ -77,6 +77,7 @@ const BatchInputWithDropdown = ({ item, updateItemField }) => {
   return (
     <>
       <input
+        id={`batch-input-${item.id}`}
         type="text"
         value={item.batch || ""}
         onChange={(e) => {
@@ -155,6 +156,172 @@ const BatchInputWithDropdown = ({ item, updateItemField }) => {
   );
 };
 
+const QuickCreateProductModal = ({ open, onClose, defaultName, onSuccess }) => {
+  const [name, setName] = useState(defaultName || "");
+  const [productType, setProductType] = useState("medicine");
+  const [pack, setPack] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (open) {
+      setName(defaultName || "");
+      setProductType("medicine");
+      setPack("");
+      setError(null);
+    }
+  }, [open, defaultName]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const payload = {
+        name: name.trim(),
+        productType,
+        pack: pack.trim(),
+        force: true
+      };
+      const res = await workspaceProductService.createWorkspaceProduct(payload);
+      const newProduct = res.data?.data || res.data;
+      onSuccess(newProduct);
+      onClose();
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || "Failed to create product");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <UIModal isOpen={open} onClose={onClose} className="max-w-md">
+      <form onSubmit={handleSubmit}>
+        <UIModalHeader>
+          <UIModalTitle>Create Quick Product</UIModalTitle>
+          <UIModalDescription>Add a new workspace product on the fly.</UIModalDescription>
+        </UIModalHeader>
+        <UIModalBody className="space-y-4 p-5">
+          {error && <div className="text-error text-sm font-semibold">{error}</div>}
+          <div>
+            <label className="text-xs font-bold text-text-muted">Product Name *</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Dolo 650 Tablet" required className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text" autoFocus />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-text-muted">Product Type *</label>
+              <select value={productType} onChange={e => setProductType(e.target.value)} className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text">
+                <option value="medicine">Medicine</option>
+                <option value="otc">OTC</option>
+                <option value="fmcg">FMCG</option>
+                <option value="equipment">Equipment</option>
+                <option value="general">General</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-text-muted">Pack</label>
+              <input type="text" value={pack} onChange={e => setPack(e.target.value)} placeholder="e.g. 10's" className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text" />
+            </div>
+          </div>
+        </UIModalBody>
+        <UIModalFooter>
+          <UIButton type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>Cancel</UIButton>
+          <UIButton type="submit" variant="primary" disabled={isSubmitting || !name.trim()}>
+            {isSubmitting ? "Creating..." : "Create Product"}
+          </UIButton>
+        </UIModalFooter>
+      </form>
+    </UIModal>
+  );
+};
+
+const QuickCreateSupplierModal = ({ open, onClose, defaultName, onSuccess }) => {
+  const [businessName, setBusinessName] = useState(defaultName || "");
+  const [supplierType, setSupplierType] = useState("distributor");
+  const [gstNumber, setGstNumber] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (open) {
+      setBusinessName(defaultName || "");
+      setSupplierType("distributor");
+      setGstNumber("");
+      setMobile("");
+      setError(null);
+    }
+  }, [open, defaultName]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!businessName.trim()) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const payload = {
+        businessName: businessName.trim(),
+        supplierType,
+      };
+      if (gstNumber.trim()) payload.gstNumber = gstNumber.trim().toUpperCase();
+      if (mobile.trim()) payload.mobile = mobile.trim();
+
+      const res = await supplierService.createSupplier(payload);
+      const newSupplier = res.data?.data || res.data;
+      onSuccess(newSupplier);
+      onClose();
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || "Failed to create supplier");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <UIModal isOpen={open} onClose={onClose} className="max-w-md">
+      <form onSubmit={handleSubmit}>
+        <UIModalHeader>
+          <UIModalTitle>Create Quick Supplier</UIModalTitle>
+          <UIModalDescription>Add a new supplier on the fly.</UIModalDescription>
+        </UIModalHeader>
+        <UIModalBody className="space-y-4 p-5">
+          {error && <div className="text-error text-sm font-semibold">{error}</div>}
+          <div>
+            <label className="text-xs font-bold text-text-muted">Business Name *</label>
+            <input type="text" value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="e.g. Lupin Ltd" required className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text" autoFocus />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-text-muted">Supplier Type *</label>
+              <select value={supplierType} onChange={e => setSupplierType(e.target.value)} className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text">
+                <option value="distributor">Distributor</option>
+                <option value="wholesaler">Wholesaler</option>
+                <option value="manufacturer">Manufacturer</option>
+                <option value="cfa">CFA</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-text-muted">GST Number</label>
+              <input type="text" value={gstNumber} onChange={e => setGstNumber(e.target.value)} placeholder="Optional" className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text uppercase" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-text-muted">Mobile Number</label>
+            <input type="text" value={mobile} onChange={e => setMobile(e.target.value)} placeholder="Optional" className="w-full mt-1 h-9 rounded-lg border border-border px-3 text-sm bg-surface-alt text-text" />
+          </div>
+        </UIModalBody>
+        <UIModalFooter>
+          <UIButton type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>Cancel</UIButton>
+          <UIButton type="submit" variant="primary" disabled={isSubmitting || !businessName.trim()}>
+            {isSubmitting ? "Creating..." : "Create Supplier"}
+          </UIButton>
+        </UIModalFooter>
+      </form>
+    </UIModal>
+  );
+};
+
 export const CreatePurchaseBillDesktopPage = () => {
   const navigate = useNavigate();
   const { billId } = useParams();
@@ -169,11 +336,16 @@ export const CreatePurchaseBillDesktopPage = () => {
 
   // Invoice Details
   const [purchaseBillNo, setPurchaseBillNo] = useState("");
+  const [supplierInvoiceNo, setSupplierInvoiceNo] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().split("T")[0]);
 
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isSchemeCheckModalOpen, setIsSchemeCheckModalOpen] = useState(false);
   const [isRateCheckModalOpen, setIsRateCheckModalOpen] = useState(false);
+  const [isQuickCreateModalOpen, setIsQuickCreateModalOpen] = useState(false);
+  const [quickCreateProductName, setQuickCreateProductName] = useState("");
+  const [isQuickCreateSupplierModalOpen, setIsQuickCreateSupplierModalOpen] = useState(false);
+  const [quickCreateSupplierName, setQuickCreateSupplierName] = useState("");
 
   // Extra Discount (applied on taxable subtotal in preview)
   const [extraDiscountPct, setExtraDiscountPct] = useState(0);
@@ -203,6 +375,7 @@ export const CreatePurchaseBillDesktopPage = () => {
             });
           }
           setPurchaseBillNo(bill.purchaseBillNo || "");
+          setSupplierInvoiceNo(bill.supplierInvoiceNo || "");
           setInvoiceDate(bill.invoiceDate || "");
           setRateBasis(bill.rateBasis || "PTS");
           setExtraDiscountPct(bill.extraDiscountPct || 0);
@@ -289,7 +462,7 @@ export const CreatePurchaseBillDesktopPage = () => {
       freeQty: 0,
       schPct: 0,
       disc: 0,
-      cRatePct: 0,
+      cRatePct: Number(p.rateCPercentage || p.cRatePct || 0),
       mrp: baseMrp,
       hsn: getHsnCode(p),
       gst: getGstRate(p),
@@ -319,7 +492,12 @@ export const CreatePurchaseBillDesktopPage = () => {
     setToastMessage(`✅ Added ${newItem.name} to Purchase Bill.`);
 
     setTimeout(() => {
-      searchBarRef.current?.focus();
+      const batchInput = document.getElementById(`batch-input-${newItem.id}`);
+      if (batchInput) {
+        batchInput.focus();
+      } else {
+        searchBarRef.current?.focus();
+      }
     }, 100);
 
     setTimeout(() => setToastMessage(null), 2500);
@@ -496,6 +674,7 @@ export const CreatePurchaseBillDesktopPage = () => {
             rateC: newRateC,
             retailerMarginPercent: derivedRetail,
             rateCPercentage: rateCPercentage,
+            cRatePct: rateCPercentage,
             rate: newRate,
           };
         }
@@ -522,12 +701,57 @@ export const CreatePurchaseBillDesktopPage = () => {
 
   const handleFinalSubmit = async () => {
     if (isSubmitting) return;
+
+    if (!selectedSupplier?._id && !selectedSupplier?.id) {
+      setToastMessage("⚠️ Please select a supplier before saving.");
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    if (!supplierInvoiceNo || supplierInvoiceNo.trim() === "") {
+      setToastMessage("⚠️ Supplier Invoice No is mandatory.");
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    if (!cart || cart.length === 0) {
+      setToastMessage("⚠️ Please add at least one item to the bill.");
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    // Validate cart items
+    for (let i = 0; i < cart.length; i++) {
+      const item = cart[i];
+      if (!item.qty || Number(item.qty) < 1) {
+        setToastMessage(`⚠️ Item ${item.name} must have at least 1 quantity.`);
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      if (!item.batch || item.batch.trim() === "") {
+        setToastMessage(`⚠️ Batch is required for item ${item.name}.`);
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      if (!item.mrp || Number(item.mrp) <= 0) {
+        setToastMessage(`⚠️ MRP is required and must be > 0 for item ${item.name}.`);
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+      if (!item.rate || Number(item.rate) <= 0) {
+        setToastMessage(`⚠️ Purchase Rate is required and must be > 0 for item ${item.name}.`);
+        setTimeout(() => setToastMessage(null), 3000);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
       const payload = {
         supplierId: selectedSupplier?._id || selectedSupplier?.id,
         purchaseBillNo,
+        supplierInvoiceNo,
         invoiceDate,
         rateBasis,
         items: cart.map((item) => {
@@ -587,6 +811,8 @@ export const CreatePurchaseBillDesktopPage = () => {
         await purchaseBillService.createPurchaseBill(payload);
       }
 
+
+
       setIsPreviewModalOpen(false);
       setToastMessage(`✅ Purchase Bill ${purchaseBillNo || "saved"} successfully.`);
       setTimeout(() => {
@@ -609,7 +835,7 @@ export const CreatePurchaseBillDesktopPage = () => {
           initial={{ opacity: 0, y: -20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20 }}
-          className="fixed top-6 right-8 z-50 flex items-center gap-2.5 rounded-2xl border border-primary/30 bg-surface/95 px-4 py-3 text-sm font-semibold text-text shadow-xl backdrop-blur-md"
+          className="fixed top-6 right-8 z-[9999] flex items-center gap-2.5 rounded-2xl border border-primary/30 bg-surface/95 px-4 py-3 text-sm font-semibold text-text shadow-xl backdrop-blur-md"
         >
           <CheckCircle2 className="size-5 text-primary shrink-0" />
           <span>{toastMessage}</span>
@@ -657,6 +883,11 @@ export const CreatePurchaseBillDesktopPage = () => {
                   }, 100);
                 }
               }}
+              showAddNewAction={true}
+              onAddNewSupplier={(name) => {
+                setQuickCreateSupplierName(name);
+                setIsQuickCreateSupplierModalOpen(true);
+              }}
               placeholder="Search supplier by name, GST, or phone..."
               size="sm"
             />
@@ -664,14 +895,26 @@ export const CreatePurchaseBillDesktopPage = () => {
           <div className="flex gap-4">
             <div>
               <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">
-                Bill Number
+                Bill Number (Auto)
               </span>
               <input
                 type="text"
-                className="h-8.5 text-xs px-2.5 rounded-lg border border-border bg-surface-alt w-36"
+                className="h-8.5 text-xs px-2.5 rounded-lg border border-border bg-surface-alt w-32 cursor-not-allowed text-text-muted"
                 placeholder="Auto-calculated"
                 value={purchaseBillNo}
-                onChange={(e) => setPurchaseBillNo(e.target.value)}
+                disabled
+              />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block mb-1">
+                Supplier Invoice No
+              </span>
+              <input
+                type="text"
+                className="h-8.5 text-xs px-2.5 rounded-lg border border-border bg-surface w-32 focus:border-primary focus:outline-none"
+                placeholder="Enter Invoice No"
+                value={supplierInvoiceNo}
+                onChange={(e) => setSupplierInvoiceNo(e.target.value)}
               />
             </div>
             <div>
@@ -757,9 +1000,14 @@ export const CreatePurchaseBillDesktopPage = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onSelectProduct={handleSelectWorkspaceProduct}
+                onCreateProductClick={(query) => {
+                  setQuickCreateProductName(query);
+                  setIsQuickCreateModalOpen(true);
+                }}
                 placeholder="Search product / medicine to add to purchase bill..."
                 size="md"
                 showDetailsPreview
+                showQuickCreateAction
               />
             </div>
 
@@ -822,8 +1070,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                             <input
                               type="number"
                               min="1"
-                              value={item.qty || 1}
-                              onChange={(e) => updateItemField(item.id, "qty", Math.max(1, Number(e.target.value)))}
+                              value={item.qty === 0 ? "" : (item.qty ?? "")}
+                              onChange={(e) => updateItemField(item.id, "qty", e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
                               className="w-12 text-center rounded border border-border bg-surface px-1 py-0.5 font-mono font-bold text-xs text-text outline-none focus:border-primary"
                               placeholder="Qty"
                             />
@@ -834,8 +1082,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                             <input
                               type="number"
                               min="0"
-                              value={item.freeQty ?? 0}
-                              onChange={(e) => updateItemField(item.id, "freeQty", Math.max(0, Number(e.target.value)))}
+                              value={item.freeQty === 0 ? "" : (item.freeQty ?? "")}
+                              onChange={(e) => updateItemField(item.id, "freeQty", e.target.value === "" ? 0 : Math.max(0, Number(e.target.value)))}
                               onBlur={() => handleFreeBlurOrTab(item)}
                               onKeyDown={(e) => {
                                 if (e.key === "Tab" && !e.shiftKey) {
@@ -854,8 +1102,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               min="0"
                               max="100"
                               step="0.1"
-                              value={item.schPct ?? 0}
-                              onChange={(e) => updateItemField(item.id, "schPct", Number(e.target.value))}
+                              value={item.schPct === 0 ? "" : (item.schPct ?? "")}
+                              onChange={(e) => updateItemField(item.id, "schPct", e.target.value === "" ? 0 : Number(e.target.value))}
                               onBlur={() => handleSchBlurOrTab(item)}
                               onKeyDown={(e) => {
                                 if (e.key === "Tab" && !e.shiftKey) {
@@ -874,8 +1122,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               min="0"
                               max="100"
                               step="0.1"
-                              value={item.disc ?? 0}
-                              onChange={(e) => updateItemField(item.id, "disc", Number(e.target.value))}
+                              value={item.disc === 0 ? "" : (item.disc ?? "")}
+                              onChange={(e) => updateItemField(item.id, "disc", e.target.value === "" ? 0 : Number(e.target.value))}
                               className="w-12 text-center rounded border border-border bg-surface px-1 py-0.5 font-mono text-xs text-text outline-none focus:border-primary"
                               placeholder="0"
                             />
@@ -887,8 +1135,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               type="number"
                               min="0"
                               step="0.01"
-                              value={item.mrp ?? 0}
-                              onChange={(e) => updateItemField(item.id, "mrp", Number(e.target.value))}
+                              value={item.mrp === 0 ? "" : (item.mrp ?? "")}
+                              onChange={(e) => updateItemField(item.id, "mrp", e.target.value === "" ? 0 : Number(e.target.value))}
                               className="w-16 text-right rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-text focus:border-primary focus:outline-none"
                             />
                           </td>
@@ -910,8 +1158,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               type="number"
                               min="0"
                               max="100"
-                              value={item.gst ?? 12}
-                              onChange={(e) => updateItemField(item.id, "gst", Number(e.target.value))}
+                              value={item.gst === 0 ? "" : (item.gst ?? "")}
+                              onChange={(e) => updateItemField(item.id, "gst", e.target.value === "" ? 0 : Number(e.target.value))}
                               className="w-12 text-center rounded border border-border bg-surface px-1 py-0.5 font-mono text-xs font-bold text-purple-600 focus:border-primary focus:outline-none"
                             />
                           </td>
@@ -922,8 +1170,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               type="number"
                               min="0"
                               step="0.01"
-                              value={item.rate ?? 0}
-                              onChange={(e) => updateItemField(item.id, "rate", Number(e.target.value))}
+                              value={item.rate === 0 ? "" : (item.rate ?? "")}
+                              onChange={(e) => updateItemField(item.id, "rate", e.target.value === "" ? 0 : Number(e.target.value))}
                               className="w-18 text-right rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs font-bold text-text focus:border-primary focus:outline-none"
                             />
                           </td>
@@ -935,8 +1183,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               min="0"
                               max="100"
                               step="0.1"
-                              value={item.cRatePct ?? 0}
-                              onChange={(e) => updateItemField(item.id, "cRatePct", Number(e.target.value))}
+                              value={item.cRatePct === 0 ? "" : (item.cRatePct ?? "")}
+                              onChange={(e) => updateItemField(item.id, "cRatePct", e.target.value === "" ? 0 : Number(e.target.value))}
                               className="w-12 text-center rounded border border-border bg-surface px-1 py-0.5 font-mono text-xs text-text outline-none focus:border-primary"
                               placeholder="0"
                             />
@@ -983,7 +1231,7 @@ export const CreatePurchaseBillDesktopPage = () => {
                 {cartSchemeDiscount > 0 && <p className="text-amber-600">Scheme Discount:</p>}
                 {cartTradeDiscount > 0 && <p className="text-amber-600">Trade Discount (Disc %):</p>}
                 <p className="font-semibold text-text">Taxable Subtotal:</p>
-                {extraDiscountAmt > 0 && <p className="text-orange-600">Extra Discount ({extraDiscountPct}%):</p>}
+                {extraDiscountAmt !== 0 && <p className={extraDiscountAmt > 0 ? "text-orange-600" : "text-emerald-600"}>{extraDiscountAmt > 0 ? "Extra Discount" : "Extra Charge"} ({extraDiscountPct}%):</p>}
                 <p className="text-purple-600">Est. GST Tax:</p>
                 <p className="text-lg font-bold text-text mt-2">Grand Total:</p>
               </div>
@@ -1050,6 +1298,9 @@ export const CreatePurchaseBillDesktopPage = () => {
             <div>
               <span className="text-[10px] uppercase font-bold text-text-muted block">Bill Number</span>
               <span className="font-mono font-bold text-text block">{purchaseBillNo || "Auto-calculated"}</span>
+              {supplierInvoiceNo && (
+                <span className="text-[9px] font-medium text-text-muted block mt-0.5">Inv: {supplierInvoiceNo}</span>
+              )}
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-text-muted block">Invoice Date</span>
@@ -1144,16 +1395,16 @@ export const CreatePurchaseBillDesktopPage = () => {
                       Extra Disc:
                       <input
                         type="number"
-                        min="0"
-                        max="100"
                         step="0.1"
-                        value={extraDiscountPct}
-                        onChange={(e) => setExtraDiscountPct(Math.min(100, Math.max(0, Number(e.target.value))))}
+                        value={extraDiscountPct === 0 ? "" : extraDiscountPct}
+                        onChange={(e) => setExtraDiscountPct(e.target.value === "" ? 0 : Number(e.target.value))}
                         className="w-12 text-center rounded-none border-0 border-b border-text-muted bg-transparent px-1 py-0.5 font-mono text-xs font-bold text-text outline-none focus:border-primary"
                       />
                       <span className="text-[10px] font-bold">%</span>
                     </span>
-                    <span className="font-bold font-mono">-₹{extraDiscountAmt.toFixed(2)}</span>
+                    <span className="font-bold font-mono">
+                      {extraDiscountAmt >= 0 ? "-" : "+"}₹{Math.abs(extraDiscountAmt).toFixed(2)}
+                    </span>
                   </div>
 
                   <div className="flex justify-between items-center text-text font-semibold pt-1 border-t border-border/60">
@@ -1273,6 +1524,25 @@ export const CreatePurchaseBillDesktopPage = () => {
         supplierName={selectedSupplier?.businessName || "Unknown Supplier"}
         purchaseBillDate={invoiceDate}
         initialRateBasis={rateBasis}
+      />
+
+      <QuickCreateProductModal
+        open={isQuickCreateModalOpen}
+        onClose={() => setIsQuickCreateModalOpen(false)}
+        defaultName={quickCreateProductName}
+        onSuccess={handleSelectWorkspaceProduct}
+      />
+
+      <QuickCreateSupplierModal
+        open={isQuickCreateSupplierModalOpen}
+        onClose={() => setIsQuickCreateSupplierModalOpen(false)}
+        defaultName={quickCreateSupplierName}
+        onSuccess={(newSupplier) => {
+          setSelectedSupplier(newSupplier);
+          setTimeout(() => {
+            searchBarRef.current?.focus();
+          }, 100);
+        }}
       />
     </section>
   );

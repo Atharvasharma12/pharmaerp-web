@@ -138,7 +138,7 @@ export const SalesMobilePage = () => {
     <section className="min-h-[100dvh] w-full bg-bg px-3.5 pt-3 pb-24 font-sans space-y-4">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-4 left-4 right-4 z-50 flex items-center gap-2 rounded-xl border border-primary/30 bg-surface/95 p-3 text-xs font-semibold text-text shadow-xl backdrop-blur-md">
+        <div className="fixed top-4 left-4 right-4 z-[9999] flex items-center gap-2 rounded-xl border border-primary/30 bg-surface/95 p-3 text-xs font-semibold text-text shadow-xl backdrop-blur-md">
           <CheckCircle2 className="size-4 text-primary shrink-0" />
           <span>{toastMessage}</span>
         </div>

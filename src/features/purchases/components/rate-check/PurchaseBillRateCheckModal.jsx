@@ -181,12 +181,12 @@ export const PurchaseBillRateCheckModal = ({
                       <td className="py-2 px-3 text-right text-text-muted">{row.qty}</td>
                       <td className="py-2 px-3 text-right font-black text-text bg-surface-alt/30">{row.billRate.toFixed(2)}</td>
                       <td className="py-2 px-3 text-right text-text-muted">{row.expectedPTS.toFixed(2)}</td>
-                      <td className="py-2 px-3 text-right font-semibold text-text-muted">{row.billPTS.toFixed(2)}</td>
+                      <td className="py-2 px-3 text-right font-semibold text-text-muted">{rateBasis === "PTS" ? "-" : row.billPTS.toFixed(2)}</td>
                       <td className={cn("py-2 px-3 text-right", diffColor)}>{money(row.diffPerUnit, true)}</td>
                       <td className={cn("py-2 px-3 text-right", diffColor)}>{pct(row.diffPct, true)}</td>
                       <td className={cn("py-2 px-3 text-right font-black bg-surface-alt/30", diffColor)}>{money(row.totalDiff, true)}</td>
                       <td className="py-2 px-3 text-right text-text-muted">{row.expectedPTR.toFixed(2)}</td>
-                      <td className="py-2 px-3 text-right font-semibold text-text-muted">{row.billPTR.toFixed(2)}</td>
+                      <td className="py-2 px-3 text-right font-semibold text-text-muted">{rateBasis === "PTR" ? "-" : row.billPTR.toFixed(2)}</td>
                       <td className="py-1 px-2 text-right">
                         <input
                           type="number"

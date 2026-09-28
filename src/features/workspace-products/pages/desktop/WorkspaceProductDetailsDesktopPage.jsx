@@ -281,11 +281,10 @@ const WorkspaceProductDetailsDesktopPage = ({
                 key={tab.value}
                 type="button"
                 onClick={() => handleTabChange(tab.value)}
-                className={`border-b-2 px-5 pb-3 text-[13px] font-bold transition whitespace-nowrap outline-none ${
-                  isActive
-                    ? "border-primary text-primary"
-                    : "border-transparent text-text-muted hover:text-text"
-                }`}
+                className={`border-b-2 px-5 pb-3 text-[13px] font-bold transition whitespace-nowrap outline-none ${isActive
+                  ? "border-primary text-primary"
+                  : "border-transparent text-text-muted hover:text-text"
+                  }`}
               >
                 {tab.label}
               </button>
@@ -341,8 +340,8 @@ const PricingTabSection = ({ product }) => {
     product?.hsnTaxpercent != null
       ? `${product.hsnTaxpercent}%`
       : product?.HsnMaster?.gstRate != null
-      ? `${product.HsnMaster.gstRate}%`
-      : "-";
+        ? `${product.HsnMaster.gstRate}%`
+        : "-";
   const hsnDescription =
     product?.HsnMaster?.description || "Pharmaceutical Product HSN Code";
 
@@ -393,6 +392,10 @@ const PricingTabSection = ({ product }) => {
               label="Stockist Margin"
               value={`${product?.stockistMarginPercent || 10}%`}
             />
+            <StatusTrackingRow
+              label="C %"
+              value={`${product?.rateCPercentage || 0}%`}
+            />
           </div>
         </AppCard>
       </div>
@@ -412,7 +415,7 @@ const PricingTabSection = ({ product }) => {
           <PriceRateCell label="PTS" value={`₹${product?.pts ?? 0}`} />
           <PriceRateCell label="Rate A" value={`₹${product?.rateA ?? 0}`} />
           <PriceRateCell label="Rate B" value={`₹${product?.rateB ?? 0}`} />
-          <PriceRateCell label="Rate C" value={`₹${product?.rateC ?? 0}`} />
+          <PriceRateCell label="Rate C" value={`₹${product?.finalRateC ?? 0}`} />
         </div>
       </AppCard>
     </div>
@@ -421,19 +424,17 @@ const PricingTabSection = ({ product }) => {
 
 const PriceRateCell = ({ label, value, isPrimary }) => (
   <div
-    className={`p-3 rounded-xl border ${
-      isPrimary
-        ? "bg-purple-soft/20 border-purple-soft text-purple"
-        : "bg-surface-alt/40 border-border"
-    }`}
+    className={`p-3 rounded-xl border ${isPrimary
+      ? "bg-purple-soft/20 border-purple-soft text-purple"
+      : "bg-surface-alt/40 border-border"
+      }`}
   >
     <span className="block text-[10.5px] font-bold text-text-muted uppercase tracking-wider">
       {label}
     </span>
     <span
-      className={`block mt-1 text-[15px] font-extrabold ${
-        isPrimary ? "text-purple" : "text-text"
-      }`}
+      className={`block mt-1 text-[15px] font-extrabold ${isPrimary ? "text-purple" : "text-text"
+        }`}
     >
       {value}
     </span>
@@ -531,8 +532,8 @@ const OverviewTabSection = ({ product }) => {
                 product?.hsnTaxpercent != null
                   ? `${product.hsnTaxpercent}%`
                   : product?.HsnMaster?.gstRate != null
-                  ? `${product.HsnMaster.gstRate}%`
-                  : "-"
+                    ? `${product.HsnMaster.gstRate}%`
+                    : "-"
               }
             />
             <StatusTrackingRow label="MRP" value={`₹${product?.mrp ?? 0}`} />

@@ -498,7 +498,8 @@ export const WorkspaceProductSearchBar = forwardRef(
                   {showQuickCreateAction && onCreateProductClick && (
                     <button
                       type="button"
-                      onClick={() => {
+                      onMouseDown={(e) => {
+                        e.preventDefault();
                         setIsOpen(false);
                         onCreateProductClick(currentValue);
                       }}

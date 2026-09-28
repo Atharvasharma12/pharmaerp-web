@@ -263,7 +263,8 @@ export const WorkspaceProductBatchSelectorModal = ({
             pack: basePack,
             hsn: baseHsn,
             gst: baseGst,
-            ratePct: p.ratePct || p.marginPct,
+            ratePct: p.rateCPercentage !== undefined && p.rateCPercentage !== null ? `${p.rateCPercentage}%` : (p.ratePct || p.marginPct || "16%"),
+            rateCPercentage: p.rateCPercentage,
             productName: p.displayName || p.name,
             schemeDiscountPercent: baseSchemeDiscountPercent,
           },
@@ -392,9 +393,15 @@ export const WorkspaceProductBatchSelectorModal = ({
 
   if (!open || !product) return null;
 
-  const productName = product.displayName || product.name || "Selected Product";
-  const brand = product.displayManufacturer || product.manufacturer || product.brand || "Pharma";
-  const category = product.displayCategory || product.category || "Medicine";
+  const getSafeStr = (val, fallback = "-") => {
+    if (!val) return fallback;
+    if (typeof val === "object") return val.name || val.title || val.slug || val.id || fallback;
+    return String(val);
+  };
+
+  const productName = getSafeStr(product.displayName || product.name, "Selected Product");
+  const brand = getSafeStr(product.displayManufacturer || product.manufacturer || product.brand, "Pharma");
+  const category = getSafeStr(product.displayCategory || product.category, "Medicine");
   const hsn =
     product.globalProduct?.hsn ||
     product.globalProduct?.hsnCode ||
@@ -449,7 +456,8 @@ export const WorkspaceProductBatchSelectorModal = ({
       const bPack = b.pack || product.pack || "10S";
       const bHsn = b.hsn || hsn;
       const bGst = b.gst ?? defaultGstRate;
-      const bRatePct = b.ratePct || product.ratePct || "16%";
+      const bRatePct = b.rateCPercentage !== undefined && b.rateCPercentage !== null ? `${b.rateCPercentage}%` : (product.rateCPercentage !== undefined && product.rateCPercentage !== null ? `${product.rateCPercentage}%` : (b.ratePct || product.ratePct || "16%"));
+      const bRateCPercentage = b.rateCPercentage !== undefined && b.rateCPercentage !== null ? b.rateCPercentage : product.rateCPercentage;
       const bStock = b.stock ?? b.batchQty ?? 100;
 
       const bRateB = Number(b.rateB ?? b.rateb ?? b.ptr ?? product.rateB ?? product.rateb ?? product.ptr ?? 0);
@@ -473,6 +481,7 @@ export const WorkspaceProductBatchSelectorModal = ({
         hsn: bHsn,
         gst: bGst,
         ratePct: bRatePct,
+        rateCPercentage: bRateCPercentage,
         expiry: bExp,
         stock: bStock,
         mrp: bMrp,
