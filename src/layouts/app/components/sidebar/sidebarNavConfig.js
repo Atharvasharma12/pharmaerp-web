@@ -34,6 +34,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Contact,
+  Clock,
 } from "lucide-react";
 
 import { ROUTES } from "@/constants";
@@ -136,6 +137,25 @@ export const SIDEBAR_NAV_GROUPS = [
             path: ROUTES.SUPPLIERS,
             icon: Truck,
             permission: "supplier:view",
+          },
+        ],
+      },
+      {
+        id: "store-operations",
+        label: "Store Operations",
+        icon: Store,
+        children: [
+          {
+            id: "shifts",
+            label: "Shifts",
+            path: "/operations/shifts",
+            icon: Clock,
+          },
+          {
+            id: "day-closings",
+            label: "Day Closings",
+            path: "/operations/day-closings",
+            icon: CalendarDays,
           },
         ],
       },

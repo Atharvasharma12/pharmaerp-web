@@ -35,7 +35,10 @@ import { cn } from "@/lib/utils";
 import customerService from "@/features/parties/customers/services/customerService";
 import invoiceService from "@/features/sales/services/invoiceService";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
-
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
+import useBranch from "@/features/branch/hooks/useBranch";
 /* ─────────────── CONSTANTS ─────────────── */
 const BILLING_MODES = [
   { id: "B2C", label: "B2C · Retail", icon: User, description: "Walk-in customers" },
@@ -93,6 +96,10 @@ const useDebounce = (value, delay) => {
    MAIN COMPONENT
    ───────────────────────────────────────────────────────────────── */
 export const POSTerminalPage = () => {
+  const { currentBranch } = useBranch();
+  const { activeShift, status: shiftStatus } = useActiveShift(currentBranch?._id);
+  const navigate = useNavigate();
+
   /* ── Clock ── */
   const [currentTime, setCurrentTime] = useState(formatTime());
   useEffect(() => {
@@ -141,6 +148,31 @@ export const POSTerminalPage = () => {
   /* ── UI State ── */
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
+
+  if (shiftStatus === "LOADING" || shiftStatus === "IDLE") {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
+        <Loader2 className="size-10 animate-spin text-primary" />
+        <p className="text-text-muted font-medium">Checking active shift...</p>
+      </div>
+    );
+  }
+
+  if (!activeShift) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
+        <Store className="size-16 text-text-muted" />
+        <h2 className="text-2xl font-bold text-text">No open shift is present</h2>
+        <p className="text-text-muted">You must open a shift before you can access POS terminal.</p>
+        <button 
+          onClick={() => navigate("/operations/shifts")}
+          className="px-6 py-2 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition"
+        >
+          Go to Shifts
+        </button>
+      </div>
+    );
+  }
 
   /* ────────────────── B2B SEARCH ────────────────── */
   useEffect(() => {
@@ -1182,3 +1214,4 @@ export const POSTerminalPage = () => {
 };
 
 export default POSTerminalPage;
+

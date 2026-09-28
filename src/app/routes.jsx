@@ -79,6 +79,7 @@ import salesRoutes from "@/features/sales/routes/salesRoutes";
 import billingRoutes from "@/features/billing/routes/billingRoutes";
 import purchasesRoutes from "@/features/purchases/routes/purchasesRoutes";
 import helpCenterRoutes from "@/features/help-center/routes/helpCenterRoutes";
+import operationsRoutes from "@/features/operations/routes/operationsRoutes";
 
 const NotFoundPage = () => {
   return (
@@ -447,6 +448,9 @@ export const router = createBrowserRouter([
                   ...guardRouteList(salesRoutes, "pos"),
                   ...guardRouteList(billingRoutes, "bill"),
                   ...guardRouteList(purchasesRoutes, "purchase"),
+
+                  // Shifts & Closings
+                  ...operationsRoutes,
                 ],
               },
             ],

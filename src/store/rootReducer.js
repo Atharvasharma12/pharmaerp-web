@@ -50,6 +50,10 @@ import bankMasterReducer from "@/features/bank-master/store/bankMasterSlice";
 import marketplaceStoreReducer from "@/features/marketplace/stores/store/marketplaceStoreSlice";
 import marketplaceProductReducer from "@/features/marketplace/products/store/marketplaceProductSlice";
 
+// Operations
+import shiftReducer from "@/features/operations/shifts/store/shiftSlice";
+import dayClosingReducer from "@/features/operations/day-closings/store/dayClosingSlice";
+
 // ---------------------
 // App Reducer
 // ---------------------
@@ -112,6 +116,10 @@ const appReducer = combineReducers({
   // Marketplace
   marketplaceStore: marketplaceStoreReducer,
   marketplaceProduct: marketplaceProductReducer,
+
+  // Operations
+  shift: shiftReducer,
+  dayClosing: dayClosingReducer,
 });
 
 /**
@@ -126,6 +134,17 @@ const appReducer = combineReducers({
 const rootReducer = (state, action) => {
   if (action.type === "auth/logout/fulfilled") {
     state = undefined;
+  }
+
+  if (action.type === "APP/RESET_STATE") {
+    // Keep core states: auth, user, workspace, company, branch
+    state = {
+      auth: state?.auth,
+      user: state?.user,
+      workspace: state?.workspace,
+      company: state?.company,
+      branch: state?.branch,
+    };
   }
 
   return appReducer(state, action);

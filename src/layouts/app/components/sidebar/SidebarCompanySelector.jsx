@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronsUpDown,
@@ -107,6 +108,7 @@ const SidebarCompanySelector = ({
   showClose = false,
 }) => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
 
@@ -250,6 +252,7 @@ const SidebarCompanySelector = ({
     if (!company?._id) return;
 
     if (company._id !== currentCompany?._id) {
+      dispatch({ type: "APP/RESET_STATE" });
       setCurrentCompany(company);
       clearCurrentBranch();
       setIsSwitchingBranch(true);
@@ -284,6 +287,7 @@ const SidebarCompanySelector = ({
 
     if (branch._id === currentBranch?._id) return;
 
+    dispatch({ type: "APP/RESET_STATE" });
     setCurrentBranch(branch);
 
     try {

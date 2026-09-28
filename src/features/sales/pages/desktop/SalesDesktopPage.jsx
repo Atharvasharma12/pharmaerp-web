@@ -50,8 +50,13 @@ import {
 } from "../../constants/salesData";
 import { SalesCheckoutModal } from "../../components/SalesCheckoutModal";
 import { SalesReceiptModal } from "../../components/SalesReceiptModal";
+import { SalesCustomerSidebar } from "../../components/SalesCustomerSidebar";
+import { SalesCustomerDoctorInfo } from "../../components/SalesCustomerDoctorInfo";
 import customerService from "@/features/parties/customers/services/customerService";
 import invoiceService from "@/features/sales/services/invoiceService";
+import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 /** Safe number parser */
 const safeNum = (v) => {
@@ -200,10 +205,7 @@ export const SalesDesktopPage = () => {
   const [quickCreateCustomerName, setQuickCreateCustomerName] = useState("");
   const [quickCreateCustomerType, setQuickCreateCustomerType] = useState("retail");
 
-  const activeCustomer =
-    billingMode === "B2C"
-      ? selectedB2cCustomer
-      : selectedB2bParty;
+  
 
   const [cart, setCart] = useState([]);
 
@@ -211,10 +213,28 @@ export const SalesDesktopPage = () => {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+  const [customerName, setCustomerName] = useState("");
+  const [doctorName, setDoctorName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+
+  const activeShift = useSelector((state) => state.shift.activeShift);
+  const navigate = useNavigate();
+
+  const [saleDate, setSaleDate] = useState(
+    activeShift ? new Date(activeShift.createdAt || activeShift.openedAt || new Date()).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
+  );
+
+  useEffect(() => {
+    if (activeShift) {
+      setSaleDate(new Date(activeShift.createdAt || activeShift.openedAt || new Date()).toISOString().split("T")[0]);
+    }
+  }, [activeShift]);
 
   // Workspace Product Batch Selector Modal state
   const [selectedProductForBatches, setSelectedProductForBatches] = useState(null);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+
+  const activeCustomer = billingMode === "B2C" ? selectedB2cCustomer : selectedB2bParty;
 
   const searchBarRef = useRef(null);
   const customerSearchBarRef = useRef(null);
@@ -246,6 +266,17 @@ export const SalesDesktopPage = () => {
     window.addEventListener("keydown", handleGlobalTyping);
     return () => window.removeEventListener("keydown", handleGlobalTyping);
   }, [isBatchModalOpen, isCheckoutOpen, isReceiptOpen, billingMode, selectedB2cCustomer, selectedB2bParty]);
+
+  if (!activeShift) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
+        <Store className="size-16 text-text-muted" />
+        <h2 className="text-2xl font-bold text-text">No open shift is present</h2>
+        <p className="text-text-muted">You must open a shift before you can access POS billing.</p>
+        <UIButton variant="primary" onClick={() => navigate("/operations/shifts")}>Go to Shifts</UIButton>
+      </div>
+    );
+  }
 
   const handleProceedToCheckout = () => {
     if (billingMode === "B2C" && (!selectedB2cCustomer || !selectedB2cCustomer.name || selectedB2cCustomer.name.trim() === "")) {
@@ -429,6 +460,19 @@ export const SalesDesktopPage = () => {
     });
   };
 
+  const handleAddFromHistory = async (productId) => {
+    try {
+      if (!productId) return;
+      const res = await workspaceProductService.getWorkspaceProductById(productId);
+      const product = res.data?.data || res.data;
+      if (product) {
+        handleSelectWorkspaceProduct(product);
+      }
+    } catch (err) {
+      console.error("Failed to fetch past product details:", err);
+    }
+  };
+
   const handleSelectWorkspaceProduct = (prod, details) => {
     const p = details || prod;
     setSelectedProductForBatches(p);
@@ -603,11 +647,13 @@ export const SalesDesktopPage = () => {
         invoiceNo: saleData.invoiceNo,
         billingMode,
         branchId: activeBranchId,
-        subtotal: saleData.subtotal,
-        discount: saleData.extraDiscount || saleData.discount,
-        tax: saleData.tax,
+        subtotal: saleData.subtotal || saleData.subTotal,
+        discount: saleData.extraDiscount || saleData.discount || saleData.totalDiscount,
+        tax: saleData.tax || saleData.taxAmount,
         grandTotal: saleData.grandTotal,
+        roundOff: saleData.roundOff,
         paymentMethod: saleData.paymentMethod,
+        payments: saleData.payments,
         items: saleData.items,
         date: new Date().toISOString(),
       });
@@ -627,7 +673,7 @@ export const SalesDesktopPage = () => {
   };
 
   return (
-    <section className="min-h-[100dvh] w-full bg-bg px-4 sm:px-6 lg:px-8 py-6 font-sans space-y-5">
+    <section className="h-[100dvh] w-full bg-bg flex flex-col font-sans overflow-hidden">
       {/* Toast Notification */}
       {toastMessage && (
         <motion.div
@@ -642,7 +688,7 @@ export const SalesDesktopPage = () => {
       )}
 
       {/* Top Header & B2C / B2B Selector */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface p-4 rounded-2xl border border-border shadow-2xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface p-4 border-b border-border shadow-2xs z-20 shrink-0">
         <div>
           <div className="flex items-center gap-2">
             <span className="size-2.5 rounded-full bg-primary animate-pulse" />
@@ -699,42 +745,27 @@ export const SalesDesktopPage = () => {
         </div>
       </div>
 
-      {/* Customer / Party Selection Strip */}
-      <div className="bg-surface p-4 rounded-2xl border border-border shadow-2xs space-y-3">
+      {/* Full-width Customer Search Area */}
+      <div className="p-4 border-b border-border bg-surface z-10 shrink-0 w-full">
         {billingMode === "B2C" ? (
           /* B2C Retail Customer Search Bar */
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-1 max-w-xl">
-              <div className="w-full">
-                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block mb-1">
-                  Search & Select Retail Customer / Patient (B2C)
-                </span>
-                <B2cCustomerSearchBar
-                  ref={customerSearchBarRef}
-                  selectedCustomer={selectedB2cCustomer}
-                  onSelectCustomer={(cust) => {
-                    setSelectedB2cCustomer(cust);
-                    setTimeout(() => searchBarRef.current?.focus(), 80);
-                  }}
-                  showAddNewAction={true}
-                  onAddNewCustomer={(name) => {
-                    setQuickCreateCustomerName(name);
-                    setQuickCreateCustomerType("other");
-                    setIsQuickCreateCustomerModalOpen(true);
-                  }}
-                  placeholder="Type customer name, phone number, or doctor..."
-                  size="sm"
-                />
-              </div>
-            </div>
-
-            <div className="text-xs text-text-muted shrink-0 text-right bg-surface-alt/70 px-3 py-2 rounded-xl border border-border/60">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                Invoice Mode
-              </span>
-              <span className="font-bold text-text">Retail Cash Memo / Receipt</span>
-            </div>
-          </div>
+          <SalesCustomerDoctorInfo
+            selectedCustomer={selectedB2cCustomer}
+            onSelectCustomer={setSelectedB2cCustomer}
+            customerName={customerName}
+            onChangeCustomerName={setCustomerName}
+            customerPhone={customerPhone}
+            onChangeCustomerPhone={setCustomerPhone}
+            doctorName={doctorName}
+            onChangeDoctorName={setDoctorName}
+            saleDate={saleDate}
+            onChangeSaleDate={setSaleDate}
+            onAddNewCustomer={(name) => {
+              setQuickCreateCustomerName(name);
+              setQuickCreateCustomerType("other");
+              setIsQuickCreateCustomerModalOpen(true);
+            }}
+          />
         ) : (
           /* B2B Commercial Party Bar (Wholesaler vs Retailer) */
           <div className="space-y-3">
@@ -855,10 +886,13 @@ export const SalesDesktopPage = () => {
             )}
           </div>
         )}
+          
       </div>
+      <div className="flex-1 flex overflow-hidden">
 
-      {/* Full Width POS Billing Terminal Cart */}
-      <div className="w-full">
+        {/* Main POS Area (Right, flex-1) */}
+        <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto bg-surface-alt/50">
+          <div className="w-full">
         <UICard
           variant="default"
           className="p-6 rounded-2xl bg-surface border-border shadow-xs flex flex-col justify-between min-h-[620px] space-y-5"
@@ -883,10 +917,10 @@ export const SalesDesktopPage = () => {
                     <span className="font-semibold text-text">Billed To: </span>
                     {activeCustomer ? (
                       <>
-                        <span className="font-extrabold text-primary">{activeCustomer.name}</span>
-                        {activeCustomer.phone && (
-                          <span className="font-mono text-text-muted"> ({activeCustomer.phone})</span>
-                        )}
+                        <span className="font-extrabold text-primary">{billingMode === "B2C" ? (customerName || activeCustomer?.name || "Walk-in") : activeCustomer.name}</span>
+                          {(billingMode === "B2C" ? (customerPhone || activeCustomer?.phone) : activeCustomer.phone) && (
+                            <span className="font-mono text-text-muted"> ({billingMode === "B2C" ? (customerPhone || activeCustomer?.phone) : activeCustomer.phone})</span>
+                          )}
                       </>
                     ) : (
                       <span
@@ -1128,13 +1162,27 @@ export const SalesDesktopPage = () => {
             </PermissionGate>
           </div>
         </UICard>
-      </div>
-
-      {/* Checkout Modal */}
+          </div>
+        </div>
+      
+          {/* Right Sidebar - Customer History */}
+          <div className="w-80 lg:w-96 border-l border-border bg-surface flex flex-col shadow-[inset_1px_0_0_0_rgba(0,0,0,0.05)] z-10 shrink-0">
+            <div className="flex-1 overflow-y-auto bg-surface-alt/50">
+               <SalesCustomerSidebar 
+                  customer={billingMode === 'B2C' ? (activeCustomer || { name: customerName, phone: customerPhone }) : activeCustomer}
+                  onAddProduct={handleAddFromHistory}
+               />
+            </div>
+          </div>
+        </div>
+        {/* Checkout Modal */}
       <SalesCheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
         customer={activeCustomer}
+        customerPhone={customerPhone}
+        doctor={doctorName}
+        saleDate={saleDate}
         billingMode={billingMode}
         cartSummary={{ items: cart, subtotal: cartSubtotal }}
         onCompleteSale={handleCompleteSale}
@@ -1175,3 +1223,4 @@ export const SalesDesktopPage = () => {
 };
 
 export default SalesDesktopPage;
+
