@@ -20,6 +20,7 @@ import useCompany from "@/features/company/hooks/useCompany";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useUser from "@/features/user/hooks/useUser";
 import { usePermission } from "@/hooks";
+import { ContextSwitchLoader } from "@/components/ui";
 
 const SidebarBranchSelector = ({ collapsed = false }) => {
   const triggerRef = useRef(null);
@@ -40,6 +41,7 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
 
 
   const [isOpen, setIsOpen] = useState(false);
+  const [switchState, setSwitchState] = useState({ isSwitching: false, fromName: "", toName: "" });
   const [dropdownCoords, setDropdownCoords] = useState({
     top: 0,
     left: 0,
@@ -121,19 +123,27 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
 
     if (branch._id === currentBranch?._id) return;
 
+    setSwitchState({ isSwitching: true, fromName: currentBranch?.name, toName: branch.name });
     dispatch({ type: "APP/RESET_STATE" });
     setCurrentBranch(branch);
 
     try {
       if (currentWorkspace?._id && currentCompany?._id) {
-        await updateActiveContext({
-          workspaceId: currentWorkspace._id,
-          companyId: currentCompany._id,
-          branchId: branch._id,
-        });
+        await Promise.all([
+          updateActiveContext({
+            workspaceId: currentWorkspace._id,
+            companyId: currentCompany._id,
+            branchId: branch._id,
+          }),
+          new Promise(resolve => setTimeout(resolve, 800)) // Ensure loader is visible
+        ]);
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 800));
       }
     } catch (error) {
       console.error("Failed to update active branch context:", error);
+    } finally {
+      setSwitchState({ isSwitching: false, fromName: "", toName: "" });
     }
   };
 
@@ -164,9 +174,20 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
   // ─────────────────────────────────────────────────────────────────────────────
   // 1. COLLAPSED MINI-RAIL VIEW
   // ─────────────────────────────────────────────────────────────────────────────
+  const loader = (
+    <ContextSwitchLoader
+      isOpen={switchState.isSwitching}
+      type="branch"
+      fromName={switchState.fromName}
+      toName={switchState.toName}
+    />
+  );
+
   if (collapsed) {
     return (
-      <div className="relative flex justify-center py-1">
+      <>
+        {loader}
+        <div className="relative flex justify-center py-1">
         <button
           ref={triggerRef}
           type="button"
@@ -292,6 +313,7 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
           document.body
         )}
       </div>
+      </>
     );
   }
 
@@ -299,7 +321,9 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
   // 2. EXPANDED VIEW (Desktop & Mobile Drawer)
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="relative px-2.5 pt-1.5 pb-2">
+    <>
+      {loader}
+      <div className="relative px-2.5 pt-1.5 pb-2">
       {/* Sleek Sub-Header Pill */}
       <button
         ref={triggerRef}
@@ -444,6 +468,7 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
         document.body
       )}
     </div>
+    </>
   );
 };
 

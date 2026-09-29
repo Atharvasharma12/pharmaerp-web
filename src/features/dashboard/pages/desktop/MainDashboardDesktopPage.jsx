@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, FileText, Download } from "lucide-react";
+import { CheckCircle2, RotateCw } from "lucide-react";
 import {
   DashboardHeroBanner,
   DashboardKpiGrid,
@@ -15,10 +15,12 @@ import {
   GenerateReportModal,
   QuickAddMedicineModal,
 } from "../../components";
+import { useDashboardData } from "../../hooks";
 import { ROUTES } from "@/constants";
 
 export const MainDashboardDesktopPage = () => {
   const navigate = useNavigate();
+  const { data, isLoading, error, refresh } = useDashboardData();
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isAddMedicineModalOpen, setIsAddMedicineModalOpen] = useState(false);
@@ -31,14 +33,15 @@ export const MainDashboardDesktopPage = () => {
     }, 4000);
   };
 
-  const handleGenerateReportSuccess = ({ reportType, timeframe, format }) => {
+  const handleGenerateReportSuccess = ({ timeframe, format }) => {
     showNotification(
       `📊 Report exported successfully (${format.toUpperCase()} • ${timeframe})`
     );
   };
 
-  const handleAddMedicineSuccess = (data) => {
-    showNotification(`✅ "${data.name}" added to inventory successfully.`);
+  const handleAddMedicineSuccess = (formData) => {
+    showNotification(`✅ "${formData.name}" added to inventory.`);
+    refresh();
   };
 
   return (
@@ -59,15 +62,23 @@ export const MainDashboardDesktopPage = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* ── 1. Top Hero Greeting Banner ─────────────────────────────── */}
         <DashboardHeroBanner
+          kpis={data?.kpis}
+          isLoading={isLoading}
+          onRefresh={refresh}
           onGenerateReport={() => setIsReportModalOpen(true)}
           onAddMedicine={() => setIsAddMedicineModalOpen(true)}
         />
 
-        {/* ── 2. Top 6 KPI Metric Stat Cards Strip ───────────────────── */}
+        {/* ── 2. Top 5 KPI Metric Stat Cards Strip ───────────────────── */}
         <DashboardKpiGrid
+          kpis={data?.kpis}
           onCardClick={(card) => {
-            if (card.id === "total-revenue" || card.id === "todays-sales") {
-              // Nav or feedback
+            if (card.id === "total-sales" || card.id === "total-transactions" || card.id === "total-revenue") {
+              navigate(ROUTES.SALES || "/sales");
+            } else if (card.id === "total-purchases") {
+              navigate(ROUTES.PURCHASES || "/purchases");
+            } else if (card.id === "medicines-stock" || card.id === "stock-alerts") {
+              navigate(ROUTES.WORKSPACE_PRODUCTS || "/inventory/products");
             }
           }}
         />
@@ -76,16 +87,22 @@ export const MainDashboardDesktopPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           {/* Monthly Revenue Performance (8 Cols) */}
           <div className="lg:col-span-8 flex flex-col">
-            <MonthlyRevenueChartCard className="h-full" />
+            <MonthlyRevenueChartCard
+              monthlyFinancials={data?.monthlyFinancials}
+              className="h-full"
+            />
           </div>
 
           {/* Inventory Distribution Donut (4 Cols) */}
           <div className="lg:col-span-4 flex flex-col">
-            <InventoryDistributionCard className="h-full" />
+            <InventoryDistributionCard
+              inventoryDistribution={data?.inventoryDistribution}
+              className="h-full"
+            />
           </div>
         </div>
 
-        {/* ── 4. Main Operational Grid: Inventory Table & AI Insights (12-Col) ── */}
+        {/* ── 4. Main Operational Grid: Inventory Table & Live Alerts (12-Col) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           {/* Inventory Overview Table (8 Cols) */}
           <div className="lg:col-span-8 flex flex-col">
@@ -96,12 +113,11 @@ export const MainDashboardDesktopPage = () => {
             />
           </div>
 
-          {/* Smart Pharmacy AI Insights Widget (4 Cols) */}
+          {/* Live Operational Alerts Card (4 Cols) */}
           <div className="lg:col-span-4 flex flex-col">
             <SmartPharmacyInsightsCard
-              onAnalyticsClick={() =>
-                showNotification("🔍 Loading predictive analytics and demand forecasting...")
-              }
+              liveAlerts={data?.liveAlerts}
+              onAnalyticsClick={() => navigate(ROUTES.SALES || "/sales")}
               className="h-full"
             />
           </div>
@@ -109,13 +125,12 @@ export const MainDashboardDesktopPage = () => {
 
         {/* ── 5. Bottom Row: 3 Operational Action Cards ───────────────── */}
         <DashboardActionCardsGrid
-          onReorderClick={() => setIsAddMedicineModalOpen(true)}
-          onExpiryDetailsClick={() =>
-            showNotification("🗓 Opening batch expiry inspection schedule...")
-          }
-          onReviewOrdersClick={() =>
-            showNotification("📦 Navigating to supplier purchase order review...")
-          }
+          lowStockItems={data?.lowStockItems}
+          expiringBatches={data?.expiringBatches}
+          recentPurchaseBills={data?.recentPurchaseBills}
+          onReorderClick={() => navigate(ROUTES.WORKSPACE_PRODUCTS || "/inventory/products")}
+          onExpiryDetailsClick={() => navigate(ROUTES.WORKSPACE_PRODUCTS || "/inventory/products")}
+          onReviewOrdersClick={() => navigate("/catalog/purchase-bills")}
         />
       </div>
 

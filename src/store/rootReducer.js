@@ -23,7 +23,6 @@ import reportsReducer from "@/features/finance/reports/store/reportsSlice";
 
 import bankAccountReducer from "@/features/finance/treasury/bank-management/bank-accounts/store/bankAccountSlice";
 import bankTransactionReducer from "@/features/finance/treasury/bank-management/bank-transactions/store/bankTransactionSlice";
-import bankSlipReducer from "@/features/finance/treasury/bank-management/bank-slips/store/bankSlipSlice";
 
 import cashAccountReducer from "@/features/finance/treasury/cash-management/cash-accounts/store/cashAccountSlice";
 import cashTransactionReducer from "@/features/finance/treasury/cash-management/cash-transactions/store/cashTransactionSlice";
@@ -88,7 +87,6 @@ const appReducer = combineReducers({
   // Treasury
   bankAccount: bankAccountReducer,
   bankTransaction: bankTransactionReducer,
-  bankSlip: bankSlipReducer,
 
   cashAccount: cashAccountReducer,
   cashTransaction: cashTransactionReducer,

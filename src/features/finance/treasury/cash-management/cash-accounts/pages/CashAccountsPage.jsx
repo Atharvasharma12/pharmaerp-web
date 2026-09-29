@@ -5,6 +5,7 @@ import { ROUTES, API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
 
 import useCashAccount from "../hooks/useCashAccount";
+import useBranch from "@/features/branch/hooks/useBranch";
 import CashAccountsDesktopPage from "./desktop/CashAccountsDesktopPage";
 import CashAccountsMobilePage from "./mobile/CashAccountsMobilePage";
 
@@ -37,6 +38,7 @@ const CashAccountsPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const hasFetchedRef = useRef(false);
+  const { currentBranch } = useBranch();
 
   const {
     cashAccounts = [],
@@ -65,22 +67,22 @@ const CashAccountsPage = () => {
 
   const fetchAccountsData = useCallback(async () => {
     try {
-      await getCashAccounts({ all: true });
+      // Branch-scoped: only fetch cash accounts for the current branch
+      await getCashAccounts({ branchId: currentBranch?._id, all: true });
     } catch (err) {
       console.error("Failed to fetch cash accounts:", err);
     }
-  }, [getCashAccounts]);
+  }, [getCashAccounts, currentBranch?._id]);
 
   useEffect(() => {
     clearError();
-    if (!hasFetchedRef.current) {
-      hasFetchedRef.current = true;
-      fetchAccountsData();
-    }
+    // Re-fetch when branch changes
+    hasFetchedRef.current = false;
+    fetchAccountsData();
     return () => {
       clearError();
     };
-  }, [clearError, fetchAccountsData]);
+  }, [clearError, fetchAccountsData, currentBranch?._id]);
 
   useEffect(() => {
     if (!message) return undefined;
@@ -198,7 +200,9 @@ const CashAccountsPage = () => {
   const handleEditAccount = useCallback(
     (account) => {
       if (!account?._id) return;
-      navigate(ROUTES.EDIT_CASH_ACCOUNT(account._id));
+      navigate(ROUTES.EDIT_CASH_ACCOUNT(account._id), {
+        state: { isSystemDefault: !!account.isSystemDefault },
+      });
     },
     [navigate]
   );
@@ -214,6 +218,15 @@ const CashAccountsPage = () => {
   const handleDeleteAccount = useCallback(
     async (account) => {
       if (!account?._id) return;
+
+      // Guard: system default cash account cannot be deleted
+      if (account.isSystemDefault) {
+        alert(
+          `"${account.displayName}" is the branch's system default cash account and cannot be deleted. It is permanently linked to branch operations.`
+        );
+        return;
+      }
+
       const confirmDelete = window.confirm(
         `Are you sure you want to delete the cash account "${account.displayName}"?`
       );
@@ -232,6 +245,13 @@ const CashAccountsPage = () => {
   const handleSetPrimary = useCallback(
     async (account) => {
       if (!account?._id) return;
+
+      // Guard: system default is permanently primary
+      if (account.isSystemDefault) {
+        alert(`"${account.displayName}" is already the permanent system default cash account for this branch.`);
+        return;
+      }
+
       try {
         await setPrimaryCashAccount(account._id);
         handleRefresh();

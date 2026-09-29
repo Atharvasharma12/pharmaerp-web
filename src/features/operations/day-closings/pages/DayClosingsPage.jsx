@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   listDayClosings,
@@ -10,6 +10,7 @@ import {
   UIButton,
   UIAlert,
   UIPageHeader,
+  UIInput,
 } from "@/components/ui";
 import { CalendarDays, Eye, Lock } from "lucide-react";
 import {
@@ -17,19 +18,31 @@ import {
   CloseDayClosingDialog,
   ViewDayClosingDialog,
 } from "../components";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 const DayClosingsPage = () => {
   const dispatch = useDispatch();
   const { dayClosings, listDayClosingsStatus, error, message } =
     useSelector((state) => state.dayClosing);
+  const { currentBranch } = useBranch();
 
-  const [isCreateOpen, setIsCreateOpen] = React.useState(false);
-  const [selectedDayClosing, setSelectedDayClosing] = React.useState(null);
-  const [dialogType, setDialogType] = React.useState(null); // 'view' or 'close'
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedDayClosing, setSelectedDayClosing] = useState(null);
+  const [dialogType, setDialogType] = useState(null); // 'view' or 'close'
+
+  // Filters
+  const [dateFilter, setDateFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   useEffect(() => {
-    dispatch(listDayClosings());
-  }, [dispatch]);
+    const params = {};
+    if (currentBranch?._id) params.branchId = currentBranch._id;
+    if (dateFilter) params.date = dateFilter;
+    if (statusFilter !== "all") params.status = statusFilter;
+    params.sort = sortOrder;
+    dispatch(listDayClosings(params));
+  }, [dispatch, dateFilter, statusFilter, sortOrder, currentBranch?._id]);
 
   const handleOpenDialog = (dayClosing, type) => {
     setSelectedDayClosing(dayClosing);
@@ -77,6 +90,36 @@ const DayClosingsPage = () => {
         />
       )}
 
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center gap-3 bg-surface p-3 rounded-xl shadow-sm border border-border">
+        <span className="text-sm font-medium text-text-muted px-1">Filters:</span>
+        <UIInput
+          type="date"
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+          containerClassName="w-40"
+          className="h-9 text-sm"
+        />
+        <select
+          className="h-9 w-32 bg-bg border border-border rounded-lg px-3 py-1 text-sm focus:ring-1 focus:ring-primary focus:border-primary transition-all"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="all">All Status</option>
+          <option value="draft">Draft</option>
+          <option value="closed">Closed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <select
+          className="h-9 w-40 bg-bg border border-border rounded-lg px-3 py-1 text-sm focus:ring-1 focus:ring-primary focus:border-primary transition-all"
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+        >
+          <option value="desc">Newest First</option>
+          <option value="asc">Oldest First</option>
+        </select>
+      </div>
+
       <div className="bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-max">
@@ -85,6 +128,7 @@ const DayClosingsPage = () => {
                 <th className="p-4 font-semibold whitespace-nowrap">Closing No</th>
                 <th className="p-4 font-semibold whitespace-nowrap">Date</th>
                 <th className="p-4 font-semibold whitespace-nowrap">Status</th>
+                <th className="p-4 font-semibold whitespace-nowrap text-center">Shifts</th>
                 <th className="p-4 font-semibold whitespace-nowrap">Processed By</th>
                 <th className="p-4 font-semibold whitespace-nowrap text-right">Expected Cash</th>
                 <th className="p-4 font-semibold whitespace-nowrap text-right">Actual Cash</th>
@@ -94,13 +138,13 @@ const DayClosingsPage = () => {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan="7" className="p-8 text-center text-text-muted">
+                  <td colSpan="8" className="p-8 text-center text-text-muted">
                     Loading day closings...
                   </td>
                 </tr>
               ) : dayClosings.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="p-8 text-center text-text-muted">
+                  <td colSpan="8" className="p-8 text-center text-text-muted">
                     No day closings found.
                   </td>
                 </tr>
@@ -125,7 +169,10 @@ const DayClosingsPage = () => {
                         {dc.status.toUpperCase()}
                       </span>
                     </td>
-                    <td className="p-4 text-text-muted">{dc.createdBy?.name || "System"}</td>
+                    <td className="p-4 text-center font-medium">
+                      {dc.shifts?.length || 0}
+                    </td>
+                    <td className="p-4 text-text-muted">{dc.createdBy?.fullName || dc.createdBy?.name || "System"}</td>
                     <td className="p-4 font-medium text-right text-primary">₹{dc.expectedClosingCashAmount || 0}</td>
                     <td className="p-4 font-medium text-right">₹{dc.status === 'closed' ? dc.actualClosingCashAmount : "-"}</td>
                     <td className="p-4 text-right space-x-2">

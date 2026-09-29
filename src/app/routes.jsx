@@ -66,7 +66,6 @@ import chequeRoutes from "@/features/finance/treasury/cheque-management/routes/c
 import bankAccountRoutes from "@/features/finance/treasury/bank-management/bank-accounts/routes/bankAccountRoutes";
 import cashAccountRoutes from "@/features/finance/treasury/cash-management/cash-accounts/routes/cashAccountRoutes";
 import paymentQrRoutes from "@/features/finance/treasury/payment-qr/routes/paymentQrRoutes";
-import bankSlipRoutes from "@/features/finance/treasury/bank-management/bank-slips/routes/bankSlipRoutes";
 import bankTransactionRoutes from "@/features/finance/treasury/bank-management/bank-transactions/routes/bankTransactionRoutes";
 import cashTransactionRoutes from "@/features/finance/treasury/cash-management/cash-transactions/routes/cashTransactionRoutes";
 import cashDenominationRoutes from "@/features/finance/treasury/cash-management/cash-denominations/routes/cashDenominationRoutes";
@@ -357,7 +356,6 @@ export const router = createBrowserRouter([
                   "fund-transfer:view",
                   "cheque:view",
                   "payment-qr:view",
-                  "bank-slip:view",
                   "cash-denomination:view",
                 ]}
               >
@@ -370,7 +368,6 @@ export const router = createBrowserRouter([
           ...guardRouteList(fundTransferRoutes, "fund-transfer"),
           ...guardRouteList(chequeRoutes, "cheque"),
           ...guardRouteList(paymentQrRoutes, "payment-qr"),
-          ...guardRouteList(bankSlipRoutes, "bank-slip"),
           ...bankTransactionRoutes.map((route) => ({
             ...route,
             element: (

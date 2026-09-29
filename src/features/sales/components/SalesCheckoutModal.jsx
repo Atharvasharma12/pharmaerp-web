@@ -15,10 +15,12 @@ import {
   User
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { UIModal, UIButton } from "@/components/ui";
 import { PermissionGate } from "@/components/common/PermissionGate";
 import usePaymentQr from "@/features/finance/treasury/payment-qr/hooks/usePaymentQr";
 import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
+import useBranch from "@/features/branch/hooks/useBranch";
 import { ROUTES } from "@/constants";
 import { CashBreakdownModal } from "./CashBreakdownModal";
 
@@ -57,18 +59,41 @@ export const SalesCheckoutModal = ({
   billingMode = "B2C",
   cartSummary = {},
   onCompleteSale,
+  activeShift: activeShiftProp,
 }) => {
   const navigate = useNavigate();
+  const { currentBranch } = useBranch();
   const { paymentQrs, getPaymentQrs } = usePaymentQr();
   const { cashAccounts, getCashAccounts } = useCashAccount();
+  const reduxActiveShift = useSelector((state) => state.shift?.activeShift);
+  const activeShift = activeShiftProp ?? reduxActiveShift;
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && currentBranch?._id) {
       getPaymentQrs({});
-      getCashAccounts({});
+      getCashAccounts({ branchId: currentBranch._id, all: "true" });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, currentBranch?._id]);
+
+  // Main operating cash counter (Shift drawer / System default)
+  const mainCashAccount = useMemo(() => {
+    if (!cashAccounts || cashAccounts.length === 0) return null;
+    if (activeShift?.cashAccountId) {
+      const match = cashAccounts.find(
+        (ca) => String(ca._id) === String(activeShift.cashAccountId)
+      );
+      if (match) return match;
+    }
+    const sysDefault = cashAccounts.find((ca) => ca.isSystemDefault);
+    if (sysDefault) return sysDefault;
+    const primary = cashAccounts.find((ca) => ca.isPrimary);
+    if (primary) return primary;
+    return cashAccounts[0] || null;
+  }, [cashAccounts, activeShift?.cashAccountId]);
+
+  const availableCash = useMemo(() => {
+    return mainCashAccount?.denominationBalance?.totalBalance ?? 0;
+  }, [mainCashAccount]);
 
   const [discountPercent, setDiscountPercent] = useState(customer?.defaultDiscount || 0);
   const [notes, setNotes] = useState("");
@@ -136,9 +161,16 @@ export const SalesCheckoutModal = ({
   // Initialize payments when modal opens
   useEffect(() => {
     if (isOpen) {
-      setPayments([{ id: Date.now(), paymentType: "Cash", amount: grandTotal }]);
+      setPayments([
+        {
+          id: Date.now(),
+          paymentType: "Cash",
+          amount: grandTotal,
+          cashAccountId: mainCashAccount?._id || "",
+        },
+      ]);
     }
-  }, [isOpen, grandTotal]);
+  }, [isOpen, grandTotal, mainCashAccount?._id]);
 
   const [cashBreakdownTarget, setCashBreakdownTarget] = useState(null); // index of row
 
@@ -147,12 +179,24 @@ export const SalesCheckoutModal = ({
 
   const handleUpdate = (index, field, value) => {
     const next = [...payments];
-    next[index] = { ...next[index], [field]: value };
+    const updated = { ...next[index], [field]: value };
+    if (field === "paymentType" && value === "Cash") {
+      updated.cashAccountId = mainCashAccount?._id || "";
+    }
+    next[index] = updated;
     setPayments(next);
   };
 
   const handleAddRow = () => {
-    setPayments([...payments, { id: Date.now(), paymentType: "Cash", amount: shortfall }]);
+    setPayments([
+      ...payments,
+      {
+        id: Date.now(),
+        paymentType: "Cash",
+        amount: shortfall,
+        cashAccountId: mainCashAccount?._id || "",
+      },
+    ]);
   };
 
   const handleRemoveRow = (index) => {
@@ -201,15 +245,15 @@ export const SalesCheckoutModal = ({
         grandTotal,
         gstSlabs,
         paymentMethod: "Split",
-        cashTendered: grandTotal,
-        changeDue: 0,
+        cashTendered: payments.reduce((sum, p) => p.paymentType === "Cash" ? sum + (p.cashDetails?.receivedTotal || Number(p.amount)) : sum, 0),
+        changeDue: payments.reduce((sum, p) => p.paymentType === "Cash" ? sum + (p.cashDetails?.returnedTotal || 0) : sum, 0),
         denominations: [],
         payments: payments.map(p => ({
           paymentType: p.paymentType,
           amount: Number(p.amount),
           paymentQrId: p.paymentQrId,
           txnRefNo: p.txnRefNo,
-          cashAccountId: p.cashAccountId,
+          cashAccountId: p.paymentType === "Cash" ? (mainCashAccount?._id || p.cashAccountId) : undefined,
           denominations: p.cashDetails?.received 
             ? Object.entries(p.cashDetails.received).map(([val, qty]) => ({ denomination: Number(val), quantity: qty }))
             : [],
@@ -358,19 +402,33 @@ export const SalesCheckoutModal = ({
                 )}
 
                 {row.paymentType === "Cash" && (
-                  <div className="flex gap-3 animate-in fade-in slide-in-from-top-1">
-                    <div className="flex-1 space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Cash Account</label>
-                      <select 
-                        value={row.cashAccountId || ""} 
-                        onChange={(e) => handleUpdate(index, 'cashAccountId', e.target.value)}
-                        className="w-full p-1.5 rounded-md border border-border bg-surface-alt text-xs focus:border-primary focus:outline-none"
-                      >
-                        <option value="">Default Counter Cash</option>
-                        {cashAccounts?.map(ca => (
-                          <option key={ca._id} value={ca._id}>{ca.accountName} {ca.denominationBalance ? `(₹${ca.denominationBalance.totalBalance})` : ''}</option>
-                        ))}
-                      </select>
+                  <div className="p-3 rounded-xl border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="size-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <Wallet className="size-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                            Cash Counter
+                          </span>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                            {activeShift ? "Shift Cash Drawer" : "Main Counter"}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-text truncate">
+                          {mainCashAccount?.accountName || "Main Cash Counter"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                        Cash Available
+                      </span>
+                      <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        ₹{Number(availableCash).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -442,10 +500,7 @@ export const SalesCheckoutModal = ({
       </div>
 
       {(() => {
-        const selectedCashRow = cashBreakdownTarget !== null ? payments[cashBreakdownTarget] : null;
-        const selectedCashAccount = selectedCashRow 
-          ? (cashAccounts?.find(ca => ca._id === selectedCashRow.cashAccountId) || cashAccounts?.find(ca => ca.isPrimary) || cashAccounts?.[0]) 
-          : null;
+        const selectedCashAccount = mainCashAccount;
         
         return (
           <CashBreakdownModal
@@ -457,7 +512,7 @@ export const SalesCheckoutModal = ({
             initialReturned={cashBreakdownTarget !== null ? payments[cashBreakdownTarget]?.cashDetails?.returned : {}}
             availableDenominations={selectedCashAccount?.denominationBalance?.denominations || []}
             availableBalance={selectedCashAccount?.denominationBalance?.totalBalance || 0}
-            cashAccountName={selectedCashAccount?.accountName || 'Cash Account'}
+            cashAccountName={selectedCashAccount?.accountName || "Main Cash Counter"}
           />
         );
       })()}

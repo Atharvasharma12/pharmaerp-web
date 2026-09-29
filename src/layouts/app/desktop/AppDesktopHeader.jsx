@@ -120,7 +120,6 @@ const getPageTitle = (pathname) => {
   if (pathname.startsWith("/finance/treasury/fund-transfers")) return "Fund Transfers";
   if (pathname.startsWith("/finance/treasury/cheque-management")) return "Cheque Management";
   if (pathname.startsWith("/finance/treasury/payment-qr")) return "UPI & Payment QR";
-  if (pathname.startsWith("/finance/treasury/bank-slips")) return "Bank Slips";
   if (pathname.startsWith("/finance/treasury/cash-denominations")) return "Cash Denominations";
   if (pathname.startsWith("/finance/journal-vouchers")) return "Journal Vouchers";
   if (pathname.startsWith("/finance/ledger")) return "General Ledger";
@@ -516,13 +515,6 @@ const getBreadcrumbs = (pathname, isSetupComplete = false) => {
       root,
       { label: "Treasury", to: ROUTES.BANK_ACCOUNTS },
       { label: "UPI / QR", to: null },
-    ];
-  }
-  if (pathname.startsWith("/finance/treasury/bank-slips")) {
-    return [
-      root,
-      { label: "Treasury", to: ROUTES.BANK_ACCOUNTS },
-      { label: "Bank Slips", to: null },
     ];
   }
   if (pathname.startsWith("/finance/treasury/cash-denominations")) {

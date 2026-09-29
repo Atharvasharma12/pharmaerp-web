@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -62,58 +63,58 @@ const useCashAccount = () => {
     selectSetPrimaryCashAccountStatus,
   );
 
-  const submitCreateCashAccount = (payload) => {
+  const submitCreateCashAccount = useCallback((payload) => {
     return dispatch(createCashAccount(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchCashAccounts = (params = {}) => {
+  const fetchCashAccounts = useCallback((params = {}) => {
     return dispatch(getCashAccounts(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchCashAccountById = (cashAccountId) => {
+  const fetchCashAccountById = useCallback((cashAccountId) => {
     return dispatch(getCashAccountById(cashAccountId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitUpdateCashAccount = (cashAccountId, payload) => {
+  const submitUpdateCashAccount = useCallback((cashAccountId, payload) => {
     return dispatch(
       updateCashAccount({
         cashAccountId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitDeleteCashAccount = (cashAccountId) => {
+  const submitDeleteCashAccount = useCallback((cashAccountId) => {
     return dispatch(deleteCashAccount(cashAccountId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitSetPrimaryCashAccount = (cashAccountId) => {
+  const submitSetPrimaryCashAccount = useCallback((cashAccountId) => {
     return dispatch(setPrimaryCashAccount(cashAccountId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearCashAccountError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearCashAccountMessage());
-  };
+  }, [dispatch]);
 
-  const saveCurrentCashAccount = (payload) => {
+  const saveCurrentCashAccount = useCallback((payload) => {
     dispatch(setCurrentCashAccount(payload));
-  };
+  }, [dispatch]);
 
-  const removeCurrentCashAccount = () => {
+  const removeCurrentCashAccount = useCallback(() => {
     dispatch(clearCurrentCashAccount());
-  };
+  }, [dispatch]);
 
-  const removeCashAccounts = () => {
+  const removeCashAccounts = useCallback(() => {
     dispatch(clearCashAccounts());
-  };
+  }, [dispatch]);
 
-  const removeManagedCashAccount = () => {
+  const removeManagedCashAccount = useCallback(() => {
     dispatch(clearManagedCashAccount());
-  };
+  }, [dispatch]);
 
   return {
     cashAccounts,

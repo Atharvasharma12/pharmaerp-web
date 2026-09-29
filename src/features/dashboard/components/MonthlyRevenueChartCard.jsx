@@ -1,44 +1,58 @@
 // src/features/dashboard/components/MonthlyRevenueChartCard.jsx
 
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { MoreHorizontal, ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
+import { MoreHorizontal } from "lucide-react";
 import { UICard, UIIconButton } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import {
-  MONTHLY_REVENUE_METRICS,
-  REVENUE_CHART_TIMEFRAMES,
-  REVENUE_CHART_POINTS,
-} from "../constants/dashboardData";
 
-export const MonthlyRevenueChartCard = ({ className }) => {
-  const [selectedTimeframe, setSelectedTimeframe] = useState("6m");
+export const MonthlyRevenueChartCard = ({ monthlyFinancials, className }) => {
   const [hoveredIndex, setHoveredIndex] = useState(null);
 
-  const points = REVENUE_CHART_POINTS;
+  const defaultPoints = [
+    { month: "May", revenue: 0, expenses: 0, profit: 0, invoices: 0 },
+    { month: "Jun", revenue: 0, expenses: 0, profit: 0, invoices: 0 },
+    { month: "Jul", revenue: 0, expenses: 0, profit: 0, invoices: 0 },
+    { month: "Aug", revenue: 0, expenses: 0, profit: 0, invoices: 0 },
+    { month: "Sep", revenue: 0, expenses: 0, profit: 0, invoices: 0 },
+    { month: "Oct", revenue: 0, expenses: 0, profit: 0, invoices: 0 },
+  ];
+
+  const points = monthlyFinancials?.chartPoints?.length > 0
+    ? monthlyFinancials.chartPoints
+    : defaultPoints;
+
   const width = 680;
   const height = 240;
   const paddingX = 40;
   const paddingY = 24;
   const chartW = width - paddingX * 2;
   const chartH = height - paddingY * 2;
-  const maxVal = 140;
+
+  // Defensive dynamic max value calculation
+  const highestVal = Math.max(
+    ...points.map((p) => Math.max(p.revenue || 0, p.expenses || 0)),
+    100
+  );
+  // Round up to nice number
+  const maxVal = Math.ceil(highestVal / 50) * 50;
 
   // Generate SVG coordinates
   const getCoordinates = (key) => {
     return points.map((p, i) => {
-      const x = paddingX + (i / (points.length - 1)) * chartW;
-      const y = paddingY + chartH - (p[key] / maxVal) * chartH;
-      return { x, y, val: p[key], month: p.month };
+      const x = paddingX + (i / Math.max(1, points.length - 1)) * chartW;
+      const val = p[key] || 0;
+      const y = paddingY + chartH - (val / maxVal) * chartH;
+      return { x, y, val, month: p.month };
     });
   };
 
   const revenueCoords = getCoordinates("revenue");
-  const profitCoords = getCoordinates("profit");
+  const expensesCoords = getCoordinates("expenses");
 
   // Create smooth bezier curve path
   const createSmoothPath = (coords) => {
-    if (!coords.length) return "";
+    if (!coords || !coords.length) return "";
     let d = `M ${coords[0].x} ${coords[0].y}`;
     for (let i = 0; i < coords.length - 1; i++) {
       const curr = coords[i];
@@ -53,11 +67,54 @@ export const MonthlyRevenueChartCard = ({ className }) => {
   };
 
   const revenueLinePath = createSmoothPath(revenueCoords);
-  const revenueAreaPath = `${revenueLinePath} L ${revenueCoords[revenueCoords.length - 1].x} ${height - paddingY} L ${revenueCoords[0].x} ${height - paddingY} Z`;
+  const revenueAreaPath = revenueCoords.length > 0
+    ? `${revenueLinePath} L ${revenueCoords[revenueCoords.length - 1].x} ${height - paddingY} L ${revenueCoords[0].x} ${height - paddingY} Z`
+    : "";
 
-  const profitLinePath = createSmoothPath(profitCoords);
+  const expensesLinePath = createSmoothPath(expensesCoords);
 
-  const yTicks = [140, 105, 70, 35, 0];
+  const yTicks = [
+    maxVal,
+    Math.round(maxVal * 0.75),
+    Math.round(maxVal * 0.5),
+    Math.round(maxVal * 0.25),
+    0,
+  ];
+
+  const metrics = [
+    {
+      id: "revenue",
+      label: "Revenue",
+      value: `₹${(monthlyFinancials?.revenue || 0).toLocaleString()}`,
+      badge: "This Month",
+      colorVar: "var(--app-color-primary)",
+      badgeClass: "bg-primary-soft text-primary",
+    },
+    {
+      id: "expenses",
+      label: "Purchases",
+      value: `₹${(monthlyFinancials?.expenses || 0).toLocaleString()}`,
+      badge: "Bills Total",
+      colorVar: "var(--app-color-warning)",
+      badgeClass: "bg-warning-soft text-warning",
+    },
+    {
+      id: "profit",
+      label: "Gross Margin",
+      value: `₹${(monthlyFinancials?.profit || 0).toLocaleString()}`,
+      badge: "Margin",
+      colorVar: "var(--app-color-success)",
+      badgeClass: "bg-success-soft text-success",
+    },
+    {
+      id: "invoices",
+      label: "Invoices Count",
+      value: `${monthlyFinancials?.invoicesCount || 0}`,
+      badge: "Sales Bills",
+      colorVar: "var(--app-color-info)",
+      badgeClass: "bg-info-soft text-info",
+    },
+  ];
 
   return (
     <UICard
@@ -71,34 +128,22 @@ export const MonthlyRevenueChartCard = ({ className }) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/70">
         <div>
           <h2 className="text-base sm:text-lg font-bold text-text tracking-tight">
-            Monthly Revenue Performance
+            Monthly Performance Trend
           </h2>
           <p className="text-xs sm:text-sm text-text-muted mt-0.5">
-            Revenue, profit and operational expenses overview
+            Live 6-month revenue and purchase bills overview
           </p>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          {/* Timeframe selector */}
-          <div className="relative">
-            <select
-              value={selectedTimeframe}
-              onChange={(e) => setSelectedTimeframe(e.target.value)}
-              className="appearance-none rounded-xl border border-border bg-surface-alt/70 px-3.5 py-1.5 pr-8 text-xs font-medium text-text transition-all hover:bg-surface-hover focus:border-primary focus:outline-none cursor-pointer"
-            >
-              {REVENUE_CHART_TIMEFRAMES.map((tf) => (
-                <option key={tf.value} value={tf.value}>
-                  {tf.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-text-muted" />
-          </div>
+          <span className="text-xs text-text-muted font-medium bg-surface-alt px-3 py-1 rounded-xl border border-border">
+            Last 6 Months
+          </span>
 
           <UIIconButton
             variant="ghost"
             size="sm"
-            aria-label="More revenue options"
+            aria-label="Options"
             icon={<MoreHorizontal className="size-4" />}
           />
         </div>
@@ -106,7 +151,7 @@ export const MonthlyRevenueChartCard = ({ className }) => {
 
       {/* Metric Legend Badges */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-4">
-        {MONTHLY_REVENUE_METRICS.map((metric) => (
+        {metrics.map((metric) => (
           <div
             key={metric.id}
             className="flex flex-col p-3 rounded-xl bg-surface-alt/60 border border-border/70"
@@ -122,8 +167,8 @@ export const MonthlyRevenueChartCard = ({ className }) => {
               <span className="text-lg sm:text-xl font-extrabold font-mono text-text tabular-nums">
                 {metric.value}
               </span>
-              <span className={cn("text-[11px] font-mono font-semibold px-1.5 py-0.5 rounded-md", metric.badgeClass)}>
-                {metric.change}
+              <span className={cn("text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-md", metric.badgeClass)}>
+                {metric.badge}
               </span>
             </div>
           </div>
@@ -141,10 +186,6 @@ export const MonthlyRevenueChartCard = ({ className }) => {
               <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--app-color-primary)" stopOpacity="0.25" />
                 <stop offset="100%" stopColor="var(--app-color-primary)" stopOpacity="0.0" />
-              </linearGradient>
-              <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--app-color-success)" stopOpacity="0.2" />
-                <stop offset="100%" stopColor="var(--app-color-success)" stopOpacity="0.0" />
               </linearGradient>
             </defs>
 
@@ -171,7 +212,7 @@ export const MonthlyRevenueChartCard = ({ className }) => {
                     fill="var(--app-color-text-muted)"
                     className="tabular-nums select-none"
                   >
-                    {tick === 0 ? "0" : `${tick}`}
+                    {tick === 0 ? "0" : `₹${tick > 999 ? `${Math.round(tick / 1000)}k` : tick}`}
                   </text>
                 </g>
               );
@@ -179,10 +220,10 @@ export const MonthlyRevenueChartCard = ({ className }) => {
 
             {/* X-Axis Month Labels */}
             {points.map((p, i) => {
-              const x = paddingX + (i / (points.length - 1)) * chartW;
+              const x = paddingX + (i / Math.max(1, points.length - 1)) * chartW;
               return (
                 <text
-                  key={p.month}
+                  key={`${p.month}-${i}`}
                   x={x}
                   y={height - 2}
                   textAnchor="middle"
@@ -196,26 +237,30 @@ export const MonthlyRevenueChartCard = ({ className }) => {
             })}
 
             {/* Revenue Area & Line */}
-            <path d={revenueAreaPath} fill="url(#revenueGrad)" />
-            <path
-              d={revenueLinePath}
-              fill="none"
-              stroke="var(--app-color-primary)"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            {revenueAreaPath && <path d={revenueAreaPath} fill="url(#revenueGrad)" />}
+            {revenueLinePath && (
+              <path
+                d={revenueLinePath}
+                fill="none"
+                stroke="var(--app-color-primary)"
+                strokeWidth="2.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
 
-            {/* Profit Line */}
-            <path
-              d={profitLinePath}
-              fill="none"
-              stroke="var(--app-color-success)"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeDasharray="5 3"
-            />
+            {/* Purchases / Expenses Line */}
+            {expensesLinePath && (
+              <path
+                d={expensesLinePath}
+                fill="none"
+                stroke="var(--app-color-warning)"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="5 3"
+              />
+            )}
 
             {/* Interactive Points */}
             {revenueCoords.map((coord, i) => (
@@ -225,7 +270,6 @@ export const MonthlyRevenueChartCard = ({ className }) => {
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                {/* Vertical hover guide line */}
                 {hoveredIndex === i && (
                   <line
                     x1={coord.x}
@@ -238,7 +282,7 @@ export const MonthlyRevenueChartCard = ({ className }) => {
                   />
                 )}
 
-                {/* Point dot */}
+                {/* Revenue dot */}
                 <circle
                   cx={coord.x}
                   cy={coord.y}
@@ -249,16 +293,18 @@ export const MonthlyRevenueChartCard = ({ className }) => {
                   className="transition-all duration-150"
                 />
 
-                {/* Profit dot */}
-                <circle
-                  cx={profitCoords[i].x}
-                  cy={profitCoords[i].y}
-                  r={hoveredIndex === i ? 5 : 3.5}
-                  fill="var(--app-color-surface)"
-                  stroke="var(--app-color-success)"
-                  strokeWidth="2"
-                  className="transition-all duration-150"
-                />
+                {/* Expenses dot */}
+                {expensesCoords[i] && (
+                  <circle
+                    cx={expensesCoords[i].x}
+                    cy={expensesCoords[i].y}
+                    r={hoveredIndex === i ? 5 : 3.5}
+                    fill="var(--app-color-surface)"
+                    stroke="var(--app-color-warning)"
+                    strokeWidth="2"
+                    className="transition-all duration-150"
+                  />
+                )}
 
                 {/* Larger hover target */}
                 <rect
@@ -273,35 +319,35 @@ export const MonthlyRevenueChartCard = ({ className }) => {
           </svg>
 
           {/* Floating Hover Tooltip */}
-          {hoveredIndex !== null && (
+          {hoveredIndex !== null && points[hoveredIndex] && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="absolute pointer-events-none rounded-xl border border-border bg-surface px-3 py-2 text-xs shadow-md z-20"
               style={{
-                left: `${(hoveredIndex / (points.length - 1)) * 80 + 10}%`,
-                top: "30%",
+                left: `${(hoveredIndex / Math.max(1, points.length - 1)) * 75 + 10}%`,
+                top: "25%",
               }}
             >
               <div className="font-semibold text-text mb-1 border-b border-border pb-1">
-                {points[hoveredIndex].month} Summary
+                {points[hoveredIndex].month} Live Data
               </div>
               <div className="flex items-center justify-between gap-3 text-[11px]">
-                <span className="text-primary font-medium">● Revenue:</span>
+                <span className="text-primary font-medium">● Sales:</span>
                 <span className="font-mono font-bold text-text">
-                  ₹{points[hoveredIndex].revenue}k
+                  ₹{(points[hoveredIndex].revenue || 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3 text-[11px]">
-                <span className="text-success font-medium">● Profit:</span>
+                <span className="text-warning font-medium">● Purchases:</span>
                 <span className="font-mono font-bold text-text">
-                  ₹{points[hoveredIndex].profit}k
+                  ₹{(points[hoveredIndex].expenses || 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3 text-[11px]">
-                <span className="text-warning font-medium">● Expenses:</span>
+                <span className="text-info font-medium">● Invoices:</span>
                 <span className="font-mono font-bold text-text">
-                  ₹{points[hoveredIndex].expenses}k
+                  {points[hoveredIndex].invoices || 0}
                 </span>
               </div>
             </motion.div>

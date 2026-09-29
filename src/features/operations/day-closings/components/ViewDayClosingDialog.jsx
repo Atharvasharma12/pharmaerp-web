@@ -7,16 +7,19 @@ import {
   UIModalFooter,
   UIButton,
 } from "@/components/ui";
-import { Clock, IndianRupee, QrCode, FileText } from "lucide-react";
+import { Clock, IndianRupee, QrCode, FileText, Eye } from "lucide-react";
 import { apiClient } from "@/services";
+import { ViewShiftDialog } from "@/features/operations/shifts/components/ViewShiftDialog";
 
 export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [selectedShiftForView, setSelectedShiftForView] = useState(null);
 
   useEffect(() => {
     if (isOpen && dayClosing?._id) {
       setLoading(true);
+      setSelectedShiftForView(null);
       apiClient
         .get(`/operations/day-closings/${dayClosing._id}/summary`)
         .then((res) => setSummary(res.data.data))
@@ -24,11 +27,13 @@ export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
         .finally(() => setLoading(false));
     } else {
       setSummary(null);
+      setSelectedShiftForView(null);
     }
   }, [isOpen, dayClosing]);
 
   return (
-    <UIModal isOpen={isOpen} onClose={onClose} size="xl">
+    <>
+      <UIModal isOpen={isOpen} onClose={onClose} size="xl">
       <UIModalHeader>
         <UIModalTitle>View Day Closing: {dayClosing?.dayClosingNo}</UIModalTitle>
       </UIModalHeader>
@@ -114,23 +119,38 @@ export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
               <h4 className="text-sm font-semibold mb-3">Shift-wise Breakdown</h4>
               <div className="space-y-3">
                 {summary.shiftSummaries?.map((shift) => (
-                  <div key={shift._id} className="bg-surface p-3 rounded border border-border flex justify-between items-center">
-                    <div>
-                      <p className="text-sm font-medium">{shift.shiftName || shift.shiftNo}</p>
-                      <p className="text-xs text-text-muted mt-1">
+                  <div
+                    key={shift._id}
+                    className="bg-surface p-3.5 rounded-xl border border-border flex flex-col sm:flex-row justify-between sm:items-center gap-3 transition-colors hover:border-primary/40"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-text">{shift.shiftName || shift.shiftNo}</p>
+                      <p className="text-xs text-text-muted mt-0.5">
                         Invoices: {shift.invoiceCount} (Cash: {shift.cashInvoiceCount}, UPI: {shift.paymentQrCount})
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-left sm:text-right">
                       <p className="text-sm font-bold text-success">Sales: ₹{shift.netSales}</p>
-                      <p className="text-xs text-text-muted mt-1">
+                      <p className="text-xs text-text-muted mt-0.5">
                         Cash In: ₹{shift.cashNet} | QR: ₹{shift.qrNet}
                       </p>
                     </div>
-                    <div className="text-right pl-4 border-l border-border">
+                    <div className="text-left sm:text-right sm:pl-4 sm:border-l border-border">
                       <p className="text-xs text-text-muted">Expected Cash</p>
-                      <p className="text-sm font-bold">₹{shift.expectedClosingCashAmount}</p>
+                      <p className="text-sm font-bold text-primary">₹{shift.expectedClosingCashAmount}</p>
                       <p className="text-[10px] text-text-muted mt-0.5">Actual: ₹{shift.actualClosingCashAmount}</p>
+                    </div>
+                    <div className="flex sm:flex-col justify-end sm:pl-3 sm:border-l border-border">
+                      <UIButton
+                        type="button"
+                        variant="outline"
+                        size="xs"
+                        onClick={() => setSelectedShiftForView(shift)}
+                        className="flex items-center gap-1.5 whitespace-nowrap text-xs h-8 px-2.5 font-medium border-border/80 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                      >
+                        <Eye className="size-3.5" />
+                        <span>View Shift</span>
+                      </UIButton>
                     </div>
                   </div>
                 ))}
@@ -145,5 +165,13 @@ export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
         </UIButton>
       </UIModalFooter>
     </UIModal>
+
+    {/* Nested Shift Details Modal */}
+    <ViewShiftDialog
+      isOpen={Boolean(selectedShiftForView)}
+      onClose={() => setSelectedShiftForView(null)}
+      shift={selectedShiftForView}
+    />
+    </>
   );
 };

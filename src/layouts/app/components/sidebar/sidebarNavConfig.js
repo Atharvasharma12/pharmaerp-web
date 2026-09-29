@@ -45,7 +45,7 @@ import { ROUTES } from "@/constants";
 //   product:view, global-product:view, category:view, hsn:view, manufacturer:view, salt:view, uom:view, product-form:view, bank-master:view
 //   pos:view, bill:view, purchase:view, sale:view, marketplace-store:view, marketplace-product:view
 //   account:view, account-group:view, account-balance:view, journal-voucher:view, ledger:view, report:view, financial-period:view
-//   bank-account:view, cash-account:view, fund-transfer:view, cheque:view, payment-qr:view, bank-slip:view, cash-denomination:view
+//   bank-account:view, cash-account:view, fund-transfer:view, cheque:view, payment-qr:view, cash-denomination:view
 //
 // Items WITHOUT a permission/permissions key are always visible to all authenticated users.
 
@@ -383,7 +383,6 @@ export const SIDEBAR_NAV_GROUPS = [
               "fund-transfer:view",
               "cheque:view",
               "payment-qr:view",
-              "bank-slip:view",
               "cash-denomination:view",
             ],
             children: [
@@ -421,13 +420,6 @@ export const SIDEBAR_NAV_GROUPS = [
                 path: ROUTES.PAYMENT_QRS,
                 icon: QrCode,
                 permission: "payment-qr:view",
-              },
-              {
-                id: "bank-slips",
-                label: "Bank Slips",
-                path: ROUTES.BANK_SLIPS,
-                icon: Receipt,
-                permission: "bank-slip:view",
               },
               {
                 id: "cash-denominations",

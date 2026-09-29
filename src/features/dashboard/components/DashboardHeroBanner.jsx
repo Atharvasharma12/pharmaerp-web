@@ -25,6 +25,9 @@ const getGreeting = () => {
 export const DashboardHeroBanner = ({
   onGenerateReport,
   onAddMedicine,
+  kpis,
+  onRefresh,
+  isLoading,
   className,
 }) => {
   const navigate = useNavigate();
@@ -33,9 +36,12 @@ export const DashboardHeroBanner = ({
     user?.fullName ||
     user?.name ||
     user?.username ||
-    "Shahriar";
+    "Team Member";
 
   const greeting = getGreeting();
+  const totalInvoices = kpis?.totalInvoicesCount ?? kpis?.transactionsToday ?? 0;
+  const totalSales = kpis?.totalRevenue ?? kpis?.todaysSalesAmount ?? 0;
+  const totalPurchases = kpis?.totalPurchases ?? 0;
 
   return (
     <motion.div
@@ -83,7 +89,7 @@ export const DashboardHeroBanner = ({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
             </span>
-            <span>All systems operational</span>
+            <span>Live ERP Connected</span>
           </div>
 
           <button
@@ -102,7 +108,7 @@ export const DashboardHeroBanner = ({
             {greeting}, {userName} <span className="inline-block select-none">👋</span>
           </h1>
           <p className="text-sm sm:text-base text-text-muted max-w-2xl leading-relaxed font-normal">
-            Monitor inventory levels, track medicine sales, manage prescriptions, and ensure smooth pharmacy operations from one centralized dashboard.
+            Monitor inventory levels, track live sales, manage operations, and review real-time pharmacy analytics from one centralized dashboard.
           </p>
         </div>
 
@@ -143,15 +149,27 @@ export const DashboardHeroBanner = ({
           <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm text-text-muted font-medium select-none">
             <div className="flex items-center gap-1.5">
               <TrendingUp className="size-4 text-primary stroke-[2.5]" />
-              <span className="font-mono tabular-nums font-bold text-text">184</span>
-              <span>transactions today</span>
+              <span className="font-mono tabular-nums font-bold text-text">
+                {totalInvoices}
+              </span>
+              <span>transaction{totalInvoices === 1 ? "" : "s"}</span>
             </div>
 
             <div className="flex items-center gap-1.5">
-              <ShieldCheck className="size-4 text-primary stroke-[2.5]" />
-              <span>Compliance:</span>
-              <span className="font-mono tabular-nums font-bold text-primary">98%</span>
+              <span className="text-text-muted">Total Sales:</span>
+              <span className="font-mono tabular-nums font-bold text-primary">
+                ₹{totalSales.toLocaleString()}
+              </span>
             </div>
+
+            {totalPurchases > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-text-muted">Purchases:</span>
+                <span className="font-mono tabular-nums font-bold text-warning">
+                  ₹{totalPurchases.toLocaleString()}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -168,15 +168,6 @@ export const ROUTES = {
   EDIT_PAYMENT_QR: (paymentQrId = ":paymentQrId") =>
     `/finance/treasury/payment-qrs/${paymentQrId}/edit`,
 
-  // Finance - Treasury - Bank Slips
-
-  BANK_SLIPS: "/finance/treasury/bank-slips",
-
-  CREATE_BANK_SLIP: "/finance/treasury/bank-slips/create",
-
-  BANK_SLIP_DETAILS: (bankSlipId = ":bankSlipId") =>
-    `/finance/treasury/bank-slips/${bankSlipId}`,
-
   // Finance - Treasury - Bank Transactions
 
   BANK_TRANSACTIONS: "/finance/treasury/bank-transactions",

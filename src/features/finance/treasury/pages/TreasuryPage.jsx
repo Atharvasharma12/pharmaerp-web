@@ -149,14 +149,6 @@ const TreasuryPage = () => {
         permission: "payment-qr:view",
       },
       {
-        id: "bankSlips",
-        title: "Bank Slips",
-        description: "Manage deposit slips, withdrawal slips and more",
-        colorVariant: "danger",
-        path: "/finance/treasury/bank-slips",
-        permission: "bank-slip:view",
-      },
-      {
         id: "cashDenominations",
         title: "Cash Denominations",
         description: "Manage cash denominations and cash counting",
@@ -246,13 +238,6 @@ const TreasuryPage = () => {
         path: "/finance/treasury/cheque-management",
         colorVariant: "info",
         permission: "cheque:view",
-      },
-      {
-        id: "generateBankSlip",
-        title: "Generate Bank Slip",
-        path: "/finance/treasury/bank-slips/create",
-        colorVariant: "danger",
-        permission: "bank-slip:create",
       },
       {
         id: "cashDenominations",

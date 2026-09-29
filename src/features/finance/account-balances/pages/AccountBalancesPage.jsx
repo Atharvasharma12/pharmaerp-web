@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 import useAccountBalance from "../hooks/useAccountBalance";
 import AccountBalancesDesktopPage from "./desktop/AccountBalancesDesktopPage";
@@ -11,6 +12,7 @@ import AccountBalancesMobilePage from "./mobile/AccountBalancesMobilePage";
 const AccountBalancesPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { currentBranch } = useBranch();
 
   const {
     accountBalances,
@@ -41,12 +43,13 @@ const AccountBalancesPage = () => {
         limit: pageSize,
         search: searchParams.search || undefined,
         balanceType: searchParams.balanceType === "all" ? undefined : searchParams.balanceType,
+        branchId: currentBranch?._id,
       };
       await getAccountBalances(query);
     } catch (err) {
       console.error("Failed to load account balances list:", err);
     }
-  }, [currentPage, pageSize, searchParams, getAccountBalances]);
+  }, [currentPage, pageSize, searchParams, getAccountBalances, currentBranch?._id]);
 
   useEffect(() => {
     executeQuery();

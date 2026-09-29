@@ -26,6 +26,7 @@ const AppDesktopLayout = () => {
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed((prev) => !prev)}
         onExpand={() => setCollapsed(false)}
+        onCollapse={() => setCollapsed(true)}
       />
 
       {/* Main Content Area smoothly adjusting to sidebar width */}

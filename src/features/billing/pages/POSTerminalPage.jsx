@@ -35,10 +35,12 @@ import { cn } from "@/lib/utils";
 import customerService from "@/features/parties/customers/services/customerService";
 import invoiceService from "@/features/sales/services/invoiceService";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
+import cashAccountService from "@/features/finance/treasury/cash-management/cash-accounts/services/cashAccountService";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
 import useBranch from "@/features/branch/hooks/useBranch";
+import { API_STATUS } from "@/constants";
 /* ─────────────── CONSTANTS ─────────────── */
 const BILLING_MODES = [
   { id: "B2C", label: "B2C · Retail", icon: User, description: "Walk-in customers" },
@@ -145,11 +147,31 @@ export const POSTerminalPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [cashTendered, setCashTendered] = useState("");
 
+  /* ── Cash Account (branch-scoped) ── */
+  // Fetch the branch's system default cash account (for display only — no user selection)
+  const [systemDefaultAccount, setSystemDefaultAccount] = useState(null);
+
+  useEffect(() => {
+    if (!currentBranch?._id) return;
+    cashAccountService
+      .getCashAccounts({ branchId: currentBranch._id, isSystemDefault: "true", all: "true" })
+      .then((res) => {
+        const accounts = res.data?.data?.cashAccounts || [];
+        const sysDefault =
+          accounts.find((a) => a.isSystemDefault) ||
+          accounts.find((a) => a.isPrimary) ||
+          accounts[0] ||
+          null;
+        setSystemDefaultAccount(sysDefault);
+      })
+      .catch((err) => console.warn("[POS] Could not fetch system default cash account:", err));
+  }, [currentBranch?._id]);
+
   /* ── UI State ── */
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
 
-  if (shiftStatus === "LOADING" || shiftStatus === "IDLE") {
+  if (!activeShift && (shiftStatus === API_STATUS.LOADING || shiftStatus === API_STATUS.IDLE || shiftStatus === "LOADING" || shiftStatus === "IDLE")) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
         <Loader2 className="size-10 animate-spin text-primary" />
@@ -441,6 +463,7 @@ export const POSTerminalPage = () => {
       const salePayload = {
         invoiceNo,
         billingMode,
+        branchId: currentBranch?._id || null,
         date: new Date().toISOString(),
         items: cartItems.map((ci) => ({
           productId: ci.productId,
@@ -462,6 +485,15 @@ export const POSTerminalPage = () => {
         cashTendered: Number(cashTendered) || calculations.grandTotal,
         customerName,
         customerPhone: billingMode === "B2C" ? b2cPhone : (selectedParty?.mobile || ""),
+        // Always use system default cash account — no user selection
+        payments: paymentMethod === "Cash"
+          ? [{
+              paymentType: "cash",
+              amount: calculations.grandTotal,
+            }]
+          : paymentMethod === "UPI"
+          ? [{ paymentType: "upi", amount: calculations.grandTotal }]
+          : [],
       };
 
       if (customerId) {
@@ -1145,6 +1177,16 @@ export const POSTerminalPage = () => {
                   animate={{ opacity: 1, height: "auto" }}
                   className="space-y-2 pt-1"
                 >
+                  {/* System default cash drawer info */}
+                  {systemDefaultAccount && (
+                    <div className="flex items-center gap-2 text-xs bg-emerald-500/8 border border-emerald-500/20 rounded-lg px-3 py-1.5">
+                      <Banknote className="size-3 text-emerald-500 shrink-0" />
+                      <span className="text-text-muted truncate">{systemDefaultAccount.accountName}</span>
+                      <span className="ml-auto font-mono font-bold text-emerald-500 tabular-nums shrink-0">
+                        ₹{(systemDefaultAccount.denominationBalance?.totalBalance || 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  )}
                   <div className="space-y-1">
                     <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Cash Tendered (F5)</label>
                     <input

@@ -57,6 +57,8 @@ import invoiceService from "@/features/sales/services/invoiceService";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import useBranch from "@/features/branch/hooks/useBranch";
+import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
 
 /** Safe number parser */
 const safeNum = (v) => {
@@ -217,16 +219,24 @@ export const SalesDesktopPage = () => {
   const [doctorName, setDoctorName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
 
-  const activeShift = useSelector((state) => state.shift.activeShift);
+  const { currentBranch } = useBranch();
+  const { activeShift, status: shiftStatus } = useActiveShift(currentBranch?._id);
   const navigate = useNavigate();
 
+  const getLocalDateString = (dateObj) => {
+    const d = dateObj ? new Date(dateObj) : new Date();
+    const offset = d.getTimezoneOffset();
+    const localDate = new Date(d.getTime() - offset * 60 * 1000);
+    return localDate.toISOString().split("T")[0];
+  };
+
   const [saleDate, setSaleDate] = useState(
-    activeShift ? new Date(activeShift.createdAt || activeShift.openedAt || new Date()).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
+    activeShift?.date ? getLocalDateString(activeShift.date) : getLocalDateString()
   );
 
   useEffect(() => {
-    if (activeShift) {
-      setSaleDate(new Date(activeShift.createdAt || activeShift.openedAt || new Date()).toISOString().split("T")[0]);
+    if (activeShift?.date) {
+      setSaleDate(getLocalDateString(activeShift.date));
     }
   }, [activeShift]);
 
@@ -267,7 +277,16 @@ export const SalesDesktopPage = () => {
     return () => window.removeEventListener("keydown", handleGlobalTyping);
   }, [isBatchModalOpen, isCheckoutOpen, isReceiptOpen, billingMode, selectedB2cCustomer, selectedB2bParty]);
 
-  if (!activeShift) {
+  /* if (shiftStatus === "loading") {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-text-muted">Loading POS...</p>
+      </div>
+    );
+  } */
+
+  /* if (!activeShift) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
         <Store className="size-16 text-text-muted" />
@@ -276,7 +295,7 @@ export const SalesDesktopPage = () => {
         <UIButton variant="primary" onClick={() => navigate("/operations/shifts")}>Go to Shifts</UIButton>
       </div>
     );
-  }
+  } */
 
   const handleProceedToCheckout = () => {
     if (billingMode === "B2C" && (!selectedB2cCustomer || !selectedB2cCustomer.name || selectedB2cCustomer.name.trim() === "")) {
@@ -655,7 +674,7 @@ export const SalesDesktopPage = () => {
         paymentMethod: saleData.paymentMethod,
         payments: saleData.payments,
         items: saleData.items,
-        date: new Date().toISOString(),
+        date: activeShift?.date ? new Date(activeShift.date).toISOString() : new Date().toISOString(),
       });
     }
 
@@ -663,6 +682,8 @@ export const SalesDesktopPage = () => {
     setIsCheckoutOpen(false);
     setCompletedSale({
       ...saleData,
+      date: activeShift?.date ? new Date(activeShift.date).toISOString() : new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       billingMode,
       partyType: billingMode === "B2B" ? selectedB2bParty?.partyType || "wholesaler" : "retail",
     });
@@ -671,6 +692,26 @@ export const SalesDesktopPage = () => {
     setToastMessage(`✅ ${billingMode} Invoice ${saleData.invoiceNo} created & saved in backend.`);
     setTimeout(() => setToastMessage(null), 4000);
   };
+
+  if (shiftStatus === "loading" && !activeShift) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-text-muted">Loading POS...</p>
+      </div>
+    );
+  }
+
+  if (!activeShift) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
+        <Store className="size-16 text-text-muted" />
+        <h2 className="text-2xl font-bold text-text">No open shift is present</h2>
+        <p className="text-text-muted">You must open a shift before you can access POS billing.</p>
+        <UIButton variant="primary" onClick={() => navigate("/operations/shifts")}>Go to Shifts</UIButton>
+      </div>
+    );
+  }
 
   return (
     <section className="h-[100dvh] w-full bg-bg flex flex-col font-sans overflow-hidden">
@@ -1184,6 +1225,7 @@ export const SalesDesktopPage = () => {
         doctor={doctorName}
         saleDate={saleDate}
         billingMode={billingMode}
+        activeShift={activeShift}
         cartSummary={{ items: cart, subtotal: cartSubtotal }}
         onCompleteSale={handleCompleteSale}
       />

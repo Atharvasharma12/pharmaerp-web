@@ -199,6 +199,7 @@ const AccountsDesktopPage = ({
   handleRefresh,
   handleBackToCOA,
 }) => {
+  const { can } = usePermission();
   // Define columns matching the design specs (no checkboxes)
   const columns = [
     {
@@ -288,7 +289,6 @@ const AccountsDesktopPage = ({
       align: "right",
       width: 90,
       render: (_, row) => {
-        const { can } = usePermission();
         const menuItems = [
           {
             id: "view",

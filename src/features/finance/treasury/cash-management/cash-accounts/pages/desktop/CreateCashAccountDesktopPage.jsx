@@ -27,7 +27,7 @@ const CreateCashAccountDesktopPage = ({
   denominations = [],
   physicalTotal = 0,
   isLoading = false,
-  branchOptions = [],
+  hasUnsavedChanges = false,
   handleFieldChange,
   handleQtyChange,
   handleCancel,
@@ -135,39 +135,6 @@ const CreateCashAccountDesktopPage = ({
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-5">
-                    {/* Primary Flag */}
-                    <AppSelect
-                      label="Primary Account"
-                      name="isPrimary"
-                      value={formData.isPrimary ? "true" : "false"}
-                      onChange={(e) => handleFieldChange("isPrimary", e.target.value === "true")}
-                      options={booleanOptions}
-                      size="medium"
-                      variant="bordered"
-                      rounded="md"
-                      sx={selectFieldSx}
-                      inputSx={selectInputSx}
-                      helperText="Makes this the default cash chest for general business cash sales"
-                      labelSx={labelSx}
-                    />
-
-                    {/* Branch selection */}
-                    <AppSelect
-                      label="Linked Branch (Optional)"
-                      name="branchId"
-                      value={formData.branchId || ""}
-                      onChange={(e) => handleFieldChange("branchId", e.target.value)}
-                      options={branchOptions}
-                      size="medium"
-                      variant="bordered"
-                      rounded="md"
-                      sx={selectFieldSx}
-                      inputSx={selectInputSx}
-                      helperText="Assigns this cash drawer to a specific branch location"
-                      labelSx={labelSx}
-                    />
-                  </div>
 
                   {/* Denomination breakdown sheet (Optional for opening balance) */}
                   {Number(formData.openingBalance) > 0 && (

@@ -87,9 +87,9 @@ const CashAccountsDesktopPage = ({
                 Primary
               </span>
             )}
-            {account?.branchId && (
-              <span className="inline-flex items-center rounded bg-[#f1f3f5] px-1.5 py-0.2 text-[8.5px] font-bold text-[#495057] uppercase tracking-wide">
-                {account.branchId.name || "Branch"}
+            {account?.isSystemDefault && (
+              <span className="inline-flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.2 text-[8.5px] font-bold text-blue-600 uppercase tracking-wide border border-blue-200" title="This account is permanently linked to branch operations and cannot be deleted or changed.">
+                🔒 System Default
               </span>
             )}
           </div>
@@ -168,14 +168,15 @@ const CashAccountsDesktopPage = ({
           },
           can("cash-account:delete") && {
             id: "delete",
-            label: "Delete Account",
+            label: account.isSystemDefault ? "Cannot Delete (System Default)" : "Delete Account",
             icon: <FiTrash2 />,
             danger: true,
+            disabled: account.isSystemDefault,
             onClick: () => handleDeleteAccount(account),
           },
         ].filter(Boolean);
 
-        if (!account.isPrimary && can("cash-account:update")) {
+        if (!account.isPrimary && !account.isSystemDefault && can("cash-account:update")) {
           menuItems.unshift({
             id: "set-primary",
             label: "Set as Primary",

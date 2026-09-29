@@ -1,29 +1,27 @@
 // src/features/dashboard/components/DashboardActionCardsGrid.jsx
 
 import React from "react";
-import { motion } from "framer-motion";
 import {
   AlertTriangle,
   CalendarDays,
-  Truck,
+  Receipt,
   ArrowRight,
+  CheckCircle,
 } from "lucide-react";
 import { UICard, UIButton, UIBadge } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import {
-  LOW_STOCK_MEDICINES,
-  EXPIRY_ALERTS,
-  SUPPLIER_UPDATES,
-} from "../constants/dashboardData";
 
 export const DashboardActionCardsGrid = ({
+  lowStockItems = [],
+  expiringBatches = [],
+  recentPurchaseBills = [],
   onReorderClick,
   onExpiryDetailsClick,
   onReviewOrdersClick,
   className,
 }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
+    <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 font-sans", className)}>
       {/* ── 1. Low Stock Medicines Card ────────────────────────────── */}
       <UICard
         variant="default"
@@ -40,31 +38,39 @@ export const DashboardActionCardsGrid = ({
                 Low Stock Medicines
               </h3>
               <p className="text-xs text-text-muted">
-                4 items below threshold
+                {lowStockItems.length} item{lowStockItems.length === 1 ? "" : "s"} below threshold
               </p>
             </div>
           </div>
 
           {/* List of items */}
-          <div className="divide-y divide-border/50 py-2">
-            {LOW_STOCK_MEDICINES.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between py-2.5 text-xs group hover:bg-surface-alt/50 px-1 rounded-lg transition-colors"
-              >
-                <div className="flex flex-col">
-                  <span className="font-semibold text-text group-hover:text-warning transition-colors">
-                    {item.name}
-                  </span>
-                  <span className="text-[11px] text-text-muted">
-                    {item.form}
+          <div className="divide-y divide-border/50 py-2 min-h-[140px] flex flex-col justify-center">
+            {lowStockItems.length > 0 ? (
+              lowStockItems.slice(0, 4).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between py-2.5 text-xs group hover:bg-surface-alt/50 px-1 rounded-lg transition-colors"
+                >
+                  <div className="flex flex-col min-w-0 pr-2">
+                    <span className="font-semibold text-text group-hover:text-warning transition-colors truncate">
+                      {item.name}
+                    </span>
+                    <span className="text-[11px] text-text-muted font-mono">
+                      Batch #{item.batch}
+                    </span>
+                  </div>
+                  <span className="font-mono font-bold text-warning tabular-nums shrink-0">
+                    {item.remaining} left
                   </span>
                 </div>
-                <span className="font-mono font-bold text-warning tabular-nums">
-                  {item.remaining} left
-                </span>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center py-6 text-text-muted">
+                <CheckCircle className="size-7 text-success mb-1 opacity-70" />
+                <span className="text-xs font-semibold text-text">Stock is healthy</span>
+                <span className="text-[11px]">No items under 10 units threshold</span>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -77,7 +83,7 @@ export const DashboardActionCardsGrid = ({
             className="w-full justify-center text-warning hover:bg-warning-soft hover:border-warning/40 font-semibold"
             rightIcon={<ArrowRight className="size-4" />}
           >
-            Reorder Now
+            Manage Inventory
           </UIButton>
         </div>
       </UICard>
@@ -104,59 +110,45 @@ export const DashboardActionCardsGrid = ({
           </div>
 
           {/* Big Stat Count */}
-          <div className="pt-4 pb-2">
+          <div className="pt-3 pb-2">
             <div className="flex items-baseline gap-2">
               <span className="text-3xl sm:text-4xl font-extrabold font-mono text-text tabular-nums">
-                12
+                {expiringBatches.length}
               </span>
               <span className="text-xs text-text-muted font-medium">
-                products expiring soon
+                batch{expiringBatches.length === 1 ? "" : "es"} expiring soon
               </span>
-            </div>
-
-            {/* Visual Urgency Bar Visualizer (12 blocks) using theme tokens */}
-            <div className="flex items-center gap-1.5 pt-4 pb-2">
-              {[
-                "bg-error",
-                "bg-error/90",
-                "bg-error/80",
-                "bg-error/70",
-                "bg-warning",
-                "bg-warning/90",
-                "bg-warning/80",
-                "bg-warning/70",
-                "bg-warning/60",
-                "bg-surface-alt",
-                "bg-surface-alt",
-                "bg-surface-alt",
-              ].map((colorClass, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "h-6 flex-1 rounded-md border border-border/50 shadow-2xs transition-transform hover:scale-110",
-                    colorClass
-                  )}
-                  title={`Batch Block #${i + 1}`}
-                />
-              ))}
             </div>
           </div>
 
           {/* Quick List Preview */}
-          <div className="divide-y divide-border/50 py-1">
-            {EXPIRY_ALERTS.slice(0, 2).map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between py-1.5 text-xs"
-              >
-                <span className="text-text font-medium truncate max-w-[160px]">
-                  {item.name}
-                </span>
-                <span className="font-mono text-error text-[11px] font-semibold">
-                  In {item.daysLeft} days
-                </span>
+          <div className="divide-y divide-border/50 py-1 min-h-[90px] flex flex-col justify-center">
+            {expiringBatches.length > 0 ? (
+              expiringBatches.slice(0, 3).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between py-1.5 text-xs"
+                >
+                  <div className="flex flex-col min-w-0 pr-2">
+                    <span className="text-text font-medium truncate max-w-[170px]">
+                      {item.name}
+                    </span>
+                    <span className="text-[10px] font-mono text-text-muted">
+                      Batch #{item.batch}
+                    </span>
+                  </div>
+                  <span className="font-mono text-error text-[11px] font-semibold shrink-0">
+                    {item.daysLeft === 0 ? "Expired" : `In ${item.daysLeft}d`}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center py-3 text-text-muted">
+                <CheckCircle className="size-6 text-success mb-1 opacity-70" />
+                <span className="text-xs font-semibold text-text">No batches expiring</span>
+                <span className="text-[11px]">All batches valid beyond 30 days</span>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -169,12 +161,12 @@ export const DashboardActionCardsGrid = ({
             className="w-full justify-center text-error hover:bg-error-soft hover:border-error/40 font-semibold"
             rightIcon={<ArrowRight className="size-4" />}
           >
-            View Details
+            Review Batches
           </UIButton>
         </div>
       </UICard>
 
-      {/* ── 3. Supplier Updates Card ───────────────────────────────── */}
+      {/* ── 3. Recent Purchase Bills & Payables Card ───────────────── */}
       <UICard
         variant="default"
         className="flex flex-col justify-between p-5 sm:p-6 border-border rounded-2xl bg-surface shadow-xs"
@@ -183,37 +175,55 @@ export const DashboardActionCardsGrid = ({
           {/* Header */}
           <div className="flex items-center gap-3 pb-3 border-b border-border/70">
             <div className="size-9 rounded-xl bg-info-soft border border-info/20 flex items-center justify-center text-info shrink-0 shadow-2xs">
-              <Truck className="size-5" />
+              <Receipt className="size-5" />
             </div>
             <div>
               <h3 className="text-base font-bold text-text tracking-tight">
-                Supplier Updates
+                Recent Purchase Bills
               </h3>
               <p className="text-xs text-text-muted">
-                Action required
+                Live supplier billings
               </p>
             </div>
           </div>
 
-          {/* List of Supplier Updates */}
-          <div className="divide-y divide-border/50 py-2">
-            {SUPPLIER_UPDATES.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between py-2.5 text-xs group hover:bg-surface-alt/50 px-1 rounded-lg transition-colors"
-              >
-                <span className="font-semibold text-text group-hover:text-primary transition-colors">
-                  {item.name}
-                </span>
-                <UIBadge
-                  variant="soft"
-                  intent={item.statusType}
-                  className="text-[11px]"
+          {/* List of Supplier Bills */}
+          <div className="divide-y divide-border/50 py-2 min-h-[140px] flex flex-col justify-center">
+            {recentPurchaseBills.length > 0 ? (
+              recentPurchaseBills.slice(0, 4).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between py-2.5 text-xs group hover:bg-surface-alt/50 px-1 rounded-lg transition-colors"
                 >
-                  {item.status}
-                </UIBadge>
+                  <div className="flex flex-col min-w-0 pr-2">
+                    <span className="font-semibold text-text group-hover:text-primary transition-colors truncate">
+                      {item.supplierName}
+                    </span>
+                    <span className="text-[11px] font-mono text-text-muted">
+                      {item.billNo}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end shrink-0">
+                    <span className="font-mono font-bold text-text tabular-nums">
+                      ₹{Number(item.amount || 0).toLocaleString()}
+                    </span>
+                    <UIBadge
+                      variant="soft"
+                      intent={item.status === "CONFIRMED" ? "success" : "neutral"}
+                      className="text-[10px] px-1.5 py-0"
+                    >
+                      {item.status}
+                    </UIBadge>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center py-6 text-text-muted">
+                <Receipt className="size-7 text-text-muted opacity-40 mb-1" />
+                <span className="text-xs font-semibold text-text">No purchase bills yet</span>
+                <span className="text-[11px]">Recorded supplier bills will appear here</span>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -226,7 +236,7 @@ export const DashboardActionCardsGrid = ({
             className="w-full justify-center text-primary hover:bg-primary-soft hover:border-primary/40 font-semibold"
             rightIcon={<ArrowRight className="size-4" />}
           >
-            Review Orders
+            View All Purchases
           </UIButton>
         </div>
       </UICard>

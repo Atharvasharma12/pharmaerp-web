@@ -32,6 +32,7 @@ const EditCashAccountDesktopPage = ({
   formErrors = {},
   isLoading = false,
   isFetching = false,
+  isSystemDefault = false,
   handleFieldChange,
   handleCancel,
   handleSubmit,
@@ -111,6 +112,20 @@ const EditCashAccountDesktopPage = ({
                     </div>
                   )}
 
+                  {/* System Default Banner */}
+                  {isSystemDefault && (
+                    <div className="flex items-start gap-2.5 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <FiInfo className="size-4 text-blue-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[12px] font-bold text-blue-800">🔒 System Default Cash Account</p>
+                        <p className="text-[11px] text-blue-700 mt-0.5">
+                          This is the branch's permanent operating cash drawer. Its name, status, and primary flag are locked.
+                          Only the description can be updated.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Submit error */}
                   {formErrors.submit && (
                     <div className="p-3 bg-danger-soft text-danger text-[12px] font-semibold rounded-md">
@@ -126,9 +141,10 @@ const EditCashAccountDesktopPage = ({
                       value={formData.accountName}
                       onChange={(e) => handleFieldChange("accountName", e.target.value)}
                       placeholder="e.g. Petty Cash Register"
-                      required
+                      required={!isSystemDefault}
+                      disabled={isSystemDefault}
                       error={Boolean(formErrors.accountName)}
-                      helperText={formErrors.accountName || "The unique name of this cash drawer"}
+                      helperText={isSystemDefault ? "Name is locked for system default accounts" : (formErrors.accountName || "The unique name of this cash drawer")}
                       labelSx={labelSx}
                       inputSx={inputSx}
                     />
@@ -146,22 +162,6 @@ const EditCashAccountDesktopPage = ({
                   </div>
 
                   <div className="grid grid-cols-2 gap-5">
-                    {/* Primary Flag */}
-                    <AppSelect
-                      label="Primary Account"
-                      name="isPrimary"
-                      value={formData.isPrimary ? "true" : "false"}
-                      onChange={(e) => handleFieldChange("isPrimary", e.target.value === "true")}
-                      options={booleanOptions}
-                      size="medium"
-                      variant="bordered"
-                      rounded="md"
-                      sx={selectFieldSx}
-                      inputSx={selectInputSx}
-                      helperText="Makes this the default cash chest for general business cash sales"
-                      labelSx={labelSx}
-                    />
-
                     {/* Status select dropdown */}
                     <AppSelect
                       label="Active Status"
@@ -174,8 +174,9 @@ const EditCashAccountDesktopPage = ({
                       rounded="md"
                       sx={selectFieldSx}
                       inputSx={selectInputSx}
-                      helperText="Toggle to enable/disable cash transactions"
+                      helperText={isSystemDefault ? "Status is locked for system default accounts" : "Toggle to enable/disable cash transactions"}
                       labelSx={labelSx}
+                      disabled={isSystemDefault}
                     />
                   </div>
 

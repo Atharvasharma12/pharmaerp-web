@@ -7,8 +7,9 @@ import {
   UIModalFooter,
   UIButton,
 } from "@/components/ui";
-import { Clock, IndianRupee, QrCode, FileText } from "lucide-react";
+import { Clock, IndianRupee, QrCode, FileText, ArrowLeftRight } from "lucide-react";
 import { apiClient } from "@/services";
+import { ShiftFundTransferPanel } from "./ShiftFundTransferPanel";
 
 const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
 
@@ -29,6 +30,16 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
     }
   }, [isOpen, shift]);
 
+  const getFallbackShiftName = () => {
+    if (summary?.shiftName) return summary.shiftName;
+    if (shift?.shiftName) return shift.shiftName;
+    const hour = new Date(shift?.openedAt || shift?.createdAt || new Date()).getHours();
+    if (hour < 12) return "Morning Shift";
+    if (hour < 17) return "Afternoon Shift";
+    if (hour < 20) return "Evening Shift";
+    return "Night Shift";
+  };
+
   return (
     <UIModal isOpen={isOpen} onClose={onClose} size="lg">
       <UIModalHeader>
@@ -44,7 +55,7 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-text-muted">Shift Name</p>
-                <p className="text-sm font-medium">{summary.shiftName || "Evening Shift"}</p>
+                <p className="text-sm font-medium">{getFallbackShiftName()}</p>
               </div>
               <div>
                 <p className="text-xs text-text-muted">Business Date</p>
@@ -74,12 +85,39 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                 <div className="bg-surface-secondary p-3 rounded-lg border border-border">
                   <p className="text-xs text-text-muted">Expected Closing</p>
                   <p className="text-lg font-bold">₹{summary.expectedClosingCashAmount || 0}</p>
+                  <p className="text-[10px] text-text-muted mt-0.5">
+                    Opening + Sales
+                    {summary.totalWithdrawals > 0 && ` − Withdraw`}
+                    {summary.totalDeposits > 0 && ` + Deposit`}
+                  </p>
                 </div>
                 <div className="bg-surface-secondary p-3 rounded-lg border border-border">
                   <p className="text-xs text-text-muted">Actual Closing</p>
                   <p className="text-lg font-bold">₹{summary.actualClosingCashAmount || 0}</p>
                 </div>
               </div>
+
+              {/* Fund transfer impact cards */}
+              {(summary.totalWithdrawals > 0 || summary.totalDeposits > 0) && (
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  {summary.totalWithdrawals > 0 && (
+                    <div className="bg-error/5 p-3 rounded-lg border border-error/20">
+                      <p className="text-xs text-error">Fund Withdrawals</p>
+                      <p className="text-base font-bold text-error">
+                        −₹{Number(summary.totalWithdrawals).toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                  )}
+                  {summary.totalDeposits > 0 && (
+                    <div className="bg-success/5 p-3 rounded-lg border border-success/20">
+                      <p className="text-xs text-success">Fund Deposits</p>
+                      <p className="text-base font-bold text-success">
+                        +₹{Number(summary.totalDeposits).toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Denominations Grid */}
               <div className="grid grid-cols-2 gap-6 mt-4">
@@ -176,6 +214,19 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                   <p className="text-sm font-medium text-primary">₹{summary.qrNet}</p>
                 </div>
               </div>
+            </div>
+
+            {/* ── Fund Transfers Section ── */}
+            <div className="border-t border-border pt-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2 mb-4">
+                <ArrowLeftRight className="w-4 h-4" /> Fund Transfers During Shift
+              </h4>
+              <ShiftFundTransferPanel
+                withdrawals={summary.withdrawals || []}
+                deposits={summary.deposits || []}
+                totalWithdrawals={summary.totalWithdrawals || 0}
+                totalDeposits={summary.totalDeposits || 0}
+              />
             </div>
 
           </div>

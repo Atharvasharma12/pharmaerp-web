@@ -135,19 +135,6 @@ const EditCashAccountMobilePage = ({
                 inputSx={inputSx}
               />
 
-              {/* Primary Flag */}
-              <AppSelect
-                label="Primary Account"
-                name="isPrimary"
-                value={formData.isPrimary ? "true" : "false"}
-                onChange={(e) => handleFieldChange("isPrimary", e.target.value === "true")}
-                options={booleanOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                inputSx={compactFilterInputSx}
-                labelSx={labelSx}
-              />
 
               {/* Status flag */}
               <AppSelect

@@ -257,23 +257,6 @@ export const ENDPOINTS = {
       `/finance/treasury/bank-transactions/${bankTransactionId}/cancel`,
   },
 
-  BANK_SLIP: {
-    CREATE: "/finance/treasury/bank-slips",
-
-    LIST: "/finance/treasury/bank-slips",
-
-    BY_ID: (bankSlipId) => `/finance/treasury/bank-slips/${bankSlipId}`,
-
-    SUBMIT: (bankSlipId) => `/finance/treasury/bank-slips/${bankSlipId}/submit`,
-
-    CONFIRM: (bankSlipId) =>
-      `/finance/treasury/bank-slips/${bankSlipId}/confirm`,
-
-    REJECT: (bankSlipId) => `/finance/treasury/bank-slips/${bankSlipId}/reject`,
-
-    CANCEL: (bankSlipId) => `/finance/treasury/bank-slips/${bankSlipId}/cancel`,
-  },
-
   CASH_ACCOUNT: {
     CREATE: "/finance/treasury/cash-accounts",
 
@@ -527,6 +510,10 @@ export const ENDPOINTS = {
     LIST: "/catalog/purchase-bills",
 
     BY_ID: (billId) => `/catalog/purchase-bills/${billId}`,
+  },
+
+  DASHBOARD: {
+    OVERVIEW: "/dashboard/overview",
   },
 };
 

@@ -24,6 +24,7 @@ import useUser from "@/features/user/hooks/useUser";
 import { usePermission } from "@/hooks";
 import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
 import { UITabs, UISkeleton } from "@/components/ui";
+import { ContextSwitchLoader } from "@/components/ui";
 
 
 const ALL_SELECTOR_TABS = [
@@ -106,6 +107,7 @@ const SidebarCompanySelector = ({
   onToggleCollapse,
   onClose,
   showClose = false,
+  onOpenChange,
 }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -134,7 +136,13 @@ const SidebarCompanySelector = ({
   // Active Tab inside dropdown: "company" | "branch"
   const [activeTab, setActiveTab] = useState("company");
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    onOpenChange?.(isOpen);
+  }, [isOpen, onOpenChange]);
+
   const [isSwitchingBranch, setIsSwitchingBranch] = useState(false);
+  const [switchState, setSwitchState] = useState({ isSwitching: false, type: "company", fromName: "", toName: "" });
 
   const canCreateCompany = isOwner || can("company:create");
   const canCreateBranch = isOwner || can("branch:create");
@@ -252,6 +260,7 @@ const SidebarCompanySelector = ({
     if (!company?._id) return;
 
     if (company._id !== currentCompany?._id) {
+      setSwitchState({ isSwitching: true, type: "company", fromName: currentCompany?.name, toName: company.name });
       dispatch({ type: "APP/RESET_STATE" });
       setCurrentCompany(company);
       clearCurrentBranch();
@@ -262,18 +271,25 @@ const SidebarCompanySelector = ({
       }
 
       try {
+        const tasks = [];
         if (currentWorkspace?._id) {
-          await updateActiveContext({
-            workspaceId: currentWorkspace._id,
-            companyId: company._id,
-            branchId: null,
-          });
+          tasks.push(
+            updateActiveContext({
+              workspaceId: currentWorkspace._id,
+              companyId: company._id,
+              branchId: null,
+            })
+          );
         }
-        await getCompanyBranches();
+        tasks.push(getCompanyBranches());
+        tasks.push(new Promise(resolve => setTimeout(resolve, 800))); // Ensure loader is visible
+        
+        await Promise.all(tasks);
       } catch (error) {
         console.error("Failed to update company context:", error);
       } finally {
         setIsSwitchingBranch(false);
+        setSwitchState({ isSwitching: false, type: "company", fromName: "", toName: "" });
       }
     } else if (branchCompleted) {
       setActiveTab("branch");
@@ -287,19 +303,27 @@ const SidebarCompanySelector = ({
 
     if (branch._id === currentBranch?._id) return;
 
+    setSwitchState({ isSwitching: true, type: "branch", fromName: currentBranch?.name, toName: branch.name });
     dispatch({ type: "APP/RESET_STATE" });
     setCurrentBranch(branch);
 
     try {
       if (currentWorkspace?._id && currentCompany?._id) {
-        await updateActiveContext({
-          workspaceId: currentWorkspace._id,
-          companyId: currentCompany._id,
-          branchId: branch._id,
-        });
+        await Promise.all([
+          updateActiveContext({
+            workspaceId: currentWorkspace._id,
+            companyId: currentCompany._id,
+            branchId: branch._id,
+          }),
+          new Promise(resolve => setTimeout(resolve, 800)) // Ensure loader is visible
+        ]);
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 800));
       }
     } catch (error) {
       console.error("Failed to update branch context:", error);
+    } finally {
+      setSwitchState({ isSwitching: false, type: "branch", fromName: "", toName: "" });
     }
   };
 
@@ -338,9 +362,20 @@ const SidebarCompanySelector = ({
   // ─────────────────────────────────────────────────────────────────────────────
   // 1. COLLAPSED MINI-RAIL VIEW (68px)
   // ─────────────────────────────────────────────────────────────────────────────
+  const loader = (
+    <ContextSwitchLoader
+      isOpen={switchState.isSwitching}
+      type={switchState.type || "company"}
+      fromName={switchState.fromName}
+      toName={switchState.toName}
+    />
+  );
+
   if (collapsed) {
     return (
-      <div className="relative flex flex-col items-center justify-center border-b border-border p-2">
+      <>
+        {loader}
+        <div className="relative flex flex-col items-center justify-center border-b border-border p-2">
         <button
           ref={triggerRef}
           type="button"
@@ -570,6 +605,7 @@ const SidebarCompanySelector = ({
           document.body
         )}
       </div>
+      </>
     );
   }
 
@@ -577,7 +613,9 @@ const SidebarCompanySelector = ({
   // 2. EXPANDED VIEW (Desktop 240px & Mobile Drawer)
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="relative flex h-13 shrink-0 items-center justify-between border-b border-border px-2.5">
+    <>
+      {loader}
+      <div className="relative flex h-13 shrink-0 items-center justify-between border-b border-border px-2.5">
       {/* Interactive Trigger Button */}
       <button
         ref={triggerRef}
@@ -815,6 +853,7 @@ const SidebarCompanySelector = ({
         document.body
       )}
     </div>
+    </>
   );
 };
 
