@@ -128,16 +128,16 @@ const useSupplier = () => {
   |--------------------------------------------------------------------------
   */
 
-  const fetchSupplierLedger = useCallback((supplierId) => {
-    return dispatch(getSupplierLedger(supplierId)).unwrap();
+  const fetchSupplierLedger = useCallback(({ supplierId, params }) => {
+    return dispatch(getSupplierLedger({ supplierId, params })).unwrap();
   }, [dispatch]);
 
   const fetchSupplierOutstanding = useCallback((supplierId) => {
     return dispatch(getSupplierOutstanding(supplierId)).unwrap();
   }, [dispatch]);
 
-  const fetchSupplierPurchases = useCallback((supplierId) => {
-    return dispatch(getSupplierPurchases(supplierId)).unwrap();
+  const fetchSupplierPurchases = useCallback(({ supplierId, params }) => {
+    return dispatch(getSupplierPurchases({ supplierId, params })).unwrap();
   }, [dispatch]);
 
   const fetchSupplierPayments = useCallback((supplierId) => {

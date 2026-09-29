@@ -35,16 +35,16 @@ const supplierService = {
   |--------------------------------------------------------------------------
   */
 
-  getSupplierLedger(supplierId) {
-    return apiClient.get(ENDPOINTS.SUPPLIER.LEDGER(supplierId));
+  getSupplierLedger(supplierId, params = {}) {
+    return apiClient.get(ENDPOINTS.SUPPLIER.LEDGER(supplierId), { params });
   },
 
   getSupplierOutstanding(supplierId) {
     return apiClient.get(ENDPOINTS.SUPPLIER.OUTSTANDING(supplierId));
   },
 
-  getSupplierPurchases(supplierId) {
-    return apiClient.get(ENDPOINTS.SUPPLIER.PURCHASES(supplierId));
+  getSupplierPurchases(supplierId, params = {}) {
+    return apiClient.get(ENDPOINTS.SUPPLIER.PURCHASES(supplierId), { params });
   },
 
   getSupplierPayments(supplierId) {

@@ -1,6 +1,8 @@
 // src/features/parties/suppliers/pages/desktop/SupplierDetailsDesktopPage.jsx
 
 import { useMemo, useState } from "react";
+import { useDispatch } from "react-redux";
+import { getSupplierLedger, getSupplierPurchases } from "../../store/supplierThunk";
 import {
   FiArrowLeft,
   FiRefreshCw,
@@ -44,9 +46,9 @@ import { formatDate, formatCurrency } from "@/utils";
 
 const SupplierDetailsDesktopPage = ({
   supplier,
-  ledger = [],
+  ledger = {},
   outstanding,
-  purchases = [],
+  purchases = {},
   payments = [],
   isLoading,
   hasError,
@@ -83,29 +85,35 @@ const SupplierDetailsDesktopPage = ({
 
   const safeSupplier = supplier || {};
 
+  const purchasesData = Array.isArray(purchases?.bills) ? purchases.bills : (Array.isArray(purchases) ? purchases : []);
+  const purchasesMeta = purchases?.total !== undefined ? purchases : { total: 0 };
+
+  const ledgerData = Array.isArray(ledger?.entries) ? ledger.entries : (Array.isArray(ledger) ? ledger : []);
+  const ledgerMeta = ledger?.meta || { totalDebit: 0, totalCredit: 0 };
+
   // Dynamically calculate metrics from purchases/payments/outstanding
   const calculatedMetrics = useMemo(() => {
-    const totalPurchasesVal = purchases.reduce((acc, p) => acc + (p.totalAmount || p.amount || 0), 0);
+    const totalPurchasesVal = purchasesData.reduce((acc, p) => acc + (p.grandTotal || 0), 0);
     const totalPaymentsVal = payments.reduce((acc, p) => acc + (p.amount || 0), 0);
-    
+
     // Outstanding = Opening Balance + Total Purchases - Total Payments (Payables)
     const opBal = Number(safeSupplier.openingBalance) || 0;
     const opBalType = safeSupplier.openingBalanceType || "cr";
     const opBalSigned = opBalType === "cr" ? opBal : -opBal;
-    
+
     const outstandingVal = opBalSigned + totalPurchasesVal - totalPaymentsVal;
 
     // Combine transactions
     const combinedTx = [
-      ...purchases.map((p) => ({
-        id: p._id || p.billNumber || p.invoiceNumber,
+      ...purchasesData.map((p) => ({
+        id: p._id || p.purchaseBillNo || p.supplierInvoiceNo,
         type: "Purchase Bill",
-        refNo: p.billNumber || p.invoiceNumber,
-        date: p.billDate || p.createdAt,
+        refNo: p.purchaseBillNo || p.supplierInvoiceNo,
+        date: p.invoiceDate || p.createdAt,
         dueDate: p.dueDate || "-",
-        amount: p.totalAmount || p.amount,
+        amount: p.grandTotal || 0,
         status: p.status || "Unpaid",
-        rawDate: new Date(p.billDate || p.createdAt).getTime(),
+        rawDate: new Date(p.invoiceDate || p.createdAt).getTime(),
       })),
       ...payments.map((p) => ({
         id: p._id || p.paymentNumber,
@@ -125,12 +133,13 @@ const SupplierDetailsDesktopPage = ({
       totalPurchases: totalPurchasesVal,
       totalPayments: totalPaymentsVal,
       outstandingPayable: outstandingVal,
-      totalTransactions: combinedTx.length,
+      totalTransactions: purchasesMeta.total || combinedTx.length,
       lastTransactionDate: lastTxDate,
       recentTransactions: combinedTx.slice(0, 5),
       allTransactions: combinedTx,
+      purchasesMeta,
     };
-  }, [purchases, payments, safeSupplier]);
+  }, [purchasesData, purchasesMeta, payments, safeSupplier]);
 
   // Tab Header Items
   const tabs = [
@@ -151,7 +160,7 @@ const SupplierDetailsDesktopPage = ({
             size="small"
             variant="text"
             items={[
-              { label: "Dashboard", onClick: () => {} },
+              { label: "Dashboard", onClick: () => { } },
               { label: "Parties", onClick: handleBack },
               { label: "Suppliers", onClick: handleBack },
               {
@@ -256,11 +265,10 @@ const SupplierDetailsDesktopPage = ({
                 key={tab.value}
                 type="button"
                 onClick={() => handleTabChange(tab.value)}
-                className={`border-b-2 px-4 pb-2.5 text-[12.5px] font-bold transition whitespace-nowrap outline-none ${
-                  isActive
+                className={`border-b-2 px-4 pb-2.5 text-[12.5px] font-bold transition whitespace-nowrap outline-none ${isActive
                     ? "border-primary text-primary"
                     : "border-transparent text-text-muted hover:text-text"
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -279,10 +287,10 @@ const SupplierDetailsDesktopPage = ({
             />
           )}
           {currentTab === "transactions" && (
-            <TransactionsTab metrics={calculatedMetrics} />
+            <TransactionsTab metrics={calculatedMetrics} supplierId={safeSupplier._id} />
           )}
           {currentTab === "statement" && (
-            <StatementTab supplier={safeSupplier} metrics={calculatedMetrics} />
+            <StatementTab supplier={safeSupplier} ledger={ledger} />
           )}
           {currentTab === "documents" && (
             <DocumentsTab supplier={safeSupplier} />
@@ -481,8 +489,8 @@ const OverviewTab = ({ supplier, metrics, onTabChange, onEdit }) => {
                             tx.status.toLowerCase() === "paid" || tx.status.toLowerCase() === "completed"
                               ? "success"
                               : tx.status.toLowerCase() === "partial"
-                              ? "warning"
-                              : "danger"
+                                ? "warning"
+                                : "danger"
                           }
                           variant="soft"
                           rounded="md"
@@ -597,9 +605,28 @@ const OverviewTab = ({ supplier, metrics, onTabChange, onEdit }) => {
 /* ==========================================================================
    2. TRANSACTIONS TAB
    ========================================================================== */
-const TransactionsTab = ({ metrics }) => (
-  <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
-    <div className="border-b border-border px-4 py-3.5 bg-surface-alt/10">
+const TransactionsTab = ({ metrics, supplierId }) => {
+  const dispatch = useDispatch();
+  const purchasesMeta = metrics.purchasesMeta || { page: 1, total: metrics.totalTransactions };
+  const currentPage = purchasesMeta.page || 1;
+  const rowsPerPage = 5;
+  const totalPages = Math.ceil((purchasesMeta.total || metrics.totalTransactions) / rowsPerPage);
+
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      dispatch(getSupplierPurchases({ supplierId, params: { page: currentPage + 1, limit: rowsPerPage } }));
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentPage > 1) {
+      dispatch(getSupplierPurchases({ supplierId, params: { page: currentPage - 1, limit: rowsPerPage } }));
+    }
+  };
+
+  return (
+    <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
+      <div className="border-b border-border px-4 py-3.5 bg-surface-alt/10">
       <AppHeading level={2} weight={700} sx={cardHeaderTitleSx}>Transaction Log Book</AppHeading>
       <span className="block text-[11px] text-text-muted mt-0.5">Historical purchases records, debit notes and payments made.</span>
     </div>
@@ -635,8 +662,8 @@ const TransactionsTab = ({ metrics }) => (
                       tx.status.toLowerCase() === "paid" || tx.status.toLowerCase() === "completed"
                         ? "success"
                         : tx.status.toLowerCase() === "partial"
-                        ? "warning"
-                        : "danger"
+                          ? "warning"
+                          : "danger"
                     }
                     variant="soft"
                     rounded="md"
@@ -648,59 +675,103 @@ const TransactionsTab = ({ metrics }) => (
           </tbody>
         </table>
       )}
+      
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-border px-4 py-3 bg-surface">
+          <span className="text-[12px] text-text-muted">
+            Page {currentPage} of {totalPages} (Total {purchasesMeta.total} entries)
+          </span>
+          <div className="flex space-x-2">
+            <AppButton
+              variant="outlined"
+              colorVariant="neutral"
+              size="small"
+              onClick={handlePrev}
+              disabled={currentPage === 1}
+              sx={{ height: 28, fontSize: "11px", px: 2 }}
+            >
+              Previous
+            </AppButton>
+            <AppButton
+              variant="outlined"
+              colorVariant="neutral"
+              size="small"
+              onClick={handleNext}
+              disabled={currentPage === totalPages}
+              sx={{ height: 28, fontSize: "11px", px: 2 }}
+            >
+              Next
+            </AppButton>
+          </div>
+        </div>
+      )}
     </div>
   </AppCard>
-);
+  );
+};
 
 /* ==========================================================================
    3. STATEMENT TAB
    ========================================================================== */
-const StatementTab = ({ supplier, metrics }) => {
-  const statementRows = useMemo(() => {
-    const opBal = Number(supplier.openingBalance) || 0;
-    const opBalType = supplier.openingBalanceType || "cr";
-    
-    let runningBal = opBalType === "cr" ? opBal : -opBal;
+const StatementTab = ({ supplier, ledger }) => {
+  const dispatch = useDispatch();
+  const ledgerEntries = Array.isArray(ledger?.entries) ? ledger.entries : [];
+  console.log("StatementTab Render - ledger prop:", ledger);
+  console.log("StatementTab Render - ledgerEntries:", ledgerEntries);
+  
+  const currentPage = ledger?.page || 1;
+  const totalEntries = ledger?.total || 0;
+  const totalDebit = ledger?.meta?.totalDebit || 0;
+  const totalCredit = ledger?.meta?.totalCredit || 0;
+  const netBalance = totalCredit - totalDebit;
+  const rowsPerPage = 5;
+  const totalPages = Math.ceil(totalEntries / rowsPerPage);
 
-    const rows = [
-      {
+  const statementRows = useMemo(() => {
+    const rows = [];
+
+    ledgerEntries.forEach((entry) => {
+      rows.push({
+        id: entry._id,
+        date: entry.voucherDate,
+        particulars: entry.narration || `${entry.voucherType} (Ref: ${entry.voucherNumber})`,
+        debit: entry.debit,
+        credit: entry.credit,
+        balance: entry.runningBalance,
+        isOpening: false,
+      });
+    });
+
+    // Only show Opening Balance at the bottom of the last page
+    if (currentPage === totalPages || totalPages === 0) {
+      const opBal = Number(supplier.openingBalance) || 0;
+      const opBalType = supplier.openingBalanceType || "cr";
+      rows.push({
         id: "opening-bal",
         date: supplier.createdAt || "2024-05-28",
         particulars: "Opening Balance",
         debit: opBalType === "dr" ? opBal : 0,
         credit: opBalType === "cr" ? opBal : 0,
-        balance: runningBal,
+        balance: opBalType === "dr" ? opBal : -opBal,
         isOpening: true,
-      },
-    ];
-
-    // Sort transactions chronologically ascending
-    const chronoTx = [...metrics.allTransactions].reverse();
-
-    chronoTx.forEach((tx) => {
-      let deb = 0;
-      let cred = 0;
-      if (tx.type === "Purchase Bill") {
-        cred = tx.amount;
-        runningBal += cred;
-      } else {
-        deb = tx.amount;
-        runningBal -= deb;
-      }
-
-      rows.push({
-        id: tx.id,
-        date: tx.date,
-        particulars: `${tx.type} (Ref: ${tx.refNo})`,
-        debit: deb,
-        credit: cred,
-        balance: runningBal,
-        isOpening: false,
       });
-    });
+    }
 
     return rows;
-  }, [supplier, metrics]);
+  }, [supplier, ledgerEntries, currentPage, totalPages]);
+
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      dispatch(getSupplierLedger({ supplierId: supplier._id, params: { page: currentPage + 1, limit: rowsPerPage } }));
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentPage > 1) {
+      dispatch(getSupplierLedger({ supplierId: supplier._id, params: { page: currentPage - 1, limit: rowsPerPage } }));
+    }
+  };
 
   return (
     <AppCard variant="default" rounded="lg" bordered padding="none" sx={sectionCardSx}>
@@ -744,7 +815,48 @@ const StatementTab = ({ supplier, metrics }) => {
               </tr>
             ))}
           </tbody>
+          <tfoot className="bg-surface-alt/20">
+            <tr className="border-t-2 border-border font-bold text-[12.5px]">
+              <td colSpan="2" className="px-4 py-3 text-right">Grand Total Summary:</td>
+              <td className="px-4 py-3 text-right text-danger">{formatCurrency(totalDebit)}</td>
+              <td className="px-4 py-3 text-right text-success">{formatCurrency(totalCredit)}</td>
+              <td className="px-4 py-3 text-right">
+                {formatCurrency(Math.abs(netBalance))} {netBalance >= 0 ? "Cr" : "Dr"}
+              </td>
+            </tr>
+          </tfoot>
         </table>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-border px-4 py-3 bg-surface">
+            <span className="text-[12px] text-text-muted">
+              Page {currentPage} of {totalPages} (Total {totalEntries} entries)
+            </span>
+            <div className="flex space-x-2">
+              <AppButton
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                onClick={handlePrev}
+                disabled={currentPage === 1}
+                sx={{ height: 28, fontSize: "11px", px: 2 }}
+              >
+                Previous
+              </AppButton>
+              <AppButton
+                variant="outlined"
+                colorVariant="neutral"
+                size="small"
+                onClick={handleNext}
+                disabled={currentPage === totalPages}
+                sx={{ height: 28, fontSize: "11px", px: 2 }}
+              >
+                Next
+              </AppButton>
+            </div>
+          </div>
+        )}
       </div>
     </AppCard>
   );
