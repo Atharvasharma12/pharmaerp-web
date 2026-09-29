@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin,
@@ -23,6 +24,7 @@ import { usePermission } from "@/hooks";
 const SidebarBranchSelector = ({ collapsed = false }) => {
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
+  const dispatch = useDispatch();
 
   const { isOwner, can } = usePermission();
   const { currentWorkspace } = useWorkspace();
@@ -119,6 +121,7 @@ const SidebarBranchSelector = ({ collapsed = false }) => {
 
     if (branch._id === currentBranch?._id) return;
 
+    dispatch({ type: "APP/RESET_STATE" });
     setCurrentBranch(branch);
 
     try {

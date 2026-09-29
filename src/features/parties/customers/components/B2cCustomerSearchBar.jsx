@@ -24,6 +24,7 @@ export const B2cCustomerSearchBar = forwardRef(
       autoFocus = false,
       showAddNewAction = true,
       onAddNewCustomer,
+    onInputChange,
       className = "",
       inputClassName = "",
       dropdownClassName = "",
@@ -94,7 +95,7 @@ export const B2cCustomerSearchBar = forwardRef(
         }
 
         // Combine local and API results removing duplicates
-        const combined = [...localMatches];
+        const combined = [];
         apiResults.forEach((apiCust) => {
           if (!combined.some((c) => c.id === apiCust._id || c.id === apiCust.id || c.phone === apiCust.phone)) {
             combined.push({
@@ -148,6 +149,7 @@ export const B2cCustomerSearchBar = forwardRef(
       if (!isControlled) {
         setSearchTerm(val);
       }
+      if (onInputChange) onInputChange(val);
       setIsOpen(true);
       setSelectedIndex(-1);
     };
@@ -370,3 +372,4 @@ export const B2cCustomerSearchBar = forwardRef(
 
 B2cCustomerSearchBar.displayName = "B2cCustomerSearchBar";
 export default B2cCustomerSearchBar;
+

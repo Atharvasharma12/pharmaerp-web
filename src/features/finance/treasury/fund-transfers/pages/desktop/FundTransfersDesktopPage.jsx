@@ -68,6 +68,7 @@ const FundTransfersDesktopPage = ({
   handleRefresh,
 }) => {
   const navigate = useNavigate();
+  const { can } = usePermission();
 
   // Aggregate stats
   const stats = useMemo(() => {
@@ -278,7 +279,7 @@ const FundTransfersDesktopPage = ({
         },
       },
     ],
-    [handleViewDetails, handleCancelTransfer],
+    [handleViewDetails, handleCancelTransfer, can],
   );
 
   return (

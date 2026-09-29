@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
+import useCompany from "@/features/company/hooks/useCompany";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 import AppDesktopHeader from "./AppDesktopHeader";
 import AppDesktopSidebar from "./AppDesktopSidebar";
@@ -12,6 +14,8 @@ const SIDEBAR_COLLAPSED_WIDTH = 68;
 const AppDesktopLayout = () => {
   // Collapsed state (false = expanded 240px, true = collapsed icon rail 68px)
   const [collapsed, setCollapsed] = useState(false);
+  const { currentCompany } = useCompany();
+  const { currentBranch } = useBranch();
 
   const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
 
@@ -36,7 +40,7 @@ const AppDesktopLayout = () => {
         />
 
         <main className="mt-[58px] min-h-[calc(100dvh-58px)] min-w-0 flex-1 overflow-y-auto px-6 py-6">
-          <Outlet />
+          <Outlet key={`${currentCompany?._id}-${currentBranch?._id}`} />
         </main>
       </div>
     </div>

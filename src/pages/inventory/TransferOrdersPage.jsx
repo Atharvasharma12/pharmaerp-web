@@ -30,10 +30,6 @@ const TransferOrdersPage = () => {
     getCompanyBranches();
   }, [getCompanyBranches]);
 
-  useEffect(() => {
-    fetchTransferOrders();
-  }, [page, filters]);
-
   const fetchTransferOrders = async () => {
     try {
       setLoading(true);
@@ -51,6 +47,11 @@ const TransferOrdersPage = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchTransferOrders();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filters]);
 
   const handleReceive = async (id) => {
     if (!window.confirm("Are you sure you want to receive this order and update inventory?")) return;

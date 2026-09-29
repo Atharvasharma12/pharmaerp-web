@@ -344,3 +344,4 @@ export const B2bCustomerSearchBar = forwardRef(
 
 B2bCustomerSearchBar.displayName = "B2bCustomerSearchBar";
 export default B2bCustomerSearchBar;
+
