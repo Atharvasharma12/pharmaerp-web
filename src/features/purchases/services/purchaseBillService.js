@@ -20,6 +20,14 @@ const purchaseBillService = {
   ingestPurchaseBill(billId) {
     return apiClient.post(`${ENDPOINTS.PURCHASE_BILL.BY_ID(billId)}/ingest`);
   },
+
+  payPurchaseBill(billId, payload) {
+    return apiClient.post(`${ENDPOINTS.PURCHASE_BILL.BY_ID(billId)}/pay`, payload);
+  },
+
+  bulkPayPurchaseBills(payload) {
+    return apiClient.post(`/catalog/purchase-bills/bulk/pay`, payload);
+  },
 };
 
 export default purchaseBillService;

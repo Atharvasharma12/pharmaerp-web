@@ -29,6 +29,18 @@ const supplierService = {
     return apiClient.delete(ENDPOINTS.SUPPLIER.BY_ID(supplierId));
   },
 
+  previewImport(formData) {
+    return apiClient.post(ENDPOINTS.SUPPLIER.IMPORT_PREVIEW, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  confirmImport(suppliers) {
+    return apiClient.post(ENDPOINTS.SUPPLIER.IMPORT_CONFIRM, { suppliers });
+  },
+
   /*
   |--------------------------------------------------------------------------
   | Financial

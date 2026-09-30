@@ -34,6 +34,7 @@ import {
   selectSupplierTotal,
   selectSupplierPage,
   selectSupplierLimit,
+  selectSupplierStats,
   selectSupplierStatus,
   selectSupplierError,
   selectSupplierMessage,
@@ -62,6 +63,7 @@ const useSupplier = () => {
   const total = useSelector(selectSupplierTotal);
   const page = useSelector(selectSupplierPage);
   const limit = useSelector(selectSupplierLimit);
+  const stats = useSelector(selectSupplierStats);
 
   const status = useSelector(selectSupplierStatus);
   const error = useSelector(selectSupplierError);
@@ -194,6 +196,7 @@ const useSupplier = () => {
     total,
     page,
     limit,
+    stats,
 
     status,
     error,

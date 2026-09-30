@@ -1,6 +1,6 @@
 // src/features/parties/suppliers/pages/desktop/SuppliersDesktopPage.jsx
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Users,
   Plus,
@@ -39,6 +39,8 @@ import {
 } from "@/components/ui";
 import { AppTable } from "@/components";
 import { TopBarStats } from "@/layouts/app/components/header";
+import supplierService from "../../services/supplierService";
+import SupplierImportPreviewModal from "../../components/SupplierImportPreviewModal";
 
 const SORT_OPTIONS = [
   { value: "name_asc", label: "Name: A to Z" },
@@ -82,23 +84,86 @@ const SuppliersDesktopPage = ({
   handleRefresh,
 
   clearMessage,
+
+  currentPage: propCurrentPage,
+  pageSize: propPageSize,
+  onPageChange: propOnPageChange,
+  onPageSizeChange: propOnPageSizeChange,
 }) => {
   // Local pagination if parent doesn't provide it
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
+  const [localCurrentPage, setLocalCurrentPage] = React.useState(1);
+  const [localPageSize, setLocalPageSize] = React.useState(12);
 
-  const paginatedSuppliers = propPaginatedSuppliers || suppliers.slice(
+  const currentPage = propCurrentPage !== undefined ? propCurrentPage : localCurrentPage;
+  const pageSize = propPageSize !== undefined ? propPageSize : localPageSize;
+
+  const handlePageChange = (page) => {
+    if (propOnPageChange) propOnPageChange(page);
+    else setLocalCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (size) => {
+    if (propOnPageSizeChange) propOnPageSizeChange(size);
+    else setLocalPageSize(size);
+  };
+
+  // Import State
+  const fileInputRef = useRef(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importPreviewData, setImportPreviewData] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const res = await supplierService.previewImport(formData);
+      setImportPreviewData(res.data?.data || []);
+      setIsImportModalOpen(true);
+    } catch (err) {
+      console.error("Failed to upload for preview", err);
+      alert(err?.response?.data?.message || "Failed to parse Excel file.");
+    } finally {
+      setIsUploading(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleImportSuccess = (successful, failed, errors = []) => {
+    setIsImportModalOpen(false);
+    if (failed > 0) {
+      alert(`Imported ${successful} suppliers successfully. ${failed} failed.\n\nErrors:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...and more' : ''}`); 
+    } else {
+      alert(`Imported ${successful} suppliers successfully.`);
+    }
+    if (successful > 0) {
+      handleRefresh();
+    }
+  };
+
+  const isServerPaginated = !!propOnPageChange;
+  const paginatedSuppliers = isServerPaginated ? suppliers : suppliers.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
   
   const totalPages = Math.ceil(filteredSuppliersCount / pageSize) || 1;
 
-  const handlePageChange = (newPage) => setCurrentPage(newPage);
-  const handlePageSizeChange = (newSize) => {
-    setPageSize(newSize);
-    setCurrentPage(1);
-  };
+
 
   const getInitials = (name) => {
     if (!name) return "NA";
@@ -213,15 +278,26 @@ const SuppliersDesktopPage = ({
               <RotateCcw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
             </UIIconButton>
 
-            <UIButton
-              type="button"
-              variant="outline"
-              size="sm"
-              startIcon={<Download className="size-4" />}
-              // onClick={handleExportCSV}
-            >
-              Export
-            </UIButton>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              style={{ display: "none" }} 
+              accept=".xlsx,.xls" 
+              onChange={handleFileChange} 
+            />
+            
+            <PermissionGate permission="supplier:create">
+              <UIButton
+                type="button"
+                variant="outline"
+                size="sm"
+                startIcon={<Download className="size-4" />}
+                onClick={handleImportClick}
+                disabled={isUploading}
+              >
+                {isUploading ? "Uploading..." : "Import"}
+              </UIButton>
+            </PermissionGate>
 
             <PermissionGate permission="supplier:create">
               <UIButton
@@ -237,6 +313,22 @@ const SuppliersDesktopPage = ({
           </div>
         }
       />
+
+      {/* ── Financial Stats ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-surface rounded-2xl border border-border shadow-xs p-5 flex flex-col justify-center">
+          <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Total Payables</h4>
+          <p className="text-xl font-bold text-rose-600">₹{(stats?.totalCr || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">Cr</span></p>
+        </div>
+        <div className="bg-surface rounded-2xl border border-border shadow-xs p-5 flex flex-col justify-center">
+          <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Total Receivables</h4>
+          <p className="text-xl font-bold text-emerald-600">₹{(stats?.totalDr || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">Dr</span></p>
+        </div>
+        <div className="bg-surface rounded-2xl border border-border shadow-xs p-5 flex flex-col justify-center">
+          <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Net Running Balance</h4>
+          <p className="text-xl font-bold text-primary">₹{(stats?.netRunning || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">{stats?.runningType || 'Cr'}</span></p>
+        </div>
+      </div>
 
       {/* ── Filter Modal ── */}
       <UIModal
@@ -470,8 +562,10 @@ const SuppliersDesktopPage = ({
                       <p className="text-[13px] font-semibold text-text">{supplier.displayMobile || "-"}</p>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1">Email</p>
-                      <p className="text-[13px] font-semibold text-text truncate" title={supplier.displayEmail}>{supplier.displayEmail || "-"}</p>
+                      <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1">Outstanding</p>
+                      <p className={`text-[13px] font-bold truncate ${supplier.balanceType?.toLowerCase() === 'dr' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        ₹{(supplier.outstandingAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {supplier.balanceType?.toUpperCase() || "CR"}
+                      </p>
                     </div>
                   </div>
                   
@@ -620,6 +714,14 @@ const SuppliersDesktopPage = ({
           />
         </div>
       )}
+
+      {/* ── Import Preview Modal ── */}
+      <SupplierImportPreviewModal 
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        previewData={importPreviewData}
+        onImportSuccess={handleImportSuccess}
+      />
     </div>
   );
 };

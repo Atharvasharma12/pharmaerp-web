@@ -16,6 +16,8 @@ const initialFilters = {
   search: "",
   status: "all",
   type: "all",
+  page: 1,
+  limit: 12,
 };
 
 const normalizeText = (value) =>
@@ -54,6 +56,8 @@ const mapSupplierForView = (supplier) => {
     displayStatus: supplier?.status || "Active",
     displayCreatedAt: formatDate(supplier?.createdAt),
     displayUpdatedAt: formatDate(supplier?.updatedAt),
+    outstandingAmount: supplier?.outstandingAmount || 0,
+    balanceType: supplier?.balanceType || "cr",
   };
 };
 
@@ -65,6 +69,8 @@ const SuppliersPage = () => {
 
   const {
     suppliers,
+    total,
+    stats: serverStats,
     getSuppliers,
     deleteSupplier,
     getSuppliersStatus,
@@ -86,11 +92,18 @@ const SuppliersPage = () => {
 
   const fetchSuppliers = useCallback(async () => {
     try {
-      await getSuppliers();
+      const queryParams = { ...filters };
+      if (queryParams.status === "all") delete queryParams.status;
+      if (queryParams.type === "all") delete queryParams.type;
+      else {
+        queryParams.supplierType = queryParams.type;
+        delete queryParams.type;
+      }
+      await getSuppliers(queryParams);
     } catch {
       // Regulated by store selectors
     }
-  }, [getSuppliers]);
+  }, [getSuppliers, filters]);
 
   useEffect(() => {
     if (!companyId) return;
@@ -110,40 +123,44 @@ const SuppliersPage = () => {
     [suppliers],
   );
 
-  const filteredSuppliers = useMemo(() => {
-    const search = normalizeText(filters.search);
-
-    return mappedSuppliers.filter((supplier) => {
-      const matchesSearch =
-        !search ||
-        normalizeText(supplier.displayName).includes(search) ||
-        normalizeText(supplier.displayCode).includes(search) ||
-        normalizeText(supplier.displayEmail).includes(search) ||
-        normalizeText(supplier.displayMobile).includes(search);
-
-      const matchesStatus =
-        filters.status === "all" || normalizeText(supplier.status) === normalizeText(filters.status);
-
-      const matchesType =
-        filters.type === "all" || normalizeText(supplier.supplierType || supplier.type) === normalizeText(filters.type);
-
-      return matchesSearch && matchesStatus && matchesType;
-    });
-  }, [mappedSuppliers, filters]);
+  const filteredSuppliers = mappedSuppliers;
 
   const stats = useMemo(() => {
-    const total = mappedSuppliers.length;
+    if (serverStats) {
+      return serverStats;
+    }
+    
+    // Fallback to local calculation if serverStats is not available
+    const fallbackTotal = mappedSuppliers.length;
     const active = mappedSuppliers.filter((c) => normalizeText(c.status) === "active").length;
     const inactive = mappedSuppliers.filter((c) => normalizeText(c.status) === "inactive").length;
     const blocked = mappedSuppliers.filter((c) => normalizeText(c.status) === "blocked").length;
 
+    let totalCr = 0;
+    let totalDr = 0;
+    mappedSuppliers.forEach((s) => {
+      const amt = Number(s.outstandingAmount) || 0;
+      if (String(s.balanceType).toLowerCase() === "dr") {
+        totalDr += amt;
+      } else {
+        totalCr += amt;
+      }
+    });
+
+    const netRunning = totalCr - totalDr;
+    const runningType = netRunning >= 0 ? "Cr" : "Dr";
+
     return {
-      total,
+      total: fallbackTotal,
       active,
       inactive,
       blocked,
+      totalCr,
+      totalDr,
+      netRunning: Math.abs(netRunning),
+      runningType,
     };
-  }, [mappedSuppliers]);
+  }, [serverStats, mappedSuppliers]);
 
   const typeDistribution = useMemo(() => {
     const total = mappedSuppliers.length || 1;
@@ -206,7 +223,7 @@ const SuppliersPage = () => {
 
   const handleSearchChange = useCallback((event) => {
     const value = event?.target?.value ?? event;
-    setFilters((prev) => ({ ...prev, search: value }));
+    setFilters((prev) => ({ ...prev, search: value, page: 1 })); // reset page on search
   }, []);
 
   const handleRemoveFilter = useCallback((key) => {
@@ -286,10 +303,15 @@ const SuppliersPage = () => {
     error,
     message,
 
-    totalSuppliers: mappedSuppliers.length,
-    filteredSuppliersCount: filteredSuppliers.length,
-    hasSuppliers: mappedSuppliers.length > 0,
-    hasFilteredSuppliers: filteredSuppliers.length > 0,
+    totalSuppliers: total || 0,
+    filteredSuppliersCount: total || 0,
+    hasSuppliers: true,
+    hasFilteredSuppliers: true,
+
+    currentPage: filters.page,
+    pageSize: filters.limit,
+    onPageChange: (newPage) => setFilters(prev => ({ ...prev, page: newPage })),
+    onPageSizeChange: (newLimit) => setFilters(prev => ({ ...prev, limit: newLimit, page: 1 })),
 
     handleFilterChange,
     handleSearchChange,

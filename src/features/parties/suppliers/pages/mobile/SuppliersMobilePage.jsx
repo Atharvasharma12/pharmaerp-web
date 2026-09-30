@@ -74,8 +74,14 @@ const SuppliersMobilePage = ({
   handleDeleteSupplier,
   handleRefresh,
   isLoading,
+  
+  currentPage = 1,
+  pageSize = 12,
+  onPageChange,
+  onPageSizeChange,
 }) => {
-  const shouldRenderPagination = hasFilteredSuppliers && totalSuppliers > 10;
+  const totalPages = Math.ceil(totalSuppliers / pageSize) || 1;
+  const shouldRenderPagination = hasFilteredSuppliers && totalPages > 1;
   const navigate = useNavigate();
 
   return (
@@ -424,42 +430,32 @@ const SuppliersMobilePage = ({
             <AppStack
               direction="row"
               align="center"
-              justify="center"
-              gap={0.5}
-              sx={{ width: "100%" }}
+              justify="space-between"
+              sx={{ width: "100%", px: 1 }}
             >
-              <AppIconButton
-                icon={<FiChevronLeft />}
+              <AppButton
                 variant="outlined"
                 colorVariant="neutral"
                 size="small"
-                rounded="md"
-                disabled
-                sx={paginationArrowBtnSx}
-              />
-              <span className="flex h-[30px] min-w-[30px] items-center justify-center rounded-md bg-success text-[11.5px] font-bold text-text-inverse shadow-sm">
-                1
-              </span>
-              <span className="flex h-[30px] min-w-[30px] items-center justify-center rounded-md border border-border bg-surface text-[11.5px] font-bold text-text transition active:bg-surface-active">
-                2
-              </span>
-              <span className="flex h-[30px] min-w-[30px] items-center justify-center rounded-md border border-border bg-surface text-[11.5px] font-bold text-text transition active:bg-surface-active">
-                3
-              </span>
-              <span className="flex h-[30px] min-w-[30px] items-center justify-center text-[11.5px] font-bold text-text-muted">
-                ...
-              </span>
-              <span className="flex h-[30px] min-w-[30px] items-center justify-center rounded-md border border-border bg-surface text-[11.5px] font-bold text-text transition active:bg-surface-active">
-                249
-              </span>
-              <AppIconButton
-                icon={<FiChevronRight />}
+                onClick={() => onPageChange?.(currentPage - 1)}
+                disabled={currentPage <= 1 || isLoading}
+                startIcon={<FiChevronLeft />}
+              >
+                Prev
+              </AppButton>
+              <AppText variant="caption" weight={600} color="muted">
+                Page {currentPage} of {totalPages}
+              </AppText>
+              <AppButton
                 variant="outlined"
                 colorVariant="neutral"
                 size="small"
-                rounded="md"
-                sx={paginationArrowBtnSx}
-              />
+                onClick={() => onPageChange?.(currentPage + 1)}
+                disabled={currentPage >= totalPages || isLoading}
+                endIcon={<FiChevronRight />}
+              >
+                Next
+              </AppButton>
             </AppStack>
           </AppBox>
         )}
