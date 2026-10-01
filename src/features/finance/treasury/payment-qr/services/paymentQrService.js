@@ -26,6 +26,10 @@ const paymentQrService = {
   setPrimaryPaymentQr(paymentQrId) {
     return apiClient.post(ENDPOINTS.PAYMENT_QR.SET_PRIMARY(paymentQrId));
   },
+
+  getPaymentQrStats(paymentQrId, params = {}) {
+    return apiClient.get(ENDPOINTS.PAYMENT_QR.STATS(paymentQrId), { params });
+  },
 };
 
 export default paymentQrService;

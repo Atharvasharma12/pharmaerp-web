@@ -29,8 +29,10 @@ import cashTransactionReducer from "@/features/finance/treasury/cash-management/
 import cashDenominationReducer from "@/features/finance/treasury/cash-management/cash-denominations/store/cashDenominationSlice";
 
 import fundTransferReducer from "@/features/finance/treasury/fund-transfers/store/fundTransferSlice";
+import cashExchangeReducer from "@/features/finance/treasury/cash-management/exchange-cash/store/cashExchangeSlice";
 import paymentQrReducer from "@/features/finance/treasury/payment-qr/store/paymentQrSlice";
 import chequeReducer from "@/features/finance/treasury/cheque-management/store/chequeSlice";
+import bankDepositSlipReducer from "@/features/finance/treasury/bank-deposit-slips/store/bankDepositSlipSlice";
 
 import planReducer from "@/features/subscription/plans/store/planSlice";
 import subscriptionReducer from "@/features/subscription/subscriptions/store/subscriptionSlice";
@@ -93,8 +95,10 @@ const appReducer = combineReducers({
   cashDenomination: cashDenominationReducer,
 
   fundTransfer: fundTransferReducer,
+  cashExchange: cashExchangeReducer,
   paymentQr: paymentQrReducer,
   cheque: chequeReducer,
+  bankDepositSlip: bankDepositSlipReducer,
 
   // Subscription
   plan: planReducer,

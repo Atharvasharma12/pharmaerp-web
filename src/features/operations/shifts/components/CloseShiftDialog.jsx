@@ -199,7 +199,22 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
                       ₹{summary.qrNet}
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm mt-2 border-t border-border pt-1">
+
+                  {summary.upiBreakdown?.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-border/50">
+                      <p className="text-[10px] uppercase font-bold text-text-muted mb-1.5 tracking-wider">UPI Breakdown</p>
+                      {summary.upiBreakdown.map((upi, idx) => (
+                        <div key={idx} className="flex justify-between text-xs mb-1">
+                          <span className="text-text-muted truncate max-w-[120px]" title={upi.upiId}>
+                            {upi.upiId} <span className="opacity-50">({upi.transactionCount})</span>
+                          </span>
+                          <span className="font-mono text-text">₹{upi.totalAmount}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-sm mt-3 border-t border-border pt-2">
                     <span>Expected Cash</span>
                     <span className="font-bold">
                       ₹{summary.expectedClosingCashAmount || 0}

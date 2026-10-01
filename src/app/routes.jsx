@@ -62,7 +62,9 @@ import accountRoutes from "@/features/finance/chart-of-accounts/accounts/routes/
 import accountBalanceRoutes from "@/features/finance/account-balances/routes/accountBalanceRoutes";
 import treasuryRoutes from "@/features/finance/treasury/routes/treasuryRoutes";
 import fundTransferRoutes from "@/features/finance/treasury/fund-transfers/routes/fundTransferRoutes";
+import cashExchangeRoutes from "@/features/finance/treasury/cash-management/exchange-cash/routes/cashExchangeRoutes";
 import chequeRoutes from "@/features/finance/treasury/cheque-management/routes/chequeRoutes";
+import bankDepositSlipRoutes from "@/features/finance/treasury/bank-deposit-slips/routes/bankDepositSlipRoutes";
 import bankAccountRoutes from "@/features/finance/treasury/bank-management/bank-accounts/routes/bankAccountRoutes";
 import cashAccountRoutes from "@/features/finance/treasury/cash-management/cash-accounts/routes/cashAccountRoutes";
 import paymentQrRoutes from "@/features/finance/treasury/payment-qr/routes/paymentQrRoutes";
@@ -357,6 +359,7 @@ export const router = createBrowserRouter([
                   "cheque:view",
                   "payment-qr:view",
                   "cash-denomination:view",
+                  "bank-deposit-slip:view",
                 ]}
               >
                 {route.element}
@@ -366,7 +369,9 @@ export const router = createBrowserRouter([
           ...guardRouteList(bankAccountRoutes, "bank-account"),
           ...guardRouteList(cashAccountRoutes, "cash-account"),
           ...guardRouteList(fundTransferRoutes, "fund-transfer"),
+          ...guardRouteList(cashExchangeRoutes, "cash-exchange"),
           ...guardRouteList(chequeRoutes, "cheque"),
+          ...guardRouteList(bankDepositSlipRoutes, "bank-deposit-slip"),
           ...guardRouteList(paymentQrRoutes, "payment-qr"),
           ...bankTransactionRoutes.map((route) => ({
             ...route,

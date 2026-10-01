@@ -22,12 +22,20 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
   const { createShiftStatus, error } = useSelector((state) => state.shift);
   const { currentBranch } = useBranch();
   
-  const [todayStr] = useState(new Date().toISOString().split("T")[0]);
+  const getLocalTodayDateString = (date = new Date()) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayStr = getLocalTodayDateString();
   
   const getTomorrowStr = () => {
     const tm = new Date();
     tm.setDate(tm.getDate() + 1);
-    return tm.toISOString().split("T")[0];
+    return getLocalTodayDateString(tm);
   };
 
   const [selectedDate, setSelectedDate] = useState(todayStr);

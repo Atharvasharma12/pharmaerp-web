@@ -90,3 +90,16 @@ export const setPrimaryPaymentQr = createAsyncThunk(
     }
   },
 );
+
+// Get Payment QR Stats (per-UPI transaction analytics)
+export const getPaymentQrStats = createAsyncThunk(
+  "paymentQr/getPaymentQrStats",
+  async ({ paymentQrId, params = {} }, { rejectWithValue }) => {
+    try {
+      const response = await paymentQrService.getPaymentQrStats(paymentQrId, params);
+      return response.data?.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);

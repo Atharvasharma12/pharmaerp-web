@@ -49,7 +49,7 @@ const EditPaymentQrPage = () => {
           setFormData({
             bankAccountId: data.bankAccountId?._id || "",
             bankName: data.bankAccountId
-              ? `${data.bankAccountId.bankName} - *${String(data.bankAccountId.accountNumber || "").slice(-4)}`
+              ? `${data.bankAccountId.bankMasterId?.name || "Bank"} - *${String(data.bankAccountId.accountNumber || "").slice(-4)}`
               : "",
             upiId: data.upiId || "",
             label: data.label || "",

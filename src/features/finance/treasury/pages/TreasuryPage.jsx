@@ -141,6 +141,14 @@ const TreasuryPage = () => {
         permission: "cheque:view",
       },
       {
+        id: "bankDepositSlips",
+        title: "Bank Deposit Slips",
+        description: "Manage bank deposit slips and confirm cash deposits",
+        colorVariant: "success",
+        path: ROUTES.BANK_DEPOSIT_SLIPS,
+        permission: "bank-deposit-slip:view",
+      },
+      {
         id: "paymentQrUpi",
         title: "Payment QR / UPI",
         description: "Manage UPI QR codes and digital payments",
@@ -155,6 +163,14 @@ const TreasuryPage = () => {
         colorVariant: "purple",
         path: "/finance/treasury/cash-denominations",
         permission: "cash-denomination:view",
+      },
+      {
+        id: "cashExchanges",
+        title: "Cash Exchanges",
+        description: "Exchange cash denominations (khulli paisa) with customers",
+        colorVariant: "warning",
+        path: ROUTES.CASH_EXCHANGES,
+        permission: "cash-exchange:view",
       },
     ];
 
@@ -238,6 +254,13 @@ const TreasuryPage = () => {
         path: "/finance/treasury/cheque-management",
         colorVariant: "info",
         permission: "cheque:view",
+      },
+      {
+        id: "createBankDepositSlip",
+        title: "Create Deposit Slip",
+        path: ROUTES.CREATE_BANK_DEPOSIT_SLIP,
+        colorVariant: "success",
+        permission: "bank-deposit-slip:create",
       },
       {
         id: "cashDenominations",

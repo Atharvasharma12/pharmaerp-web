@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -59,58 +60,58 @@ const useBankAccount = () => {
     selectSetPrimaryBankAccountStatus,
   );
 
-  const submitCreateBankAccount = (payload) => {
+  const submitCreateBankAccount = useCallback((payload) => {
     return dispatch(createBankAccount(payload)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchBankAccounts = (params = {}) => {
+  const fetchBankAccounts = useCallback((params = {}) => {
     return dispatch(getBankAccounts(params)).unwrap();
-  };
+  }, [dispatch]);
 
-  const fetchBankAccountById = (bankAccountId) => {
+  const fetchBankAccountById = useCallback((bankAccountId) => {
     return dispatch(getBankAccountById(bankAccountId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitUpdateBankAccount = (bankAccountId, payload) => {
+  const submitUpdateBankAccount = useCallback((bankAccountId, payload) => {
     return dispatch(
       updateBankAccount({
         bankAccountId,
         payload,
       }),
     ).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitDeleteBankAccount = (bankAccountId) => {
+  const submitDeleteBankAccount = useCallback((bankAccountId) => {
     return dispatch(deleteBankAccount(bankAccountId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const submitSetPrimaryBankAccount = (bankAccountId) => {
+  const submitSetPrimaryBankAccount = useCallback((bankAccountId) => {
     return dispatch(setPrimaryBankAccount(bankAccountId)).unwrap();
-  };
+  }, [dispatch]);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch(clearBankAccountError());
-  };
+  }, [dispatch]);
 
-  const clearMessage = () => {
+  const clearMessage = useCallback(() => {
     dispatch(clearBankAccountMessage());
-  };
+  }, [dispatch]);
 
-  const saveCurrentBankAccount = (payload) => {
+  const saveCurrentBankAccount = useCallback((payload) => {
     dispatch(setCurrentBankAccount(payload));
-  };
+  }, [dispatch]);
 
-  const removeCurrentBankAccount = () => {
+  const removeCurrentBankAccount = useCallback(() => {
     dispatch(clearCurrentBankAccount());
-  };
+  }, [dispatch]);
 
-  const removeBankAccounts = () => {
+  const removeBankAccounts = useCallback(() => {
     dispatch(clearBankAccounts());
-  };
+  }, [dispatch]);
 
-  const removeManagedBankAccount = () => {
+  const removeManagedBankAccount = useCallback(() => {
     dispatch(clearManagedBankAccount());
-  };
+  }, [dispatch]);
 
   return {
     bankAccounts,

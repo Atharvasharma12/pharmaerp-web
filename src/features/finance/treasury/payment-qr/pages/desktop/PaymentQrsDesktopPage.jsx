@@ -154,10 +154,10 @@ const PaymentQrsDesktopPage = ({
           return (
             <div className="min-w-0">
               <AppText variant="body2" sx={{ fontWeight: 600, color: "var(--app-color-text)", m: 0 }}>
-                {bank.bankName}
+                {bank.bankMasterId?.name || "Bank"}
               </AppText>
               <AppText variant="caption" sx={{ color: "var(--app-color-text-muted)", display: "block" }}>
-                A/C: *{String(bank.accountNumber || "").slice(-4)} ({bank.accountNickname || "Default"})
+                A/C: *{String(bank.accountNumber || "").slice(-4)} ({bank.accountName || "Default"})
               </AppText>
             </div>
           );

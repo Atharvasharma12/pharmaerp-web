@@ -35,6 +35,8 @@ import {
   ShieldCheck,
   Contact,
   Clock,
+  FileUp,
+  RefreshCw,
 } from "lucide-react";
 
 import { ROUTES } from "@/constants";
@@ -384,6 +386,8 @@ export const SIDEBAR_NAV_GROUPS = [
               "cheque:view",
               "payment-qr:view",
               "cash-denomination:view",
+              "cash-exchange:view",
+              "bank-deposit-slip:view",
             ],
             children: [
               {
@@ -408,6 +412,13 @@ export const SIDEBAR_NAV_GROUPS = [
                 permission: "fund-transfer:view",
               },
               {
+                id: "cash-exchanges",
+                label: "Cash Exchanges",
+                path: ROUTES.CASH_EXCHANGES,
+                icon: RefreshCw,
+                permission: "cash-exchange:view",
+              },
+              {
                 id: "cheques",
                 label: "Cheques",
                 path: ROUTES.CHEQUES,
@@ -427,6 +438,13 @@ export const SIDEBAR_NAV_GROUPS = [
                 path: ROUTES.CASH_DENOMINATIONS,
                 icon: Banknote,
                 permission: "cash-denomination:view",
+              },
+              {
+                id: "bank-deposit-slips",
+                label: "Bank Deposit Slips",
+                path: ROUTES.BANK_DEPOSIT_SLIPS,
+                icon: FileUp,
+                permission: "bank-deposit-slip:view",
               },
             ],
           },

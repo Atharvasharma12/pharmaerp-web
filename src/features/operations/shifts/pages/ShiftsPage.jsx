@@ -10,7 +10,7 @@ import {
   UIPageHeader,
   UIInput,
 } from "@/components/ui";
-import { Clock } from "lucide-react";
+import { Clock, CalendarDays, Landmark, Plus } from "lucide-react";
 import { CreateShiftDialog } from "../components/CreateShiftDialog";
 import { ViewShiftDialog } from "../components/ViewShiftDialog";
 import { CloseShiftDialog } from "../components/CloseShiftDialog";
@@ -59,12 +59,29 @@ const ShiftsPage = () => {
         description="Manage daily POS operational shifts."
         icon={Clock}
         actions={
-          <UIButton
-            variant="primary"
-            onClick={() => setIsCreateOpen(true)}
-          >
-            Open New Shift
-          </UIButton>
+          <div className="flex flex-wrap items-center gap-2">
+            <UIButton
+              variant="outline"
+              onClick={() => navigate("/operations/day-closings")}
+            >
+              <CalendarDays className="w-4 h-4 mr-1.5" />
+              Day Closing
+            </UIButton>
+            <UIButton
+              variant="outline"
+              onClick={() => navigate("/finance/treasury/bank-deposit-slips/create")}
+            >
+              <Landmark className="w-4 h-4 mr-1.5" />
+              Create Bank Slip
+            </UIButton>
+            <UIButton
+              variant="primary"
+              onClick={() => setIsCreateOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Open New Shift
+            </UIButton>
+          </div>
         }
       />
 
@@ -208,19 +225,6 @@ const ShiftsPage = () => {
                           onClick={() => setCloseShift(shift)}
                         >
                           Lock Shift
-                        </UIButton>
-                      )}
-                      {shift.status === "open" && (
-                        <UIButton
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            navigate(
-                              `/finance/treasury/fund-transfers/create?shiftId=${shift._id}&cashAccountId=${shift.cashAccountId || ""}&branchId=${shift.branchId || ""}`
-                            )
-                          }
-                        >
-                          Fund Transfer
                         </UIButton>
                       )}
                     </td>

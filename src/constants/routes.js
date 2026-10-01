@@ -198,11 +198,23 @@ export const ROUTES = {
   FUND_TRANSFER_DETAILS: (fundTransferId = ":fundTransferId") =>
     `/finance/treasury/fund-transfers/${fundTransferId}`,
 
+  // Finance - Treasury - Cash Exchanges
+  CASH_EXCHANGES: "/finance/treasury/cash-exchanges",
+  CREATE_CASH_EXCHANGE: "/finance/treasury/cash-exchanges/create",
+  CASH_EXCHANGE_DETAILS: (cashExchangeId = ":cashExchangeId") =>
+    `/finance/treasury/cash-exchanges/${cashExchangeId}`,
+
   // Finance - Treasury - Cheques
   CHEQUES: "/finance/treasury/cheque-management",
   CREATE_CHEQUE: "/finance/treasury/cheque-management/create",
   CHEQUE_DETAILS: (chequeId = ":chequeId") =>
     `/finance/treasury/cheque-management/${chequeId}`,
+
+  // Finance - Treasury - Bank Deposit Slips
+  BANK_DEPOSIT_SLIPS: "/finance/treasury/bank-deposit-slips",
+  CREATE_BANK_DEPOSIT_SLIP: "/finance/treasury/bank-deposit-slips/create",
+  BANK_DEPOSIT_SLIP_DETAILS: (slipId = ":slipId") =>
+    `/finance/treasury/bank-deposit-slips/${slipId}`,
 
   // Catalog
   CATALOG: "/catalog",
