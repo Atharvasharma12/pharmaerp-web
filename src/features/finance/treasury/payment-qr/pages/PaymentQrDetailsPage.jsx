@@ -21,10 +21,14 @@ const PaymentQrDetailsPage = () => {
     error,
     clearError,
     clearManagedPaymentQr,
+    getPaymentQrStats,
+    paymentQrStats,
+    paymentQrStatsStatus,
   } = usePaymentQr();
 
   const isLoading = getPaymentQrStatus === API_STATUS.LOADING;
   const hasError = getPaymentQrStatus === API_STATUS.ERROR;
+  const isStatsLoading = paymentQrStatsStatus === API_STATUS.LOADING;
 
   const fetchPaymentQr = useCallback(async () => {
     if (!paymentQrId) return;
@@ -35,17 +39,27 @@ const PaymentQrDetailsPage = () => {
     }
   }, [paymentQrId, getPaymentQrById]);
 
+  const fetchStats = useCallback(async () => {
+    if (!paymentQrId) return;
+    try {
+      await getPaymentQrStats(paymentQrId);
+    } catch (e) {
+      console.error("Error fetching Payment QR stats:", e);
+    }
+  }, [paymentQrId, getPaymentQrStats]);
+
   useEffect(() => {
     if (hasFetchedRef.current === paymentQrId) return;
     hasFetchedRef.current = paymentQrId;
 
     fetchPaymentQr();
+    fetchStats();
 
     return () => {
       clearError();
       clearManagedPaymentQr();
     };
-  }, [paymentQrId, fetchPaymentQr, clearError, clearManagedPaymentQr]);
+  }, [paymentQrId, fetchPaymentQr, fetchStats, clearError, clearManagedPaymentQr]);
 
   const handleBack = useCallback(() => {
     navigate(ROUTES.PAYMENT_QRS);
@@ -60,7 +74,8 @@ const PaymentQrDetailsPage = () => {
     clearError();
     hasFetchedRef.current = null;
     fetchPaymentQr();
-  }, [clearError, fetchPaymentQr]);
+    fetchStats();
+  }, [clearError, fetchPaymentQr, fetchStats]);
 
   const pageProps = useMemo(
     () => ({
@@ -69,6 +84,8 @@ const PaymentQrDetailsPage = () => {
       isLoading,
       hasError,
       error,
+      stats: paymentQrStats,
+      isStatsLoading,
       handleBack,
       handleEdit,
       handleRefresh,
@@ -79,6 +96,8 @@ const PaymentQrDetailsPage = () => {
       isLoading,
       hasError,
       error,
+      paymentQrStats,
+      isStatsLoading,
       handleBack,
       handleEdit,
       handleRefresh,

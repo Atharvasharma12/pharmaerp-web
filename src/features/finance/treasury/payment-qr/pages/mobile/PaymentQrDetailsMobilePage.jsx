@@ -257,7 +257,7 @@ const PaymentQrDetailsMobilePage = ({
                 </span>
                 {paymentQr.bankAccountId ? (
                   <span className="font-bold text-primary block mt-0.5 leading-relaxed break-words">
-                    {paymentQr.bankAccountId.bankName} - A/C:{" "}
+                    {paymentQr.bankAccountId.bankMasterId?.name || "Bank"} - A/C:{" "}
                     {paymentQr.bankAccountId.accountNumber}
                   </span>
                 ) : (

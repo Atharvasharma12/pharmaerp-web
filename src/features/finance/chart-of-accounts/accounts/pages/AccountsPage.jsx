@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 import { ROUTES, API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 import useAccountGroup from "../../account-groups/hooks/useAccountGroup";
 import useAccount from "../hooks/useAccount";
@@ -29,6 +30,7 @@ const normalizeText = (val) =>
 const AccountsPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { currentBranch } = useBranch();
   const hasFetchedRef = useRef(false);
 
   const { accountGroups = [], getAccountGroups } = useAccountGroup();
@@ -50,11 +52,11 @@ const AccountsPage = () => {
 
   const fetchAccountsAndGroups = useCallback(async () => {
     try {
-      await Promise.all([getAccountGroups(), getAccounts({ all: true })]);
+      await Promise.all([getAccountGroups(), getAccounts({ all: true, branchId: currentBranch?._id })]);
     } catch (err) {
       console.error("Failed to load accounts page data:", err);
     }
-  }, [getAccountGroups, getAccounts]);
+  }, [getAccountGroups, getAccounts, currentBranch?._id]);
 
   useEffect(() => {
     if (hasFetchedRef.current) return;

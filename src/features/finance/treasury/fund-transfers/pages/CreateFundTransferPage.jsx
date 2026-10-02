@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import useBankAccount from "@/features/finance/treasury/bank-management/bank-accounts/hooks/useBankAccount";
 import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 import useFundTransfer from "../hooks/useFundTransfer";
 import CreateFundTransferDesktopPage from "./desktop/CreateFundTransferDesktopPage";
@@ -36,6 +37,13 @@ const INITIAL_FORM_DATA = {
 const CreateFundTransferPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { currentBranch } = useBranch();
+
+  // Shift / Day Closing pre-fill from query params (set by ShiftsPage and DayClosingsPage)
+  const prefillShiftId       = searchParams.get("shiftId")       || null;
+  const prefillDayClosingId  = searchParams.get("dayClosingId")  || null;
+  const prefillCashAccountId = searchParams.get("cashAccountId") || null;
 
   const {
     createFundTransfer,
@@ -49,11 +57,31 @@ const CreateFundTransferPage = () => {
   const { bankAccounts = [], getBankAccounts } = useBankAccount();
   const { cashAccounts = [], getCashAccounts } = useCashAccount();
 
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [formData, setFormData] = useState(() => ({
+    ...INITIAL_FORM_DATA,
+    // Pre-fill source type to CASH when coming from a shift context
+    fromAccountType: prefillCashAccountId ? "CASH" : "BANK",
+    fromAccountId:   prefillCashAccountId || "",
+  }));
   const [fromDenominations, setFromDenominations] = useState(INITIAL_DENOMINATIONS);
   const [toDenominations, setToDenominations] = useState(INITIAL_DENOMINATIONS);
   const [formErrors, setFormErrors] = useState({});
   const [actionError, setActionError] = useState("");
+
+  // When cash accounts load and we have a pre-fill cashAccountId, ensure it's set
+  useEffect(() => {
+    if (prefillCashAccountId && cashAccounts.length > 0) {
+      const found = cashAccounts.find((c) => c._id === prefillCashAccountId);
+      if (found) {
+        setFormData((prev) => ({
+          ...prev,
+          fromAccountType: "CASH",
+          fromAccountId: prefillCashAccountId,
+        }));
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cashAccounts.length, prefillCashAccountId]);
 
   const handleFromQtyChange = useCallback((denomValue, qty) => {
     const cleanQty = Math.max(0, parseInt(qty) || 0);
@@ -83,18 +111,18 @@ const CreateFundTransferPage = () => {
   useEffect(() => {
     if (hasFetchedBanksRef.current) return;
     hasFetchedBanksRef.current = true;
-    getBankAccounts({ all: true }).catch((err) =>
+    getBankAccounts({ all: true, branchId: currentBranch?._id }).catch((err) =>
       console.error("Failed to load bank accounts:", err)
     );
-  }, [getBankAccounts]);
+  }, [getBankAccounts, currentBranch?._id]);
 
   useEffect(() => {
     if (hasFetchedCashRef.current) return;
     hasFetchedCashRef.current = true;
-    getCashAccounts({ all: true }).catch((err) =>
+    getCashAccounts({ all: true, branchId: currentBranch?._id }).catch((err) =>
       console.error("Failed to load cash accounts:", err)
     );
-  }, [getCashAccounts]);
+  }, [getCashAccounts, currentBranch?._id]);
 
   useEffect(() => {
     return () => {
@@ -232,6 +260,9 @@ const CreateFundTransferPage = () => {
         toDenominations: filteredToDenoms.length > 0 ? filteredToDenoms : undefined,
         referenceNumber: formData.referenceNumber || undefined,
         narration: formData.narration || undefined,
+        // Pass shiftId or dayClosingId so backend can directly store the link
+        shiftId: prefillShiftId || undefined,
+        dayClosingId: prefillDayClosingId || undefined,
       };
 
       await createFundTransfer(payload);

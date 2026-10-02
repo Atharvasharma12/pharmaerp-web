@@ -61,7 +61,6 @@ const moduleIcons = {
   cashTransactions: <LuWallet />,
   chequeManagement: <FiCreditCard />,
   paymentQrUpi: <LuQrCode />,
-  bankSlips: <LuTicket />,
   cashDenominations: <LuCoins />,
 };
 
@@ -73,7 +72,6 @@ const quickActionIcons = {
   recordCashTransaction: <LuWallet />,
   fundTransfer: <FiRepeat />,
   manageCheques: <FiCreditCard />,
-  generateBankSlip: <LuTicket />,
   cashDenominations: <LuCoins />,
 };
 

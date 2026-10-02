@@ -5,11 +5,13 @@ import { useIsMobile } from "@/hooks";
 
 import useCashTransaction from "../hooks/useCashTransaction";
 import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
+import useBranch from "@/features/branch/hooks/useBranch";
 import CashTransactionsDesktopPage from "./desktop/CashTransactionsDesktopPage";
 import CashTransactionsMobilePage from "./mobile/CashTransactionsMobilePage";
 
 const CashTransactionsPage = () => {
   const isMobile = useIsMobile();
+  const { currentBranch } = useBranch();
   const hasFetchedCashRef = useRef(false);
 
   const {
@@ -27,10 +29,10 @@ const CashTransactionsPage = () => {
     if (hasFetchedCashRef.current) return;
     hasFetchedCashRef.current = true;
 
-    getCashAccounts({ all: true }).catch((err) =>
+    getCashAccounts({ all: true, branchId: currentBranch?._id }).catch((err) =>
       console.error("Failed to load cash accounts list for filters:", err)
     );
-  }, [getCashAccounts]);
+  }, [getCashAccounts, currentBranch?._id]);
 
   const [searchParams, setSearchParams] = useState({
     search: "",
@@ -52,12 +54,13 @@ const CashTransactionsPage = () => {
         status: searchParams.status === "all" ? undefined : searchParams.status,
         transactionType: searchParams.transactionType === "all" ? undefined : searchParams.transactionType,
         cashAccountId: searchParams.cashAccountId === "all" ? undefined : searchParams.cashAccountId,
+        branchId: currentBranch?._id,
       };
       await getCashTransactions(query);
     } catch (err) {
       console.error("Failed to query cash transactions list:", err);
     }
-  }, [currentPage, pageSize, searchParams, getCashTransactions]);
+  }, [currentPage, pageSize, searchParams, getCashTransactions, currentBranch?._id]);
 
   useEffect(() => {
     fetchTransactionsData();

@@ -1,0 +1,353 @@
+import React, { useState } from "react";
+import {
+  FiSearch,
+  FiFilter,
+  FiChevronDown,
+  FiChevronUp,
+  FiPlus,
+  FiEye,
+  FiSlash,
+  FiMoreVertical,
+  FiRefreshCw,
+} from "react-icons/fi";
+import { LuWallet } from "react-icons/lu";
+
+import {
+  AppCard,
+  AppHeading,
+  AppInput,
+  AppSelect,
+  AppText,
+  AppTablePagination,
+  AppButton,
+  AppIconButton,
+  AppMenu,
+} from "@/components";
+import { formatDate } from "@/utils";
+
+const statusOptions = [
+  { label: "All Statuses", value: "all" },
+  { label: "Completed", value: "COMPLETED" },
+  { label: "Cancelled", value: "CANCELLED" },
+];
+
+const CashExchangesMobilePage = ({
+  cashExchanges = [],
+  searchParams,
+  currentPage,
+  pageSize,
+  totalExchanges,
+  isLoading = false,
+  isCancelling = false,
+  error,
+  message,
+  clearFeedback,
+  handleSearchChange,
+  handleFilterChange,
+  handlePageChange,
+  handlePageSizeChange,
+  handleCancelExchange,
+  handleViewDetails,
+  handleCreateNew,
+  handleRefresh,
+}) => {
+  const [showFilters, setShowFilters] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [pendingCancelId, setPendingCancelId] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+
+  const hasFilteredExchanges = cashExchanges.length > 0;
+  const shouldRenderPagination = hasFilteredExchanges && totalExchanges > pageSize;
+
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case "COMPLETED":
+        return "bg-success-soft text-success border border-success/20";
+      case "CANCELLED":
+        return "bg-danger-soft text-danger border border-danger/20";
+      default:
+        return "bg-warning-soft text-warning border border-warning/20";
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!pendingCancelId) return;
+    setShowCancelModal(false);
+    await handleCancelExchange(pendingCancelId, cancelReason);
+    setPendingCancelId(null);
+    setCancelReason("");
+  };
+
+  const openCancelModal = (id) => {
+    setPendingCancelId(id);
+    setCancelReason("");
+    setShowCancelModal(true);
+  };
+
+  return (
+    <section className="min-h-screen bg-bg pb-24 relative">
+      {/* Top App Bar area */}
+      <div className="sticky top-0 z-20 bg-surface border-b border-border shadow-sm">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <LuWallet className="text-primary text-xl" />
+            <AppHeading level={3} weight={700} sx={{ fontSize: 18 }}>
+              Cash Exchanges
+            </AppHeading>
+          </div>
+          <div className="flex gap-2">
+            <AppIconButton
+              variant="ghost"
+              icon={<FiRefreshCw />}
+              onClick={handleRefresh}
+              loading={isLoading}
+              size="sm"
+            />
+          </div>
+        </div>
+
+        {/* Global Feedback */}
+        {(error || message) && (
+          <div
+            className={`px-4 py-2 text-xs font-semibold flex justify-between items-center ${
+              error ? "bg-danger-soft text-danger" : "bg-success-soft text-success"
+            }`}
+          >
+            <span>{error || message}</span>
+            <button
+              onClick={clearFeedback}
+              className="underline opacity-70 hover:opacity-100"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Mobile Search & Filters */}
+        <div className="px-4 py-3 space-y-3 bg-bg">
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <AppInput
+                placeholder="Search..."
+                value={searchParams.search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                prefix={<FiSearch className="text-text-muted" />}
+                size="sm"
+              />
+            </div>
+            <AppButton
+              variant="outline"
+              size="sm"
+              icon={<FiFilter />}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              {showFilters ? <FiChevronUp /> : <FiChevronDown />}
+            </AppButton>
+          </div>
+          {showFilters && (
+            <div className="pt-1">
+              <AppSelect
+                label="Status"
+                options={statusOptions}
+                value={searchParams.status}
+                onChange={(val) => handleFilterChange("status", val)}
+                size="sm"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main List */}
+      <div className="px-4 pt-4 pb-20 space-y-4">
+        {isLoading && !hasFilteredExchanges ? (
+          <div className="flex flex-col items-center justify-center py-10 space-y-3">
+            <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <AppText size="sm" sx={{ color: "var(--color-text-muted)" }}>
+              Loading exchanges...
+            </AppText>
+          </div>
+        ) : !hasFilteredExchanges ? (
+          <div className="text-center py-12 bg-surface rounded-xl border border-border shadow-sm">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-soft flex items-center justify-center">
+              <LuWallet className="text-primary text-2xl" />
+            </div>
+            <AppHeading level={4} weight={700} sx={{ marginBottom: 4 }}>
+              No Exchanges Found
+            </AppHeading>
+            <AppText size="sm" sx={{ color: "var(--color-text-muted)", marginBottom: 16 }}>
+              {searchParams.search || searchParams.status !== "all"
+                ? "Try adjusting your filters"
+                : "Record your first denomination exchange"}
+            </AppText>
+            {(searchParams.search || searchParams.status !== "all") && (
+              <AppButton
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  handleSearchChange("");
+                  handleFilterChange("status", "all");
+                }}
+              >
+                Clear Filters
+              </AppButton>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {cashExchanges.map((row) => (
+              <AppCard
+                key={row._id}
+                variant="default"
+                rounded="lg"
+                bordered
+                shadow="sm"
+                padding="none"
+              >
+                {/* Header: Num, Status, Action */}
+                <div className="flex items-start justify-between px-4 py-3 border-b border-border bg-surface/50">
+                  <div>
+                    <AppText size="sm" weight={700} sx={{ fontFamily: "monospace" }}>
+                      {row.exchangeNumber}
+                    </AppText>
+                    <AppText size="xs" sx={{ color: "var(--color-text-muted)" }}>
+                      {formatDate(row.exchangeDate)}
+                    </AppText>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(
+                        row.status
+                      )}`}
+                    >
+                      {row.status}
+                    </div>
+                    <AppMenu
+                      trigger={
+                        <button className="p-1 rounded hover:bg-bg">
+                          <FiMoreVertical className="text-text-muted" />
+                        </button>
+                      }
+                      items={[
+                        {
+                          label: "View Details",
+                          icon: <FiEye />,
+                          onClick: () => handleViewDetails(row._id),
+                        },
+                        ...(row.status === "COMPLETED"
+                          ? [
+                              {
+                                label: "Cancel",
+                                icon: <FiSlash />,
+                                danger: true,
+                                onClick: () => openCancelModal(row._id),
+                              },
+                            ]
+                          : []),
+                      ]}
+                      align="end"
+                    />
+                  </div>
+                </div>
+
+                {/* Body: Amounts */}
+                <div className="p-4 grid grid-cols-2 gap-3">
+                  <div>
+                    <AppText size="xs" sx={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
+                      Account
+                    </AppText>
+                    <AppText size="sm" weight={600}>
+                      {row.cashAccountId?.accountName || "—"}
+                    </AppText>
+                  </div>
+                  <div />
+                  <div>
+                    <AppText size="xs" sx={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
+                      Received
+                    </AppText>
+                    <AppText size="sm" weight={700} sx={{ color: "var(--color-success)" }}>
+                      ₹{(row.totalReceived || 0).toLocaleString("en-IN")}
+                    </AppText>
+                  </div>
+                  <div>
+                    <AppText size="xs" sx={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
+                      Given
+                    </AppText>
+                    <AppText size="sm" weight={700} sx={{ color: "var(--color-warning)" }}>
+                      ₹{(row.totalGiven || 0).toLocaleString("en-IN")}
+                    </AppText>
+                  </div>
+                </div>
+              </AppCard>
+            ))}
+
+            {shouldRenderPagination && (
+              <div className="py-2 bg-surface rounded-lg border border-border">
+                <AppTablePagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={totalExchanges}
+                  onChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                  hidePageSize
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Floating Action Button for Create */}
+      <div className="fixed bottom-6 right-4 z-20">
+        <button
+          onClick={handleCreateNew}
+          className="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-xl shadow-primary/30 active:scale-95 transition-transform"
+        >
+          <FiPlus size={24} />
+        </button>
+      </div>
+
+      {/* Cancel Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center p-4">
+          <div className="w-full max-w-sm bg-surface rounded-2xl p-5 shadow-2xl animate-in slide-in-from-bottom-4">
+            <AppHeading level={4} weight={700} sx={{ marginBottom: 8 }}>
+              Cancel Exchange
+            </AppHeading>
+            <AppText size="sm" sx={{ color: "var(--color-text-muted)", marginBottom: 16 }}>
+              This will reverse the denomination changes in the cash drawer.
+            </AppText>
+            
+            <AppInput
+              placeholder="Cancellation reason (optional)"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              size="sm"
+              sx={{ marginBottom: 20 }}
+            />
+
+            <div className="flex gap-3">
+              <AppButton
+                className="flex-1"
+                variant="outline"
+                onClick={() => setShowCancelModal(false)}
+              >
+                Keep
+              </AppButton>
+              <AppButton
+                className="flex-1"
+                variant="danger"
+                onClick={handleConfirmCancel}
+                loading={isCancelling}
+              >
+                Cancel It
+              </AppButton>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
+
+export default CashExchangesMobilePage;

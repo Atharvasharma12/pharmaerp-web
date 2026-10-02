@@ -9,6 +9,7 @@ import {
   updatePaymentQr,
   deletePaymentQr,
   setPrimaryPaymentQr,
+  getPaymentQrStats,
 } from "./paymentQrThunk";
 
 const initialState = {
@@ -26,6 +27,11 @@ const initialState = {
   updatePaymentQrStatus: API_STATUS.IDLE,
   deletePaymentQrStatus: API_STATUS.IDLE,
   setPrimaryPaymentQrStatus: API_STATUS.IDLE,
+
+  // Per-UPI analytics stats
+  paymentQrStats: null,
+  paymentQrStatsStatus: API_STATUS.IDLE,
+  paymentQrStatsError: null,
 };
 
 const setPending = (state) => {
@@ -209,6 +215,20 @@ const paymentQrSlice = createSlice({
         state.setPrimaryPaymentQrStatus = API_STATUS.ERROR;
 
         state.error = action.payload || "Failed to set primary Payment QR";
+      })
+
+      // GET PAYMENT QR STATS
+      .addCase(getPaymentQrStats.pending, (state) => {
+        state.paymentQrStatsStatus = API_STATUS.LOADING;
+        state.paymentQrStatsError = null;
+      })
+      .addCase(getPaymentQrStats.fulfilled, (state, action) => {
+        state.paymentQrStatsStatus = API_STATUS.SUCCESS;
+        state.paymentQrStats = action.payload || null;
+      })
+      .addCase(getPaymentQrStats.rejected, (state, action) => {
+        state.paymentQrStatsStatus = API_STATUS.ERROR;
+        state.paymentQrStatsError = action.payload || "Failed to fetch stats";
       });
   },
 });

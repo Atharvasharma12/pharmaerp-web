@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 import { ROUTES, API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
@@ -12,7 +12,6 @@ const INITIAL_FORM_DATA = {
   accountName: "",
   openingBalance: 0,
   description: "",
-  isPrimary: false,
   status: "active",
 };
 
@@ -34,6 +33,10 @@ const EditCashAccountPage = () => {
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [formErrors, setFormErrors] = useState({});
+  const [isSystemDefault, setIsSystemDefault] = useState(
+    // Pre-populate from route state if available (set by CashAccountsPage)
+    !!useLocation().state?.isSystemDefault
+  );
 
   useEffect(() => {
     if (hasFetchedRef.current) return;
@@ -43,11 +46,11 @@ const EditCashAccountPage = () => {
       try {
         const data = await getCashAccountById(cashAccountId);
         if (data) {
+          setIsSystemDefault(!!data.isSystemDefault);
           setFormData({
             accountName: data.accountName || "",
             openingBalance: data.openingBalance || 0,
             description: data.description || "",
-            isPrimary: Boolean(data.isPrimary),
             status: data.status || "active",
           });
         }
@@ -107,12 +110,14 @@ const EditCashAccountPage = () => {
         return;
       }
 
-      const payload = {
-        accountName: accName,
-        description: desc || null,
-        status: formData.status,
-        isPrimary: Boolean(formData.isPrimary),
-      };
+      // For system default accounts, only description can be updated
+      const payload = isSystemDefault
+        ? { description: desc || null }
+        : {
+            accountName: accName,
+            description: desc || null,
+            status: formData.status,
+          };
 
       try {
         await updateCashAccount(cashAccountId, payload);
@@ -131,6 +136,7 @@ const EditCashAccountPage = () => {
     formErrors,
     isLoading,
     isFetching,
+    isSystemDefault,
     handleFieldChange,
     handleCancel,
     handleSubmit,

@@ -25,8 +25,6 @@ const INITIAL_FORM_DATA = {
   openingBalance: 0,
   openingBalanceType: "dr",
   description: "",
-  isPrimary: false,
-  branchId: "",
 };
 
 const CreateCashAccountPage = () => {
@@ -41,12 +39,9 @@ const CreateCashAccountPage = () => {
     clearMessage,
   } = useCashAccount();
 
-  const { branches = [], getCompanyBranches } = useBranch();
-
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [denominations, setDenominations] = useState(INITIAL_DENOMINATIONS);
   const [formErrors, setFormErrors] = useState({});
-  const hasFetchedBranchesRef = React.useRef(false);
 
   const handleQtyChange = useCallback((denomValue, qty) => {
     const cleanQty = Math.max(0, parseInt(qty) || 0);
@@ -59,13 +54,7 @@ const CreateCashAccountPage = () => {
     return denominations.reduce((acc, curr) => acc + curr.denomination * curr.quantity, 0);
   }, [denominations]);
 
-  useEffect(() => {
-    if (hasFetchedBranchesRef.current) return;
-    hasFetchedBranchesRef.current = true;
-    getCompanyBranches().catch((err) =>
-      console.error("Failed to load branches:", err)
-    );
-  }, [getCompanyBranches]);
+
 
   // Clean up notifications/errors on unmount
   useEffect(() => {
@@ -140,8 +129,6 @@ const CreateCashAccountPage = () => {
         openingBalanceType: formData.openingBalanceType || "dr",
         denominations: filteredDenoms.length > 0 ? filteredDenoms : undefined,
         description: desc || null,
-        isPrimary: Boolean(formData.isPrimary),
-        branchId: formData.branchId || null,
       };
 
       try {
@@ -156,15 +143,7 @@ const CreateCashAccountPage = () => {
     [formData, denominations, createCashAccount, navigate]
   );
 
-  const branchOptions = useMemo(() => {
-    return [
-      { label: "None / Shared (Central Office)", value: "" },
-      ...branches.map((b) => ({
-        label: b.name || "Branch",
-        value: b._id,
-      })),
-    ];
-  }, [branches]);
+
 
   const pageProps = {
     formData,
@@ -172,7 +151,6 @@ const CreateCashAccountPage = () => {
     denominations,
     physicalTotal,
     isLoading,
-    branchOptions,
     handleFieldChange,
     handleQtyChange,
     handleCancel,

@@ -1,6 +1,6 @@
 // src/layouts/app/desktop/AppDesktopSidebar.jsx
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { ROUTES } from "@/constants";
@@ -23,22 +23,65 @@ import { filterNavByPermission } from "../components/sidebar/filterNavByPermissi
 
 const SIDEBAR_EXPANDED_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 68;
+const AUTO_CLOSE_DELAY_MS = 1500;
 
 const AppDesktopSidebar = ({
   collapsed = false,
   onToggleCollapse,
   onExpand,
+  onCollapse,
   onClose,
 }) => {
   const navigate = useNavigate();
   const { user, logout, clearCredentials } = useAuth();
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
+  const autoCloseTimerRef = useRef(null);
   const { currentWorkspace } = useWorkspace();
   const { currentCompany } = useCompany();
   const { currentBranch } = useBranch();
   const { isSetupComplete, companyCompleted, branchCompleted } = useSetupStatus();
   const { can, canAny, isOwner } = usePermission();
+
+  // Clear timer when sidebar collapses or component unmounts
+  useEffect(() => {
+    if (collapsed && autoCloseTimerRef.current) {
+      clearTimeout(autoCloseTimerRef.current);
+      autoCloseTimerRef.current = null;
+    }
+  }, [collapsed]);
+
+  useEffect(() => {
+    return () => {
+      if (autoCloseTimerRef.current) {
+        clearTimeout(autoCloseTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleMouseEnter = () => {
+    if (autoCloseTimerRef.current) {
+      clearTimeout(autoCloseTimerRef.current);
+      autoCloseTimerRef.current = null;
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (collapsed || isLogoutDialogOpen || isCompanyDropdownOpen) return;
+    if (autoCloseTimerRef.current) {
+      clearTimeout(autoCloseTimerRef.current);
+    }
+    autoCloseTimerRef.current = setTimeout(() => {
+      if (!isLogoutDialogOpen && !isCompanyDropdownOpen) {
+        if (onCollapse) {
+          onCollapse();
+        } else if (onToggleCollapse) {
+          onToggleCollapse();
+        }
+      }
+    }, AUTO_CLOSE_DELAY_MS);
+  };
 
   // Filter nav groups by permissions, owner status, and setup completion
   const visibleNavGroups = useMemo(
@@ -93,6 +136,8 @@ const AppDesktopSidebar = ({
       style={{ width: currentWidth }}
     >
       <aside
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         className="fixed left-0 top-0 z-30 h-[100dvh] border-r border-border bg-surface shadow-xs transition-[width] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden flex flex-col justify-between"
         style={{ width: currentWidth }}
       >
@@ -101,6 +146,7 @@ const AppDesktopSidebar = ({
           collapsed={collapsed}
           onToggleCollapse={onToggleCollapse}
           onClose={onClose}
+          onOpenChange={setIsCompanyDropdownOpen}
         />
 
         {/* ── MIDDLE: Multi-Level Navigation Tree (WhatsApp-Style Auto-Hiding Scrollbar) ── */}

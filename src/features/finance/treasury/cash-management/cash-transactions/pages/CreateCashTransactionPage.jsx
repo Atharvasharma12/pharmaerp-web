@@ -13,6 +13,7 @@ import { useIsMobile } from "@/hooks";
 import useCashTransaction from "../hooks/useCashTransaction";
 import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
 import useAccount from "@/features/finance/chart-of-accounts/accounts/hooks/useAccount";
+import useBranch from "@/features/branch/hooks/useBranch";
 import CreateCashTransactionDesktopPage from "./desktop/CreateCashTransactionDesktopPage";
 import CreateCashTransactionMobilePage from "./mobile/CreateCashTransactionMobilePage";
 
@@ -43,6 +44,7 @@ const INITIAL_FORM_DATA = {
 const CreateCashTransactionPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { currentBranch } = useBranch();
   const hasFetchedCashRef = useRef(false);
   const hasFetchedAccountsRef = useRef(false);
 
@@ -86,20 +88,20 @@ const CreateCashTransactionPage = () => {
     if (hasFetchedCashRef.current) return;
     hasFetchedCashRef.current = true;
 
-    getCashAccounts({ all: true }).catch((err) =>
+    getCashAccounts({ all: true, branchId: currentBranch?._id }).catch((err) =>
       console.error("Failed to load cash accounts for transaction:", err),
     );
-  }, [getCashAccounts]);
+  }, [getCashAccounts, currentBranch?._id]);
 
   // Fetch Chart of Accounts for counterparty selector
   useEffect(() => {
     if (hasFetchedAccountsRef.current) return;
     hasFetchedAccountsRef.current = true;
 
-    getAccounts({ all: true }).catch((err) =>
+    getAccounts({ all: true, branchId: currentBranch?._id }).catch((err) =>
       console.error("Failed to load chart of accounts for transaction:", err),
     );
-  }, [getAccounts]);
+  }, [getAccounts, currentBranch?._id]);
 
   // Clean up notices on unmount
   useEffect(() => {

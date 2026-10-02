@@ -1,5 +1,5 @@
 import React from "react";
-import { FiArrowLeft, FiEdit2, FiRefreshCw, FiCopy } from "react-icons/fi";
+import { FiArrowLeft, FiEdit2, FiRefreshCw, FiCopy, FiTrendingUp } from "react-icons/fi";
 import { LuQrCode } from "react-icons/lu";
 
 import {
@@ -18,6 +18,8 @@ const PaymentQrDetailsDesktopPage = ({
   isLoading = false,
   hasError = false,
   error,
+  stats = null,
+  isStatsLoading = false,
   handleBack,
   handleEdit,
   handleRefresh,
@@ -68,6 +70,7 @@ const PaymentQrDetailsDesktopPage = ({
   const handleCopyUpiId = () => {
     navigator.clipboard.writeText(paymentQr.upiId);
     alert(`Copied UPI ID: ${paymentQr.upiId}`);
+
   };
 
   const getProviderLabel = (provider) => {
@@ -79,6 +82,11 @@ const PaymentQrDetailsDesktopPage = ({
     if (raw === "RAZORPAY") return "Razorpay";
     if (raw === "CASHFREE") return "Cashfree";
     return "Other / Generic";
+  };
+
+  const statCardSx = {
+    bgcolor: "var(--app-color-surface)",
+    borderColor: "var(--app-color-border)",
   };
 
   const getProviderBadge = (provider) => {
@@ -311,11 +319,11 @@ const PaymentQrDetailsDesktopPage = ({
                     <span className="text-text-muted block font-semibold">
                       Linked Settlement Bank Account
                     </span>
-                    {paymentQr.bankAccountId ? (
+                    {paymentQr.bankAccountId && typeof paymentQr.bankAccountId === 'object' ? (
                       <span className="font-bold text-primary block mt-1">
-                        {paymentQr.bankAccountId.bankName} - A/C:{" "}
+                        {paymentQr.bankAccountId.bankMasterId?.name || "Bank Account"} - A/C:{" "}
                         {paymentQr.bankAccountId.accountNumber} (
-                        {paymentQr.bankAccountId.accountNickname ||
+                        {paymentQr.bankAccountId.accountName ||
                           "Primary Checking"}
                         )
                       </span>
@@ -345,6 +353,127 @@ const PaymentQrDetailsDesktopPage = ({
               </div>
             </AppCard>
           </div>
+        </div>
+
+        {/* ── Analytics Section ─────────────────────────────────────────────── */}
+        <div className="mt-5">
+          <div className="flex items-center gap-2 mb-4">
+            <FiTrendingUp className="text-primary text-[16px]" />
+            <AppHeading level={3} weight={700} sx={{ m: 0, fontSize: "15px", color: "var(--app-color-text)" }}>
+              UPI Transaction Analytics
+            </AppHeading>
+            <span className="text-[11px] text-text-muted font-semibold ml-1">
+              — Revenue collected via <span className="font-mono font-bold text-primary">{paymentQr.upiId}</span>
+            </span>
+          </div>
+
+          {/* Stats Cards Row */}
+          {isStatsLoading ? (
+            <div className="flex gap-5 mb-5">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex-1 h-[90px] rounded-xl border border-border bg-surface animate-pulse" />
+              ))}
+            </div>
+          ) : stats ? (
+            <div className="grid grid-cols-3 gap-5 mb-5">
+              {/* Today */}
+              <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
+                <div className="p-4">
+                  <span className="text-[11px] text-text-muted font-bold uppercase tracking-wider block">Today</span>
+                  <span className="text-[22px] font-extrabold text-primary block mt-1">
+                    ₹{Number(stats.todayAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </span>
+                  <span className="text-[11px] text-text-muted block mt-0.5">
+                    {stats.todayTransactions || 0} transaction{stats.todayTransactions !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              </AppCard>
+
+              {/* This Month */}
+              <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
+                <div className="p-4">
+                  <span className="text-[11px] text-text-muted font-bold uppercase tracking-wider block">This Month</span>
+                  <span className="text-[22px] font-extrabold text-[#7c3aed] block mt-1">
+                    ₹{Number(stats.thisMonthAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </span>
+                  <span className="text-[11px] text-text-muted block mt-0.5">
+                    {stats.thisMonthTransactions || 0} transaction{stats.thisMonthTransactions !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              </AppCard>
+
+              {/* All Time */}
+              <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
+                <div className="p-4">
+                  <span className="text-[11px] text-text-muted font-bold uppercase tracking-wider block">All Time Total</span>
+                  <span className="text-[22px] font-extrabold text-[#2b8a3e] block mt-1">
+                    ₹{Number(stats.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </span>
+                  <span className="text-[11px] text-text-muted block mt-0.5">
+                    {stats.totalTransactions || 0} transaction{stats.totalTransactions !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              </AppCard>
+            </div>
+          ) : null}
+
+          {/* Recent Transactions Table */}
+          <AppCard variant="default" rounded="lg" bordered shadow="sm" padding="none" sx={{ bgcolor: "var(--app-color-surface)", borderColor: "var(--app-color-border)" }}>
+            <div className="px-5 py-3.5 border-b border-border">
+              <AppHeading level={4} weight={700} sx={{ m: 0, fontSize: "13px", color: "var(--app-color-text)" }}>
+                Recent Transactions
+              </AppHeading>
+            </div>
+
+            {isStatsLoading ? (
+              <div className="py-10 flex justify-center">
+                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", fontWeight: 600 }}>Loading transactions...</AppText>
+              </div>
+            ) : !stats || !stats.recentTransactions || stats.recentTransactions.length === 0 ? (
+              <div className="py-12 flex flex-col items-center justify-center text-center">
+                <LuQrCode className="text-[36px] text-text-muted/30 mb-2" />
+                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", fontWeight: 600 }}>No transactions recorded yet for this UPI</AppText>
+                <AppText variant="caption" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>Transactions will appear here once payments are received via this QR code</AppText>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-[12.5px]">
+                  <thead>
+                    <tr className="border-b border-border bg-surface-alt/30">
+                      <th className="text-left px-5 py-2.5 text-[11px] font-bold uppercase text-text-muted tracking-wider">Invoice No</th>
+                      <th className="text-left px-5 py-2.5 text-[11px] font-bold uppercase text-text-muted tracking-wider">Date</th>
+                      <th className="text-left px-5 py-2.5 text-[11px] font-bold uppercase text-text-muted tracking-wider">Customer</th>
+                      <th className="text-right px-5 py-2.5 text-[11px] font-bold uppercase text-text-muted tracking-wider">Amount</th>
+                      <th className="text-left px-5 py-2.5 text-[11px] font-bold uppercase text-text-muted tracking-wider">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.recentTransactions.map((tx, idx) => (
+                      <tr key={tx._id || idx} className="border-b border-border/50 hover:bg-surface-hover/30 transition-colors">
+                        <td className="px-5 py-3 font-mono font-bold text-primary">{tx.invoiceNo || "-"}</td>
+                        <td className="px-5 py-3 text-text-muted">
+                          {tx.date ? new Date(tx.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "-"}
+                        </td>
+                        <td className="px-5 py-3 font-semibold text-text">{tx.customer?.name || "Walk-in"}</td>
+                        <td className="px-5 py-3 text-right font-mono font-extrabold text-text">
+                          ₹{Number(tx.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ${
+                            String(tx.status || "").toLowerCase() === "paid"
+                              ? "bg-success-soft text-success border-success/30"
+                              : "bg-surface-alt text-text-muted border-border"
+                          }`}>
+                            {tx.status || "Paid"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </AppCard>
         </div>
       </div>
     </section>

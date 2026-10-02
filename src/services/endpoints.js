@@ -261,23 +261,6 @@ export const ENDPOINTS = {
       `/finance/treasury/bank-transactions/${bankTransactionId}/cancel`,
   },
 
-  BANK_SLIP: {
-    CREATE: "/finance/treasury/bank-slips",
-
-    LIST: "/finance/treasury/bank-slips",
-
-    BY_ID: (bankSlipId) => `/finance/treasury/bank-slips/${bankSlipId}`,
-
-    SUBMIT: (bankSlipId) => `/finance/treasury/bank-slips/${bankSlipId}/submit`,
-
-    CONFIRM: (bankSlipId) =>
-      `/finance/treasury/bank-slips/${bankSlipId}/confirm`,
-
-    REJECT: (bankSlipId) => `/finance/treasury/bank-slips/${bankSlipId}/reject`,
-
-    CANCEL: (bankSlipId) => `/finance/treasury/bank-slips/${bankSlipId}/cancel`,
-  },
-
   CASH_ACCOUNT: {
     CREATE: "/finance/treasury/cash-accounts",
 
@@ -329,6 +312,18 @@ export const ENDPOINTS = {
       `/finance/treasury/fund-transfers/${fundTransferId}/cancel`,
   },
 
+  CASH_EXCHANGE: {
+    CREATE: "/finance/treasury/cash-exchanges",
+
+    LIST: "/finance/treasury/cash-exchanges",
+
+    BY_ID: (cashExchangeId) =>
+      `/finance/treasury/cash-exchanges/${cashExchangeId}`,
+
+    CANCEL: (cashExchangeId) =>
+      `/finance/treasury/cash-exchanges/${cashExchangeId}/cancel`,
+  },
+
   PAYMENT_QR: {
     CREATE: "/finance/treasury/payment-qr",
 
@@ -338,6 +333,10 @@ export const ENDPOINTS = {
 
     SET_PRIMARY: (paymentQrId) =>
       `/finance/treasury/payment-qr/${paymentQrId}/set-primary`,
+
+    // Per-UPI transaction statistics
+    STATS: (paymentQrId) =>
+      `/finance/treasury/payment-qr/${paymentQrId}/stats`,
   },
 
   CHEQUE: {
@@ -354,6 +353,14 @@ export const ENDPOINTS = {
     BOUNCE: (chequeId) => `/finance/treasury/cheques/${chequeId}/bounce`,
 
     CANCEL: (chequeId) => `/finance/treasury/cheques/${chequeId}/cancel`,
+  },
+
+  BANK_DEPOSIT_SLIP: {
+    CREATE: "/finance/treasury/bank-deposit-slips",
+    LIST: "/finance/treasury/bank-deposit-slips",
+    BY_ID: (slipId) => `/finance/treasury/bank-deposit-slips/${slipId}`,
+    CONFIRM_DEPOSIT: (slipId) => `/finance/treasury/bank-deposit-slips/${slipId}/confirm-deposit`,
+    CANCEL: (slipId) => `/finance/treasury/bank-deposit-slips/${slipId}/cancel`,
   },
 
   MARKETPLACE_STORE: {
@@ -531,6 +538,10 @@ export const ENDPOINTS = {
     LIST: "/catalog/purchase-bills",
 
     BY_ID: (billId) => `/catalog/purchase-bills/${billId}`,
+  },
+
+  DASHBOARD: {
+    OVERVIEW: "/dashboard/overview",
   },
 };
 

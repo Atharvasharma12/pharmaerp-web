@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 import useCashDenomination from "../hooks/useCashDenomination";
 import CreateCashDenominationDesktopPage from "./desktop/CreateCashDenominationDesktopPage";
@@ -31,6 +32,7 @@ const INITIAL_FORM_DATA = {
 const CreateCashDenominationPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { currentBranch } = useBranch();
 
   const {
     createCashDenomination,
@@ -53,10 +55,10 @@ const CreateCashDenominationPage = () => {
   useEffect(() => {
     if (hasFetchedBanksRef.current) return;
     hasFetchedBanksRef.current = true;
-    getCashAccounts({ all: true }).catch((err) =>
+    getCashAccounts({ all: true, branchId: currentBranch?._id }).catch((err) =>
       console.error("Failed to load cash accounts for create count:", err)
     );
-  }, [getCashAccounts]);
+  }, [getCashAccounts, currentBranch?._id]);
 
   useEffect(() => {
     return () => {

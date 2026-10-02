@@ -21,11 +21,8 @@ export const SalesReceiptModal = ({ isOpen, onClose, saleData }) => {
 
   const {
     invoiceNo = "TAX-INV-2026-0891",
-    date = new Date().toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }),
+    date: rawDate,
+    createdAt: rawCreatedAt,
     customer = { name: "Walk-in Retail Customer", phone: "9876543210" },
     billingMode = "B2C",
     partyType = "retail",
@@ -38,6 +35,14 @@ export const SalesReceiptModal = ({ isOpen, onClose, saleData }) => {
   } = saleData;
 
   const isB2B = billingMode === "B2B";
+
+  const billDate = rawDate 
+    ? new Date(rawDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    : new Date().toLocaleDateString("en-IN");
+
+  const actualDate = rawCreatedAt 
+    ? new Date(rawCreatedAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    : new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   const handlePrint = () => {
     window.print();
@@ -67,7 +72,7 @@ export const SalesReceiptModal = ({ isOpen, onClose, saleData }) => {
                 </span>
               </div>
               <p className="text-xs text-text-muted mt-0.5">
-                Invoice {invoiceNo} • {date}
+                Invoice {invoiceNo} • {billDate}
               </p>
             </div>
           </div>
@@ -95,7 +100,8 @@ export const SalesReceiptModal = ({ isOpen, onClose, saleData }) => {
             </div>
             <div className="text-right">
               <span className="font-mono font-bold text-text text-sm">{invoiceNo}</span>
-              <p className="text-text-muted">{date}</p>
+              <p className="text-text-muted">Bill Date: {billDate}</p>
+              <p className="text-text-muted text-[10px]">Created: {actualDate}</p>
             </div>
           </div>
 

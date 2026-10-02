@@ -15,10 +15,12 @@ import {
   User
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { UIModal, UIButton } from "@/components/ui";
 import { PermissionGate } from "@/components/common/PermissionGate";
 import usePaymentQr from "@/features/finance/treasury/payment-qr/hooks/usePaymentQr";
 import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
+import useBranch from "@/features/branch/hooks/useBranch";
 import { ROUTES } from "@/constants";
 import { CashBreakdownModal } from "./CashBreakdownModal";
 
@@ -57,18 +59,49 @@ export const SalesCheckoutModal = ({
   billingMode = "B2C",
   cartSummary = {},
   onCompleteSale,
+  activeShift: activeShiftProp,
 }) => {
   const navigate = useNavigate();
+  const { currentBranch } = useBranch();
   const { paymentQrs, getPaymentQrs } = usePaymentQr();
   const { cashAccounts, getCashAccounts } = useCashAccount();
+  const reduxActiveShift = useSelector((state) => state.shift?.activeShift);
+  const activeShift = activeShiftProp ?? reduxActiveShift;
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && currentBranch?._id) {
       getPaymentQrs({});
-      getCashAccounts({});
+      getCashAccounts({ branchId: currentBranch._id, all: "true" });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, currentBranch?._id]);
+
+  // Main operating cash counter (Shift drawer / System default)
+  const mainCashAccount = useMemo(() => {
+    if (!cashAccounts || cashAccounts.length === 0) return null;
+    if (activeShift?.cashAccountId) {
+      const match = cashAccounts.find(
+        (ca) => String(ca._id) === String(activeShift.cashAccountId)
+      );
+      if (match) return match;
+    }
+    const sysDefault = cashAccounts.find((ca) => ca.isSystemDefault);
+    if (sysDefault) return sysDefault;
+    const primary = cashAccounts.find((ca) => ca.isPrimary);
+    if (primary) return primary;
+    return cashAccounts[0] || null;
+  }, [cashAccounts, activeShift?.cashAccountId]);
+
+  const availableCash = useMemo(() => {
+    return mainCashAccount?.denominationBalance?.totalBalance ?? 0;
+  }, [mainCashAccount]);
+
+  // Primary QR — pre-selected for UPI payments (zero friction for cashier)
+  const primaryQr = useMemo(() => {
+    if (!paymentQrs || paymentQrs.length === 0) return null;
+    return paymentQrs.find((q) => q.isPrimary && q.status === "ACTIVE") ||
+           paymentQrs.find((q) => q.status === "ACTIVE") ||
+           paymentQrs[0] || null;
+  }, [paymentQrs]);
 
   const [discountPercent, setDiscountPercent] = useState(customer?.defaultDiscount || 0);
   const [notes, setNotes] = useState("");
@@ -136,9 +169,16 @@ export const SalesCheckoutModal = ({
   // Initialize payments when modal opens
   useEffect(() => {
     if (isOpen) {
-      setPayments([{ id: Date.now(), paymentType: "Cash", amount: grandTotal }]);
+      setPayments([
+        {
+          id: Date.now(),
+          paymentType: "Cash",
+          amount: grandTotal,
+          cashAccountId: mainCashAccount?._id || "",
+        },
+      ]);
     }
-  }, [isOpen, grandTotal]);
+  }, [isOpen, grandTotal, mainCashAccount?._id]);
 
   const [cashBreakdownTarget, setCashBreakdownTarget] = useState(null); // index of row
 
@@ -147,12 +187,53 @@ export const SalesCheckoutModal = ({
 
   const handleUpdate = (index, field, value) => {
     const next = [...payments];
-    next[index] = { ...next[index], [field]: value };
+    const updated = { ...next[index], [field]: value };
+    if (field === "paymentType" && value === "Cash") {
+      updated.cashAccountId = mainCashAccount?._id || "";
+      delete updated.paymentQrId;
+    }
+    // Auto-select primary QR when switching to UPI
+    if (field === "paymentType" && (value === "UPI")) {
+      if (!updated.paymentQrId && primaryQr?._id) {
+        updated.paymentQrId = String(primaryQr._id);
+      }
+    }
+    if (field === "paymentType" && value !== "Cash") {
+      delete updated.cashDetails;
+    }
+    if (field === "amount" && updated.paymentType === "Cash" && updated.cashDetails) {
+      if (Number(value) !== Number(next[index].amount)) {
+        updated.cashDetails = null;
+      }
+    }
+    next[index] = updated;
     setPayments(next);
   };
 
+  const hasUncapturedCash = useMemo(() => {
+    return payments.some((p) => {
+      if (p.paymentType !== "Cash") return false;
+      const target = Number(p.amount) || 0;
+      if (target <= 0) return false;
+      if (!p.cashDetails) return true;
+      const received = Number(p.cashDetails.receivedTotal) || 0;
+      const returned = Number(p.cashDetails.returnedTotal) || 0;
+      const expectedChange = Math.max(0, received - target);
+      return received < target || returned !== expectedChange;
+    });
+  }, [payments]);
+
   const handleAddRow = () => {
-    setPayments([...payments, { id: Date.now(), paymentType: "Cash", amount: shortfall }]);
+    setPayments([
+      ...payments,
+      {
+        id: Date.now(),
+        paymentType: "Cash",
+        amount: shortfall,
+        cashAccountId: mainCashAccount?._id || "",
+        paymentQrId: undefined,
+      },
+    ]);
   };
 
   const handleRemoveRow = (index) => {
@@ -175,6 +256,11 @@ export const SalesCheckoutModal = ({
   const handleProcessSale = async () => {
     if (totalPaid < grandTotal) {
       setErrorMessage(`Cannot process sale. Collected amount (₹${totalPaid.toFixed(2)}) is less than Grand Total (₹${grandTotal.toFixed(2)}).`);
+      return;
+    }
+
+    if (hasUncapturedCash) {
+      setErrorMessage("Please capture the exact cash denominations given by the customer for all cash payments.");
       return;
     }
 
@@ -201,15 +287,15 @@ export const SalesCheckoutModal = ({
         grandTotal,
         gstSlabs,
         paymentMethod: "Split",
-        cashTendered: grandTotal,
-        changeDue: 0,
+        cashTendered: payments.reduce((sum, p) => p.paymentType === "Cash" ? sum + (p.cashDetails?.receivedTotal || Number(p.amount)) : sum, 0),
+        changeDue: payments.reduce((sum, p) => p.paymentType === "Cash" ? sum + (p.cashDetails?.returnedTotal || 0) : sum, 0),
         denominations: [],
         payments: payments.map(p => ({
           paymentType: p.paymentType,
           amount: Number(p.amount),
           paymentQrId: p.paymentQrId,
           txnRefNo: p.txnRefNo,
-          cashAccountId: p.cashAccountId,
+          cashAccountId: p.paymentType === "Cash" ? (mainCashAccount?._id || p.cashAccountId) : undefined,
           denominations: p.cashDetails?.received 
             ? Object.entries(p.cashDetails.received).map(([val, qty]) => ({ denomination: Number(val), quantity: qty }))
             : [],
@@ -334,22 +420,27 @@ export const SalesCheckoutModal = ({
                 {row.paymentType === "UPI" && (
                   <div className="flex gap-3 animate-in fade-in slide-in-from-top-1">
                     <div className="flex-1 space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Select QR</label>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Receiving UPI Account</label>
                       <select 
-                        value={row.paymentQrId || ""} 
+                        value={row.paymentQrId || (primaryQr?._id ? String(primaryQr._id) : "")}
                         onChange={(e) => handleUpdate(index, 'paymentQrId', e.target.value)}
                         className="w-full p-1.5 rounded-md border border-border bg-surface-alt text-xs focus:border-primary focus:outline-none"
                       >
-                        <option value="">Default QR</option>
-                        {paymentQrs.map(qr => (
-                          <option key={qr._id} value={qr._id}>{qr.label}</option>
+                        {paymentQrs && paymentQrs.filter(q => q.status === "ACTIVE").map(qr => (
+                          <option key={qr._id} value={String(qr._id)}>
+                            {qr.label ? `${qr.label} — ${qr.upiId}` : qr.upiId}
+                            {qr.isPrimary ? " ★" : ""}
+                          </option>
                         ))}
+                        {(!paymentQrs || paymentQrs.filter(q => q.status === "ACTIVE").length === 0) && (
+                          <option value="">No active UPI QR configured</option>
+                        )}
                       </select>
                     </div>
                     <div className="flex-1 space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Txn Ref (Opt)</label>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Txn Ref (Optional)</label>
                       <input 
-                        type="text" placeholder="UPI Ref..."
+                        type="text" placeholder="UPI Ref No..."
                         value={row.txnRefNo || ""} onChange={(e) => handleUpdate(index, 'txnRefNo', e.target.value)}
                         className="w-full p-1.5 rounded-md border border-border bg-surface-alt text-xs focus:border-primary focus:outline-none"
                       />
@@ -358,20 +449,137 @@ export const SalesCheckoutModal = ({
                 )}
 
                 {row.paymentType === "Cash" && (
-                  <div className="flex gap-3 animate-in fade-in slide-in-from-top-1">
-                    <div className="flex-1 space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Cash Account</label>
-                      <select 
-                        value={row.cashAccountId || ""} 
-                        onChange={(e) => handleUpdate(index, 'cashAccountId', e.target.value)}
-                        className="w-full p-1.5 rounded-md border border-border bg-surface-alt text-xs focus:border-primary focus:outline-none"
-                      >
-                        <option value="">Default Counter Cash</option>
-                        {cashAccounts?.map(ca => (
-                          <option key={ca._id} value={ca._id}>{ca.accountName} {ca.denominationBalance ? `(₹${ca.denominationBalance.totalBalance})` : ''}</option>
-                        ))}
-                      </select>
+                  <div className="p-3 rounded-xl border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="size-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <Wallet className="size-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                            Cash Counter
+                          </span>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                            {activeShift ? "Shift Cash Drawer" : "Main Counter"}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-text truncate">
+                          {mainCashAccount?.accountName || "Main Cash Counter"}
+                        </p>
+                      </div>
                     </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                        Cash Available
+                      </span>
+                      <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        ₹{Number(availableCash).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {row.paymentType === "Cash" && row.cashDetails && (() => {
+                  const receivedMap = row.cashDetails.received || {};
+                  const returnedMap = row.cashDetails.returned || {};
+                  const receivedEntries = Object.entries(receivedMap)
+                    .filter(([_, qty]) => Number(qty) > 0)
+                    .sort(([a], [b]) => Number(b) - Number(a));
+                  const returnedEntries = Object.entries(returnedMap)
+                    .filter(([_, qty]) => Number(qty) > 0)
+                    .sort(([a], [b]) => Number(b) - Number(a));
+                  const totalNotesGiven = receivedEntries.reduce((sum, [_, qty]) => sum + Number(qty), 0);
+                  const totalNotesReturned = returnedEntries.reduce((sum, [_, qty]) => sum + Number(qty), 0);
+
+                  return (
+                    <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20 space-y-2.5 animate-in fade-in slide-in-from-top-1">
+                      <div className="flex items-center justify-between text-xs pb-1 border-b border-emerald-500/20">
+                        <span className="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                          <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+                          Exact Denomination Summary
+                        </span>
+                        <span className="font-mono font-bold text-text">
+                          Given: ₹{Number(row.cashDetails.receivedTotal).toLocaleString("en-IN")}
+                        </span>
+                      </div>
+
+                      {/* Notes Given by Customer */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[11px] text-text-muted">
+                          <span className="font-semibold uppercase tracking-wider text-[10px]">
+                            Notes Given by Customer ({totalNotesGiven} note{totalNotesGiven === 1 ? "" : "s"}):
+                          </span>
+                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            ₹{Number(row.cashDetails.receivedTotal).toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {receivedEntries.map(([denom, qty]) => (
+                            <span
+                              key={`summary-rec-${denom}`}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface border border-emerald-500/30 text-xs font-mono font-medium text-text shadow-2xs"
+                            >
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400">₹{denom}</span>
+                              <span className="text-text-muted text-[10px]">×</span>
+                              <span className="font-bold">{qty}</span>
+                              <span className="text-[10px] text-text-muted font-normal">(₹{Number(denom) * Number(qty)})</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Change Returned (if any) */}
+                      {Number(row.cashDetails.returnedTotal) > 0 && (
+                        <div className="pt-2 border-t border-emerald-500/20 space-y-1">
+                          <div className="flex items-center justify-between text-[11px] text-text-muted">
+                            <span className="font-semibold uppercase tracking-wider text-[10px] text-warning">
+                              Change Returned ({totalNotesReturned} note{totalNotesReturned === 1 ? "" : "s"}):
+                            </span>
+                            <span className="font-mono font-bold text-warning">
+                              ₹{Number(row.cashDetails.returnedTotal).toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {returnedEntries.map(([denom, qty]) => (
+                              <span
+                                key={`summary-ret-${denom}`}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-warning-soft/40 border border-warning/30 text-[10px] font-mono font-medium text-warning"
+                              >
+                                <span>₹{denom}</span>
+                                <span>×</span>
+                                <span className="font-bold">{qty}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Net Amount Reconciled */}
+                      <div className="pt-1.5 border-t border-emerald-500/20 flex justify-between items-center text-xs">
+                        <span className="text-text-muted font-medium">Net Cash Collected:</span>
+                        <span className="font-mono font-bold text-primary">
+                          ₹{Number(row.cashDetails.netApplied || row.amount).toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {row.paymentType === "Cash" && !row.cashDetails && (
+                  <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/20 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 font-medium">
+                      <AlertCircle className="size-4 shrink-0 text-amber-600" />
+                      <span>Exact cash denominations not selected (Required)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCashBreakdownTarget(index)}
+                      className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-colors shrink-0 shadow-xs flex items-center gap-1.5"
+                    >
+                      <Calculator className="size-3.5" />
+                      Select Notes
+                    </button>
                   </div>
                 )}
 
@@ -380,10 +588,10 @@ export const SalesCheckoutModal = ({
                     <button 
                       type="button"
                       onClick={() => setCashBreakdownTarget(index)}
-                      className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-2 ${row.cashDetails ? 'bg-primary-soft text-primary border-primary/40 shadow-xs' : 'bg-surface-alt border-border text-text-muted hover:text-text hover:border-border-heavy'}`}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-2 ${row.cashDetails ? 'bg-primary-soft text-primary border-primary/40 shadow-xs' : 'bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25'}`}
                     >
                       <Calculator className="size-3.5" /> 
-                      {row.cashDetails ? 'Cash Breakdown Captured' : 'Exact Denominations'}
+                      {row.cashDetails ? 'Edit Cash Breakdown' : 'Select Exact Denominations *'}
                     </button>
                   ) : <div></div>}
 
@@ -416,6 +624,13 @@ export const SalesCheckoutModal = ({
                 <span>{errorMessage}</span>
               </div>
             )}
+
+            {hasUncapturedCash && !errorMessage && (
+              <div className="mb-4 p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 flex items-center gap-2.5 text-xs font-semibold">
+                <AlertCircle className="size-4 shrink-0 text-amber-600" />
+                <span>Please select exact customer cash denominations to enable confirmation.</span>
+              </div>
+            )}
             
             <div className="flex gap-3">
               <UIButton variant="outline" size="lg" className="flex-1" onClick={onClose} disabled={isSubmitting}>
@@ -428,7 +643,7 @@ export const SalesCheckoutModal = ({
                 <UIButton
                   variant="primary" size="lg" className="flex-[2] gap-2"
                   loading={isSubmitting}
-                  disabled={isSubmitting || shortfall > 0}
+                  disabled={isSubmitting || shortfall > 0 || hasUncapturedCash}
                   onClick={handleProcessSale}
                 >
                   <CheckCircle2 className="size-5" /> 
@@ -442,10 +657,7 @@ export const SalesCheckoutModal = ({
       </div>
 
       {(() => {
-        const selectedCashRow = cashBreakdownTarget !== null ? payments[cashBreakdownTarget] : null;
-        const selectedCashAccount = selectedCashRow 
-          ? (cashAccounts?.find(ca => ca._id === selectedCashRow.cashAccountId) || cashAccounts?.find(ca => ca.isPrimary) || cashAccounts?.[0]) 
-          : null;
+        const selectedCashAccount = mainCashAccount;
         
         return (
           <CashBreakdownModal
@@ -457,7 +669,7 @@ export const SalesCheckoutModal = ({
             initialReturned={cashBreakdownTarget !== null ? payments[cashBreakdownTarget]?.cashDetails?.returned : {}}
             availableDenominations={selectedCashAccount?.denominationBalance?.denominations || []}
             availableBalance={selectedCashAccount?.denominationBalance?.totalBalance || 0}
-            cashAccountName={selectedCashAccount?.accountName || 'Cash Account'}
+            cashAccountName={selectedCashAccount?.accountName || "Main Cash Counter"}
           />
         );
       })()}

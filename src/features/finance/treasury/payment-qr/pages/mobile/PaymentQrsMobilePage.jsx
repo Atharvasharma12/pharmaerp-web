@@ -397,7 +397,7 @@ const PaymentQrsMobilePage = ({
                         <span className="text-text-muted block font-semibold">Linked Settlement Bank</span>
                         <span className="font-bold text-primary block mt-0.5 break-words">
                           {qr.bankAccountId
-                            ? `${qr.bankAccountId.bankName} (*${String(qr.bankAccountId.accountNumber || "").slice(-4)})`
+                            ? `${qr.bankAccountId.bankMasterId?.name || "Bank"} (*${String(qr.bankAccountId.accountNumber || "").slice(-4)})`
                             : "-"}
                         </span>
                       </div>

@@ -8,6 +8,7 @@ import {
   updatePaymentQr,
   deletePaymentQr,
   setPrimaryPaymentQr,
+  getPaymentQrStats,
 } from "../store/paymentQrThunk";
 
 import {
@@ -63,6 +64,10 @@ const usePaymentQr = () => {
     selectSetPrimaryPaymentQrStatus,
   );
 
+  // Per-UPI stats
+  const paymentQrStats = useSelector((state) => state.paymentQr.paymentQrStats);
+  const paymentQrStatsStatus = useSelector((state) => state.paymentQr.paymentQrStatsStatus);
+
   const submitCreatePaymentQr = useCallback((payload) => {
     return dispatch(createPaymentQr(payload)).unwrap();
   }, [dispatch]);
@@ -90,6 +95,10 @@ const usePaymentQr = () => {
 
   const submitSetPrimaryPaymentQr = useCallback((paymentQrId) => {
     return dispatch(setPrimaryPaymentQr(paymentQrId)).unwrap();
+  }, [dispatch]);
+
+  const fetchPaymentQrStats = useCallback((paymentQrId, params = {}) => {
+    return dispatch(getPaymentQrStats({ paymentQrId, params })).unwrap();
   }, [dispatch]);
 
   const clearError = useCallback(() => {
@@ -132,12 +141,16 @@ const usePaymentQr = () => {
     deletePaymentQrStatus,
     setPrimaryPaymentQrStatus,
 
+    paymentQrStats,
+    paymentQrStatsStatus,
+
     createPaymentQr: submitCreatePaymentQr,
     getPaymentQrs: fetchPaymentQrs,
     getPaymentQrById: fetchPaymentQrById,
     updatePaymentQr: submitUpdatePaymentQr,
     deletePaymentQr: submitDeletePaymentQr,
     setPrimaryPaymentQr: submitSetPrimaryPaymentQr,
+    getPaymentQrStats: fetchPaymentQrStats,
 
     clearError,
     clearMessage,

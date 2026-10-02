@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { API_STATUS } from "@/constants";
 import useAccount from "@/features/finance/chart-of-accounts/accounts/hooks/useAccount";
 import { useIsMobile } from "@/hooks";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 import useLedger from "../hooks/useLedger";
 import LedgerDesktopPage from "./desktop/LedgerDesktopPage";
@@ -12,6 +13,7 @@ import LedgerMobilePage from "./mobile/LedgerMobilePage";
 const LedgerPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { currentBranch } = useBranch();
 
   const {
     ledgerEntries,
@@ -38,16 +40,16 @@ const LedgerPage = () => {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(10);
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
-
   // Fetch accounts dropdown list on mount
   useEffect(() => {
-    getAccounts({ all: true, excludeCategories: "CUSTOMER,SUPPLIER" }).catch((err) => {
+    getAccounts({ all: true, excludeCategories: "CUSTOMER,SUPPLIER", branchId: currentBranch?._id }).catch((err) => {
       console.error("Failed to load accounts for ledger dropdown:", err);
     });
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentBranch?._id]);
 
   const executeQuery = useCallback(async () => {
     try {
@@ -57,12 +59,14 @@ const LedgerPage = () => {
         accountId: filters.accountId || undefined,
         startDate: filters.startDate ? new Date(filters.startDate).toISOString() : undefined,
         endDate: filters.endDate ? new Date(filters.endDate).toISOString() : undefined,
+        branchId: currentBranch?._id,
+        sort: "-voucherDate -createdAt",
       };
       await getLedger(query);
     } catch (err) {
       console.error("Failed to fetch ledger entries:", err);
     }
-  }, [currentPage, pageSize, filters, getLedger]);
+  }, [currentPage, pageSize, filters, getLedger, currentBranch?._id]);
 
   useEffect(() => {
     executeQuery();

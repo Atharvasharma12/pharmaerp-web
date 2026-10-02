@@ -13,7 +13,8 @@ import { updateShiftStatus, listShifts } from "../store/shiftThunk";
 import { API_STATUS } from "@/constants";
 import { apiClient } from "@/services";
 import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
-import { FileText, IndianRupee, QrCode } from "lucide-react";
+import { FileText, IndianRupee, QrCode, Banknote, ArrowLeftRight } from "lucide-react";
+import { ShiftFundTransferPanel } from "./ShiftFundTransferPanel";
 
 const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
 
@@ -48,10 +49,15 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
   }, [cashAccounts]);
 
   useEffect(() => {
-    if (isOpen) {
-      getCashAccounts();
+    if (isOpen && shift?.branchId) {
+      // Scope to the shift's branch and only fetch system default account
+      getCashAccounts({
+        branchId: shift.branchId,
+        isSystemDefault: "true",
+        all: "true",
+      });
     }
-  }, [isOpen]);
+  }, [isOpen, shift?.branchId]);
 
   useEffect(() => {
     if (isOpen && defaultCashAccount?.denominationBalance?.denominations) {
@@ -127,6 +133,18 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
               <UIAlert intent="danger" title="Error" description={error} />
             )}
 
+            {/* Cash account info */}
+            {defaultCashAccount && (
+              <div className="flex items-center gap-2 bg-surface-alt/50 border border-border/60 rounded-lg px-3 py-2 text-xs">
+                <Banknote className="size-3.5 text-emerald-500 shrink-0" />
+                <span className="text-text-muted">Reconciling:</span>
+                <span className="font-semibold text-text">{defaultCashAccount.accountName}</span>
+                <span className="ml-auto font-mono font-bold text-emerald-500 tabular-nums">
+                  ₹{(defaultCashAccount?.denominationBalance?.totalBalance || 0).toLocaleString("en-IN")}
+                </span>
+              </div>
+            )}
+
             <div className="bg-error/10 p-4 rounded-lg border border-error/20 mb-4 text-error">
               <h4 className="text-sm font-semibold mb-1">Confirm Shift Lock</h4>
               <p className="text-xs">
@@ -181,13 +199,44 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
                       ₹{summary.qrNet}
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm mt-2 border-t border-border pt-1">
+
+                  {summary.upiBreakdown?.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-border/50">
+                      <p className="text-[10px] uppercase font-bold text-text-muted mb-1.5 tracking-wider">UPI Breakdown</p>
+                      {summary.upiBreakdown.map((upi, idx) => (
+                        <div key={idx} className="flex justify-between text-xs mb-1">
+                          <span className="text-text-muted truncate max-w-[120px]" title={upi.upiId}>
+                            {upi.upiId} <span className="opacity-50">({upi.transactionCount})</span>
+                          </span>
+                          <span className="font-mono text-text">₹{upi.totalAmount}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-sm mt-3 border-t border-border pt-2">
                     <span>Expected Cash</span>
                     <span className="font-bold">
                       ₹{summary.expectedClosingCashAmount || 0}
                     </span>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* ── Fund Transfers Section ── */}
+            {summary && (summary.withdrawals?.length > 0 || summary.deposits?.length > 0) && (
+              <div className="border border-border rounded-lg p-3 bg-surface-secondary">
+                <h4 className="text-xs font-semibold text-text-muted mb-3 flex items-center gap-1.5">
+                  <ArrowLeftRight className="w-3.5 h-3.5" />
+                  Fund Transfers This Shift
+                </h4>
+                <ShiftFundTransferPanel
+                  withdrawals={summary.withdrawals || []}
+                  deposits={summary.deposits || []}
+                  totalWithdrawals={summary.totalWithdrawals || 0}
+                  totalDeposits={summary.totalDeposits || 0}
+                />
               </div>
             )}
 
@@ -216,6 +265,8 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
                   </p>
                   <p className="text-[10px] text-text-muted mt-1">
                     Opening + Cash Sales
+                    {(summary?.totalWithdrawals || 0) > 0 && ` − Withdrawals`}
+                    {(summary?.totalDeposits   || 0) > 0 && ` + Deposits`}
                   </p>
                 </div>
                 <div

@@ -25,7 +25,7 @@ const CashDenominationsPage = () => {
   } = useCashDenomination();
 
   const { cashAccounts = [], getCashAccounts } = useCashAccount();
-  const { branches = [], getCompanyBranches } = useBranch();
+  const { branches = [], getCompanyBranches, currentBranch } = useBranch();
 
   const [filters, setFilters] = useState({
     search: "",
@@ -43,10 +43,10 @@ const CashDenominationsPage = () => {
   useEffect(() => {
     if (hasFetchedBanksRef.current) return;
     hasFetchedBanksRef.current = true;
-    getCashAccounts({ all: true }).catch((err) =>
+    getCashAccounts({ all: true, branchId: currentBranch?._id }).catch((err) =>
       console.error("Failed to load cash accounts for filter:", err)
     );
-  }, []);
+  }, [getCashAccounts, currentBranch?._id]);
 
   useEffect(() => {
     if (hasFetchedBranchesRef.current) return;
@@ -63,14 +63,14 @@ const CashDenominationsPage = () => {
         limit: pageSize,
         search: filters.search || undefined,
         cashAccountId: filters.cashAccountId === "all" ? undefined : filters.cashAccountId,
-        branchId: filters.branchId === "all" ? undefined : filters.branchId,
+        branchId: currentBranch ? currentBranch._id : (filters.branchId === "all" ? undefined : filters.branchId),
         status: filters.status === "all" ? undefined : filters.status,
       };
       await getCashDenominations(query);
     } catch (err) {
       console.error("Failed to fetch cash denominations:", err);
     }
-  }, [currentPage, pageSize, filters, getCashDenominations]);
+  }, [currentPage, pageSize, filters, getCashDenominations, currentBranch]);
 
   useEffect(() => {
     fetchCashDenominationsData();

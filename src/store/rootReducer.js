@@ -23,15 +23,16 @@ import reportsReducer from "@/features/finance/reports/store/reportsSlice";
 
 import bankAccountReducer from "@/features/finance/treasury/bank-management/bank-accounts/store/bankAccountSlice";
 import bankTransactionReducer from "@/features/finance/treasury/bank-management/bank-transactions/store/bankTransactionSlice";
-import bankSlipReducer from "@/features/finance/treasury/bank-management/bank-slips/store/bankSlipSlice";
 
 import cashAccountReducer from "@/features/finance/treasury/cash-management/cash-accounts/store/cashAccountSlice";
 import cashTransactionReducer from "@/features/finance/treasury/cash-management/cash-transactions/store/cashTransactionSlice";
 import cashDenominationReducer from "@/features/finance/treasury/cash-management/cash-denominations/store/cashDenominationSlice";
 
 import fundTransferReducer from "@/features/finance/treasury/fund-transfers/store/fundTransferSlice";
+import cashExchangeReducer from "@/features/finance/treasury/cash-management/exchange-cash/store/cashExchangeSlice";
 import paymentQrReducer from "@/features/finance/treasury/payment-qr/store/paymentQrSlice";
 import chequeReducer from "@/features/finance/treasury/cheque-management/store/chequeSlice";
+import bankDepositSlipReducer from "@/features/finance/treasury/bank-deposit-slips/store/bankDepositSlipSlice";
 
 import planReducer from "@/features/subscription/plans/store/planSlice";
 import subscriptionReducer from "@/features/subscription/subscriptions/store/subscriptionSlice";
@@ -88,15 +89,16 @@ const appReducer = combineReducers({
   // Treasury
   bankAccount: bankAccountReducer,
   bankTransaction: bankTransactionReducer,
-  bankSlip: bankSlipReducer,
 
   cashAccount: cashAccountReducer,
   cashTransaction: cashTransactionReducer,
   cashDenomination: cashDenominationReducer,
 
   fundTransfer: fundTransferReducer,
+  cashExchange: cashExchangeReducer,
   paymentQr: paymentQrReducer,
   cheque: chequeReducer,
+  bankDepositSlip: bankDepositSlipReducer,
 
   // Subscription
   plan: planReducer,
