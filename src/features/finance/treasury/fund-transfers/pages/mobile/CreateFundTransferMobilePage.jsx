@@ -35,7 +35,7 @@ const CreateFundTransferMobilePage = ({
   handleInputChange,
   handleSubmit,
   handleCancel,
-  selectedFromCashAccount,
+  branchCash,
 }) => {
   return (
     <section className="w-full bg-bg pb-20">
@@ -197,7 +197,7 @@ const CreateFundTransferMobilePage = ({
                       <div className="p-2 space-y-2">
                         {fromDenominations.map((d) => {
                           const subTotal = d.denomination * d.quantity;
-                          const availableDenom = selectedFromCashAccount?.denominationBalance?.denominations?.find(
+                          const availableDenom = branchCash?.balance?.runningDenominations?.find(
                             (ad) => ad.denomination === d.denomination
                           );
                           const availableQty = availableDenom ? availableDenom.quantity : 0;

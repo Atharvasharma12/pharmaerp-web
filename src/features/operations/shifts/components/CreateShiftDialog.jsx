@@ -11,7 +11,7 @@ import {
 } from "@/components/ui";
 import { createShift, listShifts } from "../store/shiftThunk";
 import { API_STATUS } from "@/constants";
-import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
+import useBranchCash from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { apiClient } from "@/services";
 
@@ -45,7 +45,11 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
   const autoShiftName = new Date().getHours() < 12 ? "Morning Shift" : new Date().getHours() < 17 ? "Afternoon Shift" : "Evening Shift";
   const autoShiftNo = "Auto-generated on save";
 
-  const { cashAccounts, getCashAccounts } = useCashAccount();
+  const {
+    currentBranchCash: branchCash,
+    runningDenominations,
+    fetchBranchCash: getBranchCash,
+  } = useBranchCash();
   const [loadingCash, setLoadingCash] = useState(false);
 
   // Denominations State
@@ -53,19 +57,10 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
     DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {})
   );
 
-  // Only use the PRIMARY/default cash account for the current branch in shifts
-  const defaultCashAccount = useMemo(() => {
-    return cashAccounts?.find((ca) => ca.isPrimary) || cashAccounts?.[0] || null;
-  }, [cashAccounts]);
-
   useEffect(() => {
     if (isOpen && currentBranch?._id) {
       setLoadingCash(true);
-      getCashAccounts({
-        branchId: currentBranch._id,
-        isSystemDefault: "true",
-        all: "true",
-      }).finally(() => setLoadingCash(false));
+      getBranchCash(currentBranch._id).finally(() => setLoadingCash(false));
 
       setLoadingDC(true);
       apiClient.get(`/operations/day-closings?date=${todayStr}&branchId=${currentBranch._id}`)
@@ -84,20 +79,38 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
     }
   }, [isOpen, currentBranch?._id, todayStr]);
 
+  const activeDenoms = useMemo(() => {
+    return (
+      branchCash?.denominationBalance?.runningDenominations ||
+      branchCash?.balance?.runningDenominations ||
+      runningDenominations ||
+      []
+    );
+  }, [branchCash, runningDenominations]);
+
+  const isFromDrawer = useMemo(() => {
+    return activeDenoms.some((d) => (Number(d.quantity ?? d.count) || 0) > 0);
+  }, [activeDenoms]);
+
   useEffect(() => {
-    if (defaultCashAccount && defaultCashAccount.denominationBalance?.denominations) {
-      const denomArray = defaultCashAccount.denominationBalance.denominations;
+    if (activeDenoms.length > 0) {
       const newCounts = DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {});
-      denomArray.forEach((d) => {
-        if (DENOMINATIONS.includes(Number(d.denomination))) {
-          newCounts[Number(d.denomination)] = d.quantity || 0;
+      let hasAny = false;
+      activeDenoms.forEach((d) => {
+        const note = Number(d.denomination);
+        const qty = Number(d.quantity ?? d.count) || 0;
+        if (DENOMINATIONS.includes(note) && qty > 0) {
+          newCounts[note] = qty;
+          hasAny = true;
         }
       });
-      setCounts(newCounts);
-    } else {
-      setCounts(DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {}));
+      if (hasAny) {
+        setCounts(newCounts);
+        return;
+      }
     }
-  }, [defaultCashAccount]);
+    setCounts(DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {}));
+  }, [activeDenoms]);
 
   const totalAmount = useMemo(() => {
     return DENOMINATIONS.reduce((sum, note) => {
@@ -105,6 +118,12 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
       return sum + cnt * note;
     }, 0);
   }, [counts]);
+
+  const handleCountChange = (note, val) => {
+    if (isFromDrawer) return;
+    const num = val === "" ? "" : Math.max(0, parseInt(val, 10) || 0);
+    setCounts((prev) => ({ ...prev, [note]: num }));
+  };
 
   const handleCreate = async () => {
     const openingDenominations = DENOMINATIONS.map((note) => ({
@@ -164,34 +183,64 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
           <div className="border-t border-border pt-4">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h4 className="text-sm font-semibold">Opening Cash Balance</h4>
-                  <p className="text-xs text-text-muted">
-                    Branch Operating Cash Drawer: {defaultCashAccount ? `"${defaultCashAccount.accountName}"` : "Default Cash Account"}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-semibold">Opening Cash Balance</h4>
+                  {isFromDrawer && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                      Drawer Carry-Forward
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-text-muted mt-0.5">
+                  Branch Operating Cash Drawer: Running Cash Partition
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-text-muted">Total Float</p>
-                <p className="text-lg font-bold text-success">
-                  {loadingCash ? "Loading..." : `₹${totalAmount}`}
+                <p className="text-lg font-bold text-success font-mono">
+                  {loadingCash ? "Loading..." : `₹${totalAmount.toLocaleString("en-IN")}`}
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {DENOMINATIONS.map((note) => (
-                <div key={note} className="flex items-center gap-2 bg-surface-secondary border border-border rounded p-2 opacity-80 cursor-not-allowed">
-                  <div className="w-12 text-center text-sm font-medium text-text-muted">₹{note}</div>
-                  <div className="text-text-muted">×</div>
-                  <input
-                    type="number"
-                    readOnly
-                    disabled
-                    value={counts[note]}
-                    className="w-full bg-transparent text-text text-sm p-1.5 outline-none cursor-not-allowed"
-                    placeholder="0"
-                  />
-                </div>
-              ))}
+              {DENOMINATIONS.map((note) => {
+                const countVal = counts[note];
+                const hasValue = countVal !== "" && Number(countVal) > 0;
+                return (
+                  <div
+                    key={note}
+                    className={`flex items-center gap-2 bg-surface-secondary border rounded p-2 transition ${
+                      hasValue
+                        ? "border-emerald-500/40 bg-emerald-500/5 shadow-xs"
+                        : "border-border opacity-70"
+                    } ${isFromDrawer ? "cursor-not-allowed" : ""}`}
+                  >
+                    <div
+                      className={`w-12 text-center text-sm font-bold font-mono ${
+                        hasValue ? "text-emerald-600 dark:text-emerald-400" : "text-text-muted"
+                      }`}
+                    >
+                      ₹{note}
+                    </div>
+                    <div className="text-text-muted">×</div>
+                    <input
+                      type="number"
+                      min="0"
+                      readOnly={isFromDrawer}
+                      disabled={isFromDrawer}
+                      value={countVal}
+                      onChange={(e) => handleCountChange(note, e.target.value)}
+                      className={`w-full bg-transparent text-sm p-1.5 outline-none font-mono ${
+                        isFromDrawer
+                          ? "cursor-not-allowed text-text font-semibold"
+                          : "cursor-text text-text focus:bg-surface rounded"
+                      }`}
+                      placeholder="0"
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

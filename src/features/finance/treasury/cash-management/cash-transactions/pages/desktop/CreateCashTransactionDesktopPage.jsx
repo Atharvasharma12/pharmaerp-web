@@ -39,7 +39,7 @@ const CreateCashTransactionDesktopPage = ({
   denominations = [],
   physicalTotal = 0,
   isLoading = false,
-  cashAccounts = [],
+  partitionOptions = [],
   accounts = [],
   handleFieldChange,
   handleQtyChange,
@@ -49,15 +49,7 @@ const CreateCashTransactionDesktopPage = ({
   clearError,
   selectedCashAccount,
 }) => {
-  const cashAccountOptions = useMemo(() => {
-    return [
-      { label: "Select Cash Register...", value: "" },
-      ...cashAccounts.map((c) => ({
-        label: `${c.accountName} (${c.currency || "USD"})`,
-        value: c._id,
-      })),
-    ];
-  }, [cashAccounts]);
+
 
   const accountOptions = useMemo(() => {
     return [
@@ -173,20 +165,20 @@ const CreateCashTransactionDesktopPage = ({
                       inputSx={inputSx}
                     />
 
-                    {/* Cash Register */}
+                    {/* Partition */}
                     <AppSelect
-                      label="Cash Account Register"
-                      name="cashAccountId"
-                      value={formData.cashAccountId}
-                      onChange={(e) => handleFieldChange("cashAccountId", e.target.value)}
-                      options={cashAccountOptions}
+                      label="Cash Partition"
+                      name="partition"
+                      value={formData.partition}
+                      onChange={(e) => handleFieldChange("partition", e.target.value)}
+                      options={partitionOptions}
                       size="medium"
                       variant="bordered"
                       rounded="md"
                       required
                       disabled={isLoading}
-                      error={Boolean(formErrors.cashAccountId)}
-                      helperText={formErrors.cashAccountId}
+                      error={Boolean(formErrors.partition)}
+                      helperText={formErrors.partition}
                       labelSx={labelSx}
                       sx={selectFieldSx}
                       inputSx={selectInputSx}
@@ -323,7 +315,7 @@ const CreateCashTransactionDesktopPage = ({
                   </AppBox>
 
                   {/* Optional Denomination breakdown for cash transactions */}
-                  {formData.cashAccountId && (
+                  {selectedCashAccount && (
                     <AppBox>
                       <div className="border border-border rounded-md overflow-hidden bg-surface-alt/5 mt-2">
                         <div className="px-4 py-3 border-b border-border bg-surface-alt/10 flex items-center justify-between">
@@ -354,7 +346,10 @@ const CreateCashTransactionDesktopPage = ({
                             <tbody>
                               {denominations.map((d) => {
                                 const subTotal = d.denomination * d.quantity;
-                                const availableDenom = selectedCashAccount?.denominationBalance?.denominations?.find(
+                                const availableDenomList = formData.partition === "frozen" 
+                                  ? selectedCashAccount?.balance?.frozenDenominations 
+                                  : selectedCashAccount?.balance?.runningDenominations;
+                                const availableDenom = availableDenomList?.find(
                                   (ad) => ad.denomination === d.denomination
                                 );
                                 const availableQty = availableDenom ? availableDenom.quantity : 0;

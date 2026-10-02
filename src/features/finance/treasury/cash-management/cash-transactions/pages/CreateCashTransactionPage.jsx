@@ -11,7 +11,7 @@ import { ROUTES, API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
 
 import useCashTransaction from "../hooks/useCashTransaction";
-import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
+import useBranchCash from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import useAccount from "@/features/finance/chart-of-accounts/accounts/hooks/useAccount";
 import useBranch from "@/features/branch/hooks/useBranch";
 import CreateCashTransactionDesktopPage from "./desktop/CreateCashTransactionDesktopPage";
@@ -31,7 +31,7 @@ const INITIAL_DENOMINATIONS = [
 
 const INITIAL_FORM_DATA = {
   transactionDate: new Date().toISOString().split("T")[0],
-  cashAccountId: "",
+  partition: "running",
   transactionType: "",
   direction: "",
   amount: "",
@@ -56,7 +56,7 @@ const CreateCashTransactionPage = () => {
     clearMessage,
   } = useCashTransaction();
 
-  const { cashAccounts, getCashAccounts } = useCashAccount();
+  const { currentBranchCash: branchCash, fetchBranchCash: getBranchCash } = useBranchCash();
   const { accounts, getAccounts } = useAccount();
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
@@ -80,18 +80,19 @@ const CreateCashTransactionPage = () => {
   }, [denominations]);
 
   const selectedCashAccount = useMemo(() => {
-    return cashAccounts.find((c) => c._id === formData.cashAccountId);
-  }, [cashAccounts, formData.cashAccountId]);
+    return branchCash;
+  }, [branchCash]);
 
-  // Fetch active cash accounts on mount
+  // Fetch active branch cash on mount
   useEffect(() => {
     if (hasFetchedCashRef.current) return;
-    hasFetchedCashRef.current = true;
-
-    getCashAccounts({ all: true, branchId: currentBranch?._id }).catch((err) =>
-      console.error("Failed to load cash accounts for transaction:", err),
-    );
-  }, [getCashAccounts, currentBranch?._id]);
+    if (currentBranch?._id) {
+      hasFetchedCashRef.current = true;
+      getBranchCash(currentBranch._id).catch((err) =>
+        console.error("Failed to load branch cash for transaction:", err),
+      );
+    }
+  }, [getBranchCash, currentBranch?._id]);
 
   // Fetch Chart of Accounts for counterparty selector
   useEffect(() => {
@@ -149,8 +150,8 @@ const CreateCashTransactionPage = () => {
       if (!formData.transactionDate) {
         errors.transactionDate = "Select the transaction date";
       }
-      if (!formData.cashAccountId) {
-        errors.cashAccountId = "Select the cash account";
+      if (!formData.partition) {
+        errors.partition = "Select the cash partition";
       }
       if (!formData.transactionType) {
         errors.transactionType = "Select the transaction type";
@@ -186,9 +187,8 @@ const CreateCashTransactionPage = () => {
 
         // Outflow sufficiency check
         if (formData.direction === "DEBIT") {
-          const selectedCashAccount = cashAccounts.find((c) => c._id === formData.cashAccountId);
           for (const fd of filteredDenoms) {
-            const availableDenom = selectedCashAccount?.denominationBalance?.denominations?.find(
+            const availableDenom = branchCash?.balance?.runningDenominations?.find(
               (ad) => ad.denomination === fd.denomination
             );
             const availableQty = availableDenom ? availableDenom.quantity : 0;
@@ -215,7 +215,7 @@ const CreateCashTransactionPage = () => {
 
       const payload = {
         transactionDate: new Date(formData.transactionDate).toISOString(),
-        cashAccountId: formData.cashAccountId,
+        partition: formData.partition,
         transactionType: formData.transactionType,
         direction: formData.direction,
         amount: amtVal,
@@ -238,7 +238,7 @@ const CreateCashTransactionPage = () => {
         });
       }
     },
-    [formData, denominations, createCashTransaction, navigate, cashAccounts],
+    [formData, denominations, createCashTransaction, navigate, branchCash],
   );
 
   const filterAccounts = useMemo(() => {
@@ -248,12 +248,12 @@ const CreateCashTransactionPage = () => {
     }));
   }, [accounts]);
 
-  const cashAccountOptions = useMemo(() => {
-    return cashAccounts.map((c) => ({
-      label: c.accountName || "Cash Account",
-      value: c._id,
-    }));
-  }, [cashAccounts]);
+  const partitionOptions = useMemo(() => {
+    return [
+      { label: "Running Cash", value: "running" },
+      { label: "Frozen Cash", value: "frozen" }
+    ];
+  }, []);
 
   const pageProps = {
     formData,
@@ -261,9 +261,7 @@ const CreateCashTransactionPage = () => {
     denominations,
     physicalTotal,
     isLoading,
-    cashAccounts,
-    accounts,
-    cashAccountOptions,
+    partitionOptions,
     filterAccounts,
     handleFieldChange,
     handleQtyChange,

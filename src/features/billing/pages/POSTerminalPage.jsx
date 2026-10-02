@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
-  Plus,
   Minus,
   Trash2,
   ShoppingCart,
@@ -35,7 +34,7 @@ import { cn } from "@/lib/utils";
 import customerService from "@/features/parties/customers/services/customerService";
 import invoiceService from "@/features/sales/services/invoiceService";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
-import cashAccountService from "@/features/finance/treasury/cash-management/cash-accounts/services/cashAccountService";
+import branchCashService from "@/features/finance/treasury/cash-management/branch-cash/services/branchCashService";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
@@ -148,23 +147,16 @@ export const POSTerminalPage = () => {
   const [cashTendered, setCashTendered] = useState("");
 
   /* ── Cash Account (branch-scoped) ── */
-  // Fetch the branch's system default cash account (for display only — no user selection)
   const [systemDefaultAccount, setSystemDefaultAccount] = useState(null);
 
   useEffect(() => {
     if (!currentBranch?._id) return;
-    cashAccountService
-      .getCashAccounts({ branchId: currentBranch._id, isSystemDefault: "true", all: "true" })
+    branchCashService
+      .getBranchCash(currentBranch._id)
       .then((res) => {
-        const accounts = res.data?.data?.cashAccounts || [];
-        const sysDefault =
-          accounts.find((a) => a.isSystemDefault) ||
-          accounts.find((a) => a.isPrimary) ||
-          accounts[0] ||
-          null;
-        setSystemDefaultAccount(sysDefault);
+        setSystemDefaultAccount(res.data?.data);
       })
-      .catch((err) => console.warn("[POS] Could not fetch system default cash account:", err));
+      .catch((err) => console.warn("[POS] Could not fetch branch cash:", err));
   }, [currentBranch?._id]);
 
   /* ── UI State ── */
@@ -1181,9 +1173,9 @@ export const POSTerminalPage = () => {
                   {systemDefaultAccount && (
                     <div className="flex items-center gap-2 text-xs bg-emerald-500/8 border border-emerald-500/20 rounded-lg px-3 py-1.5">
                       <Banknote className="size-3 text-emerald-500 shrink-0" />
-                      <span className="text-text-muted truncate">{systemDefaultAccount.accountName}</span>
+                      <span className="text-text-muted truncate">Running Cash</span>
                       <span className="ml-auto font-mono font-bold text-emerald-500 tabular-nums shrink-0">
-                        ₹{(systemDefaultAccount.denominationBalance?.totalBalance || 0).toLocaleString("en-IN")}
+                        ₹{(systemDefaultAccount.balance?.runningAmount || 0).toLocaleString("en-IN")}
                       </span>
                     </div>
                   )}

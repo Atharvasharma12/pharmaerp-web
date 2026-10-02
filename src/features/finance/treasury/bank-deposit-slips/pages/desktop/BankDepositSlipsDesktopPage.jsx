@@ -6,8 +6,9 @@ import { ConfirmDepositModal, CancelSlipModal } from "../../components/BankDepos
 
 const getStatusBadge = (status) => {
   switch (status) {
+    case "PREPARED":
     case "PENDING":
-      return <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-warning-soft text-warning">Pending</span>;
+      return <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-warning-soft text-warning">Prepared</span>;
     case "DEPOSITED":
       return <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-success-soft text-success">Deposited</span>;
     case "CANCELLED":
@@ -128,7 +129,7 @@ const BankDepositSlipsDesktopPage = ({
             <thead>
               <tr className="bg-surface-alt border-b border-border text-[12px] text-text-muted font-medium uppercase tracking-wider">
                 <th className="px-5 py-3">Slip No & Date</th>
-                <th className="px-5 py-3">From Cash A/c</th>
+                <th className="px-5 py-3">Branch / Source</th>
                 <th className="px-5 py-3">To Bank A/c</th>
                 <th className="px-5 py-3 text-right">Amount</th>
                 <th className="px-5 py-3">Status</th>
@@ -173,9 +174,7 @@ const BankDepositSlipsDesktopPage = ({
                     </td>
                     <td className="px-5 py-3.5 align-top">
                       <div className="text-text font-medium">
-                        {slip.fromCashAccountId?.accountName ||
-                          slip.fromCashAccount?.name ||
-                          "-"}
+                        {slip.branchId?.name ? `${slip.branchId.name} Cash` : "Branch Cash"}
                       </div>
                     </td>
                     <td className="px-5 py-3.5 align-top">
@@ -203,7 +202,7 @@ const BankDepositSlipsDesktopPage = ({
                     </td>
                     <td className="px-5 py-3.5 align-top text-right">
                       <div className="flex items-center justify-end gap-3">
-                        {slip.status === "PENDING" && (
+                        {(slip.status === "PENDING" || slip.status === "PREPARED") && (
                           <>
                             <button
                               onClick={(e) => openConfirmModal(e, slip)}

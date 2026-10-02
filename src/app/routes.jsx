@@ -66,7 +66,8 @@ import cashExchangeRoutes from "@/features/finance/treasury/cash-management/exch
 import chequeRoutes from "@/features/finance/treasury/cheque-management/routes/chequeRoutes";
 import bankDepositSlipRoutes from "@/features/finance/treasury/bank-deposit-slips/routes/bankDepositSlipRoutes";
 import bankAccountRoutes from "@/features/finance/treasury/bank-management/bank-accounts/routes/bankAccountRoutes";
-import cashAccountRoutes from "@/features/finance/treasury/cash-management/cash-accounts/routes/cashAccountRoutes";
+import branchCashRoutes from "@/features/finance/treasury/cash-management/branch-cash/routes/branchCashRoutes";
+
 import paymentQrRoutes from "@/features/finance/treasury/payment-qr/routes/paymentQrRoutes";
 import bankTransactionRoutes from "@/features/finance/treasury/bank-management/bank-transactions/routes/bankTransactionRoutes";
 import cashTransactionRoutes from "@/features/finance/treasury/cash-management/cash-transactions/routes/cashTransactionRoutes";
@@ -354,7 +355,7 @@ export const router = createBrowserRouter([
               <PermissionGuard
                 permissions={[
                   "bank-account:view",
-                  "cash-account:view",
+                  "branch-cash:view",
                   "fund-transfer:view",
                   "cheque:view",
                   "payment-qr:view",
@@ -367,7 +368,8 @@ export const router = createBrowserRouter([
             ),
           })),
           ...guardRouteList(bankAccountRoutes, "bank-account"),
-          ...guardRouteList(cashAccountRoutes, "cash-account"),
+          ...guardRouteList(branchCashRoutes, "cash-account"),
+
           ...guardRouteList(fundTransferRoutes, "fund-transfer"),
           ...guardRouteList(cashExchangeRoutes, "cash-exchange"),
           ...guardRouteList(chequeRoutes, "cheque"),

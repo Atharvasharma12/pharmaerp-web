@@ -55,8 +55,7 @@ const FundTransferDetailsMobilePage = ({
       const b = transferDetails.fromBankAccountId;
       return b ? `${b.bankName} (${b.accountNumber || b.accountCode || ""})` : "Bank Account";
     }
-    const c = transferDetails.fromCashAccountId;
-    return c ? (c.accountName || "Cash Account") : "Cash Account";
+    return "Branch Cash";
   };
 
   const getDestAccountName = () => {
@@ -64,8 +63,7 @@ const FundTransferDetailsMobilePage = ({
       const b = transferDetails.toBankAccountId;
       return b ? `${b.bankName} (${b.accountNumber || b.accountCode || ""})` : "Bank Account";
     }
-    const c = transferDetails.toCashAccountId;
-    return c ? (c.accountName || "Cash Account") : "Cash Account";
+    return "Branch Cash";
   };
 
   const getStatusBadgeClass = (status) => {

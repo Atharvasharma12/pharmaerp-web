@@ -84,8 +84,7 @@ const MobileDenominationGrid = ({
 const CreateCashExchangeMobilePage = ({
   formData,
   formErrors,
-  cashAccountOptions,
-  selectedCashAccount,
+  partitionOptions,
   receivedDenominations,
   givenDenominations,
   totalReceived,
@@ -102,7 +101,7 @@ const CreateCashExchangeMobilePage = ({
   handleCancel,
 }) => {
   const diff = totalReceived - totalGiven;
-  const availableDenoms = selectedCashAccount?.denominationBalance?.denominations || [];
+  const availableDenoms = (formData.partition === "running" ? selectedCashAccount?.balance?.runningDenominations : selectedCashAccount?.balance?.frozenDenominations) || [];
 
   return (
     <section className="min-h-screen bg-bg pb-24 relative">
@@ -164,11 +163,11 @@ const CreateCashExchangeMobilePage = ({
             error={formErrors.exchangeDate}
           />
           <AppSelect
-            label="Cash Account *"
-            options={cashAccountOptions}
-            value={formData.cashAccountId}
-            onChange={(e) => handleInputChange("cashAccountId", e.target.value)}
-            error={formErrors.cashAccountId}
+            label="Cash Partition *"
+            options={partitionOptions}
+            value={formData.partition}
+            onChange={(e) => handleInputChange("partition", e.target.value)}
+            error={formErrors.partition}
           />
           <AppInput
             label="Narration"

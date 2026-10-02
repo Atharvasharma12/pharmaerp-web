@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
+import useBranchCash from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
 
 import useCashDenomination from "../hooks/useCashDenomination";
@@ -23,7 +23,7 @@ const INITIAL_DENOMINATIONS = [
 ];
 
 const INITIAL_FORM_DATA = {
-  cashAccountId: "",
+  partition: "running",
   countDate: new Date().toISOString().split("T")[0],
   expectedBalance: 0,
   narration: "",
@@ -43,7 +43,7 @@ const CreateCashDenominationPage = () => {
     clearMessage,
   } = useCashDenomination();
 
-  const { cashAccounts = [], getCashAccounts } = useCashAccount();
+  const { currentBranchCash: branchCash, fetchBranchCash: getBranchCash } = useBranchCash();
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [denominations, setDenominations] = useState(INITIAL_DENOMINATIONS);
@@ -55,10 +55,12 @@ const CreateCashDenominationPage = () => {
   useEffect(() => {
     if (hasFetchedBanksRef.current) return;
     hasFetchedBanksRef.current = true;
-    getCashAccounts({ all: true, branchId: currentBranch?._id }).catch((err) =>
-      console.error("Failed to load cash accounts for create count:", err)
-    );
-  }, [getCashAccounts, currentBranch?._id]);
+    if (currentBranch?._id) {
+      getBranchCash(currentBranch._id).catch((err) =>
+        console.error("Failed to load branch cash for create count:", err)
+      );
+    }
+  }, [getBranchCash, currentBranch?._id]);
 
   useEffect(() => {
     return () => {
@@ -71,10 +73,13 @@ const CreateCashDenominationPage = () => {
     setFormData((prev) => {
       const updated = { ...prev, [name]: value };
 
-      // Auto-set expected balance if cash account is selected
-      if (name === "cashAccountId") {
-        const acc = cashAccounts.find((c) => c._id === value);
-        updated.expectedBalance = acc ? acc.balance || 0 : 0;
+      // Auto-set expected balance if partition is selected
+      if (name === "partition") {
+        if (value === "running") {
+          updated.expectedBalance = branchCash?.balance?.runningAmount || 0;
+        } else {
+          updated.expectedBalance = branchCash?.balance?.frozenAmount || 0;
+        }
       }
 
       return updated;
@@ -83,7 +88,7 @@ const CreateCashDenominationPage = () => {
     if (formErrors[name]) {
       setFormErrors((prev) => ({ ...prev, [name]: "" }));
     }
-  }, [formErrors, cashAccounts]);
+  }, [formErrors, branchCash]);
 
   const handleQtyChange = useCallback((denomValue, qty) => {
     const cleanQty = Math.max(0, parseInt(qty) || 0);
@@ -100,16 +105,18 @@ const CreateCashDenominationPage = () => {
     return physicalTotal - Number(formData.expectedBalance || 0);
   }, [physicalTotal, formData.expectedBalance]);
 
-  const cashAccountOptions = useMemo(() => {
-    return cashAccounts.map((c) => ({
-      label: `${c.accountName || "Cash Account"} (Balance: ₹${Number(c.balance || 0).toLocaleString("en-IN")})`,
-      value: c._id,
-    }));
-  }, [cashAccounts]);
+  const partitionOptions = useMemo(() => {
+    const runningBal = branchCash?.balance?.runningAmount || 0;
+    const frozenBal = branchCash?.balance?.frozenAmount || 0;
+    return [
+      { label: `Running Cash (Balance: ₹${runningBal.toLocaleString("en-IN")})`, value: "running" },
+      { label: `Frozen Cash (Balance: ₹${frozenBal.toLocaleString("en-IN")})`, value: "frozen" }
+    ];
+  }, [branchCash]);
 
   const validateForm = () => {
     const errors = {};
-    if (!formData.cashAccountId) errors.cashAccountId = "Cash account selection is required";
+    if (!formData.partition) errors.partition = "Cash partition selection is required";
     if (!formData.countDate) errors.countDate = "Count date is required";
 
     if (physicalTotal <= 0) {
@@ -136,7 +143,7 @@ const CreateCashDenominationPage = () => {
         }));
 
       const payload = {
-        cashAccountId: formData.cashAccountId,
+        partition: formData.partition,
         countDate: formData.countDate,
         expectedBalance: Number(formData.expectedBalance) || 0,
         denominations: filteredDenoms,
@@ -162,7 +169,7 @@ const CreateCashDenominationPage = () => {
     denominations,
     physicalTotal,
     variance,
-    cashAccountOptions,
+    partitionOptions,
     isSubmitting,
     error: error || actionError,
     message,

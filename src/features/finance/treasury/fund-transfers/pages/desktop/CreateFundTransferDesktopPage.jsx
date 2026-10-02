@@ -36,7 +36,7 @@ const CreateFundTransferDesktopPage = ({
   handleInputChange,
   handleSubmit,
   handleCancel,
-  selectedFromCashAccount,
+  branchCash,
 }) => {
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
@@ -227,7 +227,7 @@ const CreateFundTransferDesktopPage = ({
                                 <tbody>
                                   {fromDenominations.map((d) => {
                                     const subTotal = d.denomination * d.quantity;
-                                    const availableDenom = selectedFromCashAccount?.denominationBalance?.denominations?.find(
+                                    const availableDenom = branchCash?.balance?.runningDenominations?.find(
                                       (ad) => ad.denomination === d.denomination
                                     );
                                     const availableQty = availableDenom ? availableDenom.quantity : 0;

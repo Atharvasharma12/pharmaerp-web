@@ -177,7 +177,7 @@ const CashTransactionDetailsMobilePage = ({
               <div className="flex justify-between border-b border-border/30 pb-2">
                 <span className="text-text-muted">Cash Account:</span>
                 <span className="font-bold text-text">
-                  {transaction.cashAccountId ? transaction.cashAccountId.accountName : "-"}
+                  {transaction.cashPartition === "running" ? "Running Cash" : "Frozen Cash"}
                 </span>
               </div>
 

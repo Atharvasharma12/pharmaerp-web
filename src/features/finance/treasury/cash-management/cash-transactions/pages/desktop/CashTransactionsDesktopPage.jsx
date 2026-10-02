@@ -54,7 +54,7 @@ const statusOptions = [
 
 const CashTransactionsDesktopPage = ({
   cashTransactions = [],
-  cashAccounts = [],
+
   searchParams,
   currentPage,
   pageSize,
@@ -70,15 +70,13 @@ const CashTransactionsDesktopPage = ({
 }) => {
   const navigate = useNavigate();
 
-  const cashAccountOptions = useMemo(() => {
+  const partitionOptions = useMemo(() => {
     return [
-      { label: "All Cash Registers", value: "all" },
-      ...cashAccounts.map((c) => ({
-        label: `${c.accountName} (${c.currency || "USD"})`,
-        value: c._id,
-      })),
+      { label: "All Partitions", value: "all" },
+      { label: "Running Cash", value: "running" },
+      { label: "Frozen Cash", value: "frozen" },
     ];
-  }, [cashAccounts]);
+  }, []);
 
   const handleCreate = () => {
     navigate(ROUTES.CREATE_CASH_TRANSACTION);
@@ -155,17 +153,14 @@ const CashTransactionsDesktopPage = ({
       render: (_, tx) => getDirectionBadge(tx.direction),
     },
     {
-      id: "linkedRegister",
-      label: "Linked Register",
-      minWidth: 180,
-      render: (_, tx) => {
-        const linkedCash = tx.cashAccountId;
-        return (
-          <AppText variant="body2" sx={tableValueMutedSx}>
-            {linkedCash ? linkedCash.accountName : "-"}
-          </AppText>
-        );
-      },
+      id: "cashPartition",
+      label: "Cash Partition",
+      minWidth: 150,
+      render: (_, tx) => (
+        <AppText variant="body2" sx={tableValueMutedSx}>
+          {tx.cashPartition === "running" ? "Running Cash" : "Frozen Cash"}
+        </AppText>
+      ),
     },
     {
       id: "transactionDate",
@@ -408,14 +403,14 @@ const CashTransactionsDesktopPage = ({
               />
 
               <AppSelect
-                name="cashAccountId"
-                value={searchParams.cashAccountId}
-                onChange={(e) => handleFilterChange("cashAccountId", e.target.value)}
-                options={cashAccountOptions}
+                name="cashPartition"
+                value={searchParams.cashPartition}
+                onChange={(e) => handleFilterChange("cashPartition", e.target.value)}
+                options={partitionOptions}
                 size="small"
                 variant="bordered"
                 rounded="md"
-                sx={{ width: 220, minWidth: 220 }}
+                sx={{ width: 150, minWidth: 150 }}
                 inputSx={compactFilterInputSx}
               />
             </div>

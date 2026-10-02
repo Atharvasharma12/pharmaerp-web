@@ -71,14 +71,14 @@ const FundTransfersMobilePage = ({
     if (t.fromAccountType === "BANK") {
       return t.fromBankAccountId?.accountName || t.fromBankAccountId?.bankName || "Bank";
     }
-    return t.fromCashAccountId?.accountName || "Cash";
+    return "Branch Cash";
   };
 
   const getDestAccountName = (t) => {
     if (t.toAccountType === "BANK") {
       return t.toBankAccountId?.accountName || t.toBankAccountId?.bankName || "Bank";
     }
-    return t.toCashAccountId?.accountName || "Cash";
+    return "Branch Cash";
   };
 
   const getStatusBadgeClass = (status) => {

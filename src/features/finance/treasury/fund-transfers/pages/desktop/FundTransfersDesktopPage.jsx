@@ -113,7 +113,7 @@ const FundTransfersDesktopPage = ({
         "Bank Account"
       );
     }
-    return t.fromCashAccountId?.accountName || "Cash Account";
+    return "Branch Cash";
   };
 
   const getDestAccountName = (t) => {
@@ -124,7 +124,7 @@ const FundTransfersDesktopPage = ({
         "Bank Account"
       );
     }
-    return t.toCashAccountId?.accountName || "Cash Account";
+    return "Branch Cash";
   };
 
   const getStatusBadgeClass = (status) => {

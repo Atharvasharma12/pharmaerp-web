@@ -13,7 +13,7 @@ import {
 import { updateDayClosingStatus, listDayClosings } from "../store/dayClosingThunk";
 import { API_STATUS } from "@/constants";
 import { apiClient } from "@/services";
-import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
+import useBranchCash from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import { FileText, IndianRupee, QrCode, Eye, Banknote, ArrowLeftRight } from "lucide-react";
 import { ViewShiftDialog } from "@/features/operations/shifts/components/ViewShiftDialog";
 import { ShiftFundTransferPanel } from "@/features/operations/shifts/components/ShiftFundTransferPanel";
@@ -41,21 +41,11 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
     }, 0);
   }, [counts]);
 
-  const { cashAccounts, getCashAccounts } = useCashAccount();
-
-  const defaultCashAccount = useMemo(() => {
-    return (
-      cashAccounts?.find((ca) => ca.isPrimary) || cashAccounts?.[0] || null
-    );
-  }, [cashAccounts]);
+  const { currentBranchCash: branchCash, fetchBranchCash: getBranchCash } = useBranchCash();
 
   useEffect(() => {
     if (isOpen && dayClosing?.branchId) {
-      getCashAccounts({
-        branchId: dayClosing.branchId,
-        isSystemDefault: "true",
-        all: "true",
-      });
+      getBranchCash(dayClosing.branchId);
     }
   }, [isOpen, dayClosing?.branchId]);
 
@@ -76,8 +66,8 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
               const found = data.closingDenominations.find((d) => Number(d.denomination) === note);
               initialCounts[note] = found && found.count > 0 ? found.count : "";
             });
-          } else if (defaultCashAccount?.denominationBalance?.denominations) {
-            const expectedDenoms = defaultCashAccount.denominationBalance.denominations;
+          } else if (branchCash?.denominationBalance?.runningDenominations) {
+            const expectedDenoms = branchCash.denominationBalance.runningDenominations;
             DENOMINATIONS.forEach((note) => {
               const found = expectedDenoms.find((d) => Number(d.denomination) === note);
               initialCounts[note] = found && found.quantity > 0 ? found.quantity : "";
@@ -95,7 +85,7 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
       setSelectedShiftForView(null);
       setCounts(DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {}));
     }
-  }, [isOpen, dayClosing, defaultCashAccount]);
+  }, [isOpen, dayClosing, branchCash]);
 
   const handleCountChange = (note, val) => {
     setCounts((prev) => ({ ...prev, [note]: val }));
@@ -147,13 +137,13 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
                 {error && <UIAlert intent="danger" title="Error" description={error} />}
 
                 {/* Cash account info */}
-                {defaultCashAccount && (
+                {branchCash && (
                   <div className="flex items-center gap-2 bg-surface-alt/50 border border-border/60 rounded-lg px-3 py-2 text-xs">
                     <Banknote className="size-3.5 text-emerald-500 shrink-0" />
                     <span className="text-text-muted">Reconciling:</span>
-                    <span className="font-semibold text-text">{defaultCashAccount.accountName}</span>
+                    <span className="font-semibold text-text">Running Cash Partition</span>
                     <span className="ml-auto font-mono font-bold text-emerald-500 tabular-nums">
-                      ₹{(defaultCashAccount?.denominationBalance?.totalBalance || 0).toLocaleString("en-IN")}
+                      ₹{(branchCash?.runningCash || 0).toLocaleString("en-IN")}
                     </span>
                   </div>
                 )}
@@ -346,7 +336,7 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
                         <div className="space-y-1">
                           {DENOMINATIONS.map((note) => {
                             const expectedCount =
-                              defaultCashAccount?.denominationBalance?.denominations?.find(
+                              branchCash?.balance?.runningDenominations?.find(
                                 (d) => Number(d.denomination) === note,
                               )?.quantity || 0;
                             return (
@@ -365,7 +355,7 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
                           <div className="flex justify-between items-center text-xs p-1 rounded bg-primary-soft/50 font-bold text-primary mt-2 pt-2 border-t border-primary/20">
                             <span>Total</span>
                             <span>
-                              ₹{defaultCashAccount?.denominationBalance?.totalBalance || expectedCash}
+                              ₹{branchCash?.runningCash || expectedCash}
                             </span>
                           </div>
                         </div>

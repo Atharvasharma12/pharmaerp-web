@@ -63,11 +63,11 @@ const CashDenominationDetailsMobilePage = ({
   };
 
   const getRegisterName = () => {
-    return countDetails.cashAccountId?.accountName || "Unknown Register";
+    return countDetails.partition === "running" ? "Running Cash" : "Frozen Cash";
   };
 
   const getBranchName = () => {
-    return countDetails.branchId?.name || countDetails.cashAccountId?.branchId?.name || "Central Office";
+    return countDetails.branchId?.name || "Central Office";
   };
 
   const varianceVal = countDetails.variance || 0;

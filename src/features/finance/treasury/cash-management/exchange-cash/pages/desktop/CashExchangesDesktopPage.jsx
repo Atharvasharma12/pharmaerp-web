@@ -130,11 +130,11 @@ const CashExchangesDesktopPage = ({
       ),
     },
     {
-      title: "Cash Account",
-      key: "cashAccountId",
+      title: "Cash Partition",
+      key: "partition",
       render: (_, row) => (
         <AppText size="sm">
-          {row.cashAccountId?.accountName || "—"}
+          {row.partition === "running" ? "Running Cash" : "Frozen Cash"}
         </AppText>
       ),
     },

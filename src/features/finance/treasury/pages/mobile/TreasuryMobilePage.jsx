@@ -46,7 +46,7 @@ const flowIcons = {
 // Map module IDs to React Icons
 const moduleIcons = {
   bankAccounts: <LuBuilding2 />,
-  cashAccounts: <LuWallet />,
+  branchCash: <LuWallet />,
   fundTransfers: <FiRepeat />,
   bankTransactions: <LuBuilding2 />,
   cashTransactions: <LuWallet />,
@@ -58,7 +58,7 @@ const moduleIcons = {
 // Map quick action IDs to icons
 const quickActionIcons = {
   addBankAccount: <LuBuilding2 />,
-  addCashAccount: <LuWallet />,
+  viewBranchCash: <LuWallet />,
   recordBankTransaction: <LuBuilding2 />,
   recordCashTransaction: <LuWallet />,
   fundTransfer: <FiRepeat />,

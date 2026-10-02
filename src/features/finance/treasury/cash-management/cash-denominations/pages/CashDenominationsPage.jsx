@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
 import useBranch from "@/features/branch/hooks/useBranch";
 
 import useCashDenomination from "../hooks/useCashDenomination";
@@ -24,12 +23,12 @@ const CashDenominationsPage = () => {
     clearMessage,
   } = useCashDenomination();
 
-  const { cashAccounts = [], getCashAccounts } = useCashAccount();
+
   const { branches = [], getCompanyBranches, currentBranch } = useBranch();
 
   const [filters, setFilters] = useState({
     search: "",
-    cashAccountId: "all",
+    partition: "all",
     branchId: "all",
     status: "all",
   });
@@ -37,16 +36,8 @@ const CashDenominationsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const hasFetchedBanksRef = useRef(false);
   const hasFetchedBranchesRef = useRef(false);
 
-  useEffect(() => {
-    if (hasFetchedBanksRef.current) return;
-    hasFetchedBanksRef.current = true;
-    getCashAccounts({ all: true, branchId: currentBranch?._id }).catch((err) =>
-      console.error("Failed to load cash accounts for filter:", err)
-    );
-  }, [getCashAccounts, currentBranch?._id]);
 
   useEffect(() => {
     if (hasFetchedBranchesRef.current) return;
@@ -62,7 +53,7 @@ const CashDenominationsPage = () => {
         page: currentPage,
         limit: pageSize,
         search: filters.search || undefined,
-        cashAccountId: filters.cashAccountId === "all" ? undefined : filters.cashAccountId,
+        partition: filters.partition === "all" ? undefined : filters.partition,
         branchId: currentBranch ? currentBranch._id : (filters.branchId === "all" ? undefined : filters.branchId),
         status: filters.status === "all" ? undefined : filters.status,
       };
@@ -117,15 +108,13 @@ const CashDenominationsPage = () => {
     [navigate]
   );
 
-  const cashAccountOptions = useMemo(() => {
+  const partitionOptions = useMemo(() => {
     return [
-      { label: "All Cash Registers", value: "all" },
-      ...cashAccounts.map((c) => ({
-        label: c.accountName || "Cash Account",
-        value: c._id,
-      })),
+      { label: "All Partitions", value: "all" },
+      { label: "Running Cash", value: "running" },
+      { label: "Frozen Cash", value: "frozen" }
     ];
-  }, [cashAccounts]);
+  }, []);
 
   const branchOptions = useMemo(() => {
     return [
@@ -143,7 +132,7 @@ const CashDenominationsPage = () => {
   const pageProps = {
     denominations: cashDenominations || [],
     filters,
-    cashAccountOptions,
+    partitionOptions,
     branchOptions,
     currentPage,
     pageSize,
