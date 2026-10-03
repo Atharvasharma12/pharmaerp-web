@@ -6,7 +6,6 @@ import {
   createCashExchange,
   getCashExchanges,
   getCashExchangeById,
-  cancelCashExchange,
 } from "./cashExchangeThunk";
 
 const initialState = {
@@ -21,7 +20,6 @@ const initialState = {
   createCashExchangeStatus: API_STATUS.IDLE,
   getCashExchangesStatus: API_STATUS.IDLE,
   getCashExchangeStatus: API_STATUS.IDLE,
-  cancelCashExchangeStatus: API_STATUS.IDLE,
 };
 
 const setPending = (state) => {
@@ -115,35 +113,7 @@ const cashExchangeSlice = createSlice({
         state.getCashExchangeStatus = API_STATUS.ERROR;
       })
 
-      // CANCEL CASH EXCHANGE
-      .addCase(cancelCashExchange.pending, (state) => {
-        state.cancelCashExchangeStatus = API_STATUS.LOADING;
-        state.error = null;
-        state.message = null;
-      })
-      .addCase(cancelCashExchange.fulfilled, (state, action) => {
-        state.cancelCashExchangeStatus = API_STATUS.SUCCESS;
 
-        state.cashExchanges = state.cashExchanges.map((ce) =>
-          ce?._id === action.payload?._id ? action.payload : ce,
-        );
-
-        state.managedCashExchange =
-          action.payload || state.managedCashExchange;
-
-        if (
-          state.currentCashExchange?._id === action.payload?._id &&
-          action.payload
-        ) {
-          state.currentCashExchange = action.payload;
-        }
-
-        state.message = "Cash exchange cancelled successfully";
-      })
-      .addCase(cancelCashExchange.rejected, (state, action) => {
-        state.cancelCashExchangeStatus = API_STATUS.ERROR;
-        state.error = action.payload || "Cash exchange cancellation failed";
-      });
   },
 });
 

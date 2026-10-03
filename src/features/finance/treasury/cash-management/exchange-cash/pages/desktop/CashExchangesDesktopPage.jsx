@@ -41,7 +41,7 @@ const CashExchangesDesktopPage = ({
   pageSize,
   totalExchanges,
   isLoading = false,
-  isCancelling = false,
+
   error,
   message,
   clearFeedback,
@@ -49,16 +49,12 @@ const CashExchangesDesktopPage = ({
   handleFilterChange,
   handlePageChange,
   handlePageSizeChange,
-  handleCancelExchange,
+
   handleViewDetails,
   handleCreateNew,
   handleRefresh,
 }) => {
-  const { can } = usePermission();
-  const [cancellingId, setCancellingId] = useState(null);
-  const [cancelReason, setCancelReason] = useState("");
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [pendingCancelId, setPendingCancelId] = useState(null);
+
 
   const stats = useMemo(() => {
     let totalAmt = 0;
@@ -96,21 +92,7 @@ const CashExchangesDesktopPage = ({
     }
   };
 
-  const handleConfirmCancel = async () => {
-    if (!pendingCancelId) return;
-    setCancellingId(pendingCancelId);
-    setShowCancelModal(false);
-    await handleCancelExchange(pendingCancelId, cancelReason);
-    setCancellingId(null);
-    setPendingCancelId(null);
-    setCancelReason("");
-  };
 
-  const openCancelModal = (id) => {
-    setPendingCancelId(id);
-    setCancelReason("");
-    setShowCancelModal(true);
-  };
 
   const columns = [
     {
@@ -186,16 +168,7 @@ const CashExchangesDesktopPage = ({
               icon: <FiEye />,
               onClick: () => handleViewDetails(row._id),
             },
-            ...(row.status === "COMPLETED"
-              ? [
-                  {
-                    label: "Cancel",
-                    icon: <FiSlash />,
-                    danger: true,
-                    onClick: () => openCancelModal(row._id),
-                  },
-                ]
-              : []),
+
           ]}
         />
       ),
@@ -360,51 +333,7 @@ const CashExchangesDesktopPage = ({
           />
         </AppCard>
 
-        {/* Cancel Confirmation Modal */}
-        {showCancelModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <AppCard
-              variant="default"
-              rounded="lg"
-              bordered
-              shadow="xl"
-              padding="lg"
-              sx={{ width: 420 }}
-            >
-              <AppHeading level={4} weight={700} sx={{ marginBottom: 8 }}>
-                Cancel Cash Exchange
-              </AppHeading>
-              <AppText size="sm" sx={{ color: "var(--color-text-muted)", marginBottom: 16 }}>
-                This will reverse the denomination changes in the cash drawer.
-                Provide an optional reason.
-              </AppText>
-              <AppInput
-                placeholder="Cancellation reason (optional)"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                size="sm"
-                sx={{ marginBottom: 16 }}
-              />
-              <AppStack direction="row" gap={8} justify="flex-end">
-                <AppButton
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowCancelModal(false)}
-                >
-                  Keep
-                </AppButton>
-                <AppButton
-                  size="sm"
-                  variant="danger"
-                  onClick={handleConfirmCancel}
-                  loading={isCancelling}
-                >
-                  Confirm Cancel
-                </AppButton>
-              </AppStack>
-            </AppCard>
-          </div>
-        )}
+
       </div>
     </section>
   );

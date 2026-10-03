@@ -153,22 +153,35 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
       <UIModalBody className="max-h-[70vh] overflow-y-auto">
         <div className="space-y-6 py-2">
           {error && <UIAlert intent="danger" title="Error" description={error} />}
-          
+
+          {!loadingCash && !branchCash ? (
+            <div className="py-4">
+              <UIAlert 
+                intent="warning" 
+                title="Branch Cash Not Initialized" 
+                description="You must initialize the branch cash before opening a shift. Please go to Treasury > Branch Cash to set up the initial balance."
+              />
+            </div>
+          ) : (
+            <>
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-surface-secondary p-3 rounded-lg border border-border">
               <p className="text-xs text-text-muted mb-1">Business Date</p>
               {loadingDC ? (
-                <p className="text-sm font-medium">Checking...</p>
+                <p className="text-sm font-medium text-text-muted">Checking…</p>
               ) : (
-                <select
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full bg-bg border border-border rounded px-2 py-1 text-sm font-medium"
-                >
-                  {!todayDCDone && <option value={todayStr}>{todayStr} (Today)</option>}
-                  <option value={getTomorrowStr()}>{getTomorrowStr()} (Tomorrow)</option>
-                </select>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold font-mono">{selectedDate}</p>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                    todayDCDone
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-300/50"
+                      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-300/50"
+                  }`}>
+                    {todayDCDone ? "TOMORROW" : "TODAY"}
+                  </span>
+                </div>
               )}
+              <p className="text-[10px] text-text-muted mt-1">Auto-assigned · cannot be changed</p>
             </div>
             <div className="bg-surface-secondary p-3 rounded-lg border border-border">
               <p className="text-xs text-text-muted">Shift Number</p>
@@ -243,6 +256,8 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
               })}
             </div>
           </div>
+            </>
+          )}
         </div>
       </UIModalBody>
       <UIModalFooter>
@@ -253,6 +268,7 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
           variant="primary"
           onClick={handleCreate}
           isLoading={createShiftStatus === API_STATUS.LOADING}
+          disabled={!branchCash || loadingCash}
         >
           Open Shift
         </UIButton>

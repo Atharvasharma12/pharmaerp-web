@@ -38,7 +38,7 @@ const CashExchangesMobilePage = ({
   pageSize,
   totalExchanges,
   isLoading = false,
-  isCancelling = false,
+
   error,
   message,
   clearFeedback,
@@ -46,15 +46,12 @@ const CashExchangesMobilePage = ({
   handleFilterChange,
   handlePageChange,
   handlePageSizeChange,
-  handleCancelExchange,
+
   handleViewDetails,
   handleCreateNew,
   handleRefresh,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [pendingCancelId, setPendingCancelId] = useState(null);
-  const [cancelReason, setCancelReason] = useState("");
 
   const hasFilteredExchanges = cashExchanges.length > 0;
   const shouldRenderPagination = hasFilteredExchanges && totalExchanges > pageSize;
@@ -70,19 +67,7 @@ const CashExchangesMobilePage = ({
     }
   };
 
-  const handleConfirmCancel = async () => {
-    if (!pendingCancelId) return;
-    setShowCancelModal(false);
-    await handleCancelExchange(pendingCancelId, cancelReason);
-    setPendingCancelId(null);
-    setCancelReason("");
-  };
 
-  const openCancelModal = (id) => {
-    setPendingCancelId(id);
-    setCancelReason("");
-    setShowCancelModal(true);
-  };
 
   return (
     <section className="min-h-screen bg-bg pb-24 relative">
@@ -234,16 +219,7 @@ const CashExchangesMobilePage = ({
                           icon: <FiEye />,
                           onClick: () => handleViewDetails(row._id),
                         },
-                        ...(row.status === "COMPLETED"
-                          ? [
-                              {
-                                label: "Cancel",
-                                icon: <FiSlash />,
-                                danger: true,
-                                onClick: () => openCancelModal(row._id),
-                              },
-                            ]
-                          : []),
+
                       ]}
                       align="end"
                     />
@@ -307,45 +283,7 @@ const CashExchangesMobilePage = ({
         </button>
       </div>
 
-      {/* Cancel Modal */}
-      {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center p-4">
-          <div className="w-full max-w-sm bg-surface rounded-2xl p-5 shadow-2xl animate-in slide-in-from-bottom-4">
-            <AppHeading level={4} weight={700} sx={{ marginBottom: 8 }}>
-              Cancel Exchange
-            </AppHeading>
-            <AppText size="sm" sx={{ color: "var(--color-text-muted)", marginBottom: 16 }}>
-              This will reverse the denomination changes in the cash drawer.
-            </AppText>
-            
-            <AppInput
-              placeholder="Cancellation reason (optional)"
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              size="sm"
-              sx={{ marginBottom: 20 }}
-            />
 
-            <div className="flex gap-3">
-              <AppButton
-                className="flex-1"
-                variant="outline"
-                onClick={() => setShowCancelModal(false)}
-              >
-                Keep
-              </AppButton>
-              <AppButton
-                className="flex-1"
-                variant="danger"
-                onClick={handleConfirmCancel}
-                loading={isCancelling}
-              >
-                Cancel It
-              </AppButton>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 };

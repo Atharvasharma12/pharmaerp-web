@@ -29,3 +29,15 @@ export const selectConfirmDepositStatus = (state) =>
 
 export const selectCancelBankDepositSlipStatus = (state) =>
   state.bankDepositSlip.cancelBankDepositSlipStatus;
+
+export const selectWithdrawFromSlipStatus = (state) =>
+  state.bankDepositSlip.withdrawFromSlipStatus;
+
+export const selectCashInTransit = (state) =>
+  state.bankDepositSlip.cashInTransit;
+
+export const selectTotalCIT = (state) =>
+  state.bankDepositSlip.totalCIT;
+
+export const selectGetCashInTransitStatus = (state) =>
+  state.bankDepositSlip.getCashInTransitStatus;

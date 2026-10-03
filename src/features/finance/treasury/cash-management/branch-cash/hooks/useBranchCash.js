@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   listBranchCash,
   fetchBranchCash,
+  initializeBranchCash,
   depositCash,
   withdrawCash,
 } from "../store/branchCashThunk";
@@ -15,6 +16,7 @@ import {
   selectFrozenDenominations,
   selectBranchCashListStatus,
   selectBranchCashFetchStatus,
+  selectInitializeStatus,
   selectDepositStatus,
   selectWithdrawStatus,
   selectBranchCashError,
@@ -39,6 +41,7 @@ export const useBranchCash = () => {
   // Status selectors
   const listStatus = useSelector(selectBranchCashListStatus);
   const fetchStatus = useSelector(selectBranchCashFetchStatus);
+  const initializeStatus = useSelector(selectInitializeStatus);
   const depositStatus = useSelector(selectDepositStatus);
   const withdrawStatus = useSelector(selectWithdrawStatus);
   const error = useSelector(selectBranchCashError);
@@ -52,6 +55,11 @@ export const useBranchCash = () => {
 
   const handleFetchBranchCash = useCallback(
     (branchId) => dispatch(fetchBranchCash(branchId)),
+    [dispatch]
+  );
+
+  const handleInitializeBranchCash = useCallback(
+    (payload) => dispatch(initializeBranchCash(payload)),
     [dispatch]
   );
 
@@ -87,6 +95,7 @@ export const useBranchCash = () => {
     // Status
     listStatus,
     fetchStatus,
+    initializeStatus,
     depositStatus,
     withdrawStatus,
     error,
@@ -95,6 +104,7 @@ export const useBranchCash = () => {
     // Actions
     listBranchCash: handleListBranchCash,
     fetchBranchCash: handleFetchBranchCash,
+    initializeBranchCash: handleInitializeBranchCash,
     depositCash: handleDepositCash,
     withdrawCash: handleWithdrawCash,
     resetStatus: handleResetStatus,

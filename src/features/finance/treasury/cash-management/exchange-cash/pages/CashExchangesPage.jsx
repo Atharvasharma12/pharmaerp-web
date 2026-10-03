@@ -16,8 +16,6 @@ const CashExchangesPage = () => {
     cashExchanges,
     getCashExchanges,
     getCashExchangesStatus,
-    cancelCashExchange,
-    cancelCashExchangeStatus,
     error,
     clearError,
     message,
@@ -73,22 +71,6 @@ const CashExchangesPage = () => {
     setCurrentPage(1);
   }, []);
 
-  const handleCancelExchange = useCallback(
-    async (cashExchangeId, reason = "") => {
-      setActionError("");
-      setActionMessage("");
-      try {
-        await cancelCashExchange(cashExchangeId, { reason });
-        setActionMessage("Cash exchange cancelled successfully.");
-        getCashExchanges(buildQuery()).catch(() => {});
-      } catch (err) {
-        setActionError(
-          typeof err === "string" ? err : "Failed to cancel cash exchange.",
-        );
-      }
-    },
-    [cancelCashExchange, getCashExchanges, buildQuery],
-  );
 
   const handleViewDetails = useCallback(
     (cashExchangeId) => navigate(ROUTES.CASH_EXCHANGE_DETAILS(cashExchangeId)),
@@ -101,7 +83,6 @@ const CashExchangesPage = () => {
   );
 
   const isLoading = getCashExchangesStatus === API_STATUS.LOADING;
-  const isCancelling = cancelCashExchangeStatus === API_STATUS.LOADING;
 
   const totalExchanges = useMemo(
     () => cashExchanges?.length || 0,
@@ -115,7 +96,6 @@ const CashExchangesPage = () => {
     pageSize,
     totalExchanges,
     isLoading,
-    isCancelling,
     error: error || actionError,
     message: message || actionMessage,
     clearFeedback: () => {
@@ -128,7 +108,6 @@ const CashExchangesPage = () => {
     handleFilterChange,
     handlePageChange,
     handlePageSizeChange,
-    handleCancelExchange,
     handleViewDetails,
     handleCreateNew,
     handleRefresh,

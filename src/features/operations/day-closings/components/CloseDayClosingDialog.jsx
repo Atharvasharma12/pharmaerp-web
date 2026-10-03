@@ -12,22 +12,31 @@ import {
 } from "@/components/ui";
 import { updateDayClosingStatus, listDayClosings } from "../store/dayClosingThunk";
 import { API_STATUS } from "@/constants";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants";
 import { apiClient } from "@/services";
 import useBranchCash from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
-import { FileText, IndianRupee, QrCode, Eye, Banknote, ArrowLeftRight } from "lucide-react";
+import { FileText, IndianRupee, QrCode, Eye, Banknote, ArrowLeftRight, Snowflake, Landmark } from "lucide-react";
 import { ViewShiftDialog } from "@/features/operations/shifts/components/ViewShiftDialog";
 import { ShiftFundTransferPanel } from "@/features/operations/shifts/components/ShiftFundTransferPanel";
+import { PostDayCloseDialog } from "./PostDayCloseDialog";
+import { Clock } from "lucide-react";
+
+const fmt = (n) => (Number(n) || 0).toLocaleString("en-IN");
 
 const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
 
 export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { updateDayClosingStatusStatus, error } = useSelector((state) => state.dayClosing);
 
   const [note, setNote] = useState("");
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedShiftForView, setSelectedShiftForView] = useState(null);
+  const [showPostClose, setShowPostClose] = useState(false);
+  const [closedDayClosingData, setClosedDayClosingData] = useState(null);
 
   // Denominations State
   const [counts, setCounts] = useState(
@@ -87,8 +96,27 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
     }
   }, [isOpen, dayClosing, branchCash]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setShowPostClose(false);
+      setClosedDayClosingData(null);
+    }
+  }, [isOpen]);
+
   const handleCountChange = (note, val) => {
     setCounts((prev) => ({ ...prev, [note]: val }));
+  };
+
+  const handleOpenBankSlip = () => {
+    setShowPostClose(false);
+    onClose();
+    const dcId = closedDayClosingData?._id || dayClosing?._id || "";
+    navigate(`${ROUTES.CREATE_BANK_DEPOSIT_SLIP}${dcId ? `?dayClosingId=${dcId}` : ""}`);
+  };
+
+  const handlePostCloseDismiss = () => {
+    setShowPostClose(false);
+    onClose();
   };
 
   const handleSubmit = async (e) => {
@@ -115,7 +143,8 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
 
     if (updateDayClosingStatus.fulfilled.match(resultAction)) {
       dispatch(listDayClosings());
-      onClose();
+      setClosedDayClosingData(resultAction.payload || dayClosing);
+      setShowPostClose(true);
     }
   };
 
@@ -124,7 +153,7 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
 
   return (
     <>
-      <UIModal isOpen={isOpen} onClose={onClose} size="xl">
+      <UIModal isOpen={isOpen && !showPostClose} onClose={onClose} size="xl">
         <form onSubmit={handleSubmit}>
           <UIModalHeader>
             <UIModalTitle>Lock Day Closing: {dayClosing?.dayClosingNo}</UIModalTitle>
@@ -136,17 +165,36 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
               <div className="space-y-6 py-2">
                 {error && <UIAlert intent="danger" title="Error" description={error} />}
 
-                {/* Cash account info */}
-                {branchCash && (
-                  <div className="flex items-center gap-2 bg-surface-alt/50 border border-border/60 rounded-lg px-3 py-2 text-xs">
-                    <Banknote className="size-3.5 text-emerald-500 shrink-0" />
-                    <span className="text-text-muted">Reconciling:</span>
-                    <span className="font-semibold text-text">Running Cash Partition</span>
-                    <span className="ml-auto font-mono font-bold text-emerald-500 tabular-nums">
-                      ₹{(branchCash?.runningCash || 0).toLocaleString("en-IN")}
-                    </span>
+                {/* Cash Account Status: Current Running & Frozen Cash (Reserve) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3.5 flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400 mb-1">
+                        <Banknote className="size-3.5" /> Current Running Cash (Now)
+                      </div>
+                      <p className="font-mono font-bold text-2xl text-emerald-700 dark:text-emerald-400">
+                        ₹{fmt(branchCash?.runningCash ?? summary?.currentRunningCash ?? 0)}
+                      </p>
+                      <p className="text-[11px] text-emerald-600/80 dark:text-emerald-500 mt-0.5">
+                        Active in drawer partition
+                      </p>
+                    </div>
                   </div>
-                )}
+
+                  <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl p-3.5 flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-700 dark:text-blue-400 mb-1">
+                        <Snowflake className="size-3.5" /> Frozen Cash (Reserve)
+                      </div>
+                      <p className="font-mono font-bold text-2xl text-blue-700 dark:text-blue-400">
+                        ₹{fmt(branchCash?.frozenCash ?? summary?.currentFrozenCash ?? 0)}
+                      </p>
+                      <p className="text-[11px] text-blue-600/80 dark:text-blue-500 mt-0.5">
+                        Locked cash awaiting bank deposit
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="bg-error/10 p-4 rounded-lg border border-error/20 mb-4 text-error">
                   <h4 className="text-sm font-semibold mb-1">Confirm Day Closing Lock</h4>
@@ -157,66 +205,33 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
 
                 {summary && (
                   <>
-                    {/* Operations Totals */}
-                    <div className="grid grid-cols-2 gap-4 border-b border-border pb-4">
-                      <div className="bg-surface-secondary p-3 rounded-lg border border-border">
-                        <h4 className="text-xs font-semibold flex items-center gap-2 mb-2 text-text-muted">
-                          <FileText className="w-3 h-3" /> Day Operations
-                        </h4>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Total Shifts</span>
-                          <span className="font-medium">{summary.shifts?.length || 0}</span>
-                        </div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Total Invoices</span>
-                          <span className="font-medium">{summary.totalInvoiceCount}</span>
-                        </div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-text-muted pl-2">↳ Cash Invoices</span>
-                          <span className="font-medium text-text-muted">{summary.totalCashInvoiceCount || 0}</span>
-                        </div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-text-muted pl-2">↳ UPI Invoices</span>
-                          <span className="font-medium text-text-muted">{summary.totalPaymentQrCount || 0}</span>
-                        </div>
-                        <div className="flex justify-between text-sm mb-1 mt-2">
-                          <span>Net Sales</span>
-                          <span className="font-medium text-success">₹{summary.totalNetSales}</span>
-                        </div>
-                      </div>
-
-                      <div className="bg-surface-secondary p-3 rounded-lg border border-border">
-                        <h4 className="text-xs font-semibold flex items-center gap-2 mb-2 text-text-muted">
-                          <QrCode className="w-3 h-3" /> Day Cash & UPI
-                        </h4>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>Cash (Net)</span>
-                          <span className="font-medium text-success">₹{summary.totalCashNet || 0}</span>
-                        </div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span>UPI/QR (Net)</span>
-                          <span className="font-medium text-primary">₹{summary.totalQrNet || 0}</span>
-                        </div>
-
-                        {summary.upiBreakdown?.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-border/50">
-                            <p className="text-[10px] uppercase font-bold text-text-muted mb-1.5 tracking-wider">UPI Breakdown</p>
-                            {summary.upiBreakdown.map((upi, idx) => (
-                              <div key={idx} className="flex justify-between text-xs mb-1">
-                                <span className="text-text-muted truncate max-w-[120px]" title={upi.upiId}>
-                                  {upi.upiId} <span className="opacity-50">({upi.transactionCount})</span>
-                                </span>
-                                <span className="font-mono text-text">₹{upi.totalAmount}</span>
-                              </div>
-                            ))}
+                    {/* ── Payment Breakdown ────────────────────────────────────────── */}
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
+                        <QrCode className="size-3.5" /> Payment Breakdown
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400 mb-1">
+                            <Banknote className="size-3" /> Cash Bills
                           </div>
-                        )}
-
-                        <div className="flex justify-between text-sm mt-2 border-t border-border pt-1">
-                          <span>System Expected Cash</span>
-                          <span className="font-bold text-primary">₹{expectedCash}</span>
+                          <p className="font-mono font-bold text-xl text-emerald-700 dark:text-emerald-400">₹{fmt(summary.totalCashNet)}</p>
+                          <p className="text-[11px] text-emerald-600/70 mt-0.5">{summary.totalCashInvoiceCount || 0} bills</p>
+                        </div>
+                        <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-xl p-3">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-700 dark:text-purple-400 mb-1">
+                            <QrCode className="size-3" /> UPI / QR
+                          </div>
+                          <p className="font-mono font-bold text-xl text-purple-700 dark:text-purple-400">₹{fmt(summary.totalQrNet)}</p>
+                          <p className="text-[11px] text-purple-600/70 mt-0.5">{summary.totalPaymentQrCount || 0} bills</p>
                         </div>
                       </div>
+                      {summary.totalNetSales !== undefined && (
+                        <div className="mt-2 bg-surface-secondary border border-border rounded-xl p-3 flex justify-between items-center">
+                          <p className="text-sm font-semibold">Total Net Sales (All Shifts)</p>
+                          <p className="font-mono font-bold text-lg text-primary">₹{fmt(summary.totalNetSales)}</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* ── Fund Transfers Section ── */}
@@ -391,43 +406,44 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
                       </div>
                     </div>
 
-                    {/* Shift-wise Breakdown */}
+                    {/* ── Per-Shift Cards ──────────────────────────────────────────── */}
                     <div className="pt-2">
-                      <h4 className="text-sm font-semibold mb-3">Shift-wise Breakdown</h4>
-                      <div className="space-y-3">
-                        {summary.shiftSummaries?.map((shift) => (
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
+                        <Clock className="size-3.5" /> Included Shifts ({summary.shiftSummaries?.length || 0})
+                      </h4>
+                      <div className="space-y-2">
+                        {summary.shiftSummaries?.map((s) => (
                           <div
-                            key={shift._id}
-                            className="bg-surface p-3.5 rounded-xl border border-border flex flex-col sm:flex-row justify-between sm:items-center gap-3 transition-colors hover:border-primary/40"
+                            key={s._id}
+                            className="bg-surface border border-border rounded-xl p-3.5 hover:border-primary/30 transition"
                           >
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-text">{shift.shiftName || shift.shiftNo}</p>
-                              <p className="text-xs text-text-muted mt-0.5">
-                                Invoices: {shift.invoiceCount} (Cash: {shift.cashInvoiceCount}, UPI: {shift.paymentQrCount})
-                              </p>
-                            </div>
-                            <div className="text-left sm:text-right">
-                              <p className="text-sm font-bold text-success">Sales: ₹{shift.netSales}</p>
-                              <p className="text-xs text-text-muted mt-0.5">
-                                Cash: ₹{shift.cashNet} | QR: ₹{shift.qrNet}
-                              </p>
-                            </div>
-                            <div className="text-left sm:text-right sm:pl-4 sm:border-l border-border">
-                              <p className="text-xs text-text-muted">Expected Cash</p>
-                              <p className="text-sm font-bold text-primary">₹{shift.expectedClosingCashAmount}</p>
-                              <p className="text-[10px] text-text-muted mt-0.5">Actual: ₹{shift.actualClosingCashAmount}</p>
-                            </div>
-                            <div className="flex sm:flex-col justify-end sm:pl-3 sm:border-l border-border">
+                            <div className="flex flex-wrap justify-between items-start gap-3">
+                              <div>
+                                <p className="font-semibold text-sm">{s.shiftName || s.shiftNo || "Shift"}</p>
+                                <p className="text-[10px] text-text-muted mt-0.5">{s.shiftNo || ""}</p>
+                              </div>
                               <UIButton
                                 type="button"
                                 variant="outline"
                                 size="xs"
-                                onClick={() => setSelectedShiftForView(shift)}
-                                className="flex items-center gap-1.5 whitespace-nowrap text-xs h-8 px-2.5 font-medium border-border/80 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                                onClick={() => setSelectedShiftForView(s)}
+                                className="flex items-center gap-1 text-xs h-7 px-2"
                               >
-                                <Eye className="size-3.5" />
-                                <span>View Shift</span>
+                                <Eye className="size-3" /> View
                               </UIButton>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                              {[
+                                ["Opening", fmt(s.openingFloatAmount || 0)],
+                                ["Cash Sales", fmt(s.cashNet || 0)],
+                                ["Expected", fmt(s.expectedClosingCashAmount || 0)],
+                                ["Actual", fmt(s.actualClosingCashAmount || 0)],
+                              ].map(([label, val]) => (
+                                <div key={label} className="bg-surface-secondary rounded-lg p-2 border border-border">
+                                  <p className="text-[10px] text-text-muted">{label}</p>
+                                  <p className="font-mono font-semibold text-sm mt-0.5">₹{val}</p>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         ))}
@@ -465,6 +481,16 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
         isOpen={Boolean(selectedShiftForView)}
         onClose={() => setSelectedShiftForView(null)}
         shift={selectedShiftForView}
+      />
+
+      {/* Post-day-closing action dialog */}
+      <PostDayCloseDialog
+        isOpen={showPostClose}
+        onClose={handlePostCloseDismiss}
+        onCreateBankSlip={handleOpenBankSlip}
+        dayClosingNo={closedDayClosingData?.dayClosingNo || dayClosing?.dayClosingNo}
+        frozenAmount={branchCash?.frozenCash ?? summary?.currentFrozenCash ?? 0}
+        runningAmount={branchCash?.runningCash ?? summary?.currentRunningCash ?? totalAmount}
       />
     </>
   );

@@ -5,7 +5,6 @@ import {
   createCashExchange,
   getCashExchanges,
   getCashExchangeById,
-  cancelCashExchange,
 } from "../store/cashExchangeThunk";
 
 import {
@@ -27,7 +26,6 @@ import {
   selectCreateCashExchangeStatus,
   selectGetCashExchangesStatus,
   selectGetCashExchangeStatus,
-  selectCancelCashExchangeStatus,
 } from "../store/cashExchangeSelector";
 
 const useCashExchange = () => {
@@ -42,7 +40,6 @@ const useCashExchange = () => {
   const createCashExchangeStatus = useSelector(selectCreateCashExchangeStatus);
   const getCashExchangesStatus = useSelector(selectGetCashExchangesStatus);
   const getCashExchangeStatus = useSelector(selectGetCashExchangeStatus);
-  const cancelCashExchangeStatus = useSelector(selectCancelCashExchangeStatus);
 
   const submitCreateCashExchange = useCallback(
     (payload) => dispatch(createCashExchange(payload)).unwrap(),
@@ -59,11 +56,6 @@ const useCashExchange = () => {
     [dispatch],
   );
 
-  const submitCancelCashExchange = useCallback(
-    (cashExchangeId, payload = {}) =>
-      dispatch(cancelCashExchange({ cashExchangeId, payload })).unwrap(),
-    [dispatch],
-  );
 
   const clearError = useCallback(
     () => dispatch(clearCashExchangeError()),
@@ -96,12 +88,10 @@ const useCashExchange = () => {
     createCashExchangeStatus,
     getCashExchangesStatus,
     getCashExchangeStatus,
-    cancelCashExchangeStatus,
 
     createCashExchange: submitCreateCashExchange,
     getCashExchanges: fetchCashExchanges,
     getCashExchangeById: fetchCashExchangeById,
-    cancelCashExchange: submitCancelCashExchange,
 
     clearError,
     clearMessage,

@@ -23,10 +23,11 @@ import {
   Zap,
 } from "lucide-react";
 import { ShiftFundTransferPanel } from "./ShiftFundTransferPanel";
+import { PostShiftCloseDialog } from "./PostShiftCloseDialog";
 
 const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
 
-export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
+export const CloseShiftDialog = ({ isOpen, onClose, shift, onOpenNewShift, onCreateDayClosing }) => {
   const dispatch = useDispatch();
   const { updateShiftStatusStatus, error: shiftError } = useSelector(
     (state) => state.shift,
@@ -36,6 +37,8 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState(null);
+  const [showPostClose, setShowPostClose] = useState(false);
+  const [closedShiftData, setClosedShiftData] = useState(null);
 
   // --- Physical cash counted (actual drawer count) ---
   const [countedCounts, setCountedCounts] = useState(
@@ -211,7 +214,7 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
     }));
 
     try {
-      await dispatch(
+      const result = await dispatch(
         updateShiftStatus({
           id: shift._id,
           payload: {
@@ -225,7 +228,8 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
         }),
       ).unwrap();
       dispatch(listShifts());
-      onClose();
+      setClosedShiftData(result);
+      setShowPostClose(true); // show post-close action dialog
     } catch (e) {
       // handled by redux
     }
@@ -235,7 +239,8 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
   const safeFrozen = totalFrozen;
 
   return (
-    <UIModal isOpen={isOpen} onClose={onClose} size="2xl">
+    <>
+      <UIModal isOpen={isOpen} onClose={onClose} size="2xl">
       <UIModalHeader>
         <UIModalTitle>Lock Shift: {shift?.shiftNo}</UIModalTitle>
       </UIModalHeader>
@@ -254,14 +259,30 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
               />
             )}
 
-            {/* Branch Cash running balance — computed from denomination sums */}
+            {/* Branch Cash Status Overview */}
             {currentBranchCash && (
-              <div className="flex items-center gap-2 bg-surface-alt/50 border border-border/60 rounded-lg px-3 py-2 text-xs">
-                <Banknote className="size-3.5 text-emerald-500 shrink-0" />
-                <span className="text-text-muted">Branch Cash (Running, by denomination):</span>
-                <span className="ml-auto font-mono font-bold text-emerald-500 tabular-nums">
-                  ₹{(branchRunningCash || 0).toLocaleString("en-IN")}
-                </span>
+              <div className="grid grid-cols-2 gap-3 mb-2">
+                <div className="flex flex-col gap-1 bg-surface-alt/50 border border-border/60 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 text-xs text-text-muted mb-1 font-bold tracking-widest uppercase">
+                    <Banknote className="size-3.5 text-emerald-500" />
+                    Running Cash
+                  </div>
+                  <div className="font-mono font-bold text-emerald-600 text-lg">
+                    ₹{(currentBranchCash?.runningCash || 0).toLocaleString("en-IN")}
+                  </div>
+                  <div className="text-[10px] text-text-muted">Available for next shift</div>
+                </div>
+                
+                <div className="flex flex-col gap-1 bg-surface-alt/50 border border-border/60 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 text-xs text-text-muted mb-1 font-bold tracking-widest uppercase">
+                    <Snowflake className="size-3.5 text-blue-500" />
+                    Frozen Reserve
+                  </div>
+                  <div className="font-mono font-bold text-blue-600 text-lg">
+                    ₹{(currentBranchCash?.frozenCash || 0).toLocaleString("en-IN")}
+                  </div>
+                  <div className="text-[10px] text-text-muted">Awaiting bank deposit</div>
+                </div>
               </div>
             )}
 
@@ -335,32 +356,52 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
                 </div>
               )}
 
-            {/* Cash Reconciliation Summary */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-surface-secondary border border-border rounded-lg p-3">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-text-muted mb-1">
-                  Opening
-                </p>
-                <p className="text-lg font-mono">₹{summary?.openingFloatAmount || 0}</p>
+            {/* Cash Reconciliation Summary (Redesigned) */}
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Math Breakdown Box */}
+              <div className="bg-surface-secondary border border-border rounded-lg p-4 flex-1">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3">
+                  Expected Cash Calculation
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted">Opening Balance</span>
+                    <span className="font-mono">₹{summary?.openingFloatAmount || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-success">
+                    <span>+ Cash Sales</span>
+                    <span className="font-mono">+ ₹{summary?.cashNet || 0}</span>
+                  </div>
+                  {summary && summary.totalDeposits > 0 && (
+                    <div className="flex justify-between items-center text-success">
+                      <span>+ Shift Deposits</span>
+                      <span className="font-mono">+ ₹{summary.totalDeposits}</span>
+                    </div>
+                  )}
+                  {summary && summary.totalWithdrawals > 0 && (
+                    <div className="flex justify-between items-center text-error">
+                      <span>- Shift Withdrawals</span>
+                      <span className="font-mono">- ₹{summary.totalWithdrawals}</span>
+                    </div>
+                  )}
+                  <div className="border-t border-border mt-2 pt-2 flex justify-between items-center font-bold">
+                    <span>Expected Cash</span>
+                    <span className="font-mono text-primary text-base">₹{summary?.expectedClosingCashAmount || 0}</span>
+                  </div>
+                </div>
               </div>
-              <div className="bg-surface-secondary border border-border rounded-lg p-3">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-text-muted mb-1">
-                  Expected
-                </p>
-                <p className="text-lg font-mono text-primary">
-                  ₹{summary?.expectedClosingCashAmount || 0}
-                </p>
-              </div>
+
+              {/* Counted Cash Box */}
               <div
-                className={`border rounded-lg p-3 ${
+                className={`border rounded-lg p-4 md:w-1/3 flex flex-col justify-center ${
                   totalCounted === (summary?.expectedClosingCashAmount || 0)
                     ? "bg-success-soft border-success/30"
                     : "bg-warning-soft border-warning/30"
                 }`}
               >
-                <div className="flex justify-between items-start">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-text-muted mb-1">
-                    Counted
+                <div className="flex justify-between items-start mb-2">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-text-muted">
+                    Actual Counted
                   </p>
                   {summary &&
                     totalCounted - (summary?.expectedClosingCashAmount || 0) !== 0 && (
@@ -376,7 +417,12 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
                       </span>
                     )}
                 </div>
-                <p className="text-lg font-mono font-bold">₹{totalCounted}</p>
+                <p className="text-3xl font-mono font-bold text-center my-2">₹{totalCounted}</p>
+                {summary && totalCounted - (summary?.expectedClosingCashAmount || 0) !== 0 && (
+                  <p className="text-[10px] text-center opacity-80 font-medium text-error">
+                    Mismatch: Please recount or add a note.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -590,6 +636,28 @@ export const CloseShiftDialog = ({ isOpen, onClose, shift }) => {
         </UIButton>
       </UIModalFooter>
     </UIModal>
+
+    {/* Post-close action dialog — shown after shift locks successfully */}
+    <PostShiftCloseDialog
+      isOpen={showPostClose}
+      frozenAmount={closedShiftData?.frozenAtClose || 0}
+      runningAmount={closedShiftData?.carryForwardAmount || 0}
+      onOpenNewShift={() => {
+        setShowPostClose(false);
+        onClose();
+        if (onOpenNewShift) onOpenNewShift();
+      }}
+      onCreateDayClosing={() => {
+        setShowPostClose(false);
+        onClose();
+        if (onCreateDayClosing) onCreateDayClosing();
+      }}
+      onClose={() => {
+        setShowPostClose(false);
+        onClose();
+      }}
+    />
+    </>
   );
 };
 

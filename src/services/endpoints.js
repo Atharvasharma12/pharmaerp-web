@@ -261,6 +261,8 @@ export const ENDPOINTS = {
 
     BY_BRANCH: (branchId) => `/finance/treasury/branch-cash/${branchId}`,
 
+    INITIALIZE: "/finance/treasury/branch-cash/initialize",
+
     DEPOSIT: "/finance/treasury/branch-cash/deposit",
 
     WITHDRAW: "/finance/treasury/branch-cash/withdraw",
@@ -354,6 +356,8 @@ export const ENDPOINTS = {
     BY_ID: (slipId) => `/finance/treasury/bank-deposit-slips/${slipId}`,
     CONFIRM_DEPOSIT: (slipId) => `/finance/treasury/bank-deposit-slips/${slipId}/confirm-deposit`,
     CANCEL: (slipId) => `/finance/treasury/bank-deposit-slips/${slipId}/cancel`,
+    WITHDRAW_FROM_SLIP: (slipId) => `/finance/treasury/bank-deposit-slips/${slipId}/withdraw`,
+    CASH_IN_TRANSIT: "/finance/treasury/bank-deposit-slips/cash-in-transit",
   },
 
   MARKETPLACE_STORE: {

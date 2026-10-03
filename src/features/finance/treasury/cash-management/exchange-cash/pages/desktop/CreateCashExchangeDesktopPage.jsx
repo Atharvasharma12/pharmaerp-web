@@ -92,9 +92,14 @@ const DenominationGrid = ({
                 <input
                   type="number"
                   min={0}
+                  max={showAvailable && available !== null ? available : undefined}
                   value={qty === 0 ? "" : qty}
                   placeholder="0"
-                  onChange={(e) => onQtyChange(denom, e.target.value)}
+                  onChange={(e) => {
+                    let val = parseInt(e.target.value, 10) || 0;
+                    if (showAvailable && available !== null && val > available) val = available;
+                    onQtyChange(denom, val);
+                  }}
                   className="w-full text-center text-sm font-semibold rounded border border-border bg-bg py-1 focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 {qty > 0 && (
@@ -133,21 +138,37 @@ const DenominationGrid = ({
             const row = denominations.find((d) => d.denomination === denom);
             const qty = row?.quantity || 0;
             const subtotal = denom * qty;
+            const available = getAvailable(denom);
 
             return (
               <div
                 key={denom}
                 className="rounded-md border border-border bg-surface p-2 flex flex-col gap-1"
               >
-                <AppText size="xs" weight={700}>
-                  ₹{denom}
-                </AppText>
+                <div className="flex justify-between items-center">
+                  <AppText size="xs" weight={700}>
+                    ₹{denom}
+                  </AppText>
+                  {showAvailable && (
+                    <AppText
+                      size="xs"
+                      sx={{ color: "var(--color-text-muted)" }}
+                    >
+                      Avail: {available}
+                    </AppText>
+                  )}
+                </div>
                 <input
                   type="number"
                   min={0}
+                  max={showAvailable && available !== null ? available : undefined}
                   value={qty === 0 ? "" : qty}
                   placeholder="0"
-                  onChange={(e) => onQtyChange(denom, e.target.value)}
+                  onChange={(e) => {
+                    let val = parseInt(e.target.value, 10) || 0;
+                    if (showAvailable && available !== null && val > available) val = available;
+                    onQtyChange(denom, val);
+                  }}
                   className="w-full text-center text-sm font-semibold rounded border border-border bg-bg py-1 focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 {qty > 0 && (
@@ -335,7 +356,8 @@ const CreateCashExchangeDesktopPage = ({
                         onQtyChange={handleReceivedQtyChange}
                         total={totalReceived}
                         accentColor="success"
-                        showAvailable={false}
+                        showAvailable={!!selectedCashAccount}
+                        availableDenoms={availableDenoms}
                       />
                     </div>
 

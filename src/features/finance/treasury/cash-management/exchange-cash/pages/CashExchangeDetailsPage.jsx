@@ -17,8 +17,6 @@ const CashExchangeDetailsPage = () => {
     managedCashExchange,
     getCashExchangeById,
     getCashExchangeStatus,
-    cancelCashExchange,
-    cancelCashExchangeStatus,
     error,
     clearError,
     message,
@@ -43,23 +41,6 @@ const CashExchangeDetailsPage = () => {
     };
   }, [clearError, clearMessage]);
 
-  const handleCancelExchange = useCallback(
-    async (reason = "") => {
-      if (!cashExchangeId) return;
-      setActionError("");
-      setActionMessage("");
-      try {
-        await cancelCashExchange(cashExchangeId, { reason });
-        setActionMessage("Cash exchange cancelled successfully.");
-        getCashExchangeById(cashExchangeId).catch(() => {});
-      } catch (err) {
-        setActionError(
-          typeof err === "string" ? err : "Failed to cancel cash exchange.",
-        );
-      }
-    },
-    [cashExchangeId, cancelCashExchange, getCashExchangeById],
-  );
 
   const handleBack = useCallback(
     () => navigate(ROUTES.CASH_EXCHANGES),
@@ -67,12 +48,10 @@ const CashExchangeDetailsPage = () => {
   );
 
   const isLoading = getCashExchangeStatus === API_STATUS.LOADING;
-  const isCancelling = cancelCashExchangeStatus === API_STATUS.LOADING;
 
   const pageProps = {
     exchangeDetails: managedCashExchange,
     isLoading,
-    isCancelling,
     error: error || actionError,
     message: message || actionMessage,
     clearFeedback: () => {
@@ -81,7 +60,6 @@ const CashExchangeDetailsPage = () => {
       setActionError("");
       setActionMessage("");
     },
-    handleCancelExchange,
     handleBack,
   };
 
