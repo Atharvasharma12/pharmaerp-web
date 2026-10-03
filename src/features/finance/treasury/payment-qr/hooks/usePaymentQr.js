@@ -1,0 +1,168 @@
+import { useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+
+import {
+  createPaymentQr,
+  getPaymentQrs,
+  getPaymentQrById,
+  updatePaymentQr,
+  deletePaymentQr,
+  setPrimaryPaymentQr,
+  getPaymentQrStats,
+} from "../store/paymentQrThunk";
+
+import {
+  clearPaymentQrError,
+  clearPaymentQrMessage,
+  setCurrentPaymentQr,
+  clearCurrentPaymentQr,
+  clearPaymentQrs,
+  clearManagedPaymentQr,
+} from "../store/paymentQrSlice";
+
+import {
+  selectPaymentQrs,
+  selectCurrentPaymentQr,
+  selectManagedPaymentQr,
+  selectPaymentQrStatus,
+  selectPaymentQrError,
+  selectPaymentQrMessage,
+  selectCreatePaymentQrStatus,
+  selectGetPaymentQrsStatus,
+  selectGetPaymentQrStatus,
+  selectUpdatePaymentQrStatus,
+  selectDeletePaymentQrStatus,
+  selectSetPrimaryPaymentQrStatus,
+} from "../store/paymentQrSelector";
+
+const usePaymentQr = () => {
+  const dispatch = useDispatch();
+
+  const paymentQrs = useSelector(selectPaymentQrs);
+
+  const currentPaymentQr = useSelector(selectCurrentPaymentQr);
+
+  const managedPaymentQr = useSelector(selectManagedPaymentQr);
+
+  const status = useSelector(selectPaymentQrStatus);
+
+  const error = useSelector(selectPaymentQrError);
+
+  const message = useSelector(selectPaymentQrMessage);
+
+  const createPaymentQrStatus = useSelector(selectCreatePaymentQrStatus);
+
+  const getPaymentQrsStatus = useSelector(selectGetPaymentQrsStatus);
+
+  const getPaymentQrStatus = useSelector(selectGetPaymentQrStatus);
+
+  const updatePaymentQrStatus = useSelector(selectUpdatePaymentQrStatus);
+
+  const deletePaymentQrStatus = useSelector(selectDeletePaymentQrStatus);
+
+  const setPrimaryPaymentQrStatus = useSelector(
+    selectSetPrimaryPaymentQrStatus,
+  );
+
+  // Per-UPI stats
+  const paymentQrStats = useSelector((state) => state.paymentQr.paymentQrStats);
+  const paymentQrStatsStatus = useSelector((state) => state.paymentQr.paymentQrStatsStatus);
+
+  const submitCreatePaymentQr = useCallback((payload) => {
+    return dispatch(createPaymentQr(payload)).unwrap();
+  }, [dispatch]);
+
+  const fetchPaymentQrs = useCallback((params = {}) => {
+    return dispatch(getPaymentQrs(params)).unwrap();
+  }, [dispatch]);
+
+  const fetchPaymentQrById = useCallback((paymentQrId) => {
+    return dispatch(getPaymentQrById(paymentQrId)).unwrap();
+  }, [dispatch]);
+
+  const submitUpdatePaymentQr = useCallback((paymentQrId, payload) => {
+    return dispatch(
+      updatePaymentQr({
+        paymentQrId,
+        payload,
+      }),
+    ).unwrap();
+  }, [dispatch]);
+
+  const submitDeletePaymentQr = useCallback((paymentQrId) => {
+    return dispatch(deletePaymentQr(paymentQrId)).unwrap();
+  }, [dispatch]);
+
+  const submitSetPrimaryPaymentQr = useCallback((paymentQrId) => {
+    return dispatch(setPrimaryPaymentQr(paymentQrId)).unwrap();
+  }, [dispatch]);
+
+  const fetchPaymentQrStats = useCallback((paymentQrId, params = {}) => {
+    return dispatch(getPaymentQrStats({ paymentQrId, params })).unwrap();
+  }, [dispatch]);
+
+  const clearError = useCallback(() => {
+    dispatch(clearPaymentQrError());
+  }, [dispatch]);
+
+  const clearMessage = useCallback(() => {
+    dispatch(clearPaymentQrMessage());
+  }, [dispatch]);
+
+  const saveCurrentPaymentQr = (payload) => {
+    dispatch(setCurrentPaymentQr(payload));
+  };
+
+  const removeCurrentPaymentQr = () => {
+    dispatch(clearCurrentPaymentQr());
+  };
+
+  const removePaymentQrs = () => {
+    dispatch(clearPaymentQrs());
+  };
+
+  const removeManagedPaymentQr = () => {
+    dispatch(clearManagedPaymentQr());
+  };
+
+  return {
+    paymentQrs,
+    currentPaymentQr,
+    managedPaymentQr,
+
+    status,
+    error,
+    message,
+
+    createPaymentQrStatus,
+    getPaymentQrsStatus,
+    getPaymentQrStatus,
+    updatePaymentQrStatus,
+    deletePaymentQrStatus,
+    setPrimaryPaymentQrStatus,
+
+    paymentQrStats,
+    paymentQrStatsStatus,
+
+    createPaymentQr: submitCreatePaymentQr,
+    getPaymentQrs: fetchPaymentQrs,
+    getPaymentQrById: fetchPaymentQrById,
+    updatePaymentQr: submitUpdatePaymentQr,
+    deletePaymentQr: submitDeletePaymentQr,
+    setPrimaryPaymentQr: submitSetPrimaryPaymentQr,
+    getPaymentQrStats: fetchPaymentQrStats,
+
+    clearError,
+    clearMessage,
+
+    setCurrentPaymentQr: saveCurrentPaymentQr,
+
+    clearCurrentPaymentQr: removeCurrentPaymentQr,
+
+    clearPaymentQrs: removePaymentQrs,
+
+    clearManagedPaymentQr: removeManagedPaymentQr,
+  };
+};
+
+export default usePaymentQr;

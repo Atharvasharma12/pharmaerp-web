@@ -1,0 +1,1849 @@
+
+Folders and Pages Structure
+
+src/
+├── components/
+│   ├── ui/
+│   │   ├── buttons/
+│   │   │   ├── AppButton.jsx
+│   │   │   ├── AppIconButton.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── inputs/
+│   │   │   ├── AppInput.jsx
+│   │   │   ├── AppTextarea.jsx
+│   │   │   ├── AppSelect.jsx
+│   │   │   ├── AppMultiSelect.jsx
+│   │   │   ├── AppAutocomplete.jsx
+│   │   │   ├── AppCheckbox.jsx
+│   │   │   ├── AppRadio.jsx
+│   │   │   ├── AppSwitch.jsx
+│   │   │   ├── AppDatePicker.jsx
+│   │   │   ├── AppFileUpload.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── overlays/
+│   │   │   ├── AppDialog.jsx
+│   │   │   ├── AppDrawer.jsx
+│   │   │   ├── AppMenu.jsx
+│   │   │   ├── AppPopover.jsx
+│   │   │   ├── AppTooltip.jsx
+│   │   │   ├── AppAlert.jsx
+│   │   │   ├── AppToast.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── feedback/
+│   │   │   ├── AppLoader.jsx
+│   │   │   ├── AppSkeleton.jsx
+│   │   │   ├── AppTableSkeleton.jsx
+│   │   │   ├── AppEmptyState.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── navigation/
+│   │   │   ├── AppTabs.jsx
+│   │   │   ├── AppBreadcrumb.jsx
+│   │   │   ├── AppSearchCommand.jsx
+│   │   │   ├── AppShortcutHint.jsx
+│   │   │   ├── AppScrollToTop.jsx
+│   │   │   ├── AppStickyBar.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── data-display/
+│   │   │   ├── AppBadge.jsx
+│   │   │   ├── AppCard.jsx
+│   │   │   ├── AppPagination.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   └── index.js
+│   │
+│   ├── layout/
+│   │   ├── Sidebar.jsx
+│   │   ├── Navbar.jsx
+│   │   ├── MainLayout.jsx
+│   │   ├── PageHeader.jsx
+│   │   └── index.js
+│   │
+│   ├── charts/
+│   │   ├── AppBarChart.jsx
+│   │   ├── AppLineChart.jsx
+│   │   ├── AppPieChart.jsx
+│   │   ├── AppAreaChart.jsx
+│   │   ├── AppKpiCard.jsx
+│   │   └── index.js
+│   │
+│   ├── features/
+│   │   └── notifications/
+│   │       ├── NotificationBell.jsx
+│   │       ├── NotificationList.jsx
+│   │       ├── NotificationItem.jsx
+│   │       └── index.js
+│   │
+│   ├── shared/
+│   │   ├── forms/
+│   │   │   ├── AppForm.jsx
+│   │   │   ├── AppFormField.jsx
+│   │   │   ├── AppFormSection.jsx
+│   │   │   ├── AppFormActions.jsx
+│   │   │   ├── AppFormErrorSummary.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── tables/
+│   │   │   ├── AppTable.jsx
+│   │   │   ├── AppTableToolbar.jsx
+│   │   │   ├── AppColumnManager.jsx
+│   │   │   ├── AppBulkActions.jsx
+│   │   │   ├── AppRowActions.jsx
+│   │   │   ├── AppExport.jsx
+│   │   │   ├── DataTable.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── filters/
+│   │   │   ├── AppTableFilters.jsx
+│   │   │   ├── FilterBar.jsx
+│   │   │   ├── SearchFilter.jsx
+│   │   │   ├── SelectFilter.jsx
+│   │   │   ├── DateRangeFilter.jsx
+│   │   │   ├── AdvancedFilterPanel.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── workflows/
+│   │   │   ├── ApprovalFlow.jsx
+│   │   │   ├── WorkflowActions.jsx
+│   │   │   ├── ApprovalHistory.jsx
+│   │   │   ├── StatusTimeline.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── attachments/
+│   │   │   ├── AttachmentUploader.jsx
+│   │   │   ├── AttachmentList.jsx
+│   │   │   ├── FilePreview.jsx
+│   │   │   ├── FileCard.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── activity/
+│   │   │   ├── ActivityFeed.jsx
+│   │   │   ├── AuditLog.jsx
+│   │   │   ├── ChangeHistory.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── display/
+│   │   │   ├── SummaryCards.jsx
+│   │   │   ├── StatusBadge.jsx
+│   │   │   ├── DetailsSection.jsx
+│   │   │   ├── InfoGrid.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── dialogs/
+│   │   │   ├── ConfirmDialog.jsx
+│   │   │   ├── FilterDialog.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── modules/
+│   └── hrms/
+│       └── employees/
+│           ├── components/
+│           │   ├── EmployeeForm.jsx
+│           │   ├── EmployeeTable.jsx
+│           │   ├── EmployeeCard.jsx
+│           │   └── index.js
+│           │
+│           ├── pages/
+│           │   ├── EmployeeListPage.jsx
+│           │   ├── AddEmployeePage.jsx
+│           │   ├── EditEmployeePage.jsx
+│           │   ├── EmployeeDetailsPage.jsx
+│           │   └── index.js
+│           │
+│           ├── services/
+│           │   └── employeeService.js
+│           │
+│           └── store/
+│               ├── employeeSlice.js
+│               ├── employeeThunk.js
+│               ├── employeeSelector.js
+│               └── index.js
+│
+├── store/
+│   ├── store.js
+│   ├── rootReducer.js
+│   └── index.js
+│
+├── services/
+│   ├── api.js
+│   └── index.js
+│
+├── utils/
+│   ├── formatDate.js
+│   ├── helpers.js
+│   └── index.js
+│
+├── constants/
+│   ├── routes.js
+│   ├── statuses.js
+│   └── index.js
+│
+├── App.jsx
+├── main.jsx
+└── index.css
+
+
+
+✅ = already have
+🆕 = create new
+⭐ = important for SaaS ERP
+
+
+src/
+└── components/
+    ├── ui/
+    │   ├── buttons/ ✅
+    │   │   ├── AppButton.jsx ✅
+    │   │   ├── AppIconButton.jsx ✅
+    │   │   ├── AppButtonGroup.jsx ✅
+    │   │   ├── AppSplitButton.jsx ✅
+    │   │   ├── AppLoadingButton.jsx ✅ ⭐
+    │   │   └── index.js ✅
+    │   │
+    │   ├── inputs/ ✅
+    │   │   ├── AppInput.jsx ✅
+    │   │   ├── AppTextarea.jsx ✅
+    │   │   ├── AppSelect.jsx ✅
+    │   │   ├── AppMultiSelect.jsx ✅
+    │   │   ├── AppAutocomplete.jsx ✅
+    │   │   ├── AppCheckbox.jsx ✅
+    │   │   ├── AppRadio.jsx ✅
+    │   │   ├── AppSwitch.jsx ✅
+    │   │   ├── AppDatePicker.jsx ✅
+    │   │   ├── AppFileUpload.jsx ✅
+    │   │   ├── AppPasswordInput.jsx ✅ ⭐
+    │   │   ├── AppPhoneInput.jsx ✅ ⭐
+    │   │   ├── AppNumberInput.jsx ✅ ⭐
+    │   │   ├── AppCurrencyInput.jsx ✅ ⭐
+    │   │   ├── AppPercentageInput.jsx ✅
+    │   │   ├── AppRadioGroup.jsx ✅
+    │   │   ├── AppDateRangePicker.jsx ✅ ⭐
+    │   │   ├── AppTimePicker.jsx ✅
+    │   │   ├── AppDateTimePicker.jsx ✅
+    │   │   ├── AppImageUpload.jsx ✅
+    │   │   ├── AppSearchInput.jsx ✅ ⭐
+    │   │   └── index.js ✅
+    │   │
+    │   ├── overlays/ ✅
+    │   │   ├── AppDialog.jsx ✅
+    │   │   ├── AppDrawer.jsx ✅
+    │   │   ├── AppMenu.jsx ✅
+    │   │   ├── AppPopover.jsx ✅
+    │   │   ├── AppTooltip.jsx ✅
+    │   │   ├── AppAlert.jsx ✅
+    │   │   ├── AppToast.jsx ✅
+    │   │   ├── AppConfirmModal.jsx ✅ ⭐
+    │   │   ├── AppSidePanel.jsx ✅
+    │   │   ├── AppDropdown.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── feedback/ ✅
+    │   │   ├── AppLoader.jsx ✅
+    │   │   ├── AppSkeleton.jsx ✅
+    │   │   ├── AppTableSkeleton.jsx ✅
+    │   │   ├── AppEmptyState.jsx ✅
+    │   │   ├── AppPageLoader.jsx ✅ ⭐
+    │   │   ├── AppInlineLoader.jsx ✅
+    │   │   ├── AppErrorState.jsx ✅ ⭐
+    │   │   ├── AppNoPermission.jsx ✅ ⭐
+    │   │   ├── AppNotFoundState.jsx ✅
+    │   │   ├── AppCardSkeleton.jsx ✅
+    │   │   ├── AppFormSkeleton.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── navigation/ ✅
+    │   │   ├── AppTabs.jsx ✅
+    │   │   ├── AppBreadcrumb.jsx ✅
+    │   │   ├── AppSearchCommand.jsx ✅
+    │   │   ├── AppShortcutHint.jsx ✅
+    │   │   ├── AppScrollToTop.jsx ✅
+    │   │   ├── AppStickyBar.jsx ✅
+    │   │   ├── AppStepper.jsx ✅ ⭐
+    │   │   ├── AppVerticalTabs.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── data-display/ ✅
+    │   │   ├── AppBadge.jsx ✅
+    │   │   ├── AppCard.jsx ✅
+    │   │   ├── AppPagination.jsx ✅
+    │   │   ├── AppAvatar.jsx ✅ ⭐
+    │   │   ├── AppAvatarGroup.jsx ✅
+    │   │   ├── AppStatusBadge.jsx ✅ ⭐
+    │   │   ├── AppTag.jsx ✅
+    │   │   ├── AppInfoCard.jsx ✅
+    │   │   ├── AppStatCard.jsx ✅ ⭐
+    │   │   ├── AppTimeline.jsx ✅ ⭐
+    │   │   ├── AppDescriptionList.jsx ✅ ⭐
+    │   │   ├── AppKeyValue.jsx ✅
+    │   │   ├── AppAccordion.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── typography/ ✅ ⭐
+    │   │   ├── AppText.jsx ✅
+    │   │   ├── AppHeading.jsx ✅
+    │   │   ├── AppLabel.jsx ✅
+    │   │   ├── AppCaption.jsx ✅
+    │   │   ├── AppLink.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── layout/ ✅ ⭐
+    │   │   ├── AppContainer.jsx ✅
+    │   │   ├── AppBox.jsx ✅
+    │   │   ├── AppStack.jsx ✅
+    │   │   ├── AppGrid.jsx ✅
+    │   │   ├── AppSection.jsx ✅
+    │   │   ├── AppSpacer.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   └── index.js ✅
+    │
+    ├── layout/ ✅
+    │   ├── Sidebar.jsx ✅
+    │   ├── Navbar.jsx ✅
+    │   ├── MainLayout.jsx ✅
+    │   ├── PageHeader.jsx ✅
+    │   ├── AuthLayout.jsx ✅
+    │   ├── ModuleLayout.jsx ✅
+    │   └── index.js 
+    │
+    ├── charts/ ✅
+    │   ├── AppBarChart.jsx ✅
+    │   ├── AppLineChart.jsx ✅
+    │   ├── AppPieChart.jsx ✅
+    │   ├── AppAreaChart.jsx ✅
+    │   ├── AppKpiCard.jsx ✅
+    │   ├── AppDonutChart.jsx ✅
+    │   ├── AppSparkline.jsx ✅
+    │   └── index.js ✅
+    │
+    ├── features/ ✅
+    │   └── notifications/ ✅
+    │       ├── NotificationBell.jsx ✅
+    │       ├── NotificationList.jsx ✅
+    │       ├── NotificationItem.jsx ✅
+    │       └── index.js ✅
+    │
+    ├── shared/
+    │   ├── forms/ ✅
+    │   │   ├── AppForm.jsx ✅
+    │   │   ├── AppFormField.jsx ✅
+    │   │   ├── AppFormSection.jsx ✅
+    │   │   ├── AppFormActions.jsx ✅
+    │   │   ├── AppFormErrorSummary.jsx ✅
+    │   │   ├── AppFormRow.jsx ✅
+    │   │   ├── AppFormGrid.jsx ✅
+    │   │   ├── AppRequiredMark.jsx ✅
+    │   │   ├── AppFieldHint.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── tables/ ✅
+    │   │   ├── AppTable.jsx ✅
+    │   │   ├── AppTableToolbar.jsx ✅
+    │   │   ├── AppColumnManager.jsx ✅
+    │   │   ├── AppRowActions.jsx ✅
+    │   │   ├── AppExport.jsx ✅
+    │   │   ├── DataTable.jsx ✅
+    │   │   ├── AppBulkActions.jsx ✅
+    │   │   ├── AppTableSearch.jsx ✅
+    │   │   ├── AppTablePagination.jsx ✅
+    │   │   ├── AppEmptyTable.jsx ✅
+    │   │   ├── AppResponsiveTable.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── filters/ ✅
+    │   │   ├── FilterBar.jsx ✅
+    │   │   ├── DateRangeFilter.jsx ✅
+    │   │   ├── AdvancedFilterPanel.jsx ✅
+    │   │   ├── SelectFilter.jsx ✅
+    │   │   ├── SearchFilter.jsx ✅
+    │   │   ├── AppTableFilters.jsx ✅
+    │   │   ├── StatusFilter.jsx ✅
+    │   │   ├── SavedFilters.jsx ✅
+    │   │   ├── FilterChipList.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── workflows/ ✅
+    │   │   ├── ApprovalFlow.jsx ✅
+    │   │   ├── WorkflowActions.jsx ✅
+    │   │   ├── ApprovalHistory.jsx ✅
+    │   │   ├── StatusTimeline.jsx ✅
+    │   │   ├── ApprovalBadge.jsx ✅
+    │   │   ├── ApprovalStepper.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── attachments/ ✅
+    │   │   ├── AttachmentUploader.jsx ✅
+    │   │   ├── AttachmentList.jsx ✅
+    │   │   ├── FilePreview.jsx ✅
+    │   │   ├── FileCard.jsx ✅
+    │   │   ├── FileDropzone.jsx ✅
+    │   │   ├── PdfPreview.jsx ✅
+    │   │   ├── ImagePreview.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── activity/ ✅
+    │   │   ├── ActivityFeed.jsx ✅
+    │   │   ├── AuditLog.jsx ✅
+    │   │   ├── ChangeHistory.jsx ✅
+    │   │   ├── AuditTrailDrawer.jsx ✅ ⭐
+    │   │   ├── AuditTrailItem.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── display/ ✅
+    │   │   ├── SummaryCards.jsx ✅
+    │   │   ├── StatusBadge.jsx ✅
+    │   │   ├── DetailsSection.jsx ✅
+    │   │   ├── InfoGrid.jsx ✅
+    │   │   ├── KeyValueList.jsx ✅
+    │   │   ├── DescriptionList.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── dialogs/ ✅
+    │   │   ├── ConfirmDialog.jsx ✅
+    │   │   ├── FilterDialog.jsx ✅
+    │   │   ├── DeleteConfirmDialog.jsx ✅
+    │   │   ├── UnsavedChangesDialog.jsx ✅ ⭐
+    │   │   └── index.js ✅
+    │   │
+    │   ├── page/ ✅ ⭐
+    │   │   ├── PageContainer.jsx ✅
+    │   │   ├── PageContent.jsx ✅
+    │   │   ├── PageActions.jsx ✅
+    │   │   ├── PageToolbar.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── permissions/ ✅ ⭐
+    │   │   ├── Can.jsx ✅
+    │   │   ├── RoleGuard.jsx ✅
+    │   │   ├── PermissionGuard.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   ├── import-export/ ✅ ⭐
+    │   │   ├── ImportWizard.jsx ✅
+    │   │   ├── ExportButton.jsx ✅
+    │   │   ├── CsvTemplateDownload.jsx ✅
+    │   │   ├── ImportPreviewTable.jsx ✅
+    │   │   └── index.js ✅
+    │   │
+    │   └── index.js ✅
+    │
+    └── index.js ✅
+
+    src/
+├── modules/
+│
+│   ├── auth/
+│   │   ├── components/
+│   │   │
+│   │   │   ├── shared/
+│   │   │   │   ├── LoginForm.jsx
+│   │   │   │   ├── OTPInput.jsx
+│   │   │   │   ├── PasswordField.jsx
+│   │   │   │   ├── AuthHeader.jsx
+│   │   │   │   └── index.js
+│   │   │   │
+│   │   │   ├── desktop/
+│   │   │   │   ├── LoginDesktopCard.jsx
+│   │   │   │   ├── RegisterDesktopCard.jsx
+│   │   │   │   └── index.js
+│   │   │   │
+│   │   │   └── mobile/
+│   │   │       ├── LoginMobileCard.jsx
+│   │   │       ├── RegisterMobileCard.jsx
+│   │   │       └── index.js
+│   │   │
+│   │   ├── pages/
+│   │   │
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── RegisterPage.jsx
+│   │   │   ├── ForgotPasswordPage.jsx
+│   │   │   ├── VerifyOTPPage.jsx
+│   │   │   ├── ResetPasswordPage.jsx
+│   │   │   │
+│   │   │   ├── desktop/
+│   │   │   │   ├── LoginDesktopPage.jsx
+│   │   │   │   ├── RegisterDesktopPage.jsx
+│   │   │   │   ├── ForgotPasswordDesktopPage.jsx
+│   │   │   │   ├── VerifyOTPDesktopPage.jsx
+│   │   │   │   ├── ResetPasswordDesktopPage.jsx
+│   │   │   │   └── index.js
+│   │   │   │
+│   │   │   ├── mobile/
+│   │   │   │   ├── LoginMobilePage.jsx
+│   │   │   │   ├── RegisterMobilePage.jsx
+│   │   │   │   ├── ForgotPasswordMobilePage.jsx
+│   │   │   │   ├── VerifyOTPMobilePage.jsx
+│   │   │   │   ├── ResetPasswordMobilePage.jsx
+│   │   │   │   └── index.js
+│   │   │   │
+│   │   │   └── index.js
+├── layouts/
+│   ├── desktop/
+│   │   ├── DesktopLayout.jsx
+│   │   ├── DesktopSidebar.jsx
+│   │   ├── DesktopHeader.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── MobileLayout.jsx
+│       ├── MobileBottomNav.jsx
+│       ├── MobileHeader.jsx
+│       └── index.js
+│
+├── hooks/
+│   ├── useIsMobile.js
+│   ├── useBreakpoint.js
+│   └── index.js
+
+
+src/
+├── layouts/
+│
+├── public/
+│   ├── PublicLayout.jsx
+│   │
+│   ├── desktop/
+│   │   ├── PublicDesktopLayout.jsx
+│   │   ├── PublicDesktopNavbar.jsx
+│   │   ├── PublicDesktopFooter.jsx
+│   │   └── index.js
+│   │
+│   ├── mobile/
+│   │   ├── PublicMobileLayout.jsx
+│   │   ├── PublicMobileTopBar.jsx
+│   │   ├── PublicMobileBottomBar.jsx
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── auth/
+│   ├── AuthLayout.jsx
+│   │
+│   ├── desktop/
+│   │   ├── AuthDesktopLayout.jsx
+│   │   ├── AuthDesktopTopBar.jsx
+│   │   ├── AuthDesktopFooter.jsx
+│   │   └── index.js
+│   │
+│   ├── mobile/
+│   │   ├── AuthMobileLayout.jsx
+│   │   ├── AuthMobileTopBar.jsx
+│   │   ├── AuthMobileBottomBar.jsx
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── onboarding/
+│   ├── OnboardingLayout.jsx
+│   │
+│   ├── desktop/
+│   │   ├── OnboardingDesktopLayout.jsx
+│   │   ├── OnboardingDesktopHeader.jsx
+│   │   ├── OnboardingDesktopProgress.jsx
+│   │   └── index.js
+│   │
+│   ├── mobile/
+│   │   ├── OnboardingMobileLayout.jsx
+│   │   ├── OnboardingMobileHeader.jsx
+│   │   ├── OnboardingMobileProgress.jsx
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── app/
+│   ├── AppLayout.jsx
+│   │
+│   ├── desktop/
+│   │   ├── AppDesktopLayout.jsx
+│   │   ├── AppDesktopSidebar.jsx
+│   │   ├── AppDesktopHeader.jsx
+│   │   ├── AppDesktopFooter.jsx
+│   │   └── index.js
+│   │
+│   ├── mobile/
+│   │   ├── AppMobileLayout.jsx
+│   │   ├── AppMobileHeader.jsx
+│   │   ├── AppMobileBottomNav.jsx
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+└── index.js
+
+
+        ├── pages/
+        │   ├── LoginPage.jsx
+        │   ├── RegisterPage.jsx
+        │   ├── ForgotPasswordPage.jsx
+        │   ├── VerifyOTPPage.jsx
+        │   ├── ResetPasswordPage.jsx
+        │   ├── index.js
+        │   │
+        │   ├── desktop/
+        │   │   ├── LoginDesktopPage.jsx
+        │   │   ├── RegisterDesktopPage.jsx
+        │   │   ├── ForgotPasswordDesktopPage.jsx
+        │   │   ├── VerifyOTPDesktopPage.jsx
+        │   │   ├── ResetPasswordDesktopPage.jsx
+        │   │   └── index.js
+        │   │
+        │   └── mobile/
+        │       ├── LoginMobilePage.jsx
+        │       ├── RegisterMobilePage.jsx
+        │       ├── ForgotPasswordMobilePage.jsx
+        │       ├── VerifyOTPMobilePage.jsx
+        │       ├── ResetPasswordMobilePage.jsx
+        │       └── index.js
+
+
+src/
+└── features/
+    └── landing/
+        ├── pages/
+        │   ├── LandingPage.jsx
+        │   │
+        │   ├── desktop/
+        │   │   ├── LandingDesktopPage.jsx
+        │   │   └── index.js
+        │   │
+        │   ├── mobile/
+        │   │   ├── LandingMobilePage.jsx
+        │   │   └── index.js
+        │   │
+        │   └── index.js
+        │
+        ├── components/
+        │   ├── desktop/
+        │   │   ├── DesktopHeroSection.jsx
+        │   │   ├── DesktopFeaturesSection.jsx
+        │   │   ├── DesktopDashboardShowcaseSection.jsx
+        │   │   ├── DesktopWorkflowSection.jsx
+        │   │   ├── DesktopBenefitsSection.jsx
+        │   │   ├── DesktopTestimonialsSection.jsx
+        │   │   ├── DesktopPricingSection.jsx
+        │   │   ├── DesktopFAQSection.jsx
+        │   │   ├── DesktopCTASection.jsx
+        │   │   └── index.js
+        │   │
+        │   └── mobile/
+        │       ├── MobileHeroSection.jsx
+        │       ├── MobileFeaturesSection.jsx
+        │       ├── MobileDashboardShowcaseSection.jsx
+        │       ├── MobileWorkflowSection.jsx
+        │       ├── MobileBenefitsSection.jsx
+        │       ├── MobileTestimonialsSection.jsx
+        │       ├── MobilePricingSection.jsx
+        │       ├── MobileFAQSection.jsx
+        │       ├── MobileCTASection.jsx
+        │       └── index.js
+        │       
+        └── index.js
+
+
+        src/features/workspace/
+├── hooks/
+│   ├── useWorkspace.js
+│   └── index.js
+│
+├── pages/
+│   ├── CreateWorkspacePage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── CreateWorkspaceDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── CreateWorkspaceMobilePage.jsx
+│       └── index.js
+│
+└── index.js
+
+
+
+Folder Structure Workspace Setup
+
+src/features/workspace/
+├── pages/
+│   ├── CreateWorkspacePage.jsx
+│   ├── BusinessSetupPage.jsx
+│   ├── TeamStaffSetupPage.jsx
+│   ├── StartFreeTrialPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── CreateWorkspaceDesktopPage.jsx
+│   │   ├── BusinessSetupDesktopPage.jsx
+│   │   ├── TeamStaffSetupDesktopPage.jsx
+│   │   ├── StartFreeTrialDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── CreateWorkspaceMobilePage.jsx
+│       ├── BusinessSetupMobilePage.jsx
+│       ├── TeamStaffSetupMobilePage.jsx
+│       ├── StartFreeTrialMobilePage.jsx
+│       └── index.js
+│
+├── components/
+│   ├── shared/
+│   │   ├── WorkspaceProgressSidebar.jsx
+│   │   ├── WorkspaceProgressMobile.jsx
+│   │   ├── WorkspaceHeader.jsx
+│   │   ├── WorkspaceHelpCard.jsx
+│   │   ├── WorkspaceStepItem.jsx
+│   │   └── index.js
+│
+├── hooks/
+│   ├── useWorkspace.js
+│   └── index.js
+│
+└── index.js
+
+WorkspaceProgressSidebar
+WorkspaceStepItem
+WorkspaceHelpCard
+WorkspaceHeader
+BusinessSetupDesktopPage
+
+
+Create Account
+↓
+Verify Email
+↓
+Create Workspace
+↓
+Choose Plan / Start Trial
+↓
+Subscription Success
+↓
+Welcome Dashboard
+
+
+src/features/onboarding/
+│
+├── pages/
+│   ├── CreateWorkspacePage.jsx
+│   ├── ChoosePlanPage.jsx
+│   ├── TrialActivatedPage.jsx
+│   ├── SubscriptionSuccessPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── CreateWorkspaceDesktopPage.jsx
+│   │   ├── ChoosePlanDesktopPage.jsx
+│   │   ├── TrialActivatedDesktopPage.jsx
+│   │   ├── SubscriptionSuccessDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── CreateWorkspaceMobilePage.jsx
+│       ├── ChoosePlanMobilePage.jsx
+│       ├── TrialActivatedMobilePage.jsx
+│       ├── SubscriptionSuccessMobilePage.jsx
+│       └── index.js
+│
+├── components/
+│   ├── OnboardingHelpCard.jsx
+│   ├── OnboardingStepItem.jsx
+│   └── index.js
+│
+├── hooks/
+│   ├── useOnboarding.js
+│   └── index.js
+│
+└── index.js
+
+
+src/features/setup/
+├── pages/
+│   ├── SetupCenterPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── SetupCenterDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── SetupCenterMobilePage.jsx
+│       └── index.js
+│├── constants/
+│   ├── dashboardStats.js
+│   ├── setupSteps.js
+│   ├── quickGuides.js
+│   └── index.js
+
+
+src/features/dashboard/
+│
+├── pages/
+│   ├── MainDashboardPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── MainDashboardDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── MainDashboardMobilePage.jsx
+│       └── index.js
+│
+├── constants/
+│   ├── dashboardStats.js
+│   ├── setupSteps.js
+│   ├── quickGuides.js
+│   └── index.js
+│
+├── hooks/
+│   ├── useDashboard.js
+│   ├── useSetupProgress.js
+│   └── index.js
+│
+├── services/
+│   ├── dashboardService.js
+│   └── index.js
+│
+└── index.js
+
+Login
+ ↓
+Dashboard (Setup Center Mode)
+ ↓
+Click Create Workspace
+ ↓
+/onboarding/create-workspace
+ ↓
+Back to Dashboard
+ ↓
+Click Choose Plan
+ ↓
+/onboarding/choose-plan
+ ↓
+Back to Dashboard
+
+
+I will share some already-built React pages/components first. Treat those as the CSS/styling reference only.
+
+Study their:
+- font sizes
+- font weights
+- spacing
+- padding
+- card radius
+- borders
+- shadows
+- icon sizes
+- button sizes
+- input styles
+- AppBox/AppCard/AppHeading/AppText/AppButton usage
+- theme variables like bg, surface, border, primary, text, text-muted
+
+After that, I will share an image of a new page. Build the new React page to match the UI layout/content structure of the image, but follow the styling system from the reference components I shared.
+
+Important rules:
+- Do not use raw MUI components if app components exist.
+- Use imports from "@/components".
+- Use AppBox, AppCard, AppHeading, AppText, AppButton, AppStack, AppInput, AppSelect, etc.
+- Use CSS variables and Tailwind theme classes only.
+- Do not hardcode hex/rgb colors.
+- Keep the page compact.
+- Keep padding tight, usually px around 0.35 to 1.6 depending on the screen.
+- Match the image layout, but match existing project styling.
+- Return full code only for the requested component.
+- Do not explain unless I ask.
+- If I say “until I ask do nothing”, just acknowledge and wait.
+
+First I will send the reference components. Do nothing until I send the image and ask for the new page.
+
+src/features/company/
+│
+├── pages/
+│   ├── CompaniesPage.jsx
+│   ├── CreateCompanyPage.jsx
+│   ├── EditCompanyPage.jsx
+│   ├── CompanyDetailsPage.jsx
+│   ├── CompanySettingsPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── CompaniesDesktopPage.jsx
+│   │   ├── CreateCompanyDesktopPage.jsx
+│   │   ├── EditCompanyDesktopPage.jsx
+│   │   ├── CompanyDetailsDesktopPage.jsx
+│   │   ├── CompanySettingsDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── CompaniesMobilePage.jsx
+│       ├── CreateCompanyMobilePage.jsx
+│       ├── EditCompanyMobilePage.jsx
+│       ├── CompanyDetailsMobilePage.jsx
+│       ├── CompanySettingsMobilePage.jsx
+│       └── index.js
+│
+├── hooks/
+│   ├── useCompanies.js
+│   ├── useCompany.js
+│   ├── useCreateCompany.js
+│   ├── useUpdateCompany.js
+│   └── index.js
+│
+├── services/
+│   ├── companyService.js
+│   └── index.js
+│
+├── constants/
+│   ├── companyTypes.js
+│   ├── companyStatuses.js
+│   ├── companyPermissions.js
+│   └── index.js
+│
+├── schemas/
+│   ├── companySchema.js
+│   └── index.js
+│
+├── routes/
+│   ├── companyRoutes.js
+│   └── index.js
+│
+└── index.js
+
+
+src/features/branch/
+│
+├── pages/
+│   ├── BranchesPage.jsx              // Branch listing
+│   ├── CreateBranchPage.jsx          // Add branch
+│   ├── EditBranchPage.jsx            // Edit branch
+│   ├── BranchDetailsPage.jsx         // Branch profile/details
+│   ├── BranchSettingsPage.jsx        // Branch settings
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── BranchesDesktopPage.jsx
+│   │   ├── CreateBranchDesktopPage.jsx
+│   │   ├── EditBranchDesktopPage.jsx
+│   │   ├── BranchDetailsDesktopPage.jsx
+│   │   ├── BranchSettingsDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── BranchesMobilePage.jsx
+│       ├── CreateBranchMobilePage.jsx
+│       ├── EditBranchMobilePage.jsx
+│       ├── BranchDetailsMobilePage.jsx
+│       ├── BranchSettingsMobilePage.jsx
+│       └── index.js
+│
+├── hooks/
+│   ├── useBranches.js
+│   ├── useBranch.js
+│   ├── useCreateBranch.js
+│   ├── useUpdateBranch.js
+│   ├── useDeleteBranch.js
+│   └── index.js
+│
+├── services/
+│   ├── branchService.js
+│   └── index.js
+│
+├── schemas/
+│   ├── branchSchema.js
+│   └── index.js
+│
+├── constants/
+│   ├── branchTypes.js
+│   ├── branchStatuses.js
+│   └── index.js
+│
+├── routes/
+│   ├── branchRoutes.js
+│   └── index.js
+│
+└── index.js
+
+src/features/workspace/
+│
+├── hooks/
+│   └── useWorkspace.js
+│
+├── services/
+│   └── workspaceService.js
+│
+├── store/
+│   ├── workspaceSlice.js
+│   ├── workspaceThunk.js
+│   └── workspaceSelector.js
+│
+└── index.js
+
+src/features/company/
+│
+├── hooks/
+│   └── useCompany.js
+│
+├── services/
+│   └── companyService.js
+│
+├── store/
+│   ├── companySlice.js
+│   ├── companyThunk.js
+│   └── companySelector.js
+│
+└── index.js
+
+src/features/branch/
+│
+├── hooks/
+│   └── useBranch.js
+│
+├── services/
+│   └── branchService.js
+│
+├── store/
+│   ├── branchSlice.js
+│   ├── branchThunk.js
+│   └── branchSelector.js
+│
+└── index.js
+
+src/features/access-control/
+│
+├── hooks/
+│   └── useAccessControl.js
+│
+├── services/
+│   └── accessControlService.js
+│
+├── store/
+│   ├── accessControlSlice.js
+│   ├── accessControlThunk.js
+│   └── accessControlSelector.js
+│
+└── index.js
+
+src/features/access-control/
+│
+├── pages/
+│   ├── AccessControlPage.jsx
+│   ├── RolesPage.jsx
+│   ├── CreateRolePage.jsx
+│   ├── EditRolePage.jsx
+│   ├── RoleDetailsPage.jsx
+│   ├── MemberAccessPage.jsx
+│   ├── AssignAccessPage.jsx
+│   ├── AssignRolePage.jsx
+│   ├── EditAccessPage.jsx
+│   ├── PermissionPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── AccessControlDesktopPage.jsx
+│   │   ├── RolesDesktopPage.jsx
+│   │   ├── CreateRoleDesktopPage.jsx
+│   │   ├── EditRoleDesktopPage.jsx
+│   │   ├── RoleDetailsDesktopPage.jsx
+│   │   ├── MemberAccessDesktopPage.jsx
+│   │   ├── AssignAccessDesktopPage.jsx
+│   │   ├── AssignRoleDesktopPage.jsx
+│   │   ├── EditAccessDesktopPage.jsx
+│   │   ├── PermissionDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── AccessControlMobilePage.jsx
+│       ├── RolesMobilePage.jsx
+│       ├── CreateRoleMobilePage.jsx
+│       ├── EditRoleMobilePage.jsx
+│       ├── RoleDetailsMobilePage.jsx
+│       ├── MemberAccessMobilePage.jsx
+│       ├── AssignAccessMobilePage.jsx
+│       ├── AssignRoleMobilePage.jsx
+│       ├── EditAccessMobilePage.jsx
+│       ├── PermissionMobilePage.jsx
+│       └── index.js
+│
+├── routes/
+│   └── accessControlRoutes.js
+│
+└── index.js
+
+src/features/workspace/
+│
+├── hooks/
+│   └── useWorkspace.js
+│
+├── services/
+│   └── workspaceService.js
+│
+├── store/
+│   ├── workspaceSlice.js
+│   ├── workspaceThunk.js
+│   └── workspaceSelector.js
+│
+├── pages/
+│   ├── WorkspacePage.jsx
+│   ├── EditWorkspacePage.jsx
+│   ├── WorkspaceDetailsPage.jsx
+│   ├── WorkspaceMembersPage.jsx
+│   ├── WorkspaceInvitationsPage.jsx
+│   ├── InviteWorkspaceMemberPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── WorkspaceDesktopPage.jsx
+│   │   ├── EditWorkspaceDesktopPage.jsx
+│   │   ├── WorkspaceDetailsDesktopPage.jsx
+│   │   ├── WorkspaceMembersDesktopPage.jsx
+│   │   ├── WorkspaceInvitationsDesktopPage.jsx
+│   │   ├── InviteWorkspaceMemberDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── WorkspaceMobilePage.jsx
+│       ├── EditWorkspaceMobilePage.jsx
+│       ├── WorkspaceDetailsMobilePage.jsx
+│       ├── WorkspaceMembersMobilePage.jsx
+│       ├── WorkspaceInvitationsMobilePage.jsx
+│       ├── InviteWorkspaceMemberMobilePage.jsx
+│       └── index.js
+│
+├── routes/
+│   └── workspaceRoutes.js
+│
+└── index.js
+
+
+src/app/routes.jsx
+
+PublicLayout
+├── /
+
+AuthLayout
+└── GuestRoute
+    ├── /login
+    └── /register
+
+OnboardingLayout
+└── ProtectedRoute
+    ├── /onboarding/create-workspace
+    ├── /onboarding/choose-plan
+    ├── /onboarding/trial-activated
+    └── /onboarding/subscription-success
+
+AppLayout
+└── ProtectedRoute
+    └── WorkspaceRequiredRoute
+        ├── /dashboard
+        ├── /companies
+        ├── /branches
+        └── all future ERP modules
+
+
+        src/features/user/
+├── pages/
+│   ├── MyProfilePage.jsx                // Main layout switcher
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── MyProfileDesktopPage.jsx    // Desktop view implementation
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── MyProfileMobilePage.jsx     // Mobile view implementation
+│       └── index.js
+│
+├── hooks/
+│   └── index.js                         // Exporting hook logic (if separated from generic state layers)
+│
+└── index.js
+
+
+src/features/workspace-products/
+│
+├── pages/
+│   ├── WorkspaceProductsPage.jsx
+│   ├── CreateWorkspaceProductPage.jsx
+│   ├── EditWorkspaceProductPage.jsx
+│   ├── WorkspaceProductDetailsPage.jsx
+│   ├── WorkspaceProductImportPage.jsx
+│   ├── WorkspaceProductSearchPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── WorkspaceProductsDesktopPage.jsx
+│   │   ├── CreateWorkspaceProductDesktopPage.jsx
+│   │   ├── EditWorkspaceProductDesktopPage.jsx
+│   │   ├── WorkspaceProductDetailsDesktopPage.jsx
+│   │   ├── WorkspaceProductImportDesktopPage.jsx
+│   │   ├── WorkspaceProductSearchDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── WorkspaceProductsMobilePage.jsx
+│       ├── CreateWorkspaceProductMobilePage.jsx
+│       ├── EditWorkspaceProductMobilePage.jsx
+│       ├── WorkspaceProductDetailsMobilePage.jsx
+│       ├── WorkspaceProductImportMobilePage.jsx
+│       ├── WorkspaceProductSearchMobilePage.jsx
+│       └── index.js
+│
+├── hooks/
+│   ├── useWorkspaceProduct.js
+│   └── index.js
+│
+├── services/
+│   ├── workspaceProductService.js
+│   └── index.js
+│
+├── store/
+│   ├── workspaceProductSlice.js
+│   ├── workspaceProductThunk.js
+│   ├── workspaceProductSelector.js
+│   └── index.js
+│
+├── routes/
+│   ├── workspaceProductRoutes.js
+│   └── index.js
+│
+└── index.js
+
+
+src/features/global-products/
+├── pages/
+│   ├── GlobalProductsPage.jsx
+│   ├── GlobalProductDetailsPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── GlobalProductsDesktopPage.jsx
+│   │   ├── GlobalProductDetailsDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── GlobalProductsMobilePage.jsx
+│       ├── GlobalProductDetailsMobilePage.jsx
+│       └── index.js
+│
+├── hooks/
+│   ├── useGlobalProduct.js
+│   └── index.js
+│
+├── services/
+│   ├── globalProductService.js
+│   └── index.js
+│
+├── store/
+│   ├── globalProductSlice.js
+│   ├── globalProductThunk.js
+│   ├── globalProductSelector.js
+│   └── index.js
+│
+├── routes/
+│   ├── globalProductRoutes.js
+│   └── index.js
+│
+└── index.js
+
+src/features/hsn-master/
+│
+├── pages/
+│   ├── HsnMastersPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── HsnMastersDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── HsnMastersMobilePage.jsx
+│       └── index.js
+
+src/features/manufacturer-master/
+│
+├── pages/
+│   ├── ManufacturerMastersPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── ManufacturerMastersDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── ManufacturerMastersMobilePage.jsx
+│       └── index.js
+
+src/features/uom-master/
+│
+├── pages/
+│   ├── UomMastersPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── UomMastersDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── UomMastersMobilePage.jsx
+│       └── index.js
+
+src/features/category-master/
+│
+├── pages/
+│   ├── CategoryMastersPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── CategoryMastersDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── CategoryMastersMobilePage.jsx
+│       └── index.js
+
+src/features/product-form-master/
+│
+├── pages/
+│   ├── ProductFormMastersPage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── ProductFormMastersDesktopPage.jsx
+│   │   └── index.js
+│   │
+│   └── mobile/
+│       ├── ProductFormMastersMobilePage.jsx
+│       └── index.js
+
+
+src/
+└── features/
+    └── parties/
+        └── customers/
+            │
+            ├── pages/
+            │   ├── CustomersPage.jsx
+            │   ├── CreateCustomerPage.jsx
+            │   ├── EditCustomerPage.jsx
+            │   ├── CustomerDetailsPage.jsx
+            │   │
+            │   ├── desktop/
+            │   │   ├── CustomersDesktopPage.jsx
+            │   │   ├── CreateCustomerDesktopPage.jsx
+            │   │   ├── EditCustomerDesktopPage.jsx
+            │   │   ├── CustomerDetailsDesktopPage.jsx
+            │   │   └── index.js
+            │   │
+            │   ├── mobile/
+            │   │   ├── CustomersMobilePage.jsx
+            │   │   ├── CreateCustomerMobilePage.jsx
+            │   │   ├── EditCustomerMobilePage.jsx
+            │   │   ├── CustomerDetailsMobilePage.jsx
+            │   │   └── index.js
+            │   │
+            │   └── index.js
+            │
+            ├── hooks/
+            │   ├── useCustomer.js
+            │   └── index.js
+            │
+            ├── routes/
+            │   └── customerRoutes.jsx
+            │
+            ├── services/
+            │   └── customerService.js
+            │
+            ├── store/
+            │   ├── customerSlice.js
+            │   ├── customerThunk.js
+            │   ├── customerSelector.js
+            │   └── index.js
+            │
+            └── index.js
+
+src/features/
+└── finance/
+    │
+    ├── chart-of-accounts/
+    │
+    ├── ledger-accounts/
+    │
+    ├── opening-balances/
+    │
+    ├── financial-periods/
+    │
+    ├── journal-vouchers/
+    │
+    ├── receipts/
+    │
+    ├── payments/
+    │
+    ├── contra-vouchers/
+    │
+    ├── treasury/
+    │   ├── bank-management/
+    │   ├── cash-management/
+    │   └── payment-management/
+    │
+    └── reports/
+
+treasury/
+│
+├── bank-accounts/
+│
+├── cash-accounts/
+│
+├── fund-transfers/
+│
+├── bank-transactions/
+│
+├── cash-transactions/
+│
+├── cheque-management/
+│
+├── payment-qr/
+│
+├── bank-slips/
+│
+└── cash-denominations/
+
+
+src/features/finance/
+│
+├── pages/
+│   ├── FinancePage.jsx
+│   ├── index.js
+│   │
+│   ├── desktop/
+│   │   ├── FinanceDesktopPage.jsx
+│   │   ├── index.js
+│   │
+│   └── mobile/
+│       ├── FinanceMobilePage.jsx
+│       └── index.js
+│
+└── index.js
+
+src/features/finance/
+└── chart-of-accounts/
+    │
+    ├── pages/
+    │   ├── ChartOfAccountsPage.jsx
+    │   ├── index.js
+    │   │
+    │   ├── desktop/
+    │   │   ├── ChartOfAccountsDesktopPage.jsx
+    │   │   └── index.js
+    │   │
+    │   └── mobile/
+    │       ├── ChartOfAccountsMobilePage.jsx
+    │       └── index.js
+
+    src/features/finance/
+└── treasury/
+    │
+    ├── pages/
+    │   ├── TreasuryPage.jsx
+    │   ├── index.js
+    │   │
+    │   ├── desktop/
+    │   │   ├── TreasuryDesktopPage.jsx
+    │   │   └── index.js
+    │   │
+    │   └── mobile/
+    │       ├── TreasuryMobilePage.jsx
+    │       └── index.js
+    │
+    └── index.js
+
+src/features/finance/
+│
+└── treasury/
+    │
+    └── cash-management/
+        │
+        └── cash-accounts/
+            │
+            ├── hooks/
+            │   └── useCashAccount.js
+            │
+            ├── services/
+            │   └── cashAccountService.js
+            │
+            ├── store/
+            │   ├── cashAccountSlice.js
+            │   ├── cashAccountThunk.js
+            │   └── cashAccountSelector.js
+            │
+            ├── pages/
+            │   ├── CashAccountsPage.jsx
+            │   ├── CreateCashAccountPage.jsx
+            │   ├── EditCashAccountPage.jsx
+            │   ├── CashAccountDetailsPage.jsx
+            │   │
+            │   ├── desktop/
+            │   │   ├── CashAccountsDesktopPage.jsx
+            │   │   ├── CreateCashAccountDesktopPage.jsx
+            │   │   ├── EditCashAccountDesktopPage.jsx
+            │   │   ├── CashAccountDetailsDesktopPage.jsx
+            │   │   └── index.js
+            │   │
+            │   ├── mobile/
+            │   │   ├── CashAccountsMobilePage.jsx
+            │   │   ├── CreateCashAccountMobilePage.jsx
+            │   │   ├── EditCashAccountMobilePage.jsx
+            │   │   ├── CashAccountDetailsMobilePage.jsx
+            │   │   └── index.js
+            │   │
+            │   └── index.js
+            │
+            ├── routes/
+            │   └── cashAccountRoutes.jsx
+            │
+            └── index.js
+
+
+src/features/finance/
+│
+├── chart-of-accounts/
+│   │
+│   ├── pages/
+│   │   ├── AccountGroupsPage.jsx
+│   │   ├── CreateAccountGroupPage.jsx
+│   │   ├── EditAccountGroupPage.jsx
+│   │   ├── AccountGroupDetailsPage.jsx
+│   │   │
+│   │   ├── AccountsPage.jsx
+│   │   ├── CreateAccountPage.jsx
+│   │   ├── EditAccountPage.jsx
+│   │   ├── AccountDetailsPage.jsx
+│   │   │
+│   │   ├── desktop/
+│   │   │   ├── AccountGroupsDesktopPage.jsx
+│   │   │   ├── CreateAccountGroupDesktopPage.jsx
+│   │   │   ├── EditAccountGroupDesktopPage.jsx
+│   │   │   ├── AccountGroupDetailsDesktopPage.jsx
+│   │   │   │
+│   │   │   ├── AccountsDesktopPage.jsx
+│   │   │   ├── CreateAccountDesktopPage.jsx
+│   │   │   ├── EditAccountDesktopPage.jsx
+│   │   │   ├── AccountDetailsDesktopPage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── mobile/
+│   │   │   ├── AccountGroupsMobilePage.jsx
+│   │   │   ├── CreateAccountGroupMobilePage.jsx
+│   │   │   ├── EditAccountGroupMobilePage.jsx
+│   │   │   ├── AccountGroupDetailsMobilePage.jsx
+│   │   │   │
+│   │   │   ├── AccountsMobilePage.jsx
+│   │   │   ├── CreateAccountMobilePage.jsx
+│   │   │   ├── EditAccountMobilePage.jsx
+│   │   │   ├── AccountDetailsMobilePage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── opening-balances/
+│   │
+│   ├── pages/
+│   │   ├── OpeningBalancesPage.jsx
+│   │   ├── CreateOpeningBalancePage.jsx
+│   │   ├── EditOpeningBalancePage.jsx
+│   │   ├── OpeningBalanceDetailsPage.jsx
+│   │   │
+│   │   ├── desktop/
+│   │   │   ├── OpeningBalancesDesktopPage.jsx
+│   │   │   ├── CreateOpeningBalanceDesktopPage.jsx
+│   │   │   ├── EditOpeningBalanceDesktopPage.jsx
+│   │   │   ├── OpeningBalanceDetailsDesktopPage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── mobile/
+│   │   │   ├── OpeningBalancesMobilePage.jsx
+│   │   │   ├── CreateOpeningBalanceMobilePage.jsx
+│   │   │   ├── EditOpeningBalanceMobilePage.jsx
+│   │   │   ├── OpeningBalanceDetailsMobilePage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── financial-periods/
+│   │
+│   ├── pages/
+│   │   ├── FinancialPeriodsPage.jsx
+│   │   ├── CreateFinancialPeriodPage.jsx
+│   │   ├── EditFinancialPeriodPage.jsx
+│   │   ├── FinancialPeriodDetailsPage.jsx
+│   │   │
+│   │   ├── desktop/
+│   │   │   ├── FinancialPeriodsDesktopPage.jsx
+│   │   │   ├── CreateFinancialPeriodDesktopPage.jsx
+│   │   │   ├── EditFinancialPeriodDesktopPage.jsx
+│   │   │   ├── FinancialPeriodDetailsDesktopPage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── mobile/
+│   │   │   ├── FinancialPeriodsMobilePage.jsx
+│   │   │   ├── CreateFinancialPeriodMobilePage.jsx
+│   │   │   ├── EditFinancialPeriodMobilePage.jsx
+│   │   │   ├── FinancialPeriodDetailsMobilePage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+├── journal-vouchers/
+│   │
+│   ├── pages/
+│   │   ├── JournalVouchersPage.jsx
+│   │   ├── CreateJournalVoucherPage.jsx
+│   │   ├── EditJournalVoucherPage.jsx
+│   │   ├── JournalVoucherDetailsPage.jsx
+│   │   │
+│   │   ├── desktop/
+│   │   │   ├── JournalVouchersDesktopPage.jsx
+│   │   │   ├── CreateJournalVoucherDesktopPage.jsx
+│   │   │   ├── EditJournalVoucherDesktopPage.jsx
+│   │   │   ├── JournalVoucherDetailsDesktopPage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   ├── mobile/
+│   │   │   ├── JournalVouchersMobilePage.jsx
+│   │   │   ├── CreateJournalVoucherMobilePage.jsx
+│   │   │   ├── EditJournalVoucherMobilePage.jsx
+│   │   │   ├── JournalVoucherDetailsMobilePage.jsx
+│   │   │   └── index.js
+│   │   │
+│   │   └── index.js
+│   │
+│   └── index.js
+│
+└── index.js
+
+
+src/features/finance/
+└── treasury/
+    │
+    └── bank-management/
+        │
+        └── bank-accounts/
+            │
+            ├── pages/
+            │   ├── BankAccountsPage.jsx
+            │   ├── CreateBankAccountPage.jsx
+            │   ├── EditBankAccountPage.jsx
+            │   ├── BankAccountDetailsPage.jsx
+            │   │
+            │   ├── desktop/
+            │   │   ├── BankAccountsDesktopPage.jsx
+            │   │   ├── CreateBankAccountDesktopPage.jsx
+            │   │   ├── EditBankAccountDesktopPage.jsx
+            │   │   ├── BankAccountDetailsDesktopPage.jsx
+            │   │   └── index.js
+            │   │
+            │   ├── mobile/
+            │   │   ├── BankAccountsMobilePage.jsx
+            │   │   ├── CreateBankAccountMobilePage.jsx
+            │   │   ├── EditBankAccountMobilePage.jsx
+            │   │   ├── BankAccountDetailsMobilePage.jsx
+            │   │   └── index.js
+            │   │
+            │   └── index.js
+
+src/features/finance/
+│
+├── chart-of-accounts/
+│   │
+│   ├── account-groups/
+│   │   ├── hooks/
+│   │   │   └── useAccountGroup.js
+│   │   │
+│   │   ├── services/
+│   │   │   └── accountGroupService.js
+│   │   │
+│   │   ├── store/
+│   │   │   ├── accountGroupSlice.js
+│   │   │   ├── accountGroupThunk.js
+│   │   │   └── accountGroupSelector.js
+│   │   │
+│   │   └── index.js
+│   │
+│   ├── accounts/
+│   │   ├── hooks/
+│   │   │   └── useAccount.js
+│   │   │
+│   │   ├── services/
+│   │   │   └── accountService.js
+│   │   │
+│   │   ├── store/
+│   │   │   ├── accountSlice.js
+│   │   │   ├── accountThunk.js
+│   │   │   └── accountSelector.js
+│   │   │
+│   │   └── index.js
+│   │
+│   ├── pages/
+│   │   └── ...
+│   │
+│   └── index.js
+│
+└── index.js
+
+You are acting as a senior full-stack React + Redux Toolkit + Node.js + Express + MongoDB architect.
+
+Project Context
+
+* Backend is already implemented using:
+
+  * Controller → Service → Repository architecture
+  * Mongoose models
+  * Joi validations
+  * REST APIs
+  * Soft delete support
+  * Redux Toolkit on frontend
+  * Custom hooks pattern (useWorkspace, usePlan, useSubscription, etc.)
+  * App UI component library (AppCard, AppButton, AppText, AppDialog, AppHeading, AppStack, etc.)
+  * Responsive pages (Desktop + Mobile versions)
+
+Current Situation
+
+* Most frontend pages already exist.
+* Most pages were originally built using hardcoded demo/mock data.
+* Backend APIs are already completed.
+* Redux slices, thunks, selectors, hooks, and services are already completed.
+* The remaining work is replacing demo data with real API-connected data using the existing Redux architecture.
+
+Important Rules
+
+* Do NOT redesign UI.
+* Do NOT change styling unless absolutely required.
+* Do NOT change layout structure.
+* Do NOT change component hierarchy unnecessarily.
+* Preserve all existing UI/UX.
+* Only replace mock/demo/static data with real Redux-connected data.
+* Reuse existing hooks, selectors, thunks, slices, services, constants, and routes.
+* Follow the existing project patterns exactly.
+
+For every page I provide:
+
+1. First analyze:
+
+   * Existing page
+   * Related backend APIs
+   * Redux slice
+   * Redux thunk
+   * Redux selectors
+   * Redux hook
+   * Existing UI
+
+2. Then identify:
+
+   * Which parts are demo data
+   * Which parts should come from API
+   * Which Redux actions should be used
+   * Which loading states already exist
+   * Which error states already exist
+
+3. Then provide:
+
+   * Full updated code
+   * Production-ready code
+   * No pseudo code
+   * No partial snippets
+   * No placeholders
+
+4. Requirements:
+
+   * Use existing Redux hook
+   * Use existing thunk
+   * Use existing selectors
+   * Use existing API service
+   * Use existing routes
+   * Use existing constants
+   * Use existing status enums
+   * Handle loading state
+   * Handle empty state
+   * Handle error state
+   * Preserve theme support
+   * Preserve mobile responsiveness
+   * Preserve desktop responsiveness
+
+5. Before writing code:
+
+   * Explain exactly what changes are required.
+   * Explain which demo data is being removed.
+   * Explain which backend fields will be used.
+   * Explain how the Redux flow will work.
+
+6. Then write:
+
+   * FULL UPDATED FILE
+   * Complete import section
+   * Complete component
+   * Complete helper functions
+   * Complete exports
+
+7. Never skip code.
+
+   * If a file is large, still write the entire updated file.
+
+Project Architecture Pattern
+
+Backend:
+Controller
+→ Service
+→ Repository
+→ Model
+
+Frontend:
+Service
+→ Thunk
+→ Slice
+→ Selector
+→ Hook
+→ Page
+
+Goal:
+Convert every remaining demo page into a fully functional production page using the already-built backend and Redux architecture while keeping the UI exactly as designed.
+
+When I send files, first inspect all related backend and Redux files before generating the final updated code.
+
+Additional Backend-First Rule
+
+Backend is the source of truth.
+
+For every page I provide:
+
+* First inspect the related backend model, constants, Joi validation, service, repository, API route, Redux thunk, slice, selector, service, and hook.
+* If a field exists in the backend model and is accepted by Joi validation/API payload, include it in the UI unless the existing page intentionally hides it.
+* If a field exists in the UI but does not exist in the backend model or validation, remove it from the UI and payload mapping.
+* Do not invent frontend-only fields.
+* Do not send unsupported fields in API payload.
+* Use backend field names and enum values exactly.
+* If the UI label differs from backend name, map it cleanly in the page/container.
+* Backend model + Joi validation decides required/optional behavior.
+* Do not make frontend validation stricter than backend unless I explicitly ask.
+
+
+When I share an old page and a reference image, use the image only as a layout and UI structure reference. Follow the image for section placement, component positioning, page flow, and overall layout composition.
+
+Use the existing components, CSS, design system, spacing, padding, sizing, typography, font weights, colors, border radius, shadows, and styling patterns from the components and pages I have already shared (e.g., AppStatCard, PageHeader, PageRightSidebar, etc.). Keep functionality, architecture, and component usage consistent with the existing codebase.
+
+The goal is to recreate the layout of the reference image while keeping the look and feel fully consistent with the already shared components and styles. Use placeholder/dummy content where needed. Do not make any changes until I explicitly ask.
+
+
+When I share source code and a reference image in this chat, use the image strictly as a layout, section composition, and UI positioning blueprint while keeping the absolute look and feel identical to the design system established in my current project. You will implement a high-density, compact layout that completely omits root mobile container padding (px: 0, pt: 0, pb: 0) so that the page content renders completely flush within my global app shell layout. Ensure that all presentation interfaces are styled strictly through token dictionaries (sx objects) mapping directly to custom design system variables like var(--app-color-surface), var(--app-color-primary), and custom component instances such as AppBox, AppCard, AppStack, AppHeading, AppText, and AppButton. You must preserve all architecture configurations, navigation definitions, and business domain variables intact, isolating parent controller state mechanics from the mobile view presentation layer to maintain a clean container-component pattern. Keep text scales readable and buttons proportional to maximize usable space on mobile device screens, utilizing placeholder content where structural updates call for it. Do not generate any refactored code output or implement layout alterations until I explicitly upload the source files and ask you to begin.

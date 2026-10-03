@@ -1,0 +1,526 @@
+@import "tailwindcss";
+
+/* Tailwind v4 custom dark selector */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ===============================
+   Tailwind Theme Tokens
+   Source of truth: src/theme/tokens.js
+   Runtime sync: ThemeProvider.jsx
+=============================== */
+@theme {
+  --font-sans: 'Geist Variable', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Geist Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+
+  --color-bg: var(--app-color-bg);
+  --color-surface: var(--app-color-surface);
+  --color-surface-alt: var(--app-color-surface-alt);
+  --color-surface-hover: var(--app-color-surface-hover);
+  --color-surface-active: var(--app-color-surface-active);
+
+  --color-text: var(--app-color-text);
+  --color-text-muted: var(--app-color-text-muted);
+  --color-text-disabled: var(--app-color-text-disabled);
+  --color-text-inverse: var(--app-color-text-inverse);
+
+  --color-border: var(--app-color-border);
+  --color-border-strong: var(--app-color-border-strong);
+  --color-divider: var(--app-color-divider);
+
+  --color-primary: var(--app-color-primary);
+  --color-primary-hover: var(--app-color-primary-hover);
+  --color-primary-soft: var(--app-color-primary-soft);
+  --color-primary-contrast: var(--app-color-primary-contrast);
+
+  --color-success: var(--app-color-success);
+  --color-success-hover: var(--app-color-success-hover);
+  --color-success-soft: var(--app-color-success-soft);
+  --color-success-contrast: var(--app-color-success-contrast);
+
+  --color-error: var(--app-color-error);
+  --color-error-hover: var(--app-color-error-hover);
+  --color-error-soft: var(--app-color-error-soft);
+  --color-error-contrast: var(--app-color-error-contrast);
+
+  --color-warning: var(--app-color-warning);
+  --color-warning-hover: var(--app-color-warning-hover);
+  --color-warning-soft: var(--app-color-warning-soft);
+  --color-warning-contrast: var(--app-color-warning-contrast);
+
+  --color-info: var(--app-color-info);
+  --color-info-hover: var(--app-color-info-hover);
+  --color-info-soft: var(--app-color-info-soft);
+  --color-info-contrast: var(--app-color-info-contrast);
+
+  --color-neutral-50: var(--app-color-neutral-50);
+  --color-neutral-100: var(--app-color-neutral-100);
+  --color-neutral-200: var(--app-color-neutral-200);
+  --color-neutral-300: var(--app-color-neutral-300);
+  --color-neutral-400: var(--app-color-neutral-400);
+  --color-neutral-500: var(--app-color-neutral-500);
+  --color-neutral-600: var(--app-color-neutral-600);
+  --color-neutral-700: var(--app-color-neutral-700);
+  --color-neutral-800: var(--app-color-neutral-800);
+  --color-neutral-900: var(--app-color-neutral-900);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-collapsible-down: collapsible-down 0.2s ease-out;
+  --animate-collapsible-up: collapsible-up 0.2s ease-out;
+}
+
+/* ===============================
+   Safe Fallback Variables
+   Used before React ThemeProvider hydrates
+=============================== */
+:root {
+  color-scheme: light;
+
+  --app-color-bg: #f8fffb;
+  --app-color-surface: #ffffff;
+  --app-color-surface-alt: #f2fbf6;
+  --app-color-surface-hover: rgba(0, 153, 74, 0.04);
+  --app-color-surface-active: rgba(0, 153, 74, 0.08);
+
+  --app-color-text: #0f172a;
+  --app-color-text-muted: rgba(15, 23, 42, 0.62);
+  --app-color-text-disabled: rgba(15, 23, 42, 0.38);
+  --app-color-text-inverse: #ffffff;
+
+  --app-color-border: rgba(0, 153, 74, 0.16);
+  --app-color-border-strong: rgba(15, 23, 42, 0.22);
+  --app-color-divider: rgba(15, 23, 42, 0.08);
+
+  --app-color-primary: #00994a;
+  --app-color-primary-hover: #00833f;
+  --app-color-primary-soft: rgba(0, 153, 74, 0.12);
+  --app-color-primary-contrast: #ffffff;
+
+  --app-color-success: #16a34a;
+  --app-color-success-hover: #15803d;
+  --app-color-success-soft: rgba(22, 163, 74, 0.12);
+  --app-color-success-contrast: #ffffff;
+
+  --app-color-error: #dc2626;
+  --app-color-error-hover: #b91c1c;
+  --app-color-error-soft: rgba(220, 38, 38, 0.12);
+  --app-color-error-contrast: #ffffff;
+
+  --app-color-warning: #f59e0b;
+  --app-color-warning-hover: #d97706;
+  --app-color-warning-soft: rgba(245, 158, 11, 0.14);
+  --app-color-warning-contrast: #ffffff;
+
+  --app-color-info: #2563eb;
+  --app-color-info-hover: #1d4ed8;
+  --app-color-info-soft: rgba(37, 99, 235, 0.12);
+  --app-color-info-contrast: #ffffff;
+
+  --app-color-neutral-50: #f9fafb;
+  --app-color-neutral-100: #f3f4f6;
+  --app-color-neutral-200: #e5e7eb;
+  --app-color-neutral-300: #d1d5db;
+  --app-color-neutral-400: #9ca3af;
+  --app-color-neutral-500: #6b7280;
+  --app-color-neutral-600: #4b5563;
+  --app-color-neutral-700: #374151;
+  --app-color-neutral-800: #1f2937;
+  --app-color-neutral-900: #111827;
+
+  --app-color-disabled-bg: rgba(15, 23, 42, 0.03);
+  --app-color-disabled-text: rgba(15, 23, 42, 0.4);
+  --app-color-disabled-border: rgba(15, 23, 42, 0.08);
+
+  --app-color-readonly-bg: rgba(0, 153, 74, 0.035);
+
+  --app-color-hover-overlay: rgba(0, 153, 74, 0.06);
+  --app-color-active-overlay: rgba(0, 153, 74, 0.1);
+  --app-color-overlay: rgba(0, 0, 0, 0.5);
+
+  --app-focus-ring: 0 0 0 2px rgba(0, 153, 74, 0.35);
+
+  --app-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --app-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --app-shadow-md: 0 8px 20px rgba(15, 23, 42, 0.1);
+  --app-shadow-lg: 0 18px 45px rgba(15, 23, 42, 0.12);
+  --app-shadow-xl: 0 28px 70px rgba(15, 23, 42, 0.18);
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height, auto);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height, auto);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@keyframes collapsible-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height, auto);
+  }
+}
+
+@keyframes collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height, auto);
+  }
+  to {
+    height: 0;
+  }
+}
+
+/* ===============================
+   Base Styles
+=============================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans, 'Geist', -apple-system, BlinkMacSystemFont, sans-serif);
+  background-color: var(--app-color-bg);
+  color: var(--app-color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+code, kbd, samp, pre, .font-mono {
+  font-family: var(--font-mono, 'Geist Mono', monospace);
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===============================
+   Typography
+=============================== */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  color: var(--app-color-text);
+  font-weight: 700;
+}
+
+p {
+  margin: 0;
+  color: var(--app-color-text-muted);
+  line-height: 1.6;
+}
+
+/* ===============================
+   Links
+=============================== */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+
+/* ===============================
+   Scrollbar
+=============================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--app-color-primary) 30%, transparent);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--app-color-primary) 45%, transparent);
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* ===============================
+   Selection
+=============================== */
+::selection {
+  background: color-mix(in srgb, var(--app-color-primary) 30%, transparent);
+  color: var(--app-color-text);
+}
+
+/* =========================================
+   GOOGLE TRANSLATE COMPLETE HIDE FIX
+========================================= */
+
+/* Hide top translate bar */
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate {
+  display: none !important;
+}
+
+/* Hide translate iframe */
+iframe.goog-te-banner-frame,
+iframe.skiptranslate {
+  display: none !important;
+}
+
+/* Remove top spacing added by Google */
+body {
+  top: 0px !important;
+  position: static !important;
+  min-height: auto !important;
+}
+
+/* Hide Google translate gadget */
+.goog-te-gadget {
+  font-size: 0px !important;
+  color: transparent !important;
+}
+
+/* Hide Google logo */
+.goog-logo-link {
+  display: none !important;
+}
+
+/* Hide "Powered by Google" */
+.goog-te-gadget span {
+  display: none !important;
+}
+
+/* Hide translate dropdown */
+.goog-te-combo {
+  display: none !important;
+}
+
+/* Hide tooltip */
+.goog-tooltip {
+  display: none !important;
+}
+
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+/* Remove blue highlight */
+.goog-text-highlight {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Hide translate popup */
+#goog-gt-tt,
+.goog-te-balloon-frame {
+  display: none !important;
+}
+
+/* Remove margins/padding added by translate */
+body > .skiptranslate {
+  display: none !important;
+}
+
+/* Prevent translate overlay issues */
+.goog-te-spinner-pos {
+  display: none !important;
+}
+
+/* Hide Google translate notifications */
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-aZ2wEe-OiiCO,
+.VIpgJd-ZVi9od-aZ2wEe,
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-xl07Ob-OEVmcd {
+  display: none !important;
+}
+
+/* Fix html/body position */
+html,
+body {
+  top: 0 !important;
+}
+
+/* Auto-hiding smooth overlay scrollbar */
+.auto-hide-scrollbar {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.auto-hide-scrollbar:hover,
+.auto-hide-scrollbar:active,
+.auto-hide-scrollbar:focus {
+  scrollbar-color: var(--app-color-border-strong) transparent;
+}
+
+.auto-hide-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.auto-hide-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.auto-hide-scrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 9999px;
+  transition: background-color 0.3s ease;
+}
+
+.auto-hide-scrollbar:hover::-webkit-scrollbar-thumb,
+.auto-hide-scrollbar:active::-webkit-scrollbar-thumb,
+.auto-hide-scrollbar:focus::-webkit-scrollbar-thumb {
+  background-color: var(--app-color-border-strong);
+}
+
+/* Remove number input up/down stepper spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
