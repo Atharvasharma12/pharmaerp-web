@@ -51,6 +51,27 @@ export const PurchasesDesktopPage = () => {
   const [paymentBill, setPaymentBill] = useState(null);
   const [isBulkPaymentOpen, setIsBulkPaymentOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const fileInputRef = React.useRef(null);
+
+  const handleImportLegacyBills = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setToastMessage("⏳ Importing legacy bills...");
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await purchaseBillService.importLegacyBills(formData);
+      setToastMessage(`✅ ${res.data?.message || "Imported successfully!"}`);
+      fetchBills();
+    } catch (err) {
+      console.error("Failed to import legacy bills", err);
+      setToastMessage("❌ Failed to import legacy bills");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const statusTabs = [
     "all",
@@ -174,6 +195,21 @@ export const PurchasesDesktopPage = () => {
               className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
             >
               Bulk Payment
+            </UIButton>
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              accept=".xlsx,.xls,.csv"
+              onChange={handleImportLegacyBills}
+            />
+            <UIButton
+              variant="outline"
+              size="md"
+              onClick={() => fileInputRef.current?.click()}
+              className="border-primary text-primary hover:bg-primary/5"
+            >
+              Import Legacy Bills
             </UIButton>
           </div>
         </div>

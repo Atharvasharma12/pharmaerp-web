@@ -28,6 +28,14 @@ const purchaseBillService = {
   bulkPayPurchaseBills(payload) {
     return apiClient.post(`/catalog/purchase-bills/bulk/pay`, payload);
   },
+
+  importLegacyBills(formData) {
+    return apiClient.post(`/catalog/purchase-bills/import/legacy-bills`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
 };
 
 export default purchaseBillService;

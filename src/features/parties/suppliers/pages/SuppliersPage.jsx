@@ -17,7 +17,7 @@ const initialFilters = {
   status: "all",
   type: "all",
   page: 1,
-  limit: 12,
+  limit: 8,
 };
 
 const normalizeText = (value) =>

@@ -23,6 +23,7 @@ import {
   AppAlert,
   AppIconButton,
 } from "./ui";
+import { UIModal, UIModalHeader, UIModalTitle, UIModalDescription, UIModalBody, UIModalFooter } from "./ui/UIModal";
 import workspaceProductService from "../features/workspace-products/services/workspaceProductService";
 
 const HEADER_ALIASES = {
@@ -502,26 +503,17 @@ const UploadExistingInventoryBtn = ({
       </AppButton>
 
       {/* Modal Dialog */}
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-100">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50/80">
-              <div>
-                <AppHeading level={3} className="text-lg font-bold text-gray-900">
-                  Upload Existing Inventory
-                </AppHeading>
-                <AppText className="text-xs text-gray-500">
-                  Bulk import legacy product catalog, batch stock, and pricing into Pahuch 2.0
-                </AppText>
-              </div>
-              <AppIconButton onClick={handleClose} title="Close">
-                <FiX className="text-gray-500 hover:text-gray-800" />
-              </AppIconButton>
-            </div>
+      <UIModal isOpen={isOpen} onClose={handleClose} size="3xl" closeOnBackdrop={false}>
+          <div className="w-full flex flex-col h-full max-h-[85vh]">
+            <UIModalHeader className="pb-4">
+              <UIModalTitle>Upload Existing Inventory</UIModalTitle>
+              <UIModalDescription>
+                Bulk import legacy product catalog, batch stock, and pricing into Pahuch 2.0
+              </UIModalDescription>
+            </UIModalHeader>
 
             {/* Stepper Bar */}
-            <div className="px-6 py-3 bg-white border-b border-gray-100 flex items-center justify-between">
+            <div className="px-6 py-3 bg-surface border-b border-border/50 flex items-center justify-between">
               {STEPS.map((label, idx) => {
                 const isActive = activeStep === idx;
                 const isCompleted = activeStep > idx;
@@ -535,21 +527,21 @@ const UploadExistingInventoryBtn = ({
                             ? "bg-emerald-500 text-white"
                             : isActive
                             ? "bg-primary-600 text-white shadow-sm"
-                            : "bg-gray-100 text-gray-400"
+                            : "bg-surface-alt text-text-muted"
                         }`}
                       >
                         {isCompleted ? <FiCheck /> : idx + 1}
                       </div>
                       <span
                         className={`text-xs font-medium ${
-                          isActive ? "text-gray-900 font-semibold" : "text-gray-400"
+                          isActive ? "text-text font-semibold" : "text-text-muted"
                         }`}
                       >
                         {label}
                       </span>
                     </div>
                     {idx < STEPS.length - 1 && (
-                      <div className="flex-1 mx-3 h-0.5 bg-gray-200" />
+                      <div className="flex-1 mx-3 h-0.5 bg-surface-hover" />
                     )}
                   </React.Fragment>
                 );
@@ -562,7 +554,7 @@ const UploadExistingInventoryBtn = ({
               {activeStep === 0 && (
                 <div className="space-y-4">
                   <div
-                    className="border-2 border-dashed border-gray-300 hover:border-primary-500 rounded-xl p-8 text-center bg-gray-50/50 transition-all cursor-pointer"
+                    className="border-2 border-dashed border-border hover:border-primary-500 rounded-xl p-8 text-center bg-surface-alt/50 transition-all cursor-pointer"
                     onClick={() => document.getElementById("legacy-btn-file-input").click()}
                   >
                     <input
@@ -575,10 +567,10 @@ const UploadExistingInventoryBtn = ({
                     <div className="w-12 h-12 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-2xl mx-auto mb-3">
                       <FiUploadCloud />
                     </div>
-                    <AppHeading level={4} className="text-base font-semibold text-gray-800">
+                    <AppHeading level={4} className="text-base font-semibold text-text">
                       Upload XLSX or CSV File
                     </AppHeading>
-                    <AppText className="text-xs text-gray-500 mt-1">
+                    <AppText className="text-xs text-text-muted mt-1">
                       Contains Name, Brand, Qty, MRP, PTR, Rate A, Batch No & Expiry Date
                     </AppText>
                   </div>
@@ -588,8 +580,8 @@ const UploadExistingInventoryBtn = ({
                       <AppStack className="flex-row items-center gap-3">
                         <FiFileText className="text-primary-600 text-xl" />
                         <div>
-                          <AppText className="font-semibold text-xs text-gray-900">{file.name}</AppText>
-                          <AppText className="text-xs text-gray-500">
+                          <AppText className="font-semibold text-xs text-text">{file.name}</AppText>
+                          <AppText className="text-xs text-text-muted">
                             {(file.size / 1024).toFixed(1)} KB • {parsedRows.length} rows detected
                           </AppText>
                         </div>
@@ -600,7 +592,7 @@ const UploadExistingInventoryBtn = ({
                           setParsedRows([]);
                         }}
                       >
-                        <FiX className="text-gray-400 hover:text-red-600" />
+                        <FiX className="text-text-muted hover:text-red-600" />
                       </AppIconButton>
                     </AppStack>
                   )}
@@ -618,30 +610,30 @@ const UploadExistingInventoryBtn = ({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <AppHeading level={4} className="text-sm font-bold text-gray-900">
+                      <AppHeading level={4} className="text-sm font-bold text-text">
                         Review Brand & Manufacturer Mapping
                       </AppHeading>
-                      <AppText className="text-xs text-gray-500">
+                      <AppText className="text-xs text-text-muted">
                         Total {brandMappings.length} unique marketers detected from file
                       </AppText>
                     </div>
                   </div>
 
-                  <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                    <div className="bg-gray-100 px-4 py-2 flex text-xs font-semibold text-gray-700 uppercase border-b border-gray-200">
+                  <div className="border border-border rounded-xl overflow-hidden bg-surface">
+                    <div className="bg-surface-alt px-4 py-2 flex text-xs font-semibold text-text uppercase border-b border-border">
                       <span className="w-1/2">Original File Brand</span>
                       <span className="w-1/2">Matched System Brand</span>
                     </div>
                     <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
                       {paginatedBrandMappings.length === 0 ? (
-                        <div className="p-4 text-center text-xs text-gray-400">
+                        <div className="p-4 text-center text-xs text-text-muted">
                           No brand mappings found.
                         </div>
                       ) : (
                         paginatedBrandMappings.map((row, idx) => (
-                          <div key={idx} className="px-4 py-2.5 flex items-center text-xs hover:bg-gray-50">
-                            <span className="w-1/2 font-medium text-gray-800">{row.original || "-"}</span>
-                            <span className="w-1/2 text-gray-600 font-mono bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                          <div key={idx} className="px-4 py-2.5 flex items-center text-xs hover:bg-surface-alt">
+                            <span className="w-1/2 font-medium text-text">{row.original || "-"}</span>
+                            <span className="w-1/2 text-text-muted font-mono bg-surface-alt px-2 py-1 rounded border border-border">
                               {row.matched || "-"}
                             </span>
                           </div>
@@ -649,7 +641,7 @@ const UploadExistingInventoryBtn = ({
                       )}
                     </div>
                     {/* Pagination Footer */}
-                    <div className="bg-gray-50 px-4 py-2 flex items-center justify-between border-t border-gray-200 text-xs text-gray-500">
+                    <div className="bg-surface-alt px-4 py-2 flex items-center justify-between border-t border-border text-xs text-text-muted">
                       <span>
                         Showing {brandPage * brandRowsPerPage + 1} -{" "}
                         {Math.min((brandPage + 1) * brandRowsPerPage, brandMappings.length)} of{" "}
@@ -683,10 +675,10 @@ const UploadExistingInventoryBtn = ({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <AppHeading level={4} className="text-sm font-bold text-gray-900">
+                      <AppHeading level={4} className="text-sm font-bold text-text">
                         Preview Inventory Rows ({parsedRows.length} Items)
                       </AppHeading>
-                      <AppText className="text-xs text-gray-500">
+                      <AppText className="text-xs text-text-muted">
                         Review products, batches, stock & rates before import
                       </AppText>
                     </div>
@@ -701,7 +693,7 @@ const UploadExistingInventoryBtn = ({
                     </AppAlert>
                   )}
 
-                  <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                  <div className="border border-border rounded-xl overflow-hidden bg-surface">
                     <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto p-3 space-y-2">
                       {paginatedPreviewRows.map((p, idx) => {
                         const name = p?.name || getRowVal(p, "name") || "-";
@@ -722,11 +714,11 @@ const UploadExistingInventoryBtn = ({
                         const schemePercent = totalScheme > 0 ? ((freeFromPurchase / totalScheme) * 100).toFixed(2) : "0.00";
 
                         return (
-                          <div key={idx} className="p-3 bg-gray-50/50 hover:bg-gray-100/60 rounded-lg border border-gray-100 space-y-1 transition-all">
-                            <div className="font-bold text-gray-900 text-xs">
-                              {name} {pack ? `| ${pack}` : ""} <span className="font-semibold text-gray-600">| {marketer}</span>
+                          <div key={idx} className="p-3 bg-surface-alt/50 hover:bg-surface-alt/60 rounded-lg border border-border/50 space-y-1 transition-all">
+                            <div className="font-bold text-text text-xs">
+                              {name} {pack ? `| ${pack}` : ""} <span className="font-semibold text-text-muted">| {marketer}</span>
                             </div>
-                            <div className="text-xs text-gray-600 flex flex-wrap items-center gap-x-2 gap-y-1 pt-0.5">
+                            <div className="text-xs text-text-muted flex flex-wrap items-center gap-x-2 gap-y-1 pt-0.5">
                               <span><strong>Qty:</strong> {qty}</span>
                               <span>|</span>
                               <span><strong>MRP:</strong> ₹{mrp}</span>
@@ -749,7 +741,7 @@ const UploadExistingInventoryBtn = ({
                     </div>
 
                     {/* Pagination Footer */}
-                    <div className="bg-gray-50 px-4 py-2 flex items-center justify-between border-t border-gray-200 text-xs text-gray-500">
+                    <div className="bg-surface-alt px-4 py-2 flex items-center justify-between border-t border-border text-xs text-text-muted">
                       <span>
                         Showing {previewPage * previewRowsPerPage + 1} -{" "}
                         {Math.min((previewPage + 1) * previewRowsPerPage, parsedRows.length)} of{" "}
@@ -785,33 +777,33 @@ const UploadExistingInventoryBtn = ({
                     <FiCheckCircle />
                   </div>
                   <div>
-                    <AppHeading level={3} className="text-xl font-bold text-gray-900">
+                    <AppHeading level={3} className="text-xl font-bold text-text">
                       Import Completed 🎉
                     </AppHeading>
-                    <AppText className="text-xs text-gray-500 mt-1">
+                    <AppText className="text-xs text-text-muted mt-1">
                       Inventory products and stock batches have been updated in database
                     </AppText>
                   </div>
 
                   {importResult && (
-                    <div className="grid grid-cols-3 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200 max-w-lg mx-auto text-left">
-                      <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-2xs">
+                    <div className="grid grid-cols-3 gap-3 bg-surface-alt p-4 rounded-xl border border-border max-w-lg mx-auto text-left">
+                      <div className="bg-surface p-3 rounded-lg border border-border/50 shadow-2xs">
                         <AppText className="text-xl font-bold text-emerald-600">
                           {importResult.createdCount || 0}
                         </AppText>
-                        <AppText className="text-[11px] text-gray-500">New Products</AppText>
+                        <AppText className="text-[11px] text-text-muted">New Products</AppText>
                       </div>
-                      <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-2xs">
+                      <div className="bg-surface p-3 rounded-lg border border-border/50 shadow-2xs">
                         <AppText className="text-xl font-bold text-blue-600">
                           {importResult.updatedCount || 0}
                         </AppText>
-                        <AppText className="text-[11px] text-gray-500">Updated Stock</AppText>
+                        <AppText className="text-[11px] text-text-muted">Updated Stock</AppText>
                       </div>
-                      <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-2xs">
+                      <div className="bg-surface p-3 rounded-lg border border-border/50 shadow-2xs">
                         <AppText className="text-xl font-bold text-amber-600">
                           {importResult.skippedCount || 0}
                         </AppText>
-                        <AppText className="text-[11px] text-gray-500">Skipped</AppText>
+                        <AppText className="text-[11px] text-text-muted">Skipped</AppText>
                       </div>
                     </div>
                   )}
@@ -820,7 +812,7 @@ const UploadExistingInventoryBtn = ({
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <UIModalFooter className="flex items-center justify-between w-full">
               <AppButton variant="outline" size="sm" onClick={handleClose}>
                 {activeStep === 3 ? "Close" : "Cancel"}
               </AppButton>
@@ -854,7 +846,13 @@ const UploadExistingInventoryBtn = ({
                     disabled={isSubmitting}
                     className="bg-primary-600 hover:bg-primary-700 text-white px-5"
                   >
-                    Start Ultra Import
+                    {isSubmitting ? (
+                      <span className="flex items-center gap-2">
+                        <FiRefreshCw className="animate-spin" /> Importing...
+                      </span>
+                    ) : (
+                      "Start Ultra Import"
+                    )}
                   </AppButton>
                 )}
 
@@ -869,10 +867,9 @@ const UploadExistingInventoryBtn = ({
                   </AppButton>
                 )}
               </AppStack>
-            </div>
+            </UIModalFooter>
           </div>
-        </div>
-      )}
+      </UIModal>
     </>
   );
 };

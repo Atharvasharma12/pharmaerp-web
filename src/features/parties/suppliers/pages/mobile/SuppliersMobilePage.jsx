@@ -76,7 +76,7 @@ const SuppliersMobilePage = ({
   isLoading,
   
   currentPage = 1,
-  pageSize = 12,
+  pageSize = 8,
   onPageChange,
   onPageSizeChange,
 }) => {

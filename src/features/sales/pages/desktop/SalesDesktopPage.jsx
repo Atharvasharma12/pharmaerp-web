@@ -23,6 +23,9 @@ import {
   CreditCard,
   ShieldCheck,
   Tag,
+  History,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   UICard,
@@ -243,6 +246,7 @@ export const SalesDesktopPage = () => {
   // Workspace Product Batch Selector Modal state
   const [selectedProductForBatches, setSelectedProductForBatches] = useState(null);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [showCustomerHistory, setShowCustomerHistory] = useState(false);
 
   const activeCustomer = billingMode === "B2C" ? selectedB2cCustomer : selectedB2bParty;
 
@@ -752,37 +756,41 @@ export const SalesDesktopPage = () => {
           </p>
         </div>
 
-        {/* Billing Mode Switcher (B2C vs B2B) */}
-        <div className="flex items-center gap-2 bg-surface-alt p-1.5 rounded-xl border border-border shrink-0">
-          <button
-            type="button"
-            onClick={() => setBillingMode("B2C")}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              billingMode === "B2C"
-                ? "bg-surface text-primary shadow-xs border border-border"
-                : "text-text-muted hover:text-text"
-            )}
-          >
-            <User className="size-4" />
-            <span>B2C Retail Billing</span>
-          </button>
+        <div className="flex items-center gap-3 shrink-0">
+          
 
-          <button
-            type="button"
-            onClick={() => {
-              setBillingMode("B2B");
-            }}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              billingMode === "B2B"
-                ? "bg-surface text-purple-600 dark:text-purple-400 shadow-xs border border-border"
-                : "text-text-muted hover:text-text"
-            )}
-          >
-            <Building2 className="size-4" />
-            <span>B2B Commercial Billing</span>
-          </button>
+          {/* Billing Mode Switcher (B2C vs B2B) */}
+          <div className="flex items-center gap-2 bg-surface-alt p-1.5 rounded-xl border border-border">
+            <button
+              type="button"
+              onClick={() => setBillingMode("B2C")}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                billingMode === "B2C"
+                  ? "bg-surface text-primary shadow-xs border border-border"
+                  : "text-text-muted hover:text-text"
+              )}
+            >
+              <User className="size-4" />
+              <span>B2C Retail Billing</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setBillingMode("B2B");
+              }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                billingMode === "B2B"
+                  ? "bg-surface text-purple-600 dark:text-purple-400 shadow-xs border border-border"
+                  : "text-text-muted hover:text-text"
+              )}
+            >
+              <Building2 className="size-4" />
+              <span>B2B Commercial Billing</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1206,15 +1214,39 @@ export const SalesDesktopPage = () => {
           </div>
         </div>
       
+          {/* Floating History Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setShowCustomerHistory(!showCustomerHistory)}
+            className={`absolute top-1/2 -translate-y-1/2 z-50 flex items-center justify-center size-10 rounded-full border shadow-md transition-all cursor-pointer ${
+              showCustomerHistory
+                ? "right-[320px] lg:right-[384px] bg-primary text-white border-primary/20 hover:bg-primary/90 hover:scale-105"
+                : "right-4 bg-surface text-text border-border hover:bg-surface-hover hover:scale-105"
+            }`}
+            title="Toggle Customer History"
+          >
+            {showCustomerHistory ? <ChevronRight className="size-5" /> : <ChevronLeft className="size-5" />}
+          </button>
+
           {/* Right Sidebar - Customer History */}
-          <div className="w-80 lg:w-96 border-l border-border bg-surface flex flex-col shadow-[inset_1px_0_0_0_rgba(0,0,0,0.05)] z-10 shrink-0">
-            <div className="flex-1 overflow-y-auto bg-surface-alt/50">
-               <SalesCustomerSidebar 
-                  customer={billingMode === 'B2C' ? (activeCustomer || { name: customerName, phone: customerPhone }) : activeCustomer}
-                  onAddProduct={handleAddFromHistory}
-               />
-            </div>
-          </div>
+          <AnimatePresence>
+            {showCustomerHistory && (
+              <motion.div 
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: "auto", opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="w-80 lg:w-96 border-l border-border bg-surface flex flex-col shadow-[inset_1px_0_0_0_rgba(0,0,0,0.05)] z-10 shrink-0"
+              >
+                <div className="flex-1 overflow-y-auto bg-surface-alt/50">
+                   <SalesCustomerSidebar 
+                      customer={billingMode === 'B2C' ? (activeCustomer || { name: customerName, phone: customerPhone }) : activeCustomer}
+                      onAddProduct={handleAddFromHistory}
+                   />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         {/* Checkout Modal */}
       <SalesCheckoutModal

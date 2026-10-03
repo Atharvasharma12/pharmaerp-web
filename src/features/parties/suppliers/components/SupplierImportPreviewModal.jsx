@@ -187,7 +187,7 @@ const SupplierImportPreviewModal = ({
     {
       id: "address",
       key: "data.address.addressLine1",
-      label: "Address",
+      label: "Address 1",
       render: (_, row) => (
         editingRowId === row.rowNumber ? 
         <input 
@@ -198,6 +198,56 @@ const SupplierImportPreviewModal = ({
         <span className="text-xs max-w-[150px] truncate block" title={row.data.address?.addressLine1}>
           {row.data.address?.addressLine1 || "-"}
         </span>
+      )
+    },
+    {
+      id: "address2",
+      key: "data.address.addressLine2",
+      label: "Address 2",
+      render: (_, row) => (
+        <span className="text-xs max-w-[150px] truncate block" title={row.data.address?.addressLine2}>
+          {row.data.address?.addressLine2 || "-"}
+        </span>
+      )
+    },
+    {
+      id: "city",
+      key: "data.address.city",
+      label: "City",
+      render: (_, row) => (
+        <span className="text-xs">{row.data.address?.city || "-"}</span>
+      )
+    },
+    {
+      id: "state",
+      key: "data.address.state",
+      label: "State",
+      render: (_, row) => (
+        <span className="text-xs">{row.data.address?.state || "-"}</span>
+      )
+    },
+    {
+      id: "alternateMobile",
+      key: "data.alternateMobile",
+      label: "Alternate Mobile",
+      render: (_, row) => (
+        <span className="text-xs">{row.data.alternateMobile || "-"}</span>
+      )
+    },
+    {
+      id: "drugLicenseNumber",
+      key: "data.drugLicenseNumber",
+      label: "Licence No",
+      render: (_, row) => (
+        <span className="text-xs">{row.data.drugLicenseNumber || "-"}</span>
+      )
+    },
+    {
+      id: "panNumber",
+      key: "data.panNumber",
+      label: "PAN Number",
+      render: (_, row) => (
+        <span className="text-xs">{row.data.panNumber || "-"}</span>
       )
     },
     {

@@ -92,7 +92,7 @@ const SuppliersDesktopPage = ({
 }) => {
   // Local pagination if parent doesn't provide it
   const [localCurrentPage, setLocalCurrentPage] = React.useState(1);
-  const [localPageSize, setLocalPageSize] = React.useState(12);
+  const [localPageSize, setLocalPageSize] = React.useState(8);
 
   const currentPage = propCurrentPage !== undefined ? propCurrentPage : localCurrentPage;
   const pageSize = propPageSize !== undefined ? propPageSize : localPageSize;
@@ -706,7 +706,7 @@ const SuppliersDesktopPage = ({
             totalPages={totalPages}
             totalItems={filteredSuppliersCount}
             pageSize={pageSize}
-            pageSizeOptions={[12, 24, 48]}
+            pageSizeOptions={[8, 12, 24, 48]}
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
             showSummary
