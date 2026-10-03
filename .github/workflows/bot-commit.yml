@@ -1,24 +1,45 @@
 name: PharmaERP Bot Commit
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select environment"
+        required: true
+        type: choice
+        options:
+          - development
+          - uat
+          - production
 
 permissions:
   contents: write
 
 jobs:
   bot-commit:
-    name: Create Bot Commit
+    name: Bot Commit - ${{ inputs.environment }}
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout main
+      - name: Set deployment branch
+        id: branch
+        run: |
+          case "${{ inputs.environment }}" in
+            development)
+              echo "branch=develop" >> "$GITHUB_OUTPUT"
+              ;;
+            uat)
+              echo "branch=uat" >> "$GITHUB_OUTPUT"
+              ;;
+            production)
+              echo "branch=main" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Checkout deployment branch
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ steps.branch.outputs.branch }}
           fetch-depth: 0
 
       - name: Configure PharmaERP Bot
@@ -29,8 +50,8 @@ jobs:
       - name: Create Bot Commit
         run: |
           git commit --allow-empty \
-            -m "chore: automated update by PharmaERP Bot"
+            -m "chore: automated deployment by PharmaERP Bot"
 
       - name: Push Bot Commit
         run: |
-          git push origin main
+          git push origin "${{ steps.branch.outputs.branch }}"
