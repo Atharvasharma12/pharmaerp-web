@@ -65,7 +65,7 @@ const DesktopHeroSection = () => {
                 Grow Your Business.
               </span>
               <span className="block whitespace-nowrap text-primary">
-                In development branch.
+                In uat branch
               </span>
             </AppHeading>
 
