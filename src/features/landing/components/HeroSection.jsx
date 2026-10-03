@@ -64,7 +64,7 @@ const HeroSection = () => {
               }}
             >
               <span className="block whitespace-nowrap">
-                Simplify Your Pharmacy.
+                Simplify Your Pharmacy in development brach.
               </span>
               <span className="block whitespace-nowrap text-primary">
                 Grow Your Business.
