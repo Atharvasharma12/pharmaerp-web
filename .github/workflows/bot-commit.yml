@@ -21,25 +21,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set deployment branch
-        id: branch
+      - name: Set deployment configuration
+        id: config
         run: |
           case "${{ inputs.environment }}" in
             development)
               echo "branch=develop" >> "$GITHUB_OUTPUT"
+              echo "message=chore: deploy development by PharmaERP Bot" >> "$GITHUB_OUTPUT"
               ;;
+
             uat)
               echo "branch=uat" >> "$GITHUB_OUTPUT"
+              echo "message=chore: deploy uat by PharmaERP Bot" >> "$GITHUB_OUTPUT"
               ;;
+
             production)
               echo "branch=main" >> "$GITHUB_OUTPUT"
+              echo "message=chore: deploy production by PharmaERP Bot" >> "$GITHUB_OUTPUT"
               ;;
           esac
 
       - name: Checkout deployment branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.branch.outputs.branch }}
+          ref: ${{ steps.config.outputs.branch }}
           fetch-depth: 0
 
       - name: Configure PharmaERP Bot
@@ -50,8 +55,8 @@ jobs:
       - name: Create Bot Commit
         run: |
           git commit --allow-empty \
-            -m "chore: automated deployment by PharmaERP Bot"
+            -m "${{ steps.config.outputs.message }}"
 
       - name: Push Bot Commit
         run: |
-          git push origin "${{ steps.branch.outputs.branch }}"
+          git push origin "${{ steps.config.outputs.branch }}"
