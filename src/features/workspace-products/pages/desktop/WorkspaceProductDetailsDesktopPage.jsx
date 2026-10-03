@@ -415,7 +415,7 @@ const PricingTabSection = ({ product }) => {
           <PriceRateCell label="PTS" value={`₹${product?.pts ?? 0}`} />
           <PriceRateCell label="Rate A" value={`₹${product?.rateA ?? 0}`} />
           <PriceRateCell label="Rate B" value={`₹${product?.rateB ?? 0}`} />
-          <PriceRateCell label="Rate C" value={`₹${product?.finalRateC ?? 0}`} />
+          <PriceRateCell label="Rate C" value={`₹${product?.finalRateC ?? product?.rateC ?? 0}`} />
         </div>
       </AppCard>
     </div>

@@ -140,6 +140,10 @@ export const ENDPOINTS = {
     PURCHASES: (supplierId) => `/parties/suppliers/${supplierId}/purchases`,
 
     PAYMENTS: (supplierId) => `/parties/suppliers/${supplierId}/payments`,
+    
+    IMPORT_PREVIEW: "/parties/suppliers/import/preview",
+    
+    IMPORT_CONFIRM: "/parties/suppliers/import/confirm",
   },
 
   ACCOUNT_GROUP: {

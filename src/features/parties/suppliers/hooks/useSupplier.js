@@ -34,6 +34,7 @@ import {
   selectSupplierTotal,
   selectSupplierPage,
   selectSupplierLimit,
+  selectSupplierStats,
   selectSupplierStatus,
   selectSupplierError,
   selectSupplierMessage,
@@ -62,6 +63,7 @@ const useSupplier = () => {
   const total = useSelector(selectSupplierTotal);
   const page = useSelector(selectSupplierPage);
   const limit = useSelector(selectSupplierLimit);
+  const stats = useSelector(selectSupplierStats);
 
   const status = useSelector(selectSupplierStatus);
   const error = useSelector(selectSupplierError);
@@ -128,16 +130,16 @@ const useSupplier = () => {
   |--------------------------------------------------------------------------
   */
 
-  const fetchSupplierLedger = useCallback((supplierId) => {
-    return dispatch(getSupplierLedger(supplierId)).unwrap();
+  const fetchSupplierLedger = useCallback(({ supplierId, params }) => {
+    return dispatch(getSupplierLedger({ supplierId, params })).unwrap();
   }, [dispatch]);
 
   const fetchSupplierOutstanding = useCallback((supplierId) => {
     return dispatch(getSupplierOutstanding(supplierId)).unwrap();
   }, [dispatch]);
 
-  const fetchSupplierPurchases = useCallback((supplierId) => {
-    return dispatch(getSupplierPurchases(supplierId)).unwrap();
+  const fetchSupplierPurchases = useCallback(({ supplierId, params }) => {
+    return dispatch(getSupplierPurchases({ supplierId, params })).unwrap();
   }, [dispatch]);
 
   const fetchSupplierPayments = useCallback((supplierId) => {
@@ -194,6 +196,7 @@ const useSupplier = () => {
     total,
     page,
     limit,
+    stats,
 
     status,
     error,
