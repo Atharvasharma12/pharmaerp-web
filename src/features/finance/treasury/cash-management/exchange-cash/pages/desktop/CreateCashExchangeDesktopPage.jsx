@@ -173,7 +173,7 @@ const DenominationGrid = ({
 const CreateCashExchangeDesktopPage = ({
   formData,
   formErrors,
-  cashAccountOptions,
+  partitionOptions,
   selectedCashAccount,
   receivedDenominations,
   givenDenominations,
@@ -191,8 +191,7 @@ const CreateCashExchangeDesktopPage = ({
   handleCancel,
 }) => {
   const diff = totalReceived - totalGiven;
-  const availableDenoms =
-    selectedCashAccount?.denominationBalance?.denominations || [];
+  const availableDenoms = (formData.partition === "running" ? selectedCashAccount?.balance?.runningDenominations : selectedCashAccount?.balance?.frozenDenominations) || [];
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
@@ -269,14 +268,14 @@ const CreateCashExchangeDesktopPage = ({
                       size="sm"
                     />
                     <AppSelect
-                      label="Cash Account *"
-                      placeholder="Select cash account…"
-                      options={cashAccountOptions}
-                      value={formData.cashAccountId}
+                      label="Cash Partition *"
+                      placeholder="Select cash partition…"
+                      options={partitionOptions}
+                      value={formData.partition}
                       onChange={(e) =>
-                        handleInputChange("cashAccountId", e.target.value)
+                        handleInputChange("partition", e.target.value)
                       }
-                      error={formErrors.cashAccountId}
+                      error={formErrors.partition}
                       size="sm"
                     />
                   </div>
@@ -430,7 +429,7 @@ const CreateCashExchangeDesktopPage = ({
                   size="xs"
                   sx={{ color: "var(--color-text-muted)", marginBottom: 8 }}
                 >
-                  {selectedCashAccount.accountName}
+                  {selectedCashAccount.branchId ? "Branch Cash" : ""}
                 </AppText>
                 {availableDenoms.length > 0 ? (
                   <div className="space-y-1">

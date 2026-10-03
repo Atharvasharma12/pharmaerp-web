@@ -7,8 +7,8 @@ const fmt = (n) =>
 /**
  * Displays fund transfers (withdrawals & deposits) that occurred during a shift.
  * Both are relative to the shift's system-default cash account:
- *   - Withdrawal: money LEFT the cash account (fromCashAccountId = shift's cash account)
- *   - Deposit:    money ENTERED the cash account (toCashAccountId = shift's cash account)
+ *   - Withdrawal: money LEFT the cash partition (from branch cash)
+ *   - Deposit:    money ENTERED the cash partition (to branch cash)
  */
 export const ShiftFundTransferPanel = ({
   withdrawals = [],

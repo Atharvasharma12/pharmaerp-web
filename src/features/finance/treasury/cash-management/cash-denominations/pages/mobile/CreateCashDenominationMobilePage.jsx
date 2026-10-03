@@ -18,7 +18,7 @@ const CreateCashDenominationMobilePage = ({
   denominations = [],
   physicalTotal = 0,
   variance = 0,
-  cashAccountOptions = [],
+  partitionOptions = [],
   isSubmitting = false,
   error,
   message,
@@ -86,14 +86,14 @@ const CreateCashDenominationMobilePage = ({
           >
             <div className="p-4 space-y-4">
               <AppSelect
-                label="Cash Register Till"
-                name="cashAccountId"
-                value={formData.cashAccountId}
-                onChange={(e) => handleInputChange("cashAccountId", e.target.value)}
-                options={cashAccountOptions}
-                placeholder="Choose register..."
-                error={Boolean(formErrors.cashAccountId)}
-                errorText={formErrors.cashAccountId}
+                label="Cash Partition"
+                name="partition"
+                value={formData.partition}
+                onChange={(e) => handleInputChange("partition", e.target.value)}
+                options={partitionOptions}
+                placeholder="Choose partition..."
+                error={Boolean(formErrors.partition)}
+                errorText={formErrors.partition}
                 required
               />
 

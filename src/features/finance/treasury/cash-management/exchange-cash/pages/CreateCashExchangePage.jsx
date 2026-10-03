@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
-import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
+import useBranchCash from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
 
 import useCashExchange from "../hooks/useCashExchange";
@@ -24,7 +24,7 @@ const INITIAL_DENOMINATIONS = [
 
 const INITIAL_FORM_DATA = {
   exchangeDate: new Date().toISOString().split("T")[0],
-  cashAccountId: "",
+  partition: "running",
   narration: "",
   notes: "",
 };
@@ -43,7 +43,7 @@ const CreateCashExchangePage = () => {
     clearMessage,
   } = useCashExchange();
 
-  const { cashAccounts = [], getCashAccounts } = useCashAccount();
+  const { currentBranchCash: branchCash, fetchBranchCash: getBranchCash } = useBranchCash();
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   // Denominations the customer hands IN to us (bigger notes)
@@ -56,10 +56,12 @@ const CreateCashExchangePage = () => {
   const [actionError, setActionError] = useState("");
 
   useEffect(() => {
-    getCashAccounts({ all: true, branchId: currentBranch?._id }).catch((err) =>
-      console.error("Failed to load cash accounts:", err),
-    );
-  }, [getCashAccounts, currentBranch?._id]);
+    if (currentBranch?._id) {
+      getBranchCash(currentBranch._id).catch((err) =>
+        console.error("Failed to load branch cash:", err),
+      );
+    }
+  }, [getBranchCash, currentBranch?._id]);
 
   useEffect(() => {
     return () => {
@@ -106,26 +108,24 @@ const CreateCashExchangePage = () => {
 
   const isBalanced = totalReceived > 0 && totalReceived === totalGiven;
 
-  const cashAccountOptions = useMemo(
-    () =>
-      cashAccounts.map((c) => {
-        const availableDenoms = c.denominationBalance?.denominations || [];
-        const totalAmount = availableDenoms.reduce(
-          (acc, d) => acc + d.denomination * d.quantity,
-          0
-        );
-        return {
-          label: `${c.accountName || "Cash Account"} (Available: ₹${totalAmount.toLocaleString("en-IN")})`,
-          value: c._id,
-        };
-      }),
-    [cashAccounts],
+  const partitionOptions = useMemo(
+    () => {
+      const runningBalance = branchCash?.denominationBalance?.runningDenominations?.reduce(
+        (acc, d) => acc + d.denomination * d.quantity, 0
+      ) || 0;
+      const frozenBalance = branchCash?.denominationBalance?.frozenDenominations?.reduce(
+        (acc, d) => acc + d.denomination * d.quantity, 0
+      ) || 0;
+
+      return [
+        { label: `Running Cash (Available: ₹${runningBalance.toLocaleString("en-IN")})`, value: "running" },
+        { label: `Frozen Cash (Available: ₹${frozenBalance.toLocaleString("en-IN")})`, value: "frozen" }
+      ];
+    },
+    [branchCash],
   );
 
-  const selectedCashAccount = useMemo(
-    () => cashAccounts.find((c) => c._id === formData.cashAccountId) || null,
-    [cashAccounts, formData.cashAccountId],
-  );
+  const selectedCashAccount = branchCash;
 
   const handleInputChange = useCallback(
     (name, value) => {
@@ -142,8 +142,8 @@ const CreateCashExchangePage = () => {
 
     if (!formData.exchangeDate)
       errors.exchangeDate = "Exchange date is required";
-    if (!formData.cashAccountId)
-      errors.cashAccountId = "Cash account is required";
+    if (!formData.partition)
+      errors.partition = "Cash partition is required";
 
     const filteredReceived = receivedDenominations.filter((d) => d.quantity > 0);
     const filteredGiven = givenDenominations.filter((d) => d.quantity > 0);
@@ -169,7 +169,7 @@ const CreateCashExchangePage = () => {
     // Pre-flight: check drawer has enough of what we want to give
     if (filteredGiven.length > 0 && selectedCashAccount) {
       const availableDenoms =
-        selectedCashAccount?.denominationBalance?.denominations || [];
+        (formData.partition === "running" ? selectedCashAccount?.balance?.runningDenominations : selectedCashAccount?.balance?.frozenDenominations) || [];
       for (const gd of filteredGiven) {
         const available = availableDenoms.find(
           (ad) => ad.denomination === gd.denomination,
@@ -198,7 +198,7 @@ const CreateCashExchangePage = () => {
     try {
       const payload = {
         exchangeDate: formData.exchangeDate,
-        cashAccountId: formData.cashAccountId,
+        partition: formData.partition,
         denominationsReceived: receivedDenominations
           .filter((d) => d.quantity > 0)
           .map((d) => ({ denomination: d.denomination, quantity: d.quantity })),
@@ -228,8 +228,7 @@ const CreateCashExchangePage = () => {
   const pageProps = {
     formData,
     formErrors,
-    cashAccountOptions,
-    selectedCashAccount,
+    partitionOptions,
     receivedDenominations,
     givenDenominations,
     totalReceived,

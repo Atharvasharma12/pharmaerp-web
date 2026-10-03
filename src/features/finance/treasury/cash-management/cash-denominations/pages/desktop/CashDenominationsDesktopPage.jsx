@@ -39,7 +39,7 @@ const statusFilterOptions = [
 const CashDenominationsDesktopPage = ({
   denominations = [],
   filters,
-  cashAccountOptions = [],
+  partitionOptions = [],
   branchOptions = [],
   currentPage,
   pageSize,
@@ -100,7 +100,7 @@ const CashDenominationsDesktopPage = ({
       minWidth: 180,
       render: (_, item) => (
         <AppText variant="body2" sx={tableValueSx}>
-          {item.cashAccountId?.accountName || "Unknown Register"}
+          {item.partition === "running" ? "Running Cash" : "Frozen Cash"}
         </AppText>
       ),
     },
@@ -110,7 +110,7 @@ const CashDenominationsDesktopPage = ({
       minWidth: 160,
       render: (_, item) => (
         <AppText variant="body2" sx={tableValueMutedSx}>
-          {item.branchId?.name || item.cashAccountId?.branchId?.name || "Central Office"}
+          {item.branchId?.name || "Central Office"}
         </AppText>
       ),
     },
@@ -254,10 +254,10 @@ const CashDenominationsDesktopPage = ({
 
             <div className="flex items-center gap-2">
               <AppSelect
-                name="cashAccountId"
-                value={filters.cashAccountId}
-                onChange={(e) => handleFilterChange("cashAccountId", e.target.value)}
-                options={cashAccountOptions}
+                name="partition"
+                value={filters.partition}
+                onChange={(e) => handleFilterChange("partition", e.target.value)}
+                options={partitionOptions}
                 size="small"
                 variant="bordered"
                 rounded="md"

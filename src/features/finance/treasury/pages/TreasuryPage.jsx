@@ -26,7 +26,7 @@ const TreasuryPage = () => {
         id: "totalCashBalance",
         title: "Total Cash Balance",
         value: "₹ 4,35,120.00",
-        description: "Across 5 Cash Accounts",
+        description: "Branch Cash (Running & Frozen)",
         colorVariant: "warning",
       },
       {
@@ -101,12 +101,12 @@ const TreasuryPage = () => {
         permission: "bank-account:view",
       },
       {
-        id: "cashAccounts",
-        title: "Cash Accounts",
-        description: "Manage cash in hand, petty cash and cash registers",
+        id: "branchCash",
+        title: "Branch Cash",
+        description: "Manage running cash and frozen reserve for this branch",
         colorVariant: "warning",
-        path: "/finance/treasury/cash-accounts",
-        permission: "cash-account:view",
+        path: ROUTES.BRANCH_CASH,
+        permission: "cash-account:view", // reusing old permission for now
       },
       {
         id: "fundTransfers",
@@ -221,11 +221,11 @@ const TreasuryPage = () => {
         permission: "bank-account:create",
       },
       {
-        id: "addCashAccount",
-        title: "Add Cash Account",
-        path: ROUTES.CREATE_CASH_ACCOUNT,
+        id: "viewBranchCash",
+        title: "View Branch Cash",
+        path: ROUTES.BRANCH_CASH,
         colorVariant: "warning",
-        permission: "cash-account:create",
+        permission: "cash-account:view",
       },
       {
         id: "recordBankTransaction",

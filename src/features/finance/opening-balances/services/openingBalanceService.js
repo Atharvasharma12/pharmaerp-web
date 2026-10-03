@@ -16,10 +16,6 @@ const openingBalanceService = {
   setBankAccountOpeningBalance(payload) {
     return apiClient.post(ENDPOINTS.OPENING_BALANCE.BANK_ACCOUNT, payload);
   },
-
-  setCashAccountOpeningBalance(payload) {
-    return apiClient.post(ENDPOINTS.OPENING_BALANCE.CASH_ACCOUNT, payload);
-  },
 };
 
 export default openingBalanceService;

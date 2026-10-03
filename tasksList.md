@@ -1,3 +1,18 @@
+unable to open shift or next day until user dayclosed for previous date
+also dayclosing automatic get date from last shift date
+
+add edit and delete actions for everything for owner
+
+cash from running to reserved only on shift close also only reserved cash can be send in bankslip
+
+only can withdraw from reserved cash, for deposit first deposit in running cash only when shift is open
+
+can able to withdraw from bankslip
+
+only able to exchange from cash(running or reseverd) not from bankslip
+
+add recycle bin
+
 see credit logic
 
 add sepearte upi amount -done

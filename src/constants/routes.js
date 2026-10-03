@@ -144,17 +144,10 @@ export const ROUTES = {
   EDIT_BANK_ACCOUNT: (bankAccountId = ":bankAccountId") =>
     `/finance/treasury/bank-accounts/${bankAccountId}/edit`,
 
-  // Finance - Treasury - Cash Accounts
+  // Finance - Treasury - Branch Cash
+  BRANCH_CASH: "/finance/treasury/branch-cash",
 
-  CASH_ACCOUNTS: "/finance/treasury/cash-accounts",
 
-  CREATE_CASH_ACCOUNT: "/finance/treasury/cash-accounts/create",
-
-  CASH_ACCOUNT_DETAILS: (cashAccountId = ":cashAccountId") =>
-    `/finance/treasury/cash-accounts/${cashAccountId}`,
-
-  EDIT_CASH_ACCOUNT: (cashAccountId = ":cashAccountId") =>
-    `/finance/treasury/cash-accounts/${cashAccountId}/edit`,
 
   // Finance - Treasury - Payment QR
 

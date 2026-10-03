@@ -38,11 +38,10 @@ const CashExchangeDetailsMobilePage = ({
     status,
     totalReceived,
     totalGiven,
-    cashAccountId,
+    notes,
     denominationsReceived = [],
     denominationsGiven = [],
     narration,
-    notes,
     createdBy,
     createdAt,
     cancelledBy,
@@ -128,7 +127,7 @@ const CashExchangeDetailsMobilePage = ({
           <div className="space-y-3">
             <div>
               <AppText size="xs" sx={{ color: "var(--color-text-muted)" }}>Cash Account</AppText>
-              <AppText size="sm" weight={600}>{cashAccountId?.accountName || "—"}</AppText>
+              <AppText size="sm" weight={600}>Branch Cash</AppText>
             </div>
             <div>
               <AppText size="xs" sx={{ color: "var(--color-text-muted)" }}>Narration</AppText>

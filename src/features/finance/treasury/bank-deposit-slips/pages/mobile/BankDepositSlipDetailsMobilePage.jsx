@@ -104,7 +104,7 @@ const BankDepositSlipDetailsMobilePage = ({
                 <div>
                   <p className="text-[11px] text-text-muted mb-0.5">From Cash Account</p>
                   <p className="text-[14px] font-medium text-text">
-                    {slip.fromCashAccountId?.accountName || slip.fromCashAccount?.name || "-"}
+                    {slip.branchId?.name ? `${slip.branchId.name} Cash` : "Branch Cash"}
                   </p>
                 </div>
                 <div>

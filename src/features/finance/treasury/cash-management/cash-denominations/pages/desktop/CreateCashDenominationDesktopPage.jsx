@@ -19,7 +19,7 @@ const CreateCashDenominationDesktopPage = ({
   denominations = [],
   physicalTotal = 0,
   variance = 0,
-  cashAccountOptions = [],
+  partitionOptions = [],
   isSubmitting = false,
   error,
   message,
@@ -85,14 +85,14 @@ const CreateCashDenominationDesktopPage = ({
             <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={cardSx}>
               <div className="p-4 grid grid-cols-2 gap-4">
                 <AppSelect
-                  label="Select Cash Register Chest"
-                  name="cashAccountId"
-                  value={formData.cashAccountId}
-                  onChange={(e) => handleInputChange("cashAccountId", e.target.value)}
-                  options={cashAccountOptions}
-                  placeholder="Choose cash drawer..."
-                  error={Boolean(formErrors.cashAccountId)}
-                  errorText={formErrors.cashAccountId}
+                  label="Select Cash Partition"
+                  name="partition"
+                  value={formData.partition}
+                  onChange={(e) => handleInputChange("partition", e.target.value)}
+                  options={partitionOptions}
+                  placeholder="Choose cash partition..."
+                  error={Boolean(formErrors.partition)}
+                  errorText={formErrors.partition}
                   required
                 />
 

@@ -110,7 +110,7 @@ const BankDepositSlipDetailsDesktopPage = ({
                 <div>
                   <p className="text-[12px] text-text-muted mb-1">From Cash Account</p>
                   <p className="text-[13px] font-medium text-text">
-                    {slip.fromCashAccountId?.accountName || slip.fromCashAccount?.name || "-"}
+                    {slip.branchId?.name ? `${slip.branchId.name} Cash` : "Branch Cash"}
                   </p>
                 </div>
                 <div>

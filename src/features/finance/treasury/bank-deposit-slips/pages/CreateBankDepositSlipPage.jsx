@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import useBankAccount from "@/features/finance/treasury/bank-management/bank-accounts/hooks/useBankAccount";
-import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
+import { useBranchCash } from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
 
 import useBankDepositSlip from "../hooks/useBankDepositSlip";
@@ -25,7 +25,6 @@ const INITIAL_DENOMINATIONS = [
 
 const INITIAL_FORM_DATA = {
   slipDate: new Date().toISOString().split("T")[0],
-  fromCashAccountId: "",
   toBankAccountId: "",
   depositBagReference: "",
   bankBranchName: "",
@@ -40,7 +39,6 @@ const CreateBankDepositSlipPage = () => {
   const { currentBranch } = useBranch();
 
   const prefillDayClosingId = searchParams.get("dayClosingId") || null;
-  const prefillCashAccountId = searchParams.get("cashAccountId") || null;
 
   const {
     createBankDepositSlip,
@@ -52,11 +50,10 @@ const CreateBankDepositSlipPage = () => {
   } = useBankDepositSlip();
 
   const { bankAccounts = [], getBankAccounts } = useBankAccount();
-  const { cashAccounts = [], getCashAccounts, getCashAccountById } = useCashAccount();
+  const { fetchBranchCash, currentBranchCash, frozenDenominations, frozenCash } = useBranchCash();
 
   const [formData, setFormData] = useState(() => ({
     ...INITIAL_FORM_DATA,
-    fromCashAccountId: prefillCashAccountId || "",
     dayClosingId: prefillDayClosingId || "",
   }));
   const [denominations, setDenominations] = useState(INITIAL_DENOMINATIONS);
@@ -64,8 +61,6 @@ const CreateBankDepositSlipPage = () => {
   const [actionError, setActionError] = useState("");
 
   const hasFetchedBanksRef = useRef(false);
-  const hasFetchedCashRef = useRef(false);
-  const hasInitializedDenomsRef = useRef(false);
 
   useEffect(() => {
     if (hasFetchedBanksRef.current) return;
@@ -76,44 +71,25 @@ const CreateBankDepositSlipPage = () => {
   }, [getBankAccounts]);
 
   useEffect(() => {
-    if (hasFetchedCashRef.current) return;
-    hasFetchedCashRef.current = true;
-    getCashAccounts({ all: true, branchId: currentBranch?._id, status: "active" }).catch((err) =>
-      console.error("Failed to load cash accounts:", err)
-    );
-  }, [getCashAccounts, currentBranch?._id]);
-
-  useEffect(() => {
-    if (prefillCashAccountId && cashAccounts.length > 0) {
-      const found = cashAccounts.find((c) => c._id === prefillCashAccountId);
-      if (found) {
-        setFormData((prev) => ({
-          ...prev,
-          fromCashAccountId: prefillCashAccountId,
-        }));
-      }
+    if (currentBranch?._id) {
+      fetchBranchCash(currentBranch._id);
     }
-  }, [cashAccounts, prefillCashAccountId]);
-
-  const selectedCashAccount = useMemo(() => {
-    if (!formData.fromCashAccountId) return null;
-    return cashAccounts.find((c) => c._id === formData.fromCashAccountId) || null;
-  }, [formData.fromCashAccountId, cashAccounts]);
+  }, [currentBranch?._id, fetchBranchCash]);
 
   const availableDenominationsMap = useMemo(() => {
     const map = new Map();
-    if (selectedCashAccount?.denominationBalance?.denominations) {
-      for (const d of selectedCashAccount.denominationBalance.denominations) {
+    if (frozenDenominations) {
+      for (const d of frozenDenominations) {
         map.set(d.denomination, d.quantity || 0);
       }
     }
     return map;
-  }, [selectedCashAccount]);
+  }, [frozenDenominations]);
 
-  const applyDenominationsFromAccount = useCallback((account) => {
-    if (account?.denominationBalance?.denominations) {
+  const applyDenominationsFromAccount = useCallback(() => {
+    if (frozenDenominations) {
       const balanceMap = new Map(
-        account.denominationBalance.denominations.map((d) => [d.denomination, d.quantity || 0])
+        frozenDenominations.map((d) => [d.denomination, d.quantity || 0])
       );
       setDenominations(
         INITIAL_DENOMINATIONS.map((d) => ({
@@ -124,18 +100,7 @@ const CreateBankDepositSlipPage = () => {
     } else {
       setDenominations(INITIAL_DENOMINATIONS);
     }
-  }, []);
-
-  // Auto-populate when cash account is selected or prefilled
-  useEffect(() => {
-    if (formData.fromCashAccountId && cashAccounts.length > 0 && !hasInitializedDenomsRef.current) {
-      const found = cashAccounts.find((c) => c._id === formData.fromCashAccountId);
-      if (found?.denominationBalance?.denominations) {
-        hasInitializedDenomsRef.current = true;
-        applyDenominationsFromAccount(found);
-      }
-    }
-  }, [cashAccounts, formData.fromCashAccountId, applyDenominationsFromAccount]);
+  }, [frozenDenominations]);
 
   const totalAmount = useMemo(() => {
     return denominations.reduce(
@@ -143,20 +108,6 @@ const CreateBankDepositSlipPage = () => {
       0
     );
   }, [denominations]);
-
-  const cashAccountOptions = useMemo(() => {
-    return [
-      { label: "Select Cash Account", value: "" },
-      ...cashAccounts.map((acc) => {
-        const bal = acc.denominationBalance?.totalBalance;
-        const balText = bal !== undefined ? ` [₹${bal.toLocaleString("en-IN")}]` : "";
-        return {
-          label: `${acc.accountName || "Cash Account"}${balText}`,
-          value: acc._id,
-        };
-      }),
-    ];
-  }, [cashAccounts]);
 
   const bankAccountOptions = useMemo(() => {
     return [
@@ -181,39 +132,9 @@ const CreateBankDepositSlipPage = () => {
     setFormErrors((prev) => ({ ...prev, [name]: undefined }));
   }, []);
 
-  const handleCashAccountChange = useCallback(
-    async (accountId) => {
-      handleChange("fromCashAccountId", accountId);
-
-      if (!accountId) {
-        setDenominations(INITIAL_DENOMINATIONS);
-        return;
-      }
-
-      // 1. Immediately apply cached account denominations for zero latency
-      const cached = cashAccounts.find((c) => c._id === accountId);
-      if (cached?.denominationBalance?.denominations) {
-        applyDenominationsFromAccount(cached);
-      }
-
-      // 2. Fetch fresh live account detail to guarantee 100% current counts
-      try {
-        const fresh = await getCashAccountById(accountId);
-        if (fresh?.denominationBalance?.denominations) {
-          applyDenominationsFromAccount(fresh);
-        }
-      } catch (err) {
-        console.warn("Could not fetch fresh cash account balance:", err);
-      }
-    },
-    [handleChange, cashAccounts, getCashAccountById, applyDenominationsFromAccount]
-  );
-
   const handleFillAllAvailable = useCallback(() => {
-    if (selectedCashAccount) {
-      applyDenominationsFromAccount(selectedCashAccount);
-    }
-  }, [selectedCashAccount, applyDenominationsFromAccount]);
+    applyDenominationsFromAccount();
+  }, [applyDenominationsFromAccount]);
 
   const handleClearAll = useCallback(() => {
     setDenominations(INITIAL_DENOMINATIONS);
@@ -242,120 +163,93 @@ const CreateBankDepositSlipPage = () => {
   const validateForm = useCallback(() => {
     const errors = {};
     if (!formData.slipDate) errors.slipDate = "Date is required.";
-    if (!formData.fromCashAccountId)
-      errors.fromCashAccountId = "Cash account is required.";
     if (!formData.toBankAccountId)
       errors.toBankAccountId = "Bank account is required.";
 
     if (totalAmount <= 0) {
-      errors.totalAmount = "Amount must be greater than zero.";
-    }
-
-    // Check denomination sufficiency against selected cash account
-    if (selectedCashAccount) {
-      const exceeded = denominations.find((d) => {
-        const availableQty = availableDenominationsMap.get(d.denomination) || 0;
-        return (d.quantity || 0) > availableQty;
-      });
-
-      if (exceeded) {
-        const maxAvail = availableDenominationsMap.get(exceeded.denomination) || 0;
-        errors.totalAmount = `Quantity for ₹${exceeded.denomination} (${exceeded.quantity}) exceeds available in account (${maxAvail} available).`;
-      }
-
-      const accountTotal = selectedCashAccount.denominationBalance?.totalBalance ?? 0;
-      if (totalAmount > accountTotal) {
-        errors.totalAmount = `Deposit amount (₹${totalAmount.toLocaleString("en-IN")}) exceeds total cash in account (₹${accountTotal.toLocaleString("en-IN")}).`;
-      }
+      errors.amount = "Deposit amount must be greater than zero.";
+    } else if (totalAmount > (frozenCash || 0)) {
+      errors.amount = "Insufficient frozen cash available.";
     }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [formData, totalAmount, selectedCashAccount, denominations, availableDenominationsMap]);
+  }, [formData, totalAmount, frozenCash]);
 
-  const handleSubmit = useCallback(
-    async (e) => {
-      if (e && e.preventDefault) e.preventDefault();
+  const handleSubmit = useCallback(async () => {
+    setActionError("");
+    if (!validateForm()) {
+      return;
+    }
 
-      clearError();
-      clearMessage();
-      setActionError("");
+    // Filter out zero-quantity denominations
+    const filteredDenominations = denominations.filter(
+      (d) => (d.quantity || 0) > 0
+    );
 
-      if (!validateForm()) {
-        return;
-      }
+    const payload = {
+      ...formData,
+      branchId: currentBranch._id,
+      amount: totalAmount,
+      denominations: filteredDenominations,
+      dayClosingId: formData.dayClosingId || null,
+    };
 
-      const payload = {
-        slipDate: formData.slipDate,
-        fromCashAccountId: formData.fromCashAccountId,
-        toBankAccountId: formData.toBankAccountId,
-        amount: totalAmount,
-        depositBagReference: formData.depositBagReference || undefined,
-        bankBranchName: formData.bankBranchName || undefined,
-        narration: formData.narration || undefined,
-        dayClosingId: formData.dayClosingId || undefined,
-        denominations: denominations.filter((d) => d.quantity > 0),
-      };
-
-      try {
-        const result = await createBankDepositSlip(payload);
-        if (result?._id) {
-          navigate(ROUTES.BANK_DEPOSIT_SLIP_DETAILS(result._id), {
-            replace: true,
-          });
-        }
-      } catch (err) {
-        setActionError(
-          typeof err === "string" ? err : "Failed to create bank deposit slip."
-        );
-      }
-    },
-    [
-      formData,
-      totalAmount,
-      denominations,
-      validateForm,
-      createBankDepositSlip,
-      navigate,
-      clearError,
-      clearMessage,
-    ]
-  );
+    try {
+      await createBankDepositSlip(payload);
+      navigate(ROUTES.BANK_DEPOSIT_SLIPS, {
+        state: { message: "Bank deposit slip created successfully." },
+      });
+    } catch (err) {
+      setActionError(
+        err?.message ||
+        "Failed to create deposit slip."
+      );
+      console.error(err);
+    }
+  }, [
+    validateForm,
+    formData,
+    totalAmount,
+    denominations,
+    currentBranch,
+    createBankDepositSlip,
+    navigate,
+  ]);
 
   const handleBack = useCallback(() => {
     navigate(ROUTES.BANK_DEPOSIT_SLIPS);
   }, [navigate]);
 
+  const clearFeedback = useCallback(() => {
+    clearError();
+    clearMessage();
+    setActionError("");
+  }, [clearError, clearMessage]);
+
+  const combinedError = actionError || error;
   const isSubmitting = createBankDepositSlipStatus === API_STATUS.LOADING;
 
   const pageProps = {
     formData,
     denominations,
     totalAmount,
-    bankAccounts: bankAccounts || [],
-    cashAccounts: cashAccounts || [],
-    cashAccountOptions,
+    bankAccounts,
     bankAccountOptions,
+    availableDenominationsMap,
     currentBranch,
+    frozenCash,
     isSubmitting,
     formErrors,
-    error: error || actionError,
-    message,
-    selectedCashAccount,
-    availableDenominationsMap,
+    error: combinedError,
     handleChange,
-    handleCashAccountChange,
     handleDenominationChange,
     handleFillAllAvailable,
     handleClearAll,
     handleSetMaxForDenom,
     handleSubmit,
     handleBack,
-    clearFeedback: () => {
-      clearError();
-      clearMessage();
-      setActionError("");
-    },
+    clearFeedback,
   };
 
   return isMobile ? (
@@ -366,4 +260,3 @@ const CreateBankDepositSlipPage = () => {
 };
 
 export default CreateBankDepositSlipPage;
-

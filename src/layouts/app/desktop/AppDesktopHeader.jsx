@@ -116,7 +116,7 @@ const getPageTitle = (pathname) => {
   if (pathname.startsWith("/finance/chart-of-accounts/accounts")) return "Accounts List";
   if (pathname.startsWith("/finance/account-balances")) return "Account Balances";
   if (pathname.startsWith("/finance/treasury/bank-accounts")) return "Bank Accounts";
-  if (pathname.startsWith("/finance/treasury/cash-accounts")) return "Cash Accounts";
+
   if (pathname.startsWith("/finance/treasury/fund-transfers")) return "Fund Transfers";
   if (pathname.startsWith("/finance/treasury/cash-exchanges")) return "Cash Exchanges";
   if (pathname.startsWith("/finance/treasury/cheque-management")) return "Cheque Management";
@@ -490,13 +490,7 @@ const getBreadcrumbs = (pathname, isSetupComplete = false) => {
       { label: "Bank Accounts", to: null },
     ];
   }
-  if (pathname.startsWith("/finance/treasury/cash-accounts")) {
-    return [
-      root,
-      { label: "Treasury", to: ROUTES.BANK_ACCOUNTS },
-      { label: "Cash Accounts", to: null },
-    ];
-  }
+
   if (pathname.startsWith("/finance/treasury/fund-transfers")) {
     return [
       root,

@@ -171,8 +171,6 @@ export const ENDPOINTS = {
     SUPPLIER: "/finance/opening-balances/supplier",
 
     BANK_ACCOUNT: "/finance/opening-balances/bank-account",
-
-    CASH_ACCOUNT: "/finance/opening-balances/cash-account",
   },
 
   ACCOUNT_BALANCE: {
@@ -261,16 +259,15 @@ export const ENDPOINTS = {
       `/finance/treasury/bank-transactions/${bankTransactionId}/cancel`,
   },
 
-  CASH_ACCOUNT: {
-    CREATE: "/finance/treasury/cash-accounts",
+  // CASH_ACCOUNT deprecated — replaced by BRANCH_CASH
+  BRANCH_CASH: {
+    LIST: "/finance/treasury/branch-cash",
 
-    LIST: "/finance/treasury/cash-accounts",
+    BY_BRANCH: (branchId) => `/finance/treasury/branch-cash/${branchId}`,
 
-    BY_ID: (cashAccountId) =>
-      `/finance/treasury/cash-accounts/${cashAccountId}`,
+    DEPOSIT: "/finance/treasury/branch-cash/deposit",
 
-    SET_PRIMARY: (cashAccountId) =>
-      `/finance/treasury/cash-accounts/${cashAccountId}/set-primary`,
+    WITHDRAW: "/finance/treasury/branch-cash/withdraw",
   },
 
   CASH_TRANSACTION: {

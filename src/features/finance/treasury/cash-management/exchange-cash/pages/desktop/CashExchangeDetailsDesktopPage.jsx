@@ -42,11 +42,10 @@ const CashExchangeDetailsDesktopPage = ({
     status,
     totalReceived,
     totalGiven,
-    cashAccountId,
+    notes,
     denominationsReceived = [],
     denominationsGiven = [],
     narration,
-    notes,
     createdBy,
     createdAt,
     cancelledBy,
@@ -180,7 +179,7 @@ const CashExchangeDetailsDesktopPage = ({
                     Cash Account
                   </AppText>
                   <AppText size="sm" weight={600}>
-                    {cashAccountId?.accountName || "—"}
+                    Branch Cash
                   </AppText>
                 </div>
                 <div>

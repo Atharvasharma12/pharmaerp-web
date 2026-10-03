@@ -19,7 +19,7 @@ import { useSelector } from "react-redux";
 import { UIModal, UIButton } from "@/components/ui";
 import { PermissionGate } from "@/components/common/PermissionGate";
 import usePaymentQr from "@/features/finance/treasury/payment-qr/hooks/usePaymentQr";
-import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
+import { useBranchCash } from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { ROUTES } from "@/constants";
 import { CashBreakdownModal } from "./CashBreakdownModal";
@@ -64,36 +64,21 @@ export const SalesCheckoutModal = ({
   const navigate = useNavigate();
   const { currentBranch } = useBranch();
   const { paymentQrs, getPaymentQrs } = usePaymentQr();
-  const { cashAccounts, getCashAccounts } = useCashAccount();
+  const { fetchBranchCash, runningCash, runningDenominations } = useBranchCash();
   const reduxActiveShift = useSelector((state) => state.shift?.activeShift);
   const activeShift = activeShiftProp ?? reduxActiveShift;
 
   useEffect(() => {
     if (isOpen && currentBranch?._id) {
       getPaymentQrs({});
-      getCashAccounts({ branchId: currentBranch._id, all: "true" });
+      fetchBranchCash(currentBranch._id);
     }
-  }, [isOpen, currentBranch?._id]);
+  }, [isOpen, currentBranch?._id, fetchBranchCash]);
 
-  // Main operating cash counter (Shift drawer / System default)
-  const mainCashAccount = useMemo(() => {
-    if (!cashAccounts || cashAccounts.length === 0) return null;
-    if (activeShift?.cashAccountId) {
-      const match = cashAccounts.find(
-        (ca) => String(ca._id) === String(activeShift.cashAccountId)
-      );
-      if (match) return match;
-    }
-    const sysDefault = cashAccounts.find((ca) => ca.isSystemDefault);
-    if (sysDefault) return sysDefault;
-    const primary = cashAccounts.find((ca) => ca.isPrimary);
-    if (primary) return primary;
-    return cashAccounts[0] || null;
-  }, [cashAccounts, activeShift?.cashAccountId]);
-
+  // Main operating cash counter (Branch Running Cash)
   const availableCash = useMemo(() => {
-    return mainCashAccount?.denominationBalance?.totalBalance ?? 0;
-  }, [mainCashAccount]);
+    return runningCash || 0;
+  }, [runningCash]);
 
   // Primary QR — pre-selected for UPI payments (zero friction for cashier)
   const primaryQr = useMemo(() => {
@@ -174,11 +159,11 @@ export const SalesCheckoutModal = ({
           id: Date.now(),
           paymentType: "Cash",
           amount: grandTotal,
-          cashAccountId: mainCashAccount?._id || "",
+          branchId: currentBranch?._id || "",
         },
       ]);
     }
-  }, [isOpen, grandTotal, mainCashAccount?._id]);
+  }, [isOpen, grandTotal, currentBranch?._id]);
 
   const [cashBreakdownTarget, setCashBreakdownTarget] = useState(null); // index of row
 
@@ -189,7 +174,7 @@ export const SalesCheckoutModal = ({
     const next = [...payments];
     const updated = { ...next[index], [field]: value };
     if (field === "paymentType" && value === "Cash") {
-      updated.cashAccountId = mainCashAccount?._id || "";
+      updated.branchId = currentBranch?._id || "";
       delete updated.paymentQrId;
     }
     // Auto-select primary QR when switching to UPI
@@ -230,7 +215,7 @@ export const SalesCheckoutModal = ({
         id: Date.now(),
         paymentType: "Cash",
         amount: shortfall,
-        cashAccountId: mainCashAccount?._id || "",
+        branchId: currentBranch?._id || "",
         paymentQrId: undefined,
       },
     ]);
@@ -295,7 +280,8 @@ export const SalesCheckoutModal = ({
           amount: Number(p.amount),
           paymentQrId: p.paymentQrId,
           txnRefNo: p.txnRefNo,
-          cashAccountId: p.paymentType === "Cash" ? (mainCashAccount?._id || p.cashAccountId) : undefined,
+          branchId: p.paymentType === "Cash" ? currentBranch?._id : undefined,
+          cashPartition: p.paymentType === "Cash" ? "running" : undefined,
           denominations: p.cashDetails?.received 
             ? Object.entries(p.cashDetails.received).map(([val, qty]) => ({ denomination: Number(val), quantity: qty }))
             : [],
@@ -460,11 +446,11 @@ export const SalesCheckoutModal = ({
                             Cash Counter
                           </span>
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                            {activeShift ? "Shift Cash Drawer" : "Main Counter"}
+                            {activeShift ? "Shift Cash Drawer" : "Running Cash"}
                           </span>
                         </div>
                         <p className="text-xs font-bold text-text truncate">
-                          {mainCashAccount?.accountName || "Main Cash Counter"}
+                          Branch Cash (Running)
                         </p>
                       </div>
                     </div>
@@ -657,8 +643,6 @@ export const SalesCheckoutModal = ({
       </div>
 
       {(() => {
-        const selectedCashAccount = mainCashAccount;
-        
         return (
           <CashBreakdownModal
             isOpen={cashBreakdownTarget !== null}
@@ -667,9 +651,9 @@ export const SalesCheckoutModal = ({
             targetAmount={cashBreakdownTarget !== null ? Number(payments[cashBreakdownTarget]?.amount || 0) : 0}
             initialReceived={cashBreakdownTarget !== null ? payments[cashBreakdownTarget]?.cashDetails?.received : {}}
             initialReturned={cashBreakdownTarget !== null ? payments[cashBreakdownTarget]?.cashDetails?.returned : {}}
-            availableDenominations={selectedCashAccount?.denominationBalance?.denominations || []}
-            availableBalance={selectedCashAccount?.denominationBalance?.totalBalance || 0}
-            cashAccountName={selectedCashAccount?.accountName || "Main Cash Counter"}
+            availableDenominations={runningDenominations || []}
+            availableBalance={runningCash || 0}
+            cashAccountName="Branch Cash (Running)"
           />
         );
       })()}

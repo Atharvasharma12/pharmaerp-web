@@ -381,13 +381,13 @@ export const SIDEBAR_NAV_GROUPS = [
             icon: Landmark,
             permissions: [
               "bank-account:view",
-              "cash-account:view",
               "fund-transfer:view",
               "cheque:view",
               "payment-qr:view",
               "cash-denomination:view",
               "cash-exchange:view",
               "bank-deposit-slip:view",
+              "cash-account:view",
             ],
             children: [
               {
@@ -398,9 +398,9 @@ export const SIDEBAR_NAV_GROUPS = [
                 permission: "bank-account:view",
               },
               {
-                id: "cash-accounts",
-                label: "Cash Accounts",
-                path: ROUTES.CASH_ACCOUNTS,
+                id: "branch-cash",
+                label: "Branch Cash",
+                path: ROUTES.BRANCH_CASH,
                 icon: Wallet,
                 permission: "cash-account:view",
               },

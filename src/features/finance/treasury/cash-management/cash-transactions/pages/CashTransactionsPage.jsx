@@ -4,7 +4,6 @@ import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
 
 import useCashTransaction from "../hooks/useCashTransaction";
-import useCashAccount from "@/features/finance/treasury/cash-management/cash-accounts/hooks/useCashAccount";
 import useBranch from "@/features/branch/hooks/useBranch";
 import CashTransactionsDesktopPage from "./desktop/CashTransactionsDesktopPage";
 import CashTransactionsMobilePage from "./mobile/CashTransactionsMobilePage";
@@ -22,23 +21,13 @@ const CashTransactionsPage = () => {
     clearError,
   } = useCashTransaction();
 
-  const { cashAccounts, getCashAccounts } = useCashAccount();
 
-  // Load petty cash register lists once on mount
-  useEffect(() => {
-    if (hasFetchedCashRef.current) return;
-    hasFetchedCashRef.current = true;
-
-    getCashAccounts({ all: true, branchId: currentBranch?._id }).catch((err) =>
-      console.error("Failed to load cash accounts list for filters:", err)
-    );
-  }, [getCashAccounts, currentBranch?._id]);
 
   const [searchParams, setSearchParams] = useState({
     search: "",
     status: "all",
     transactionType: "all",
-    cashAccountId: "all",
+    partition: "all",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -53,7 +42,7 @@ const CashTransactionsPage = () => {
         search: searchParams.search || undefined,
         status: searchParams.status === "all" ? undefined : searchParams.status,
         transactionType: searchParams.transactionType === "all" ? undefined : searchParams.transactionType,
-        cashAccountId: searchParams.cashAccountId === "all" ? undefined : searchParams.cashAccountId,
+        partition: searchParams.partition === "all" ? undefined : searchParams.partition,
         branchId: currentBranch?._id,
       };
       await getCashTransactions(query);
@@ -97,7 +86,6 @@ const CashTransactionsPage = () => {
 
   const pageProps = {
     cashTransactions: cashTransactions || [],
-    cashAccounts: cashAccounts || [],
     searchParams,
     currentPage,
     pageSize,

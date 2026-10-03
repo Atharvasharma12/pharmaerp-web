@@ -52,7 +52,7 @@ const statusOptions = [
 
 const CashTransactionsMobilePage = ({
   cashTransactions = [],
-  cashAccounts = [],
+
   searchParams,
   currentPage,
   pageSize,
@@ -69,15 +69,13 @@ const CashTransactionsMobilePage = ({
   const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
 
-  const cashAccountOptions = useMemo(() => {
+  const partitionOptions = useMemo(() => {
     return [
-      { label: "All Cash Registers", value: "all" },
-      ...cashAccounts.map((c) => ({
-        label: `${c.accountName} (${c.currency || "USD"})`,
-        value: c._id,
-      })),
+      { label: "All Partitions", value: "all" },
+      { label: "Running Cash", value: "running" },
+      { label: "Frozen Cash", value: "frozen" },
     ];
-  }, [cashAccounts]);
+  }, []);
 
   const handleCreate = () => {
     navigate(ROUTES.CREATE_CASH_TRANSACTION);
@@ -232,11 +230,11 @@ const CashTransactionsMobilePage = ({
                 />
 
                 <AppSelect
-                  label="Linked Cash Account"
-                  name="cashAccountId"
-                  value={searchParams.cashAccountId}
-                  onChange={(e) => handleFilterChange("cashAccountId", e.target.value)}
-                  options={cashAccountOptions}
+                  label="Cash Partition"
+                  name="partition"
+                  value={searchParams.partition}
+                  onChange={(e) => handleFilterChange("partition", e.target.value)}
+                  options={partitionOptions}
                   size="small"
                   variant="bordered"
                   rounded="md"
@@ -271,8 +269,7 @@ const CashTransactionsMobilePage = ({
           ) : (
             <AppStack direction="column" gap={1.2}>
               {cashTransactions.map((tx) => {
-                const linkedCash = tx.cashAccountId;
-                const cashLabel = linkedCash ? linkedCash.accountName : "-";
+                const cashLabel = tx.cashPartition === "running" ? "Running Cash" : "Frozen Cash";
                 const isCredit = tx.direction === "CREDIT";
 
                 return (

@@ -36,7 +36,7 @@ const statusFilterOptions = [
 const CashDenominationsMobilePage = ({
   denominations = [],
   filters,
-  cashAccountOptions = [],
+  partitionOptions = [],
   branchOptions = [],
   currentPage,
   pageSize,
@@ -187,13 +187,13 @@ const CashDenominationsMobilePage = ({
             >
               <div className="p-3.5 space-y-3.5">
                 <AppSelect
-                  label="Cash Register"
-                  name="cashAccountId"
-                  value={filters.cashAccountId}
+                  label="Cash Partition"
+                  name="partition"
+                  value={filters.partition}
                   onChange={(e) =>
-                    handleFilterChange("cashAccountId", e.target.value)
+                    handleFilterChange("partition", e.target.value)
                   }
-                  options={cashAccountOptions}
+                  options={partitionOptions}
                   size="small"
                   variant="bordered"
                   rounded="md"
@@ -277,10 +277,9 @@ const CashDenominationsMobilePage = ({
             <AppStack direction="column" gap={1.2}>
               {denominations.map((item) => {
                 const registerLabel =
-                  item.cashAccountId?.accountName || "Unknown Register";
+                  item.partition === "running" ? "Running Cash" : "Frozen Cash";
                 const branchLabel =
                   item.branchId?.name ||
-                  item.cashAccountId?.branchId?.name ||
                   "Central Office";
 
                 return (

@@ -243,7 +243,7 @@ const CashTransactionDetailsDesktopPage = ({
                 <div className="grid grid-cols-3 py-1 border-b border-border/30">
                   <span className="font-bold text-text-muted">Originating Cash Register:</span>
                   <span className="col-span-2 text-text font-bold">
-                    {transaction.cashAccountId ? transaction.cashAccountId.accountName : "-"}
+                    {transaction.cashPartition === "running" ? "Running Cash" : "Frozen Cash"}
                   </span>
                 </div>
 

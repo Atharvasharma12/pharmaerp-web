@@ -257,7 +257,7 @@ const CashExchangesMobilePage = ({
                       Account
                     </AppText>
                     <AppText size="sm" weight={600}>
-                      {row.cashAccountId?.accountName || "—"}
+                      Branch Cash
                     </AppText>
                   </div>
                   <div />

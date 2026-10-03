@@ -38,7 +38,7 @@ const CreateCashTransactionMobilePage = ({
   denominations = [],
   physicalTotal = 0,
   isLoading = false,
-  cashAccounts = [],
+  partitionOptions = [],
   accounts = [],
   handleFieldChange,
   handleQtyChange,
@@ -48,15 +48,7 @@ const CreateCashTransactionMobilePage = ({
   clearError,
   selectedCashAccount,
 }) => {
-  const cashAccountOptions = useMemo(() => {
-    return [
-      { label: "Select Cash Account...", value: "" },
-      ...cashAccounts.map((c) => ({
-        label: `${c.accountName} (${c.currency || "USD"})`,
-        value: c._id,
-      })),
-    ];
-  }, [cashAccounts]);
+
 
   const accountOptions = useMemo(() => {
     return [
@@ -167,20 +159,20 @@ const CreateCashTransactionMobilePage = ({
                 inputSx={inputSx}
               />
 
-              {/* Cash Account */}
+              {/* Partition */}
               <AppSelect
-                label="Cash Account Register"
-                name="cashAccountId"
-                value={formData.cashAccountId}
-                onChange={(e) => handleFieldChange("cashAccountId", e.target.value)}
-                options={cashAccountOptions}
+                label="Cash Partition"
+                name="partition"
+                value={formData.partition}
+                onChange={(e) => handleFieldChange("partition", e.target.value)}
+                options={partitionOptions}
                 size="small"
                 variant="bordered"
                 rounded="md"
                 required
                 disabled={isLoading}
-                error={Boolean(formErrors.cashAccountId)}
-                helperText={formErrors.cashAccountId}
+                error={Boolean(formErrors.partition)}
+                helperText={formErrors.partition}
                 inputSx={compactFilterInputSx}
                 labelSx={labelSx}
               />
@@ -306,7 +298,7 @@ const CreateCashTransactionMobilePage = ({
               </div>
 
               {/* Optional Denomination breakdown for cash transactions */}
-              {formData.cashAccountId && (
+              {selectedCashAccount && (
                 <div className="border border-border rounded-md overflow-hidden bg-surface-alt/5 text-[11.5px] mt-2">
                   <div className="px-3 py-2 border-b border-border bg-surface-alt/10 flex flex-col gap-1">
                     <span className="font-bold text-text">
@@ -325,7 +317,10 @@ const CreateCashTransactionMobilePage = ({
                   <div className="p-2 space-y-2">
                     {denominations.map((d) => {
                       const subTotal = d.denomination * d.quantity;
-                      const availableDenom = selectedCashAccount?.denominationBalance?.denominations?.find(
+                      const availableDenomList = formData.partition === "frozen" 
+                        ? selectedCashAccount?.balance?.frozenDenominations 
+                        : selectedCashAccount?.balance?.runningDenominations;
+                      const availableDenom = availableDenomList?.find(
                         (ad) => ad.denomination === d.denomination
                       );
                       const availableQty = availableDenom ? availableDenom.quantity : 0;
