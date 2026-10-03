@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Select environment to deploy"
+        description: "Select environment"
         required: true
         type: choice
         options:
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set branch
+      - name: Set deployment branch
         id: branch
         run: |
           case "${{ inputs.environment }}" in
@@ -36,7 +36,7 @@ jobs:
               ;;
           esac
 
-      - name: Checkout selected branch
+      - name: Checkout deployment branch
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.branch.outputs.branch }}
