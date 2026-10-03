@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 import useBankDepositSlip from "../hooks/useBankDepositSlip";
 import BankDepositSlipsDesktopPage from "./desktop/BankDepositSlipsDesktopPage";
@@ -11,6 +12,7 @@ import BankDepositSlipsMobilePage from "./mobile/BankDepositSlipsMobilePage";
 const BankDepositSlipsPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { currentBranch } = useBranch();
 
   const {
     bankDepositSlips,
@@ -43,12 +45,13 @@ const BankDepositSlipsPage = () => {
         limit: pageSize,
         search: searchParams.search || undefined,
         status: searchParams.status === "all" ? undefined : searchParams.status,
+        branchId: currentBranch?._id || undefined,
       };
       await getBankDepositSlips(query);
     } catch (err) {
       console.error("Failed to load bank deposit slips:", err);
     }
-  }, [currentPage, pageSize, searchParams, getBankDepositSlips]);
+  }, [currentPage, pageSize, searchParams, currentBranch?._id, getBankDepositSlips]);
 
   useEffect(() => {
     fetchSlipsData();

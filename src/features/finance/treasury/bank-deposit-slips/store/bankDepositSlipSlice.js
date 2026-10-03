@@ -8,6 +8,8 @@ import {
   getBankDepositSlipById,
   confirmDeposit,
   cancelBankDepositSlip,
+  withdrawFromBankDepositSlip,
+  getCashInTransit,
 } from "./bankDepositSlipThunk";
 
 const initialState = {
@@ -24,6 +26,11 @@ const initialState = {
   getBankDepositSlipStatus: API_STATUS.IDLE,
   confirmDepositStatus: API_STATUS.IDLE,
   cancelBankDepositSlipStatus: API_STATUS.IDLE,
+  withdrawFromSlipStatus: API_STATUS.IDLE,
+
+  cashInTransit: [],
+  totalCIT: 0,
+  getCashInTransitStatus: API_STATUS.IDLE,
 };
 
 const setPending = (state) => {
@@ -185,8 +192,60 @@ const bankDepositSlipSlice = createSlice({
       .addCase(cancelBankDepositSlip.rejected, (state, action) => {
         state.cancelBankDepositSlipStatus = API_STATUS.ERROR;
         state.error = action.payload || "Bank deposit slip cancellation failed";
+      })
+
+      // WITHDRAW FROM BANK DEPOSIT SLIP
+      .addCase(withdrawFromBankDepositSlip.pending, (state) => {
+        state.withdrawFromSlipStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(withdrawFromBankDepositSlip.fulfilled, (state, action) => {
+        state.withdrawFromSlipStatus = API_STATUS.SUCCESS;
+
+        state.bankDepositSlips = state.bankDepositSlips.map((slip) =>
+          slip?._id === action.payload?._id ? action.payload : slip,
+        );
+
+        state.managedBankDepositSlip = action.payload || state.managedBankDepositSlip;
+
+        if (
+          state.currentBankDepositSlip?._id === action.payload?._id &&
+          action.payload
+        ) {
+          state.currentBankDepositSlip = action.payload;
+        }
+
+        // Also update cashInTransit array if it's there
+        state.cashInTransit = state.cashInTransit.map((slip) =>
+          slip?._id === action.payload?._id ? action.payload : slip,
+        );
+
+        state.message = "Partial withdrawal from bank deposit slip successful";
+      })
+      .addCase(withdrawFromBankDepositSlip.rejected, (state, action) => {
+        state.withdrawFromSlipStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Partial withdrawal failed";
+      })
+
+      // GET CASH IN TRANSIT
+      .addCase(getCashInTransit.pending, (state) => {
+        state.getCashInTransitStatus = API_STATUS.LOADING;
+        state.error = null;
+      })
+      .addCase(getCashInTransit.fulfilled, (state, action) => {
+        state.getCashInTransitStatus = API_STATUS.SUCCESS;
+        state.cashInTransit =
+          action.payload?.cashInTransit ||
+          (Array.isArray(action.payload) ? action.payload : []);
+        state.totalCIT = action.payload?.totalCIT ?? 0;
+      })
+      .addCase(getCashInTransit.rejected, (state, action) => {
+        state.getCashInTransitStatus = API_STATUS.ERROR;
+        state.error = action.payload || "Failed to fetch cash in transit";
       });
   },
+
 });
 
 export const {

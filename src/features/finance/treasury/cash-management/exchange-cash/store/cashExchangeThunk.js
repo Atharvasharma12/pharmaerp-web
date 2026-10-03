@@ -43,18 +43,4 @@ export const getCashExchangeById = createAsyncThunk(
   },
 );
 
-// Cancel Cash Exchange
-export const cancelCashExchange = createAsyncThunk(
-  "cashExchange/cancelCashExchange",
-  async ({ cashExchangeId, payload }, { rejectWithValue }) => {
-    try {
-      const response = await cashExchangeService.cancelCashExchange(
-        cashExchangeId,
-        payload,
-      );
-      return response.data?.data;
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error));
-    }
-  },
-);
+

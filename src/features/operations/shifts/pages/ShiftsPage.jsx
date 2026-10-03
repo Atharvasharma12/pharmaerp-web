@@ -60,13 +60,16 @@ const ShiftsPage = () => {
         icon={Clock}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <UIButton
-              variant="outline"
-              onClick={() => navigate("/operations/day-closings")}
-            >
-              <CalendarDays className="w-4 h-4 mr-1.5" />
-              Day Closing
-            </UIButton>
+            {/* Hide "Day Closing" if a shift is open because we cannot create a day close with an open shift */}
+            {!shifts.some((s) => s.status === "open") && (
+              <UIButton
+                variant="outline"
+                onClick={() => navigate("/operations/day-closings")}
+              >
+                <CalendarDays className="w-4 h-4 mr-1.5" />
+                Day Closing
+              </UIButton>
+            )}
             <UIButton
               variant="outline"
               onClick={() => navigate("/finance/treasury/bank-deposit-slips/create")}
@@ -74,13 +77,16 @@ const ShiftsPage = () => {
               <Landmark className="w-4 h-4 mr-1.5" />
               Create Bank Slip
             </UIButton>
-            <UIButton
-              variant="primary"
-              onClick={() => setIsCreateOpen(true)}
-            >
-              <Plus className="w-4 h-4 mr-1.5" />
-              Open New Shift
-            </UIButton>
+            {/* Only show "Open New Shift" if there are no open shifts */}
+            {!shifts.some((s) => s.status === "open") && (
+              <UIButton
+                variant="primary"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-1.5" />
+                Open New Shift
+              </UIButton>
+            )}
           </div>
         }
       />
@@ -143,8 +149,6 @@ const ShiftsPage = () => {
                 <th className="p-4 font-semibold whitespace-nowrap">Status</th>
                 <th className="p-4 font-semibold whitespace-nowrap">Opened By</th>
                 <th className="p-4 font-semibold whitespace-nowrap text-right">Opening Float</th>
-                <th className="p-4 font-semibold whitespace-nowrap text-right text-error">Withdrawals</th>
-                <th className="p-4 font-semibold whitespace-nowrap text-right text-success">Deposits</th>
                 <th className="p-4 font-semibold whitespace-nowrap text-right">Closing Amount</th>
                 <th className="p-4 font-semibold whitespace-nowrap text-right">Actions</th>
               </tr>
@@ -152,13 +156,13 @@ const ShiftsPage = () => {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan="9" className="p-8 text-center text-text-muted">
+                  <td colSpan="7" className="p-8 text-center text-text-muted">
                     Loading shifts...
                   </td>
                 </tr>
               ) : shifts.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="p-8 text-center text-text-muted">
+                  <td colSpan="7" className="p-8 text-center text-text-muted">
                     No shifts found.
                   </td>
                 </tr>
@@ -195,18 +199,6 @@ const ShiftsPage = () => {
                     </td>
                     <td className="p-4 text-text-muted">{shift.openedBy?.fullName || shift.openedBy?.name || "System"}</td>
                     <td className="p-4 font-medium text-right">₹{shift.openingFloatAmount || 0}</td>
-                    {/* Withdrawals column */}
-                    <td className="p-4 text-right">
-                      {shift.status === 'closed' && (shift.totalFundWithdrawals || 0) > 0
-                        ? <span className="font-medium text-error tabular-nums">−₹{Number(shift.totalFundWithdrawals).toLocaleString("en-IN")}</span>
-                        : <span className="text-text-muted text-xs">—</span>}
-                    </td>
-                    {/* Deposits column */}
-                    <td className="p-4 text-right">
-                      {shift.status === 'closed' && (shift.totalFundDeposits || 0) > 0
-                        ? <span className="font-medium text-success tabular-nums">+₹{Number(shift.totalFundDeposits).toLocaleString("en-IN")}</span>
-                        : <span className="text-text-muted text-xs">—</span>}
-                    </td>
                     <td className="p-4 font-medium text-right text-primary">
                       {shift.status === 'closed' ? `₹${shift.actualClosingCashAmount || 0}` : "-"}
                     </td>
@@ -238,7 +230,13 @@ const ShiftsPage = () => {
 
       <CreateShiftDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
       <ViewShiftDialog isOpen={!!viewShift} onClose={() => setViewShift(null)} shift={viewShift} />
-      <CloseShiftDialog isOpen={!!closeShift} onClose={() => setCloseShift(null)} shift={closeShift} />
+      <CloseShiftDialog 
+        isOpen={!!closeShift} 
+        onClose={() => setCloseShift(null)} 
+        shift={closeShift} 
+        onOpenNewShift={() => setIsCreateOpen(true)}
+        onCreateDayClosing={() => navigate("/operations/day-closings", { state: { openCreateDayClosing: true } })}
+      />
     </div>
   );
 };

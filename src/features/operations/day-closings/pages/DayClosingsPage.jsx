@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   listDayClosings,
   createDayClosing,
@@ -20,6 +20,7 @@ import {
   ViewDayClosingDialog,
 } from "../components";
 import useBranch from "@/features/branch/hooks/useBranch";
+import { useBranchCash } from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 
 const DayClosingsPage = () => {
   const dispatch = useDispatch();
@@ -27,6 +28,8 @@ const DayClosingsPage = () => {
   const { dayClosings, listDayClosingsStatus, error, message } =
     useSelector((state) => state.dayClosing);
   const { currentBranch } = useBranch();
+  const { currentBranchCash, fetchBranchCash } = useBranchCash();
+  const location = useLocation();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedDayClosing, setSelectedDayClosing] = useState(null);
@@ -39,12 +42,23 @@ const DayClosingsPage = () => {
 
   useEffect(() => {
     const params = {};
-    if (currentBranch?._id) params.branchId = currentBranch._id;
+    if (currentBranch?._id) {
+      params.branchId = currentBranch._id;
+      fetchBranchCash(currentBranch._id);
+    }
     if (dateFilter) params.date = dateFilter;
     if (statusFilter !== "all") params.status = statusFilter;
     params.sort = sortOrder;
     dispatch(listDayClosings(params));
-  }, [dispatch, dateFilter, statusFilter, sortOrder, currentBranch?._id]);
+  }, [dispatch, dateFilter, statusFilter, sortOrder, currentBranch?._id, fetchBranchCash]);
+
+  useEffect(() => {
+    if (location.state?.openCreateDayClosing) {
+      setIsCreateOpen(true);
+      // Clean up state so a refresh doesn't reopen it
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handleOpenDialog = (dayClosing, type) => {
     setSelectedDayClosing(dayClosing);
@@ -80,13 +94,15 @@ const DayClosingsPage = () => {
               <Landmark className="w-4 h-4 mr-1.5" />
               Create Bank Slip
             </UIButton>
-            <UIButton
-              variant="primary"
-              onClick={() => setIsCreateOpen(true)}
-            >
-              <Plus className="w-4 h-4 mr-1.5" />
-              Create Day Closing
-            </UIButton>
+            {!currentBranchCash?.currentShiftId && (
+              <UIButton
+                variant="primary"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-1.5" />
+                Create Day Closing
+              </UIButton>
+            )}
           </div>
         }
       />

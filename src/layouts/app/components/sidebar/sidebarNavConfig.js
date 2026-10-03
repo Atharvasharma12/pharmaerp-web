@@ -446,6 +446,13 @@ export const SIDEBAR_NAV_GROUPS = [
                 icon: FileUp,
                 permission: "bank-deposit-slip:view",
               },
+              {
+                id: "cash-in-transit",
+                label: "Cash In Transit",
+                path: ROUTES.CASH_IN_TRANSIT,
+                icon: Truck,
+                permission: "bank-deposit-slip:view", // Same permission as it depends on BDS
+              },
             ],
           },
           {

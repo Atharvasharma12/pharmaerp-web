@@ -64,6 +64,12 @@ const CreateCashExchangePage = () => {
   }, [getBranchCash, currentBranch?._id]);
 
   useEffect(() => {
+    // Reset denominations when partition changes to avoid violating available bounds
+    setGivenDenominations(INITIAL_DENOMINATIONS);
+    setReceivedDenominations(INITIAL_DENOMINATIONS);
+  }, [formData.partition]);
+
+  useEffect(() => {
     return () => {
       clearError();
       clearMessage();
@@ -198,7 +204,7 @@ const CreateCashExchangePage = () => {
     try {
       const payload = {
         exchangeDate: formData.exchangeDate,
-        partition: formData.partition,
+        cashPartition: formData.partition,
         denominationsReceived: receivedDenominations
           .filter((d) => d.quantity > 0)
           .map((d) => ({ denomination: d.denomination, quantity: d.quantity })),
@@ -229,6 +235,7 @@ const CreateCashExchangePage = () => {
     formData,
     formErrors,
     partitionOptions,
+    selectedCashAccount,
     receivedDenominations,
     givenDenominations,
     totalReceived,

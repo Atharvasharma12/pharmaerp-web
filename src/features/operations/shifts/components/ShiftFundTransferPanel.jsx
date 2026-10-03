@@ -42,15 +42,14 @@ export const ShiftFundTransferPanel = ({
                 className="flex justify-between items-start text-xs bg-error/5 border border-error/15 rounded-lg px-3 py-2"
               >
                 <div className="min-w-0 flex-1 pr-4">
-                  <span className="font-mono text-text-muted text-[10px]">
-                    {w.transferNumber}
-                  </span>
+                  <div className="font-medium text-text">
+                    Withdrawal {w.source ? `(from ${w.source === 'running' ? 'Running Cash' : w.source === 'frozen' ? 'Frozen Reserve' : w.source})` : ''}
+                  </div>
                   {w.narration && (
-                    <span className="ml-2 text-text-muted">— {w.narration}</span>
+                    <div className="text-text-muted mt-0.5">— {w.narration}</div>
                   )}
                   <div className="text-[10px] text-text-muted mt-0.5">
-                    To: {w.toAccountName || w.toAccountType || "External"}
-                    {w.createdBy && ` · ${w.createdBy}`}
+                    {w.createdBy && `By: ${w.createdBy}`}
                   </div>
                 </div>
                 <span className="font-bold text-error shrink-0 tabular-nums">
@@ -80,15 +79,14 @@ export const ShiftFundTransferPanel = ({
                 className="flex justify-between items-start text-xs bg-success/5 border border-success/15 rounded-lg px-3 py-2"
               >
                 <div className="min-w-0 flex-1 pr-4">
-                  <span className="font-mono text-text-muted text-[10px]">
-                    {d.transferNumber}
-                  </span>
+                  <div className="font-medium text-text">
+                    Deposit (to Running Cash)
+                  </div>
                   {d.narration && (
-                    <span className="ml-2 text-text-muted">— {d.narration}</span>
+                    <div className="text-text-muted mt-0.5">— {d.narration}</div>
                   )}
                   <div className="text-[10px] text-text-muted mt-0.5">
-                    From: {d.fromAccountName || d.fromAccountType || "External"}
-                    {d.createdBy && ` · ${d.createdBy}`}
+                    {d.createdBy && `By: ${d.createdBy}`}
                   </div>
                 </div>
                 <span className="font-bold text-success shrink-0 tabular-nums">

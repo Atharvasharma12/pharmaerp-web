@@ -2,7 +2,10 @@ import React, { useEffect } from "react";
 import { AppHeading, AppText, AppCard, AppButton } from "@/components";
 import { useBranchCash } from "../hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
-import { RefreshCw, Banknote, Snowflake, AlertCircle } from "lucide-react";
+import { RefreshCw, Banknote, Snowflake, AlertCircle, Plus, ArrowDown, ArrowUp } from "lucide-react";
+import InitializeBranchCashModal from "../components/InitializeBranchCashModal";
+import DepositModal from "../components/DepositModal";
+import WithdrawModal from "../components/WithdrawModal";
 
 /**
  * Compute total from denomination array.
@@ -33,7 +36,10 @@ const DenominationRow = ({ denomination, quantity }) => (
 
 const BranchCashPage = () => {
   const { currentBranch } = useBranch();
-  const { currentBranchCash, fetchBranchCash, fetchStatus } = useBranchCash();
+  const { currentBranchCash, fetchBranchCash, fetchStatus, error } = useBranchCash();
+  const [isInitModalOpen, setIsInitModalOpen] = React.useState(false);
+  const [isDepositModalOpen, setIsDepositModalOpen] = React.useState(false);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = React.useState(false);
 
   useEffect(() => {
     if (currentBranch?._id) {
@@ -75,14 +81,36 @@ const BranchCashPage = () => {
             </div>
           )}
         </div>
-        <AppButton
-          variant="outline"
-          onClick={() => currentBranch?._id && fetchBranchCash(currentBranch._id)}
-          disabled={isLoading}
-          icon={<RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />}
-        >
-          Refresh
-        </AppButton>
+        <div className="flex items-center gap-3">
+          {currentBranchCash && (
+            <>
+              <AppButton
+                variant="outline"
+                onClick={() => setIsDepositModalOpen(true)}
+                disabled={isLoading}
+                icon={<ArrowDown className="w-4 h-4 text-success" />}
+              >
+                Deposit
+              </AppButton>
+              <AppButton
+                variant="outline"
+                onClick={() => setIsWithdrawModalOpen(true)}
+                disabled={isLoading}
+                icon={<ArrowUp className="w-4 h-4 text-danger" />}
+              >
+                Withdraw
+              </AppButton>
+            </>
+          )}
+          <AppButton
+            variant="outline"
+            onClick={() => currentBranch?._id && fetchBranchCash(currentBranch._id)}
+            disabled={isLoading}
+            icon={<RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />}
+          >
+            Refresh
+          </AppButton>
+        </div>
       </div>
 
       {isLoading && !currentBranchCash ? (
@@ -101,8 +129,8 @@ const BranchCashPage = () => {
                     Running Cash
                   </AppHeading>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/20">
-                  Active
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${currentBranchCash?.currentShiftId ? 'bg-success/10 text-success border-success/20' : 'bg-surface-alt text-text-muted border-border'}`}>
+                  {currentBranchCash?.currentShiftId ? "Active" : "Shift Closed"}
                 </span>
               </div>
               <AppText className="text-text-muted text-sm">
@@ -194,10 +222,35 @@ const BranchCashPage = () => {
           </AppCard>
         </div>
       ) : (
-        <AppCard className="p-10 flex justify-center">
-          <AppText>No cash records found for this branch.</AppText>
+        <AppCard className="p-10 flex flex-col items-center justify-center min-h-[300px]">
+          <AppText className="mb-4 text-text-muted">
+            No cash records found for this branch. The branch cash might not be initialized yet.
+          </AppText>
+          <AppButton 
+            onClick={() => setIsInitModalOpen(true)}
+            icon={<Plus className="w-4 h-4" />}
+          >
+            Initialize Branch Cash
+          </AppButton>
         </AppCard>
       )}
+
+      {/* Modals */}
+      <InitializeBranchCashModal
+        isOpen={isInitModalOpen}
+        onClose={() => {
+          setIsInitModalOpen(false);
+          if (currentBranch?._id) fetchBranchCash(currentBranch._id);
+        }}
+      />
+      <DepositModal
+        isOpen={isDepositModalOpen}
+        onClose={() => setIsDepositModalOpen(false)}
+      />
+      <WithdrawModal
+        isOpen={isWithdrawModalOpen}
+        onClose={() => setIsWithdrawModalOpen(false)}
+      />
     </div>
   );
 };

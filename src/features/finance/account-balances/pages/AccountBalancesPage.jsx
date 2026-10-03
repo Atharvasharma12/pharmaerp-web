@@ -53,7 +53,7 @@ const AccountBalancesPage = () => {
 
   useEffect(() => {
     executeQuery();
-  }, [currentPage, pageSize, searchParams]);
+  }, [executeQuery]);
 
   const handleSearchChange = useCallback((value) => {
     setSearchParams((prev) => ({ ...prev, search: value }));

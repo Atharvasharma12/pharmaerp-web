@@ -7,12 +7,28 @@ import {
   UIModalFooter,
   UIButton,
 } from "@/components/ui";
-import { Clock, IndianRupee, QrCode, FileText, Eye, ArrowLeftRight, Banknote } from "lucide-react";
+import {
+  IndianRupee, QrCode, FileText, Eye, ArrowLeftRight,
+  Banknote, Snowflake, TrendingUp, TrendingDown, Minus,
+  Clock, ChevronRight, Building2
+} from "lucide-react";
 import { apiClient } from "@/services";
 import { ViewShiftDialog } from "@/features/operations/shifts/components/ViewShiftDialog";
-import { ShiftFundTransferPanel } from "@/features/operations/shifts/components/ShiftFundTransferPanel";
 
-const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+const fmt = (n) => (Number(n) || 0).toLocaleString("en-IN");
+
+const StatusBadge = ({ status }) => {
+  const cfg = {
+    closed: "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/30",
+    draft:  "bg-primary/10 text-primary border-primary/30",
+    cancelled: "bg-red-100 text-red-700 border-red-300 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30",
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded text-xs font-bold border ${cfg[status] || cfg.draft}`}>
+      {status?.toUpperCase()}
+    </span>
+  );
+};
 
 export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
   const [summary, setSummary] = useState(null);
@@ -34,244 +50,231 @@ export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
     }
   }, [isOpen, dayClosing]);
 
+  const diff = (summary?.actualClosingCashAmount || 0) - (summary?.expectedClosingCashAmount || 0);
+
   return (
     <>
       <UIModal isOpen={isOpen} onClose={onClose} size="xl">
         <UIModalHeader>
-          <UIModalTitle>View Day Closing: {dayClosing?.dayClosingNo}</UIModalTitle>
+          <UIModalTitle>
+            <span>Day Closing</span>
+            <span className="text-sm font-normal text-text-muted ml-2">· {dayClosing?.dayClosingNo}</span>
+          </UIModalTitle>
         </UIModalHeader>
-        <UIModalBody className="max-h-[75vh] overflow-y-auto">
+
+        <UIModalBody className="max-h-[78vh] overflow-y-auto">
           {loading ? (
-            <div className="py-10 text-center text-text-muted">Loading day closing summary...</div>
+            <div className="py-16 text-center text-text-muted">Loading day closing summary…</div>
           ) : !summary ? (
-            <div className="py-10 text-center text-text-muted">No summary available.</div>
+            <div className="py-16 text-center text-text-muted">No summary available.</div>
           ) : (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-xs text-text-muted">Business Date</p>
-                  <p className="text-sm font-medium">{new Date(summary.date).toLocaleDateString()}</p>
+
+              {/* ── Header meta ─────────────────────────────────────────────── */}
+              <div className="flex flex-wrap gap-4 items-center justify-between bg-surface-secondary rounded-xl border border-border p-4">
+                <div className="flex flex-wrap gap-6">
+                  {[
+                    ["Business Date", new Date(summary.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })],
+                    ["Total Shifts", summary.shifts?.length || 0],
+                    ["Processed By", summary.createdBy?.fullName || summary.createdBy?.name || "System"],
+                  ].map(([label, val]) => (
+                    <div key={label}>
+                      <p className="text-[10px] text-text-muted uppercase tracking-widest">{label}</p>
+                      <p className="text-sm font-semibold mt-0.5">{val}</p>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <p className="text-xs text-text-muted">Status</p>
-                  <span
-                    className={`px-2 py-0.5 rounded text-xs font-medium border ${
-                      summary.status === "closed"
-                        ? "bg-border/20 text-text border-border"
-                        : summary.status === "draft"
-                        ? "bg-primary/10 text-primary border-primary/20"
-                        : "bg-error/10 text-error border-error/20"
-                    }`}
-                  >
-                    {summary.status.toUpperCase()}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-xs text-text-muted">Processed By</p>
-                  <p className="text-sm font-medium">{summary.createdBy?.fullName || summary.createdBy?.name || "System"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-text-muted">Total Shifts</p>
-                  <p className="text-sm font-medium">{summary.shifts?.length || 0}</p>
-                </div>
+                <StatusBadge status={summary.status} />
               </div>
 
-              {/* Cash Summary */}
-              <div className="border-t border-border pt-4">
-                <h4 className="text-sm font-semibold flex items-center gap-2 mb-4">
-                  <IndianRupee className="w-4 h-4" /> Day Cash Summary
+              {/* ── Day Cash Overview ────────────────────────────────────────── */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
+                  <IndianRupee className="size-3.5" /> Day Cash Overview
                 </h4>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-surface-secondary p-3 rounded-lg border border-border">
-                    <p className="text-xs text-text-muted">Opening Float</p>
-                    <p className="text-lg font-bold">₹{summary.openingFloatAmount || 0}</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-surface-secondary border border-border rounded-xl p-3">
+                    <p className="text-[10px] text-text-muted uppercase tracking-widest">Opening Float</p>
+                    <p className="font-mono font-bold text-xl mt-1">₹{fmt(summary.openingFloatAmount)}</p>
                   </div>
-                  <div className="bg-surface-secondary p-3 rounded-lg border border-border">
-                    <p className="text-xs text-text-muted">Expected Closing</p>
-                    <p className="text-lg font-bold text-primary">₹{summary.expectedClosingCashAmount || 0}</p>
+                  <div className="bg-surface-secondary border border-border rounded-xl p-3">
+                    <p className="text-[10px] text-text-muted uppercase tracking-widest">Expected Closing</p>
+                    <p className="font-mono font-bold text-xl text-primary mt-1">₹{fmt(summary.expectedClosingCashAmount)}</p>
                     <p className="text-[10px] text-text-muted mt-0.5">
                       Opening + Sales
-                      {summary.totalWithdrawals > 0 && ` − Withdraw`}
-                      {summary.totalDeposits > 0 && ` + Deposit`}
+                      {(summary.totalManualDeposits || summary.totalDeposits || 0) > 0 && " + Deposits"}
+                      {(summary.totalManualWithdrawals || summary.totalWithdrawals || 0) > 0 && " − Withdrawals"}
                     </p>
                   </div>
-                  <div className="bg-surface-secondary p-3 rounded-lg border border-border">
-                    <p className="text-xs text-text-muted">Actual Closing</p>
-                    <p className="text-lg font-bold">
-                      {summary.status === "closed" ? `₹${summary.actualClosingCashAmount || 0}` : "Pending (Draft)"}
+                  <div className="bg-surface-secondary border border-border rounded-xl p-3">
+                    <p className="text-[10px] text-text-muted uppercase tracking-widest">Actual Closing</p>
+                    <p className="font-mono font-bold text-xl mt-1">
+                      {summary.status === "closed" ? `₹${fmt(summary.actualClosingCashAmount)}` : "Pending"}
                     </p>
-                    {summary.status === "closed" && (
-                      <p
-                        className={`text-[10px] font-bold mt-0.5 ${
-                          summary.cashDifferenceAmount === 0 ? "text-success" : "text-error"
-                        }`}
-                      >
-                        Diff: {summary.cashDifferenceAmount > 0 ? "+" : ""}₹{summary.cashDifferenceAmount || 0}
-                      </p>
-                    )}
                   </div>
+                  {summary.status === "closed" && (
+                    <div className={`border rounded-xl p-3 ${
+                      diff === 0
+                        ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30"
+                        : diff > 0
+                        ? "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30"
+                        : "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30"
+                    }`}>
+                      <p className="text-[10px] text-text-muted uppercase tracking-widest">Difference</p>
+                      <div className={`flex items-center gap-1 font-mono font-bold text-xl mt-1 ${
+                        diff === 0 ? "text-emerald-600" : diff > 0 ? "text-amber-600" : "text-red-500"
+                      }`}>
+                        {diff > 0 ? <TrendingUp className="size-4" /> : diff < 0 ? <TrendingDown className="size-4" /> : <Minus className="size-4" />}
+                        {diff > 0 ? "+" : ""}₹{fmt(diff)}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Fund transfer impact cards */}
-                {(summary.totalWithdrawals > 0 || summary.totalDeposits > 0) && (
-                  <div className="grid grid-cols-2 gap-4 mt-3">
-                    {summary.totalWithdrawals > 0 && (
-                      <div className="bg-error/5 p-3 rounded-lg border border-error/20">
-                        <p className="text-xs text-error">Fund Withdrawals During Day</p>
-                        <p className="text-base font-bold text-error">
-                          −₹{Number(summary.totalWithdrawals).toLocaleString("en-IN")}
-                        </p>
+                {/* Deposit / Withdrawal impact */}
+                {((summary.totalManualDeposits || 0) > 0 || (summary.totalManualWithdrawals || 0) > 0) && (
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    {(summary.totalManualDeposits || 0) > 0 && (
+                      <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3">
+                        <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-widest">Manual Deposits</p>
+                        <p className="font-mono font-bold text-lg text-emerald-700 dark:text-emerald-400 mt-0.5">+₹{fmt(summary.totalManualDeposits)}</p>
                       </div>
                     )}
-                    {summary.totalDeposits > 0 && (
-                      <div className="bg-success/5 p-3 rounded-lg border border-success/20">
-                        <p className="text-xs text-success">Fund Deposits During Day</p>
-                        <p className="text-base font-bold text-success">
-                          +₹{Number(summary.totalDeposits).toLocaleString("en-IN")}
-                        </p>
+                    {(summary.totalManualWithdrawals || 0) > 0 && (
+                      <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl p-3">
+                        <p className="text-[10px] text-red-600 dark:text-red-400 font-bold uppercase tracking-widest">Manual Withdrawals</p>
+                        <p className="font-mono font-bold text-lg text-red-600 dark:text-red-400 mt-0.5">−₹{fmt(summary.totalManualWithdrawals)}</p>
                       </div>
                     )}
                   </div>
                 )}
-
-                {/* Denominations Grid (Opening vs Closing) */}
-                <div className="grid grid-cols-2 gap-6 mt-4">
-                  {/* 1. Opening Denominations */}
-                  <div>
-                    <h4 className="text-[11px] font-bold uppercase tracking-widest text-text-muted mb-2 border-b border-border pb-1">
-                      Opening Count
-                    </h4>
-                    <div className="space-y-1">
-                      {DENOMINATIONS.map((note) => {
-                        const count =
-                          summary?.openingDenominations?.find((d) => Number(d.denomination) === note)?.count || 0;
-                        return (
-                          <div key={note} className="flex justify-between items-center text-xs p-1 rounded bg-surface-secondary/50">
-                            <span className="font-medium text-text-muted">₹{note}</span>
-                            <span className="text-text-muted text-[10px]">×</span>
-                            <span className="font-mono text-text">{count}</span>
-                          </div>
-                        );
-                      })}
-                      <div className="flex justify-between items-center text-xs p-1 rounded bg-surface-alt font-bold mt-2 pt-2 border-t border-border">
-                        <span>Total</span>
-                        <span>₹{summary?.openingFloatAmount || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 2. Actual Closing Denominations */}
-                  <div>
-                    <h4 className="text-[11px] font-bold uppercase tracking-widest text-primary mb-2 border-b border-border pb-1">
-                      {summary.status === "closed" ? "Actual Closing Count" : "Closing Count (Pending)"}
-                    </h4>
-                    <div className="space-y-1">
-                      {DENOMINATIONS.map((note) => {
-                        const count = summary.status === "closed"
-                          ? (summary?.closingDenominations?.find((d) => Number(d.denomination) === note)?.count || 0)
-                          : "-";
-                        return (
-                          <div key={note} className="flex justify-between items-center text-xs p-1 rounded bg-surface-secondary/50">
-                            <span className="font-medium text-text-muted">₹{note}</span>
-                            <span className="text-text-muted text-[10px]">×</span>
-                            <span className="font-mono text-text">{count}</span>
-                          </div>
-                        );
-                      })}
-                      <div className="flex justify-between items-center text-xs p-1 rounded bg-surface-alt font-bold mt-2 pt-2 border-t border-border">
-                        <span>Total</span>
-                        <span>₹{summary.status === "closed" ? (summary?.actualClosingCashAmount || 0) : "-"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
 
-              {/* Operations Totals */}
-              <div className="border-t border-border pt-4">
-                <h4 className="text-sm font-semibold flex items-center gap-2 mb-4">
-                  <FileText className="w-4 h-4" /> Day Operations Totals
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-xs text-text-muted">Total Invoices</p>
-                    <p className="text-sm font-medium">{summary.totalInvoiceCount}</p>
-                    <div className="mt-1 space-y-0.5">
-                      <p className="text-[10px] text-text-muted">Cash: {summary.totalCashInvoiceCount || 0}</p>
-                      <p className="text-[10px] text-text-muted">UPI: {summary.totalPaymentQrCount || 0}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-muted">Net Sales</p>
-                    <p className="text-sm font-medium text-success">₹{summary.totalNetSales}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-muted">Cash Net</p>
-                    <p className="text-sm font-medium text-success">₹{summary.totalCashNet || 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-muted">QR Net</p>
-                    <p className="text-sm font-medium text-primary">₹{summary.totalQrNet || 0}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Fund Transfers During Day */}
-              <div className="border-t border-border pt-4">
-                <h4 className="text-sm font-semibold flex items-center gap-2 mb-4">
-                  <ArrowLeftRight className="w-4 h-4" /> Fund Transfers During Day
-                </h4>
-                <ShiftFundTransferPanel
-                  withdrawals={summary.withdrawals || []}
-                  deposits={summary.deposits || []}
-                  totalWithdrawals={summary.totalWithdrawals || 0}
-                  totalDeposits={summary.totalDeposits || 0}
-                />
-              </div>
-
-              {/* Shift-wise Breakdown */}
-              <div className="border-t border-border pt-4">
-                <h4 className="text-sm font-semibold mb-3">Shift-wise Breakdown</h4>
-                <div className="space-y-3">
-                  {summary.shiftSummaries?.map((shift) => (
-                    <div
-                      key={shift._id}
-                      className="bg-surface p-3.5 rounded-xl border border-border flex flex-col sm:flex-row justify-between sm:items-center gap-3 transition-colors hover:border-primary/40"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-text">{shift.shiftName || shift.shiftNo}</p>
-                        <p className="text-xs text-text-muted mt-0.5">
-                          Invoices: {shift.invoiceCount} (Cash: {shift.cashInvoiceCount}, UPI: {shift.paymentQrCount})
-                        </p>
-                      </div>
-                      <div className="text-left sm:text-right">
-                        <p className="text-sm font-bold text-success">Sales: ₹{shift.netSales}</p>
-                        <p className="text-xs text-text-muted mt-0.5">
-                          Cash In: ₹{shift.cashNet} | QR: ₹{shift.qrNet}
-                        </p>
-                      </div>
-                      <div className="text-left sm:text-right sm:pl-4 sm:border-l border-border">
-                        <p className="text-xs text-text-muted">Expected Cash</p>
-                        <p className="text-sm font-bold text-primary">₹{shift.expectedClosingCashAmount}</p>
-                        <p className="text-[10px] text-text-muted mt-0.5">Actual: ₹{shift.actualClosingCashAmount}</p>
-                      </div>
-                      <div className="flex sm:flex-col justify-end sm:pl-3 sm:border-l border-border">
-                        <UIButton
-                          type="button"
-                          variant="outline"
-                          size="xs"
-                          onClick={() => setSelectedShiftForView(shift)}
-                          className="flex items-center gap-1.5 whitespace-nowrap text-xs h-8 px-2.5 font-medium border-border/80 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+              {/* ── Per-Shift Cards ──────────────────────────────────────────── */}
+              {(summary.cashByShift?.length > 0 || summary.shiftSummaries?.length > 0) && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
+                    <Clock className="size-3.5" /> Shifts This Day ({summary.shifts?.length || 0})
+                  </h4>
+                  <div className="space-y-2">
+                    {/* Use cashByShift (new) if available, fallback to shiftSummaries (legacy) */}
+                    {(summary.cashByShift?.length > 0 ? summary.cashByShift : summary.shiftSummaries || []).map((s) => {
+                      const shiftDiff = (s.actualCash || s.actualClosingCashAmount || 0) - (s.expectedCash || s.expectedClosingCashAmount || 0);
+                      return (
+                        <div
+                          key={s.shiftId || s._id}
+                          className="bg-surface border border-border rounded-xl p-3.5 hover:border-primary/30 transition"
                         >
-                          <Eye className="size-3.5" />
-                          <span>View Shift</span>
-                        </UIButton>
-                      </div>
-                    </div>
-                  ))}
+                          <div className="flex flex-wrap justify-between items-start gap-3">
+                            <div>
+                              <p className="font-semibold text-sm">{s.shiftName || s.shiftNo || "Shift"}</p>
+                              <p className="text-[10px] text-text-muted mt-0.5">{s.shiftNo || ""}</p>
+                            </div>
+                            <UIButton
+                              variant="outline"
+                              size="xs"
+                              onClick={() => setSelectedShiftForView({ _id: s.shiftId || s._id, shiftNo: s.shiftNo })}
+                              className="flex items-center gap-1 text-xs h-7 px-2"
+                            >
+                              <Eye className="size-3" /> View
+                            </UIButton>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                            {[
+                              ["Opening", fmt(s.openingFloat || s.openingFloatAmount)],
+                              ["Cash Sales", fmt(s.cashSales || s.cashNet)],
+                              ["Expected", fmt(s.expectedCash || s.expectedClosingCashAmount)],
+                              ["Actual", fmt(s.actualCash || s.actualClosingCashAmount)],
+                            ].map(([label, val]) => (
+                              <div key={label} className="bg-surface-secondary rounded-lg p-2 border border-border">
+                                <p className="text-[10px] text-text-muted">{label}</p>
+                                <p className="font-mono font-semibold text-sm mt-0.5">₹{val}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
+              {/* ── Payment Breakdown ────────────────────────────────────────── */}
+              {(summary.totalCashNet !== undefined || summary.totalQrNet !== undefined) && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
+                    <QrCode className="size-3.5" /> Payment Breakdown
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400 mb-1">
+                        <Banknote className="size-3" /> Cash Bills
+                      </div>
+                      <p className="font-mono font-bold text-xl text-emerald-700 dark:text-emerald-400">₹{fmt(summary.totalCashNet)}</p>
+                      <p className="text-[11px] text-emerald-600/70 mt-0.5">{summary.totalCashInvoiceCount || 0} bills</p>
+                    </div>
+                    <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-xl p-3">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-700 dark:text-purple-400 mb-1">
+                        <QrCode className="size-3" /> UPI / QR
+                      </div>
+                      <p className="font-mono font-bold text-xl text-purple-700 dark:text-purple-400">₹{fmt(summary.totalQrNet)}</p>
+                      <p className="text-[11px] text-purple-600/70 mt-0.5">{summary.totalPaymentQrCount || 0} bills</p>
+                    </div>
+                  </div>
+                  {summary.totalNetSales !== undefined && (
+                    <div className="mt-2 bg-surface-secondary border border-border rounded-xl p-3 flex justify-between items-center">
+                      <p className="text-sm font-semibold">Total Net Sales (All Shifts)</p>
+                      <p className="font-mono font-bold text-lg text-primary">₹{fmt(summary.totalNetSales)}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Frozen Cash History ──────────────────────────────────────── */}
+              {summary.frozenHistory?.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
+                    <Snowflake className="size-3.5" /> Frozen Cash History (Today)
+                  </h4>
+                  <div className="relative pl-4 border-l-2 border-blue-200 dark:border-blue-500/30 space-y-3">
+                    {summary.frozenHistory.map((entry, i) => (
+                      <div key={i} className="relative">
+                        <div className="absolute -left-[1.15rem] top-1 size-3 rounded-full border-2 border-blue-400 dark:border-blue-500 bg-white dark:bg-surface" />
+                        <div className="bg-surface-secondary border border-border rounded-lg px-3 py-2 flex justify-between items-center">
+                          <div>
+                            <p className="text-xs font-semibold capitalize">{entry.action?.replace("_", " ")}</p>
+                            <p className="text-[10px] text-text-muted">{new Date(entry.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} · {entry.note || ""}</p>
+                          </div>
+                          <span className={`font-mono font-bold text-sm ${entry.action === "freeze" ? "text-blue-600 dark:text-blue-400" : "text-red-500"}`}>
+                            {entry.action === "freeze" ? "+" : "−"}₹{fmt(entry.amount)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Branch Cash Snapshot ─────────────────────────────────────── */}
+              {(summary.currentRunningCash !== undefined || summary.currentFrozenCash !== undefined) && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
+                    <Building2 className="size-3.5" /> Current Branch Cash
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">Running Cash</p>
+                      <p className="font-mono font-bold text-xl text-emerald-700 dark:text-emerald-400 mt-1">₹{fmt(summary.currentRunningCash)}</p>
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-blue-700 dark:text-blue-400">Frozen Reserve</p>
+                      <p className="font-mono font-bold text-xl text-blue-700 dark:text-blue-400 mt-1">₹{fmt(summary.currentFrozenCash)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Note */}
               {summary.note && (
                 <div className="border-t border-border pt-3">
                   <p className="text-xs text-text-muted font-semibold">Note / Remarks:</p>
@@ -281,10 +284,9 @@ export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
             </div>
           )}
         </UIModalBody>
+
         <UIModalFooter>
-          <UIButton variant="ghost" onClick={onClose}>
-            Close
-          </UIButton>
+          <UIButton variant="ghost" onClick={onClose}>Close</UIButton>
         </UIModalFooter>
       </UIModal>
 

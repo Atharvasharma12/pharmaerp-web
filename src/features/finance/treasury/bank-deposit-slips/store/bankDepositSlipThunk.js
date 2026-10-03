@@ -83,3 +83,29 @@ export const cancelBankDepositSlip = createAsyncThunk(
     }
   },
 );
+
+// Partial Withdraw From Bank Deposit Slip
+export const withdrawFromBankDepositSlip = createAsyncThunk(
+  "bankDepositSlip/withdrawFromBankDepositSlip",
+  async ({ slipId, payload }, { rejectWithValue }) => {
+    try {
+      const response = await bankDepositSlipService.withdrawFromBankDepositSlip(slipId, payload);
+      return extractData(response);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+// Get Cash In Transit
+export const getCashInTransit = createAsyncThunk(
+  "bankDepositSlip/getCashInTransit",
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await bankDepositSlipService.getCashInTransit(params);
+      return extractData(response);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);

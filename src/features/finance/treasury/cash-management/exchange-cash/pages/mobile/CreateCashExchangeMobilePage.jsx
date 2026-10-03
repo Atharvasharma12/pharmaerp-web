@@ -62,9 +62,14 @@ const MobileDenominationGrid = ({
                 <input
                   type="number"
                   min={0}
+                  max={showAvailable && available !== null ? available : undefined}
                   value={qty === 0 ? "" : qty}
                   placeholder="0"
-                  onChange={(e) => onQtyChange(denom, e.target.value)}
+                  onChange={(e) => {
+                    let val = parseInt(e.target.value, 10) || 0;
+                    if (showAvailable && available !== null && val > available) val = available;
+                    onQtyChange(denom, val);
+                  }}
                   className="w-full text-center text-sm font-semibold rounded border border-border bg-bg py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -196,7 +201,8 @@ const CreateCashExchangeMobilePage = ({
             onQtyChange={handleReceivedQtyChange}
             total={totalReceived}
             accentColor="success"
-            showAvailable={false}
+            showAvailable={!!selectedCashAccount}
+            availableDenoms={availableDenoms}
           />
         </div>
 
