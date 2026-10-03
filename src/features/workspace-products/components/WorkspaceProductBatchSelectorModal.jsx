@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import UIButton from "@/components/ui/UIButton";
 import workspaceProductService from "../services/workspaceProductService";
 import useUser from "@/features/user/hooks/useUser";
+import branchService from "@/features/branch/services/branchService";
 
 /**
  * Helper to parse expiry string into comparable Date object
@@ -126,6 +127,9 @@ export const WorkspaceProductBatchSelectorModal = ({
   const [allocations, setAllocations] = useState({});
   const [selectedBatchIds, setSelectedBatchIds] = useState(new Set());
   const [isLoading, setIsLoading] = useState(false);
+  const [otherBranchStock, setOtherBranchStock] = useState(null);
+  const [otherBranchDetails, setOtherBranchDetails] = useState([]);
+  const [showOtherBranches, setShowOtherBranches] = useState(false);
 
   const totalQtyInputRef = useRef(null);
   // Tracks whether user has manually toggled batch selection
@@ -134,8 +138,51 @@ export const WorkspaceProductBatchSelectorModal = ({
   useEffect(() => {
     if (open && product) {
       setTotalQty(1);
+      setOtherBranchStock(null);
+      setOtherBranchDetails([]);
+      setShowOtherBranches(false);
       userManuallySelectedRef.current = false;
       fetchBatchesForProduct(product);
+      
+      const prodId = product._id || product.id;
+      if (prodId) {
+        Promise.all([
+          workspaceProductService.getProductFacilityBatchesByQueryV2({ filters: { product: prodId }, limit: 50 }),
+          branchService.getWorkspaceBranches().catch(() => ({ data: { data: [] } }))
+        ]).then(([res, branchRes]) => {
+          const apiBatches = res.data?.data?.batches || res.data?.batches || res.data?.data || [];
+          const branches = branchRes.data?.data || branchRes.data || [];
+          
+          const branchMap = {};
+          branches.forEach(b => {
+             branchMap[b._id || b.id] = b.name || b.branchName;
+          });
+
+          let otherStock = 0;
+          const stockByBranch = {};
+
+          apiBatches.forEach(b => {
+             const bBranchId = String(b.branch_id || b.facility_id || b.facilityId || b.branchId || b.branch || "");
+             if (activeBranchId && bBranchId && bBranchId !== String(activeBranchId)) {
+                const bStock = Number(b.stock ?? b.batchQty ?? b.qty ?? b.currentStock ?? 0);
+                if (bStock > 0) {
+                  otherStock += bStock;
+                  stockByBranch[bBranchId] = (stockByBranch[bBranchId] || 0) + bStock;
+                }
+             }
+          });
+          
+          const details = Object.keys(stockByBranch).map(bId => ({
+             branchId: bId,
+             branchName: branchMap[bId] || "Other Branch",
+             stock: stockByBranch[bId]
+          }));
+
+          setOtherBranchStock(otherStock);
+          setOtherBranchDetails(details);
+        }).catch(err => console.warn("Failed to fetch other branch stock:", err));
+      }
+
       setTimeout(() => {
         if (totalQtyInputRef.current) {
           totalQtyInputRef.current.focus();
@@ -143,7 +190,7 @@ export const WorkspaceProductBatchSelectorModal = ({
         }
       }, 60);
     }
-  }, [open, product]);
+  }, [open, product, activeBranchId]);
 
   // Escape key listener to close modal
   useEffect(() => {
@@ -543,11 +590,41 @@ export const WorkspaceProductBatchSelectorModal = ({
         </div>
 
         {/* Spacious Total Required Qty Input Bar with Prominent Max Qty */}
-        <div className="bg-primary-soft/30 border-b border-primary/20 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl  border border-primary/30 font-mono text-sm font-bold shrink-0">
-              Max Stock: <strong className="text-base font-extrabold ">{maxTotalStock} Units</strong>
-            </span>
+        <div className="bg-primary-soft/30 border-b border-primary/20 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 relative">
+          <div className="flex flex-col gap-2 relative">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl  border border-primary/30 font-mono text-sm font-bold shrink-0">
+                Max Stock: <strong className="text-base font-extrabold ">{maxTotalStock} Units</strong>
+              </span>
+              {maxTotalStock <= 1 && otherBranchStock > 0 && (
+                <div className="relative">
+                  <button 
+                    type="button"
+                    onClick={() => setShowOtherBranches(!showOtherBranches)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-900/50 text-xs font-bold shrink-0 shadow-xs cursor-pointer transition-colors"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    {otherBranchStock} Units in other branches
+                  </button>
+                  
+                  {showOtherBranches && otherBranchDetails.length > 0 && (
+                    <div className="absolute top-full left-0 mt-2 w-64 bg-surface border border-border rounded-xl shadow-lg z-50 overflow-hidden flex flex-col">
+                      <div className="bg-surface-alt px-3 py-2 text-xs font-bold text-text-muted border-b border-border">
+                        Stock Across Branches
+                      </div>
+                      <div className="max-h-48 overflow-y-auto p-1">
+                        {otherBranchDetails.map(ob => (
+                          <div key={ob.branchId} className="flex items-center justify-between px-3 py-2 hover:bg-surface-hover rounded-lg transition-colors">
+                            <span className="text-sm font-medium text-text truncate pr-4">{ob.branchName}</span>
+                            <span className="text-sm font-bold font-mono text-primary bg-primary-soft/30 px-2 py-0.5 rounded-md">{ob.stock}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
@@ -675,15 +752,15 @@ export const WorkspaceProductBatchSelectorModal = ({
                             )
                           }
                           {
-                            bSchemeDiscount && (
+                            billingMode === "B2B" && bSchemeDiscount ? (
                               <span>
                                 Scheme: <strong className="text-text font-mono font-bold">{safeNum(bSchemeDiscount).toFixed(2)}%</strong>
                               </span>
-                            )
+                            ) : null
                           }
 
 
-                          {schemeResult.schemeApply && discountPercent > 0 && (
+                          {billingMode === "B2B" && schemeResult.schemeApply && discountPercent > 0 && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 uppercase tracking-wider">
                               sch dis: ₹{discountedRate.toFixed(2)}
                             </span>
