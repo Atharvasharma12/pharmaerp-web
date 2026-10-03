@@ -29,6 +29,8 @@ import {
   PURCHASE_SUPPLIERS,
 } from "../../constants/purchasesData";
 import { PurchaseBillPreviewModal } from "../../components/PurchaseBillPreviewModal";
+import { MakePaymentModal } from "../../components/MakePaymentModal";
+import { BulkPaymentModal } from "../../components/BulkPaymentModal";
 import purchaseBillService from "../../services/purchaseBillService";
 
 const statIconMap = {
@@ -46,7 +48,30 @@ export const PurchasesDesktopPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedBill, setSelectedBill] = useState(null);
+  const [paymentBill, setPaymentBill] = useState(null);
+  const [isBulkPaymentOpen, setIsBulkPaymentOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const fileInputRef = React.useRef(null);
+
+  const handleImportLegacyBills = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setToastMessage("⏳ Importing legacy bills...");
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await purchaseBillService.importLegacyBills(formData);
+      setToastMessage(`✅ ${res.data?.message || "Imported successfully!"}`);
+      fetchBills();
+    } catch (err) {
+      console.error("Failed to import legacy bills", err);
+      setToastMessage("❌ Failed to import legacy bills");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const statusTabs = [
     "all",
@@ -105,6 +130,10 @@ export const PurchasesDesktopPage = () => {
         return <UIBadge variant="soft" intent="success">Confirmed</UIBadge>;
       case "RECEIVED":
         return <UIBadge variant="solid" intent="success">Received</UIBadge>;
+      case "PAID":
+        return <UIBadge variant="solid" intent="primary">Paid</UIBadge>;
+      case "PARTIALLY_PAID":
+        return <UIBadge variant="soft" intent="warning">Partially Paid</UIBadge>;
       case "DRAFT":
         return <UIBadge variant="soft" intent="neutral">Draft</UIBadge>;
       case "CANCELLED":
@@ -159,6 +188,29 @@ export const PurchasesDesktopPage = () => {
                 Enter Purchase Bill
               </UIButton>
             </PermissionGate>
+            <UIButton
+              variant="outline"
+              size="md"
+              onClick={() => setIsBulkPaymentOpen(true)}
+              className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              Bulk Payment
+            </UIButton>
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              accept=".xlsx,.xls,.csv"
+              onChange={handleImportLegacyBills}
+            />
+            <UIButton
+              variant="outline"
+              size="md"
+              onClick={() => fileInputRef.current?.click()}
+              className="border-primary text-primary hover:bg-primary/5"
+            >
+              Import Legacy Bills
+            </UIButton>
           </div>
         </div>
 
@@ -286,14 +338,26 @@ export const PurchasesDesktopPage = () => {
 
                       {/* Action */}
                       <td className="py-3 px-3 text-right">
-                        <UIButton
-                          variant="ghost"
-                          size="xs"
-                          onClick={() => setSelectedBill(bill)}
-                          leftIcon={<Eye className="size-3.5" />}
-                        >
-                          View
-                        </UIButton>
+                        <div className="flex items-center justify-end gap-2">
+                          {bill.amountDue > 0 && bill.status !== "CANCELLED" && (
+                            <UIButton
+                              variant="ghost"
+                              size="xs"
+                              onClick={() => setPaymentBill(bill)}
+                              className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 font-bold"
+                            >
+                              Make Payment
+                            </UIButton>
+                          )}
+                          <UIButton
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => setSelectedBill(bill)}
+                            leftIcon={<Eye className="size-3.5" />}
+                          >
+                            View
+                          </UIButton>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -329,6 +393,29 @@ export const PurchasesDesktopPage = () => {
         isOpen={Boolean(selectedBill)}
         onClose={() => setSelectedBill(null)}
         onRefresh={fetchBills}
+      />
+
+      {/* Make Payment Modal */}
+      <MakePaymentModal
+        bill={paymentBill}
+        isOpen={Boolean(paymentBill)}
+        onClose={() => setPaymentBill(null)}
+        onRefresh={() => {
+          fetchBills();
+          setToastMessage("✅ Payment recorded successfully!");
+          setTimeout(() => setToastMessage(null), 4000);
+        }}
+      />
+
+      {/* Bulk Payment Modal */}
+      <BulkPaymentModal
+        isOpen={isBulkPaymentOpen}
+        onClose={() => setIsBulkPaymentOpen(false)}
+        onRefresh={() => {
+          fetchBills();
+          setToastMessage("✅ Bulk payment allocated successfully!");
+          setTimeout(() => setToastMessage(null), 4000);
+        }}
       />
     </section>
   );

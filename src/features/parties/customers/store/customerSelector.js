@@ -16,6 +16,8 @@ export const selectCustomerPage = (state) => state.customer.page;
 
 export const selectCustomerLimit = (state) => state.customer.limit;
 
+export const selectCustomerStats = (state) => state.customer.stats;
+
 export const selectCustomerStatus = (state) => state.customer.status;
 
 export const selectCustomerError = (state) => state.customer.error;

@@ -1,6 +1,8 @@
 // src/features/parties/suppliers/pages/mobile/SupplierDetailsMobilePage.jsx
 
 import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { getSupplierLedger, getSupplierPurchases } from "../../store/supplierThunk";
 import {
   FiArrowLeft,
   FiEdit3,
@@ -41,9 +43,9 @@ import { formatDate, formatCurrency } from "@/utils";
 
 const SupplierDetailsMobilePage = ({
   supplier,
-  ledger = [],
+  ledger = {},
   outstanding,
-  purchases = [],
+  purchases = {},
   payments = [],
   isLoading,
   hasError,
@@ -54,6 +56,7 @@ const SupplierDetailsMobilePage = ({
   handleEdit,
   handleRefresh,
 }) => {
+  const dispatch = useDispatch();
   if (isLoading && !supplier) {
     return (
       <AppBox sx={loadingErrorWrapperSx}>
@@ -78,9 +81,19 @@ const SupplierDetailsMobilePage = ({
 
   const safeSupplier = supplier || {};
 
+  const purchasesData = Array.isArray(purchases?.bills) ? purchases.bills : (Array.isArray(purchases) ? purchases : []);
+  const purchasesMeta = purchases?.total !== undefined ? purchases : { total: 0 };
+
+  const ledgerData = Array.isArray(ledger?.entries) ? ledger.entries : (Array.isArray(ledger) ? ledger : []);
+  const ledgerMeta = ledger?.meta || { totalDebit: 0, totalCredit: 0 };
+  const ledgerTotalDebit = ledgerMeta.totalDebit || 0;
+  const ledgerTotalCredit = ledgerMeta.totalCredit || 0;
+  // For supplier (liability), Net Balance = Credit - Debit
+  const ledgerNetBal = ledgerTotalCredit - ledgerTotalDebit;
+
   const tabs = [
     { value: "overview", label: "Overview" },
-    { value: "transactions", label: `Txns (${purchases.length + payments.length})` },
+    { value: "transactions", label: `Txns (${purchasesMeta.total || (purchasesData.length + payments.length)})` },
     { value: "statement", label: "Statement" },
     { value: "documents", label: "Docs" },
   ];
@@ -175,11 +188,10 @@ const SupplierDetailsMobilePage = ({
                 key={tab.value}
                 type="button"
                 onClick={() => handleTabChange(tab.value)}
-                className={`border-b-2 px-3 pb-2 text-[12px] font-bold transition whitespace-nowrap outline-none ${
-                  isTabActive
+                className={`border-b-2 px-3 pb-2 text-[12px] font-bold transition whitespace-nowrap outline-none ${isTabActive
                     ? "border-primary text-primary"
                     : "border-transparent text-text-muted hover:text-text"
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -249,7 +261,7 @@ const SupplierDetailsMobilePage = ({
               <div className="grid grid-cols-2 gap-2">
                 <CompactMetricCard
                   title="Total Purchases"
-                  value={formatCurrency(purchases.reduce((acc, p) => acc + (p.totalAmount || p.amount || 0), 0))}
+                  value={formatCurrency(purchasesData.reduce((acc, p) => acc + (p.grandTotal || 0), 0))}
                   color="primary"
                 />
                 <CompactMetricCard
@@ -262,7 +274,7 @@ const SupplierDetailsMobilePage = ({
                     title="Outstanding Payable"
                     value={formatCurrency(
                       (Number(safeSupplier.openingBalance) || 0) * (safeSupplier.openingBalanceType === "cr" ? 1 : -1) +
-                      purchases.reduce((acc, p) => acc + (p.totalAmount || p.amount || 0), 0) -
+                      purchasesData.reduce((acc, p) => acc + (p.grandTotal || 0), 0) -
                       payments.reduce((acc, p) => acc + (p.amount || 0), 0)
                     )}
                     color="danger"
@@ -275,15 +287,36 @@ const SupplierDetailsMobilePage = ({
           {/* Transactions List */}
           {currentTab === "transactions" && (
             <AppStack direction="column" gap={1}>
-              {purchases.map((p) => (
-                <TxnMobileCard key={p._id} type="Purchase Bill" refNo={p.billNumber} date={p.billDate} amount={p.totalAmount || p.amount} status={p.status} />
+              {purchasesData.map((p) => (
+                <TxnMobileCard key={p._id} type="Purchase Bill" refNo={p.purchaseBillNo || p.supplierInvoiceNo} date={p.invoiceDate || p.createdAt} amount={p.grandTotal || 0} status={p.status} />
               ))}
               {payments.map((p) => (
                 <TxnMobileCard key={p._id} type="Payment Made" refNo={p.paymentNumber} date={p.paymentDate} amount={p.amount} status="Paid" />
               ))}
-              {purchases.length === 0 && payments.length === 0 && (
+              {purchasesData.length === 0 && payments.length === 0 && (
                 <div className="p-8 text-center text-text-muted text-[11.5px] bg-surface rounded-lg border border-border">
                   No transaction history found.
+                </div>
+              )}
+              {purchasesMeta?.total > 5 && (
+                <div className="py-2 flex justify-between items-center px-2">
+                  <button
+                    type="button"
+                    onClick={() => dispatch(getSupplierPurchases({ supplierId: safeSupplier._id, params: { page: (purchasesMeta.page || 1) - 1, limit: 5 } }))}
+                    disabled={(purchasesMeta.page || 1) <= 1}
+                    className="text-[12px] font-bold text-primary hover:underline disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-[10px] text-text-muted">Page {purchasesMeta.page || 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => dispatch(getSupplierPurchases({ supplierId: safeSupplier._id, params: { page: (purchasesMeta.page || 1) + 1, limit: 5 } }))}
+                    disabled={(purchasesMeta.page || 1) >= Math.ceil(purchasesMeta.total / 5)}
+                    className="text-[12px] font-bold text-primary hover:underline disabled:opacity-50"
+                  >
+                    Next
+                  </button>
                 </div>
               )}
             </AppStack>
@@ -291,17 +324,62 @@ const SupplierDetailsMobilePage = ({
 
           {/* Statement */}
           {currentTab === "statement" && (
-            <AppCard variant="default" rounded="md" bordered padding="md" sx={emptyCardContainerSx}>
-              <AppStack direction="column" align="center" justify="center" gap={1} sx={{ py: 3, width: "100%" }}>
-                <FiFileText className="text-[28px] text-text-muted/60" />
-                <AppHeading level={3} weight={700} align="center" sx={{ m: 0, fontSize: "13px", width: "100%" }}>
-                  Ledger Statement
-                </AppHeading>
-                <AppText variant="body2" align="center" sx={tabFallbackDescSx}>
-                  Download the statement from the desktop interface to view full ledger details.
-                </AppText>
-              </AppStack>
-            </AppCard>
+            <AppStack direction="column" gap={1}>
+              <div className="grid grid-cols-2 gap-2 mb-1">
+                <CompactMetricCard title="Total Debit (Dr)" value={formatCurrency(ledgerTotalDebit)} color="danger" />
+                <CompactMetricCard title="Total Credit (Cr)" value={formatCurrency(ledgerTotalCredit)} color="success" />
+                <div className="col-span-2">
+                  <CompactMetricCard 
+                    title="Closing Balance" 
+                    value={`${formatCurrency(Math.abs(ledgerNetBal))} ${ledgerNetBal >= 0 ? "Cr" : "Dr"}`} 
+                    color="primary" 
+                  />
+                </div>
+              </div>
+
+              {ledgerData.map((entry) => (
+                <AppCard key={entry._id} variant="default" rounded="md" bordered shadow="none" sx={{ p: 1.5, bgcolor: "var(--app-color-surface)" }}>
+                  <AppStack direction="row" align="center" justify="space-between" gap={1}>
+                    <div>
+                      <span className="block text-[12px] font-bold text-text">{entry.voucherType}</span>
+                      <span className="block text-[10px] text-text-muted mt-0.5">{entry.voucherNumber} &bull; {formatDate(entry.voucherDate)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="block text-[12.5px] font-extrabold text-text">
+                        {entry.debit > 0 ? formatCurrency(entry.debit) + " Dr" : formatCurrency(entry.credit) + " Cr"}
+                      </span>
+                      <span className="block text-[10px] text-text-muted mt-0.5">Bal: {formatCurrency(Math.abs(entry.runningBalance || 0))}</span>
+                    </div>
+                  </AppStack>
+                </AppCard>
+              ))}
+              {ledgerData.length === 0 && (
+                <div className="p-8 text-center text-text-muted text-[11.5px] bg-surface rounded-lg border border-border">
+                  No statement history found.
+                </div>
+              )}
+              {ledger?.total > 5 && (
+                <div className="py-2 flex justify-between items-center px-2">
+                  <button
+                    type="button"
+                    onClick={() => dispatch(getSupplierLedger({ supplierId: safeSupplier._id, params: { page: (ledger.page || 1) - 1, limit: 5 } }))}
+                    disabled={(ledger.page || 1) <= 1}
+                    className="text-[12px] font-bold text-primary hover:underline disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-[10px] text-text-muted">Page {ledger.page || 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => dispatch(getSupplierLedger({ supplierId: safeSupplier._id, params: { page: (ledger.page || 1) + 1, limit: 5 } }))}
+                    disabled={(ledger.page || 1) >= Math.ceil(ledger.total / 5)}
+                    className="text-[12px] font-bold text-primary hover:underline disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </AppStack>
           )}
 
           {/* Documents */}

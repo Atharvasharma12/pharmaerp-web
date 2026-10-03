@@ -26,6 +26,7 @@ const initialState = {
   total: 0,
   page: 1,
   limit: 20,
+  stats: null,
 
   status: API_STATUS.IDLE,
   error: null,
@@ -132,6 +133,7 @@ const supplierSlice = createSlice({
         state.total = action.payload?.total || 0;
         state.page = action.payload?.page || 1;
         state.limit = action.payload?.limit || 20;
+        state.stats = action.payload?.stats || null;
 
         state.message = "Suppliers fetched successfully";
       })

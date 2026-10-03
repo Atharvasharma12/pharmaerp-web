@@ -59,7 +59,7 @@ const SupplierDetailsPage = () => {
     }
 
     try {
-      await getSupplierPurchases(supplierId);
+      await getSupplierPurchases({ supplierId, params: { page: 1, limit: 5 } });
     } catch (e) {
       console.error("Error fetching supplier purchases:", e);
     }
@@ -71,7 +71,7 @@ const SupplierDetailsPage = () => {
     }
 
     try {
-      await getSupplierLedger(supplierId);
+      await getSupplierLedger({ supplierId, params: { page: 1, limit: 5 } });
     } catch (e) {
       console.error("Error fetching supplier ledger:", e);
     }

@@ -34,6 +34,7 @@ import {
   selectCustomerTotal,
   selectCustomerPage,
   selectCustomerLimit,
+  selectCustomerStats,
   selectCustomerStatus,
   selectCustomerError,
   selectCustomerMessage,
@@ -62,6 +63,7 @@ const useCustomer = () => {
   const total = useSelector(selectCustomerTotal);
   const page = useSelector(selectCustomerPage);
   const limit = useSelector(selectCustomerLimit);
+  const stats = useSelector(selectCustomerStats);
 
   const status = useSelector(selectCustomerStatus);
   const error = useSelector(selectCustomerError);
@@ -210,6 +212,7 @@ const useCustomer = () => {
     total,
     page,
     limit,
+    stats,
 
     status,
     error,

@@ -170,7 +170,7 @@ const HighlightedExpiryBadge = ({ expiryDate }) => {
   }, [actualExpiryDate]);
 
   if (!status) {
-    return <span className="text-xs text-gray-500">{formatExpDate(actualExpiryDate)}</span>;
+    return <span className="text-xs text-text-muted">{formatExpDate(actualExpiryDate)}</span>;
   }
 
   const badgeProps = {
@@ -312,7 +312,7 @@ const ProductFacilityTable = ({ data }) => {
   return (
     <div className="w-full flex flex-col gap-4">
       {/* Metrics & Filter Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-surface p-4 rounded-xl border border-border shadow-2xs">
         <div className="flex items-center gap-3">
           <AppStatusBadge variant="primary" className="text-xs py-1 px-3 font-semibold">
             <FiBox className="mr-1.5 inline" />
@@ -328,7 +328,7 @@ const ProductFacilityTable = ({ data }) => {
         <div className="flex flex-wrap items-center gap-2">
           {/* Search Input */}
           <div className="relative w-64">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm" />
             <input
               type="text"
               placeholder="Search product / brand..."
@@ -337,7 +337,7 @@ const ProductFacilityTable = ({ data }) => {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-border focus:outline-hidden focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
             />
           </div>
 
@@ -349,7 +349,7 @@ const ProductFacilityTable = ({ data }) => {
                 setSelectedBranch(e.target.value);
                 setPage(1);
               }}
-              className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-hidden focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 cursor-pointer"
+              className="px-3 py-1.5 text-xs rounded-lg border border-border bg-surface text-text focus:outline-hidden focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 cursor-pointer"
             >
               <option value="">All Branches</option>
               {branches.map((b) => (
@@ -366,10 +366,10 @@ const ProductFacilityTable = ({ data }) => {
             onClick={() => setLowStockFilter((prev) => !prev)}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center gap-1.5 ${lowStockFilter
               ? "bg-rose-50 border-rose-300 text-rose-700 shadow-2xs"
-              : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+              : "bg-surface border-border text-text-muted hover:bg-surface-alt"
               }`}
           >
-            <FiAlertTriangle className={lowStockFilter ? "text-rose-600" : "text-gray-400"} />
+            <FiAlertTriangle className={lowStockFilter ? "text-rose-600" : "text-text-muted"} />
             Low Stock
           </button>
 
@@ -377,19 +377,19 @@ const ProductFacilityTable = ({ data }) => {
           <AppIconButton
             onClick={fetchInventory}
             title="Refresh Inventory"
-            className="border border-gray-200 hover:bg-gray-50 p-1.5 rounded-lg"
+            className="border border-border hover:bg-surface-alt p-1.5 rounded-lg"
           >
-            <FiRefreshCw className={`text-gray-600 text-xs ${loading ? "animate-spin" : ""}`} />
+            <FiRefreshCw className={`text-text-muted text-xs ${loading ? "animate-spin" : ""}`} />
           </AppIconButton>
         </div>
       </div>
 
       {/* Main Stock Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden min-h-[60vh]">
+      <div className="bg-surface rounded-xl border border-border shadow-2xs overflow-hidden min-h-[60vh]">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider">
+              <tr className="bg-surface-alt border-b border-border text-text-muted font-semibold uppercase tracking-wider">
                 <th className="p-3 w-10 text-center">
                   <input
                     type="checkbox"
@@ -398,7 +398,7 @@ const ProductFacilityTable = ({ data }) => {
                       if (el) el.indeterminate = isSomeSelected;
                     }}
                     onChange={handleSelectAll}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                    className="rounded border-border text-primary-600 focus:ring-primary-500 cursor-pointer"
                   />
                 </th>
                 <th className="p-3 min-w-[180px]">Product Name</th>
@@ -418,7 +418,7 @@ const ProductFacilityTable = ({ data }) => {
               {loading ? (
                 Array.from({ length: 5 }).map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
-                    <td colSpan={11} className="p-4 text-center text-gray-400">
+                    <td colSpan={11} className="p-4 text-center text-text-muted">
                       <div className="h-4 bg-gray-100 rounded w-full"></div>
                     </td>
                   </tr>
@@ -432,7 +432,7 @@ const ProductFacilityTable = ({ data }) => {
                     <tr
                       key={rowId}
                       onClick={() => handleSelectRow(rowId)}
-                      className={`hover:bg-gray-50/80 transition-colors cursor-pointer ${isSelected ? "bg-primary-50/30" : ""
+                      className={`hover:bg-surface-alt transition-colors cursor-pointer ${isSelected ? "bg-primary-50/30" : ""
                         }`}
                     >
                       <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
@@ -440,23 +440,23 @@ const ProductFacilityTable = ({ data }) => {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => handleSelectRow(rowId)}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                          className="rounded border-border text-primary-600 focus:ring-primary-500 cursor-pointer"
                         />
                       </td>
 
-                      <td className="p-3 font-semibold text-gray-900">
+                      <td className="p-3 font-semibold text-text">
                         {typeof row.name === "object" ? row.name?.name : (row.name || "N/A")}
                       </td>
 
-                      <td className="p-3 text-gray-600 font-medium">
+                      <td className="p-3 text-text-muted font-medium">
                         {typeof row.manufacturer === "object" ? row.manufacturer?.name : (row.manufacturer || typeof row.marketer === "object" ? row.marketer?.name : (row.marketer || "FDC"))}
                       </td>
 
-                      <td className="p-3 text-gray-500">
+                      <td className="p-3 text-text-muted">
                         {typeof row.pack === "object" ? row.pack?.name : (row.pack || row.qty || "10x10")}
                       </td>
 
-                      <td className="p-3 font-mono font-medium text-gray-800">
+                      <td className="p-3 font-mono font-medium text-text">
                         {row.batchNo}
                       </td>
 
@@ -464,7 +464,7 @@ const ProductFacilityTable = ({ data }) => {
                         <HighlightedExpiryBadge expiryDate={row.expiryDate} />
                       </td>
 
-                      <td className="p-3 text-right font-bold text-gray-900">
+                      <td className="p-3 text-right font-bold text-text">
                         <span
                           className={`inline-block px-2 py-0.5 rounded-md ${(row.batchQty || 0) < 10
                             ? "bg-rose-100 text-rose-800"
@@ -475,7 +475,7 @@ const ProductFacilityTable = ({ data }) => {
                         </span>
                       </td>
 
-                      <td className="p-3 text-right text-gray-700 font-medium">
+                      <td className="p-3 text-right text-text font-medium">
                         ₹{Number(row.mrp || 0).toFixed(2)}
                       </td>
 
@@ -495,7 +495,7 @@ const ProductFacilityTable = ({ data }) => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={11} className="p-8 text-center text-gray-400 text-sm">
+                  <td colSpan={11} className="p-8 text-center text-text-muted text-sm">
                     No products or stock records found.
                   </td>
                 </tr>
@@ -505,25 +505,25 @@ const ProductFacilityTable = ({ data }) => {
         </div>
 
         {/* Table Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50 text-xs text-gray-500">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-surface-alt text-xs text-text-muted">
           <div>
-            Showing <span className="font-semibold text-gray-700">{flatProducts.length}</span> of{" "}
-            <span className="font-semibold text-gray-700">{totalProducts}</span> entries
+            Showing <span className="font-semibold text-text">{flatProducts.length}</span> of{" "}
+            <span className="font-semibold text-text">{totalProducts}</span> entries
           </div>
 
           <div className="flex items-center gap-2">
             <button
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-2.5 py-1 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              className="px-2.5 py-1 rounded-md border border-border bg-surface text-text-muted hover:bg-surface-alt disabled:opacity-50"
             >
               Previous
             </button>
-            <span className="px-2 font-medium text-gray-700">Page {page}</span>
+            <span className="px-2 font-medium text-text">Page {page}</span>
             <button
               disabled={flatProducts.length < limit || page * limit >= totalProducts}
               onClick={() => setPage((p) => p + 1)}
-              className="px-2.5 py-1 rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              className="px-2.5 py-1 rounded-md border border-border bg-surface text-text-muted hover:bg-surface-alt disabled:opacity-50"
             >
               Next
             </button>

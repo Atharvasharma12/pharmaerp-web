@@ -90,6 +90,7 @@ const workspaceProductService = {
     formData.append("file", file);
     return apiClient.post("/catalog/products/detect", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      timeout: 300000, // 5 mins
     });
   },
 
@@ -97,6 +98,7 @@ const workspaceProductService = {
     if (payload instanceof FormData) {
       return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT, payload, {
         headers: { "Content-Type": "multipart/form-data" },
+        timeout: 300000,
       });
     }
     if (payload?.file) {
@@ -105,9 +107,10 @@ const workspaceProductService = {
       if (payload.branchId) formData.append("branchId", payload.branchId);
       return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT, formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        timeout: 300000,
       });
     }
-    return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT, payload);
+    return apiClient.post(ENDPOINTS.WORKSPACE_PRODUCTS.IMPORT, payload, { timeout: 300000 });
   },
 
   importWorkspaceProductsGst(payload) {

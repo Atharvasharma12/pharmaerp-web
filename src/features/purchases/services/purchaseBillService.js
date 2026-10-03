@@ -20,6 +20,22 @@ const purchaseBillService = {
   ingestPurchaseBill(billId) {
     return apiClient.post(`${ENDPOINTS.PURCHASE_BILL.BY_ID(billId)}/ingest`);
   },
+
+  payPurchaseBill(billId, payload) {
+    return apiClient.post(`${ENDPOINTS.PURCHASE_BILL.BY_ID(billId)}/pay`, payload);
+  },
+
+  bulkPayPurchaseBills(payload) {
+    return apiClient.post(`/catalog/purchase-bills/bulk/pay`, payload);
+  },
+
+  importLegacyBills(formData) {
+    return apiClient.post(`/catalog/purchase-bills/import/legacy-bills`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
 };
 
 export default purchaseBillService;

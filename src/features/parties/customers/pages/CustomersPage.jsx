@@ -82,6 +82,7 @@ const CustomersPage = () => {
     message,
     clearError,
     clearMessage,
+    stats: backendStats,
   } = useCustomer();
 
   const [filters, setFilters] = useState(initialFilters);
@@ -150,18 +151,50 @@ const CustomersPage = () => {
   }, [mappedCustomers, filters, activeSegment]);
 
   const stats = useMemo(() => {
-    const total = mappedCustomers.length;
+    console.log("frontend backendStats:", backendStats);
+    if (backendStats) {
+      const netRunning = (backendStats.totalDr || 0) - (backendStats.totalCr || 0);
+      return {
+        total: (backendStats.active || 0) + (backendStats.inactive || 0) + (backendStats.blocked || 0),
+        active: backendStats.active || 0,
+        inactive: backendStats.inactive || 0,
+        blocked: backendStats.blocked || 0,
+        totalCr: backendStats.totalCr || 0,
+        totalDr: backendStats.totalDr || 0,
+        netRunning: Math.abs(netRunning),
+        runningType: netRunning >= 0 ? "Dr" : "Cr",
+      };
+    }
+    const fallbackTotal = mappedCustomers.length;
     const active = mappedCustomers.filter((c) => normalizeText(c.status) === "active").length;
     const inactive = mappedCustomers.filter((c) => normalizeText(c.status) === "inactive").length;
     const blocked = mappedCustomers.filter((c) => normalizeText(c.status) === "blocked").length;
 
+    let totalCr = 0;
+    let totalDr = 0;
+    mappedCustomers.forEach((c) => {
+      const amt = Number(c.outstandingAmount) || 0;
+      if (String(c.balanceType).toLowerCase() === "cr") {
+        totalCr += amt;
+      } else {
+        totalDr += amt;
+      }
+    });
+
+    const netRunning = totalDr - totalCr; // For customers, Dr is positive balance (they owe us)
+    const runningType = netRunning >= 0 ? "Dr" : "Cr";
+
     return {
-      total,
+      total: fallbackTotal,
       active,
       inactive,
       blocked,
+      totalCr,
+      totalDr,
+      netRunning: Math.abs(netRunning),
+      runningType,
     };
-  }, [mappedCustomers]);
+  }, [mappedCustomers, backendStats]);
 
   const typeDistribution = useMemo(() => {
     const total = mappedCustomers.length || 1;

@@ -16,6 +16,8 @@ export const selectSupplierPage = (state) => state.supplier.page;
 
 export const selectSupplierLimit = (state) => state.supplier.limit;
 
+export const selectSupplierStats = (state) => state.supplier.stats;
+
 export const selectSupplierStatus = (state) => state.supplier.status;
 
 export const selectSupplierError = (state) => state.supplier.error;

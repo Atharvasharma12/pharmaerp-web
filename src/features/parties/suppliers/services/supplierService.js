@@ -29,22 +29,34 @@ const supplierService = {
     return apiClient.delete(ENDPOINTS.SUPPLIER.BY_ID(supplierId));
   },
 
+  previewImport(formData) {
+    return apiClient.post(ENDPOINTS.SUPPLIER.IMPORT_PREVIEW, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  confirmImport(suppliers) {
+    return apiClient.post(ENDPOINTS.SUPPLIER.IMPORT_CONFIRM, { suppliers });
+  },
+
   /*
   |--------------------------------------------------------------------------
   | Financial
   |--------------------------------------------------------------------------
   */
 
-  getSupplierLedger(supplierId) {
-    return apiClient.get(ENDPOINTS.SUPPLIER.LEDGER(supplierId));
+  getSupplierLedger(supplierId, params = {}) {
+    return apiClient.get(ENDPOINTS.SUPPLIER.LEDGER(supplierId), { params });
   },
 
   getSupplierOutstanding(supplierId) {
     return apiClient.get(ENDPOINTS.SUPPLIER.OUTSTANDING(supplierId));
   },
 
-  getSupplierPurchases(supplierId) {
-    return apiClient.get(ENDPOINTS.SUPPLIER.PURCHASES(supplierId));
+  getSupplierPurchases(supplierId, params = {}) {
+    return apiClient.get(ENDPOINTS.SUPPLIER.PURCHASES(supplierId), { params });
   },
 
   getSupplierPayments(supplierId) {

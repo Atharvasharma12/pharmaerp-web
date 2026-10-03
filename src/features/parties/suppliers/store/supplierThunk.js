@@ -89,9 +89,9 @@ export const deleteSupplier = createAsyncThunk(
 
 export const getSupplierLedger = createAsyncThunk(
   "supplier/getSupplierLedger",
-  async (supplierId, { rejectWithValue }) => {
+  async ({ supplierId, params }, { rejectWithValue }) => {
     try {
-      const response = await supplierService.getSupplierLedger(supplierId);
+      const response = await supplierService.getSupplierLedger(supplierId, params);
 
       return response.data?.data || [];
     } catch (error) {
@@ -127,9 +127,9 @@ export const getSupplierOutstanding = createAsyncThunk(
 
 export const getSupplierPurchases = createAsyncThunk(
   "supplier/getSupplierPurchases",
-  async (supplierId, { rejectWithValue }) => {
+  async ({ supplierId, params }, { rejectWithValue }) => {
     try {
-      const response = await supplierService.getSupplierPurchases(supplierId);
+      const response = await supplierService.getSupplierPurchases(supplierId, params);
 
       return response.data?.data || [];
     } catch (error) {
