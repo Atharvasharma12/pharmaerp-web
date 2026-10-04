@@ -899,47 +899,37 @@ export const SalesDesktopPage = () => {
 
             {/* B2B Selected Party Specs Card */}
             {selectedB2bParty && (
-              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 p-3 rounded-xl bg-surface-alt/60 border border-border/80 text-xs">
+              <div className="flex items-center gap-4 px-1 py-2 text-xs">
                 <div>
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                    Company Name
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mr-1.5">
+                    Credit:
                   </span>
-                  <p className="font-bold text-text truncate">{selectedB2bParty.companyName}</p>
-                </div>
-
-                <div>
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                    GSTIN No.
-                  </span>
-                  <p className="font-mono font-bold text-purple-600 dark:text-purple-400">
-                    {selectedB2bParty.gstin}
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                    Drug License (DL)
-                  </span>
-                  <p className="font-mono text-text truncate">{selectedB2bParty.dlNo}</p>
-                </div>
-
-                <div>
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                    B2B Margin / Terms
-                  </span>
-                  <p className="font-bold text-emerald-600 dark:text-emerald-400">
-                    {selectedB2bParty.defaultDiscount}% Discount • {selectedB2bParty.paymentTerms}
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                    Outstanding
-                  </span>
-                  <p className="font-bold text-danger">
+                  <span className="font-bold text-danger">
                     {(selectedB2bParty.outstandingAmount || selectedB2bParty.openingBalance || 0).toLocaleString("en-IN", { style: "currency", currency: "INR" })} {(selectedB2bParty.balanceType || selectedB2bParty.openingBalanceType || "DR").toUpperCase()}
-                  </p>
+                  </span>
                 </div>
+                
+                {(selectedB2bParty.creditLimit > 0) && (
+                  <div>
+                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mr-1.5">
+                      Credit Limit:
+                    </span>
+                    <span className="font-bold text-text">
+                      {selectedB2bParty.creditLimit.toLocaleString("en-IN", { style: "currency", currency: "INR" })}
+                    </span>
+                  </div>
+                )}
+
+                {(selectedB2bParty.creditDays > 0) && (
+                  <div>
+                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mr-1.5">
+                      Credit Days:
+                    </span>
+                    <span className="font-bold text-text">
+                      {selectedB2bParty.creditDays}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
