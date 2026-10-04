@@ -2,49 +2,43 @@ name: PharmaERP Bot Commit
 
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: "Select environment"
-        required: true
-        type: choice
-        options:
-          - development
-          - uat
-          - production
 
 permissions:
   contents: write
 
 jobs:
   bot-commit:
-    name: Bot Commit - ${{ inputs.environment }}
+    name: Bot Commit - ${{ github.ref_name }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Set deployment configuration
         id: config
         run: |
-          case "${{ inputs.environment }}" in
-            development)
-              echo "branch=develop" >> "$GITHUB_OUTPUT"
+          case "${GITHUB_REF_NAME}" in
+            develop)
               echo "message=chore: deploy development by PharmaERP Bot" >> "$GITHUB_OUTPUT"
               ;;
 
             uat)
-              echo "branch=uat" >> "$GITHUB_OUTPUT"
               echo "message=chore: deploy uat by PharmaERP Bot" >> "$GITHUB_OUTPUT"
               ;;
 
-            production)
-              echo "branch=main" >> "$GITHUB_OUTPUT"
+            main)
               echo "message=chore: deploy production by PharmaERP Bot" >> "$GITHUB_OUTPUT"
+              ;;
+
+            *)
+              echo "❌ Unsupported branch: ${GITHUB_REF_NAME}"
+              echo "Allowed branches: develop, uat, main"
+              exit 1
               ;;
           esac
 
       - name: Checkout deployment branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.config.outputs.branch }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Configure PharmaERP Bot
@@ -59,4 +53,4 @@ jobs:
 
       - name: Push Bot Commit
         run: |
-          git push origin "${{ steps.config.outputs.branch }}"
+          git push origin "${GITHUB_REF_NAME}"
