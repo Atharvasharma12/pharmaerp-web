@@ -80,6 +80,9 @@ export const B2bCustomerSearchBar = forwardRef(
           partyType: apiCust.customerType || "wholesale",
           creditLimit: apiCust.creditLimit || 0,
           creditDays: apiCust.creditDays || 0,
+          outstandingAmount: apiCust.outstandingAmount || 0,
+          openingBalance: apiCust.openingBalance || 0,
+          balanceType: apiCust.balanceType || apiCust.openingBalanceType || "dr",
           billingType: "B2B",
         }));
 
