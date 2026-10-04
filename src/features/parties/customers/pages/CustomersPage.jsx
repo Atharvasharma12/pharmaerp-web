@@ -83,24 +83,42 @@ const CustomersPage = () => {
     clearError,
     clearMessage,
     stats: backendStats,
+    total,
   } = useCustomer();
 
   const [filters, setFilters] = useState(initialFilters);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
 
   const isLoading = getCustomersStatus === API_STATUS.LOADING;
   const isDeleting = deleteCustomerStatus === API_STATUS.LOADING;
   const hasError = getCustomersStatus === API_STATUS.ERROR;
 
   const fetchCustomers = useCallback(async () => {
+    let apiCustomerType = undefined;
+    if (filters.type !== "all") {
+      apiCustomerType = filters.type;
+    } else if (activeSegment === "b2b") {
+      apiCustomerType = B2B_TYPES.join(",");
+    } else if (activeSegment === "b2c") {
+      apiCustomerType = B2C_TYPES.join(",");
+    }
+
     try {
-      await getCustomers();
+      await getCustomers({
+        page: currentPage,
+        limit: pageSize,
+        search: filters.search || undefined,
+        status: filters.status !== "all" ? filters.status : undefined,
+        customerType: apiCustomerType,
+      });
     } catch {
       // Regulated by store selectors
     }
-  }, [getCustomers]);
+  }, [getCustomers, currentPage, pageSize, filters.search, filters.status, filters.type, activeSegment]);
 
   useEffect(() => {
     if (!companyId) return;
@@ -249,6 +267,7 @@ const CustomersPage = () => {
   }, [filters]);
 
   const handleFilterChange = useCallback((eventOrValue) => {
+    setCurrentPage(1);
     if (eventOrValue?.target) {
       const { name, value } = eventOrValue.target;
       setFilters((prev) => ({ ...prev, [name]: value }));
@@ -258,15 +277,18 @@ const CustomersPage = () => {
   }, []);
 
   const handleSearchChange = useCallback((event) => {
+    setCurrentPage(1);
     const value = event?.target?.value ?? event;
     setFilters((prev) => ({ ...prev, search: value }));
   }, []);
 
   const handleRemoveFilter = useCallback((key) => {
+    setCurrentPage(1);
     setFilters((prev) => ({ ...prev, [key]: initialFilters[key] }));
   }, []);
 
   const handleClearFilters = useCallback(() => {
+    setCurrentPage(1);
     setFilters(initialFilters);
   }, []);
 
@@ -340,10 +362,14 @@ const CustomersPage = () => {
     error,
     message,
 
-    totalCustomers: mappedCustomers.length,
-    filteredCustomersCount: filteredCustomers.length,
-    hasCustomers: mappedCustomers.length > 0,
-    hasFilteredCustomers: filteredCustomers.length > 0,
+    totalCustomers: total,
+    filteredCustomersCount: total,
+    hasCustomers: total > 0,
+    hasFilteredCustomers: total > 0,
+    currentPage,
+    pageSize,
+    setCurrentPage,
+    setPageSize,
 
     handleFilterChange,
     handleSearchChange,

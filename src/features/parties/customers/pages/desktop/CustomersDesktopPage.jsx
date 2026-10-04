@@ -43,6 +43,8 @@ import {
 import { TopBarStats } from "@/layouts/app/components/header";
 import { AppTable } from "@/components";
 import { ROUTES } from "@/constants";
+import customerService from "../../services/customerService";
+import CustomerImportPreviewModal from "../../components/CustomerImportPreviewModal";
 
 const SORT_OPTIONS = [
   { value: "name_asc", label: "Name: A to Z" },
@@ -85,24 +87,70 @@ const CustomersDesktopPage = ({
   handleDeleteCustomer,
   handleRefresh,
 
+  currentPage = 1,
+  pageSize = 8,
+  setCurrentPage,
+  setPageSize,
+
   clearMessage,
   activeSegment,
 }) => {
   const segmentNavigate = useNavigate();
-  // Local pagination if parent doesn't provide it
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
+  // Parent-controlled pagination
+  const handlePageChange = (newPage) => {
+    if (setCurrentPage) setCurrentPage(newPage);
+  };
+  const handlePageSizeChange = (newSize) => {
+    if (setPageSize) setPageSize(newSize);
+    if (setCurrentPage) setCurrentPage(1);
+  };
 
-  const paginatedCustomers =
-    propPaginatedCustomers ||
-    customers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
+  const paginatedCustomers = propPaginatedCustomers || customers;
   const totalPages = Math.ceil(filteredCustomersCount / pageSize) || 1;
 
-  const handlePageChange = (newPage) => setCurrentPage(newPage);
-  const handlePageSizeChange = (newSize) => {
-    setPageSize(newSize);
-    setCurrentPage(1);
+  // Import State
+  const fileInputRef = React.useRef(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importPreviewData, setImportPreviewData] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const res = await customerService.previewImport(formData);
+      setImportPreviewData(res.data?.data || []);
+      setIsImportModalOpen(true);
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to parse file");
+    } finally {
+      setIsUploading(false);
+      // Reset input so same file can be selected again
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleImportSuccess = (successful, failed, errors) => {
+    setIsImportModalOpen(false);
+    if (failed > 0) {
+      alert(`Imported ${successful} successfully. ${failed} failed.\nErrors: ${errors.join(", ")}`);
+    } else {
+      alert(`Imported ${successful} customers successfully.`);
+    }
+    if (successful > 0) {
+      handleRefresh();
+    }
   };
 
   const getInitials = (name) => {
@@ -310,6 +358,28 @@ const CustomersDesktopPage = ({
                 className={`size-4 ${isLoading ? "animate-spin" : ""}`}
               />
             </UIIconButton>
+
+            <>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: "none" }} 
+                accept=".xlsx,.xls,.csv" 
+                onChange={handleFileChange} 
+              />
+              <PermissionGate permission="customer:create">
+                <UIButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  startIcon={<Download className="size-4" />}
+                  onClick={handleImportClick}
+                  disabled={isUploading}
+                >
+                  {isUploading ? "Uploading..." : "Import B2B"}
+                </UIButton>
+              </PermissionGate>
+            </>
 
             <PermissionGate permission="customer:create">
               <UIButton
@@ -783,7 +853,7 @@ const CustomersDesktopPage = ({
             totalPages={totalPages}
             totalItems={filteredCustomersCount}
             pageSize={pageSize}
-            pageSizeOptions={[12, 24, 48]}
+            pageSizeOptions={[8, 16, 24, 48]}
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
             showSummary
@@ -791,6 +861,14 @@ const CustomersDesktopPage = ({
           />
         </div>
       )}
+
+      {/* ── Import Preview Modal ── */}
+      <CustomerImportPreviewModal 
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        previewData={importPreviewData}
+        onImportSuccess={handleImportSuccess}
+      />
     </div>
   );
 };
