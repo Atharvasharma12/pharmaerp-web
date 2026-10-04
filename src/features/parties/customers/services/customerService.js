@@ -84,8 +84,8 @@ const customerService = {
     });
   },
 
-  confirmImport(customers) {
-    return apiClient.post(ENDPOINTS.CUSTOMER.IMPORT_CONFIRM, { customers });
+  confirmImport(customers, importType = "b2b") {
+    return apiClient.post(ENDPOINTS.CUSTOMER.IMPORT_CONFIRM, { customers, importType });
   },
 };
 

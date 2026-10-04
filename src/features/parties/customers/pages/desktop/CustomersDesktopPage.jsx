@@ -45,6 +45,8 @@ import { AppTable } from "@/components";
 import { ROUTES } from "@/constants";
 import customerService from "../../services/customerService";
 import CustomerImportPreviewModal from "../../components/CustomerImportPreviewModal";
+import ImportConfigModal from "../../components/ImportConfigModal";
+import OutstandingImportPreviewModal from "../../components/OutstandingImportPreviewModal";
 
 const SORT_OPTIONS = [
   { value: "name_asc", label: "Name: A to Z" },
@@ -109,40 +111,44 @@ const CustomersDesktopPage = ({
   const totalPages = Math.ceil(filteredCustomersCount / pageSize) || 1;
 
   // Import State
-  const fileInputRef = React.useRef(null);
+  const [isImportConfigOpen, setIsImportConfigOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] = useState(false);
+  const [activeImportType, setActiveImportType] = useState("b2b");
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
 
   const handleImportClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    setIsImportConfigOpen(true);
   };
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleImportSubmit = async (file, importType) => {
     try {
       setIsUploading(true);
+      setActiveImportType(importType);
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("importType", importType);
       
       const res = await customerService.previewImport(formData);
       setImportPreviewData(res.data?.data || []);
-      setIsImportModalOpen(true);
+      
+      setIsImportConfigOpen(false);
+      if (importType === "b2b-outstanding") {
+        setIsOutstandingImportModalOpen(true);
+      } else {
+        setIsImportModalOpen(true);
+      }
     } catch (err) {
       alert(err?.response?.data?.message || "Failed to parse file");
     } finally {
       setIsUploading(false);
-      // Reset input so same file can be selected again
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   const handleImportSuccess = (successful, failed, errors) => {
     setIsImportModalOpen(false);
+    setIsOutstandingImportModalOpen(false);
     if (failed > 0) {
       alert(`Imported ${successful} successfully. ${failed} failed.\nErrors: ${errors.join(", ")}`);
     } else {
@@ -360,13 +366,6 @@ const CustomersDesktopPage = ({
             </UIIconButton>
 
             <>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                style={{ display: "none" }} 
-                accept=".xlsx,.xls,.csv" 
-                onChange={handleFileChange} 
-              />
               <PermissionGate permission="customer:create">
                 <UIButton
                   type="button"
@@ -376,7 +375,7 @@ const CustomersDesktopPage = ({
                   onClick={handleImportClick}
                   disabled={isUploading}
                 >
-                  {isUploading ? "Uploading..." : "Import B2B"}
+                  {isUploading ? "Uploading..." : "Import"}
                 </UIButton>
               </PermissionGate>
             </>
@@ -863,11 +862,24 @@ const CustomersDesktopPage = ({
       )}
 
       {/* ── Import Preview Modal ── */}
-      <CustomerImportPreviewModal 
+            <ImportConfigModal
+        isOpen={isImportConfigOpen}
+        onClose={() => setIsImportConfigOpen(false)}
+        onImportSubmit={handleImportSubmit}
+        isUploading={isUploading}
+      />
+      <CustomerImportPreviewModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         previewData={importPreviewData}
         onImportSuccess={handleImportSuccess}
+      />
+      <OutstandingImportPreviewModal
+        isOpen={isOutstandingImportModalOpen}
+        onClose={() => setIsOutstandingImportModalOpen(false)}
+        previewData={importPreviewData}
+        onImportSuccess={handleImportSuccess}
+        importType={activeImportType}
       />
     </div>
   );
