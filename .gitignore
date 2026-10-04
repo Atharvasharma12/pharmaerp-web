@@ -53,3 +53,10 @@ coverage/
 *.pem
 *.key
 *.crt
+# AI and IDE Agents
+.agent/
+.claude/
+.codex/
+.cursor/
+.impeccable/
+

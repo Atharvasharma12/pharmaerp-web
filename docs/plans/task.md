@@ -16,3 +16,4 @@
 | 12. Desktop Sidebar Auto-Close on Mouse Leave | COMPLETED | Added 1.5s auto-collapse timer on mouse leave with portal/dialog awareness |
 | 13. Shift Details Dialog in Day Closing Views | COMPLETED | Wired ViewShiftDialog with trigger button into Day Closing breakdown lists |
 
+| 14. Add Customer (B2B) Import Feature | COMPLETED | Frontend and Backend implemented |
