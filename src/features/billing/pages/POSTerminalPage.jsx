@@ -956,11 +956,11 @@ export const POSTerminalPage = () => {
                               </span>
                             </div>
                           )}
-                          {(selectedParty.creditLimit > 0 || selectedParty.creditDays > 0 || selectedParty.openingBalance > 0) && (
+                          {(selectedParty.creditLimit > 0 || selectedParty.creditDays > 0 || (selectedParty.outstandingAmount || selectedParty.openingBalance) > 0) && (
                             <div className="flex items-center gap-3 mt-1.5 pt-1.5 border-t border-border/50">
-                              {selectedParty.openingBalance > 0 && (
+                              {(selectedParty.outstandingAmount || selectedParty.openingBalance) > 0 && (
                                 <span className="text-[10px] text-text-muted">
-                                  Outstanding: <span className="font-bold text-danger">{formatCurrency(selectedParty.openingBalance)} {selectedParty.openingBalanceType?.toUpperCase() || 'DR'}</span>
+                                  Outstanding: <span className="font-bold text-danger">{formatCurrency(selectedParty.outstandingAmount || selectedParty.openingBalance)} {(selectedParty.balanceType || selectedParty.openingBalanceType || 'DR').toUpperCase()}</span>
                                 </span>
                               )}
                               {selectedParty.creditLimit > 0 && (
