@@ -176,10 +176,15 @@ const OutstandingImportPreviewModal = ({
             <div className="min-w-max">
               <AppTable
                 columns={columns}
-                rows={localData}
+                rows={localData.slice(0, 100)}
                 hover
                 bordered={false}
               />
+              {localData.length > 100 && (
+                <div className="text-center p-3 text-xs text-text-muted bg-surface-alt border-t border-border">
+                  Showing first 100 rows out of {localData.length}. All valid invoices will be imported.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -202,3 +207,4 @@ const OutstandingImportPreviewModal = ({
 };
 
 export default OutstandingImportPreviewModal;
+
