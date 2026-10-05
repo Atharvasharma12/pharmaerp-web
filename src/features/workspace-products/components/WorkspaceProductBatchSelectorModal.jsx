@@ -182,15 +182,20 @@ export const WorkspaceProductBatchSelectorModal = ({
           setOtherBranchDetails(details);
         }).catch(err => console.warn("Failed to fetch other branch stock:", err));
       }
+    }
+  }, [open, product, activeBranchId]);
 
+  // Focus qty input after loading completes
+  useEffect(() => {
+    if (open && !isLoading) {
       setTimeout(() => {
-        if (totalQtyInputRef.current) {
+        if (totalQtyInputRef.current && !totalQtyInputRef.current.disabled) {
           totalQtyInputRef.current.focus();
           totalQtyInputRef.current.select();
         }
-      }, 60);
+      }, 100);
     }
-  }, [open, product, activeBranchId]);
+  }, [open, isLoading]);
 
   // Escape key listener to close modal
   useEffect(() => {
