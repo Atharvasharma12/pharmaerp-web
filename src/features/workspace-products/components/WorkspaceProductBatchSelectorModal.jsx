@@ -147,7 +147,7 @@ export const WorkspaceProductBatchSelectorModal = ({
       const prodId = product._id || product.id;
       if (prodId) {
         Promise.all([
-          workspaceProductService.getProductFacilityBatchesByQueryV2({ filters: { product: prodId }, limit: 50 }),
+          workspaceProductService.getProductFacilityBatchesByQueryV2({ filters: { product: prodId, facility_id: activeBranchId, branch_id: activeBranchId }, limit: 50 }),
           branchService.getWorkspaceBranches().catch(() => ({ data: { data: [] } }))
         ]).then(([res, branchRes]) => {
           const apiBatches = res.data?.data?.batches || res.data?.batches || res.data?.data || [];
@@ -182,15 +182,20 @@ export const WorkspaceProductBatchSelectorModal = ({
           setOtherBranchDetails(details);
         }).catch(err => console.warn("Failed to fetch other branch stock:", err));
       }
+    }
+  }, [open, product, activeBranchId]);
 
+  // Focus qty input after loading completes
+  useEffect(() => {
+    if (open && !isLoading) {
       setTimeout(() => {
-        if (totalQtyInputRef.current) {
+        if (totalQtyInputRef.current && !totalQtyInputRef.current.disabled) {
           totalQtyInputRef.current.focus();
           totalQtyInputRef.current.select();
         }
-      }, 60);
+      }, 100);
     }
-  }, [open, product, activeBranchId]);
+  }, [open, isLoading]);
 
   // Escape key listener to close modal
   useEffect(() => {
