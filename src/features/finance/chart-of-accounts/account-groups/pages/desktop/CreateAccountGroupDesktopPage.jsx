@@ -29,8 +29,6 @@ const CreateAccountGroupDesktopPage = ({
   formData,
   formErrors,
   isLoading,
-  computedLevel,
-  parentGroupOptions,
   natureOptions,
   statusOptions,
   handleFieldChange,
@@ -160,44 +158,6 @@ const CreateAccountGroupDesktopPage = ({
                           {formErrors.groupCode}
                         </span>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Parent Group & Group Level Grid */}
-                  <div className="grid grid-cols-2 gap-5">
-                    <div>
-                      <div className="flex items-center gap-1 mb-1.5">
-                        <label className="text-[12px] font-bold text-text">Parent Group (Under Group)</label>
-                      </div>
-                      <AppSelect
-                        name="parentGroupId"
-                        value={formData.parentGroupId}
-                        onChange={(e) => handleFieldChange("parentGroupId", e.target.value)}
-                        options={parentGroupOptions}
-                        size="medium"
-                        variant="bordered"
-                        rounded="md"
-                        sx={selectFieldSx}
-                        inputSx={selectInputSx}
-                      />
-                      <span className="text-[10px] text-text-muted mt-1 block">
-                        Select a parent group if this is a sub group
-                      </span>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-1 mb-1.5">
-                        <label className="text-[12px] font-bold text-text">Group Level (Auto)</label>
-                      </div>
-                      <input
-                        type="text"
-                        readOnly
-                        value={computedLevel}
-                        className="w-full px-3 py-1.5 text-[12.5px] rounded-md border border-border bg-surface-alt text-text focus:outline-none cursor-not-allowed opacity-85"
-                      />
-                      <span className="text-[10px] text-text-muted mt-1 block">
-                        Level in the chart of accounts hierarchy (1 for top level)
-                      </span>
                     </div>
                   </div>
 

@@ -1,3 +1,5 @@
+// src/features/operations/shifts/components/CreateShiftDialog.jsx
+
 import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -8,41 +10,32 @@ import {
   UIModalFooter,
   UIButton,
   UIAlert,
+  UIBadge,
 } from "@/components/ui";
+import { Clock, Banknote, Calendar, Layers, AlertCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { createShift, listShifts } from "../store/shiftThunk";
 import { API_STATUS } from "@/constants";
 import useBranchCash from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
-import { apiClient } from "@/services";
+import { getOpenBusinessDay } from "@/features/operations/business-days/store/businessDayThunk";
 
 const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
 
 export const CreateShiftDialog = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
   const { createShiftStatus, error } = useSelector((state) => state.shift);
+  const { openBusinessDay, getOpenBusinessDayStatus } = useSelector(
+    (state) => state.businessDay
+  );
   const { currentBranch } = useBranch();
-  
-  const getLocalTodayDateString = (date = new Date()) => {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
 
-  const todayStr = getLocalTodayDateString();
-  
-  const getTomorrowStr = () => {
-    const tm = new Date();
-    tm.setDate(tm.getDate() + 1);
-    return getLocalTodayDateString(tm);
-  };
-
-  const [selectedDate, setSelectedDate] = useState(todayStr);
-  const [todayDCDone, setTodayDCDone] = useState(false);
-  const [loadingDC, setLoadingDC] = useState(false);
-
-  const autoShiftName = new Date().getHours() < 12 ? "Morning Shift" : new Date().getHours() < 17 ? "Afternoon Shift" : "Evening Shift";
+  const hour = new Date().getHours();
+  const autoShiftName =
+    hour < 12
+      ? "Morning Shift"
+      : hour < 17
+      ? "Afternoon Shift"
+      : "Evening Shift";
   const autoShiftNo = "Auto-generated on save";
 
   const {
@@ -61,23 +54,9 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
     if (isOpen && currentBranch?._id) {
       setLoadingCash(true);
       getBranchCash(currentBranch._id).finally(() => setLoadingCash(false));
-
-      setLoadingDC(true);
-      apiClient.get(`/operations/day-closings?date=${todayStr}&branchId=${currentBranch._id}`)
-        .then(res => {
-          const dcs = res.data?.data || [];
-          const todayDC = dcs.find(dc => dc.status === "closed");
-          if (todayDC) {
-            setTodayDCDone(true);
-            setSelectedDate(getTomorrowStr());
-          } else {
-            setTodayDCDone(false);
-            setSelectedDate(todayStr);
-          }
-        })
-        .finally(() => setLoadingDC(false));
+      dispatch(getOpenBusinessDay(currentBranch._id));
     }
-  }, [isOpen, currentBranch?._id, todayStr]);
+  }, [isOpen, currentBranch?._id, dispatch, getBranchCash]);
 
   const activeDenoms = useMemo(() => {
     return (
@@ -94,7 +73,10 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (activeDenoms.length > 0) {
-      const newCounts = DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {});
+      const newCounts = DENOMINATIONS.reduce(
+        (acc, note) => ({ ...acc, [note]: "" }),
+        {}
+      );
       let hasAny = false;
       activeDenoms.forEach((d) => {
         const note = Number(d.denomination);
@@ -133,133 +115,187 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
     })).filter((d) => d.count > 0);
 
     try {
-      await dispatch(createShift({ 
-        openingFloatAmount: totalAmount,
-        openingDenominations,
-        date: selectedDate
-      })).unwrap();
+      await dispatch(
+        createShift({
+          openingFloatAmount: totalAmount,
+          openingDenominations,
+        })
+      ).unwrap();
       dispatch(listShifts());
       onClose();
-    } catch (e) {
-      // error handled by redux state
+    } catch {
+      // Managed by slice error
     }
   };
 
   return (
     <UIModal isOpen={isOpen} onClose={onClose} size="lg">
       <UIModalHeader>
-        <UIModalTitle>Open New Shift</UIModalTitle>
+        <UIModalTitle>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20">
+              <Clock className="h-5.5 w-5.5 stroke-[2.2]" />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-text tracking-tight">
+                Initialize POS Shift & Cash Drawer
+              </h3>
+              <p className="text-xs font-medium text-text-muted mt-0.5">
+                Set opening float balance and start counter billing session
+              </p>
+            </div>
+          </div>
+        </UIModalTitle>
       </UIModalHeader>
-      <UIModalBody className="max-h-[70vh] overflow-y-auto">
-        <div className="space-y-6 py-2">
+
+      <UIModalBody className="max-h-[72vh] overflow-y-auto">
+        <div className="space-y-5 py-1">
           {error && <UIAlert intent="danger" title="Error" description={error} />}
 
           {!loadingCash && !branchCash ? (
-            <div className="py-4">
-              <UIAlert 
-                intent="warning" 
-                title="Branch Cash Not Initialized" 
-                description="You must initialize the branch cash before opening a shift. Please go to Treasury > Branch Cash to set up the initial balance."
+            <div className="py-2">
+              <UIAlert
+                intent="warning"
+                title="Branch Cash Not Initialized"
+                description="You must initialize the branch cash balance before opening a shift. Navigate to Treasury > Branch Cash to set up initial drawer funds."
               />
             </div>
           ) : (
             <>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-surface-secondary p-3 rounded-lg border border-border">
-              <p className="text-xs text-text-muted mb-1">Business Date</p>
-              {loadingDC ? (
-                <p className="text-sm font-medium text-text-muted">Checking…</p>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold font-mono">{selectedDate}</p>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                    todayDCDone
-                      ? "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-300/50"
-                      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-300/50"
-                  }`}>
-                    {todayDCDone ? "TOMORROW" : "TODAY"}
-                  </span>
-                </div>
-              )}
-              <p className="text-[10px] text-text-muted mt-1">Auto-assigned · cannot be changed</p>
-            </div>
-            <div className="bg-surface-secondary p-3 rounded-lg border border-border">
-              <p className="text-xs text-text-muted">Shift Number</p>
-              <p className="text-sm font-medium text-text-muted">{autoShiftNo}</p>
-            </div>
-            <div className="bg-surface-secondary p-3 rounded-lg border border-border">
-              <p className="text-xs text-text-muted">Shift Name</p>
-              <p className="text-sm font-medium">{autoShiftName}</p>
-            </div>
-          </div>
-
-          <div className="border-t border-border pt-4">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-semibold">Opening Cash Balance</h4>
-                  {isFromDrawer && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
-                      Drawer Carry-Forward
+              {/* ── Top Session Meta Cards ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Business Date */}
+                <div className="bg-surface-alt/70 border border-border/70 rounded-xl p-3 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-text-muted flex items-center gap-1">
+                      <Calendar className="size-3 text-primary" />
+                      Session Date
                     </span>
-                  )}
-                </div>
-                <p className="text-xs text-text-muted mt-0.5">
-                  Branch Operating Cash Drawer: Running Cash Partition
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-text-muted">Total Float</p>
-                <p className="text-lg font-bold text-success font-mono">
-                  {loadingCash ? "Loading..." : `₹${totalAmount.toLocaleString("en-IN")}`}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {DENOMINATIONS.map((note) => {
-                const countVal = counts[note];
-                const hasValue = countVal !== "" && Number(countVal) > 0;
-                return (
-                  <div
-                    key={note}
-                    className={`flex items-center gap-2 bg-surface-secondary border rounded p-2 transition ${
-                      hasValue
-                        ? "border-emerald-500/40 bg-emerald-500/5 shadow-xs"
-                        : "border-border opacity-70"
-                    } ${isFromDrawer ? "cursor-not-allowed" : ""}`}
-                  >
-                    <div
-                      className={`w-12 text-center text-sm font-bold font-mono ${
-                        hasValue ? "text-emerald-600 dark:text-emerald-400" : "text-text-muted"
-                      }`}
-                    >
-                      ₹{note}
-                    </div>
-                    <div className="text-text-muted">×</div>
-                    <input
-                      type="number"
-                      min="0"
-                      readOnly={isFromDrawer}
-                      disabled={isFromDrawer}
-                      value={countVal}
-                      onChange={(e) => handleCountChange(note, e.target.value)}
-                      className={`w-full bg-transparent text-sm p-1.5 outline-none font-mono ${
-                        isFromDrawer
-                          ? "cursor-not-allowed text-text font-semibold"
-                          : "cursor-text text-text focus:bg-surface rounded"
-                      }`}
-                      placeholder="0"
-                    />
+                    {openBusinessDay && (
+                      <UIBadge variant="soft" color="success" className="text-[10px] py-0 px-1.5 font-bold">
+                        OPEN
+                      </UIBadge>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                  <div className="mt-2">
+                    {getOpenBusinessDayStatus === API_STATUS.LOADING ? (
+                      <p className="text-xs text-text-muted font-medium">Checking date...</p>
+                    ) : openBusinessDay ? (
+                      <p className="text-sm font-bold text-text font-mono">
+                        {new Date(openBusinessDay.businessDate).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-error font-semibold flex items-center gap-1">
+                        <AlertCircle className="size-3" /> No Day Open
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Shift Number */}
+                <div className="bg-surface-alt/70 border border-border/70 rounded-xl p-3 flex flex-col justify-between">
+                  <span className="text-[11px] font-semibold text-text-muted flex items-center gap-1">
+                    <Layers className="size-3 text-primary" />
+                    Shift Number
+                  </span>
+                  <p className="text-xs font-mono font-semibold text-text-muted mt-2 truncate">
+                    {autoShiftNo}
+                  </p>
+                </div>
+
+                {/* Shift Name */}
+                <div className="bg-surface-alt/70 border border-border/70 rounded-xl p-3 flex flex-col justify-between">
+                  <span className="text-[11px] font-semibold text-text-muted flex items-center gap-1">
+                    <Clock className="size-3 text-primary" />
+                    Shift Session
+                  </span>
+                  <p className="text-sm font-bold text-text mt-2 truncate">
+                    {autoShiftName}
+                  </p>
+                </div>
+              </div>
+
+              {/* ── Cash Float Section Header ── */}
+              <div className="border-t border-border/60 pt-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3.5 bg-surface-alt/50 border border-border/70 rounded-xl p-3.5">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Banknote className="size-4 text-emerald-600 dark:text-emerald-400" />
+                      <h4 className="text-sm font-bold text-text">Opening Cash Float</h4>
+                      {isFromDrawer && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          Drawer Carry-Forward
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      Counter cash partition balance automatically calculated from notes
+                    </p>
+                  </div>
+
+                  <div className="text-left sm:text-right">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                      Total Opening Float
+                    </span>
+                    <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
+                      {loadingCash ? "Loading..." : `₹${totalAmount.toLocaleString("en-IN")}`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* ── Denominations Grid ── */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {DENOMINATIONS.map((note) => {
+                    const countVal = counts[note];
+                    const hasValue = countVal !== "" && Number(countVal) > 0;
+                    return (
+                      <div
+                        key={note}
+                        className={`flex items-center justify-between border rounded-xl p-2 px-3 transition-all duration-150 ${
+                          hasValue
+                            ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20 shadow-2xs"
+                            : "border-border/70 bg-surface-alt/40 opacity-80 hover:opacity-100"
+                        } ${isFromDrawer ? "cursor-not-allowed" : ""}`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-xs font-bold font-mono ${
+                              hasValue ? "text-primary" : "text-text"
+                            }`}
+                          >
+                            ₹{note}
+                          </span>
+                          <span className="text-text-muted/60 text-xs">×</span>
+                        </div>
+
+                        <input
+                          type="number"
+                          min="0"
+                          readOnly={isFromDrawer}
+                          disabled={isFromDrawer}
+                          value={countVal}
+                          onChange={(e) => handleCountChange(note, e.target.value)}
+                          className={`w-16 text-right text-xs font-mono font-bold p-1 outline-none transition ${
+                            isFromDrawer
+                              ? "cursor-not-allowed text-text font-bold"
+                              : "cursor-text text-text focus:ring-1 focus:ring-primary focus:border-primary bg-surface border border-border/80 rounded-md"
+                          }`}
+                          placeholder="0"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </>
           )}
         </div>
       </UIModalBody>
+
       <UIModalFooter>
         <UIButton variant="ghost" onClick={onClose}>
           Cancel
@@ -268,11 +304,14 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
           variant="primary"
           onClick={handleCreate}
           isLoading={createShiftStatus === API_STATUS.LOADING}
-          disabled={!branchCash || loadingCash}
+          disabled={!branchCash || loadingCash || !openBusinessDay}
         >
-          Open Shift
+          <span>Open Shift Session</span>
+          <ArrowRight className="size-4 ml-1 opacity-70" />
         </UIButton>
       </UIModalFooter>
     </UIModal>
   );
 };
+
+export default CreateShiftDialog;

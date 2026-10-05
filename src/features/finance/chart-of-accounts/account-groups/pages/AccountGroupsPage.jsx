@@ -12,7 +12,6 @@ import AccountGroupsMobilePage from "./mobile/AccountGroupsMobilePage";
 const initialFilters = {
   search: "",
   status: "all",
-  underGroup: "all",
 };
 
 const normalizeText = (val) => String(val || "").trim().toLowerCase();
@@ -71,67 +70,32 @@ const AccountGroupsPage = () => {
 
   const hasError = getAccountGroupsStatus === API_STATUS.ERROR;
 
-  // Helper: Get direct and indirect accounts count for a group
+  // Helper: Get accounts count for a group
   const getGroupAccountsCount = useCallback((groupId) => {
-    const getDescendants = (parentId) => {
-      let desc = [];
-      const children = accountGroups.filter((g) => {
-        const parentIdStr = typeof g.parentGroupId === "object" ? g.parentGroupId?._id : g.parentGroupId;
-        return parentIdStr === parentId;
-      });
-      children.forEach((c) => {
-        desc.push(c._id);
-        desc = desc.concat(getDescendants(c._id));
-      });
-      return desc;
-    };
-
-    const targetGroupIds = [groupId].concat(getDescendants(groupId));
     return accounts.filter((a) => {
       const aGroupId = typeof a.accountGroupId === "object" ? a.accountGroupId?._id : a.accountGroupId;
-      return targetGroupIds.includes(aGroupId);
+      return aGroupId === groupId;
     }).length;
-  }, [accountGroups, accounts]);
+  }, [accounts]);
 
-  // Helper to map parent group name
-  const getParentGroupName = useCallback((parentGroupId) => {
-    const parentIdStr = typeof parentGroupId === "object" ? parentGroupId?._id : parentGroupId;
-    if (!parentIdStr) return "-";
-    const parentGroup = accountGroups.find((g) => g._id === parentIdStr);
-    return parentGroup ? parentGroup.groupName : "-";
-  }, [accountGroups]);
-
-  // Map account groups to include computed hierarchy level, accounts count, parent names, etc.
+  // Map account groups to include accounts count, parent names, etc.
   const mappedGroups = useMemo(() => {
-    // Determine tree depth/level for indenting
-    const calculateLevel = (group, depth = 1) => {
-      const parentIdStr = typeof group.parentGroupId === "object" ? group.parentGroupId?._id : group.parentGroupId;
-      if (!parentIdStr) return depth;
-      const parent = accountGroups.find((g) => g._id === parentIdStr);
-      if (!parent) return depth;
-      return calculateLevel(parent, depth + 1);
-    };
-
     return accountGroups.map((group) => {
-      const parentIdStr = typeof group.parentGroupId === "object" ? group.parentGroupId?._id : group.parentGroupId;
       return {
         ...group,
         id: group._id,
         name: group.groupName,
         code: group.groupCode,
-        level: calculateLevel(group),
-        underGroup: getParentGroupName(group.parentGroupId),
         accountsCount: getGroupAccountsCount(group._id),
         status: group.status || "active",
       };
     });
-  }, [accountGroups, getGroupAccountsCount, getParentGroupName]);
+  }, [accountGroups, getGroupAccountsCount]);
 
   // Apply filters
   const filteredGroups = useMemo(() => {
     const searchVal = normalizeText(filters.search);
     const statusVal = normalizeText(filters.status);
-    const underVal = filters.underGroup;
 
     return mappedGroups.filter((group) => {
       const matchesSearch =
@@ -144,12 +108,7 @@ const AccountGroupsPage = () => {
         statusVal === "all" ||
         normalizeText(group.status) === statusVal;
 
-      const parentIdStr = typeof group.parentGroupId === "object" ? group.parentGroupId?._id : group.parentGroupId;
-      const matchesUnder =
-        underVal === "all" ||
-        parentIdStr === underVal;
-
-      return matchesSearch && matchesStatus && matchesUnder;
+      return matchesSearch && matchesStatus;
     });
   }, [mappedGroups, filters]);
 
@@ -170,16 +129,12 @@ const AccountGroupsPage = () => {
   // Dynamic statistics
   const stats = useMemo(() => {
     const totalGroups = accountGroups.length;
-    const rootGroups = accountGroups.filter((g) => !g.parentGroupId).length;
-    const underGroups = accountGroups.filter((g) => g.parentGroupId).length;
     const totalAccs = accounts.length;
     const activeGroups = accountGroups.filter((g) => g.status === "active").length;
     const inactiveGroups = accountGroups.filter((g) => g.status === "inactive").length;
 
     return {
       totalGroups,
-      rootGroups,
-      underGroups,
       totalAccounts: totalAccs,
       activeGroups,
       inactiveGroups,
@@ -199,12 +154,8 @@ const AccountGroupsPage = () => {
     if (filters.status !== "all") {
       chips.push({ key: "status", label: `Status: ${filters.status}` });
     }
-    if (filters.underGroup !== "all") {
-      const parent = accountGroups.find((g) => g._id === filters.underGroup);
-      chips.push({ key: "underGroup", label: `Under: ${parent ? parent.groupName : filters.underGroup}` });
-    }
     return chips;
-  }, [filters, accountGroups]);
+  }, [filters]);
 
   const handleFilterChange = useCallback((name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -247,14 +198,6 @@ const AccountGroupsPage = () => {
     fetchGroupsAndAccounts();
   }, [fetchGroupsAndAccounts]);
 
-  const rootGroupOptions = useMemo(() => {
-    const opts = [{ label: "Root/Under Group: All", value: "all" }];
-    accountGroups.forEach((g) => {
-      opts.push({ label: g.groupName, value: g._id });
-    });
-    return opts;
-  }, [accountGroups]);
-
   const statusOptions = useMemo(() => [
     { label: "Status: All", value: "all" },
     { label: "Active", value: "active" },
@@ -276,7 +219,6 @@ const AccountGroupsPage = () => {
     stats,
     filters,
     activeFilterChips,
-    rootGroupOptions,
     statusOptions,
     isLoading,
     hasError,

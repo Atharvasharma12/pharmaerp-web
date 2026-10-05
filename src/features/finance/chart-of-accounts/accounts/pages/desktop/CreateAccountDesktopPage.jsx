@@ -29,7 +29,6 @@ const CreateAccountDesktopPage = ({
   formErrors,
   isLoading,
   groupOptions,
-  natureOptions,
   categoryOptions,
   balanceTypeOptions,
   handleFieldChange,
@@ -162,7 +161,7 @@ const CreateAccountDesktopPage = ({
                     </div>
                   </div>
 
-                  {/* Account Group & Nature Grid */}
+                  {/* Account Group & Category Grid */}
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <div className="flex items-center gap-1 mb-1.5">
@@ -192,35 +191,6 @@ const CreateAccountDesktopPage = ({
 
                     <div>
                       <div className="flex items-center gap-1 mb-1.5">
-                        <label className="text-[12px] font-bold text-text">Account Nature / Type</label>
-                        <span className="text-danger">*</span>
-                      </div>
-                      <AppSelect
-                        name="accountNature"
-                        value={formData.accountNature}
-                        onChange={(e) => handleFieldChange("accountNature", e.target.value)}
-                        options={natureOptions}
-                        size="medium"
-                        variant="bordered"
-                        rounded="md"
-                        sx={selectFieldSx}
-                        inputSx={selectInputSx}
-                      />
-                      <span className="text-[10px] text-text-muted mt-1 block">
-                        Prefilled automatically from selected group
-                      </span>
-                      {formErrors.accountNature && (
-                        <span className="text-[10.5px] text-danger mt-1 block font-semibold">
-                          {formErrors.accountNature}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Category, Opening Balance & Balance Type Grid */}
-                  <div className="grid grid-cols-3 gap-5">
-                    <div>
-                      <div className="flex items-center gap-1 mb-1.5">
                         <label className="text-[12px] font-bold text-text">Account Category</label>
                         <span className="text-danger">*</span>
                       </div>
@@ -244,7 +214,10 @@ const CreateAccountDesktopPage = ({
                         </span>
                       )}
                     </div>
+                  </div>
 
+                  {/* Opening Balance & Balance Type Grid */}
+                  <div className="grid grid-cols-2 gap-5">
                     <div>
                       <div className="flex items-center gap-1 mb-1.5">
                         <label className="text-[12px] font-bold text-text">Opening Balance (Optional)</label>
@@ -428,12 +401,7 @@ const CreateAccountDesktopPage = ({
                     Choose the correct parent group to organize financial ledgers properly.
                   </span>
                 </div>
-                <div>
-                  <span className="font-bold text-text block mb-1">Nature / Type</span>
-                  <span className="text-text-muted">
-                    Prefilled automatically from selected group. Defines financial statement mapping.
-                  </span>
-                </div>
+
                 <div>
                   <span className="font-bold text-text block mb-1">Opening Balance</span>
                   <span className="text-text-muted">

@@ -167,29 +167,29 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
 
                 {/* Cash Account Status: Current Running & Frozen Cash (Reserve) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3.5 flex items-center justify-between">
+                  <div className="bg-success-soft border border-success/30 rounded-xl p-3.5 flex items-center justify-between">
                     <div>
-                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400 mb-1">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-success mb-1">
                         <Banknote className="size-3.5" /> Current Running Cash (Now)
                       </div>
-                      <p className="font-mono font-bold text-2xl text-emerald-700 dark:text-emerald-400">
+                      <p className="font-mono font-bold text-2xl text-success">
                         ₹{fmt(branchCash?.runningCash ?? summary?.currentRunningCash ?? 0)}
                       </p>
-                      <p className="text-[11px] text-emerald-600/80 dark:text-emerald-500 mt-0.5">
+                      <p className="text-[11px] text-success/80 dark:text-success mt-0.5">
                         Active in drawer partition
                       </p>
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl p-3.5 flex items-center justify-between">
+                  <div className="bg-info-soft border border-info/30 rounded-xl p-3.5 flex items-center justify-between">
                     <div>
-                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-700 dark:text-blue-400 mb-1">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-info mb-1">
                         <Snowflake className="size-3.5" /> Frozen Cash (Reserve)
                       </div>
-                      <p className="font-mono font-bold text-2xl text-blue-700 dark:text-blue-400">
+                      <p className="font-mono font-bold text-2xl text-info">
                         ₹{fmt(branchCash?.frozenCash ?? summary?.currentFrozenCash ?? 0)}
                       </p>
-                      <p className="text-[11px] text-blue-600/80 dark:text-blue-500 mt-0.5">
+                      <p className="text-[11px] text-info/80 dark:text-info mt-0.5">
                         Locked cash awaiting bank deposit
                       </p>
                     </div>
@@ -211,12 +211,12 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
                         <QrCode className="size-3.5" /> Payment Breakdown
                       </h4>
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3">
-                          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400 mb-1">
+                        <div className="bg-success-soft border border-success/30 rounded-xl p-3">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-success mb-1">
                             <Banknote className="size-3" /> Cash Bills
                           </div>
-                          <p className="font-mono font-bold text-xl text-emerald-700 dark:text-emerald-400">₹{fmt(summary.totalCashNet)}</p>
-                          <p className="text-[11px] text-emerald-600/70 mt-0.5">{summary.totalCashInvoiceCount || 0} bills</p>
+                          <p className="font-mono font-bold text-xl text-success">₹{fmt(summary.totalCashNet)}</p>
+                          <p className="text-[11px] text-success/70 mt-0.5">{summary.totalCashInvoiceCount || 0} bills</p>
                         </div>
                         <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-xl p-3">
                           <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-700 dark:text-purple-400 mb-1">

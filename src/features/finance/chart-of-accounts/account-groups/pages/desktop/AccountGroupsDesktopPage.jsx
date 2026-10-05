@@ -45,10 +45,8 @@ const statusColorMap = {
   inactive: "neutral",
 };
 
-// Toolbar for Account Groups (removed redundant Filters button)
 const GroupsTableToolbar = ({
   filters,
-  rootGroupOptions,
   statusOptions,
   handleFilterChange,
   handleCreateGroup,
@@ -77,17 +75,6 @@ const GroupsTableToolbar = ({
         variant="bordered"
         rounded="md"
         sx={{ width: 110 }}
-        inputSx={filterInputSx}
-      />
-      <AppSelect
-        name="underGroup"
-        value={filters.underGroup}
-        onChange={(e) => handleFilterChange("underGroup", e.target.value)}
-        options={rootGroupOptions}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={{ width: 180 }}
         inputSx={filterInputSx}
       />
     </div>
@@ -181,7 +168,6 @@ const AccountGroupsDesktopPage = ({
   handlePageSizeChange,
   stats = {},
   filters = {},
-  rootGroupOptions = [],
   statusOptions = [],
   isLoading = false,
   handleFilterChange,
@@ -217,24 +203,13 @@ const AccountGroupsDesktopPage = ({
       ),
     },
     {
-      id: "level",
-      key: "level",
-      label: "Level",
-      minWidth: 80,
+      id: "nature",
+      key: "nature",
+      label: "Nature",
+      minWidth: 100,
       render: (_, row) => (
         <AppText variant="body2" sx={rowTextSx}>
-          {row.level}
-        </AppText>
-      ),
-    },
-    {
-      id: "underGroup",
-      key: "underGroup",
-      label: "Under Group",
-      minWidth: 140,
-      render: (_, row) => (
-        <AppText variant="body2" sx={rowTextMutedSx}>
-          {row.underGroup}
+          {row.nature || "-"}
         </AppText>
       ),
     },
@@ -353,7 +328,6 @@ const AccountGroupsDesktopPage = ({
             >
               <GroupsTableToolbar
                 filters={filters}
-                rootGroupOptions={rootGroupOptions}
                 statusOptions={statusOptions}
                 handleFilterChange={handleFilterChange}
                 handleCreateGroup={handleCreateGroup}
@@ -408,14 +382,6 @@ const AccountGroupsDesktopPage = ({
                   <span className="font-bold text-text">{stats.totalGroups}</span>
                 </div>
                 <div className="flex justify-between items-center text-[12.5px]">
-                  <span className="text-text-muted font-medium">Root Groups</span>
-                  <span className="font-bold text-text">{stats.rootGroups}</span>
-                </div>
-                <div className="flex justify-between items-center text-[12.5px]">
-                  <span className="text-text-muted font-medium">Under Groups</span>
-                  <span className="font-bold text-text">{stats.underGroups}</span>
-                </div>
-                <div className="flex justify-between items-center text-[12.5px]">
                   <span className="text-text-muted font-medium">Total Accounts</span>
                   <span className="font-bold text-text">{stats.totalAccounts}</span>
                 </div>
@@ -458,26 +424,7 @@ const AccountGroupsDesktopPage = ({
                   <span className="flex h-6 w-6 items-center justify-center rounded bg-success-soft text-success text-[12px] shrink-0">
                     <FiPlus />
                   </span>
-                  Add Root Group
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCreateGroup}
-                  className="w-full text-left flex items-center gap-2 p-1.5 rounded-md hover:bg-surface-hover transition text-[11.5px] font-medium text-text"
-                >
-                  <span className="flex h-6 w-6 items-center justify-center rounded bg-success-soft text-success text-[12px] shrink-0">
-                    <FiPlus />
-                  </span>
-                  Add Sub Group
-                </button>
-                <button
-                  type="button"
-                  className="w-full text-left flex items-center gap-2 p-1.5 rounded-md hover:bg-surface-hover transition text-[11.5px] font-medium text-text"
-                >
-                  <span className="flex h-6 w-6 items-center justify-center rounded bg-purple-soft text-purple text-[12px] shrink-0">
-                    <FiBookOpen />
-                  </span>
-                  View Group Hierarchy
+                  Add Account Group
                 </button>
                 <button
                   type="button"
@@ -547,7 +494,7 @@ const AccountGroupsDesktopPage = ({
                     About Account Groups
                   </AppHeading>
                   <AppText variant="body2" sx={bannerDescSx}>
-                    Account groups help you organize accounts in a hierarchical structure. Root groups are top-level groups with no parent.
+                    Account groups help you organize accounts in a flat structure.
                   </AppText>
                 </div>
               </div>

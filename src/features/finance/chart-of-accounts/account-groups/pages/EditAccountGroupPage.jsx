@@ -11,7 +11,6 @@ import EditAccountGroupMobilePage from "./mobile/EditAccountGroupMobilePage";
 const INITIAL_FORM_DATA = {
   groupName: "",
   groupCode: "",
-  parentGroupId: "",
   nature: "",
   description: "",
   status: "active",
@@ -68,7 +67,6 @@ const EditAccountGroupPage = () => {
           setFormData({
             groupName: data.groupName || "",
             groupCode: data.groupCode || "",
-            parentGroupId: typeof data.parentGroupId === "object" ? data.parentGroupId?._id : (data.parentGroupId || ""),
             nature: data.nature || "",
             description: data.description || "",
             status: data.status || "active",
@@ -95,27 +93,10 @@ const EditAccountGroupPage = () => {
   const isLoading = updateAccountGroupStatus === API_STATUS.LOADING;
   const isFetching = getAccountGroupStatus === API_STATUS.LOADING;
 
-  // Auto calculate hierarchy level
-  const computedLevel = useMemo(() => {
-    if (!formData.parentGroupId) return 1;
-    const parent = accountGroups.find((g) => g._id === formData.parentGroupId);
-    return parent ? (Number(parent.level) || 1) + 1 : 1;
-  }, [formData.parentGroupId, accountGroups]);
-
   const handleFieldChange = useCallback(
     (name, value) => {
       setFormData((prev) => {
-        const nextData = { ...prev, [name]: value };
-
-        if (name === "parentGroupId") {
-          if (value) {
-            const parent = accountGroups.find((g) => g._id === value);
-            if (parent) {
-              nextData.nature = parent.nature || prev.nature;
-            }
-          }
-        }
-        return nextData;
+        return { ...prev, [name]: value };
       });
 
       if (formErrors[name]) {
@@ -161,8 +142,8 @@ const EditAccountGroupPage = () => {
       const payload = {
         groupName: name,
         groupCode: code,
-        parentGroupId: formData.parentGroupId || null,
-        level: computedLevel,
+        parentGroupId: null,
+        level: 1,
         nature: nature,
         description: normalizeText(formData.description),
         status: formData.status || "active",
@@ -177,27 +158,14 @@ const EditAccountGroupPage = () => {
         });
       }
     },
-    [formData, computedLevel, accountGroupId, updateAccountGroup, navigate]
+    [formData, accountGroupId, updateAccountGroup, navigate]
   );
-
-  const parentGroupOptions = useMemo(() => {
-    const opts = [{ label: "Select parent group (optional)", value: "" }];
-    accountGroups.forEach((g) => {
-      // Avoid circular parenthood by excluding the current group itself from parent list
-      if (g._id !== accountGroupId) {
-        opts.push({ label: g.groupName, value: g._id });
-      }
-    });
-    return opts;
-  }, [accountGroups, accountGroupId]);
 
   const pageProps = {
     formData,
     formErrors,
     isLoading,
     isFetching,
-    computedLevel,
-    parentGroupOptions,
     natureOptions,
     statusOptions,
     handleFieldChange,

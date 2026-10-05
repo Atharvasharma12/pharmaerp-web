@@ -1,6 +1,6 @@
 // src/features/sales/pages/mobile/SalesMobilePage.jsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -11,6 +11,7 @@ import {
   Receipt,
   User,
   CheckCircle2,
+  Store,
 } from "lucide-react";
 import {
   UICard,
@@ -26,6 +27,13 @@ import {
 } from "../../constants/salesData";
 import { SalesCheckoutModal } from "../../components/SalesCheckoutModal";
 import { SalesReceiptModal } from "../../components/SalesReceiptModal";
+import { useSelector, useDispatch } from "react-redux";
+import useBranch from "@/features/branch/hooks/useBranch";
+import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
+import { getOpenBusinessDay } from "@/features/operations/business-days/store/businessDayThunk";
+import OpenBusinessDayDialog from "@/features/operations/business-days/components/OpenBusinessDayDialog";
+import { CreateShiftDialog } from "@/features/operations/shifts/components/CreateShiftDialog";
+import { API_STATUS } from "@/constants";
 
 export const SalesMobilePage = () => {
   const [activeTab, setActiveTab] = useState("catalog"); // "catalog" | "cart"
@@ -37,6 +45,34 @@ export const SalesMobilePage = () => {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+
+  const { currentBranch } = useBranch();
+  const { activeShift, status: shiftStatus, refetch: refetchActiveShift } = useActiveShift(currentBranch?._id);
+  const dispatch = useDispatch();
+  const { openBusinessDay, getOpenBusinessDayStatus } = useSelector((state) => state.businessDay);
+  
+  const [isBusinessDayModalOpen, setIsBusinessDayModalOpen] = useState(false);
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!activeShift && currentBranch?._id) {
+      dispatch(getOpenBusinessDay(currentBranch._id));
+    }
+  }, [activeShift, currentBranch?._id, dispatch]);
+
+  const handleCloseBusinessDayModal = () => {
+    setIsBusinessDayModalOpen(false);
+    if (currentBranch?._id) {
+      dispatch(getOpenBusinessDay(currentBranch._id));
+    }
+  };
+
+  const handleCloseShiftModal = () => {
+    setIsShiftModalOpen(false);
+    if (typeof refetchActiveShift === "function") {
+      refetchActiveShift();
+    }
+  };
 
   const categories = ["all", "Tablet", "Capsule", "Syrup", "Injection"];
 
@@ -133,6 +169,47 @@ export const SalesMobilePage = () => {
     setToastMessage(`Added "${formattedItem.name}" to cart.`);
     setTimeout(() => setToastMessage(null), 3000);
   };
+
+  if (shiftStatus === "loading" && !activeShift) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[100dvh] space-y-4 p-8 bg-bg">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-text-muted">Loading POS...</p>
+      </div>
+    );
+  }
+
+  if (!activeShift) {
+    const isCheckingBusinessDay = getOpenBusinessDayStatus === API_STATUS.LOADING;
+    
+    return (
+      <div className="flex flex-col items-center justify-center h-[100dvh] space-y-4 p-8 bg-bg">
+        {isCheckingBusinessDay ? (
+          <>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-text-muted">Checking business day...</p>
+          </>
+        ) : !openBusinessDay ? (
+          <>
+            <Store className="size-16 text-text-muted" />
+            <h2 className="text-2xl font-bold text-text text-center">No business day is open</h2>
+            <p className="text-text-muted text-center">You must open a business day before starting a shift.</p>
+            <UIButton variant="primary" onClick={() => setIsBusinessDayModalOpen(true)}>Start a day</UIButton>
+          </>
+        ) : (
+          <>
+            <Store className="size-16 text-text-muted" />
+            <h2 className="text-2xl font-bold text-text text-center">No open shift is present</h2>
+            <p className="text-text-muted text-center">You must open a shift before you can access POS billing.</p>
+            <UIButton variant="primary" onClick={() => setIsShiftModalOpen(true)}>Start a shift</UIButton>
+          </>
+        )}
+
+        <OpenBusinessDayDialog isOpen={isBusinessDayModalOpen} onClose={handleCloseBusinessDayModal} />
+        <CreateShiftDialog isOpen={isShiftModalOpen} onClose={handleCloseShiftModal} />
+      </div>
+    );
+  }
 
   return (
     <section className="min-h-[100dvh] w-full bg-bg px-3.5 pt-3 pb-24 font-sans space-y-4">

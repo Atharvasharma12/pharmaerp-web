@@ -135,12 +135,12 @@ const BankDepositSlipDetailsDesktopPage = ({
                         : ""}
                   </p>
                 </div>
-                {slip.dayClosingId && (
+                {slip.businessDayId && (
                   <div>
-                    <p className="text-[12px] text-text-muted mb-1">Linked Day Closing</p>
+                    <p className="text-[12px] text-text-muted mb-1">Linked Business Day</p>
                     <p className="text-[13px] font-medium text-text font-mono">
-                      {slip.dayClosingId?.dayClosingNo ||
-                        (typeof slip.dayClosingId === "string" ? slip.dayClosingId : "-")}
+                      {slip.businessDayId?.businessDayNo ||
+                        (typeof slip.businessDayId === "string" ? slip.businessDayId : "-")}
                     </p>
                   </div>
                 )}

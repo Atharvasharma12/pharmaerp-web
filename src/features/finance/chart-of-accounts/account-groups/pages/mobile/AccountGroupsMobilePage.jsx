@@ -27,12 +27,11 @@ import {
   AppMenu,
 } from "@/components";
 
-// Map stats color/icon variants
 const statIcons = {
   totalGroups: <FiGitBranch />,
   totalAccounts: <FiFileText />,
-  rootGroups: <FiLayers />,
-  inactiveAccounts: <FiXCircle />,
+  activeGroups: <FiLayers />,
+  inactiveGroups: <FiXCircle />,
 };
 
 const statusColorMap = {
@@ -76,17 +75,17 @@ const AccountGroupsMobilePage = ({
       colorVariant: "info",
     },
     {
-      id: "rootGroups",
-      title: "Root Groups",
-      value: String(stats.rootGroups || 0),
-      description: "Top Level",
+      id: "activeGroups",
+      title: "Active Groups",
+      value: String(stats.activeGroups || 0),
+      description: "Active",
       colorVariant: "warning",
     },
     {
-      id: "inactiveAccounts",
-      title: "Under Groups",
-      value: String(stats.underGroups || 0),
-      description: "Sub Groups",
+      id: "inactiveGroups",
+      title: "Inactive Groups",
+      value: String(stats.inactiveGroups || 0),
+      description: "Inactive",
       colorVariant: "danger",
     },
   ];
@@ -229,7 +228,7 @@ const AccountGroupsMobilePage = ({
                   <tr className="border-b border-border bg-surface-alt/50 text-[9.5px] font-bold text-text-muted uppercase">
                     <th className="py-2 px-3">Group Name</th>
                     <th className="py-2 px-2">Group Code</th>
-                    <th className="py-2 px-2">Level</th>
+                    <th className="py-2 px-2">Nature</th>
                     <th className="py-2 px-2">Accounts</th>
                     <th className="py-2 px-2">Status</th>
                     <th className="py-2 px-3 text-right">Actions</th>
@@ -242,7 +241,7 @@ const AccountGroupsMobilePage = ({
                         {row.name}
                       </td>
                       <td className="py-2 px-2 text-text-muted">{row.code}</td>
-                      <td className="py-2 px-2 text-text">{row.level}</td>
+                      <td className="py-2 px-2 text-text">{row.nature || "-"}</td>
                       <td className="py-2 px-2 text-text">{row.accountsCount}</td>
                       <td className="py-2 px-2">
                         <AppStatusBadge

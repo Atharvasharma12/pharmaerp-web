@@ -125,12 +125,12 @@ const BankDepositSlipDetailsMobilePage = ({
                   </p>
                 </div>
                 <div className="pt-4 border-t border-border flex items-center justify-between">
-                  {slip.dayClosingId ? (
+                  {slip.businessDayId ? (
                     <div>
-                      <p className="text-[11px] text-text-muted mb-0.5">Day Closing</p>
+                      <p className="text-[11px] text-text-muted mb-0.5">Business Day</p>
                       <p className="text-[13px] font-medium text-text font-mono">
-                        {slip.dayClosingId?.dayClosingNo ||
-                          (typeof slip.dayClosingId === "string" ? slip.dayClosingId : "-")}
+                        {slip.businessDayId?.businessDayNo ||
+                          (typeof slip.businessDayId === "string" ? slip.businessDayId : "-")}
                       </p>
                     </div>
                   ) : <div />}

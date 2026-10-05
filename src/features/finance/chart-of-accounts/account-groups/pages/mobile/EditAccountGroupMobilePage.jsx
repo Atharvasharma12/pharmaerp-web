@@ -20,8 +20,6 @@ const EditAccountGroupMobilePage = ({
   formErrors,
   isLoading,
   isFetching,
-  computedLevel,
-  parentGroupOptions,
   natureOptions,
   statusOptions,
   handleFieldChange,
@@ -158,42 +156,6 @@ const EditAccountGroupMobilePage = ({
                     {formErrors.groupCode}
                   </span>
                 )}
-              </div>
-
-              {/* Parent Group field */}
-              <div>
-                <div className="flex items-center gap-0.5 mb-1">
-                  <label className="text-[11.5px] font-bold text-text">Parent Group (Under Group)</label>
-                </div>
-                <AppSelect
-                  name="parentGroupId"
-                  value={formData.parentGroupId}
-                  onChange={(e) => handleFieldChange("parentGroupId", e.target.value)}
-                  options={parentGroupOptions}
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  inputSx={compactFilterInputSx}
-                />
-                <span className="text-[9.5px] text-text-muted mt-0.5 block">
-                  Select a parent group if this is a sub group
-                </span>
-              </div>
-
-              {/* Group Level (Auto) field */}
-              <div>
-                <div className="flex items-center gap-0.5 mb-1">
-                  <label className="text-[11.5px] font-bold text-text">Group Level (Auto)</label>
-                </div>
-                <input
-                  type="text"
-                  readOnly
-                  value={computedLevel}
-                  className="w-full px-2.5 py-1.5 text-[12px] rounded-md border border-border bg-surface-alt text-text focus:outline-none cursor-not-allowed opacity-85"
-                />
-                <span className="text-[9.5px] text-text-muted mt-0.5 block">
-                  Level in the chart of accounts hierarchy (1 for top level)
-                </span>
               </div>
 
               {/* Nature field */}

@@ -41,9 +41,9 @@ const CreateFundTransferPage = () => {
   const [searchParams] = useSearchParams();
   const { currentBranch } = useBranch();
 
-  // Shift / Day Closing pre-fill from query params (set by ShiftsPage and DayClosingsPage)
+  // Shift / Business Day pre-fill from query params (set by ShiftsPage and BusinessDaysPage)
   const prefillShiftId       = searchParams.get("shiftId")       || null;
-  const prefillDayClosingId  = searchParams.get("dayClosingId")  || null;
+  const prefillbusinessDayId  = searchParams.get("businessDayId")  || null;
 
 
   const {
@@ -196,9 +196,9 @@ const CreateFundTransferPage = () => {
 
         referenceNumber: formData.referenceNumber || undefined,
         narration: formData.narration || undefined,
-        // Pass shiftId or dayClosingId so backend can directly store the link
+        // Pass shiftId or businessDayId so backend can directly store the link
         shiftId: prefillShiftId || undefined,
-        dayClosingId: prefillDayClosingId || undefined,
+        businessDayId: prefillbusinessDayId || undefined,
       };
 
       await createFundTransfer(payload);

@@ -20,7 +20,6 @@ const EditAccountMobilePage = ({
   isLoading,
   isFetching,
   groupOptions,
-  natureOptions,
   categoryOptions,
   balanceTypeOptions,
   statusOptions,
@@ -182,28 +181,6 @@ const EditAccountMobilePage = ({
                 )}
               </div>
 
-              {/* Account Nature */}
-              <div>
-                <div className="flex items-center gap-0.5 mb-1">
-                  <label className="text-[11.5px] font-bold text-text">Account Nature / Type</label>
-                  <span className="text-danger">*</span>
-                </div>
-                <AppSelect
-                  name="accountNature"
-                  value={formData.accountNature}
-                  onChange={(e) => handleFieldChange("accountNature", e.target.value)}
-                  options={natureOptions}
-                  size="small"
-                  variant="bordered"
-                  rounded="md"
-                  inputSx={compactFilterInputSx}
-                />
-                {formErrors.accountNature && (
-                  <span className="text-[10px] text-danger mt-0.5 block font-semibold">
-                    {formErrors.accountNature}
-                  </span>
-                )}
-              </div>
 
               {/* Account Category */}
               <div>
@@ -389,12 +366,7 @@ const EditAccountMobilePage = ({
                   Select the correct parent group to organize financial ledgers properly.
                 </span>
               </div>
-              <div>
-                <span className="font-bold text-text block">Nature / Type</span>
-                <span className="text-text-muted mt-0.5 block">
-                  Prefilled from the parent group. Defines financial statement mapping.
-                </span>
-              </div>
+
               <div>
                 <span className="font-bold text-text block">Opening Balance</span>
                 <span className="text-text-muted mt-0.5 block">

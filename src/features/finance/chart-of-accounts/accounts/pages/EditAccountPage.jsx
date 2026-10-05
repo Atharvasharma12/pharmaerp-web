@@ -21,31 +21,29 @@ const INITIAL_FORM_DATA = {
   status: "active",
 };
 
-const natureOptions = [
-  { label: "Select Nature", value: "" },
-  { label: "Asset", value: "ASSET" },
-  { label: "Liability", value: "LIABILITY" },
-  { label: "Income", value: "INCOME" },
-  { label: "Expense", value: "EXPENSE" },
-  { label: "Equity", value: "EQUITY" },
+const ALL_CATEGORY_OPTIONS = [
+  { label: "Customer Ledger Account", value: "CUSTOMER" },
+  { label: "Supplier Ledger Account", value: "SUPPLIER" },
+  { label: "Bank Account", value: "BANK" },
+  { label: "Cash Account", value: "CASH" },
+  { label: "Stock / Inventory Account", value: "INVENTORY" },
+  { label: "Purchase Account", value: "PURCHASE" },
+  { label: "Sales Account", value: "SALES" },
+  { label: "GST / Tax Account", value: "GST" },
+  { label: "Expense Account", value: "EXPENSE" },
+  { label: "Income Account", value: "INCOME" },
+  { label: "Shop & Fixed Assets", value: "FIXED_ASSET" },
+  { label: "Other Liability", value: "LIABILITY" },
+  { label: "Capital / Owner's Equity", value: "EQUITY" },
 ];
 
-const categoryOptions = [
-  { label: "Select Category", value: "" },
-  { label: "Customer", value: "CUSTOMER" },
-  { label: "Supplier", value: "SUPPLIER" },
-  { label: "Bank", value: "BANK" },
-  { label: "Cash", value: "CASH" },
-  { label: "Inventory", value: "INVENTORY" },
-  { label: "Purchase", value: "PURCHASE" },
-  { label: "Sales", value: "SALES" },
-  { label: "GST / Taxes", value: "GST" },
-  { label: "Expense", value: "EXPENSE" },
-  { label: "Income", value: "INCOME" },
-  { label: "Fixed Asset", value: "FIXED_ASSET" },
-  { label: "Liability", value: "LIABILITY" },
-  { label: "Equity", value: "EQUITY" },
-];
+const CATEGORY_MAP_BY_NATURE = {
+  ASSET: ["CASH", "BANK", "CUSTOMER", "INVENTORY", "FIXED_ASSET"],
+  LIABILITY: ["SUPPLIER", "GST", "LIABILITY"],
+  INCOME: ["SALES", "INCOME"],
+  EXPENSE: ["PURCHASE", "EXPENSE"],
+  EQUITY: ["EQUITY"],
+};
 
 const balanceTypeOptions = [
   { label: "Debit (Dr)", value: "dr" },
@@ -259,13 +257,30 @@ const EditAccountPage = () => {
     return opts;
   }, [accountGroups]);
 
+  const categoryOptions = useMemo(() => {
+    let allowedCategories = [];
+    if (formData.accountGroupId) {
+      const group = accountGroups.find((g) => g._id === formData.accountGroupId);
+      if (group && group.nature) {
+        const nat = group.nature.toUpperCase();
+        allowedCategories = CATEGORY_MAP_BY_NATURE[nat] || [];
+      }
+    }
+    
+    if (allowedCategories.length === 0) {
+       return [{ label: "Select Category", value: "" }, ...ALL_CATEGORY_OPTIONS];
+    }
+
+    const filtered = ALL_CATEGORY_OPTIONS.filter((opt) => allowedCategories.includes(opt.value));
+    return [{ label: "Select Category", value: "" }, ...filtered];
+  }, [formData.accountGroupId, accountGroups]);
+
   const pageProps = {
     formData,
     formErrors,
     isLoading,
     isFetching,
     groupOptions,
-    natureOptions,
     categoryOptions,
     balanceTypeOptions,
     statusOptions,

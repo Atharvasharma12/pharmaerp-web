@@ -99,12 +99,12 @@ const CreateBankDepositSlipMobilePage = ({
                   disabled={isSubmitting}
                   required
                 />
-                {formData.dayClosingId ? (
+                {formData.businessDayId ? (
                   <div>
-                    <label className="text-[12px] font-medium text-text mb-1 block">Linked Day Closing</label>
+                    <label className="text-[12px] font-medium text-text mb-1 block">Linked Business Day</label>
                     <div className="px-3 py-2 bg-surface-alt border border-border rounded-lg text-[13px] text-text font-medium flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-success"></span>
-                      Day Closing ID: {formData.dayClosingId}
+                      Business Day ID: {formData.businessDayId}
                     </div>
                   </div>
                 ) : null}

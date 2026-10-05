@@ -29,7 +29,7 @@ const INITIAL_FORM_DATA = {
   depositBagReference: "",
   bankBranchName: "",
   narration: "",
-  dayClosingId: "",
+  businessDayId: "",
 };
 
 const CreateBankDepositSlipPage = () => {
@@ -38,7 +38,7 @@ const CreateBankDepositSlipPage = () => {
   const [searchParams] = useSearchParams();
   const { currentBranch } = useBranch();
 
-  const prefillDayClosingId = searchParams.get("dayClosingId") || null;
+  const prefillbusinessDayId = searchParams.get("businessDayId") || null;
 
   const {
     createBankDepositSlip,
@@ -54,7 +54,7 @@ const CreateBankDepositSlipPage = () => {
 
   const [formData, setFormData] = useState(() => ({
     ...INITIAL_FORM_DATA,
-    dayClosingId: prefillDayClosingId || "",
+    businessDayId: prefillbusinessDayId || "",
   }));
   const [denominations, setDenominations] = useState(INITIAL_DENOMINATIONS);
   const [formErrors, setFormErrors] = useState({});
@@ -192,7 +192,7 @@ const CreateBankDepositSlipPage = () => {
       branchId: currentBranch._id,
       amount: totalAmount,
       denominations: filteredDenominations,
-      dayClosingId: formData.dayClosingId || null,
+      businessDayId: formData.businessDayId || null,
     };
 
     try {

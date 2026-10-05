@@ -97,15 +97,35 @@ const filterItem = (
   // Enforce Active Contexts for Non-Owners on Operational Routes
   if (!isOwner) {
     const COMPANY_DEPENDENT_NAV_IDS = [
-      "parties",
-      "inventory",
-      "finance",
-      "sales",
+      "billing",
+      "purchases",
+      "pharmacy-stock",
+      "customers",
+      "suppliers",
+      "cash-counter",
+      "bank-accounts",
+      "transfers",
+      "payment-qrs",
+      "cheques",
+      "transfer-orders",
+      "catalog",
+      "master-data",
+      "marketplace",
+      "accounts-ledger",
+      "account-balances",
+      "vouchers",
+      "gst-ledger",
+      "reports",
+      "periods",
     ];
     
     const BRANCH_DEPENDENT_NAV_IDS = [
-      "sales",
-      "treasury",
+      "billing",
+      "purchases",
+      "pharmacy-stock",
+      "cash-counter",
+      "payment-qrs",
+      "cheques",
     ];
 
     if (!hasActiveCompany && COMPANY_DEPENDENT_NAV_IDS.includes(item.id)) {

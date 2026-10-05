@@ -39,7 +39,7 @@ export const ShiftFundTransferPanel = ({
             {withdrawals.map((w) => (
               <div
                 key={String(w._id)}
-                className="flex justify-between items-start text-xs bg-error/5 border border-error/15 rounded-lg px-3 py-2"
+                className="flex justify-between items-start text-xs bg-error-soft border border-error/15 rounded-lg px-3 py-2"
               >
                 <div className="min-w-0 flex-1 pr-4">
                   <div className="font-medium text-text">
@@ -76,7 +76,7 @@ export const ShiftFundTransferPanel = ({
             {deposits.map((d) => (
               <div
                 key={String(d._id)}
-                className="flex justify-between items-start text-xs bg-success/5 border border-success/15 rounded-lg px-3 py-2"
+                className="flex justify-between items-start text-xs bg-success-soft border border-success/15 rounded-lg px-3 py-2"
               >
                 <div className="min-w-0 flex-1 pr-4">
                   <div className="font-medium text-text">

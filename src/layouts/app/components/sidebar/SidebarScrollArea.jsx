@@ -62,6 +62,7 @@ const SidebarScrollArea = ({ children, className, containerClassName }) => {
       {/* Scrollable Container with native scrollbar completely hidden */}
       <div
         ref={containerRef}
+        data-preserve-scroll="true"
         onScroll={handleScroll}
         className={cn(
           "h-full w-full overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",

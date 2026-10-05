@@ -11,7 +11,6 @@ import CreateAccountGroupMobilePage from "./mobile/CreateAccountGroupMobilePage"
 const INITIAL_FORM_DATA = {
   groupName: "",
   groupCode: "",
-  parentGroupId: "",
   nature: "",
   description: "",
   status: "active",
@@ -70,28 +69,10 @@ const CreateAccountGroupPage = () => {
 
   const isLoading = createAccountGroupStatus === API_STATUS.LOADING;
 
-  // Auto calculate the level based on the selected parent group
-  const computedLevel = useMemo(() => {
-    if (!formData.parentGroupId) return 1;
-    const parent = accountGroups.find((g) => g._id === formData.parentGroupId);
-    return parent ? (Number(parent.level) || 1) + 1 : 1;
-  }, [formData.parentGroupId, accountGroups]);
-
   const handleFieldChange = useCallback(
     (name, value) => {
       setFormData((prev) => {
-        const nextData = { ...prev, [name]: value };
-
-        // If parent group changes, auto pre-fill its level and nature
-        if (name === "parentGroupId") {
-          if (value) {
-            const parent = accountGroups.find((g) => g._id === value);
-            if (parent) {
-              nextData.nature = parent.nature || prev.nature;
-            }
-          }
-        }
-        return nextData;
+        return { ...prev, [name]: value };
       });
 
       if (formErrors[name]) {
@@ -137,8 +118,8 @@ const CreateAccountGroupPage = () => {
       const payload = {
         groupName: name,
         groupCode: code,
-        parentGroupId: formData.parentGroupId || null,
-        level: computedLevel,
+        parentGroupId: null,
+        level: 1,
         nature: nature,
         description: normalizeText(formData.description),
         status: formData.status || "active",
@@ -153,23 +134,13 @@ const CreateAccountGroupPage = () => {
         });
       }
     },
-    [formData, computedLevel, createAccountGroup, navigate]
+    [formData, createAccountGroup, navigate]
   );
-
-  const parentGroupOptions = useMemo(() => {
-    const opts = [{ label: "Select parent group (optional)", value: "" }];
-    accountGroups.forEach((g) => {
-      opts.push({ label: g.groupName, value: g._id });
-    });
-    return opts;
-  }, [accountGroups]);
 
   const pageProps = {
     formData,
     formErrors,
     isLoading,
-    computedLevel,
-    parentGroupOptions,
     natureOptions,
     statusOptions,
     handleFieldChange,

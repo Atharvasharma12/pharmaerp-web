@@ -28,7 +28,7 @@ export const PostDayCloseDialog = ({
       <UIModalHeader>
         <UIModalTitle>
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+            <div className="p-1.5 rounded-full bg-success-soft dark:bg-success-soft0/20 text-success">
               <CheckCircle2 className="size-4" />
             </div>
             <span>Day Closing Locked Successfully</span>
@@ -45,26 +45,26 @@ export const PostDayCloseDialog = ({
         <div className="space-y-4">
           {/* Dual Balance Cards: Running & Frozen */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400 mb-1">
+            <div className="bg-success-soft border border-success/30 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-success mb-1">
                 <Banknote className="size-3" /> Carry Forward (Running)
               </div>
-              <p className="font-mono font-bold text-xl text-emerald-700 dark:text-emerald-400">
+              <p className="font-mono font-bold text-xl text-success">
                 ₹{fmt(runningAmount)}
               </p>
-              <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500 mt-0.5">
+              <p className="text-[10px] text-success/70 dark:text-success mt-0.5">
                 Active in drawer
               </p>
             </div>
 
-            <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-700 dark:text-blue-400 mb-1">
+            <div className="bg-info-soft border border-info/30 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-info mb-1">
                 <Snowflake className="size-3" /> Frozen Reserve
               </div>
-              <p className="font-mono font-bold text-xl text-blue-700 dark:text-blue-400">
+              <p className="font-mono font-bold text-xl text-info">
                 ₹{fmt(frozenAmount)}
               </p>
-              <p className="text-[10px] text-blue-600/70 dark:text-blue-500 mt-0.5">
+              <p className="text-[10px] text-info/70 dark:text-info mt-0.5">
                 Awaiting bank deposit
               </p>
             </div>
