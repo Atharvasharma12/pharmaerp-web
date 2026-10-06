@@ -11,8 +11,8 @@ import {
   UIAlert
 } from "@/components/ui";
 
-const ImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploading }) => {
-  const [importType, setImportType] = useState("b2b");
+const SupplierImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploading }) => {
+  const [importType, setImportType] = useState("standard");
   const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
   const [error, setError] = useState("");
@@ -51,7 +51,7 @@ const ImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploading }) => 
   const handleClose = () => {
     if (isUploading) return;
     setFile(null);
-    setImportType("b2b");
+    setImportType("standard");
     setError("");
     onClose();
   };
@@ -61,7 +61,7 @@ const ImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploading }) => 
       <UIModalHeader>
         <UIModalTitle>Import Data</UIModalTitle>
         <UIModalDescription>
-          Select the type of data and upload your Excel/CSV file to begin the import process.
+          Select the type of data and upload your Excel file to begin the import process.
         </UIModalDescription>
       </UIModalHeader>
 
@@ -78,9 +78,8 @@ const ImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploading }) => 
                 setError("");
               }}
               options={[
-                { label: "Import B2B Customers", value: "b2b" },
-                { label: "Import B2C Customers", value: "b2c" },
-                { label: "Import B2B Outstanding", value: "b2b-outstanding" },
+                { label: "Import Suppliers", value: "standard" },
+                { label: "Import Supplier Outstanding", value: "outstanding" },
               ]}
               placeholder="Select import type..."
             />
@@ -89,7 +88,7 @@ const ImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploading }) => 
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-text">Select File</label>
             <div 
-              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors \${file ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${file ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
               onClick={() => fileInputRef.current?.click()}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
@@ -98,7 +97,7 @@ const ImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploading }) => 
                 type="file" 
                 ref={fileInputRef} 
                 style={{ display: "none" }} 
-                accept=".xlsx,.xls,.csv,.txt" 
+                accept=".xlsx,.xls,.csv" 
                 onChange={handleFileChange} 
               />
               {file ? (
@@ -109,7 +108,7 @@ const ImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploading }) => 
               ) : (
                 <div>
                   <p className="text-sm font-semibold text-text">Click to upload or drag and drop</p>
-                  <p className="text-xs text-text-muted mt-1">.xlsx, .xls, .csv, or .txt up to 10MB</p>
+                  <p className="text-xs text-text-muted mt-1">.xlsx, .xls, or .csv up to 10MB</p>
                 </div>
               )}
             </div>
@@ -129,4 +128,4 @@ const ImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploading }) => 
   );
 };
 
-export default ImportConfigModal;
+export default SupplierImportConfigModal;

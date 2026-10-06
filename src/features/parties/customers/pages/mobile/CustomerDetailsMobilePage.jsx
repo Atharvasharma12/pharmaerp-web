@@ -85,8 +85,14 @@ const CustomerDetailsMobilePage = ({
   const salesData = Array.isArray(sales?.data) ? sales.data : [];
   const salesMeta = sales?.meta || { totalSalesAmount: 0 };
   const ledgerEntries = Array.isArray(ledger?.entries) ? ledger.entries : [];
-  const ledgerTotalDebit = ledger?.meta?.totalDebit || 0;
-  const ledgerTotalCredit = ledger?.meta?.totalCredit || 0;
+  const rawLedgerTotalDebit = ledger?.meta?.totalDebit || 0;
+  const rawLedgerTotalCredit = ledger?.meta?.totalCredit || 0;
+  
+  const opBal = Number(safeCustomer.openingBalance) || 0;
+  const opBalType = String(safeCustomer.openingBalanceType || "dr").toLowerCase();
+  
+  const ledgerTotalDebit = rawLedgerTotalDebit + (opBalType === "dr" ? opBal : 0);
+  const ledgerTotalCredit = rawLedgerTotalCredit + (opBalType === "cr" ? opBal : 0);
   const ledgerNetBal = ledgerTotalDebit - ledgerTotalCredit;
 
   const combinedTx = useMemo(() => {
@@ -312,7 +318,7 @@ const CustomerDetailsMobilePage = ({
                   <CompactMetricCard
                     title="Outstanding Balance"
                     value={formatCurrency(
-                      (Number(safeCustomer.openingBalance) || 0) * (safeCustomer.openingBalanceType === "dr" ? 1 : -1) +
+                      (Number(safeCustomer.openingBalance) || 0) * (String(safeCustomer.openingBalanceType || "dr").toLowerCase() === "dr" ? 1 : -1) +
                       (salesMeta.totalSalesAmount || 0) -
                       payments.reduce((acc, p) => acc + (p.amount || 0), 0)
                     )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   UIModal,
   UIModalHeader,
@@ -12,6 +12,7 @@ import {
 import { AppTable } from "@/components";
 import { CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 import customerService from "../services/customerService";
+import { formatCurrency } from "@/utils";
 
 const OutstandingImportPreviewModal = ({
   isOpen,
@@ -31,6 +32,72 @@ const OutstandingImportPreviewModal = ({
 
   const validRows = localData.filter((row) => row.isValid);
   const invalidRows = localData.filter((row) => !row.isValid);
+
+  const groupedCustomers = useMemo(() => {
+    const map = new Map();
+    localData.forEach(row => {
+      const name = row.data?.name || "Unknown Customer";
+      if (!map.has(name)) {
+        map.set(name, {
+          customerName: name,
+          status: row.isValid ? "VALID" : "INVALID",
+          totalInvoices: 0,
+          validInvoices: 0,
+          totalBillAmount: 0,
+          totalOutstanding: 0,
+          errors: new Set(),
+          suggestedCustomer: row.suggestedCustomer || null
+        });
+      }
+      const group = map.get(name);
+      group.totalInvoices += 1;
+      
+      const billAmt = row.data?.billAmount || 0;
+      const outAmt = row.data?.openingBalance || 0;
+      
+      group.totalBillAmount += billAmt;
+      group.totalOutstanding += outAmt;
+
+      if (row.isValid) {
+        group.validInvoices += 1;
+        if (group.status === "INVALID") group.status = "PARTIAL";
+      } else {
+        if (group.status === "VALID") group.status = "PARTIAL";
+        if (row.errors) {
+          row.errors.forEach(e => group.errors.add(e));
+        }
+      }
+    });
+    
+    return Array.from(map.values()).map((g, i) => ({ 
+      ...g, 
+      rowNumber: i + 1,
+      errors: Array.from(g.errors)
+    }));
+  }, [localData]);
+
+  const handleAcceptSuggestion = (originalName, suggestedCustomer) => {
+    setLocalData(prev => prev.map(row => {
+      if (row.data.name === originalName && row.suggestedCustomer === suggestedCustomer) {
+        const newErrors = row.errors.filter(e => !e.includes("Did you mean"));
+        return {
+          ...row,
+          isValid: newErrors.length === 0,
+          errors: newErrors,
+          suggestedCustomer: null,
+          data: {
+            ...row.data,
+            name: suggestedCustomer
+          }
+        };
+      }
+      return row;
+    }));
+  };
+
+  const totalOutstandingToImport = useMemo(() => {
+    return validRows.reduce((sum, row) => sum + (row.data.openingBalance || 0), 0);
+  }, [validRows]);
 
   const handleConfirm = async () => {
     if (validRows.length === 0) return;
@@ -55,73 +122,51 @@ const OutstandingImportPreviewModal = ({
     {
       id: "row",
       key: "rowNumber",
-      label: "Row",
+      label: "#",
       render: (_, row) => <span className="text-xs text-text-muted">{row.rowNumber}</span>
     },
     {
       id: "status",
-      key: "isValid",
+      key: "status",
       label: "Status",
-      render: (_, row) => (
-        row.isValid ? 
-        <span className="inline-flex items-center gap-1 text-success text-xs font-semibold">
-          <CheckCircle2 className="size-3.5" /> Valid
-        </span> : 
-        <span className="inline-flex items-center gap-1 text-error text-xs font-semibold">
-          <XCircle className="size-3.5" /> Error
-        </span>
-      )
+      render: (_, row) => {
+        if (row.validInvoices === row.totalInvoices && row.totalInvoices > 0) {
+          return <span className="inline-flex items-center gap-1 text-success text-xs font-semibold"><CheckCircle2 className="size-3.5" /> Valid</span>;
+        } else if (row.validInvoices === 0) {
+          return <span className="inline-flex items-center gap-1 text-error text-xs font-semibold"><XCircle className="size-3.5" /> Error</span>;
+        } else {
+          return <span className="inline-flex items-center gap-1 text-warning text-xs font-semibold"><AlertCircle className="size-3.5" /> Partial</span>;
+        }
+      }
     },
     {
       id: "customer",
-      key: "data.name",
+      key: "customerName",
       label: "Customer Name",
       render: (_, row) => (
-        <span className="font-semibold text-[13px] block min-w-[150px]">{row.data.name || "-"}</span>
+        <span className="font-semibold text-[13px] block min-w-[150px]">{row.customerName || "-"}</span>
       )
     },
     {
-      id: "invoiceNo",
-      key: "data.invoiceNumber",
-      label: "Invoice No",
-      render: (_, row) => (
-        <span className="text-xs font-mono">{row.data.invoiceNumber || "-"}</span>
-      )
+      id: "totalInvoices",
+      key: "totalInvoices",
+      label: "Total Invoices",
+      render: (_, row) => <span className="text-xs font-medium">{row.totalInvoices}</span>
     },
     {
-      id: "invoiceDate",
-      key: "data.invoiceDate",
-      label: "Date",
-      render: (_, row) => (
-        <span className="text-xs">{row.data.invoiceDate || "-"}</span>
-      )
+      id: "validInvoices",
+      key: "validInvoices",
+      label: "Valid Invoices",
+      render: (_, row) => <span className="text-xs font-medium text-success">{row.validInvoices}</span>
     },
     {
-      id: "billAmount",
-      key: "data.billAmount",
-      label: "Bill Amount",
-      render: (_, row) => (
-        <span className="text-xs">
-          ₹{(row.data.billAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-        </span>
-      )
-    },
-    {
-      id: "balance",
-      key: "data.openingBalance",
-      label: "Outstanding",
+      id: "totalOutstanding",
+      key: "totalOutstanding",
+      label: "Total Outstanding",
       render: (_, row) => (
         <span className="text-xs font-semibold text-rose-600">
-          ₹{(row.data.openingBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} DR
+          {formatCurrency(row.totalOutstanding)} DR
         </span>
-      )
-    },
-    {
-      id: "dueDays",
-      key: "data.dueDays",
-      label: "Due Days",
-      render: (_, row) => (
-        <span className="text-xs">{row.data.dueDays || 0}</span>
       )
     },
     {
@@ -129,64 +174,80 @@ const OutstandingImportPreviewModal = ({
       key: "errors",
       label: "Issues",
       render: (_, row) => (
-        row.errors && row.errors.length > 0 ? (
-          <div className="flex flex-col gap-1 min-w-[150px]">
-            {row.errors.map((err, idx) => (
-              <span key={idx} className="text-[11px] text-error flex items-center gap-1 leading-tight">
-                <AlertCircle className="size-3 shrink-0" /> {err}
-              </span>
-            ))}
-          </div>
-        ) : <span className="text-[11px] text-text-muted">None</span>
+        <div className="flex flex-col gap-1.5 min-w-[150px]">
+          {row.errors && row.errors.length > 0 ? (
+            <div className="flex flex-col gap-1">
+              {row.errors.map((err, idx) => (
+                <span key={idx} className="text-[11px] text-error flex items-center gap-1 leading-tight">
+                  <AlertCircle className="size-3 shrink-0" /> {err}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-[11px] text-text-muted">None</span>
+          )}
+          {row.suggestedCustomer && (
+            <label className="flex items-center gap-1.5 mt-0.5 cursor-pointer hover:bg-surface-elevated p-1 -ml-1 rounded transition-colors w-fit">
+              <input 
+                type="checkbox" 
+                className="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary/20 cursor-pointer" 
+                onChange={() => handleAcceptSuggestion(row.customerName, row.suggestedCustomer)} 
+              />
+              <span className="text-[11px] font-semibold text-primary">Yes, use "{row.suggestedCustomer}"</span>
+            </label>
+          )}
+        </div>
       )
     }
   ];
 
   return (
-    <UIModal isOpen={isOpen} onClose={!isConfirming ? onClose : undefined} className="max-w-[95vw]">
+    <UIModal isOpen={isOpen} onClose={!isConfirming ? onClose : undefined} className="max-w-6xl w-full h-[90vh] flex flex-col">
       <UIModalHeader>
         <UIModalTitle>Import Outstanding Invoices Preview</UIModalTitle>
         <UIModalDescription>
-          Review parsed outstanding invoices. Only valid non-duplicate rows will be imported as Historical Credit Sales.
+          Review parsed outstanding invoices grouped by customer. Only valid non-duplicate rows will be imported as Historical Credit Sales.
         </UIModalDescription>
       </UIModalHeader>
       
-      <UIModalBody className="max-h-[70vh] overflow-y-auto">
-        <div className="space-y-4 py-2">
-          {error && (
-            <UIAlert intent="danger" title="Import Error" description={error} />
-          )}
+      <UIModalBody className="flex-1 overflow-hidden flex flex-col gap-4">
+        {error && (
+          <UIAlert intent="danger" title="Import Error" description={error} />
+        )}
 
-          <div className="flex gap-4 mb-2">
-            <div className="bg-surface-alt px-4 py-2 rounded-lg border border-border flex flex-col items-center">
-              <span className="text-xl font-bold text-text">{localData.length}</span>
-              <span className="text-xs font-semibold text-text-muted uppercase">Total Rows</span>
-            </div>
-            <div className="bg-success/10 px-4 py-2 rounded-lg border border-success/20 flex flex-col items-center">
-              <span className="text-xl font-bold text-success">{validRows.length}</span>
-              <span className="text-xs font-semibold text-success uppercase">Valid Invoices</span>
-            </div>
-            <div className="bg-error/10 px-4 py-2 rounded-lg border border-error/20 flex flex-col items-center">
-              <span className="text-xl font-bold text-error">{invalidRows.length}</span>
-              <span className="text-xs font-semibold text-error uppercase">Skipped/Invalid</span>
-            </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="bg-surface-elevated p-4 rounded-xl border border-border">
+            <p className="text-xs text-text-muted font-medium">Total Invoices</p>
+            <p className="text-xl font-bold text-text mt-1">{localData.length}</p>
           </div>
+          <div className="bg-success/10 p-4 rounded-xl border border-success/20">
+            <p className="text-xs text-success font-medium">Valid Invoices</p>
+            <p className="text-xl font-bold text-success mt-1">{validRows.length}</p>
+          </div>
+          <div className="bg-error/10 p-4 rounded-xl border border-error/20">
+            <p className="text-xs text-error font-medium">Skipped/Invalid</p>
+            <p className="text-xl font-bold text-error mt-1">{invalidRows.length}</p>
+          </div>
+          <div className="bg-surface-elevated p-4 rounded-xl border border-border">
+            <p className="text-xs text-text-muted font-medium">Unique Customers</p>
+            <p className="text-xl font-bold text-text mt-1">{groupedCustomers.length}</p>
+          </div>
+          <div className="bg-primary/10 p-4 rounded-xl border border-primary/20 col-span-2">
+            <p className="text-xs text-primary font-medium">Valid Outstanding to Import</p>
+            <p className="text-lg font-bold text-primary mt-1">{formatCurrency(totalOutstandingToImport)} DR</p>
+          </div>
+        </div>
 
-          <div className="border border-border rounded-lg overflow-x-auto">
-            <div className="min-w-max">
-              <AppTable
-                columns={columns}
-                rows={localData.slice(0, 100)}
-                hover
-                bordered={false}
-              />
-              {localData.length > 100 && (
-                <div className="text-center p-3 text-xs text-text-muted bg-surface-alt border-t border-border">
-                  Showing first 100 rows out of {localData.length}. All valid invoices will be imported.
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="flex-1 min-h-0 bg-surface border border-border rounded-xl shadow-sm flex flex-col">
+          <AppTable
+            columns={columns}
+            rows={groupedCustomers}
+            getRowId={(row) => row.rowNumber}
+            isLoading={false}
+            sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+            containerSx={{ flex: 1, minHeight: 0 }}
+            stickyHeader
+          />
         </div>
       </UIModalBody>
 
@@ -207,4 +268,5 @@ const OutstandingImportPreviewModal = ({
 };
 
 export default OutstandingImportPreviewModal;
+
 

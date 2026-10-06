@@ -86,8 +86,14 @@ const SupplierDetailsMobilePage = ({
 
   const ledgerData = Array.isArray(ledger?.entries) ? ledger.entries : (Array.isArray(ledger) ? ledger : []);
   const ledgerMeta = ledger?.meta || { totalDebit: 0, totalCredit: 0 };
-  const ledgerTotalDebit = ledgerMeta.totalDebit || 0;
-  const ledgerTotalCredit = ledgerMeta.totalCredit || 0;
+  const rawLedgerTotalDebit = ledgerMeta.totalDebit || 0;
+  const rawLedgerTotalCredit = ledgerMeta.totalCredit || 0;
+  const opBal = Number(safeSupplier.openingBalance) || 0;
+  const opBalType = String(safeSupplier.openingBalanceType || "cr").toLowerCase();
+  
+  const ledgerTotalDebit = rawLedgerTotalDebit + (opBalType === "dr" ? opBal : 0);
+  const ledgerTotalCredit = rawLedgerTotalCredit + (opBalType === "cr" ? opBal : 0);
+
   // For supplier (liability), Net Balance = Credit - Debit
   const ledgerNetBal = ledgerTotalCredit - ledgerTotalDebit;
 
@@ -273,7 +279,7 @@ const SupplierDetailsMobilePage = ({
                   <CompactMetricCard
                     title="Outstanding Payable"
                     value={formatCurrency(
-                      (Number(safeSupplier.openingBalance) || 0) * (safeSupplier.openingBalanceType === "cr" ? 1 : -1) +
+                      (Number(safeSupplier.openingBalance) || 0) * (String(safeSupplier.openingBalanceType || "cr").toLowerCase() === "cr" ? 1 : -1) +
                       purchasesData.reduce((acc, p) => acc + (p.grandTotal || 0), 0) -
                       payments.reduce((acc, p) => acc + (p.amount || 0), 0)
                     )}

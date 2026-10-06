@@ -41,7 +41,9 @@ const CustomerImportPreviewModal = ({
     setError("");
 
     try {
-      const customersToImport = validRows.map(row => ({ ...row.data, customerType: "retail" }));
+      // Limit to first 50 valid rows to avoid frontend overload
+      const rowsToImport = validRows.slice(0, 50);
+      const customersToImport = rowsToImport.map(row => ({ ...row.data, customerType: "retail" }));
       const res = await customerService.confirmImport(customersToImport);
       
       const { successful, failed, errors } = res.data?.data || {};
@@ -91,7 +93,10 @@ const CustomerImportPreviewModal = ({
             mobile: editForm.mobile || null,
             email: editForm.email || null,
             gstNumber: editForm.gstNumber || null,
-            address: { addressLine1: editForm.addressLine1 || null },
+            address: { 
+              ...row.data.address,
+              addressLine1: editForm.addressLine1 || null 
+            },
             openingBalance: Number(editForm.openingBalance) || 0,
             openingBalanceType: editForm.openingBalanceType
           }
@@ -267,7 +272,7 @@ const CustomerImportPreviewModal = ({
             <option value="dr">DR</option>
           </select>
         </div> : 
-        <span className={`text-xs font-semibold ${row.data.openingBalanceType === 'dr' ? 'text-emerald-600' : 'text-rose-600'}`}>
+        <span className={`text-xs font-semibold ${String(row.data.openingBalanceType || '').toLowerCase() === 'dr' ? 'text-emerald-600' : 'text-rose-600'}`}>
           ₹{(row.data.openingBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {row.data.openingBalanceType?.toUpperCase()}
         </span>
       )

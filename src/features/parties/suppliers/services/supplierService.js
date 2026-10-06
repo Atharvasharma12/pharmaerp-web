@@ -37,8 +37,8 @@ const supplierService = {
     });
   },
 
-  confirmImport(suppliers) {
-    return apiClient.post(ENDPOINTS.SUPPLIER.IMPORT_CONFIRM, { suppliers });
+  confirmImport(suppliers, importType = "standard") {
+    return apiClient.post(ENDPOINTS.SUPPLIER.IMPORT_CONFIRM, { suppliers, importType });
   },
 
   /*
