@@ -121,7 +121,7 @@ export const WorkspaceProductBatchSelectorModal = ({
   branchName = "Main Branch",
   onConfirmAddToCart,
 }) => {
-  const { activeBranchId } = useUser();
+  const { activeBranchId, activeCompanyId } = useUser();
   const [batches, setBatches] = useState([]);
   const [totalQty, setTotalQty] = useState(1);
   const [allocations, setAllocations] = useState({});
@@ -147,7 +147,7 @@ export const WorkspaceProductBatchSelectorModal = ({
       const prodId = product._id || product.id;
       if (prodId) {
         Promise.all([
-          workspaceProductService.getProductFacilityBatchesByQueryV2({ filters: { product: prodId }, limit: 50 }),
+          workspaceProductService.getProductFacilityBatchesByQueryV2({ filters: { product: prodId }, companyId: activeCompanyId, limit: 50 }),
           branchService.getWorkspaceBranches().catch(() => ({ data: { data: [] } }))
         ]).then(([res, branchRes]) => {
           const apiBatches = res.data?.data?.batches || res.data?.batches || res.data?.data || [];
@@ -182,15 +182,20 @@ export const WorkspaceProductBatchSelectorModal = ({
           setOtherBranchDetails(details);
         }).catch(err => console.warn("Failed to fetch other branch stock:", err));
       }
+    }
+  }, [open, product, activeBranchId]);
 
+  // Focus qty input after loading completes
+  useEffect(() => {
+    if (open && !isLoading) {
       setTimeout(() => {
-        if (totalQtyInputRef.current) {
+        if (totalQtyInputRef.current && !totalQtyInputRef.current.disabled) {
           totalQtyInputRef.current.focus();
           totalQtyInputRef.current.select();
         }
-      }, 60);
+      }, 100);
     }
-  }, [open, product, activeBranchId]);
+  }, [open, isLoading]);
 
   // Escape key listener to close modal
   useEffect(() => {
@@ -222,8 +227,7 @@ export const WorkspaceProductBatchSelectorModal = ({
         try {
           const prodId = p._id || p.id;
           const res = await workspaceProductService.getProductFacilityBatchesByQueryV2({
-            filters: { product: prodId, facility_id: activeBranchId, branch_id: activeBranchId },
-            limit: 20,
+            filters: { product: prodId }, companyId: activeCompanyId, limit: 20,
           });
           const apiBatches = res.data?.data?.batches || res.data?.batches || res.data?.data || [];
           if (Array.isArray(apiBatches) && apiBatches.length > 0) {
@@ -596,7 +600,7 @@ export const WorkspaceProductBatchSelectorModal = ({
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl  border border-primary/30 font-mono text-sm font-bold shrink-0">
                 Max Stock: <strong className="text-base font-extrabold ">{maxTotalStock} Units</strong>
               </span>
-              {maxTotalStock <= 1 && otherBranchStock > 0 && (
+              {otherBranchStock > 0 && (
                 <div className="relative">
                   <button 
                     type="button"

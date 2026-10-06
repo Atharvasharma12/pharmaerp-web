@@ -12,9 +12,9 @@ import {
 } from "@/components/ui";
 import { AppTable } from "@/components";
 import { CheckCircle2, AlertCircle, XCircle, Edit2, Save, X } from "lucide-react";
-import supplierService from "../services/supplierService";
+import customerService from "../services/customerService";
 
-const SupplierImportPreviewModal = ({
+const CustomerImportPreviewModal = ({
   isOpen,
   onClose,
   previewData,
@@ -41,13 +41,15 @@ const SupplierImportPreviewModal = ({
     setError("");
 
     try {
-      const suppliersToImport = validRows.map(row => row.data);
-      const res = await supplierService.confirmImport(suppliersToImport);
+      // Limit to first 50 valid rows to avoid frontend overload
+      const rowsToImport = validRows.slice(0, 50);
+      const customersToImport = rowsToImport.map(row => ({ ...row.data, customerType: "retail" }));
+      const res = await customerService.confirmImport(customersToImport);
       
       const { successful, failed, errors } = res.data?.data || {};
       onImportSuccess(successful, failed, errors);
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to import suppliers. Please try again.");
+      setError(err?.response?.data?.message || "Failed to import customers. Please try again.");
     } finally {
       setIsConfirming(false);
     }
@@ -56,7 +58,7 @@ const SupplierImportPreviewModal = ({
   const startEdit = (row) => {
     setEditingRowId(row.rowNumber);
     setEditForm({
-      businessName: row.data.businessName || "",
+      name: row.data.name || "",
       mobile: row.data.mobile || "",
       email: row.data.email || "",
       gstNumber: row.data.gstNumber || "",
@@ -76,7 +78,7 @@ const SupplierImportPreviewModal = ({
       if (row.rowNumber === rowNumber) {
         // Basic re-validation
         const errors = [];
-        if (!editForm.businessName) errors.push("Business Name is required");
+        if (!editForm.name) errors.push("Customer Name is required");
         if (editForm.mobile && !/^[6-9][0-9]{9}$/.test(editForm.mobile)) errors.push("Invalid mobile number format");
         if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) errors.push("Invalid email format");
         if (editForm.gstNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]/.test(editForm.gstNumber)) errors.push("Invalid GST Number format");
@@ -87,11 +89,14 @@ const SupplierImportPreviewModal = ({
           errors,
           data: {
             ...row.data,
-            businessName: editForm.businessName,
+            name: editForm.name,
             mobile: editForm.mobile || null,
             email: editForm.email || null,
             gstNumber: editForm.gstNumber || null,
-            address: { addressLine1: editForm.addressLine1 || null },
+            address: { 
+              ...row.data.address,
+              addressLine1: editForm.addressLine1 || null 
+            },
             openingBalance: Number(editForm.openingBalance) || 0,
             openingBalanceType: editForm.openingBalanceType
           }
@@ -130,16 +135,16 @@ const SupplierImportPreviewModal = ({
     },
     {
       id: "name",
-      key: "data.businessName",
-      label: "Supplier Name",
+      key: "data.name",
+      label: "Customer Name",
       render: (_, row) => (
         editingRowId === row.rowNumber ? 
         <input 
-          type="text" name="businessName" 
-          value={editForm.businessName} onChange={handleChange}
+          type="text" name="name" 
+          value={editForm.name} onChange={handleChange}
           className="w-full text-xs p-1 border rounded"
         /> : 
-        <span className="font-semibold text-[13px]">{row.data.businessName || "-"}</span>
+        <span className="font-semibold text-[13px]">{row.data.name || "-"}</span>
       )
     },
     {
@@ -319,7 +324,7 @@ const SupplierImportPreviewModal = ({
   return (
     <UIModal isOpen={isOpen} onClose={!isConfirming ? onClose : undefined} className="max-w-[95vw]">
       <UIModalHeader>
-        <UIModalTitle>Import Suppliers Preview</UIModalTitle>
+        <UIModalTitle>Import Customers Preview</UIModalTitle>
         <UIModalDescription>
           Review and edit the parsed data before importing. Only valid rows will be imported.
         </UIModalDescription>
@@ -368,11 +373,11 @@ const SupplierImportPreviewModal = ({
           onClick={handleConfirm} 
           disabled={validRows.length === 0 || isConfirming || editingRowId !== null}
         >
-          {isConfirming ? "Importing..." : `Import ${validRows.length} Suppliers`}
+          {isConfirming ? "Importing..." : `Import ${validRows.length} Customers`}
         </UIButton>
       </UIModalFooter>
     </UIModal>
   );
 };
 
-export default SupplierImportPreviewModal;
+export default CustomerImportPreviewModal;

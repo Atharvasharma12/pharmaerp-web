@@ -199,7 +199,7 @@ const ProductFacilityTable = ({ data }) => {
   const [limit, setLimit] = useState(5);
   const [search, setSearch] = useState("");
   const [lowStockFilter, setLowStockFilter] = useState(false);
-  const { activeBranchId } = useUser();
+  const { activeBranchId, activeCompanyId } = useUser();
   const [selectedBranch, setSelectedBranch] = useState(activeBranchId || "");
   const [selectedProductForModal, setSelectedProductForModal] = useState(null);
   const { branches, getCompanyBranches } = useBranch();
@@ -214,6 +214,7 @@ const ProductFacilityTable = ({ data }) => {
       const payload = {
         page,
         limit,
+        companyId: activeCompanyId,
         filters: { inStockOnly: true },
       };
       if (selectedBranch) {
@@ -238,7 +239,7 @@ const ProductFacilityTable = ({ data }) => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, selectedBranch, lowStockFilter]);
+  }, [page, limit, search, selectedBranch, lowStockFilter, activeCompanyId]);
 
   useEffect(() => {
     if (data && Array.isArray(data)) {

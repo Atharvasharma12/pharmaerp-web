@@ -43,6 +43,10 @@ import {
 import { TopBarStats } from "@/layouts/app/components/header";
 import { AppTable } from "@/components";
 import { ROUTES } from "@/constants";
+import customerService from "../../services/customerService";
+import CustomerImportPreviewModal from "../../components/CustomerImportPreviewModal";
+import ImportConfigModal from "../../components/ImportConfigModal";
+import OutstandingImportPreviewModal from "../../components/OutstandingImportPreviewModal";
 
 const SORT_OPTIONS = [
   { value: "name_asc", label: "Name: A to Z" },
@@ -85,24 +89,87 @@ const CustomersDesktopPage = ({
   handleDeleteCustomer,
   handleRefresh,
 
+  currentPage = 1,
+  pageSize = 8,
+  setCurrentPage,
+  setPageSize,
+
   clearMessage,
   activeSegment,
 }) => {
   const segmentNavigate = useNavigate();
-  // Local pagination if parent doesn't provide it
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
+  // Parent-controlled pagination
+  const handlePageChange = (newPage) => {
+    if (setCurrentPage) setCurrentPage(newPage);
+  };
+  const handlePageSizeChange = (newSize) => {
+    if (setPageSize) setPageSize(newSize);
+    if (setCurrentPage) setCurrentPage(1);
+  };
 
-  const paginatedCustomers =
-    propPaginatedCustomers ||
-    customers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
+  const paginatedCustomers = propPaginatedCustomers || customers;
   const totalPages = Math.ceil(filteredCustomersCount / pageSize) || 1;
 
-  const handlePageChange = (newPage) => setCurrentPage(newPage);
-  const handlePageSizeChange = (newSize) => {
-    setPageSize(newSize);
-    setCurrentPage(1);
+  // Import State
+  const [isImportConfigOpen, setIsImportConfigOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] = useState(false);
+  const [activeImportType, setActiveImportType] = useState("b2b");
+  const [importPreviewData, setImportPreviewData] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImportClick = () => {
+    setIsImportConfigOpen(true);
+  };
+
+  const handleImportSubmit = async (file, importType) => {
+    try {
+      setIsUploading(true);
+      setActiveImportType(importType);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("importType", importType);
+      
+      const res = await customerService.previewImport(formData);
+      
+      setIsImportConfigOpen(false);
+
+      if (res.data?.data?.isDirectlyImported) {
+        const result = res.data.data.importResult;
+        if (result?.failed > 0) {
+          alert(`Directly imported ${result.successful} successfully. ${result.failed} failed.\nErrors: ${result.errors?.join(", ")}`);
+        } else {
+          alert(`Directly imported ${result?.successful || 0} customers successfully.`);
+        }
+        handleRefresh();
+        return;
+      }
+      
+      setImportPreviewData(res.data?.data || []);
+      
+      if (importType === "b2b-outstanding") {
+        setIsOutstandingImportModalOpen(true);
+      } else {
+        setIsImportModalOpen(true);
+      }
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to parse file");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleImportSuccess = (successful, failed, errors) => {
+    setIsImportModalOpen(false);
+    setIsOutstandingImportModalOpen(false);
+    if (failed > 0) {
+      alert(`Imported ${successful} successfully. ${failed} failed.\nErrors: ${errors.join(", ")}`);
+    } else {
+      alert(`Imported ${successful} customers successfully.`);
+    }
+    if (successful > 0) {
+      handleRefresh();
+    }
   };
 
   const getInitials = (name) => {
@@ -310,6 +377,21 @@ const CustomersDesktopPage = ({
                 className={`size-4 ${isLoading ? "animate-spin" : ""}`}
               />
             </UIIconButton>
+
+            <>
+              <PermissionGate permission="customer:create">
+                <UIButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  startIcon={<Download className="size-4" />}
+                  onClick={handleImportClick}
+                  disabled={isUploading}
+                >
+                  {isUploading ? "Uploading..." : "Import"}
+                </UIButton>
+              </PermissionGate>
+            </>
 
             <PermissionGate permission="customer:create">
               <UIButton
@@ -783,7 +865,7 @@ const CustomersDesktopPage = ({
             totalPages={totalPages}
             totalItems={filteredCustomersCount}
             pageSize={pageSize}
-            pageSizeOptions={[12, 24, 48]}
+            pageSizeOptions={[8, 16, 24, 48]}
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
             showSummary
@@ -791,6 +873,27 @@ const CustomersDesktopPage = ({
           />
         </div>
       )}
+
+      {/* ── Import Preview Modal ── */}
+            <ImportConfigModal
+        isOpen={isImportConfigOpen}
+        onClose={() => setIsImportConfigOpen(false)}
+        onImportSubmit={handleImportSubmit}
+        isUploading={isUploading}
+      />
+      <CustomerImportPreviewModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        previewData={importPreviewData}
+        onImportSuccess={handleImportSuccess}
+      />
+      <OutstandingImportPreviewModal
+        isOpen={isOutstandingImportModalOpen}
+        onClose={() => setIsOutstandingImportModalOpen(false)}
+        previewData={importPreviewData}
+        onImportSuccess={handleImportSuccess}
+        importType={activeImportType}
+      />
     </div>
   );
 };
