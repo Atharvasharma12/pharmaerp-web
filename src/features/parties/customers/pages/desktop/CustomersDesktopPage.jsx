@@ -131,9 +131,22 @@ const CustomersDesktopPage = ({
       formData.append("importType", importType);
       
       const res = await customerService.previewImport(formData);
-      setImportPreviewData(res.data?.data || []);
       
       setIsImportConfigOpen(false);
+
+      if (res.data?.data?.isDirectlyImported) {
+        const result = res.data.data.importResult;
+        if (result?.failed > 0) {
+          alert(`Directly imported ${result.successful} successfully. ${result.failed} failed.\nErrors: ${result.errors?.join(", ")}`);
+        } else {
+          alert(`Directly imported ${result?.successful || 0} customers successfully.`);
+        }
+        handleRefresh();
+        return;
+      }
+      
+      setImportPreviewData(res.data?.data || []);
+      
       if (importType === "b2b-outstanding") {
         setIsOutstandingImportModalOpen(true);
       } else {
