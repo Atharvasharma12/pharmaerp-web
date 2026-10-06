@@ -59,7 +59,7 @@ import customerService from "@/features/parties/customers/services/customerServi
 import invoiceService from "@/features/sales/services/invoiceService";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
 
@@ -196,31 +196,68 @@ const QuickCreateCustomerModal = ({ open, onClose, defaultName, customerType, bi
 };
 
 export const SalesDesktopPage = () => {
-  const [billingMode, setBillingMode] = useState("B2C"); // "B2C" | "B2B"
+  const location = useLocation();
+  const initialInvoice = location.state?.invoice;
+  const isEditMode = Boolean(initialInvoice);
+
+  const [billingMode, setBillingMode] = useState(initialInvoice?.billingMode || "B2C"); // "B2C" | "B2B"
   const [b2bPartyType, setB2bPartyType] = useState("all"); // "all" | "wholesaler" | "retailer"
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const [selectedB2cCustomer, setSelectedB2cCustomer] = useState(null);
-  const [selectedB2bParty, setSelectedB2bParty] = useState(null);
+  const [selectedB2cCustomer, setSelectedB2cCustomer] = useState(
+    initialInvoice?.billingMode !== "B2B" && (initialInvoice?.customerId || initialInvoice?.customer)
+      ? { id: initialInvoice.customerId || "legacy", _id: initialInvoice.customerId || "legacy", name: initialInvoice.customer || "Walk-in Customer", mobile: initialInvoice.phone }
+      : null
+  );
+  const [selectedB2bParty, setSelectedB2bParty] = useState(
+    initialInvoice?.billingMode === "B2B" && (initialInvoice?.customerId || initialInvoice?.customer)
+      ? { id: initialInvoice.customerId || "legacy", _id: initialInvoice.customerId || "legacy", name: initialInvoice.customer, mobile: initialInvoice.phone }
+      : null
+  );
   const [b2bPartiesFromBackend, setB2bPartiesFromBackend] = useState([]);
 
   const [isQuickCreateCustomerModalOpen, setIsQuickCreateCustomerModalOpen] = useState(false);
   const [quickCreateCustomerName, setQuickCreateCustomerName] = useState("");
   const [quickCreateCustomerType, setQuickCreateCustomerType] = useState("retail");
 
-  
-
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    if (!initialInvoice?.items) return [];
+    return initialInvoice.items.map(item => ({
+      ...item,
+      id: item.productId || item.id || `legacy-${Math.random()}`,
+      name: item.name,
+      brand: item.brand || item.manufacturer || "Pharma",
+      category: item.category || "Tablet",
+      batch: item.batch || item.batchNo || "",
+      pack: item.pack || item.packSize || "10S",
+      rack: item.rack || "F1/AE2",
+      hsn: item.hsn || "3004",
+      gst: item.gst || item.gstRate || 0,
+      ratePct: item.ratePct || (item.rateCPercentage !== undefined ? `${item.rateCPercentage}%` : "16%"),
+      rateCPercentage: item.rateCPercentage,
+      expiry: item.expiry || null,
+      stock: item.stock ?? 100,
+      mrp: item.mrp || item.price || 0,
+      price: item.price || 0,
+      disc: item.disc || item.itemDiscount || 0,
+      qty: item.qty || 1,
+      schemeDiscountPercent: item.schemeDiscountPercent || 0,
+    }));
+  });
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
-  const [customerName, setCustomerName] = useState("");
-  const [doctorName, setDoctorName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerName, setCustomerName] = useState(
+    initialInvoice?.billingMode !== "B2B" ? (initialInvoice?.customer || "") : ""
+  );
+  const [doctorName, setDoctorName] = useState(initialInvoice?.doctorName || "");
+  const [customerPhone, setCustomerPhone] = useState(
+    initialInvoice?.billingMode !== "B2B" ? (initialInvoice?.phone || "") : ""
+  );
 
   const { currentBranch } = useBranch();
   const { activeShift, status: shiftStatus } = useActiveShift(currentBranch?._id);
@@ -355,8 +392,9 @@ export const SalesDesktopPage = () => {
 
         if (mapped.length > 0) {
           setSelectedB2bParty(prev => {
-            const stillExists = prev && mapped.find(m => m.id === prev.id);
-            return stillExists ? prev : null;
+            if (!prev) return null;
+            const match = mapped.find(m => m.id === prev.id || m.id === prev._id || (prev.id === "legacy" && m.name === prev.name));
+            return match || prev;
           });
         } else {
           setSelectedB2bParty(null);
@@ -651,7 +689,7 @@ export const SalesDesktopPage = () => {
     let targetCustomerId = activeCustomer?.id || activeCustomer?._id;
 
     // Fallback: If no customer explicitly selected (e.g. walk-in B2C), fetch or use first customer from backend
-    if (!targetCustomerId) {
+    if (!targetCustomerId || targetCustomerId === "legacy") {
       try {
         const cRes = await customerService.getCustomers({ limit: 1 });
         const cList = cRes.data?.data?.customers || cRes.data?.customers || cRes.data?.data || [];
@@ -666,7 +704,7 @@ export const SalesDesktopPage = () => {
     // Post to backend API
     if (targetCustomerId) {
       const activeBranchId = saleData.items?.[0]?.branchId || saleData.items?.[0]?.facilityId || null;
-      await invoiceService.recordCustomerSale(targetCustomerId, {
+      const payload = {
         invoiceNo: saleData.invoiceNo,
         billingMode,
         branchId: activeBranchId,
@@ -679,7 +717,13 @@ export const SalesDesktopPage = () => {
         payments: saleData.payments,
         items: saleData.items,
         date: activeShift?.date ? new Date(activeShift.date).toISOString() : new Date().toISOString(),
-      });
+      };
+
+      if (isEditMode && initialInvoice?.id) {
+        await invoiceService.updateCustomerSale(targetCustomerId, initialInvoice.id, payload);
+      } else {
+        await invoiceService.recordCustomerSale(targetCustomerId, payload);
+      }
     }
 
     // On confirmed backend success, close checkout, set completed sale state, open receipt, and clear cart
@@ -1258,6 +1302,9 @@ export const SalesDesktopPage = () => {
         billingMode={billingMode}
         activeShift={activeShift}
         cartSummary={{ items: cart, subtotal: cartSubtotal }}
+        initialPayments={initialInvoice?.payments}
+        initialDenominations={initialInvoice?.denominations}
+        initialReturnedDenominations={initialInvoice?.returnedDenominations}
         onCompleteSale={handleCompleteSale}
       />
 

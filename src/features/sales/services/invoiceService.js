@@ -12,6 +12,10 @@ const invoiceService = {
   recordCustomerSale(customerId, payload) {
     return apiClient.post(ENDPOINTS.SALES.INVOICES.BY_CUSTOMER(customerId), payload);
   },
+
+  updateCustomerSale(customerId, invoiceId, payload) {
+    return apiClient.put(`${ENDPOINTS.SALES.INVOICES.BY_CUSTOMER(customerId)}/${invoiceId}`, payload);
+  },
 };
 
 export default invoiceService;

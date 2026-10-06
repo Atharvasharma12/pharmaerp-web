@@ -27,6 +27,7 @@ import {
 import { PermissionGate } from "@/components/common/PermissionGate";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants";
+import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 
 import invoiceService from "@/features/sales/services/invoiceService";
 import { INVOICE_RECORDS } from "../../constants/billingData";
@@ -54,9 +55,13 @@ export const BillingDesktopPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalInvoices, setTotalInvoices] = useState(0);
 
+  const { currentWorkspace } = useWorkspace();
+
   useEffect(() => {
-    fetchInvoicesFromBackend();
-  }, [currentPage]);
+    if (currentWorkspace) {
+      fetchInvoicesFromBackend();
+    }
+  }, [currentPage, currentWorkspace]);
 
   const fetchInvoicesFromBackend = async () => {
     setIsLoading(true);
@@ -96,6 +101,9 @@ export const BillingDesktopPage = () => {
           createdByName: s.createdByName || (s.createdByEmail ? s.createdByEmail.split("@")[0] : "System User"),
           createdByEmail: s.createdByEmail || null,
           items: s.items || [],
+          payments: s.payments || [],
+          denominations: s.denominations || [],
+          returnedDenominations: s.returnedDenominations || [],
         });
       });
 
