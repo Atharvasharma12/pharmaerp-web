@@ -257,7 +257,7 @@ const AccountDetailsMobilePage = ({
                 <CompactRow label="Opening Bal" value={formatCurrency(safeAccount.openingBalance || 0)} />
                 <CompactRow
                   label="Balance Type"
-                  value={safeAccount.openingBalanceType === "dr" ? "DR (Debit)" : "CR (Credit)"}
+                  value={String(safeAccount.openingBalanceType || "dr").toLowerCase() === "dr" ? "DR (Debit)" : "CR (Credit)"}
                 />
                 <CompactRow label="Nature" value={safeAccount.accountNature} />
                 <CompactRow label="Category" value={safeAccount.accountCategory} />

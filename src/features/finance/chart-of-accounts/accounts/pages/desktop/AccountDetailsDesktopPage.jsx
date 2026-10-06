@@ -439,8 +439,8 @@ const FinancialTab = ({ account }) => (
         label="Balance Type"
         value={
           <AppTag
-            label={account.openingBalanceType === "dr" ? "DR (Debit)" : "CR (Credit)"}
-            colorVariant={account.openingBalanceType === "dr" ? "primary" : "warning"}
+            label={String(account.openingBalanceType || "dr").toLowerCase() === "dr" ? "DR (Debit)" : "CR (Credit)"}
+            colorVariant={String(account.openingBalanceType || "dr").toLowerCase() === "dr" ? "primary" : "warning"}
             variant="soft"
             rounded="md"
             sx={{ height: 20, fontSize: "10.5px", fontWeight: 700 }}

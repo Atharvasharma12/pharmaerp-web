@@ -98,7 +98,7 @@ const SupplierDetailsDesktopPage = ({
 
     // Outstanding = Opening Balance + Total Purchases - Total Payments (Payables)
     const opBal = Number(safeSupplier.openingBalance) || 0;
-    const opBalType = safeSupplier.openingBalanceType || "cr";
+    const opBalType = String(safeSupplier.openingBalanceType || "cr").toLowerCase();
     const opBalSigned = opBalType === "cr" ? opBal : -opBal;
 
     const outstandingVal = opBalSigned + totalPurchasesVal - totalPaymentsVal;
@@ -434,8 +434,8 @@ const OverviewTab = ({ supplier, metrics, onTabChange, onEdit }) => {
               label="Opening Balance Type"
               value={
                 <AppTag
-                  label={supplier.openingBalanceType === "dr" ? "DR (Debit)" : "CR (Credit)"}
-                  colorVariant={supplier.openingBalanceType === "dr" ? "primary" : "warning"}
+                  label={String(supplier.openingBalanceType || "cr").toLowerCase() === "dr" ? "DR (Debit)" : "CR (Credit)"}
+                  colorVariant={String(supplier.openingBalanceType || "cr").toLowerCase() === "dr" ? "primary" : "warning"}
                   variant="soft"
                   rounded="md"
                   sx={{ height: 20, fontSize: "10.5px", fontWeight: 700 }}
@@ -722,11 +722,18 @@ const StatementTab = ({ supplier, ledger }) => {
   
   const currentPage = ledger?.page || 1;
   const totalEntries = ledger?.total || 0;
-  const totalDebit = ledger?.meta?.totalDebit || 0;
-  const totalCredit = ledger?.meta?.totalCredit || 0;
-  const netBalance = totalCredit - totalDebit;
   const rowsPerPage = 5;
   const totalPages = Math.ceil(totalEntries / rowsPerPage);
+
+  const rawTotalDebit = ledger?.meta?.totalDebit || 0;
+  const rawTotalCredit = ledger?.meta?.totalCredit || 0;
+
+  const opBal = Number(supplier?.openingBalance) || 0;
+  const opBalType = String(supplier?.openingBalanceType || "cr").toLowerCase();
+
+  const totalDebit = rawTotalDebit + (opBalType === "dr" ? opBal : 0);
+  const totalCredit = rawTotalCredit + (opBalType === "cr" ? opBal : 0);
+  const netBalance = totalCredit - totalDebit;
 
   const statementRows = useMemo(() => {
     const rows = [];
@@ -745,11 +752,9 @@ const StatementTab = ({ supplier, ledger }) => {
 
     // Only show Opening Balance at the bottom of the last page
     if (currentPage === totalPages || totalPages === 0) {
-      const opBal = Number(supplier.openingBalance) || 0;
-      const opBalType = supplier.openingBalanceType || "cr";
       rows.push({
         id: "opening-bal",
-        date: supplier.createdAt || "2024-05-28",
+        date: supplier?.createdAt || "2024-05-28",
         particulars: "Opening Balance",
         debit: opBalType === "dr" ? opBal : 0,
         credit: opBalType === "cr" ? opBal : 0,

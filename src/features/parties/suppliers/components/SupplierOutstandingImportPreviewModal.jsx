@@ -37,8 +37,54 @@ const SupplierOutstandingImportPreviewModal = ({
   const debitTransactions = localData.filter(r => r.status === "DEBIT_TRANSACTION").length;
 
   const totalAmountToImport = useMemo(() => {
-    return validRows.reduce((sum, row) => sum + (row.data.amount || 0), 0);
+    return validRows.filter(r => r.data.type === "CR").reduce((sum, row) => sum + (row.data.amount || 0), 0);
   }, [validRows]);
+
+  const totalDebitToImport = useMemo(() => {
+    return validRows.filter(r => r.data.type === "DR").reduce((sum, row) => sum + (row.data.amount || 0), 0);
+  }, [validRows]);
+
+  const groupedSuppliers = useMemo(() => {
+    const map = new Map();
+    localData.forEach(row => {
+      const name = row.data?.supplierName || "Unknown Supplier";
+      if (!map.has(name)) {
+        map.set(name, {
+          supplierName: name,
+          matchStatus: row.matchStatus,
+          totalBills: 0,
+          validBills: 0,
+          validAmount: 0,
+          totalCr: 0,
+          totalDr: 0,
+          netOutstanding: 0
+        });
+      }
+      const group = map.get(name);
+      group.totalBills += 1;
+      
+      const amt = row.data?.amount || 0;
+      if (row.data?.type === "CR") {
+        group.totalCr += amt;
+      } else if (row.data?.type === "DR") {
+        group.totalDr += amt;
+      }
+      group.netOutstanding = group.totalCr - group.totalDr;
+
+      if (row.isValid) {
+        group.validBills += 1;
+        if (row.data?.type === "CR") {
+          group.validAmount += amt;
+        } else if (row.data?.type === "DR") {
+          group.validAmount -= amt;
+        }
+      }
+      if (row.matchStatus === "NOT_FOUND") {
+        group.matchStatus = "NOT_FOUND";
+      }
+    });
+    return Array.from(map.values()).map((g, i) => ({ ...g, rowNumber: i + 1 }));
+  }, [localData]);
 
   const handleConfirm = async () => {
     if (validRows.length === 0) return;
@@ -61,38 +107,17 @@ const SupplierOutstandingImportPreviewModal = ({
 
   const columns = [
     {
-      label: "Row",
+      label: "#",
       key: "rowNumber",
       render: (val) => <span className="text-text-muted">{val}</span>,
     },
     {
-      label: "Status",
-      key: "isValid",
-      render: (val, row) => {
-        if (row.isValid) {
-          return (
-            <div className="flex items-center gap-1.5 text-success">
-              <CheckCircle2 className="size-4" />
-              <span className="font-medium">Valid</span>
-            </div>
-          );
-        }
-        return (
-          <div className="flex items-center gap-1.5 text-danger">
-            <XCircle className="size-4" />
-            <span className="font-medium">
-              {row.status === "SUPPLIER_NOT_FOUND" ? "Not Found" : 
-               row.status === "ALREADY_IMPORTED" ? "Already Imported" : 
-               row.status === "DUPLICATE_IN_FILE" ? "Duplicate in File" : 
-               row.status === "DEBIT_TRANSACTION" ? "Debit (Skip)" : 
-               row.status === "MISSING_INVOICE_NUMBER" ? "No Invoice #" : "Invalid"}
-            </span>
-          </div>
-        );
-      }
+      label: "Supplier Name",
+      key: "supplierName",
+      render: (val) => <span className="font-medium text-text">{val}</span>
     },
     {
-      label: "Match",
+      label: "Match Status",
       key: "matchStatus",
       render: (val) => {
         if (val === "MATCHED") return <span className="text-success font-semibold">MATCHED</span>;
@@ -101,29 +126,29 @@ const SupplierOutstandingImportPreviewModal = ({
       }
     },
     {
-      label: "Supplier Name",
-      key: "data",
-      render: (val) => <span className="font-medium text-text">{val?.supplierName || "-"}</span>
+      label: "Total Cr",
+      key: "totalCr",
+      render: (val) => <span className="text-success">{formatCurrency(val)}</span>
     },
     {
-      label: "Invoice No",
-      key: "data",
-      render: (val) => val?.invoiceNumber || "-"
+      label: "Total Dr",
+      key: "totalDr",
+      render: (val) => <span className="text-danger">{formatCurrency(val)}</span>
     },
     {
-      label: "Date",
-      key: "data",
-      render: (val) => val?.invoiceDate || "-"
+      label: "Net Outstanding",
+      key: "netOutstanding",
+      render: (val) => <span className="font-bold">{formatCurrency(Math.abs(val))} {val >= 0 ? 'Cr' : 'Dr'}</span>
     },
     {
-      label: "Amount",
-      key: "data",
-      render: (val) => <span className="font-medium">{formatCurrency(val?.amount)}</span>
+      label: "Valid TXs",
+      key: "validBills",
+      render: (val) => <span className="text-success font-medium">{val}</span>
     },
     {
-      label: "Type",
-      key: "data",
-      render: (val) => val?.type || "-"
+      label: "Valid Net Amount",
+      key: "validAmount",
+      render: (val) => <span className="font-medium text-primary">{formatCurrency(Math.abs(val))} {val >= 0 ? 'Cr' : 'Dr'}</span>
     }
   ];
 
@@ -132,7 +157,7 @@ const SupplierOutstandingImportPreviewModal = ({
       <UIModalHeader>
         <UIModalTitle>Preview Supplier Outstanding Import</UIModalTitle>
         <UIModalDescription>
-          Review the transactions before importing. Only valid CREDIT transactions will be imported as Purchase Bills.
+          Review the transactions before importing. Valid CREDIT and DEBIT transactions will be processed.
         </UIModalDescription>
       </UIModalHeader>
 
@@ -145,7 +170,7 @@ const SupplierOutstandingImportPreviewModal = ({
             <p className="text-xl font-bold text-text mt-1">{localData.length}</p>
           </div>
           <div className="bg-success/10 p-4 rounded-xl border border-success/20">
-            <p className="text-xs text-success font-medium">Valid Bills</p>
+            <p className="text-xs text-success font-medium">Valid TXs</p>
             <p className="text-xl font-bold text-success mt-1">{validRows.length}</p>
           </div>
           <div className="bg-danger/10 p-4 rounded-xl border border-danger/20">
@@ -164,22 +189,25 @@ const SupplierOutstandingImportPreviewModal = ({
             <p className="text-xs text-text-muted font-medium">Not Found</p>
             <p className="text-xl font-bold text-danger mt-1">{missingSuppliers}</p>
           </div>
-          <div className="bg-surface-elevated p-4 rounded-xl border border-border">
-            <p className="text-xs text-text-muted font-medium">Debit</p>
-            <p className="text-xl font-bold text-text mt-1">{debitTransactions}</p>
+          <div className="bg-primary/10 p-4 rounded-xl border border-primary/20">
+            <p className="text-xs text-primary font-medium">Total Cr ₹</p>
+            <p className="text-lg font-bold text-primary mt-1">{formatCurrency(totalAmountToImport)}</p>
           </div>
           <div className="bg-primary/10 p-4 rounded-xl border border-primary/20">
-            <p className="text-xs text-primary font-medium">Total Valid ₹</p>
-            <p className="text-lg font-bold text-primary mt-1">{formatCurrency(totalAmountToImport)}</p>
+            <p className="text-xs text-primary font-medium">Total Dr ₹</p>
+            <p className="text-lg font-bold text-primary mt-1">{formatCurrency(totalDebitToImport)}</p>
           </div>
         </div>
 
-        <div className="flex-1 bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+        <div className="flex-1 min-h-0 bg-surface border border-border rounded-xl shadow-sm flex flex-col">
           <AppTable 
-            rows={localData} 
+            rows={groupedSuppliers} 
             columns={columns} 
             getRowId={(row) => row.rowNumber}
-            isLoading={false} 
+            isLoading={false}
+            sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+            containerSx={{ flex: 1, minHeight: 0 }}
+            stickyHeader
           />
         </div>
       </UIModalBody>
