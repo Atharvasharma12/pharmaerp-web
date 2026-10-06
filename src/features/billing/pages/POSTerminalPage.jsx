@@ -37,7 +37,7 @@ import invoiceService from "@/features/sales/services/invoiceService";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
 import branchCashService from "@/features/finance/treasury/cash-management/branch-cash/services/branchCashService";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { API_STATUS } from "@/constants";
@@ -101,6 +101,10 @@ export const POSTerminalPage = () => {
   const { currentBranch } = useBranch();
   const { activeShift, status: shiftStatus } = useActiveShift(currentBranch?._id);
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialInvoice = location.state?.invoice;
+  const invoiceId = initialInvoice?._id || initialInvoice?.id;
+  const isEditMode = Boolean(initialInvoice);
 
   /* ── Clock ── */
   const [currentTime, setCurrentTime] = useState(formatTime());
@@ -110,21 +114,21 @@ export const POSTerminalPage = () => {
   }, []);
 
   /* ── Invoice ── */
-  const [invoiceNo] = useState(() => generateInvoiceNo());
+  const [invoiceNo] = useState(() => initialInvoice?.invoiceNo || generateInvoiceNo());
 
   /* ── Billing Mode ── */
-  const [billingMode, setBillingMode] = useState("B2C");
+  const [billingMode, setBillingMode] = useState(initialInvoice?.billingMode || "B2C");
 
   /* ── Customer (B2C) ── */
-  const [b2cName, setB2cName] = useState("");
-  const [b2cPhone, setB2cPhone] = useState("");
+  const [b2cName, setB2cName] = useState(initialInvoice?.billingMode !== "B2B" ? (initialInvoice?.customer || "") : "");
+  const [b2cPhone, setB2cPhone] = useState(initialInvoice?.billingMode !== "B2B" ? (initialInvoice?.phone || "") : "");
 
   /* ── Customer (B2B) ── */
-  const [b2bSearchQuery, setB2bSearchQuery] = useState("");
+  const [b2bSearchQuery, setB2bSearchQuery] = useState(initialInvoice?.billingMode === "B2B" ? (initialInvoice?.customer || "") : "");
   const [b2bResults, setB2bResults] = useState([]);
   const [b2bSearching, setB2bSearching] = useState(false);
   const [b2bDropdownOpen, setB2bDropdownOpen] = useState(false);
-  const [selectedParty, setSelectedParty] = useState(null);
+  const [selectedParty, setSelectedParty] = useState(initialInvoice?.billingMode === "B2B" ? { name: initialInvoice?.customer, mobile: initialInvoice?.phone, _id: initialInvoice?.customerId || "legacy" } : null);
   const debouncedB2bQuery = useDebounce(b2bSearchQuery, 300);
   const b2bInputRef = useRef(null);
   const b2bDropdownRef = useRef(null);
@@ -139,13 +143,30 @@ export const POSTerminalPage = () => {
   const productDropdownRef = useRef(null);
 
   /* ── Cart ── */
-  const [cartItems, setCartItems] = useState([]);
-  const [discount, setDiscount] = useState(0);
-  const [discountType, setDiscountType] = useState("percent"); // "percent" | "flat"
+  const [cartItems, setCartItems] = useState(() => {
+    if (!initialInvoice?.items) return [];
+    return initialInvoice.items.map(item => ({
+      productId: item.productId || item.id || `legacy-${Math.random()}`,
+      name: item.name,
+      productCode: item.productCode || "",
+      batchNo: item.batch || item.batchNo || "",
+      expiryDate: item.expiry || null,
+      qty: item.qty || 1,
+      mrp: item.price || 0,
+      rate: item.price || 0,
+      ptr: 0,
+      gstRate: item.gst || item.gstRate || 0,
+      itemDiscount: item.itemDiscount || 0,
+      manufacturer: item.manufacturer || "",
+      pack: item.pack || "",
+    }));
+  });
+  const [discount, setDiscount] = useState(initialInvoice?.discount || 0);
+  const [discountType, setDiscountType] = useState(initialInvoice?.discount > 0 ? "flat" : "percent"); // "percent" | "flat"
 
   /* ── Payment ── */
-  const [paymentMethod, setPaymentMethod] = useState("Cash");
-  const [cashTendered, setCashTendered] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState(initialInvoice?.paymentMode || "Cash");
+  const [cashTendered, setCashTendered] = useState(initialInvoice?.amount ? String(initialInvoice.amount) : "");
 
   /* ── Cash Account (branch-scoped) ── */
   const [systemDefaultAccount, setSystemDefaultAccount] = useState(null);
@@ -164,30 +185,6 @@ export const POSTerminalPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
 
-  if (!activeShift && (shiftStatus === API_STATUS.LOADING || shiftStatus === API_STATUS.IDLE || shiftStatus === "LOADING" || shiftStatus === "IDLE")) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
-        <Loader2 className="size-10 animate-spin text-primary" />
-        <p className="text-text-muted font-medium">Checking active shift...</p>
-      </div>
-    );
-  }
-
-  if (!activeShift) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
-        <Store className="size-16 text-text-muted" />
-        <h2 className="text-2xl font-bold text-text">No open shift is present</h2>
-        <p className="text-text-muted">You must open a shift before you can access POS terminal.</p>
-        <button 
-          onClick={() => navigate("/operations/shifts")}
-          className="px-6 py-2 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition"
-        >
-          Go to Shifts
-        </button>
-      </div>
-    );
-  }
 
   /* ────────────────── B2B SEARCH ────────────────── */
   useEffect(() => {
@@ -434,6 +431,8 @@ export const POSTerminalPage = () => {
 
   /* ────────────────── SUBMIT BILL ────────────────── */
   const handleSubmitBill = async () => {
+
+
     if (cartItems.length === 0) {
       setToast({ type: "error", message: "Add at least one product to the cart." });
       setTimeout(() => setToast(null), 3000);
@@ -451,6 +450,10 @@ export const POSTerminalPage = () => {
         customerName = selectedParty.name;
       } else if (billingMode === "B2C") {
         customerName = b2cName || "Walk-in Customer";
+        // If in edit mode, try to reuse the existing customerId
+        if (isEditMode && initialInvoice?.customerId) {
+          customerId = initialInvoice.customerId;
+        }
       }
 
       const salePayload = {
@@ -490,8 +493,12 @@ export const POSTerminalPage = () => {
       };
 
       if (customerId) {
-        // B2B — record sale against the existing customer
-        await invoiceService.recordCustomerSale(customerId, salePayload);
+        // B2B — record or update sale against the existing customer
+        if (isEditMode) {
+          await invoiceService.updateCustomerSale(customerId, invoiceId, salePayload);
+        } else {
+          await invoiceService.recordCustomerSale(customerId, salePayload);
+        }
       } else if (billingMode === "B2C" && b2cName) {
         // For B2C with a named customer, create the customer first, then record
         try {
@@ -503,19 +510,45 @@ export const POSTerminalPage = () => {
           const newCustomer = createRes.data?.data || createRes.data;
           const newId = newCustomer?._id || newCustomer?.id;
           if (newId) {
-            await invoiceService.recordCustomerSale(newId, salePayload);
+            if (isEditMode) {
+              await invoiceService.updateCustomerSale(newId, invoiceId, salePayload);
+            } else {
+              await invoiceService.recordCustomerSale(newId, salePayload);
+            }
           }
         } catch (createErr) {
-          // If customer creation fails (e.g. duplicate), just show success for the bill
           console.warn("B2C customer creation skipped:", createErr);
+        }
+      } else {
+        // Fallback for B2C without a name
+        try {
+          const createRes = await customerService.createCustomer({
+            name: "Walk-in Customer",
+            mobile: null,
+            customerType: "retail",
+          });
+          const newCustomer = createRes.data?.data || createRes.data;
+          const newId = newCustomer?._id || newCustomer?.id;
+          if (newId) {
+            if (isEditMode) {
+              await invoiceService.updateCustomerSale(newId, invoiceId, salePayload);
+            } else {
+              await invoiceService.recordCustomerSale(newId, salePayload);
+            }
+          }
+        } catch (createErr) {
+          console.warn("B2C default customer creation skipped:", createErr);
         }
       }
 
-      setToast({ type: "success", message: `✅ Invoice ${invoiceNo} billed successfully! Grand Total: ${formatCurrency(calculations.grandTotal)}` });
+      setToast({ type: "success", message: `✅ Invoice ${invoiceNo} ${isEditMode ? "updated" : "billed"} successfully! Grand Total: ${formatCurrency(calculations.grandTotal)}` });
       setTimeout(() => {
         setToast(null);
-        // Reset form for next bill
-        window.location.reload();
+        if (isEditMode) {
+          navigate("/billing");
+        } else {
+          window.location.reload();
+        }
       }, 3000);
     } catch (err) {
       console.error("Submit bill error:", err);
@@ -534,6 +567,32 @@ export const POSTerminalPage = () => {
   /* ═══════════════════════════════════════════════════════════
      RENDER
      ═══════════════════════════════════════════════════════════ */
+
+  if (!activeShift && (shiftStatus === API_STATUS.LOADING || shiftStatus === API_STATUS.IDLE || shiftStatus === "LOADING" || shiftStatus === "IDLE")) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
+        <Loader2 className="size-10 animate-spin text-primary" />
+        <p className="text-text-muted font-medium">Checking active shift...</p>
+      </div>
+    );
+  }
+
+  if (!activeShift) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
+        <Store className="size-16 text-text-muted" />
+        <h2 className="text-2xl font-bold text-text">No open shift is present</h2>
+        <p className="text-text-muted">You must open a shift before you can access POS terminal.</p>
+        <button 
+          onClick={() => navigate("/operations/shifts")}
+          className="px-6 py-2 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition"
+        >
+          Go to Shifts
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-bg font-sans overflow-hidden">
       {/* ──────────── TOAST ──────────── */}
