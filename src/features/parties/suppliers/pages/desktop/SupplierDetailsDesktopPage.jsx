@@ -753,7 +753,7 @@ const StatementTab = ({ supplier, ledger }) => {
         particulars: "Opening Balance",
         debit: opBalType === "dr" ? opBal : 0,
         credit: opBalType === "cr" ? opBal : 0,
-        balance: opBalType === "dr" ? opBal : -opBal,
+        balance: opBalType === "cr" ? opBal : -opBal,
         isOpening: true,
       });
     }

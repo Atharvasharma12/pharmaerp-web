@@ -600,7 +600,7 @@ export const WorkspaceProductBatchSelectorModal = ({
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl  border border-primary/30 font-mono text-sm font-bold shrink-0">
                 Max Stock: <strong className="text-base font-extrabold ">{maxTotalStock} Units</strong>
               </span>
-              {maxTotalStock <= 1 && otherBranchStock > 0 && (
+              {otherBranchStock > 0 && (
                 <div className="relative">
                   <button 
                     type="button"
