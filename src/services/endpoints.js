@@ -119,6 +119,7 @@ export const ENDPOINTS = {
     SALES: (customerId) => `/parties/customers/${customerId}/sales`,
     IMPORT_PREVIEW: "/parties/customers/import/preview",
     IMPORT_CONFIRM: "/parties/customers/import/confirm",
+    IMPORT_CHUNK: "/parties/customers/import/chunk",
   },
 
   SALES: {
