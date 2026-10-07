@@ -170,6 +170,8 @@ export const UIStatCard = forwardRef(
                 ? React.cloneElement(icon, {
                     className: cn("size-5", icon.props.className),
                   })
+                : typeof icon === "function" || typeof icon === "object"
+                ? React.createElement(icon, { className: "size-5" })
                 : icon}
             </div>
           )}

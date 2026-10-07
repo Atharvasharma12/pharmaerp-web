@@ -1,25 +1,97 @@
-import React, { useEffect, useState } from "react";
+
+import React, { useEffect, useState, useMemo } from "react";
 import {
   UIModal,
-  UIModalHeader,
-  UIModalTitle,
-  UIModalBody,
-  UIModalFooter,
   UIButton,
+  UIBadge,
+  UIEmptyState,
 } from "@/components/ui";
-import { Clock, IndianRupee, QrCode, FileText, ArrowLeftRight } from "lucide-react";
+import {
+  Eye,
+  X,
+  Calendar,
+  Clock,
+  Banknote,
+  ShoppingCart,
+  Inbox,
+  Upload,
+  FileText,
+  CreditCard,
+  Tag,
+  Percent,
+  QrCode,
+  Wallet,
+  ArrowLeftRight,
+  TrendingUp,
+  TrendingDown,
+  User,
+  ListFilter,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 import { apiClient } from "@/services";
-import { ShiftFundTransferPanel } from "./ShiftFundTransferPanel";
 
 const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+
+const TABS = [
+  { id: "cash", label: "Cash Summary" },
+  { id: "bills", label: "Bills & Payments" },
+  { id: "drawer", label: "Cash Drawer" },
+  { id: "funds", label: "Fund Movements" },
+];
+
+const formatCurrency = (val) => {
+  const num = Number(val) || 0;
+  return `₹ ${num.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
+
+const getInitials = (name) => {
+  if (!name || name === "—") return "—";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+};
+
+const formatShortDate = (d) => {
+  if (!d) return "—";
+  const dateObj = new Date(d);
+  if (Number.isNaN(dateObj.getTime())) return "—";
+  return dateObj.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const formatTimeOnly = (d) => {
+  if (!d) return "—";
+  const dateObj = new Date(d);
+  if (Number.isNaN(dateObj.getTime())) return "—";
+  return dateObj.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
 
 export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("cash");
+  const [fundFilter, setFundFilter] = useState("all");
 
   useEffect(() => {
     if (isOpen && shift?._id) {
       setLoading(true);
+      setActiveTab("cash");
+      setFundFilter("all");
       apiClient
         .get(`/operations/shifts/${shift._id}/summary`)
         .then((res) => setSummary(res.data.data))

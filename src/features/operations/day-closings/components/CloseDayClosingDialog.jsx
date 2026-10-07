@@ -1,3 +1,5 @@
+// src/features/operations/day-closings/components/CloseDayClosingDialog.jsx
+
 import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -9,25 +11,50 @@ import {
   UIButton,
   UIInput,
   UIAlert,
+  UIBadge,
+  UIStatCard,
+  UIInfoCard,
+  UIDetailRow,
 } from "@/components/ui";
 import { updateDayClosingStatus, listDayClosings } from "../store/dayClosingThunk";
 import { API_STATUS } from "@/constants";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants";
 import { apiClient } from "@/services";
 import useBranchCash from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
-import { FileText, IndianRupee, QrCode, Eye, Banknote, ArrowLeftRight } from "lucide-react";
+import {
+  FileText,
+  IndianRupee,
+  QrCode,
+  Eye,
+  Banknote,
+  ArrowLeftRight,
+  Snowflake,
+  Landmark,
+  Lock,
+  Clock,
+  ShieldAlert,
+  CheckCircle2,
+} from "lucide-react";
 import { ViewShiftDialog } from "@/features/operations/shifts/components/ViewShiftDialog";
 import { ShiftFundTransferPanel } from "@/features/operations/shifts/components/ShiftFundTransferPanel";
+import { PostDayCloseDialog } from "./PostDayCloseDialog";
+
+const fmt = (n) => (Number(n) || 0).toLocaleString("en-IN");
 
 const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
 
 export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { updateDayClosingStatusStatus, error } = useSelector((state) => state.dayClosing);
 
   const [note, setNote] = useState("");
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedShiftForView, setSelectedShiftForView] = useState(null);
+  const [showPostClose, setShowPostClose] = useState(false);
+  const [closedDayClosingData, setClosedDayClosingData] = useState(null);
 
   // Denominations State
   const [counts, setCounts] = useState(
@@ -87,8 +114,27 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
     }
   }, [isOpen, dayClosing, branchCash]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setShowPostClose(false);
+      setClosedDayClosingData(null);
+    }
+  }, [isOpen]);
+
   const handleCountChange = (note, val) => {
     setCounts((prev) => ({ ...prev, [note]: val }));
+  };
+
+  const handleOpenBankSlip = () => {
+    setShowPostClose(false);
+    onClose();
+    const dcId = closedDayClosingData?._id || dayClosing?._id || "";
+    navigate(`${ROUTES.CREATE_BANK_DEPOSIT_SLIP}${dcId ? `?dayClosingId=${dcId}` : ""}`);
+  };
+
+  const handlePostCloseDismiss = () => {
+    setShowPostClose(false);
+    onClose();
   };
 
   const handleSubmit = async (e) => {
@@ -110,12 +156,12 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
           closingDenominations,
           note,
         },
-      }),
-    );
+      }),    );
 
     if (updateDayClosingStatus.fulfilled.match(resultAction)) {
       dispatch(listDayClosings());
-      onClose();
+      setClosedDayClosingData(resultAction.payload || dayClosing);
+      setShowPostClose(true);
     }
   };
 
@@ -429,6 +475,20 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
                                 <span>View Shift</span>
                               </UIButton>
                             </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                              {[
+                                ["Opening Float", fmt(s.openingFloatAmount || 0)],
+                                ["Cash Sales", fmt(s.cashNet || 0)],
+                                ["Expected Cash", fmt(s.expectedClosingCashAmount || 0)],
+                                ["Actual Cash", fmt(s.actualClosingCashAmount || 0)],
+                              ].map(([label, val]) => (
+                                <div key={label} className="bg-surface/80 rounded-lg p-2 border border-border/60">
+                                  <p className="text-[10px] text-text-muted font-medium">{label}</p>
+                                  <p className="font-mono font-bold text-xs text-text mt-0.5">₹{val}</p>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -445,6 +505,7 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
               </div>
             )}
           </UIModalBody>
+
           <UIModalFooter>
             <UIButton variant="ghost" type="button" onClick={onClose}>
               Cancel
@@ -455,6 +516,9 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
               isLoading={updateDayClosingStatusStatus === API_STATUS.LOADING}
             >
               Lock Day Closing
+
+              <Lock className="size-4 mr-1 opacity-80" />
+              <span>Lock & Finalize Day Closing</span>
             </UIButton>
           </UIModalFooter>
         </form>
@@ -466,6 +530,18 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
         onClose={() => setSelectedShiftForView(null)}
         shift={selectedShiftForView}
       />
+
+      {/* Post-day-closing action dialog */}
+      <PostDayCloseDialog
+        isOpen={showPostClose}
+        onClose={handlePostCloseDismiss}
+        onCreateBankSlip={handleOpenBankSlip}
+        dayClosingNo={closedDayClosingData?.dayClosingNo || dayClosing?.dayClosingNo}
+        frozenAmount={branchCash?.frozenCash ?? summary?.currentFrozenCash ?? 0}
+        runningAmount={branchCash?.runningCash ?? summary?.currentFrozenCash ?? totalAmount}
+      />
     </>
   );
 };
+
+export default CloseDayClosingDialog;

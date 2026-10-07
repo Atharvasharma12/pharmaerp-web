@@ -3,6 +3,7 @@ import { API_STATUS } from "@/constants";
 import {
   listBranchCash,
   fetchBranchCash,
+  initializeBranchCash,
   depositCash,
   withdrawCash,
 } from "./branchCashThunk";
@@ -15,6 +16,7 @@ const initialState = {
 
   listStatus: API_STATUS.IDLE,
   fetchStatus: API_STATUS.IDLE,
+  initializeStatus: API_STATUS.IDLE,
   depositStatus: API_STATUS.IDLE,
   withdrawStatus: API_STATUS.IDLE,
 
@@ -27,6 +29,7 @@ const branchCashSlice = createSlice({
   initialState,
   reducers: {
     resetBranchCashStatus(state) {
+      state.initializeStatus = API_STATUS.IDLE;
       state.depositStatus = API_STATUS.IDLE;
       state.withdrawStatus = API_STATUS.IDLE;
       state.error = null;
@@ -72,6 +75,23 @@ const branchCashSlice = createSlice({
         state.error = action.payload;
       });
 
+    // ── Initialize ────────────────────────────────────────────────────────
+    builder
+      .addCase(initializeBranchCash.pending, (state) => {
+        state.initializeStatus = API_STATUS.LOADING;
+        state.error = null;
+        state.message = null;
+      })
+      .addCase(initializeBranchCash.fulfilled, (state, action) => {
+        state.initializeStatus = API_STATUS.SUCCESS;
+        state.message = "Branch cash initialized successfully";
+        state.currentBranchCash = action.payload;
+      })
+      .addCase(initializeBranchCash.rejected, (state, action) => {
+        state.initializeStatus = API_STATUS.ERROR;
+        state.error = action.payload;
+      });
+
     // ── Deposit ───────────────────────────────────────────────────────────
     builder
       .addCase(depositCash.pending, (state) => {
@@ -98,7 +118,7 @@ const branchCashSlice = createSlice({
       })
       .addCase(withdrawCash.fulfilled, (state, action) => {
         state.withdrawStatus = API_STATUS.SUCCESS;
-        state.message = "Cash withdrawn from frozen reserve successfully";
+        state.message = "Cash withdrawn successfully";
         state.currentBranchCash = action.payload;
       })
       .addCase(withdrawCash.rejected, (state, action) => {

@@ -1,3 +1,5 @@
+// src/features/operations/shifts/components/CreateShiftDialog.jsx
+
 import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -9,19 +11,64 @@ import {
   UIButton,
   UIAlert,
 } from "@/components/ui";
+import { Play } from "lucide-react";
 import { createShift, listShifts } from "../store/shiftThunk";
 import { API_STATUS } from "@/constants";
 import useBranchCash from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { apiClient } from "@/services";
 
-const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+const DENOMINATIONS = [
+  { note: 500, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800" },
+  { note: 200, color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800" },
+  { note: 100, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800" },
+  { note: 50,  color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800" },
+  { note: 20,  color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800" },
+  { note: 10,  color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300 border-orange-200 dark:border-orange-800" },
+  { note: 5,   color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800" },
+  { note: 2,   color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700" },
+  { note: 1,   color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700" },
+];
+
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "₹ 0.00";
+  return `₹ ${Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
+
+const formatFullDate = (val) => {
+  if (!val) return "Wednesday, 30 April 2025";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "Wednesday, 30 April 2025";
+  return d.toLocaleDateString("en-US", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const formatShortDate = (val) => {
+  if (!val) return "30 Apr 2025";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "30 Apr 2025";
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 export const CreateShiftDialog = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
-  const { createShiftStatus, error } = useSelector((state) => state.shift);
+  const { createShiftStatus, error, shifts, activeShift } = useSelector(
+    (state) => state.shift
+  );
+  const { openBusinessDay } = useSelector((state) => state.businessDay);
   const { currentBranch } = useBranch();
-  
+
   const getLocalTodayDateString = (date = new Date()) => {
     const d = new Date(date);
     const year = d.getFullYear();
@@ -31,7 +78,7 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
   };
 
   const todayStr = getLocalTodayDateString();
-  
+
   const getTomorrowStr = () => {
     const tm = new Date();
     tm.setDate(tm.getDate() + 1);
@@ -42,8 +89,33 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
   const [todayDCDone, setTodayDCDone] = useState(false);
   const [loadingDC, setLoadingDC] = useState(false);
 
-  const autoShiftName = new Date().getHours() < 12 ? "Morning Shift" : new Date().getHours() < 17 ? "Afternoon Shift" : "Evening Shift";
   const autoShiftNo = "Auto-generated on save";
+
+  // Check if another shift is currently open
+  const hasOpenShift = Boolean(
+    activeShift ||
+    (Array.isArray(shifts) && shifts.some((s) => s.status === "open"))
+  );
+
+  // Auto Shift Suggestion
+  const hour = new Date().getHours();
+  const autoShiftName =
+    hour < 12
+      ? "Morning Shift"
+      : hour < 17
+      ? "Afternoon Shift"
+      : "Evening Shift";
+
+  const currentTimeStr = new Date().toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  const [shiftName, setShiftName] = useState(autoShiftName);
+  const [shiftDate, setShiftDate] = useState("");
+  const [startTime, setStartTime] = useState(currentTimeStr);
+  const [copied, setCopied] = useState(false);
 
   const {
     currentBranchCash: branchCash,
@@ -245,18 +317,33 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
           </div>
         </div>
       </UIModalBody>
-      <UIModalFooter>
-        <UIButton variant="ghost" onClick={onClose}>
+      {/* Modal Footer */}
+      <UIModalFooter className="border-t border-border/60 py-3.5 px-6 flex items-center justify-end gap-2.5 shrink-0">
+        <UIButton
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onClose}
+          className="h-9 px-4 text-xs font-semibold"
+        >
           Cancel
         </UIButton>
+
         <UIButton
+          type="button"
           variant="primary"
+          size="sm"
           onClick={handleCreate}
           isLoading={createShiftStatus === API_STATUS.LOADING}
+          disabled={hasOpenShift || !branchCash || loadingCash || !openBusinessDay}
+          startIcon={<Play className="size-3.5 fill-current" />}
+          className="h-9 px-4.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Open Shift
+          Create Shift
         </UIButton>
       </UIModalFooter>
     </UIModal>
   );
 };
+
+export default CreateShiftDialog;

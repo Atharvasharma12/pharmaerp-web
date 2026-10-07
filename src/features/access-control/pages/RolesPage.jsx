@@ -10,6 +10,7 @@ import useAccessControl from "../hooks/useAccessControl";
 import RolesDesktopPage from "./desktop/RolesDesktopPage";
 import RolesMobilePage from "./mobile/RolesMobilePage";
 
+
 const statusOptions = [
   { label: "Status: All", value: "all" },
   { label: "Active", value: "active" },
@@ -180,6 +181,10 @@ const RolesPage = () => {
   const {
     roles,
     getWorkspaceRoles,
+    permissions,
+    getAvailablePermissions,
+    createRole,
+    updateRole,
     deleteRole,
 
     getWorkspaceRolesStatus,
@@ -200,6 +205,7 @@ const RolesPage = () => {
   const [selectedRole, setSelectedRole] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
+
   const isLoadingRoles = getWorkspaceRolesStatus === API_STATUS.LOADING;
   const isDeletingRole = deleteRoleStatus === API_STATUS.LOADING;
   const isLoading = isLoadingRoles;
@@ -207,11 +213,14 @@ const RolesPage = () => {
 
   const fetchRoles = useCallback(async () => {
     try {
-      await getWorkspaceRoles();
+      await Promise.all([
+        getWorkspaceRoles(),
+        getAvailablePermissions && getAvailablePermissions(),
+      ]);
     } catch {
-      // Error is already stored in access control slice.
+      // Error stored in slice.
     }
-  }, [getWorkspaceRoles]);
+  }, [getWorkspaceRoles, getAvailablePermissions]);
 
   useEffect(() => {
     clearError();
@@ -457,10 +466,11 @@ const RolesPage = () => {
     try {
       await deleteRole(selectedRole._id);
       closeDeleteModal();
+      fetchRoles();
     } catch {
       // Error is already stored in access control slice.
     }
-  }, [closeDeleteModal, deleteRole, selectedRole]);
+  }, [closeDeleteModal, deleteRole, selectedRole, fetchRoles]);
 
   const pageProps = {
     roles: filteredRoles,
@@ -510,6 +520,7 @@ const RolesPage = () => {
         <RolesDesktopPage {...pageProps} />
       )}
 
+
       <UIConfirmDialog
         isOpen={isDeleteModalOpen}
         onClose={closeDeleteModal}
@@ -528,3 +539,4 @@ const RolesPage = () => {
 };
 
 export default RolesPage;
+

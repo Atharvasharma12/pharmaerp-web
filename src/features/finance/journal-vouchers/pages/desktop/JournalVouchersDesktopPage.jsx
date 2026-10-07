@@ -90,16 +90,22 @@ const JournalVouchersDesktopPage = ({
   handlePageChange,
   handlePageSizeChange,
   handleRefresh,
+  handleCreateVoucher,
+  handleViewVoucher,
+  handleEditVoucher,
 }) => {
   const navigate = useNavigate();
 
-  const handleCreate = () => {
-    navigate(ROUTES.CREATE_JOURNAL_VOUCHER);
+  const handleCreateButtonClick = () => {
+    if (handleCreateVoucher) handleCreateVoucher();
+    else navigate(ROUTES.CREATE_JOURNAL_VOUCHER);
   };
 
   const handleRowClick = (voucherId) => {
-    navigate(ROUTES.JOURNAL_VOUCHER_DETAILS(voucherId));
+    if (handleViewVoucher) handleViewVoucher(voucherId);
+    else navigate(ROUTES.JOURNAL_VOUCHER_DETAILS(voucherId));
   };
+
 
   const stats = useMemo(() => {
     const counts = { total: totalVouchers, draft: 0, pending: 0, posted: 0 };
@@ -254,7 +260,16 @@ const JournalVouchersDesktopPage = ({
       align: "right",
       width: 70,
       render: (_, voucher) => (
-        <RowActions voucher={voucher} onView={handleRowClick} onEdit={(v) => navigate(ROUTES.EDIT_JOURNAL_VOUCHER(v._id))} />
+        <RowActions
+          voucher={voucher}
+          onView={handleRowClick}
+          onEdit={(v) =>
+            handleEditVoucher
+              ? handleEditVoucher(v._id)
+              : navigate(ROUTES.EDIT_JOURNAL_VOUCHER(v._id))
+          }
+        />
+
       ),
     },
   ], []);
