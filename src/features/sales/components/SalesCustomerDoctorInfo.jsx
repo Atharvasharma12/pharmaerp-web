@@ -17,7 +17,7 @@ export const SalesCustomerDoctorInfo = ({
   const searchBarRef = useRef(null);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full items-end">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full items-end">
       {/* 1. Name / Search */}
       <div className="w-full">
         <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block mb-1">
@@ -49,21 +49,7 @@ export const SalesCustomerDoctorInfo = ({
         />
       </div>
 
-      {/* 2. Phone */}
-      <div className="w-full">
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-          Phone Number
-        </span>
-        <input
-          type="text"
-          value={customerPhone}
-          onChange={(e) => onChangeCustomerPhone(e.target.value)}
-          className="w-full h-[38px] rounded-xl border border-border px-3 text-sm bg-surface text-text shadow-sm focus:ring-1 focus:ring-emerald-500 outline-none transition-shadow"
-          placeholder="10-digit number"
-        />
-      </div>
-
-      {/* 3. Doctor */}
+      {/* 2. Doctor */}
       <div className="w-full">
         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
           Doctor Name
@@ -77,7 +63,7 @@ export const SalesCustomerDoctorInfo = ({
         />
       </div>
 
-      {/* 4. Date */}
+      {/* 3. Date */}
       <div className="w-full flex items-center gap-3">
         <div className="flex-1">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">

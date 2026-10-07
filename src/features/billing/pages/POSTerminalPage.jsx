@@ -960,16 +960,7 @@ export const POSTerminalPage = () => {
                       className="w-full rounded-lg border border-border bg-surface-alt/50 px-3 py-2 text-xs text-text placeholder:text-text-muted/50 focus:border-primary focus:outline-none transition-colors"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Phone Number</label>
-                    <input
-                      type="tel"
-                      value={b2cPhone}
-                      onChange={(e) => setB2cPhone(e.target.value)}
-                      placeholder="9876543210"
-                      className="w-full rounded-lg border border-border bg-surface-alt/50 px-3 py-2 text-xs text-text font-mono placeholder:text-text-muted/50 focus:border-primary focus:outline-none transition-colors"
-                    />
-                  </div>
+
                 </div>
               ) : (
                 /* ── B2B: Autocomplete Party Search ── */
