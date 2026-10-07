@@ -1,22 +1,29 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
 import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
 
 import useJournalVoucher from "../hooks/useJournalVoucher";
+import useAccount from "@/features/finance/chart-of-accounts/accounts/hooks/useAccount";
 import JournalVouchersDesktopPage from "./desktop/JournalVouchersDesktopPage";
 import JournalVouchersMobilePage from "./mobile/JournalVouchersMobilePage";
+import JournalVoucherDialog from "../components/JournalVoucherDialog";
 
 const JournalVouchersPage = () => {
   const isMobile = useIsMobile();
+  const hasFetchedAccountsRef = useRef(false);
 
   const {
     journalVouchers,
     getJournalVouchers,
     getJournalVouchersStatus,
+    createJournalVoucher,
+    updateJournalVoucher,
     error,
     clearError,
   } = useJournalVoucher();
+
+  const { accounts = [], getAccounts } = useAccount();
 
   const [searchParams, setSearchParams] = useState({
     search: "",
@@ -26,6 +33,21 @@ const JournalVouchersPage = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    mode: "create",
+    voucherData: null,
+  });
+
+  // Pre-fetch accounts for dialog selectors
+  useEffect(() => {
+    if (hasFetchedAccountsRef.current) return;
+    hasFetchedAccountsRef.current = true;
+    getAccounts({ all: true }).catch((err) =>
+      console.error("Failed to load accounts for journal dialog:", err)
+    );
+  }, [getAccounts]);
 
   // Trigger query load when dependencies alter
   useEffect(() => {
@@ -44,7 +66,6 @@ const JournalVouchersPage = () => {
       }
     };
     loadVouchers();
-    // Exclude getJournalVouchers from dependency array to avoid infinite loops
   }, [currentPage, pageSize, searchParams]);
 
   const handleSearchChange = useCallback((value) => {
@@ -81,6 +102,26 @@ const JournalVouchersPage = () => {
     }
   }, [getJournalVouchers, currentPage, pageSize, searchParams]);
 
+  const handleCreateVoucher = useCallback(() => {
+    setDialogState({ isOpen: true, mode: "create", voucherData: null });
+  }, []);
+
+  const handleViewVoucher = useCallback(
+    (voucherId) => {
+      const target = (journalVouchers || []).find((v) => v._id === voucherId || v.id === voucherId);
+      setDialogState({ isOpen: true, mode: "view", voucherData: target || null });
+    },
+    [journalVouchers]
+  );
+
+  const handleEditVoucher = useCallback(
+    (voucherId) => {
+      const target = (journalVouchers || []).find((v) => v._id === voucherId || v.id === voucherId);
+      setDialogState({ isOpen: true, mode: "edit", voucherData: target || null });
+    },
+    [journalVouchers]
+  );
+
   const totalVouchers = useMemo(() => {
     return journalVouchers?.length || 0;
   }, [journalVouchers]);
@@ -101,13 +142,32 @@ const JournalVouchersPage = () => {
     handlePageChange,
     handlePageSizeChange,
     handleRefresh,
+    handleCreateVoucher,
+    handleViewVoucher,
+    handleEditVoucher,
   };
 
-  return isMobile ? (
-    <JournalVouchersMobilePage {...pageProps} />
-  ) : (
-    <JournalVouchersDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <JournalVouchersMobilePage {...pageProps} />
+      ) : (
+        <JournalVouchersDesktopPage {...pageProps} />
+      )}
+
+      <JournalVoucherDialog
+        isOpen={dialogState.isOpen}
+        onClose={() => setDialogState((prev) => ({ ...prev, isOpen: false }))}
+        mode={dialogState.mode}
+        voucherData={dialogState.voucherData}
+        accounts={accounts}
+        onSubmitCreate={createJournalVoucher}
+        onSubmitUpdate={updateJournalVoucher}
+        onSuccess={handleRefresh}
+      />
+    </>
   );
 };
 
 export default JournalVouchersPage;
+

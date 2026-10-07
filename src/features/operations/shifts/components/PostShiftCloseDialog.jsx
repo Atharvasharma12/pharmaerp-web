@@ -1,19 +1,34 @@
+// src/features/operations/shifts/components/PostShiftCloseDialog.jsx
+
 import React from "react";
 import {
   UIModal,
-  UIModalHeader,
-  UIModalTitle,
-  UIModalBody,
-  UIModalFooter,
   UIButton,
+  UIBadge,
 } from "@/components/ui";
-import { Clock, FileCheck, CheckCircle2, Banknote, Snowflake } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  FileCheck,
+  Banknote,
+  Snowflake,
+  ArrowRight,
+  X,
+  Sparkles,
+} from "lucide-react";
 
-const fmt = (n) => (Number(n) || 0).toLocaleString("en-IN");
+const formatCurrency = (val) => {
+  const num = Number(val) || 0;
+  return `₹ ${num.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
 
 /**
- * Shown immediately after a shift is successfully closed.
- * Offers the user 3 actions: Open Next Shift, Create Day Closing, or dismiss.
+ * PostShiftCloseDialog
+ * Displayed immediately after a shift session is successfully locked and closed.
+ * Offers the user immediate workflow transitions: Start Next Shift or Close Business Day.
  */
 export const PostShiftCloseDialog = ({
   isOpen,
@@ -24,80 +39,165 @@ export const PostShiftCloseDialog = ({
   runningAmount = 0,
 }) => {
   return (
-    <UIModal isOpen={isOpen} onClose={onClose} size="md">
-      <UIModalHeader>
-        <UIModalTitle>
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20">
-              <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            Shift Closed Successfully
+    <UIModal
+      isOpen={isOpen}
+      onClose={onClose}
+      showCloseButton={false}
+      className="w-[560px] max-w-[95vw] rounded-2xl border border-border bg-surface shadow-2xl flex flex-col overflow-hidden select-none"
+    >
+      {/* ── 1. Dialog Header (Fixed) ── */}
+      <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-border/60 shrink-0">
+        <div className="flex items-center gap-3.5">
+          <div className="size-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+            <CheckCircle2 className="size-5.5 stroke-[2.2]" />
           </div>
-        </UIModalTitle>
-      </UIModalHeader>
+          <div>
+            <h2 className="text-base font-bold text-text tracking-tight">
+              Shift Session Successfully Locked
+            </h2>
+            <p className="text-xs text-text-muted mt-0.5">
+              Register session finalized and treasury updated
+            </p>
+          </div>
+        </div>
 
-      <UIModalBody>
-        <div className="space-y-4">
-          {/* Balance summary after close */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400 mb-1">
-                <Banknote className="size-3" /> Carry Forward (Running)
-              </div>
-              <p className="font-mono font-bold text-lg text-emerald-700 dark:text-emerald-400">
-                ₹{fmt(runningAmount)}
-              </p>
-              <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500 mt-0.5">Kept in drawer</p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors cursor-pointer"
+        >
+          <X className="size-4.5" />
+        </button>
+      </div>
+
+      {/* ── 2. Dialog Body ── */}
+      <div className="px-6 py-5 space-y-4.5">
+        {/* Treasury Balances Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Card 1: Carry Forward (Drawer) */}
+          <div className="bg-surface rounded-xl border border-border/80 p-3.5 shadow-xs flex items-center gap-3">
+            <div className="size-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Banknote className="size-4.5 stroke-[1.8]" />
             </div>
-            <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl p-3">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-700 dark:text-blue-400 mb-1">
-                <Snowflake className="size-3" /> Moved to Frozen
+            <div className="min-w-0">
+              <div className="text-[11px] font-medium text-text-muted leading-tight">
+                Carry Forward (Drawer)
               </div>
-              <p className="font-mono font-bold text-lg text-blue-700 dark:text-blue-400">
-                ₹{fmt(frozenAmount)}
-              </p>
-              <p className="text-[10px] text-blue-600/70 dark:text-blue-500 mt-0.5">Awaiting bank deposit</p>
+              <div className="text-base font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
+                {formatCurrency(runningAmount)}
+              </div>
+              <div className="text-[10px] text-text-muted leading-tight mt-0.5">
+                Float in cash drawer
+              </div>
             </div>
           </div>
 
-          <p className="text-sm text-text-muted text-center">What would you like to do next?</p>
+          {/* Card 2: Frozen Reserve */}
+          <div className="bg-surface rounded-xl border border-border/80 p-3.5 shadow-xs flex items-center gap-3">
+            <div className="size-9 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+              <Snowflake className="size-4.5 stroke-[1.8]" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] font-medium text-text-muted leading-tight">
+                Frozen Reserve
+              </div>
+              <div className="text-base font-bold font-mono text-sky-600 dark:text-sky-400 mt-0.5 truncate">
+                {formatCurrency(frozenAmount)}
+              </div>
+              <div className="text-[10px] text-text-muted leading-tight mt-0.5">
+                Awaiting bank deposit
+              </div>
+            </div>
+          </div>
+        </div>
 
-          {/* Action buttons */}
-          <div className="grid gap-2">
+        {/* Section Prompt */}
+        <div className="pt-1">
+          <div className="flex items-center gap-2 mb-2.5">
+            <Sparkles className="size-3.5 text-primary" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+              Choose your next workflow action:
+            </span>
+          </div>
+
+          {/* Workflow Cards */}
+          <div className="space-y-2.5">
+            {/* Action 1: Start Next Shift (Recommended) */}
             <button
+              type="button"
               onClick={onOpenNewShift}
-              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 text-primary transition group"
+              className="w-full p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all duration-150 flex items-center justify-between group cursor-pointer text-left shadow-xs hover:shadow-sm"
             >
-              <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition">
-                <Clock className="size-5" />
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="size-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+                  <Clock className="size-5 stroke-[2]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-text group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                      Start Next Shift
+                    </span>
+                    <UIBadge variant="soft" color="success" className="text-[9px] font-bold py-0 px-1.5">
+                      Recommended
+                    </UIBadge>
+                  </div>
+                  <p className="text-xs text-text-muted mt-0.5 truncate">
+                    Open a new register shift session with carry-forward float
+                  </p>
+                </div>
               </div>
-              <div className="text-left">
-                <p className="font-semibold text-sm">Open Next Shift</p>
-                <p className="text-xs text-primary/70">Continue operations with a new shift</p>
+
+              <div className="size-8 rounded-lg bg-surface border border-border/80 flex items-center justify-center text-text-muted group-hover:text-emerald-600 group-hover:border-emerald-500/40 group-hover:translate-x-0.5 transition-all shrink-0 ml-3">
+                <ArrowRight className="size-4" />
               </div>
             </button>
 
+            {/* Action 2: Close Business Day */}
             <button
+              type="button"
               onClick={onCreateDayClosing}
-              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-border hover:border-text-muted/30 hover:bg-surface-secondary text-text transition group"
+              className="w-full p-4 rounded-xl border border-border/80 bg-surface hover:bg-surface-alt/70 hover:border-border transition-all duration-150 flex items-center justify-between group cursor-pointer text-left shadow-xs hover:shadow-sm"
             >
-              <div className="p-2 rounded-lg bg-surface-secondary group-hover:bg-surface-alt transition">
-                <FileCheck className="size-5 text-text-muted" />
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="size-10 rounded-xl bg-surface-alt border border-border text-text-muted flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white group-hover:border-primary group-hover:scale-105 transition-all shadow-xs">
+                  <FileCheck className="size-5 stroke-[2]" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-sm text-text group-hover:text-primary transition-colors">
+                    Close Business Day
+                  </span>
+                  <p className="text-xs text-text-muted mt-0.5 truncate">
+                    End business day session and lock day-end records
+                  </p>
+                </div>
               </div>
-              <div className="text-left">
-                <p className="font-semibold text-sm">Create Day Closing</p>
-                <p className="text-xs text-text-muted">End the business day and reconcile</p>
+
+              <div className="size-8 rounded-lg bg-surface-alt border border-border/60 flex items-center justify-center text-text-muted group-hover:text-primary group-hover:border-primary/40 group-hover:translate-x-0.5 transition-all shrink-0 ml-3">
+                <ArrowRight className="size-4" />
               </div>
             </button>
           </div>
         </div>
-      </UIModalBody>
+      </div>
 
-      <UIModalFooter>
-        <UIButton variant="ghost" onClick={onClose} className="w-full">
-          Close for now
+      {/* ── 3. Dialog Footer (Fixed) ── */}
+      <div className="px-6 py-3.5 border-t border-border/60 bg-surface flex items-center justify-between shrink-0">
+        <span className="text-[11px] text-text-muted">
+          You can always start a new shift later from the Shifts page.
+        </span>
+
+        <UIButton
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onClose}
+          className="h-9 px-4 text-xs font-semibold"
+        >
+          Dismiss
         </UIButton>
-      </UIModalFooter>
+      </div>
     </UIModal>
   );
 };
+
+export default PostShiftCloseDialog;

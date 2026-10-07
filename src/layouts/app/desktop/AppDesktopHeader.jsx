@@ -122,6 +122,9 @@ const getPageTitle = (pathname) => {
   if (pathname.startsWith("/finance/treasury/cheque-management")) return "Cheque Management";
   if (pathname.startsWith("/finance/treasury/payment-qr")) return "UPI & Payment QR";
   if (pathname.startsWith("/finance/treasury/cash-denominations")) return "Cash Denominations";
+  if (pathname.startsWith("/finance/treasury/branch-cash")) return "Branch Cash";
+  if (pathname.startsWith("/operations/shifts")) return "Shifts";
+  if (pathname.startsWith("/operations/business-days")) return "Business Days";
   if (pathname.startsWith("/finance/journal-vouchers")) return "Journal Vouchers";
   if (pathname.startsWith("/finance/ledger")) return "General Ledger";
   if (pathname.startsWith("/finance/financial-periods")) return "Financial Periods";
@@ -526,6 +529,15 @@ const getBreadcrumbs = (pathname, isSetupComplete = false) => {
       { label: "Cash Denominations", to: null },
     ];
   }
+  if (pathname.startsWith("/finance/treasury/branch-cash")) {
+    return [root, { label: "Branch Cash", to: null }];
+  }
+  if (pathname.startsWith("/operations/shifts")) {
+    return [root, { label: "Shifts", to: null }];
+  }
+  if (pathname.startsWith("/operations/business-days")) {
+    return [root, { label: "Business Days", to: null }];
+  }
   if (pathname.startsWith("/finance/journal-vouchers")) {
     return [
       root,
@@ -581,8 +593,6 @@ const getBreadcrumbs = (pathname, isSetupComplete = false) => {
 
 
 import { ProductFacilityTableDialog } from "@/components";
-import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
-import useUser from "@/features/user/hooks/useUser";
 
 export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
   const effectiveWidth = sidebarWidth ?? (sidebarCollapsed ? 68 : 240);
@@ -591,7 +601,6 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
 
   // State for Stock Matrix dialog
   const [isStockMatrixOpen, setIsStockMatrixOpen] = React.useState(false);
-
 
   const pageTitle = useMemo(() => getPageTitle(location.pathname), [location.pathname]);
   const breadcrumbs = useMemo(
@@ -704,7 +713,6 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
             open={isStockMatrixOpen}
             onClose={() => setIsStockMatrixOpen(false)}
           />
-
 
           {/* POS Billing Plus Button */}
           <Link

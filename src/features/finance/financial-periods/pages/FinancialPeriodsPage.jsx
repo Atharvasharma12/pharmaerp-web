@@ -17,6 +17,7 @@ const FinancialPeriodsPage = () => {
     financialPeriods,
     getFinancialPeriods,
     getFinancialPeriodsStatus,
+    createFinancialPeriod,
     updateFinancialPeriodStatus,
     updateFinancialPeriodStatusStatus,
     error,
@@ -32,6 +33,25 @@ const FinancialPeriodsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [actionError, setActionError] = useState("");
+
+  // Dialog state
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    mode: "create",
+    periodData: null,
+  });
+
+  const openCreateDialog = useCallback(() => {
+    setDialogState({ isOpen: true, mode: "create", periodData: null });
+  }, []);
+
+  const openViewDialog = useCallback((period) => {
+    setDialogState({ isOpen: true, mode: "view", periodData: period });
+  }, []);
+
+  const closeDialog = useCallback(() => {
+    setDialogState((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   // Trigger list query
   useEffect(() => {
@@ -77,7 +97,6 @@ const FinancialPeriodsPage = () => {
       setActionError("");
       try {
         await updateFinancialPeriodStatus(periodId, { status: newStatus });
-        // Reload list directly using current states
         const query = {
           page: currentPage,
           limit: pageSize,
@@ -88,6 +107,7 @@ const FinancialPeriodsPage = () => {
         getFinancialPeriods(query);
       } catch (err) {
         setActionError(typeof err === "string" ? err : "Failed to update financial period status.");
+        throw err;
       }
     },
     [updateFinancialPeriodStatus, getFinancialPeriods, currentPage, pageSize, searchParams]
@@ -107,10 +127,6 @@ const FinancialPeriodsPage = () => {
       console.error("Failed to refresh financial periods:", err);
     }
   }, [getFinancialPeriods, currentPage, pageSize, searchParams]);
-
-  const handleCreate = useCallback(() => {
-    navigate(ROUTES.CREATE_FINANCIAL_PERIOD);
-  }, [navigate]);
 
   const totalPeriods = useMemo(() => {
     return financialPeriods?.length || 0;
@@ -137,14 +153,28 @@ const FinancialPeriodsPage = () => {
     handlePageChange,
     handlePageSizeChange,
     handleUpdateStatus,
-    handleCreate,
+    handleCreate: openCreateDialog,
+    handleView: openViewDialog,
     handleRefresh,
   };
 
-  return isMobile ? (
-    <FinancialPeriodsMobilePage {...pageProps} />
-  ) : (
-    <FinancialPeriodsDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <FinancialPeriodsMobilePage {...pageProps} />
+      ) : (
+        <FinancialPeriodsDesktopPage {...pageProps} />
+      )}
+
+      <FinancialPeriodDialog
+        isOpen={dialogState.isOpen}
+        onClose={closeDialog}
+        mode={dialogState.mode}
+        periodData={dialogState.periodData}
+        onSubmitCreate={createFinancialPeriod}
+        onUpdateStatus={handleUpdateStatus}
+      />
+    </>
   );
 };
 

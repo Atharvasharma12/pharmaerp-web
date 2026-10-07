@@ -86,17 +86,23 @@ const JournalVouchersMobilePage = ({
   handlePageChange,
   handlePageSizeChange,
   handleRefresh,
+  handleCreateVoucher,
+  handleViewVoucher,
+  handleEditVoucher,
 }) => {
   const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
 
   const handleCreate = () => {
-    navigate(ROUTES.CREATE_JOURNAL_VOUCHER);
+    if (handleCreateVoucher) handleCreateVoucher();
+    else navigate(ROUTES.CREATE_JOURNAL_VOUCHER);
   };
 
   const handleCardClick = (voucherId) => {
-    navigate(ROUTES.JOURNAL_VOUCHER_DETAILS(voucherId));
+    if (handleViewVoucher) handleViewVoucher(voucherId);
+    else navigate(ROUTES.JOURNAL_VOUCHER_DETAILS(voucherId));
   };
+
 
   const getTypeBadge = (type) => {
     const raw = String(type || "").toUpperCase();
@@ -366,9 +372,11 @@ const JournalVouchersMobilePage = ({
                               icon: <FiEdit2 />,
                               onClick: (e) => {
                                 e.stopPropagation();
-                                navigate(ROUTES.EDIT_JOURNAL_VOUCHER(voucher._id));
+                                if (handleEditVoucher) handleEditVoucher(voucher._id);
+                                else navigate(ROUTES.EDIT_JOURNAL_VOUCHER(voucher._id));
                               },
                             },
+
                           ]}
                           triggerProps={{
                             size: "small",

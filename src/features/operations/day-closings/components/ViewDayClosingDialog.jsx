@@ -1,3 +1,5 @@
+// src/features/operations/day-closings/components/ViewDayClosingDialog.jsx
+
 import React, { useEffect, useState } from "react";
 import {
   UIModal,
@@ -6,29 +8,33 @@ import {
   UIModalBody,
   UIModalFooter,
   UIButton,
+  UIBadge,
+  UIStatCard,
+  UIInfoCard,
+  UIDetailRow,
 } from "@/components/ui";
 import {
-  IndianRupee, QrCode, FileText, Eye, ArrowLeftRight,
-  Banknote, Snowflake, TrendingUp, TrendingDown, Minus,
-  Clock, ChevronRight, Building2
+  IndianRupee,
+  QrCode,
+  FileText,
+  Eye,
+  ArrowLeftRight,
+  Banknote,
+  Snowflake,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Clock,
+  ChevronRight,
+  Building2,
+  Calendar,
+  User,
+  ShieldCheck,
 } from "lucide-react";
 import { apiClient } from "@/services";
 import { ViewShiftDialog } from "@/features/operations/shifts/components/ViewShiftDialog";
 
 const fmt = (n) => (Number(n) || 0).toLocaleString("en-IN");
-
-const StatusBadge = ({ status }) => {
-  const cfg = {
-    closed: "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/30",
-    draft:  "bg-primary/10 text-primary border-primary/30",
-    cancelled: "bg-red-100 text-red-700 border-red-300 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30",
-  };
-  return (
-    <span className={`px-2 py-0.5 rounded text-xs font-bold border ${cfg[status] || cfg.draft}`}>
-      {status?.toUpperCase()}
-    </span>
-  );
-};
 
 export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
   const [summary, setSummary] = useState(null);
@@ -52,202 +58,206 @@ export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
 
   const diff = (summary?.actualClosingCashAmount || 0) - (summary?.expectedClosingCashAmount || 0);
 
+  const getStatusColor = (st) => {
+    switch (st?.toLowerCase()) {
+      case "closed":
+      case "locked":
+        return "emerald";
+      case "draft":
+        return "indigo";
+      case "cancelled":
+        return "rose";
+      default:
+        return "slate";
+    }
+  };
+
   return (
     <>
       <UIModal isOpen={isOpen} onClose={onClose} size="xl">
         <UIModalHeader>
           <UIModalTitle>
-            <span>Day Closing</span>
-            <span className="text-sm font-normal text-text-muted ml-2">· {dayClosing?.dayClosingNo}</span>
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-md shadow-indigo-500/20">
+                <FileText className="h-5.5 w-5.5 stroke-[2.2]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-extrabold text-text tracking-tight">
+                    Day Closing Summary
+                  </h3>
+                  {dayClosing?.dayClosingNo && (
+                    <UIBadge variant="soft" color="indigo" className="text-[10px] py-0 px-2 font-mono font-bold">
+                      {dayClosing.dayClosingNo}
+                    </UIBadge>
+                  )}
+                  {summary?.status && (
+                    <UIBadge variant="soft" color={getStatusColor(summary.status)} className="text-[10px] py-0 px-2 font-bold uppercase">
+                      {summary.status}
+                    </UIBadge>
+                  )}
+                </div>
+                <p className="text-xs font-medium text-text-muted mt-0.5">
+                  Full audit breakdown and daily shift consolidation log
+                </p>
+              </div>
+            </div>
           </UIModalTitle>
         </UIModalHeader>
 
-        <UIModalBody className="max-h-[78vh] overflow-y-auto">
+        <UIModalBody className="max-h-[76vh] overflow-y-auto space-y-5 py-4">
           {loading ? (
-            <div className="py-16 text-center text-text-muted">Loading day closing summary…</div>
+            <div className="py-16 text-center text-text-muted">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mb-3" />
+              <p className="text-xs font-medium">Loading day closing summary…</p>
+            </div>
           ) : !summary ? (
-            <div className="py-16 text-center text-text-muted">No summary available.</div>
+            <div className="py-12 text-center text-text-muted bg-surface-alt/40 border border-border/60 rounded-xl">
+              <p className="text-xs font-medium">No day closing summary available.</p>
+            </div>
           ) : (
-            <div className="space-y-6">
-
-              {/* ── Header meta ─────────────────────────────────────────────── */}
-              <div className="flex flex-wrap gap-4 items-center justify-between bg-surface-secondary rounded-xl border border-border p-4">
-                <div className="flex flex-wrap gap-6">
-                  {[
-                    ["Business Date", new Date(summary.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })],
-                    ["Total Shifts", summary.shifts?.length || 0],
-                    ["Processed By", summary.createdBy?.fullName || summary.createdBy?.name || "System"],
-                  ].map(([label, val]) => (
-                    <div key={label}>
-                      <p className="text-[10px] text-text-muted uppercase tracking-widest">{label}</p>
-                      <p className="text-sm font-semibold mt-0.5">{val}</p>
-                    </div>
-                  ))}
+            <div className="space-y-5">
+              {/* Header Info Banner */}
+              <div className="bg-surface-alt/70 border border-border/70 rounded-xl p-4 shadow-2xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <UIDetailRow
+                    label="Business Date"
+                    value={new Date(summary.date).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  />
+                  <UIDetailRow
+                    label="Total Shifts Included"
+                    value={`${summary.shifts?.length || 0} counter shifts`}
+                  />
+                  <UIDetailRow
+                    label="Processed By"
+                    value={summary.createdBy?.fullName || summary.createdBy?.name || "System Admin"}
+                  />
                 </div>
-                <StatusBadge status={summary.status} />
               </div>
 
-              {/* ── Day Cash Overview ────────────────────────────────────────── */}
+              {/* Day Cash Stat Cards Overview */}
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
-                  <IndianRupee className="size-3.5" /> Day Cash Overview
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5 flex items-center gap-1.5">
+                  <IndianRupee className="size-3.5 text-primary" /> Day Cash Overview
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-surface-secondary border border-border rounded-xl p-3">
-                    <p className="text-[10px] text-text-muted uppercase tracking-widest">Opening Float</p>
-                    <p className="font-mono font-bold text-xl mt-1">₹{fmt(summary.openingFloatAmount)}</p>
-                  </div>
-                  <div className="bg-surface-secondary border border-border rounded-xl p-3">
-                    <p className="text-[10px] text-text-muted uppercase tracking-widest">Expected Closing</p>
-                    <p className="font-mono font-bold text-xl text-primary mt-1">₹{fmt(summary.expectedClosingCashAmount)}</p>
-                    <p className="text-[10px] text-text-muted mt-0.5">
-                      Opening + Sales
-                      {(summary.totalManualDeposits || summary.totalDeposits || 0) > 0 && " + Deposits"}
-                      {(summary.totalManualWithdrawals || summary.totalWithdrawals || 0) > 0 && " − Withdrawals"}
-                    </p>
-                  </div>
-                  <div className="bg-surface-secondary border border-border rounded-xl p-3">
-                    <p className="text-[10px] text-text-muted uppercase tracking-widest">Actual Closing</p>
-                    <p className="font-mono font-bold text-xl mt-1">
-                      {summary.status === "closed" ? `₹${fmt(summary.actualClosingCashAmount)}` : "Pending"}
-                    </p>
-                  </div>
+                  <UIStatCard
+                    title="Opening Float"
+                    value={`₹${fmt(summary.openingFloatAmount)}`}
+                    subtext="Start of day balance"
+                    color="slate"
+                  />
+                  <UIStatCard
+                    title="Expected Closing"
+                    value={`₹${fmt(summary.expectedClosingCashAmount)}`}
+                    subtext="Opening + Net Cash"
+                    color="blue"
+                  />
+                  <UIStatCard
+                    title="Actual Closing"
+                    value={summary.status === "closed" ? `₹${fmt(summary.actualClosingCashAmount)}` : "Pending"}
+                    subtext="Physical count total"
+                    color="emerald"
+                  />
                   {summary.status === "closed" && (
-                    <div className={`border rounded-xl p-3 ${
-                      diff === 0
-                        ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30"
-                        : diff > 0
-                        ? "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30"
-                        : "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30"
-                    }`}>
-                      <p className="text-[10px] text-text-muted uppercase tracking-widest">Difference</p>
-                      <div className={`flex items-center gap-1 font-mono font-bold text-xl mt-1 ${
-                        diff === 0 ? "text-emerald-600" : diff > 0 ? "text-amber-600" : "text-red-500"
-                      }`}>
-                        {diff > 0 ? <TrendingUp className="size-4" /> : diff < 0 ? <TrendingDown className="size-4" /> : <Minus className="size-4" />}
-                        {diff > 0 ? "+" : ""}₹{fmt(diff)}
-                      </div>
-                    </div>
+                    <UIStatCard
+                      title="Discrepancy / Variance"
+                      value={`${diff > 0 ? "+" : ""}₹${fmt(diff)}`}
+                      subtext={diff === 0 ? "Exact balance match" : diff > 0 ? "Overage recorded" : "Shortage recorded"}
+                      color={diff === 0 ? "emerald" : diff > 0 ? "amber" : "rose"}
+                    />
                   )}
                 </div>
-
-                {/* Deposit / Withdrawal impact */}
-                {((summary.totalManualDeposits || 0) > 0 || (summary.totalManualWithdrawals || 0) > 0) && (
-                  <div className="grid grid-cols-2 gap-3 mt-3">
-                    {(summary.totalManualDeposits || 0) > 0 && (
-                      <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3">
-                        <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-widest">Manual Deposits</p>
-                        <p className="font-mono font-bold text-lg text-emerald-700 dark:text-emerald-400 mt-0.5">+₹{fmt(summary.totalManualDeposits)}</p>
-                      </div>
-                    )}
-                    {(summary.totalManualWithdrawals || 0) > 0 && (
-                      <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl p-3">
-                        <p className="text-[10px] text-red-600 dark:text-red-400 font-bold uppercase tracking-widest">Manual Withdrawals</p>
-                        <p className="font-mono font-bold text-lg text-red-600 dark:text-red-400 mt-0.5">−₹{fmt(summary.totalManualWithdrawals)}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
-              {/* ── Per-Shift Cards ──────────────────────────────────────────── */}
-              {(summary.cashByShift?.length > 0 || summary.shiftSummaries?.length > 0) && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
-                    <Clock className="size-3.5" /> Shifts This Day ({summary.shifts?.length || 0})
-                  </h4>
-                  <div className="space-y-2">
-                    {/* Use cashByShift (new) if available, fallback to shiftSummaries (legacy) */}
-                    {(summary.cashByShift?.length > 0 ? summary.cashByShift : summary.shiftSummaries || []).map((s) => {
-                      const shiftDiff = (s.actualCash || s.actualClosingCashAmount || 0) - (s.expectedCash || s.expectedClosingCashAmount || 0);
-                      return (
-                        <div
-                          key={s.shiftId || s._id}
-                          className="bg-surface border border-border rounded-xl p-3.5 hover:border-primary/30 transition"
-                        >
-                          <div className="flex flex-wrap justify-between items-start gap-3">
-                            <div>
-                              <p className="font-semibold text-sm">{s.shiftName || s.shiftNo || "Shift"}</p>
-                              <p className="text-[10px] text-text-muted mt-0.5">{s.shiftNo || ""}</p>
-                            </div>
-                            <UIButton
-                              variant="outline"
-                              size="xs"
-                              onClick={() => setSelectedShiftForView({ _id: s.shiftId || s._id, shiftNo: s.shiftNo })}
-                              className="flex items-center gap-1 text-xs h-7 px-2"
-                            >
-                              <Eye className="size-3" /> View
-                            </UIButton>
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                            {[
-                              ["Opening", fmt(s.openingFloat || s.openingFloatAmount)],
-                              ["Cash Sales", fmt(s.cashSales || s.cashNet)],
-                              ["Expected", fmt(s.expectedCash || s.expectedClosingCashAmount)],
-                              ["Actual", fmt(s.actualCash || s.actualClosingCashAmount)],
-                            ].map(([label, val]) => (
-                              <div key={label} className="bg-surface-secondary rounded-lg p-2 border border-border">
-                                <p className="text-[10px] text-text-muted">{label}</p>
-                                <p className="font-mono font-semibold text-sm mt-0.5">₹{val}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* ── Payment Breakdown ────────────────────────────────────────── */}
+              {/* Payment Breakdown Cards */}
               {(summary.totalCashNet !== undefined || summary.totalQrNet !== undefined) && (
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
-                    <QrCode className="size-3.5" /> Payment Breakdown
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5 flex items-center gap-1.5">
+                    <QrCode className="size-3.5 text-primary" /> Payment Method Breakdown
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3">
-                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400 mb-1">
-                        <Banknote className="size-3" /> Cash Bills
+                    <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3.5">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1">
+                        <Banknote className="size-3.5" /> Cash Collections
                       </div>
-                      <p className="font-mono font-bold text-xl text-emerald-700 dark:text-emerald-400">₹{fmt(summary.totalCashNet)}</p>
-                      <p className="text-[11px] text-emerald-600/70 mt-0.5">{summary.totalCashInvoiceCount || 0} bills</p>
+                      <p className="font-mono font-bold text-xl text-emerald-600 dark:text-emerald-400">
+                        ₹{fmt(summary.totalCashNet)}
+                      </p>
+                      <p className="text-[11px] text-text-muted mt-0.5 font-medium">
+                        {summary.totalCashInvoiceCount || 0} cash bills
+                      </p>
                     </div>
-                    <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-xl p-3">
-                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-700 dark:text-purple-400 mb-1">
-                        <QrCode className="size-3" /> UPI / QR
+
+                    <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-3.5">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1">
+                        <QrCode className="size-3.5" /> UPI / QR Digital
                       </div>
-                      <p className="font-mono font-bold text-xl text-purple-700 dark:text-purple-400">₹{fmt(summary.totalQrNet)}</p>
-                      <p className="text-[11px] text-purple-600/70 mt-0.5">{summary.totalPaymentQrCount || 0} bills</p>
+                      <p className="font-mono font-bold text-xl text-indigo-600 dark:text-indigo-400">
+                        ₹{fmt(summary.totalQrNet)}
+                      </p>
+                      <p className="text-[11px] text-text-muted mt-0.5 font-medium">
+                        {summary.totalPaymentQrCount || 0} QR invoices
+                      </p>
                     </div>
                   </div>
+
                   {summary.totalNetSales !== undefined && (
-                    <div className="mt-2 bg-surface-secondary border border-border rounded-xl p-3 flex justify-between items-center">
-                      <p className="text-sm font-semibold">Total Net Sales (All Shifts)</p>
-                      <p className="font-mono font-bold text-lg text-primary">₹{fmt(summary.totalNetSales)}</p>
+                    <div className="mt-2.5 bg-surface-alt/70 border border-border/70 rounded-xl p-3.5 flex justify-between items-center">
+                      <span className="text-xs font-bold text-text">Total Net Sales (All Shifts Combined)</span>
+                      <span className="font-mono font-bold text-lg text-primary">₹{fmt(summary.totalNetSales)}</span>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* ── Frozen Cash History ──────────────────────────────────────── */}
-              {summary.frozenHistory?.length > 0 && (
+              {/* Included Shifts Breakdown */}
+              {(summary.cashByShift?.length > 0 || summary.shiftSummaries?.length > 0) && (
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
-                    <Snowflake className="size-3.5" /> Frozen Cash History (Today)
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5 flex items-center gap-1.5">
+                    <Clock className="size-3.5 text-primary" /> Shifts Breakdown ({summary.shifts?.length || 0})
                   </h4>
-                  <div className="relative pl-4 border-l-2 border-blue-200 dark:border-blue-500/30 space-y-3">
-                    {summary.frozenHistory.map((entry, i) => (
-                      <div key={i} className="relative">
-                        <div className="absolute -left-[1.15rem] top-1 size-3 rounded-full border-2 border-blue-400 dark:border-blue-500 bg-white dark:bg-surface" />
-                        <div className="bg-surface-secondary border border-border rounded-lg px-3 py-2 flex justify-between items-center">
-                          <div>
-                            <p className="text-xs font-semibold capitalize">{entry.action?.replace("_", " ")}</p>
-                            <p className="text-[10px] text-text-muted">{new Date(entry.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} · {entry.note || ""}</p>
+                  <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+                    {(summary.cashByShift?.length > 0 ? summary.cashByShift : summary.shiftSummaries || []).map((s) => (
+                      <div
+                        key={s.shiftId || s._id}
+                        className="bg-surface-alt/60 border border-border/70 rounded-xl p-3.5 hover:border-primary/40 transition duration-150 shadow-2xs"
+                      >
+                        <div className="flex justify-between items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                            <p className="font-bold text-xs text-text">{s.shiftName || s.shiftNo || "Shift Session"}</p>
+                            {s.shiftNo && (
+                              <span className="text-[10px] font-mono text-text-muted bg-surface p-0.5 px-1.5 rounded border border-border/60">
+                                {s.shiftNo}
+                              </span>
+                            )}
                           </div>
-                          <span className={`font-mono font-bold text-sm ${entry.action === "freeze" ? "text-blue-600 dark:text-blue-400" : "text-red-500"}`}>
-                            {entry.action === "freeze" ? "+" : "−"}₹{fmt(entry.amount)}
-                          </span>
+                          <UIButton
+                            variant="outline"
+                            size="xs"
+                            onClick={() => setSelectedShiftForView({ _id: s.shiftId || s._id, shiftNo: s.shiftNo })}
+                            className="flex items-center gap-1 text-[11px] h-7 px-2.5 font-medium"
+                          >
+                            <Eye className="size-3 text-primary" /> View Shift
+                          </UIButton>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                          {[
+                            ["Opening Float", fmt(s.openingFloat || s.openingFloatAmount)],
+                            ["Cash Sales", fmt(s.cashSales || s.cashNet)],
+                            ["Expected Cash", fmt(s.expectedCash || s.expectedClosingCashAmount)],
+                            ["Actual Cash", fmt(s.actualCash || s.actualClosingCashAmount)],
+                          ].map(([label, val]) => (
+                            <div key={label} className="bg-surface/80 rounded-lg p-2 border border-border/60">
+                              <p className="text-[10px] text-text-muted font-medium">{label}</p>
+                              <p className="font-mono font-bold text-xs text-text mt-0.5">₹{val}</p>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     ))}
@@ -255,38 +265,47 @@ export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
                 </div>
               )}
 
-              {/* ── Branch Cash Snapshot ─────────────────────────────────────── */}
+              {/* Current Branch Cash Snapshot */}
               {(summary.currentRunningCash !== undefined || summary.currentFrozenCash !== undefined) && (
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
-                    <Building2 className="size-3.5" /> Current Branch Cash
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5 flex items-center gap-1.5">
+                    <Building2 className="size-3.5 text-primary" /> Current Branch Cash Status
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">Running Cash</p>
-                      <p className="font-mono font-bold text-xl text-emerald-700 dark:text-emerald-400 mt-1">₹{fmt(summary.currentRunningCash)}</p>
-                    </div>
-                    <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-blue-700 dark:text-blue-400">Frozen Reserve</p>
-                      <p className="font-mono font-bold text-xl text-blue-700 dark:text-blue-400 mt-1">₹{fmt(summary.currentFrozenCash)}</p>
-                    </div>
+                    <UIStatCard
+                      title="Running Cash"
+                      value={`₹${fmt(summary.currentRunningCash)}`}
+                      subtext="Active in counter drawer"
+                      color="emerald"
+                      icon={Banknote}
+                    />
+                    <UIStatCard
+                      title="Frozen Reserve"
+                      value={`₹${fmt(summary.currentFrozenCash)}`}
+                      subtext="Locked for bank deposit"
+                      color="blue"
+                      icon={Snowflake}
+                    />
                   </div>
                 </div>
               )}
 
-              {/* Note */}
+              {/* Note / Remarks */}
               {summary.note && (
-                <div className="border-t border-border pt-3">
-                  <p className="text-xs text-text-muted font-semibold">Note / Remarks:</p>
-                  <p className="text-sm text-text mt-1">{summary.note}</p>
-                </div>
+                <UIInfoCard
+                  title="Closing Remarks / Supervisor Notes"
+                  description={summary.note}
+                  intent="neutral"
+                />
               )}
             </div>
           )}
         </UIModalBody>
 
         <UIModalFooter>
-          <UIButton variant="ghost" onClick={onClose}>Close</UIButton>
+          <UIButton variant="ghost" onClick={onClose}>
+            Close Window
+          </UIButton>
         </UIModalFooter>
       </UIModal>
 
@@ -299,3 +318,6 @@ export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
     </>
   );
 };
+
+export default ViewDayClosingDialog;
+

@@ -150,9 +150,9 @@ const BankDepositSlipsMobilePage = ({
                   <AppText variant="body2" className="text-[12px] text-text-muted mt-0.5">
                     {dayjs(slip.slipDate).format("DD MMM YYYY")}
                   </AppText>
-                  {slip.dayClosingId?.dayClosingNo && (
+                  {slip.businessDayId?.businessDayNo && (
                     <span className="text-[10px] text-text-muted font-mono block mt-0.5">
-                      DC: {slip.dayClosingId.dayClosingNo}
+                      BD: {slip.businessDayId.businessDayNo}
                     </span>
                   )}
                 </div>

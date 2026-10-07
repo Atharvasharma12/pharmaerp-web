@@ -11,6 +11,7 @@ import useCustomer from "../hooks/useCustomer";
 import useCompany from "@/features/company/hooks/useCompany";
 import CustomersMobilePage from "./mobile/CustomersMobilePage";
 import CustomersDesktopPage from "./desktop/CustomersDesktopPage";
+import CustomerDialog from "../components/CustomerDialog";
 
 const initialFilters = {
   search: "",
@@ -75,6 +76,8 @@ const CustomersPage = () => {
   const {
     customers,
     getCustomers,
+    createCustomer,
+    updateCustomer,
     deleteCustomer,
     getCustomersStatus,
     deleteCustomerStatus,
@@ -270,29 +273,27 @@ const CustomersPage = () => {
     setFilters(initialFilters);
   }, []);
 
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    mode: "create",
+    customerData: null,
+  });
+
   const handleCreateCustomer = useCallback(() => {
-    navigate(ROUTES.CREATE_CUSTOMER);
-  }, [navigate]);
+    setDialogState({ isOpen: true, mode: "create", customerData: null });
+  }, []);
 
-  const handleViewCustomer = useCallback(
-    (customer) => {
-      if (!customer?._id) return;
-      if (typeof ROUTES.CUSTOMER_DETAILS === "function") {
-        navigate(ROUTES.CUSTOMER_DETAILS(customer._id));
-      }
-    },
-    [navigate],
-  );
+  const handleViewCustomer = useCallback((customer) => {
+    setDialogState({ isOpen: true, mode: "view", customerData: customer });
+  }, []);
 
-  const handleEditCustomer = useCallback(
-    (customer) => {
-      if (!customer?._id) return;
-      if (typeof ROUTES.EDIT_CUSTOMER === "function") {
-        navigate(ROUTES.EDIT_CUSTOMER(customer._id));
-      }
-    },
-    [navigate],
-  );
+  const handleEditCustomer = useCallback((customer) => {
+    setDialogState({ isOpen: true, mode: "edit", customerData: customer });
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setDialogState((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   const handleRequestDeleteCustomer = useCallback((customer) => {
     setSelectedCustomer(customer || null);
@@ -366,6 +367,16 @@ const CustomersPage = () => {
       ) : (
         <CustomersDesktopPage {...pageProps} />
       )}
+
+      <CustomerDialog
+        isOpen={dialogState.isOpen}
+        onClose={handleCloseDialog}
+        mode={dialogState.mode}
+        customerData={dialogState.customerData}
+        onSubmitCreate={createCustomer}
+        onSubmitUpdate={updateCustomer}
+        onSuccess={fetchCustomers}
+      />
 
       <AppConfirmModal
         open={isDeleteModalOpen}

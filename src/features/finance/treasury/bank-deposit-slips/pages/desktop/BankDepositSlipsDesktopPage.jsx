@@ -166,9 +166,9 @@ const BankDepositSlipsDesktopPage = ({
                       <div className="text-[11px] text-text-muted mt-0.5">
                         {dayjs(slip.slipDate).format("DD MMM YYYY")}
                       </div>
-                      {slip.dayClosingId?.dayClosingNo && (
+                      {slip.businessDayId?.businessDayNo && (
                         <div className="text-[10px] text-text-muted mt-1 font-mono">
-                          DC: {slip.dayClosingId.dayClosingNo}
+                          BD: {slip.businessDayId.businessDayNo}
                         </div>
                       )}
                     </td>

@@ -11,7 +11,10 @@ import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
 import { uiToast } from "@/components/ui";
 import { getAccessibleSearchCommands } from "./accessibleSearchCommands";
 
-const HeaderSearchBar = ({ className = "" }) => {
+const HeaderSearchBar = ({
+  className = "",
+  placeholder = "Search menu, transaction, or reference...",
+}) => {
   const navigate = useNavigate();
   const { can, canAny, isOwner } = usePermission();
   const { isSetupComplete, companyCompleted } = useSetupStatus();
@@ -79,7 +82,8 @@ const HeaderSearchBar = ({ className = "" }) => {
       (cmd) =>
         cmd.label.toLowerCase().includes(query) ||
         (cmd.fullLabel && cmd.fullLabel.toLowerCase().includes(query)) ||
-        (cmd.category && cmd.category.toLowerCase().includes(query))
+        (cmd.category && cmd.category.toLowerCase().includes(query)) ||
+        (cmd.keywords && cmd.keywords.some((k) => String(k).toLowerCase().includes(query)))
     );
   }, [commandsWithLockStatus, searchQuery]);
 
@@ -172,7 +176,7 @@ const HeaderSearchBar = ({ className = "" }) => {
           onChange={(e) => setSearchQuery(e.target.value)}
           onFocus={() => setSearchFocused(true)}
           onKeyDown={handleInputKeyDown}
-          placeholder="Search or type a command"
+          placeholder={placeholder}
           className="h-10 w-full rounded-[12px] border border-border bg-surface pl-9.5 pr-14 text-sm text-text placeholder:text-text-muted/60 outline-none transition-all duration-150 ease-out hover:border-border-strong focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 shadow-2xs"
         />
 

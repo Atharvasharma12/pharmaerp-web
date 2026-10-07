@@ -1,3 +1,5 @@
+// src/features/operations/day-closings/components/CreateDayClosingDialog.jsx
+
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -9,12 +11,28 @@ import {
   UIButton,
   UIInput,
   UIAlert,
+  UIBadge,
+  UIStatCard,
+  UIInfoCard,
+  UIDetailRow,
 } from "@/components/ui";
 import { createDayClosing, listDayClosings } from "../store/dayClosingThunk";
 import { apiClient } from "@/services";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useBranchCash from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
-import { Eye, Banknote, QrCode, Clock, Snowflake } from "lucide-react";
+import {
+  Eye,
+  Banknote,
+  QrCode,
+  Clock,
+  Snowflake,
+  Calendar,
+  Layers,
+  ArrowRight,
+  ShieldCheck,
+  Building2,
+  FileCheck,
+} from "lucide-react";
 import { ViewShiftDialog } from "@/features/operations/shifts/components/ViewShiftDialog";
 
 const fmt = (n) => (Number(n) || 0).toLocaleString("en-IN");
@@ -24,6 +42,7 @@ export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
   const { createDayClosingStatus, error } = useSelector((state) => state.dayClosing);
   const { currentBranch } = useBranch();
   const { currentBranchCash: branchCash, fetchBranchCash: getBranchCash } = useBranchCash();
+  
   const getLocalTodayDateString = (date = new Date()) => {
     const d = new Date(date);
     const year = d.getFullYear();
@@ -75,7 +94,7 @@ export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
         date: selectedDate,
         branchId: currentBranch?._id,
         note,
-      }),
+      })
     );
 
     if (createDayClosing.fulfilled.match(resultAction)) {
@@ -91,17 +110,38 @@ export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
       <UIModal isOpen={isOpen} onClose={onClose} size="lg">
         <form onSubmit={handleSubmit}>
           <UIModalHeader>
-            <UIModalTitle>Create Day Closing</UIModalTitle>
+            <UIModalTitle>
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-md shadow-indigo-500/20">
+                  <FileCheck className="h-5.5 w-5.5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-extrabold text-text tracking-tight">
+                      Create Day Closing Record
+                    </h3>
+                    <UIBadge variant="soft" color="indigo" className="text-[10px] py-0 px-2 font-bold uppercase">
+                      DRAFT RECORD
+                    </UIBadge>
+                  </div>
+                  <p className="text-xs font-medium text-text-muted mt-0.5">
+                    Consolidate completed shifts and lock financial totals for the selected business date
+                  </p>
+                </div>
+              </div>
+            </UIModalTitle>
           </UIModalHeader>
-          <UIModalBody className="space-y-4 py-4 max-h-[75vh] overflow-y-auto">
+
+          <UIModalBody className="space-y-5 py-4 max-h-[72vh] overflow-y-auto">
             {/* Date Selection Bar */}
-            <div className="bg-surface-secondary p-3.5 rounded-xl border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="bg-surface-alt/70 border border-border/70 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
               <div>
-                <label className="text-xs font-semibold text-text-muted uppercase tracking-wider block mb-1">
+                <label className="text-[11px] font-bold text-text uppercase tracking-wider block mb-0.5 flex items-center gap-1.5">
+                  <Calendar className="size-3.5 text-primary" />
                   Business Closing Date
                 </label>
                 <p className="text-xs text-text-muted">
-                  Select the date for which all shifts and transactions will be closed.
+                  Select the date for which all counter shifts will be audited and archived.
                 </p>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -110,131 +150,148 @@ export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   max={todayStr}
-                  className="h-9 text-sm font-medium w-full sm:w-44"
+                  className="h-9 text-sm font-semibold w-full sm:w-44 font-mono border-border/80 focus:ring-primary"
                 />
               </div>
             </div>
 
-            {(error || apiError) && <UIAlert intent="danger" title="Notice" description={error || apiError} />}
-            
+            {(error || apiError) && (
+              <UIAlert intent="danger" title="Notice" description={error || apiError} />
+            )}
+
             {loading ? (
-              <div className="py-8 text-center text-text-muted">Loading available shifts for {selectedDate}...</div>
+              <div className="py-12 text-center text-text-muted">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mb-3" />
+                <p className="text-xs font-medium">Fetching shift audit records for {selectedDate}...</p>
+              </div>
             ) : apiError ? (
-              <div className="py-8 text-center text-text-muted">
-                Please select another date or resolve pending shifts before proceeding.
+              <div className="py-10 text-center text-text-muted bg-surface-alt/40 border border-border/60 rounded-xl p-6">
+                <p className="text-xs font-medium text-text-muted">
+                  Please select another date or resolve pending shifts before proceeding.
+                </p>
               </div>
             ) : !hasShifts ? (
-              <div className="py-8 text-center text-text-muted">
-                {summary?.message || `No closed shifts available to day-close for ${selectedDate}.`}
+              <div className="py-10 text-center text-text-muted bg-surface-alt/40 border border-border/60 rounded-xl p-6">
+                <p className="text-xs font-medium text-text-muted">
+                  {summary?.message || `No closed shifts available to day-close for ${selectedDate}.`}
+                </p>
               </div>
             ) : (
-                <div className="space-y-6">
-                  {/* ── Current Branch Cash Partition: Running & Frozen Cash ── */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3.5 flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400 mb-1">
-                          <Banknote className="size-3.5" /> Current Running Cash (Now)
-                        </div>
-                        <p className="font-mono font-bold text-2xl text-emerald-700 dark:text-emerald-400">
-                          ₹{fmt(branchCash?.runningCash ?? 0)}
-                        </p>
-                        <p className="text-[11px] text-emerald-600/80 dark:text-emerald-500 mt-0.5">
-                          Active in drawer partition
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl p-3.5 flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-700 dark:text-blue-400 mb-1">
-                          <Snowflake className="size-3.5" /> Frozen Cash (Reserve)
-                        </div>
-                        <p className="font-mono font-bold text-2xl text-blue-700 dark:text-blue-400">
-                          ₹{fmt(branchCash?.frozenCash ?? 0)}
-                        </p>
-                        <p className="text-[11px] text-blue-600/80 dark:text-blue-500 mt-0.5">
-                          Locked cash awaiting bank deposit
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* ── Payment Breakdown ────────────────────────────────────────── */}
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
-                      <QrCode className="size-3.5" /> Payment Breakdown
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-3">
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400 mb-1">
-                          <Banknote className="size-3" /> Cash Bills
-                        </div>
-                        <p className="font-mono font-bold text-xl text-emerald-700 dark:text-emerald-400">₹{fmt(summary.totalCashNet)}</p>
-                        <p className="text-[11px] text-emerald-600/70 mt-0.5">{summary.totalCashInvoiceCount || 0} bills</p>
-                      </div>
-                      <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-xl p-3">
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-700 dark:text-purple-400 mb-1">
-                          <QrCode className="size-3" /> UPI / QR
-                        </div>
-                        <p className="font-mono font-bold text-xl text-purple-700 dark:text-purple-400">₹{fmt(summary.totalQrNet)}</p>
-                        <p className="text-[11px] text-purple-600/70 mt-0.5">{summary.totalPaymentQrCount || 0} bills</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ── Per-Shift Cards ──────────────────────────────────────────── */}
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
-                      <Clock className="size-3.5" /> Included Shifts ({summary.shifts.length})
-                    </h4>
-                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                      {summary.shifts.map((s) => (
-                        <div
-                          key={s._id}
-                          className="bg-surface border border-border rounded-xl p-3.5 hover:border-primary/30 transition"
-                        >
-                          <div className="flex flex-wrap justify-between items-start gap-3">
-                            <div>
-                              <p className="font-semibold text-sm">{s.shiftName || s.shiftNo || "Shift"}</p>
-                            </div>
-                            <UIButton
-                              type="button"
-                              variant="outline"
-                              size="xs"
-                              onClick={() => setSelectedShiftForView(s)}
-                              className="flex items-center gap-1 text-xs h-7 px-2"
-                            >
-                              <Eye className="size-3" /> View
-                            </UIButton>
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                            {[
-                              ["Opening", fmt(s.openingFloatAmount || 0)],
-                              ["Cash Sales", fmt(s.cashNet || 0)],
-                              ["Expected", fmt(s.expectedClosingCashAmount || 0)],
-                              ["Actual", fmt(s.actualClosingCashAmount || 0)],
-                            ].map(([label, val]) => (
-                              <div key={label} className="bg-surface-secondary rounded-lg p-2 border border-border">
-                                <p className="text-[10px] text-text-muted">{label}</p>
-                                <p className="font-mono font-semibold text-sm mt-0.5">₹{val}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <UIInput
-                    label="Note (Optional)"
-                    placeholder="Any opening remarks..."
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
+              <div className="space-y-5">
+                {/* Current Branch Cash Partition: Running & Frozen Cash */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <UIStatCard
+                    title="Current Running Cash"
+                    value={`₹${fmt(branchCash?.runningCash ?? 0)}`}
+                    subtext="Active in counter drawer"
+                    color="emerald"
+                    icon={Banknote}
+                  />
+                  <UIStatCard
+                    title="Frozen Cash (Reserve)"
+                    value={`₹${fmt(branchCash?.frozenCash ?? 0)}`}
+                    subtext="Locked cash awaiting deposit"
+                    color="blue"
+                    icon={Snowflake}
                   />
                 </div>
+
+                {/* Payment Breakdown Cards */}
+                <div>
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5 flex items-center gap-1.5">
+                    <QrCode className="size-3.5 text-primary" /> Payment Breakdown
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3.5">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1">
+                        <Banknote className="size-3.5" /> Cash Collections
+                      </div>
+                      <p className="font-mono font-bold text-xl text-emerald-600 dark:text-emerald-400">
+                        ₹{fmt(summary.totalCashNet)}
+                      </p>
+                      <p className="text-[11px] text-text-muted mt-0.5 font-medium">
+                        {summary.totalCashInvoiceCount || 0} cash invoices
+                      </p>
+                    </div>
+
+                    <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-3.5">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1">
+                        <QrCode className="size-3.5" /> UPI / Digital QR
+                      </div>
+                      <p className="font-mono font-bold text-xl text-indigo-600 dark:text-indigo-400">
+                        ₹{fmt(summary.totalQrNet)}
+                      </p>
+                      <p className="text-[11px] text-text-muted mt-0.5 font-medium">
+                        {summary.totalPaymentQrCount || 0} digital payments
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Per-Shift Cards */}
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
+                      <Clock className="size-3.5 text-primary" /> Included Shifts ({summary.shifts.length})
+                    </h4>
+                    <span className="text-[11px] text-text-muted font-medium">Click view to audit shift details</span>
+                  </div>
+
+                  <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                    {summary.shifts.map((s) => (
+                      <div
+                        key={s._id}
+                        className="bg-surface-alt/60 border border-border/70 rounded-xl p-3.5 hover:border-primary/40 transition duration-150 shadow-2xs"
+                      >
+                        <div className="flex justify-between items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                            <p className="font-bold text-xs text-text">{s.shiftName || s.shiftNo || "Shift Session"}</p>
+                            {s.shiftNo && (
+                              <span className="text-[10px] font-mono text-text-muted bg-surface p-0.5 px-1.5 rounded border border-border/60">
+                                {s.shiftNo}
+                              </span>
+                            )}
+                          </div>
+                          <UIButton
+                            type="button"
+                            variant="outline"
+                            size="xs"
+                            onClick={() => setSelectedShiftForView(s)}
+                            className="flex items-center gap-1 text-[11px] h-7 px-2.5 font-medium"
+                          >
+                            <Eye className="size-3 text-primary" /> View Details
+                          </UIButton>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                          {[
+                            ["Opening Float", fmt(s.openingFloatAmount || 0)],
+                            ["Cash Sales", fmt(s.cashNet || 0)],
+                            ["Expected Cash", fmt(s.expectedClosingCashAmount || 0)],
+                            ["Actual Cash", fmt(s.actualClosingCashAmount || 0)],
+                          ].map(([label, val]) => (
+                            <div key={label} className="bg-surface/80 rounded-lg p-2 border border-border/60">
+                              <p className="text-[10px] text-text-muted font-medium">{label}</p>
+                              <p className="font-mono font-bold text-xs text-text mt-0.5">₹{val}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <UIInput
+                  label="Closing Notes / Remarks (Optional)"
+                  placeholder="Add any supervisor notes or audit comments..."
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
             )}
           </UIModalBody>
+
           <UIModalFooter>
             <UIButton variant="ghost" type="button" onClick={onClose}>
               Cancel
@@ -245,7 +302,8 @@ export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
               isLoading={createDayClosingStatus === "loading"}
               disabled={!hasShifts}
             >
-              Create Day Closing
+              <span>Create Day Closing</span>
+              <ArrowRight className="size-4 ml-1 opacity-70" />
             </UIButton>
           </UIModalFooter>
         </form>
@@ -260,3 +318,6 @@ export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
     </>
   );
 };
+
+export default CreateDayClosingDialog;
+

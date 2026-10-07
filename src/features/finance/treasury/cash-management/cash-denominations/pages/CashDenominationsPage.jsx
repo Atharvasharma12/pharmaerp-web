@@ -9,20 +9,30 @@ import useCashDenomination from "../hooks/useCashDenomination";
 import CashDenominationsDesktopPage from "./desktop/CashDenominationsDesktopPage";
 import CashDenominationsMobilePage from "./mobile/CashDenominationsMobilePage";
 
+import CashDenominationDialog from "../components/CashDenominationDialog";
+
 const CashDenominationsPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    mode: "create",
+    entityId: null,
+    denomData: null,
+  });
 
   const {
     cashDenominations = [],
     getCashDenominations,
     getCashDenominationsStatus,
+    getCashDenominationById,
+    createCashDenomination,
     error,
     clearError,
     message,
     clearMessage,
   } = useCashDenomination();
-
 
   const { branches = [], getCompanyBranches, currentBranch } = useBranch();
 
@@ -37,7 +47,6 @@ const CashDenominationsPage = () => {
   const [pageSize, setPageSize] = useState(10);
 
   const hasFetchedBranchesRef = useRef(false);
-
 
   useEffect(() => {
     if (hasFetchedBranchesRef.current) return;
@@ -98,15 +107,28 @@ const CashDenominationsPage = () => {
   }, []);
 
   const handleCreateNew = useCallback(() => {
-    navigate(ROUTES.CREATE_CASH_DENOMINATION);
-  }, [navigate]);
+    setDialogState({
+      isOpen: true,
+      mode: "create",
+      entityId: null,
+      denomData: null,
+    });
+  }, []);
 
-  const handleViewDetails = useCallback(
-    (id) => {
-      navigate(ROUTES.CASH_DENOMINATION_DETAILS(id));
-    },
-    [navigate]
-  );
+  const handleViewDetails = useCallback((denom) => {
+    const id = typeof denom === "string" ? denom : denom?._id;
+    const data = typeof denom === "object" ? denom : null;
+    setDialogState({
+      isOpen: true,
+      mode: "view",
+      entityId: id,
+      denomData: data,
+    });
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setDialogState((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   const partitionOptions = useMemo(() => {
     return [
@@ -153,10 +175,25 @@ const CashDenominationsPage = () => {
     handleRefresh,
   };
 
-  return isMobile ? (
-    <CashDenominationsMobilePage {...pageProps} />
-  ) : (
-    <CashDenominationsDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <CashDenominationsMobilePage {...pageProps} />
+      ) : (
+        <CashDenominationsDesktopPage {...pageProps} />
+      )}
+
+      <CashDenominationDialog
+        isOpen={dialogState.isOpen}
+        onClose={handleCloseDialog}
+        mode={dialogState.mode}
+        entityId={dialogState.entityId}
+        denomData={dialogState.denomData}
+        onSubmitCreate={createCashDenomination}
+        onFetchById={getCashDenominationById}
+        onSuccess={fetchCashDenominationsData}
+      />
+    </>
   );
 };
 

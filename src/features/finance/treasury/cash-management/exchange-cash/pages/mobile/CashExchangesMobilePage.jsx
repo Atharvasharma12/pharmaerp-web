@@ -38,6 +38,7 @@ const CashExchangesMobilePage = ({
   pageSize,
   totalExchanges,
   isLoading = false,
+  isShiftActive = false,
 
   error,
   message,
@@ -273,15 +274,17 @@ const CashExchangesMobilePage = ({
         )}
       </div>
 
-      {/* Floating Action Button for Create */}
-      <div className="fixed bottom-6 right-4 z-20">
-        <button
-          onClick={handleCreateNew}
-          className="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-xl shadow-primary/30 active:scale-95 transition-transform"
-        >
-          <FiPlus size={24} />
-        </button>
-      </div>
+      {/* Floating Action Button for Create: Only shown when shift is active */}
+      {isShiftActive && (
+        <div className="fixed bottom-6 right-4 z-20">
+          <button
+            onClick={handleCreateNew}
+            className="w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-xl shadow-primary/30 active:scale-95 transition-transform"
+          >
+            <FiPlus size={24} />
+          </button>
+        </div>
+      )}
 
 
     </section>

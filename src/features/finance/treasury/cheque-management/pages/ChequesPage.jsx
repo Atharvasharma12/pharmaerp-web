@@ -8,14 +8,25 @@ import useCheque from "../hooks/useCheque";
 import ChequesDesktopPage from "./desktop/ChequesDesktopPage";
 import ChequesMobilePage from "./mobile/ChequesMobilePage";
 
+import ChequeDialog from "../components/ChequeDialog";
+
 const ChequesPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    mode: "create",
+    entityId: null,
+    chequeData: null,
+  });
 
   const {
     cheques,
     getCheques,
     getChequesStatus,
+    getChequeById,
+    createCheque,
     depositCheque,
     clearCheque,
     bounceCheque,
@@ -118,7 +129,7 @@ const ChequesPage = () => {
   );
 
   const handleBounce = useCallback(
-    async (chequeId, reason, bounceCharges = 0) => {
+    async (chequeId, reason = "", bounceCharges = 0) => {
       setActionError("");
       setActionMessage("");
       try {
@@ -147,16 +158,29 @@ const ChequesPage = () => {
     [cancelCheque, fetchChequesData]
   );
 
-  const handleViewDetails = useCallback(
-    (chequeId) => {
-      navigate(ROUTES.CHEQUE_DETAILS(chequeId));
-    },
-    [navigate]
-  );
+  const handleViewDetails = useCallback((cheque) => {
+    const id = typeof cheque === "string" ? cheque : cheque?._id;
+    const data = typeof cheque === "object" ? cheque : null;
+    setDialogState({
+      isOpen: true,
+      mode: "view",
+      entityId: id,
+      chequeData: data,
+    });
+  }, []);
 
   const handleCreateNew = useCallback(() => {
-    navigate(ROUTES.CREATE_CHEQUE);
-  }, [navigate]);
+    setDialogState({
+      isOpen: true,
+      mode: "create",
+      entityId: null,
+      chequeData: null,
+    });
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setDialogState((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   const isLoading = getChequesStatus === API_STATUS.LOADING;
 
@@ -192,10 +216,27 @@ const ChequesPage = () => {
     handleRefresh,
   };
 
-  return isMobile ? (
-    <ChequesMobilePage {...pageProps} />
-  ) : (
-    <ChequesDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <ChequesMobilePage {...pageProps} />
+      ) : (
+        <ChequesDesktopPage {...pageProps} />
+      )}
+
+      <ChequeDialog
+        isOpen={dialogState.isOpen}
+        onClose={handleCloseDialog}
+        mode={dialogState.mode}
+        entityId={dialogState.entityId}
+        chequeData={dialogState.chequeData}
+        onSubmitCreate={createCheque}
+        onFetchById={getChequeById}
+        onClearCheque={handleClear}
+        onBounceCheque={handleBounce}
+        onSuccess={fetchChequesData}
+      />
+    </>
   );
 };
 

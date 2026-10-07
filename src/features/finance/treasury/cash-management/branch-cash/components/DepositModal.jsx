@@ -1,222 +1,386 @@
+// src/features/finance/treasury/cash-management/branch-cash/components/DepositModal.jsx
+
 import React, { useState, useEffect } from "react";
-import { UIModal, UIModalHeader, UIModalTitle, UIModalBody, UIModalFooter } from "@/components";
-import { UIButton } from "@/components/ui";
-import { FiSave, FiAlertCircle } from "react-icons/fi";
-import { Banknote, LockKeyhole } from "lucide-react";
+import {
+  UIModal,
+  UIModalHeader,
+  UIModalTitle,
+  UIModalBody,
+  UIModalFooter,
+  UIButton,
+  UIAlert,
+} from "@/components/ui";
+import {
+  ArrowDownToLine,
+  Building2,
+  Wallet,
+  Info,
+  FileText,
+  Banknote,
+  BarChart3,
+  Coins,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import { useBranchCash } from "../hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
 
-const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+const DENOMINATIONS_CONFIG = [
+  { note: 500, label: "₹ 500", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800", icon: "P" },
+  { note: 200, label: "₹ 200", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300 border-orange-200 dark:border-orange-800", icon: "P" },
+  { note: 100, label: "₹ 100", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800", icon: "P" },
+  { note: 50,  label: "₹ 50",  color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800", icon: "P" },
+  { note: 20,  label: "₹ 20",  color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800", icon: "P" },
+  { note: 10,  label: "₹ 10",  color: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 border-rose-200 dark:border-rose-800", icon: "P" },
+  { note: 5,   label: "₹ 5",   color: "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300 border-pink-200 dark:border-pink-800", icon: "P" },
+  { note: 2,   label: "₹ 2",   color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700", icon: "i" },
+  { note: 1,   label: "₹ 1",   color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700", icon: "i" },
+];
 
-const DepositModal = ({ isOpen, onClose }) => {
+const formatCurrency = (val) =>
+  `₹ ${Number(val || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+export const DepositModal = ({ isOpen, onClose }) => {
   const { currentBranch } = useBranch();
-  const { currentBranchCash, depositCash, depositStatus, error: apiError, resetStatus } = useBranchCash();
+  const {
+    currentBranchCash,
+    depositCash,
+    depositStatus,
+    error: apiError,
+    resetStatus,
+  } = useBranchCash();
 
-  const [denominations, setDenominations] = useState(
-    DENOMINATIONS.map((d) => ({ denomination: d, quantity: 0 }))
+  const [counts, setCounts] = useState(
+    DENOMINATIONS_CONFIG.reduce((acc, d) => ({ ...acc, [d.note]: 0 }), {})
   );
   const [narration, setNarration] = useState("");
-  const [error, setError] = useState("");
+  const [validationError, setValidationError] = useState("");
 
   const isSubmitting = depositStatus === "loading";
   const isShiftOpen = Boolean(currentBranchCash?.currentShiftId);
+  const currentRunningCash = Number(currentBranchCash?.runningCash || 0);
 
   useEffect(() => {
     if (isOpen) {
-      setDenominations(DENOMINATIONS.map((d) => ({ denomination: d, quantity: 0 })));
+      setCounts(
+        DENOMINATIONS_CONFIG.reduce((acc, d) => ({ ...acc, [d.note]: 0 }), {})
+      );
       setNarration("");
-      setError("");
-      resetStatus();
+      setValidationError("");
+      if (typeof resetStatus === "function") resetStatus();
     }
   }, [isOpen, resetStatus]);
 
   useEffect(() => {
     if (depositStatus === "success") {
       onClose();
-      resetStatus();
+      if (typeof resetStatus === "function") resetStatus();
     }
   }, [depositStatus, onClose, resetStatus]);
 
-  const getCurrentCount = (denom) => {
-    if (!currentBranchCash || !isShiftOpen) return 0;
-    const arr = currentBranchCash.denominationBalance?.runningDenominations || [];
-    const item = arr.find(d => Number(d.denomination) === Number(denom));
-    return item ? item.quantity ?? item.count : 0;
+  const totalDepositAmount = DENOMINATIONS_CONFIG.reduce((sum, d) => {
+    const qty = Number(counts[d.note]) || 0;
+    return sum + d.note * qty;
+  }, 0);
+
+  const projectedRunningCash = currentRunningCash + totalDepositAmount;
+
+  const handleCountChange = (note, rawVal) => {
+    const cleaned = String(rawVal).replace(/\D/g, "");
+    const qty = cleaned === "" ? 0 : Math.max(0, parseInt(cleaned, 10));
+    setCounts((prev) => ({ ...prev, [note]: qty }));
   };
 
-  const totalAmount = denominations.reduce(
-    (sum, d) => sum + d.denomination * (d.quantity || 0),
-    0
-  );
-
-  const handleQuantityChange = (index, val) => {
-    const newVal = Math.max(0, parseInt(val) || 0);
-    const newDenoms = [...denominations];
-    newDenoms[index].quantity = newVal;
-    setDenominations(newDenoms);
+  const handleStep = (note, delta) => {
+    setCounts((prev) => {
+      const current = Number(prev[note]) || 0;
+      const next = Math.max(0, current + delta);
+      return { ...prev, [note]: next };
+    });
   };
 
   const handleSubmit = async () => {
     if (!currentBranch?._id) {
-      setError("No branch selected.");
+      setValidationError("No active branch selected.");
       return;
     }
-    if (totalAmount <= 0) {
-      setError("Deposit amount must be greater than zero.");
+    if (!isShiftOpen) {
+      setValidationError("Active shift is required for running cash deposits.");
       return;
     }
-    if (!narration.trim()) {
-      setError("Narration is required for external deposits.");
+    if (totalDepositAmount <= 0) {
+      setValidationError("Deposit amount must be greater than zero.");
       return;
     }
-    
-    const depositDenominations = denominations.filter(d => d.quantity > 0);
+
+    const depositDenominations = DENOMINATIONS_CONFIG.map((d) => ({
+      denomination: d.note,
+      count: Number(counts[d.note]) || 0,
+      quantity: Number(counts[d.note]) || 0,
+      amount: (Number(counts[d.note]) || 0) * d.note,
+    })).filter((d) => d.count > 0);
 
     const payload = {
       branchId: currentBranch._id,
-      amount: totalAmount,
+      amount: totalDepositAmount,
       denominations: depositDenominations,
-      narration,
+      narration: narration.trim(),
     };
 
     try {
       await depositCash(payload).unwrap();
       onClose();
-    } catch (err) {
-      // Error handled by redux
+    } catch {
+      // Error handled via Redux state
     }
   };
 
   if (!isOpen) return null;
 
+  const branchName = currentBranch?.name || "Makati Branch";
+  const branchCode =
+    currentBranch?.code ||
+    currentBranch?.branchCode ||
+    (currentBranch?._id ? `MB-${String(currentBranch._id).slice(-3).toUpperCase()}` : "MB-001");
+
   return (
     <UIModal
       isOpen={isOpen}
       onClose={isSubmitting ? undefined : onClose}
-      size="lg"
+      size="2xl"
+      className="w-[960px] max-w-[96vw] max-h-[92vh] flex flex-col overflow-hidden select-none"
     >
-      <UIModalHeader>
-        <UIModalTitle>External Deposit</UIModalTitle>
+      {/* ── Modal Header: Green Icon + Title + Subtitle ── */}
+      <UIModalHeader className="border-b border-border/80 px-6 py-4.5 bg-surface shrink-0">
+        <div className="flex items-center gap-3.5">
+          <div className="size-11 rounded-2xl bg-[#059669] text-white flex items-center justify-center shadow-xs shrink-0">
+            <ArrowDownToLine className="size-5" />
+          </div>
+          <div>
+            <UIModalTitle className="text-xl font-bold text-text tracking-tight">
+              Deposit Cash
+            </UIModalTitle>
+            <p className="text-xs text-text-muted mt-0.5">
+              Add cash to the running cash drawer for this branch.
+            </p>
+          </div>
+        </div>
       </UIModalHeader>
-      <UIModalBody>
-        <div className="flex flex-col gap-5 p-1">
 
-          {/* Shift Gate — inline warning if no shift */}
-          {!isShiftOpen && (
-            <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-300/50 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/30">
-              <div className="mt-0.5 p-1.5 rounded-lg bg-amber-100 dark:bg-amber-500/20">
-                <LockKeyhole className="size-4 text-amber-600 dark:text-amber-400" />
+      <UIModalBody className="p-6 overflow-y-auto space-y-4 bg-bg flex-1">
+        {/* Error Alert */}
+        {(validationError || apiError) && (
+          <UIAlert
+            intent="danger"
+            title="Deposit Error"
+            description={validationError || apiError}
+            onClose={() => setValidationError("")}
+          />
+        )}
+
+        {/* ── 2-Column Main Section ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          {/* ══════════ LEFT COLUMN: Branch Info, Running Cash, Narration (5 Cols) ══════════ */}
+          <div className="lg:col-span-5 space-y-4">
+            {/* Card 1: Branch */}
+            <div className="bg-surface rounded-2xl border border-border p-4 flex items-center gap-3.5 shadow-xs">
+              <div className="size-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-text-muted flex items-center justify-center shrink-0">
+                <Building2 className="size-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Shift Required</p>
-                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                  No shift is currently open. Deposits into running cash require an active shift.
-                  Please open a shift first.
+                <div className="text-[11px] font-medium text-text-muted">Branch</div>
+                <div className="text-sm font-bold text-text">{branchName}</div>
+                <div className="text-[11px] text-text-muted font-mono">{branchCode}</div>
+              </div>
+            </div>
+
+            {/* Card 2: Current Running Cash + Info Callout */}
+            <div className="bg-surface rounded-2xl border border-border p-4 space-y-3 shadow-xs">
+              <div className="flex items-center gap-3.5">
+                <div className="size-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <Wallet className="size-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-text-muted">
+                    Current Running Cash
+                  </div>
+                  <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(currentRunningCash)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Blue Info Callout */}
+              <div className="bg-sky-50/80 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/40 rounded-xl p-3 flex items-start gap-2.5">
+                <div className="size-5 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                  <Info className="size-3 stroke-[2.5]" />
+                </div>
+                <p className="text-[11px] text-sky-900/90 dark:text-sky-300/80 leading-relaxed">
+                  This amount will be increased in the running cash drawer after deposit.
                 </p>
               </div>
             </div>
-          )}
 
-          {(error || apiError) && (
-            <div className="p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 rounded-lg flex items-start gap-2 text-sm border border-red-200 dark:border-red-500/30">
-              <FiAlertCircle className="mt-0.5 shrink-0" />
-              <div>{error || apiError}</div>
-            </div>
-          )}
-
-          <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-400 p-3 rounded-lg text-sm flex gap-3">
-            <Banknote className="w-5 h-5 shrink-0" />
-          <div className="flex-1">
-            <div className="flex justify-between items-start mb-1">
-              <strong>Deposit to Running Cash</strong>
-              <span className="font-mono bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded font-bold border border-success/10 text-xs">
-                Available: ₹{(currentBranchCash?.runningCash || 0).toLocaleString("en-IN")}
-              </span>
-            </div>
-            <div className="text-xs opacity-90">This cash will be added to the active operational balance. Requires an open shift.</div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-text-muted mb-1">
-                Narration <span className="text-danger">*</span>
-              </label>
-              <textarea
-                value={narration}
-                onChange={(e) => setNarration(e.target.value)}
-                disabled={isSubmitting}
-                placeholder="Source of funds (e.g., 'From HQ via courier')..."
-                className="w-full text-sm bg-surface border border-border rounded-lg p-2.5 outline-none focus:border-primary transition min-h-[100px] resize-none"
-              />
-            </div>
-          </div>
-
-          <div className="border border-border rounded-xl bg-surface overflow-hidden flex flex-col">
-            <div className="bg-surface-alt px-4 py-2 border-b border-border flex justify-between items-center">
-              <span className="text-sm font-bold">Denominations</span>
-            </div>
-            
-            <div className="overflow-auto max-h-[300px]">
-              <div className="grid grid-cols-4 gap-2 px-4 py-2 text-[10px] font-bold text-text-muted uppercase bg-surface-alt/50 border-b border-border">
-                <div>Note</div>
-                <div className="text-center">Current</div>
-                <div className="text-center">Deposit</div>
-                <div className="text-right">Subtotal</div>
+            {/* Card 3: Narration / Purpose */}
+            <div className="bg-surface rounded-2xl border border-border p-4 space-y-2 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-bold text-text">
+                <FileText className="size-4 text-text-muted" />
+                <span>Narration / Purpose</span>
               </div>
-              
-              {denominations.map((item, index) => {
-                const currentCount = getCurrentCount(item.denomination);
-                const count = item.quantity || 0;
-                const subtotal = item.denomination * count;
-
-                return (
-                  <div key={item.denomination} className="grid grid-cols-4 gap-2 items-center px-4 py-1.5 border-b border-border/40 hover:bg-surface-alt/30 transition">
-                    <div className="font-mono text-sm font-bold">₹{item.denomination}</div>
-                    <div className="text-center font-mono text-xs font-medium text-text-muted bg-surface-alt/50 rounded py-0.5">
-                      {currentCount}
-                    </div>
-                    <div>
-                      <input
-                        type="number"
-                        min="0"
-                        value={count === 0 ? "" : count}
-                        onChange={(e) => handleQuantityChange(index, e.target.value)}
-                        disabled={isSubmitting}
-                        placeholder="0"
-                        className="w-full text-center font-mono text-sm border border-border rounded py-1 bg-surface focus:border-primary outline-none"
-                      />
-                    </div>
-                    <div className="text-right font-mono text-sm font-medium">
-                      {subtotal > 0 ? `₹${subtotal}` : "—"}
-                    </div>
-                  </div>
-                );
-              })}
+              <div className="relative pt-1">
+                <textarea
+                  value={narration}
+                  onChange={(e) => setNarration(e.target.value.slice(0, 500))}
+                  placeholder="Enter deposit reason (e.g. additional cash, bank withdrawal, etc.)"
+                  disabled={isSubmitting}
+                  rows={4}
+                  className="w-full text-xs bg-surface border border-border rounded-xl p-3 outline-none focus:border-primary transition resize-none placeholder:text-text-muted/60"
+                />
+                <span className="absolute bottom-2.5 right-3 text-[10px] text-text-muted font-mono">
+                  {narration.length}/500
+                </span>
+              </div>
             </div>
+          </div>
 
-            <div className="bg-surface-alt px-4 py-3 border-t border-border flex justify-between items-center">
-              <span className="text-xs font-bold text-text-muted uppercase">Deposit Amount</span>
-              <span className="text-xl font-black font-mono text-success">
-                ₹{totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-              </span>
+          {/* ══════════ RIGHT COLUMN: Denominations Stepper Table (7 Cols) ══════════ */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="bg-surface rounded-2xl border border-border overflow-hidden shadow-xs">
+              <div className="px-4 py-3 border-b border-border bg-surface-alt/50 flex items-center gap-2">
+                <Banknote className="size-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-xs font-bold text-text">Denominations</span>
+              </div>
+
+              {/* Table Headers */}
+              <div className="grid grid-cols-12 px-4 py-2 border-b border-border/80 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-surface-alt/30">
+                <div className="col-span-4">Denomination</div>
+                <div className="col-span-4 text-center">Count</div>
+                <div className="col-span-4 text-right">Subtotal</div>
+              </div>
+
+              {/* Rows */}
+              <div className="divide-y divide-border/50">
+                {DENOMINATIONS_CONFIG.map((d) => {
+                  const count = Number(counts[d.note]) || 0;
+                  const subtotal = d.note * count;
+
+                  return (
+                    <div
+                      key={d.note}
+                      className="grid grid-cols-12 px-4 py-2 items-center hover:bg-surface-alt/30 transition text-xs"
+                    >
+                      {/* Denomination Pill */}
+                      <div className="col-span-4 flex items-center gap-2">
+                        <span
+                          className={`size-6 rounded-md flex items-center justify-center text-[10px] font-bold border ${d.color}`}
+                        >
+                          {d.icon}
+                        </span>
+                        <span className="font-bold text-text">{d.label}</span>
+                      </div>
+
+                      {/* Stepper Count Input */}
+                      <div className="col-span-4 flex items-center justify-center">
+                        <div className="flex items-center border border-border rounded-lg bg-surface shadow-2xs overflow-hidden w-28">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={count === 0 ? "0" : count}
+                            onChange={(e) => handleCountChange(d.note, e.target.value)}
+                            disabled={isSubmitting}
+                            className="w-full text-center font-mono font-semibold text-xs py-1.5 px-2 bg-transparent outline-none text-text"
+                          />
+                          <div className="flex flex-col border-l border-border shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleStep(d.note, 1)}
+                              disabled={isSubmitting}
+                              className="px-1.5 py-0.5 hover:bg-surface-alt text-text-muted hover:text-text transition-colors cursor-pointer"
+                            >
+                              <ChevronUp className="size-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleStep(d.note, -1)}
+                              disabled={isSubmitting || count <= 0}
+                              className="px-1.5 py-0.5 hover:bg-surface-alt text-text-muted hover:text-text transition-colors cursor-pointer disabled:opacity-30"
+                            >
+                              <ChevronDown className="size-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Subtotal */}
+                      <div className="col-span-4 text-right font-mono font-bold text-xs text-text">
+                        {formatCurrency(subtotal)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
+
+        {/* ── Bottom Summary Row: Total Deposit Amount & Projected Running Cash ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          {/* Card 1: Total Deposit Amount */}
+          <div className="bg-surface rounded-2xl border border-border p-4 flex items-center gap-3.5 shadow-xs">
+            <div className="size-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Coins className="size-5" />
+            </div>
+            <div>
+              <div className="text-xs font-medium text-text-muted">
+                Total Deposit Amount
+              </div>
+              <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(totalDepositAmount)}
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Projected Running Cash */}
+          <div className="bg-surface rounded-2xl border border-border p-4 flex items-center gap-3.5 shadow-xs">
+            <div className="size-11 rounded-2xl bg-sky-50 dark:bg-sky-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <BarChart3 className="size-5" />
+            </div>
+            <div>
+              <div className="text-xs font-medium text-text-muted">
+                Projected Running Cash
+              </div>
+              <div className="text-2xl font-black font-mono text-blue-600 dark:text-blue-400">
+                {formatCurrency(projectedRunningCash)}
+              </div>
+            </div>
+          </div>
         </div>
       </UIModalBody>
-      <UIModalFooter>
-        <UIButton variant="ghost" onClick={onClose} disabled={isSubmitting}>
+
+      {/* ── Modal Footer ── */}
+      <UIModalFooter className="border-t border-border/80 px-6 py-4 bg-surface flex items-center justify-between shrink-0">
+        <UIButton
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={isSubmitting}
+          className="px-5 py-2 rounded-xl text-xs font-bold"
+        >
           Cancel
         </UIButton>
+
         <UIButton
-          variant="primary"
+          type="button"
           onClick={handleSubmit}
+          disabled={isSubmitting || totalDepositAmount <= 0}
           isLoading={isSubmitting}
-          disabled={totalAmount <= 0 || !isShiftOpen}
+          startIcon={<ArrowDownToLine className="size-4" />}
+          className="px-6 py-2 rounded-xl bg-[#059669] hover:bg-[#047857] text-white text-xs font-bold shadow-xs cursor-pointer"
         >
-          Confirm Deposit
+          Deposit Cash
         </UIButton>
       </UIModalFooter>
     </UIModal>
@@ -224,4 +388,3 @@ const DepositModal = ({ isOpen, onClose }) => {
 };
 
 export default DepositModal;
-

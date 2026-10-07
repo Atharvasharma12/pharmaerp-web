@@ -30,7 +30,6 @@ import dashboardRoutes from "@/features/dashboard/routes/dashboardRoutes";
 import { createCompanyRoutes, existingCompanyRoutes } from "@/features/company/routes/companyRoutes";
 import branchRoutes from "@/features/branch/routes/branchRoutes";
 import accessControlRoutes from "@/features/access-control/routes/accessControlRoutes";
-import catalogRoutes from "@/features/catalog/routes/catalogRoutes";
 import subscriptionRoutes from "@/features/subscription/routes/subscriptionRoutes";
 
 import globalProductRoutes from "@/features/global-products/routes/globalProductRoutes";
@@ -404,26 +403,6 @@ export const router = createBrowserRouter([
             path: "/inventory/transfer-orders/create",
             element: <CreateTransferOrderPage />,
           },
-          ...catalogRoutes.map((route) => ({
-            ...route,
-            element: (
-              <PermissionGuard
-                permissions={[
-                  "product:view",
-                  "global-product:view",
-                  "category:view",
-                  "hsn:view",
-                  "manufacturer:view",
-                  "salt:view",
-                  "uom:view",
-                  "product-form:view",
-                  "bank-master:view",
-                ]}
-              >
-                {route.element}
-              </PermissionGuard>
-            ),
-          })),
           ...guardRouteList(workspaceProductRoutes, "product"),
           ...globalProductRoutes.map((route) => ({
             ...route,

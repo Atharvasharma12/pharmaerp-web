@@ -15,6 +15,7 @@ import useAccountGroup from "../../account-groups/hooks/useAccountGroup";
 import useAccount from "../hooks/useAccount";
 import AccountsDesktopPage from "./desktop/AccountsDesktopPage";
 import AccountsMobilePage from "./mobile/AccountsMobilePage";
+import AccountDialog from "../components/AccountDialog";
 
 const initialFilters = {
   search: "",
@@ -39,6 +40,8 @@ const AccountsPage = () => {
     accounts = [],
     getAccounts,
     getAccountsStatus,
+    createAccount,
+    updateAccount,
     deleteAccount,
     message,
     error,
@@ -49,6 +52,12 @@ const AccountsPage = () => {
   const [filters, setFilters] = useState(initialFilters);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    mode: "create",
+    accountData: null,
+  });
 
   const fetchAccountsAndGroups = useCallback(async () => {
     try {
@@ -201,25 +210,23 @@ const AccountsPage = () => {
   }, []);
 
   const handleCreateAccount = useCallback(() => {
-    navigate(ROUTES.CREATE_ACCOUNT);
-  }, [navigate]);
+    setDialogState({ isOpen: true, mode: "create", accountData: null });
+  }, []);
 
   const handleViewAccount = useCallback(
     (accountId) => {
-      if (typeof ROUTES.ACCOUNT_DETAILS === "function") {
-        navigate(ROUTES.ACCOUNT_DETAILS(accountId));
-      }
+      const target = accounts.find((a) => a._id === accountId || a.id === accountId);
+      setDialogState({ isOpen: true, mode: "view", accountData: target || null });
     },
-    [navigate],
+    [accounts],
   );
 
   const handleEditAccount = useCallback(
     (accountId) => {
-      if (typeof ROUTES.EDIT_ACCOUNT === "function") {
-        navigate(ROUTES.EDIT_ACCOUNT(accountId));
-      }
+      const target = accounts.find((a) => a._id === accountId || a.id === accountId);
+      setDialogState({ isOpen: true, mode: "edit", accountData: target || null });
     },
-    [navigate],
+    [accounts],
   );
 
   const handleDeleteAccount = useCallback(
@@ -294,11 +301,27 @@ const AccountsPage = () => {
     }, [navigate]),
   };
 
-  return isMobile ? (
-    <AccountsMobilePage {...pageProps} />
-  ) : (
-    <AccountsDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <AccountsMobilePage {...pageProps} />
+      ) : (
+        <AccountsDesktopPage {...pageProps} />
+      )}
+
+      <AccountDialog
+        isOpen={dialogState.isOpen}
+        onClose={() => setDialogState((prev) => ({ ...prev, isOpen: false }))}
+        mode={dialogState.mode}
+        accountData={dialogState.accountData}
+        accountGroups={accountGroups}
+        onSubmitCreate={createAccount}
+        onSubmitUpdate={updateAccount}
+        onSuccess={fetchAccountsAndGroups}
+      />
+    </>
   );
 };
 
 export default AccountsPage;
+
