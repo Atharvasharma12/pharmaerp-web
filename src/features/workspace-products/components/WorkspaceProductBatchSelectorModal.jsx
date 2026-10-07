@@ -21,6 +21,7 @@ import UIButton from "@/components/ui/UIButton";
 import workspaceProductService from "../services/workspaceProductService";
 import useUser from "@/features/user/hooks/useUser";
 import branchService from "@/features/branch/services/branchService";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 /**
  * Helper to parse expiry string into comparable Date object
@@ -121,7 +122,9 @@ export const WorkspaceProductBatchSelectorModal = ({
   branchName = "Main Branch",
   onConfirmAddToCart,
 }) => {
-  const { activeBranchId, activeCompanyId } = useUser();
+  const { activeBranchId: userBranchId, activeCompanyId } = useUser();
+  const { currentBranch } = useBranch();
+  const activeBranchId = currentBranch?._id || currentBranch?.id || userBranchId;
   const [batches, setBatches] = useState([]);
   const [totalQty, setTotalQty] = useState(1);
   const [allocations, setAllocations] = useState({});

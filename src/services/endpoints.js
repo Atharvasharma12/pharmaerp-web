@@ -124,7 +124,7 @@ export const ENDPOINTS = {
   SALES: {
     INVOICES: {
       ALL: "/sales/invoices",
-      BY_CUSTOMER: (customerId) => `/sales/invoices/customer/${customerId}`,
+      BY_CUSTOMER: (customerId) => customerId ? `/sales/invoices/customer/${customerId}` : `/sales/invoices/customer`,
     }
   },
 

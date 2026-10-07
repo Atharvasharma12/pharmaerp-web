@@ -25,13 +25,14 @@ export const SalesCustomerDoctorInfo = ({
         </span>
         <B2cCustomerSearchBar
           ref={searchBarRef}
+          value={customerName}
           selectedCustomer={selectedCustomer}
           onSelectCustomer={(cust) => {
             onSelectCustomer(cust);
-            if (cust?.name && !customerName) {
+            if (cust?.name) {
               onChangeCustomerName(cust.name);
             }
-            if (cust?.phone && !customerPhone) {
+            if (cust?.phone) {
               onChangeCustomerPhone(cust.phone);
             }
           }}
