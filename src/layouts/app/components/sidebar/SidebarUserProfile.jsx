@@ -1,7 +1,9 @@
 import { useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import { UIIconButton } from "@/components/ui";
+import { Link } from "react-router-dom";
+import { ROUTES } from "@/constants";
 
 const SidebarUserProfile = ({
   user,
@@ -9,7 +11,7 @@ const SidebarUserProfile = ({
   onLogout,
 }) => {
   const userName = user?.name || user?.fullName || "John Wilson";
-  const userEmail = user?.email || "Wilson@gmail.com";
+
   const userInitials = userName
     ?.split(" ")
     ?.map((word) => word?.[0])
@@ -45,6 +47,19 @@ const SidebarUserProfile = ({
           {userInitials}
         </div>
 
+        <Link to={ROUTES.SETTINGS}>
+          <UIIconButton
+            type="button"
+            title="Settings"
+            aria-label="Settings"
+            variant="ghost"
+            size="xs"
+            className="text-text-muted hover:bg-surface-hover hover:text-text"
+          >
+            <Settings className="size-3.5" />
+          </UIIconButton>
+        </Link>
+
         {onLogout && (
           <UIIconButton
             type="button"
@@ -73,7 +88,6 @@ const SidebarUserProfile = ({
               className="pointer-events-none rounded-[6px] border border-border bg-surface px-2.5 py-1.5 shadow-[var(--app-shadow-lg)] whitespace-nowrap"
             >
               <p className="text-[12px] font-bold text-text">{userName}</p>
-              <p className="text-[10px] text-text-muted">{userEmail}</p>
             </div>,
             document.body
           )}
@@ -92,24 +106,36 @@ const SidebarUserProfile = ({
           <div className="truncate text-[13px] font-bold text-text leading-tight">
             {userName}
           </div>
-          <div className="truncate text-[11px] text-text-muted leading-tight">
-            {userEmail}
-          </div>
         </div>
 
-        {onLogout && (
-          <UIIconButton
-            type="button"
-            onClick={onLogout}
-            title="Log out"
-            aria-label="Log out"
-            variant="ghost"
-            size="xs"
-            className="text-text-muted hover:bg-error/10 hover:text-error"
-          >
-            <LogOut className="size-3.5" />
-          </UIIconButton>
-        )}
+        <div className="flex items-center gap-0.5">
+          <Link to={ROUTES.SETTINGS}>
+            <UIIconButton
+              type="button"
+              title="Settings"
+              aria-label="Settings"
+              variant="ghost"
+              size="xs"
+              className="text-text-muted hover:bg-surface-hover hover:text-text"
+            >
+              <Settings className="size-3.5" />
+            </UIIconButton>
+          </Link>
+
+          {onLogout && (
+            <UIIconButton
+              type="button"
+              onClick={onLogout}
+              title="Log out"
+              aria-label="Log out"
+              variant="ghost"
+              size="xs"
+              className="text-text-muted hover:bg-error/10 hover:text-error"
+            >
+              <LogOut className="size-3.5" />
+            </UIIconButton>
+          )}
+        </div>
       </div>
     </div>
   );
