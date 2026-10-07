@@ -364,6 +364,7 @@ export const BusinessDaysMobilePage = ({
         isOpen={dialogType === "view"}
         onClose={handleCloseDialog}
         businessDay={selectedDay}
+        onRequestCloseDay={(day) => handleOpenDialog(day, "close")}
       />
       <CloseBusinessDayDialog
         isOpen={dialogType === "close"}

@@ -92,12 +92,15 @@ const DenominationGrid = ({
                 <input
                   type="number"
                   min={0}
-                  max={showAvailable && available !== null ? available : undefined}
+                  max={
+                    showAvailable && available !== null ? available : undefined
+                  }
                   value={qty === 0 ? "" : qty}
                   placeholder="0"
                   onChange={(e) => {
                     let val = parseInt(e.target.value, 10) || 0;
-                    if (showAvailable && available !== null && val > available) val = available;
+                    if (showAvailable && available !== null && val > available)
+                      val = available;
                     onQtyChange(denom, val);
                   }}
                   className="w-full text-center text-sm font-semibold rounded border border-border bg-bg py-1 focus:outline-none focus:ring-1 focus:ring-primary"
@@ -161,12 +164,15 @@ const DenominationGrid = ({
                 <input
                   type="number"
                   min={0}
-                  max={showAvailable && available !== null ? available : undefined}
+                  max={
+                    showAvailable && available !== null ? available : undefined
+                  }
                   value={qty === 0 ? "" : qty}
                   placeholder="0"
                   onChange={(e) => {
                     let val = parseInt(e.target.value, 10) || 0;
-                    if (showAvailable && available !== null && val > available) val = available;
+                    if (showAvailable && available !== null && val > available)
+                      val = available;
                     onQtyChange(denom, val);
                   }}
                   className="w-full text-center text-sm font-semibold rounded border border-border bg-bg py-1 focus:outline-none focus:ring-1 focus:ring-primary"
@@ -212,7 +218,10 @@ const CreateCashExchangeDesktopPage = ({
   handleCancel,
 }) => {
   const diff = totalReceived - totalGiven;
-  const availableDenoms = (formData.partition === "running" ? selectedCashAccount?.balance?.runningDenominations : selectedCashAccount?.balance?.frozenDenominations) || [];
+  const availableDenoms =
+    (formData.partition === "running"
+      ? selectedCashAccount?.balance?.runningDenominations
+      : selectedCashAccount?.balance?.frozenDenominations) || [];
 
   return (
     <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
@@ -337,7 +346,11 @@ const CreateCashExchangeDesktopPage = ({
                         <AppText
                           size="xs"
                           weight={700}
-                          sx={{ textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-success)" }}
+                          sx={{
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em",
+                            color: "var(--color-success)",
+                          }}
                         >
                           Customer Gives Us (Received)
                         </AppText>
@@ -368,7 +381,11 @@ const CreateCashExchangeDesktopPage = ({
                         <AppText
                           size="xs"
                           weight={700}
-                          sx={{ textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-warning)" }}
+                          sx={{
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em",
+                            color: "var(--color-warning)",
+                          }}
                         >
                           We Give Customer (Change)
                         </AppText>
@@ -420,7 +437,9 @@ const CreateCashExchangeDesktopPage = ({
                       variant="primary"
                       icon={<FiSave />}
                       loading={isSubmitting}
-                      disabled={!isBalanced && (totalReceived > 0 || totalGiven > 0)}
+                      disabled={
+                        !isBalanced && (totalReceived > 0 || totalGiven > 0)
+                      }
                     >
                       Complete Exchange
                     </AppButton>

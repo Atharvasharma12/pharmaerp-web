@@ -42,9 +42,9 @@ export const getOpenBusinessDay = createAsyncThunk(
 
 export const getSuggestedBusinessDate = createAsyncThunk(
   "businessDay/getSuggestedBusinessDate",
-  async (branchId, { rejectWithValue }) => {
+  async (args, { rejectWithValue }) => {
     try {
-      const response = await businessDayService.getSuggestedBusinessDate(branchId);
+      const response = await businessDayService.getSuggestedBusinessDate(args);
       return response.data?.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));

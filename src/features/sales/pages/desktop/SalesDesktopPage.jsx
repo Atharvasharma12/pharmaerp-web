@@ -26,6 +26,9 @@ import {
   History,
   ChevronLeft,
   ChevronRight,
+  CalendarDays,
+  Clock,
+  ArrowRight,
 } from "lucide-react";
 import {
   UICard,
@@ -55,6 +58,7 @@ import { SalesCheckoutModal } from "../../components/SalesCheckoutModal";
 import { SalesReceiptModal } from "../../components/SalesReceiptModal";
 import { SalesCustomerSidebar } from "../../components/SalesCustomerSidebar";
 import { SalesCustomerDoctorInfo } from "../../components/SalesCustomerDoctorInfo";
+import { POSSessionGatekeeperCard } from "../../components/POSSessionGatekeeperCard";
 import customerService from "@/features/parties/customers/services/customerService";
 import invoiceService from "@/features/sales/services/invoiceService";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
@@ -234,12 +238,19 @@ export const SalesDesktopPage = () => {
   
   const [isBusinessDayModalOpen, setIsBusinessDayModalOpen] = useState(false);
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   useEffect(() => {
-    if (!activeShift && currentBranch?._id) {
+    if (shiftStatus !== "loading") {
+      setInitialCheckDone(true);
+    }
+  }, [shiftStatus]);
+
+  useEffect(() => {
+    if (!activeShift && currentBranch?._id && getOpenBusinessDayStatus === API_STATUS.IDLE) {
       dispatch(getOpenBusinessDay(currentBranch._id));
     }
-  }, [activeShift, currentBranch?._id, dispatch]);
+  }, [activeShift, currentBranch?._id, dispatch, getOpenBusinessDayStatus]);
 
   const handleCloseBusinessDayModal = () => {
     setIsBusinessDayModalOpen(false);
@@ -727,7 +738,7 @@ export const SalesDesktopPage = () => {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  if (shiftStatus === "loading" && !activeShift) {
+  if (!initialCheckDone && shiftStatus === "loading" && !activeShift && !isShiftModalOpen && !isBusinessDayModalOpen) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -737,30 +748,63 @@ export const SalesDesktopPage = () => {
   }
 
   if (!activeShift) {
-    const isCheckingBusinessDay = getOpenBusinessDayStatus === API_STATUS.LOADING;
-    
+    const isDayOpen = Boolean(openBusinessDay);
+
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
-        {isCheckingBusinessDay ? (
-          <>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="text-text-muted">Checking business day...</p>
-          </>
-        ) : !openBusinessDay ? (
-          <>
-            <Store className="size-16 text-text-muted" />
-            <h2 className="text-2xl font-bold text-text">No business day is open</h2>
-            <p className="text-text-muted">You must open a business day before starting a shift.</p>
-            <UIButton variant="primary" onClick={() => setIsBusinessDayModalOpen(true)}>Start a day</UIButton>
-          </>
-        ) : (
-          <>
-            <Store className="size-16 text-text-muted" />
-            <h2 className="text-2xl font-bold text-text">No open shift is present</h2>
-            <p className="text-text-muted">You must open a shift before you can access POS billing.</p>
-            <UIButton variant="primary" onClick={() => setIsShiftModalOpen(true)}>Start a shift</UIButton>
-          </>
-        )}
+      <div className="relative min-h-[calc(100vh-80px)] w-full flex items-center justify-center p-6 bg-slate-50/80 dark:bg-neutral-950 overflow-hidden font-sans">
+        {/* Blurred realistic POS background mockup to mirror the exact uploaded design */}
+        <div className="absolute inset-0 filter blur-[5px] opacity-35 dark:opacity-15 pointer-events-none select-none scale-102 flex flex-col bg-bg">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 bg-surface border-b border-border">
+            <div className="space-y-1">
+              <h1 className="text-xl font-bold text-text">POS Billing</h1>
+              <p className="text-xs text-text-muted">Scan products, add to cart and create sale</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold">Recall Bill</span>
+              <span className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold">Hold Bill</span>
+              <span className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold">+ New Bill</span>
+            </div>
+          </div>
+          {/* Content grid preview */}
+          <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 p-4 space-y-4">
+              <div className="h-10 bg-surface rounded-xl border border-border" />
+              <div className="flex gap-2">
+                {["All", "Prescription", "OTC", "Healthcare", "Personal Care", "Vitamins", "Devices"].map((t) => (
+                  <span key={t} className="px-3 py-1 rounded-full bg-surface border border-border text-xs">{t}</span>
+                ))}
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div key={i} className="h-36 rounded-xl bg-surface border border-border p-3 space-y-2">
+                    <div className="h-16 bg-surface-alt rounded-lg" />
+                    <div className="h-3 w-3/4 bg-surface-alt rounded" />
+                    <div className="h-3 w-1/2 bg-surface-alt rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="w-80 border-l border-border bg-surface p-4 space-y-3">
+              <div className="h-5 w-24 bg-surface-alt rounded" />
+              <div className="h-40 bg-surface-alt/40 rounded-xl" />
+            </div>
+          </div>
+        </div>
+
+        {/* Soft backdrop scrim */}
+        <div className="absolute inset-0 bg-slate-900/10 dark:bg-black/40 backdrop-blur-[2px] pointer-events-none" />
+
+        {/* Reusable Pre-Session Gatekeeper Card */}
+        <div className="relative z-10">
+          <POSSessionGatekeeperCard
+            isDayOpen={isDayOpen}
+            openBusinessDay={openBusinessDay}
+            currentBranch={currentBranch}
+            onOpenBusinessDay={() => setIsBusinessDayModalOpen(true)}
+            onStartShift={() => setIsShiftModalOpen(true)}
+          />
+        </div>
 
         <OpenBusinessDayDialog isOpen={isBusinessDayModalOpen} onClose={handleCloseBusinessDayModal} />
         <CreateShiftDialog isOpen={isShiftModalOpen} onClose={handleCloseShiftModal} />

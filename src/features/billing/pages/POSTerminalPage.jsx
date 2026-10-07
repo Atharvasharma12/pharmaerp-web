@@ -29,17 +29,24 @@ import {
   FileText,
   Zap,
   Store,
+  Info,
 } from "lucide-react";
+import CustomerDialog from "@/features/parties/customers/components/CustomerDialog";
 import { cn } from "@/lib/utils";
 import customerService from "@/features/parties/customers/services/customerService";
 import invoiceService from "@/features/sales/services/invoiceService";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
 import branchCashService from "@/features/finance/treasury/cash-management/branch-cash/services/branchCashService";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { API_STATUS } from "@/constants";
+import { getOpenBusinessDay } from "@/features/operations/business-days/store/businessDayThunk";
+import OpenBusinessDayDialog from "@/features/operations/business-days/components/OpenBusinessDayDialog";
+import { CreateShiftDialog } from "@/features/operations/shifts/components/CreateShiftDialog";
+import { UIBadge, UIButton } from "@/components/ui";
+import { CalendarDays, ArrowRight, Sparkles } from "lucide-react";
 /* ─────────────── CONSTANTS ─────────────── */
 const BILLING_MODES = [
   { id: "B2C", label: "B2C · Retail", icon: User, description: "Walk-in customers" },
@@ -97,9 +104,20 @@ const useDebounce = (value, delay) => {
    MAIN COMPONENT
    ───────────────────────────────────────────────────────────────── */
 export const POSTerminalPage = () => {
+  const dispatch = useDispatch();
   const { currentBranch } = useBranch();
   const { activeShift, status: shiftStatus } = useActiveShift(currentBranch?._id);
+  const { openBusinessDay } = useSelector((state) => state.businessDay);
   const navigate = useNavigate();
+
+  const [isBusinessDayModalOpen, setIsBusinessDayModalOpen] = useState(false);
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (currentBranch?._id) {
+      dispatch(getOpenBusinessDay(currentBranch._id));
+    }
+  }, [currentBranch?._id, dispatch]);
 
   /* ── Clock ── */
   const [currentTime, setCurrentTime] = useState(formatTime());
@@ -124,6 +142,7 @@ export const POSTerminalPage = () => {
   const [b2bSearching, setB2bSearching] = useState(false);
   const [b2bDropdownOpen, setB2bDropdownOpen] = useState(false);
   const [selectedParty, setSelectedParty] = useState(null);
+  const [customerViewDialogOpen, setCustomerViewDialogOpen] = useState(false);
   const debouncedB2bQuery = useDebounce(b2bSearchQuery, 300);
   const b2bInputRef = useRef(null);
   const b2bDropdownRef = useRef(null);
@@ -173,18 +192,150 @@ export const POSTerminalPage = () => {
   }
 
   if (!activeShift) {
+    const isDayOpen = Boolean(openBusinessDay);
+    const dayDate = openBusinessDay?.businessDate
+      ? new Date(openBusinessDay.businessDate).toLocaleDateString("en-IN", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+      : "";
+
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
-        <Store className="size-16 text-text-muted" />
-        <h2 className="text-2xl font-bold text-text">No open shift is present</h2>
-        <p className="text-text-muted">You must open a shift before you can access POS terminal.</p>
-        <button 
-          onClick={() => navigate("/operations/shifts")}
-          className="px-6 py-2 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition"
-        >
-          Go to Shifts
-        </button>
-      </div>
+      <>
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] p-6 bg-background relative overflow-hidden">
+          {/* Ambient Background Blur Elements */}
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="max-w-xl w-full bg-surface/90 border border-border/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl space-y-6 relative z-10 text-center">
+            {/* Top Status Pill */}
+            <div className="flex justify-center">
+              <UIBadge
+                variant="soft"
+                color={isDayOpen ? "success" : "warning"}
+                className="text-xs font-bold uppercase tracking-wider py-1 px-3.5"
+              >
+                {isDayOpen ? "BUSINESS DAY OPEN · SHIFT CLOSED" : "NO BUSINESS DAY OPEN"}
+              </UIBadge>
+            </div>
+
+            {/* Icon Header */}
+            <div className="flex justify-center">
+              <div className={`p-4 rounded-2xl shadow-lg ${
+                isDayOpen
+                  ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-emerald-500/20"
+                  : "bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-amber-500/20"
+              }`}>
+                {isDayOpen ? (
+                  <Clock className="size-10 stroke-[2.2]" />
+                ) : (
+                  <CalendarDays className="size-10 stroke-[2.2]" />
+                )}
+              </div>
+            </div>
+
+            {/* Title & Description */}
+            <div className="space-y-2">
+              <h2 className="text-2xl font-extrabold text-text tracking-tight">
+                {isDayOpen ? "Start Cashier Register Shift" : "Start Business Day Session"}
+              </h2>
+              <p className="text-xs text-text-muted leading-relaxed max-w-md mx-auto">
+                {isDayOpen
+                  ? `Business Day #${openBusinessDay.businessDayNo} is active for ${dayDate}. Start a register shift session to open your cash drawer and enable counter billing.`
+                  : "Initialize today's pharmacy business day to enable register shifts, track counter sales, and manage treasury accounts."}
+              </p>
+            </div>
+
+            {/* Quick Context Stat Cards */}
+            <div className="grid grid-cols-2 gap-3 text-left pt-2">
+              <div className="bg-surface-alt/70 border border-border/70 rounded-2xl p-3.5">
+                <span className="text-[10px] font-bold uppercase text-text-muted block">Scheduled Date</span>
+                <span className="font-mono font-bold text-xs text-text block mt-0.5">
+                  {isDayOpen ? dayDate : new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                </span>
+              </div>
+              <div className="bg-surface-alt/70 border border-border/70 rounded-2xl p-3.5">
+                <span className="text-[10px] font-bold uppercase text-text-muted block">Current Branch</span>
+                <span className="font-bold text-xs text-text truncate block mt-0.5">
+                  {currentBranch?.name || "Active Branch"}
+                </span>
+              </div>
+            </div>
+
+            {/* 3-Step Workflow Visualizer */}
+            <div className="bg-surface-alt/40 border border-border/60 rounded-2xl p-4 text-xs space-y-2 text-left">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                Operational Terminal Sequence
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                <div className={`p-2 rounded-xl border text-center ${isDayOpen ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold" : "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold"}`}>
+                  1. Open Day {isDayOpen ? "✓" : ""}
+                </div>
+                <div className={`p-2 rounded-xl border text-center ${isDayOpen ? "bg-primary/10 border-primary/30 text-primary font-bold animate-pulse" : "bg-surface border-border text-text-muted"}`}>
+                  2. Start Shift
+                </div>
+                <div className="p-2 rounded-xl border text-center bg-surface border-border text-text-muted opacity-60">
+                  3. POS Billing
+                </div>
+              </div>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              {isDayOpen ? (
+                <UIButton
+                  variant="primary"
+                  size="lg"
+                  startIcon={<Clock className="size-4.5" />}
+                  endIcon={<ArrowRight className="size-4 opacity-70" />}
+                  className="w-full sm:w-auto px-8 font-extrabold shadow-md hover:shadow-lg transition-all"
+                  onClick={() => setIsShiftModalOpen(true)}
+                >
+                  Start Shift
+                </UIButton>
+              ) : (
+                <UIButton
+                  variant="primary"
+                  size="lg"
+                  startIcon={<CalendarDays className="size-4.5" />}
+                  endIcon={<ArrowRight className="size-4 opacity-70" />}
+                  className="w-full sm:w-auto px-8 font-extrabold shadow-md hover:shadow-lg transition-all"
+                  onClick={() => setIsBusinessDayModalOpen(true)}
+                >
+                  Start Business Day
+                </UIButton>
+              )}
+
+              <UIButton
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto px-6 font-semibold"
+                onClick={() => navigate("/operations/business-days")}
+              >
+                <span>View Shifts & Days</span>
+              </UIButton>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Triggers */}
+        <OpenBusinessDayDialog
+          isOpen={isBusinessDayModalOpen}
+          onClose={() => {
+            setIsBusinessDayModalOpen(false);
+            if (currentBranch?._id) dispatch(getOpenBusinessDay(currentBranch._id));
+          }}
+        />
+        <CreateShiftDialog
+          isOpen={isShiftModalOpen}
+          onClose={() => {
+            setIsShiftModalOpen(false);
+            if (currentBranch?._id) dispatch(getOpenBusinessDay(currentBranch._id));
+          }}
+        />
+      </>
     );
   }
 
@@ -970,13 +1121,23 @@ export const POSTerminalPage = () => {
                             </div>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={handleClearParty}
-                          className="size-6 rounded-lg flex items-center justify-center text-text-muted hover:text-error hover:bg-error-soft/30 transition-all cursor-pointer shrink-0"
-                        >
-                          <X className="size-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setCustomerViewDialogOpen(true)}
+                            title="View Customer Details"
+                            className="size-6 rounded-lg flex items-center justify-center text-text-muted hover:text-primary hover:bg-primary-soft/30 transition-all cursor-pointer"
+                          >
+                            <Info className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleClearParty}
+                            className="size-6 rounded-lg flex items-center justify-center text-text-muted hover:text-error hover:bg-error-soft/30 transition-all cursor-pointer"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </motion.div>
                   ) : (
@@ -1243,6 +1404,13 @@ export const POSTerminalPage = () => {
           </div>
         </div>
       </div>
+
+      <CustomerDialog
+        isOpen={customerViewDialogOpen}
+        onClose={() => setCustomerViewDialogOpen(false)}
+        mode="view"
+        customerData={selectedParty}
+      />
     </div>
   );
 };

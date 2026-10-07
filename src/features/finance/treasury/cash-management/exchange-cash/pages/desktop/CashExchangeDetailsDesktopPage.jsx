@@ -25,8 +25,6 @@ const CashExchangeDetailsDesktopPage = ({
 
   handleBack,
 }) => {
-
-
   if (isLoading || !exchangeDetails) {
     return (
       <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5 flex items-center justify-center">
@@ -53,8 +51,6 @@ const CashExchangeDetailsDesktopPage = ({
   } = exchangeDetails;
 
   const isCancelled = status === "CANCELLED";
-
-
 
   const getStatusTag = (s) => {
     switch (s) {
@@ -129,28 +125,38 @@ const CashExchangeDetailsDesktopPage = ({
             Back to List
           </AppButton>
 
-          <div className="flex gap-2">
-
-          </div>
+          <div className="flex gap-2"></div>
         </div>
 
         <div className="grid grid-cols-3 gap-5">
           {/* Main Info */}
           <div className="col-span-2 space-y-5">
-            <AppCard variant="default" rounded="lg" bordered shadow="sm" padding="md">
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              shadow="sm"
+              padding="md"
+            >
               <AppHeading level={5} weight={700} sx={{ marginBottom: 16 }}>
                 Exchange Summary
               </AppHeading>
-              
+
               <div className="grid grid-cols-2 gap-y-4 gap-x-8">
                 <div>
-                  <AppText size="xs" sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}>
+                  <AppText
+                    size="xs"
+                    sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}
+                  >
                     Status
                   </AppText>
                   {getStatusTag(status)}
                 </div>
                 <div>
-                  <AppText size="xs" sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}>
+                  <AppText
+                    size="xs"
+                    sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}
+                  >
                     Date
                   </AppText>
                   <AppText size="sm" weight={600}>
@@ -158,7 +164,10 @@ const CashExchangeDetailsDesktopPage = ({
                   </AppText>
                 </div>
                 <div>
-                  <AppText size="xs" sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}>
+                  <AppText
+                    size="xs"
+                    sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}
+                  >
                     Cash Account
                   </AppText>
                   <AppText size="sm" weight={600}>
@@ -166,7 +175,10 @@ const CashExchangeDetailsDesktopPage = ({
                   </AppText>
                 </div>
                 <div>
-                  <AppText size="xs" sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}>
+                  <AppText
+                    size="xs"
+                    sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}
+                  >
                     Narration
                   </AppText>
                   <AppText size="sm">{narration || "—"}</AppText>
@@ -177,22 +189,46 @@ const CashExchangeDetailsDesktopPage = ({
             {/* Denominations Grid */}
             <div className="grid grid-cols-2 gap-5">
               {/* Received */}
-              <AppCard variant="default" rounded="lg" bordered shadow="sm" padding="none">
+              <AppCard
+                variant="default"
+                rounded="lg"
+                bordered
+                shadow="sm"
+                padding="none"
+              >
                 <div className="px-4 py-3 border-b border-border bg-success-soft/30 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-success" />
-                    <AppText size="xs" weight={700} sx={{ textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-success)" }}>
+                    <AppText
+                      size="xs"
+                      weight={700}
+                      sx={{
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--color-success)",
+                      }}
+                    >
                       Received from Customer
                     </AppText>
                   </div>
-                  <AppText size="sm" weight={700} sx={{ color: "var(--color-success)" }}>
+                  <AppText
+                    size="sm"
+                    weight={700}
+                    sx={{ color: "var(--color-success)" }}
+                  >
                     ₹{totalReceived?.toLocaleString("en-IN")}
                   </AppText>
                 </div>
                 <div className="p-4 space-y-2">
                   {denominationsReceived.map((d, i) => (
-                    <div key={i} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
-                      <AppText size="sm" sx={{ color: "var(--color-text-muted)" }}>
+                    <div
+                      key={i}
+                      className="flex items-center justify-between py-1 border-b border-border/50 last:border-0"
+                    >
+                      <AppText
+                        size="sm"
+                        sx={{ color: "var(--color-text-muted)" }}
+                      >
                         ₹{d.denomination} × {d.quantity}
                       </AppText>
                       <AppText size="sm" weight={600}>
@@ -201,7 +237,13 @@ const CashExchangeDetailsDesktopPage = ({
                     </div>
                   ))}
                   {denominationsReceived.length === 0 && (
-                    <AppText size="sm" sx={{ color: "var(--color-text-muted)", textAlign: "center" }}>
+                    <AppText
+                      size="sm"
+                      sx={{
+                        color: "var(--color-text-muted)",
+                        textAlign: "center",
+                      }}
+                    >
                       No denominations
                     </AppText>
                   )}
@@ -209,22 +251,46 @@ const CashExchangeDetailsDesktopPage = ({
               </AppCard>
 
               {/* Given */}
-              <AppCard variant="default" rounded="lg" bordered shadow="sm" padding="none">
+              <AppCard
+                variant="default"
+                rounded="lg"
+                bordered
+                shadow="sm"
+                padding="none"
+              >
                 <div className="px-4 py-3 border-b border-border bg-warning-soft/30 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-warning" />
-                    <AppText size="xs" weight={700} sx={{ textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-warning)" }}>
+                    <AppText
+                      size="xs"
+                      weight={700}
+                      sx={{
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "var(--color-warning)",
+                      }}
+                    >
                       Given to Customer
                     </AppText>
                   </div>
-                  <AppText size="sm" weight={700} sx={{ color: "var(--color-warning)" }}>
+                  <AppText
+                    size="sm"
+                    weight={700}
+                    sx={{ color: "var(--color-warning)" }}
+                  >
                     ₹{totalGiven?.toLocaleString("en-IN")}
                   </AppText>
                 </div>
                 <div className="p-4 space-y-2">
                   {denominationsGiven.map((d, i) => (
-                    <div key={i} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
-                      <AppText size="sm" sx={{ color: "var(--color-text-muted)" }}>
+                    <div
+                      key={i}
+                      className="flex items-center justify-between py-1 border-b border-border/50 last:border-0"
+                    >
+                      <AppText
+                        size="sm"
+                        sx={{ color: "var(--color-text-muted)" }}
+                      >
                         ₹{d.denomination} × {d.quantity}
                       </AppText>
                       <AppText size="sm" weight={600}>
@@ -233,7 +299,13 @@ const CashExchangeDetailsDesktopPage = ({
                     </div>
                   ))}
                   {denominationsGiven.length === 0 && (
-                    <AppText size="sm" sx={{ color: "var(--color-text-muted)", textAlign: "center" }}>
+                    <AppText
+                      size="sm"
+                      sx={{
+                        color: "var(--color-text-muted)",
+                        textAlign: "center",
+                      }}
+                    >
                       No denominations
                     </AppText>
                   )}
@@ -244,14 +316,23 @@ const CashExchangeDetailsDesktopPage = ({
 
           {/* Sidebar */}
           <div className="space-y-5">
-            <AppCard variant="default" rounded="lg" bordered shadow="sm" padding="md">
+            <AppCard
+              variant="default"
+              rounded="lg"
+              bordered
+              shadow="sm"
+              padding="md"
+            >
               <AppHeading level={5} weight={700} sx={{ marginBottom: 16 }}>
                 Audit Information
               </AppHeading>
-              
+
               <div className="space-y-4">
                 <div>
-                  <AppText size="xs" sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}>
+                  <AppText
+                    size="xs"
+                    sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}
+                  >
                     Created By
                   </AppText>
                   <AppText size="sm">{createdBy?.name || "—"}</AppText>
@@ -262,17 +343,34 @@ const CashExchangeDetailsDesktopPage = ({
 
                 {isCancelled && (
                   <div className="p-3 bg-danger-soft/50 rounded-md border border-danger/20">
-                    <AppText size="xs" sx={{ color: "var(--color-danger)", marginBottom: 4, fontWeight: 600 }}>
+                    <AppText
+                      size="xs"
+                      sx={{
+                        color: "var(--color-danger)",
+                        marginBottom: 4,
+                        fontWeight: 600,
+                      }}
+                    >
                       Cancelled By
                     </AppText>
                     <AppText size="sm">{cancelledBy?.name || "—"}</AppText>
-                    <AppText size="xs" sx={{ color: "var(--color-text-muted)", marginBottom: 8 }}>
+                    <AppText
+                      size="xs"
+                      sx={{ color: "var(--color-text-muted)", marginBottom: 8 }}
+                    >
                       {formatDateTime(cancelledAt)}
                     </AppText>
-                    
+
                     {cancellationReason && (
                       <>
-                        <AppText size="xs" sx={{ color: "var(--color-danger)", marginBottom: 2, fontWeight: 600 }}>
+                        <AppText
+                          size="xs"
+                          sx={{
+                            color: "var(--color-danger)",
+                            marginBottom: 2,
+                            fontWeight: 600,
+                          }}
+                        >
                           Reason
                         </AppText>
                         <AppText size="sm">{cancellationReason}</AppText>
@@ -283,7 +381,10 @@ const CashExchangeDetailsDesktopPage = ({
 
                 {notes && (
                   <div className="pt-4 border-t border-border">
-                    <AppText size="xs" sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}>
+                    <AppText
+                      size="xs"
+                      sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}
+                    >
                       Internal Notes
                     </AppText>
                     <AppText size="sm">{notes}</AppText>
@@ -293,8 +394,6 @@ const CashExchangeDetailsDesktopPage = ({
             </AppCard>
           </div>
         </div>
-
-
       </div>
     </section>
   );

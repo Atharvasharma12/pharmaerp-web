@@ -11,24 +11,82 @@ import {
   UIButton,
   UIAlert,
   UIBadge,
+  UIInput,
 } from "@/components/ui";
-import { Clock, Banknote, Calendar, Layers, AlertCircle, ArrowRight, ShieldCheck } from "lucide-react";
-import { createShift, listShifts } from "../store/shiftThunk";
+import {
+  Clock,
+  Calendar,
+  Building2,
+  Copy,
+  Check,
+  Banknote,
+  Play,
+  Info,
+} from "lucide-react";
+import { createShift, listShifts, getOpenShift } from "../store/shiftThunk";
 import { API_STATUS } from "@/constants";
 import useBranchCash from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { getOpenBusinessDay } from "@/features/operations/business-days/store/businessDayThunk";
 
-const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+const DENOMINATIONS = [
+  { note: 500, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800" },
+  { note: 200, color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800" },
+  { note: 100, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800" },
+  { note: 50,  color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800" },
+  { note: 20,  color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800" },
+  { note: 10,  color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300 border-orange-200 dark:border-orange-800" },
+  { note: 5,   color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800" },
+  { note: 2,   color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700" },
+  { note: 1,   color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700" },
+];
+
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "₹ 0.00";
+  return `₹ ${Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
+
+const formatFullDate = (val) => {
+  if (!val) return "Wednesday, 30 April 2025";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "Wednesday, 30 April 2025";
+  return d.toLocaleDateString("en-US", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const formatShortDate = (val) => {
+  if (!val) return "30 Apr 2025";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "30 Apr 2025";
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 export const CreateShiftDialog = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
-  const { createShiftStatus, error } = useSelector((state) => state.shift);
-  const { openBusinessDay, getOpenBusinessDayStatus } = useSelector(
-    (state) => state.businessDay
+  const { createShiftStatus, error, shifts, activeShift } = useSelector(
+    (state) => state.shift
   );
+  const { openBusinessDay } = useSelector((state) => state.businessDay);
   const { currentBranch } = useBranch();
 
+  // Check if another shift is currently open
+  const hasOpenShift = Boolean(
+    activeShift ||
+    (Array.isArray(shifts) && shifts.some((s) => s.status === "open"))
+  );
+
+  // Auto Shift Suggestion
   const hour = new Date().getHours();
   const autoShiftName =
     hour < 12
@@ -36,7 +94,17 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
       : hour < 17
       ? "Afternoon Shift"
       : "Evening Shift";
-  const autoShiftNo = "Auto-generated on save";
+
+  const currentTimeStr = new Date().toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  const [shiftName, setShiftName] = useState(autoShiftName);
+  const [shiftDate, setShiftDate] = useState("");
+  const [startTime, setStartTime] = useState(currentTimeStr);
+  const [copied, setCopied] = useState(false);
 
   const {
     currentBranchCash: branchCash,
@@ -45,18 +113,29 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
   } = useBranchCash();
   const [loadingCash, setLoadingCash] = useState(false);
 
-  // Denominations State
+  // Denominations State - Immutable from branch cash
   const [counts, setCounts] = useState(
-    DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {})
+    DENOMINATIONS.reduce((acc, d) => ({ ...acc, [d.note]: 0 }), {})
   );
 
   useEffect(() => {
-    if (isOpen && currentBranch?._id) {
-      setLoadingCash(true);
-      getBranchCash(currentBranch._id).finally(() => setLoadingCash(false));
-      dispatch(getOpenBusinessDay(currentBranch._id));
+    if (isOpen) {
+      const h = new Date().getHours();
+      const suggested =
+        h < 12 ? "Morning Shift" : h < 17 ? "Afternoon Shift" : "Evening Shift";
+      const timeStr = new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+      setShiftName(suggested);
+      setStartTime(timeStr);
+      if (currentBranch?._id) {
+        setLoadingCash(true);
+        getBranchCash(currentBranch._id).finally(() => setLoadingCash(false));
+      }
     }
-  }, [isOpen, currentBranch?._id, dispatch, getBranchCash]);
+  }, [isOpen, currentBranch?._id]);
 
   const activeDenoms = useMemo(() => {
     return (
@@ -67,56 +146,60 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
     );
   }, [branchCash, runningDenominations]);
 
-  const isFromDrawer = useMemo(() => {
-    return activeDenoms.some((d) => (Number(d.quantity ?? d.count) || 0) > 0);
-  }, [activeDenoms]);
-
+  // Sync Shift Date with Open Business Day date
   useEffect(() => {
+    if (openBusinessDay?.businessDate) {
+      setShiftDate(formatShortDate(openBusinessDay.businessDate));
+    } else {
+      setShiftDate(formatShortDate(new Date()));
+    }
+  }, [openBusinessDay]);
+
+  // Load immutable counts directly from branch cash drawer
+  useEffect(() => {
+    const newCounts = DENOMINATIONS.reduce(
+      (acc, d) => ({ ...acc, [d.note]: 0 }),
+      {}
+    );
     if (activeDenoms.length > 0) {
-      const newCounts = DENOMINATIONS.reduce(
-        (acc, note) => ({ ...acc, [note]: "" }),
-        {}
-      );
-      let hasAny = false;
       activeDenoms.forEach((d) => {
         const note = Number(d.denomination);
         const qty = Number(d.quantity ?? d.count) || 0;
-        if (DENOMINATIONS.includes(note) && qty > 0) {
+        if (DENOMINATIONS.some((denom) => denom.note === note)) {
           newCounts[note] = qty;
-          hasAny = true;
         }
       });
-      if (hasAny) {
-        setCounts(newCounts);
-        return;
-      }
     }
-    setCounts(DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {}));
+    setCounts(newCounts);
   }, [activeDenoms]);
 
   const totalAmount = useMemo(() => {
-    return DENOMINATIONS.reduce((sum, note) => {
-      const cnt = Number(counts[note]) || 0;
-      return sum + cnt * note;
+    return DENOMINATIONS.reduce((sum, d) => {
+      const cnt = Number(counts[d.note]) || 0;
+      return sum + cnt * d.note;
     }, 0);
   }, [counts]);
 
-  const handleCountChange = (note, val) => {
-    if (isFromDrawer) return;
-    const num = val === "" ? "" : Math.max(0, parseInt(val, 10) || 0);
-    setCounts((prev) => ({ ...prev, [note]: num }));
+  const handleCopyBusinessDay = (text) => {
+    if (!text) return;
+    navigator.clipboard?.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleCreate = async () => {
-    const openingDenominations = DENOMINATIONS.map((note) => ({
-      denomination: note,
-      count: Number(counts[note]) || 0,
-      amount: (Number(counts[note]) || 0) * note,
+    if (hasOpenShift) return;
+
+    const openingDenominations = DENOMINATIONS.map((d) => ({
+      denomination: d.note,
+      count: Number(counts[d.note]) || 0,
+      amount: (Number(counts[d.note]) || 0) * d.note,
     })).filter((d) => d.count > 0);
 
     try {
       await dispatch(
         createShift({
+          shiftName: shiftName || autoShiftName,
           openingFloatAmount: totalAmount,
           openingDenominations,
         })
@@ -124,190 +207,322 @@ export const CreateShiftDialog = ({ isOpen, onClose }) => {
       dispatch(listShifts());
       onClose();
     } catch {
-      // Managed by slice error
+      // Handled by Redux slice error
     }
   };
 
+  const businessDayCode =
+    openBusinessDay?.code ||
+    openBusinessDay?.businessDayNo ||
+    openBusinessDay?._id?.slice(-8).toUpperCase() ||
+    "BD-20250430-01";
+
+  const businessDayFullDate = formatFullDate(
+    openBusinessDay?.businessDate || new Date()
+  );
+
+  const branchDisplayName =
+    currentBranch?.name ||
+    openBusinessDay?.branch?.name ||
+    openBusinessDay?.branchName ||
+    "Makati Branch";
+
   return (
-    <UIModal isOpen={isOpen} onClose={onClose} size="lg">
-      <UIModalHeader>
+    <UIModal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="2xl"
+      className="w-[960px] max-w-[95vw] h-[82vh] max-h-[740px] min-h-[600px] flex flex-col overflow-hidden select-none"
+    >
+      {/* ── Modal Header: Rounded Green Icon + Title & Subtitle ── */}
+      <UIModalHeader className="py-4 px-6 border-b border-border/60 shrink-0">
         <UIModalTitle>
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20">
-              <Clock className="h-5.5 w-5.5 stroke-[2.2]" />
+            <div className="size-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+              <Clock className="size-5.5 stroke-[2]" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-text tracking-tight">
+              <h2 className="text-base font-bold text-text tracking-tight">
                 Initialize POS Shift & Cash Drawer
-              </h3>
-              <p className="text-xs font-medium text-text-muted mt-0.5">
-                Set opening float balance and start counter billing session
+              </h2>
+              <p className="text-xs text-text-muted mt-0.5">
+                Create a new cashier shift for the current business day
               </p>
             </div>
           </div>
         </UIModalTitle>
       </UIModalHeader>
 
-      <UIModalBody className="max-h-[72vh] overflow-y-auto">
-        <div className="space-y-5 py-1">
-          {error && <UIAlert intent="danger" title="Error" description={error} />}
+      <UIModalBody className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-4">
+        {/* ── Active Shift Detected Alert Banner ── */}
+        {hasOpenShift && (
+          <UIAlert
+            intent="danger"
+            title="Another shift is open so you cannot create a new shift."
+            description="A cashier shift is currently active. You must close the active shift before opening a new shift session."
+          />
+        )}
 
-          {!loadingCash && !branchCash ? (
-            <div className="py-2">
-              <UIAlert
-                intent="warning"
-                title="Branch Cash Not Initialized"
-                description="You must initialize the branch cash balance before opening a shift. Navigate to Treasury > Branch Cash to set up initial drawer funds."
-              />
+        {error && (
+          <UIAlert intent="danger" title="Error" description={error} />
+        )}
+
+        {/* ── Top Row: 3 Meta Information Cards ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Card 1: Business Day No. */}
+          <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-xs transition-colors">
+            <div className="size-9 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+              <Calendar className="size-4.5 stroke-[1.8]" />
             </div>
-          ) : (
-            <>
-              {/* ── Top Session Meta Cards ── */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Business Date */}
-                <div className="bg-surface-alt/70 border border-border/70 rounded-xl p-3 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-text-muted flex items-center gap-1">
-                      <Calendar className="size-3 text-primary" />
-                      Session Date
-                    </span>
-                    {openBusinessDay && (
-                      <UIBadge variant="soft" color="success" className="text-[10px] py-0 px-1.5 font-bold">
-                        OPEN
-                      </UIBadge>
-                    )}
-                  </div>
-                  <div className="mt-2">
-                    {getOpenBusinessDayStatus === API_STATUS.LOADING ? (
-                      <p className="text-xs text-text-muted font-medium">Checking date...</p>
-                    ) : openBusinessDay ? (
-                      <p className="text-sm font-bold text-text font-mono">
-                        {new Date(openBusinessDay.businessDate).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-error font-semibold flex items-center gap-1">
-                        <AlertCircle className="size-3" /> No Day Open
-                      </p>
-                    )}
-                  </div>
-                </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-medium text-text-muted leading-tight">
+                Business Day No.
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="font-semibold text-text text-xs font-mono truncate">
+                  {businessDayCode}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleCopyBusinessDay(businessDayCode)}
+                  className="p-1 rounded text-text-muted hover:text-text hover:bg-surface-hover transition-colors cursor-pointer shrink-0"
+                  title="Copy code"
+                >
+                  {copied ? (
+                    <Check className="size-3 text-emerald-600" />
+                  ) : (
+                    <Copy className="size-3" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
 
-                {/* Shift Number */}
-                <div className="bg-surface-alt/70 border border-border/70 rounded-xl p-3 flex flex-col justify-between">
-                  <span className="text-[11px] font-semibold text-text-muted flex items-center gap-1">
-                    <Layers className="size-3 text-primary" />
-                    Shift Number
-                  </span>
-                  <p className="text-xs font-mono font-semibold text-text-muted mt-2 truncate">
-                    {autoShiftNo}
-                  </p>
-                </div>
+          {/* Card 2: Business Date */}
+          <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-xs transition-colors">
+            <div className="size-9 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+              <Calendar className="size-4.5 stroke-[1.8]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-medium text-text-muted leading-tight">
+                Business Date
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                <span className="font-semibold text-text text-xs truncate">
+                  {businessDayFullDate}
+                </span>
+                <UIBadge variant="dot" color="success" className="text-[9px] py-0 px-1.5 shrink-0">
+                  Open
+                </UIBadge>
+              </div>
+            </div>
+          </div>
 
+          {/* Card 3: Branch */}
+          <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-xs transition-colors">
+            <div className="size-9 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+              <Building2 className="size-4.5 stroke-[1.8]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-medium text-text-muted leading-tight">
+                Branch
+              </div>
+              <div className="font-semibold text-text text-xs mt-0.5 truncate">
+                {branchDisplayName}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Two-Column Main Content ── */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+          {/* LEFT COLUMN: Shift Details Only */}
+          <div className="md:col-span-5 space-y-3.5">
+            <div className="bg-surface rounded-xl border border-border p-4 space-y-3.5 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-bold text-text">
+                <Clock className="size-4 text-text" />
+                <span>Shift Details</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 {/* Shift Name */}
-                <div className="bg-surface-alt/70 border border-border/70 rounded-xl p-3 flex flex-col justify-between">
-                  <span className="text-[11px] font-semibold text-text-muted flex items-center gap-1">
-                    <Clock className="size-3 text-primary" />
-                    Shift Session
-                  </span>
-                  <p className="text-sm font-bold text-text mt-2 truncate">
-                    {autoShiftName}
-                  </p>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-text">
+                    Shift Name <span className="text-red-500">*</span>
+                  </label>
+                  <UIInput
+                    type="text"
+                    value={shiftName}
+                    onChange={(e) => setShiftName(e.target.value)}
+                    placeholder="Morning Shift"
+                    size="sm"
+                    className="h-8.5 text-xs font-medium"
+                  />
+                </div>
+
+                {/* Shift No. (Auto generated) */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-text-muted">
+                    Shift No.
+                  </label>
+                  <UIInput
+                    type="text"
+                    value="Auto-generated on save"
+                    disabled
+                    readOnly
+                    size="sm"
+                    className="h-8.5 text-xs text-text-muted bg-surface-alt/60 cursor-not-allowed font-medium"
+                  />
+                </div>
+
+                {/* Shift Date */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-text">
+                    Shift Date <span className="text-red-500">*</span>
+                  </label>
+                  <UIInput
+                    type="text"
+                    value={shiftDate}
+                    readOnly
+                    size="sm"
+                    startIcon={<Calendar className="size-3.5 text-text-muted" />}
+                    className="h-8.5 text-xs font-medium cursor-default"
+                  />
+                </div>
+
+                {/* Expected Start Time */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-text-muted">
+                    Expected Start Time
+                  </label>
+                  <UIInput
+                    type="text"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    size="sm"
+                    startIcon={<Clock className="size-3.5 text-text-muted" />}
+                    className="h-8.5 text-xs font-medium"
+                  />
                 </div>
               </div>
 
-              {/* ── Cash Float Section Header ── */}
-              <div className="border-t border-border/60 pt-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3.5 bg-surface-alt/50 border border-border/70 rounded-xl p-3.5">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Banknote className="size-4 text-emerald-600 dark:text-emerald-400" />
-                      <h4 className="text-sm font-bold text-text">Opening Cash Float</h4>
-                      {isFromDrawer && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                          Drawer Carry-Forward
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-text-muted mt-0.5">
-                      Counter cash partition balance automatically calculated from notes
-                    </p>
+              {/* Auto Shift Name Callout */}
+              <div className="bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/80 rounded-xl p-3 flex items-start gap-2.5">
+                <div className="size-5 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                  <Info className="size-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-blue-900 dark:text-blue-200">
+                    Auto Shift Name
                   </div>
-
-                  <div className="text-left sm:text-right">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
-                      Total Opening Float
-                    </span>
-                    <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
-                      {loadingCash ? "Loading..." : `₹${totalAmount.toLocaleString("en-IN")}`}
-                    </span>
+                  <div className="text-[11px] text-blue-700/90 dark:text-blue-300/90 mt-0.5 leading-snug">
+                    We've suggested "{autoShiftName}" based on current time.
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
 
-                {/* ── Denominations Grid ── */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {DENOMINATIONS.map((note) => {
-                    const countVal = counts[note];
-                    const hasValue = countVal !== "" && Number(countVal) > 0;
+          {/* RIGHT COLUMN: Opening Cash Float Denominations (Immutable Count) */}
+          <div className="md:col-span-7 bg-surface rounded-xl border border-border p-4 space-y-3 shadow-xs">
+            {/* Header */}
+            <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+              <div className="size-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Banknote className="size-4" />
+              </div>
+              <h3 className="text-xs font-bold text-text">
+                Opening Cash Float
+              </h3>
+            </div>
+
+            {/* Denomination Table (Immutable Count Display) */}
+            <div className="overflow-hidden rounded-lg border border-border/60">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-surface-alt/70 border-b border-border/60 text-text font-semibold select-none text-[11px]">
+                    <th className="py-2 px-3.5 w-36">Denomination</th>
+                    <th className="py-2 px-3.5 text-center">Count</th>
+                    <th className="py-2 px-3.5 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {DENOMINATIONS.map(({ note, color }) => {
+                    const countVal = counts[note] || 0;
+                    const amountVal = countVal * note;
+
                     return (
-                      <div
-                        key={note}
-                        className={`flex items-center justify-between border rounded-xl p-2 px-3 transition-all duration-150 ${
-                          hasValue
-                            ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20 shadow-2xs"
-                            : "border-border/70 bg-surface-alt/40 opacity-80 hover:opacity-100"
-                        } ${isFromDrawer ? "cursor-not-allowed" : ""}`}
-                      >
-                        <div className="flex items-center gap-1.5">
+                      <tr key={note} className="hover:bg-surface-hover/40 transition-colors">
+                        {/* Denomination Badge */}
+                        <td className="py-1.5 px-3.5">
                           <span
-                            className={`text-xs font-bold font-mono ${
-                              hasValue ? "text-primary" : "text-text"
-                            }`}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold border ${color}`}
                           >
-                            ₹{note}
+                            <Banknote className="size-3" />
+                            <span>₹ {note}</span>
                           </span>
-                          <span className="text-text-muted/60 text-xs">×</span>
-                        </div>
+                        </td>
 
-                        <input
-                          type="number"
-                          min="0"
-                          readOnly={isFromDrawer}
-                          disabled={isFromDrawer}
-                          value={countVal}
-                          onChange={(e) => handleCountChange(note, e.target.value)}
-                          className={`w-16 text-right text-xs font-mono font-bold p-1 outline-none transition ${
-                            isFromDrawer
-                              ? "cursor-not-allowed text-text font-bold"
-                              : "cursor-text text-text focus:ring-1 focus:ring-primary focus:border-primary bg-surface border border-border/80 rounded-md"
-                          }`}
-                          placeholder="0"
-                        />
-                      </div>
+                        {/* Count (Immutable) */}
+                        <td className="py-1.5 px-3.5 text-center">
+                          <span className="inline-block min-w-[46px] py-1 px-2 rounded bg-surface-alt/60 border border-border/40 font-mono text-[11px] font-bold text-text tabular-nums">
+                            {countVal}
+                          </span>
+                        </td>
+
+                        {/* Amount */}
+                        <td className="py-1.5 px-3.5 text-right">
+                          <span className="inline-block min-w-[85px] font-mono text-[11px] font-semibold tabular-nums text-text bg-surface-alt/50 py-1 px-2.5 rounded border border-border/30">
+                            {formatCurrency(amountVal)}
+                          </span>
+                        </td>
+                      </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Total Opening Float Card */}
+            <div className="bg-emerald-500/10 dark:bg-emerald-950/20 border border-emerald-500/20 rounded-xl p-3 px-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="size-7 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <Banknote className="size-4" />
                 </div>
+                <span className="text-xs font-bold text-text">
+                  Total Opening Float
+                </span>
               </div>
-            </>
-          )}
+              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
+                {loadingCash ? "Loading..." : formatCurrency(totalAmount)}
+              </span>
+            </div>
+          </div>
         </div>
       </UIModalBody>
 
-      <UIModalFooter>
-        <UIButton variant="ghost" onClick={onClose}>
+      {/* ── Modal Footer: Cancel & Create Shift ── */}
+      <UIModalFooter className="border-t border-border/60 py-3.5 px-6 flex items-center justify-end gap-2.5 shrink-0">
+        <UIButton
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onClose}
+          className="h-9 px-4 text-xs font-semibold"
+        >
           Cancel
         </UIButton>
+
         <UIButton
+          type="button"
           variant="primary"
+          size="sm"
           onClick={handleCreate}
           isLoading={createShiftStatus === API_STATUS.LOADING}
-          disabled={!branchCash || loadingCash || !openBusinessDay}
+          disabled={hasOpenShift || !branchCash || loadingCash || !openBusinessDay}
+          startIcon={<Play className="size-3.5 fill-current" />}
+          className="h-9 px-4.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span>Open Shift Session</span>
-          <ArrowRight className="size-4 ml-1 opacity-70" />
+          Create Shift
         </UIButton>
       </UIModalFooter>
     </UIModal>

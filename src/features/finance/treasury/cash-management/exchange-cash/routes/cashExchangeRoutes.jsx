@@ -1,11 +1,14 @@
 import React from "react";
+import { useParams } from "react-router-dom";
 import { ROUTES } from "@/constants";
 
-import {
-  CashExchangesPage,
-  CreateCashExchangePage,
-  CashExchangeDetailsPage,
-} from "../pages";
+import { CashExchangesPage } from "../pages";
+
+// Direct exchange details wrapper (opens modal on main page)
+const DirectExchangeDetailsRoute = () => {
+  const { cashExchangeId } = useParams();
+  return <CashExchangesPage initialExchangeId={cashExchangeId} />;
+};
 
 const cashExchangeRoutes = [
   {
@@ -14,11 +17,11 @@ const cashExchangeRoutes = [
   },
   {
     path: ROUTES.CREATE_CASH_EXCHANGE,
-    element: <CreateCashExchangePage />,
+    element: <CashExchangesPage initialOpenCreate />,
   },
   {
     path: ROUTES.CASH_EXCHANGE_DETAILS(),
-    element: <CashExchangeDetailsPage />,
+    element: <DirectExchangeDetailsRoute />,
   },
 ];
 

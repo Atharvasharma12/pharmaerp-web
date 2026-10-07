@@ -8,14 +8,25 @@ import useFundTransfer from "../hooks/useFundTransfer";
 import FundTransfersDesktopPage from "./desktop/FundTransfersDesktopPage";
 import FundTransfersMobilePage from "./mobile/FundTransfersMobilePage";
 
+import FundTransferDialog from "../components/FundTransferDialog";
+
 const FundTransfersPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    mode: "create",
+    entityId: null,
+    transferData: null,
+  });
 
   const {
     fundTransfers,
     getFundTransfers,
     getFundTransfersStatus,
+    getFundTransferById,
+    createFundTransfer,
     cancelFundTransfer,
     cancelFundTransferStatus,
     error,
@@ -97,16 +108,29 @@ const FundTransfersPage = () => {
     [cancelFundTransfer, currentPage, pageSize, searchParams, getFundTransfers]
   );
 
-  const handleViewDetails = useCallback(
-    (fundTransferId) => {
-      navigate(ROUTES.FUND_TRANSFER_DETAILS(fundTransferId));
-    },
-    [navigate]
-  );
+  const handleViewDetails = useCallback((fundTransfer) => {
+    const id = typeof fundTransfer === "string" ? fundTransfer : fundTransfer?._id;
+    const data = typeof fundTransfer === "object" ? fundTransfer : null;
+    setDialogState({
+      isOpen: true,
+      mode: "view",
+      entityId: id,
+      transferData: data,
+    });
+  }, []);
 
   const handleCreateNew = useCallback(() => {
-    navigate(ROUTES.CREATE_FUND_TRANSFER);
-  }, [navigate]);
+    setDialogState({
+      isOpen: true,
+      mode: "create",
+      entityId: null,
+      transferData: null,
+    });
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setDialogState((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   const isLoading = getFundTransfersStatus === API_STATUS.LOADING;
   const isCancelling = cancelFundTransferStatus === API_STATUS.LOADING;
@@ -141,10 +165,25 @@ const FundTransfersPage = () => {
     handleRefresh,
   };
 
-  return isMobile ? (
-    <FundTransfersMobilePage {...pageProps} />
-  ) : (
-    <FundTransfersDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <FundTransfersMobilePage {...pageProps} />
+      ) : (
+        <FundTransfersDesktopPage {...pageProps} />
+      )}
+
+      <FundTransferDialog
+        isOpen={dialogState.isOpen}
+        onClose={handleCloseDialog}
+        mode={dialogState.mode}
+        entityId={dialogState.entityId}
+        transferData={dialogState.transferData}
+        onSubmitCreate={createFundTransfer}
+        onFetchById={getFundTransferById}
+        onSuccess={fetchTransfersData}
+      />
+    </>
   );
 };
 

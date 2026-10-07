@@ -71,6 +71,9 @@ const mapBankAccountForView = (account) => {
   };
 };
 
+import BankAccountDialog from "../components/BankAccountDialog";
+import { UIConfirmDialog } from "@/components/ui";
+
 const BankAccountsPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -86,6 +89,19 @@ const BankAccountsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  // Dialog state for create/edit/view
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    mode: "create",
+    entityId: null,
+  });
+
+  // Confirm delete state
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    accountId: null,
+  });
+
   const {
     bankAccounts,
     getBankAccountsStatus,
@@ -94,6 +110,9 @@ const BankAccountsPage = () => {
     error,
     message,
     getBankAccounts,
+    getBankAccountById,
+    createBankAccount,
+    updateBankAccount,
     deleteBankAccount,
     setPrimaryBankAccount,
     clearError,
@@ -298,58 +317,51 @@ const BankAccountsPage = () => {
   }, []);
 
   const handleAddAccount = useCallback(() => {
-    navigate(ROUTES.CREATE_BANK_ACCOUNT);
-  }, [navigate]);
+    setDialogState({ isOpen: true, mode: "create", entityId: null });
+  }, []);
 
-  const handleEditAccount = useCallback(
-    (account) => {
-      if (!account?._id || account?._id.startsWith("mock-")) return;
-      navigate(ROUTES.EDIT_BANK_ACCOUNT(account._id));
-    },
-    [navigate],
-  );
+  const handleEditAccount = useCallback((account) => {
+    if (!account?._id) return;
+    setDialogState({ isOpen: true, mode: "edit", entityId: account._id });
+  }, []);
 
-  const handleViewDetails = useCallback(
-    (account) => {
-      if (!account?._id || account?._id.startsWith("mock-")) return;
-      navigate(ROUTES.BANK_ACCOUNT_DETAILS(account._id));
-    },
-    [navigate],
-  );
+  const handleViewDetails = useCallback((account) => {
+    if (!account?._id) return;
+    setDialogState({ isOpen: true, mode: "view", entityId: account._id });
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setDialogState((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   const handleSetPrimary = useCallback(
     async (account) => {
       if (!account?._id) return;
-      if (account._id.startsWith("mock-")) {
-        // Mock set primary locally
-        return;
-      }
       try {
         await setPrimaryBankAccount(account._id);
+        fetchAccountsData();
       } catch (err) {
         console.error("Failed to set primary bank account:", err);
       }
     },
-    [setPrimaryBankAccount],
+    [setPrimaryBankAccount, fetchAccountsData],
   );
 
-  const handleDeleteAccount = useCallback(
-    async (account) => {
-      if (!account?._id) return;
-      if (account._id.startsWith("mock-")) {
-        alert("Mock accounts cannot be deleted.");
-        return;
-      }
-      if (window.confirm("Are you sure you want to delete this bank account?")) {
-        try {
-          await deleteBankAccount(account._id);
-        } catch (err) {
-          console.error("Failed to delete bank account:", err);
-        }
-      }
-    },
-    [deleteBankAccount],
-  );
+  const handleDeleteAccount = useCallback((account) => {
+    if (!account?._id) return;
+    setConfirmState({ isOpen: true, accountId: account._id });
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!confirmState.accountId) return;
+    try {
+      await deleteBankAccount(confirmState.accountId);
+      setConfirmState({ isOpen: false, accountId: null });
+      fetchAccountsData();
+    } catch (err) {
+      console.error("Failed to delete bank account:", err);
+    }
+  }, [confirmState.accountId, deleteBankAccount, fetchAccountsData]);
 
   const pageProps = {
     accounts: filteredAccounts,
@@ -382,10 +394,35 @@ const BankAccountsPage = () => {
     clearMessage,
   };
 
-  return isMobile ? (
-    <BankAccountsMobilePage {...pageProps} />
-  ) : (
-    <BankAccountsDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <BankAccountsMobilePage {...pageProps} />
+      ) : (
+        <BankAccountsDesktopPage {...pageProps} />
+      )}
+
+      <BankAccountDialog
+        isOpen={dialogState.isOpen}
+        onClose={handleCloseDialog}
+        mode={dialogState.mode}
+        entityId={dialogState.entityId}
+        onSubmitCreate={createBankAccount}
+        onSubmitUpdate={updateBankAccount}
+        onFetchById={getBankAccountById}
+        onSuccess={fetchAccountsData}
+      />
+
+      <UIConfirmDialog
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState({ isOpen: false, accountId: null })}
+        onConfirm={handleConfirmDelete}
+        title="Delete Bank Account"
+        description="Are you sure you want to delete this bank account? This action cannot be undone."
+        confirmText="Delete Account"
+        variant="danger"
+      />
+    </>
   );
 };
 

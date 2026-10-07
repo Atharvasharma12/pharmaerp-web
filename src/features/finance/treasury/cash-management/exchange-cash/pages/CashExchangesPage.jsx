@@ -1,16 +1,24 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+// src/features/finance/treasury/cash-management/exchange-cash/pages/CashExchangesPage.jsx
 
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
-
+import useBranch from "@/features/branch/hooks/useBranch";
+import useActiveShift from "@/features/operations/shifts/hooks/useActiveShift";
 import useCashExchange from "../hooks/useCashExchange";
+
 import CashExchangesDesktopPage from "./desktop/CashExchangesDesktopPage";
 import CashExchangesMobilePage from "./mobile/CashExchangesMobilePage";
+import { CreateCashExchangeModal, ViewCashExchangeModal } from "../components";
 
-const CashExchangesPage = () => {
+export const CashExchangesPage = ({ initialOpenCreate = false, initialExchangeId = null }) => {
   const isMobile = useIsMobile();
+  const location = useLocation();
   const navigate = useNavigate();
+  const { currentBranch } = useBranch();
+  const { activeShift } = useActiveShift(currentBranch?._id);
+  const isShiftActive = Boolean(activeShift);
 
   const {
     cashExchanges,
@@ -25,6 +33,7 @@ const CashExchangesPage = () => {
   const [searchParams, setSearchParams] = useState({
     search: "",
     status: "all",
+    partition: "all",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,25 +41,40 @@ const CashExchangesPage = () => {
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
 
+  // Modals state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(
+    initialOpenCreate || Boolean(location.state?.openCreateModal)
+  );
+  const [isViewModalOpen, setIsViewModalOpen] = useState(Boolean(initialExchangeId));
+  const [selectedExchangeId, setSelectedExchangeId] = useState(initialExchangeId || null);
+
   const buildQuery = useCallback(
     () => ({
       page: currentPage,
       limit: pageSize,
       search: searchParams.search || undefined,
       status: searchParams.status === "all" ? undefined : searchParams.status,
+      branchId: currentBranch?._id || undefined,
     }),
-    [currentPage, pageSize, searchParams],
+    [currentPage, pageSize, searchParams, currentBranch?._id]
   );
 
   const fetchData = useCallback(() => {
     getCashExchanges(buildQuery()).catch((err) =>
-      console.error("Failed to load cash exchanges:", err),
+      console.error("Failed to load cash exchanges:", err)
     );
   }, [getCashExchanges, buildQuery]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Handle direct open if state has it
+  useEffect(() => {
+    if (location.state?.openCreateModal && isShiftActive) {
+      setIsCreateModalOpen(true);
+    }
+  }, [location.state, isShiftActive]);
 
   const handleRefresh = useCallback(() => fetchData(), [fetchData]);
 
@@ -65,29 +89,24 @@ const CashExchangesPage = () => {
   }, []);
 
   const handlePageChange = useCallback((page) => setCurrentPage(page), []);
-
   const handlePageSizeChange = useCallback((size) => {
     setPageSize(size);
     setCurrentPage(1);
   }, []);
 
+  // Modal Triggers
+  const handleViewDetails = useCallback((cashExchangeId) => {
+    setSelectedExchangeId(cashExchangeId);
+    setIsViewModalOpen(true);
+  }, []);
 
-  const handleViewDetails = useCallback(
-    (cashExchangeId) => navigate(ROUTES.CASH_EXCHANGE_DETAILS(cashExchangeId)),
-    [navigate],
-  );
-
-  const handleCreateNew = useCallback(
-    () => navigate(ROUTES.CREATE_CASH_EXCHANGE),
-    [navigate],
-  );
+  const handleCreateNew = useCallback(() => {
+    if (!isShiftActive) return;
+    setIsCreateModalOpen(true);
+  }, [isShiftActive]);
 
   const isLoading = getCashExchangesStatus === API_STATUS.LOADING;
-
-  const totalExchanges = useMemo(
-    () => cashExchanges?.length || 0,
-    [cashExchanges],
-  );
+  const totalExchanges = useMemo(() => cashExchanges?.length || 0, [cashExchanges]);
 
   const pageProps = {
     cashExchanges: cashExchanges || [],
@@ -96,6 +115,9 @@ const CashExchangesPage = () => {
     pageSize,
     totalExchanges,
     isLoading,
+    isShiftActive,
+    activeShift,
+    currentBranch,
     error: error || actionError,
     message: message || actionMessage,
     clearFeedback: () => {
@@ -113,10 +135,30 @@ const CashExchangesPage = () => {
     handleRefresh,
   };
 
-  return isMobile ? (
-    <CashExchangesMobilePage {...pageProps} />
-  ) : (
-    <CashExchangesDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <CashExchangesMobilePage {...pageProps} />
+      ) : (
+        <CashExchangesDesktopPage {...pageProps} />
+      )}
+
+      {/* ── In-Place Modals (Replaces Separate Create & View Pages) ── */}
+      <CreateCashExchangeModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={handleRefresh}
+      />
+
+      <ViewCashExchangeModal
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setSelectedExchangeId(null);
+        }}
+        exchangeId={selectedExchangeId}
+      />
+    </>
   );
 };
 

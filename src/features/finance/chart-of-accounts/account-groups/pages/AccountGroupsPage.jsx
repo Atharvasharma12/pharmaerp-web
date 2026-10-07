@@ -8,6 +8,7 @@ import useAccountGroup from "../hooks/useAccountGroup";
 import useAccount from "../../accounts/hooks/useAccount";
 import AccountGroupsDesktopPage from "./desktop/AccountGroupsDesktopPage";
 import AccountGroupsMobilePage from "./mobile/AccountGroupsMobilePage";
+import AccountGroupDialog from "../components/AccountGroupDialog";
 
 const initialFilters = {
   search: "",
@@ -25,6 +26,8 @@ const AccountGroupsPage = () => {
     accountGroups = [],
     getAccountGroups,
     getAccountGroupsStatus,
+    createAccountGroup,
+    updateAccountGroup,
     deleteAccountGroup,
     message,
     error,
@@ -41,6 +44,12 @@ const AccountGroupsPage = () => {
   const [filters, setFilters] = useState(initialFilters);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    mode: "create",
+    groupData: null,
+  });
 
   const fetchGroupsAndAccounts = useCallback(async () => {
     try {
@@ -170,20 +179,18 @@ const AccountGroupsPage = () => {
   }, []);
 
   const handleCreateGroup = useCallback(() => {
-    navigate(ROUTES.CREATE_ACCOUNT_GROUP);
-  }, [navigate]);
+    setDialogState({ isOpen: true, mode: "create", groupData: null });
+  }, []);
 
   const handleViewGroup = useCallback((groupId) => {
-    if (typeof ROUTES.ACCOUNT_GROUP_DETAILS === "function") {
-      navigate(ROUTES.ACCOUNT_GROUP_DETAILS(groupId));
-    }
-  }, [navigate]);
+    const target = mappedGroups.find((g) => g._id === groupId || g.id === groupId);
+    setDialogState({ isOpen: true, mode: "view", groupData: target || null });
+  }, [mappedGroups]);
 
   const handleEditGroup = useCallback((groupId) => {
-    if (typeof ROUTES.EDIT_ACCOUNT_GROUP === "function") {
-      navigate(ROUTES.EDIT_ACCOUNT_GROUP(groupId));
-    }
-  }, [navigate]);
+    const target = mappedGroups.find((g) => g._id === groupId || g.id === groupId);
+    setDialogState({ isOpen: true, mode: "edit", groupData: target || null });
+  }, [mappedGroups]);
 
   const handleDeleteGroup = useCallback(async (groupId) => {
     try {
@@ -239,11 +246,26 @@ const AccountGroupsPage = () => {
     }, [navigate]),
   };
 
-  return isMobile ? (
-    <AccountGroupsMobilePage {...pageProps} />
-  ) : (
-    <AccountGroupsDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <AccountGroupsMobilePage {...pageProps} />
+      ) : (
+        <AccountGroupsDesktopPage {...pageProps} />
+      )}
+
+      <AccountGroupDialog
+        isOpen={dialogState.isOpen}
+        onClose={() => setDialogState((prev) => ({ ...prev, isOpen: false }))}
+        mode={dialogState.mode}
+        groupData={dialogState.groupData}
+        onSubmitCreate={createAccountGroup}
+        onSubmitUpdate={updateAccountGroup}
+        onSuccess={fetchGroupsAndAccounts}
+      />
+    </>
   );
 };
 
 export default AccountGroupsPage;
+

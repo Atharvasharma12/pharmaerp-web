@@ -12,6 +12,9 @@ import {
   User,
   CheckCircle2,
   Store,
+  CalendarDays,
+  Clock,
+  ArrowRight,
 } from "lucide-react";
 import {
   UICard,
@@ -27,6 +30,7 @@ import {
 } from "../../constants/salesData";
 import { SalesCheckoutModal } from "../../components/SalesCheckoutModal";
 import { SalesReceiptModal } from "../../components/SalesReceiptModal";
+import { POSSessionGatekeeperCard } from "../../components/POSSessionGatekeeperCard";
 import { useSelector, useDispatch } from "react-redux";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
@@ -53,12 +57,19 @@ export const SalesMobilePage = () => {
   
   const [isBusinessDayModalOpen, setIsBusinessDayModalOpen] = useState(false);
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   useEffect(() => {
-    if (!activeShift && currentBranch?._id) {
+    if (shiftStatus !== "loading") {
+      setInitialCheckDone(true);
+    }
+  }, [shiftStatus]);
+
+  useEffect(() => {
+    if (!activeShift && currentBranch?._id && getOpenBusinessDayStatus === API_STATUS.IDLE) {
       dispatch(getOpenBusinessDay(currentBranch._id));
     }
-  }, [activeShift, currentBranch?._id, dispatch]);
+  }, [activeShift, currentBranch?._id, dispatch, getOpenBusinessDayStatus]);
 
   const handleCloseBusinessDayModal = () => {
     setIsBusinessDayModalOpen(false);
@@ -170,7 +181,7 @@ export const SalesMobilePage = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  if (shiftStatus === "loading" && !activeShift) {
+  if (!initialCheckDone && shiftStatus === "loading" && !activeShift && !isShiftModalOpen && !isBusinessDayModalOpen) {
     return (
       <div className="flex flex-col items-center justify-center h-[100dvh] space-y-4 p-8 bg-bg">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -180,30 +191,17 @@ export const SalesMobilePage = () => {
   }
 
   if (!activeShift) {
-    const isCheckingBusinessDay = getOpenBusinessDayStatus === API_STATUS.LOADING;
-    
+    const isDayOpen = Boolean(openBusinessDay);
+
     return (
-      <div className="flex flex-col items-center justify-center h-[100dvh] space-y-4 p-8 bg-bg">
-        {isCheckingBusinessDay ? (
-          <>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="text-text-muted">Checking business day...</p>
-          </>
-        ) : !openBusinessDay ? (
-          <>
-            <Store className="size-16 text-text-muted" />
-            <h2 className="text-2xl font-bold text-text text-center">No business day is open</h2>
-            <p className="text-text-muted text-center">You must open a business day before starting a shift.</p>
-            <UIButton variant="primary" onClick={() => setIsBusinessDayModalOpen(true)}>Start a day</UIButton>
-          </>
-        ) : (
-          <>
-            <Store className="size-16 text-text-muted" />
-            <h2 className="text-2xl font-bold text-text text-center">No open shift is present</h2>
-            <p className="text-text-muted text-center">You must open a shift before you can access POS billing.</p>
-            <UIButton variant="primary" onClick={() => setIsShiftModalOpen(true)}>Start a shift</UIButton>
-          </>
-        )}
+      <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 bg-slate-50/80 dark:bg-neutral-950 font-sans relative">
+        <POSSessionGatekeeperCard
+          isDayOpen={isDayOpen}
+          openBusinessDay={openBusinessDay}
+          currentBranch={currentBranch}
+          onOpenBusinessDay={() => setIsBusinessDayModalOpen(true)}
+          onStartShift={() => setIsShiftModalOpen(true)}
+        />
 
         <OpenBusinessDayDialog isOpen={isBusinessDayModalOpen} onClose={handleCloseBusinessDayModal} />
         <CreateShiftDialog isOpen={isShiftModalOpen} onClose={handleCloseShiftModal} />

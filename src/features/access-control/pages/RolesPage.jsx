@@ -9,6 +9,7 @@ import useAccessControl from "../hooks/useAccessControl";
 
 import RolesDesktopPage from "./desktop/RolesDesktopPage";
 import RolesMobilePage from "./mobile/RolesMobilePage";
+import RoleDialog from "../components/RoleDialog";
 
 const statusOptions = [
   { label: "Status: All", value: "all" },
@@ -179,7 +180,11 @@ const RolesPage = () => {
 
   const {
     roles,
+    permissions,
     getWorkspaceRoles,
+    getAvailablePermissions,
+    createRole,
+    updateRole,
     deleteRole,
 
     getWorkspaceRolesStatus,
@@ -200,6 +205,12 @@ const RolesPage = () => {
   const [selectedRole, setSelectedRole] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    mode: "create",
+    roleData: null,
+  });
+
   const isLoadingRoles = getWorkspaceRolesStatus === API_STATUS.LOADING;
   const isDeletingRole = deleteRoleStatus === API_STATUS.LOADING;
   const isLoading = isLoadingRoles;
@@ -207,11 +218,14 @@ const RolesPage = () => {
 
   const fetchRoles = useCallback(async () => {
     try {
-      await getWorkspaceRoles();
+      await Promise.all([
+        getWorkspaceRoles(),
+        getAvailablePermissions(),
+      ]);
     } catch {
-      // Error is already stored in access control slice.
+      // Error stored in slice.
     }
-  }, [getWorkspaceRoles]);
+  }, [getWorkspaceRoles, getAvailablePermissions]);
 
   useEffect(() => {
     clearError();
@@ -397,8 +411,8 @@ const RolesPage = () => {
   }, [navigate]);
 
   const handleCreateRole = useCallback(() => {
-    navigate(ROUTES.CREATE_ROLE);
-  }, [navigate]);
+    setDialogState({ isOpen: true, mode: "create", roleData: null });
+  }, []);
 
   const handleViewPermissions = useCallback(() => {
     navigate(ROUTES.PERMISSIONS);
@@ -409,26 +423,21 @@ const RolesPage = () => {
   }, []);
 
   const handleViewRole = useCallback(
-    (role) => {
-      if (!role?._id || String(role._id).startsWith("dummy-")) return;
-      navigate(ROUTES.ROLE_DETAILS.replace(":roleId", role._id));
+    (roleOrId) => {
+      const target = typeof roleOrId === "object" ? roleOrId : mappedRoles.find((r) => r._id === roleOrId);
+      if (!target) return;
+      setDialogState({ isOpen: true, mode: "view", roleData: target });
     },
-    [navigate],
+    [mappedRoles],
   );
 
   const handleEditRole = useCallback(
-    (role) => {
-      if (
-        !role?._id ||
-        !role?.canEdit ||
-        String(role._id).startsWith("dummy-")
-      ) {
-        return;
-      }
-
-      navigate(ROUTES.EDIT_ROLE.replace(":roleId", role._id));
+    (roleOrId) => {
+      const target = typeof roleOrId === "object" ? roleOrId : mappedRoles.find((r) => r._id === roleOrId);
+      if (!target) return;
+      setDialogState({ isOpen: true, mode: "edit", roleData: target });
     },
-    [navigate],
+    [mappedRoles],
   );
 
   const handleDeleteRole = useCallback((role) => {
@@ -457,10 +466,11 @@ const RolesPage = () => {
     try {
       await deleteRole(selectedRole._id);
       closeDeleteModal();
+      fetchRoles();
     } catch {
-      // Error is already stored in access control slice.
+      // Error stored in slice.
     }
-  }, [closeDeleteModal, deleteRole, selectedRole]);
+  }, [closeDeleteModal, deleteRole, selectedRole, fetchRoles]);
 
   const pageProps = {
     roles: filteredRoles,
@@ -510,6 +520,17 @@ const RolesPage = () => {
         <RolesDesktopPage {...pageProps} />
       )}
 
+      <RoleDialog
+        isOpen={dialogState.isOpen}
+        onClose={() => setDialogState((prev) => ({ ...prev, isOpen: false }))}
+        mode={dialogState.mode}
+        roleData={dialogState.roleData}
+        allPermissions={permissions}
+        onSubmitCreate={createRole}
+        onSubmitUpdate={updateRole}
+        onSuccess={fetchRoles}
+      />
+
       <UIConfirmDialog
         isOpen={isDeleteModalOpen}
         onClose={closeDeleteModal}
@@ -528,3 +549,4 @@ const RolesPage = () => {
 };
 
 export default RolesPage;
+

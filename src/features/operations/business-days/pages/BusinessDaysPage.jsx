@@ -51,7 +51,7 @@ const BusinessDaysPage = () => {
   const [sortBy, setSortBy] = useState("desc");
   const [viewMode, setViewMode] = useState(UI_TOOLBAR_VIEWS.GRID);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(6);
+  const [pageSize, setPageSize] = useState(10);
 
   // Dialog states
   const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);

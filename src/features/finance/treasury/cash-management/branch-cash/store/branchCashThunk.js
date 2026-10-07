@@ -22,6 +22,10 @@ export const fetchBranchCash = createAsyncThunk(
       const res = await branchCashService.getBranchCash(branchId);
       return res.data?.data ?? res.data;
     } catch (err) {
+      // 404 means branch cash is not yet initialized for this branch — return null gracefully
+      if (err.response?.status === 404) {
+        return null;
+      }
       return rejectWithValue(err.response?.data?.message || "Failed to fetch branch cash");
     }
   }

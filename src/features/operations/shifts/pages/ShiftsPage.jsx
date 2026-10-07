@@ -9,7 +9,10 @@ import { UI_TOOLBAR_VIEWS } from "@/components/ui";
 import { listShifts } from "../store/shiftThunk";
 import { clearShiftError, clearShiftMessage } from "../store/shiftSlice";
 import useBranch from "@/features/branch/hooks/useBranch";
-import { getOpenBusinessDay } from "@/features/operations/business-days/store/businessDayThunk";
+import {
+  getOpenBusinessDay,
+  listBusinessDays,
+} from "@/features/operations/business-days/store/businessDayThunk";
 
 import { ShiftsMobilePage } from "./mobile";
 import { ShiftsDesktopPage } from "./desktop";
@@ -32,20 +35,30 @@ const normalizeText = (value) =>
     .trim()
     .toLowerCase();
 
+const formatDateString = (dateInput) => {
+  if (!dateInput) return "";
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return String(dateInput).slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const ShiftsPage = () => {
   const dispatch = useDispatch();
   const isMobile = useIsMobile();
-  const hasFetchedRef = useRef(false);
 
   const { shifts, listShiftsStatus, error, message } = useSelector(
     (state) => state.shift
   );
   const { currentBranch } = useBranch();
-  const { openBusinessDay } = useSelector((state) => state.businessDay);
+  const { openBusinessDay, businessDays } = useSelector((state) => state.businessDay);
 
   const [filters, setFilters] = useState(initialFilters);
+  const [dateUserSelected, setDateUserSelected] = useState(false);
   const [sortBy, setSortBy] = useState("desc");
-  const [viewMode, setViewMode] = useState(UI_TOOLBAR_VIEWS.GRID);
+  const [viewMode, setViewMode] = useState("table");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
 
@@ -58,6 +71,39 @@ const ShiftsPage = () => {
   const isLoading = listShiftsStatus === API_STATUS.LOADING;
   const hasError = listShiftsStatus === API_STATUS.ERROR;
 
+  // Fetch open business day and business day history for default date calculation
+  useEffect(() => {
+    if (currentBranch?._id) {
+      dispatch(getOpenBusinessDay(currentBranch._id));
+      dispatch(listBusinessDays({ branchId: currentBranch._id }));
+    }
+  }, [dispatch, currentBranch?._id]);
+
+  // Set default shift filter date: Open Business Day -> Last Business Day -> Today
+  useEffect(() => {
+    if (dateUserSelected) return;
+
+    let defaultDate = "";
+    if (openBusinessDay?.businessDate) {
+      defaultDate = formatDateString(openBusinessDay.businessDate);
+    } else if (Array.isArray(businessDays) && businessDays.length > 0) {
+      const sorted = [...businessDays].sort(
+        (a, b) =>
+          new Date(b.businessDate || b.createdAt).getTime() -
+          new Date(a.businessDate || a.createdAt).getTime()
+      );
+      if (sorted[0]?.businessDate) {
+        defaultDate = formatDateString(sorted[0].businessDate);
+      }
+    } else {
+      defaultDate = formatDateString(new Date());
+    }
+
+    if (defaultDate) {
+      setFilters((prev) => ({ ...prev, date: defaultDate }));
+    }
+  }, [openBusinessDay, businessDays, dateUserSelected]);
+
   const fetchShiftsData = useCallback(() => {
     const params = {};
     if (currentBranch?._id) params.branchId = currentBranch._id;
@@ -66,12 +112,6 @@ const ShiftsPage = () => {
     params.sort = sortBy;
     dispatch(listShifts(params));
   }, [dispatch, currentBranch?._id, filters.date, filters.status, sortBy]);
-
-  useEffect(() => {
-    if (currentBranch?._id) {
-      dispatch(getOpenBusinessDay(currentBranch._id));
-    }
-  }, [dispatch, currentBranch?._id]);
 
   useEffect(() => {
     fetchShiftsData();
@@ -111,10 +151,37 @@ const ShiftsPage = () => {
       const matchesStatus =
         filters.status === "all" || shift.status === filters.status;
 
-      const matchesDate =
-        !filters.date ||
-        (shift.date && shift.date.startsWith(filters.date)) ||
-        (shift.openedAt && shift.openedAt.startsWith(filters.date));
+      let matchesDate = !filters.date;
+      if (filters.date) {
+        // 1. Check if shift belongs to openBusinessDay for this date
+        if (
+          openBusinessDay &&
+          formatDateString(openBusinessDay.businessDate) === filters.date
+        ) {
+          const bDayId =
+            shift.businessDayId?._id ||
+            shift.businessDayId ||
+            shift.businessDay?._id ||
+            shift.businessDay;
+          if (bDayId && String(bDayId) === String(openBusinessDay._id)) {
+            matchesDate = true;
+          }
+        }
+
+        if (!matchesDate) {
+          const shiftBusinessDateStr = formatDateString(shift.businessDate);
+          const shiftDateStr = formatDateString(shift.date);
+          const shiftOpenedAtStr = formatDateString(shift.openedAt);
+
+          matchesDate =
+            shiftBusinessDateStr === filters.date ||
+            shiftDateStr === filters.date ||
+            shiftOpenedAtStr === filters.date ||
+            (shift.date && String(shift.date).startsWith(filters.date)) ||
+            (shift.openedAt && String(shift.openedAt).startsWith(filters.date)) ||
+            (shift.businessDate && String(shift.businessDate).startsWith(filters.date));
+        }
+      }
 
       return matchesSearch && matchesStatus && matchesDate;
     });
@@ -124,7 +191,7 @@ const ShiftsPage = () => {
       const timeB = new Date(b.openedAt || b.createdAt || 0).getTime();
       return sortBy === "desc" ? timeB - timeA : timeA - timeB;
     });
-  }, [mappedShifts, filters, sortBy]);
+  }, [mappedShifts, filters, sortBy, openBusinessDay]);
 
   const totalPages = Math.ceil(filteredAndSortedShifts.length / pageSize) || 1;
 
@@ -192,8 +259,12 @@ const ShiftsPage = () => {
     setCurrentPage(1);
     if (eventOrValue?.target) {
       const { name, value } = eventOrValue.target;
+      if (name === "date") setDateUserSelected(true);
       setFilters((prev) => ({ ...prev, [name]: value }));
       return;
+    }
+    if (eventOrValue?.date !== undefined) {
+      setDateUserSelected(true);
     }
     setFilters((prev) => ({ ...prev, ...eventOrValue }));
   }, []);
@@ -205,11 +276,13 @@ const ShiftsPage = () => {
 
   const handleRemoveFilter = useCallback((key) => {
     setCurrentPage(1);
+    if (key === "date") setDateUserSelected(false);
     setFilters((prev) => ({ ...prev, [key]: initialFilters[key] }));
   }, []);
 
   const handleClearFilters = useCallback(() => {
     setCurrentPage(1);
+    setDateUserSelected(false);
     setFilters(initialFilters);
   }, []);
 
@@ -280,3 +353,4 @@ const ShiftsPage = () => {
 };
 
 export default ShiftsPage;
+

@@ -19,10 +19,12 @@ const businessDayService = {
   },
 
   /** Gets the suggested businessDate for the next Business Day opening. */
-  getSuggestedBusinessDate(branchId) {
-    return apiClient.get("/operations/business-days/suggested-date", {
-      params: { branchId },
-    });
+  getSuggestedBusinessDate(args) {
+    const params =
+      typeof args === "object" && args !== null && !Array.isArray(args)
+        ? args
+        : { branchId: args };
+    return apiClient.get("/operations/business-days/suggested-date", { params });
   },
 
   /** Gets a Business Day by ID. */

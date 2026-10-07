@@ -1,277 +1,232 @@
 // src/features/operations/shifts/components/ShiftCard.jsx
 
-import React, { useMemo } from "react";
-import { motion } from "framer-motion";
-import {
-  Clock,
-  Sun,
-  Sunset,
-  Moon,
-  Info,
-  LockKeyhole,
-  User,
-  AlertTriangle,
-  TrendingUp,
-  Banknote,
-  Calendar,
-} from "lucide-react";
-import {
-  UIBadge,
-  UIIconButton,
-  UIButton,
-} from "@/components/ui";
+import React from "react";
+import { Eye, LockKeyhole, Calendar, Clock } from "lucide-react";
+import { UIBadge, UIButton } from "@/components/ui";
 
-const SHIFT_PALETTES = [
-  {
-    bg: "from-amber-500 to-orange-600",
-    shadow: "shadow-orange-500/20",
-    icon: Sun,
-    label: "Morning Shift",
-  },
-  {
-    bg: "from-blue-600 to-indigo-600",
-    shadow: "shadow-blue-500/20",
-    icon: Clock,
-    label: "Afternoon Shift",
-  },
-  {
-    bg: "from-purple-600 to-violet-700",
-    shadow: "shadow-purple-500/20",
-    icon: Sunset,
-    label: "Evening Shift",
-  },
-  {
-    bg: "from-slate-800 to-zinc-900",
-    shadow: "shadow-slate-500/20",
-    icon: Moon,
-    label: "Night Shift",
-  },
-];
-
-const getShiftPalette = (shiftName = "", openedAt) => {
-  const name = String(shiftName || "").toLowerCase();
-  if (name.includes("morning") || name.includes("am")) return SHIFT_PALETTES[0];
-  if (name.includes("afternoon") || name.includes("noon")) return SHIFT_PALETTES[1];
-  if (name.includes("evening") || name.includes("pm")) return SHIFT_PALETTES[2];
-  if (name.includes("night")) return SHIFT_PALETTES[3];
-
-  if (openedAt) {
-    const hour = new Date(openedAt).getHours();
-    if (hour >= 6 && hour < 12) return SHIFT_PALETTES[0];
-    if (hour >= 12 && hour < 17) return SHIFT_PALETTES[1];
-    if (hour >= 17 && hour < 21) return SHIFT_PALETTES[2];
-    return SHIFT_PALETTES[3];
-  }
-  return SHIFT_PALETTES[1];
-};
-
-const getFallbackShiftName = (s) => {
-  if (s?.shiftName) return s.shiftName;
-  const hour = new Date(s?.openedAt || s?.createdAt || new Date()).getHours();
-  if (hour < 12) return "Morning Shift";
-  if (hour < 17) return "Afternoon Shift";
-  if (hour < 20) return "Evening Shift";
-  return "Night Shift";
-};
-
-const formatCurrency = (amount) => {
-  if (amount === undefined || amount === null) return "₹0";
-  return `₹${Number(amount).toLocaleString("en-IN")}`;
-};
-
-const formatTimeRange = (openedAt, closedAt) => {
-  const openStr = openedAt
-    ? new Date(openedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : "-";
-  if (!closedAt) return `${openStr} → Open`;
-  const closeStr = new Date(closedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  return `${openStr} → ${closeStr}`;
-};
-
-const formatDate = (value) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
+const formatDate = (val) => {
+  if (!val) return "-";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "-";
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
     month: "short",
     year: "numeric",
   });
 };
 
-export const ShiftCard = ({
-  shift,
-  onView,
-  onCloseShift,
-}) => {
-  const palette = useMemo(
-    () => getShiftPalette(shift?.shiftName, shift?.openedAt),
-    [shift?.shiftName, shift?.openedAt]
+const formatTime = (val) => {
+  if (!val) return "-";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "-";
+  return d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "₹ 0.00";
+  return `₹ ${Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
+
+const getInitials = (name) => {
+  if (!name) return "US";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+const getAvatarColorClass = (name = "") => {
+  const colors = [
+    "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+    "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+    "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
+    "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300 border-sky-200 dark:border-sky-800",
+    "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border-teal-200 dark:border-teal-800",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const getShiftTitle = (shift) => {
+  if (shift?.shiftName) return shift.shiftName;
+  const hour = new Date(shift?.openedAt || shift?.createdAt || Date.now()).getHours();
+  if (hour >= 5 && hour < 12) return "Morning Shift";
+  if (hour >= 12 && hour < 17) return "Afternoon Shift";
+  if (hour >= 17 && hour < 21) return "Evening Shift";
+  return "Night Shift";
+};
+
+export const ShiftCard = ({ shift, onView, onCloseShift }) => {
+  const shiftTitle = getShiftTitle(shift);
+  const isShiftOpen = shift.status === "open";
+  const isCancelled = shift.status === "cancelled";
+
+  const cashierName =
+    shift.openedBy?.fullName ||
+    shift.openedBy?.name ||
+    shift.openedBy?.email ||
+    "Cashier";
+  const cashierInitials = getInitials(cashierName);
+  const avatarColor = getAvatarColorClass(cashierName);
+
+  const businessDateStr = formatDate(
+    shift.businessDate || shift.date || shift.openedAt
   );
+  const openTime = formatTime(shift.openedAt || shift.createdAt);
+  const closeTime = isShiftOpen ? "Open" : formatTime(shift.closedAt);
 
-  const ShiftIcon = palette.icon || Clock;
-  const shiftTitle = getFallbackShiftName(shift);
-  const isOpen = shift?.status === "open";
-  const isClosed = shift?.status === "closed";
+  const openingFloat = formatCurrency(shift.openingFloatAmount);
+  const cashSalesAmount =
+    shift.cashSalesTotal ??
+    shift.summary?.cashNet ??
+    shift.cashSales ??
+    shift.actualClosingCashAmount ??
+    0;
+  const cashSales = formatCurrency(cashSalesAmount);
 
-  const openedByStaff =
-    shift?.openedBy?.fullName ||
-    shift?.openedBy?.name ||
-    shift?.openedBy?.email ||
-    "System User";
+  const depositsAmount =
+    Array.isArray(shift.manualDeposits) && shift.manualDeposits.length > 0
+      ? shift.manualDeposits.reduce((acc, d) => acc + (Number(d.amount) || 0), 0)
+      : shift.totalFundDeposits ?? 0;
+  const deposits = formatCurrency(depositsAmount);
+
+  const withdrawalsAmount =
+    Array.isArray(shift.manualWithdrawals) && shift.manualWithdrawals.length > 0
+      ? shift.manualWithdrawals.reduce((acc, w) => acc + (Number(w.amount) || 0), 0)
+      : shift.totalFundWithdrawals ?? 0;
+  const withdrawals = formatCurrency(withdrawalsAmount);
 
   return (
-    <motion.div
-      whileHover={{ y: -3 }}
-      whileTap={{ scale: 0.99 }}
-      transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+    <div
       onClick={() => onView?.(shift)}
-      className={`group relative flex flex-col justify-between rounded-[16px] p-5 shadow-sm transition-all duration-200 cursor-pointer select-none ${
-        isOpen
-          ? "border-2 border-emerald-500/80 dark:border-emerald-500/70 shadow-lg shadow-emerald-500/15 ring-2 ring-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.07] via-surface to-surface hover:border-emerald-500 hover:shadow-emerald-500/20"
-          : "border border-border bg-surface hover:border-border-strong hover:shadow-md"
-      }`}
+      className="bg-surface rounded-xl border border-border p-5 shadow-xs hover:border-border-strong hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between space-y-4"
     >
-      {/* ── Active Session Highlight Banner ── */}
-      {isOpen && (
-        <div className="flex items-center justify-between gap-2 mb-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-2.5 py-1 text-emerald-600 dark:text-emerald-400">
-          <span className="flex items-center gap-1.5 text-[10px] font-black tracking-widest uppercase">
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            Active Register Shift
-          </span>
-          <span className="text-[10px] font-bold font-mono">LIVE SESSION</span>
-        </div>
-      )}
-
-      {/* ── Header Row: Icon, Title, Shift No, Badge & Direct "i" Button ── */}
+      {/* Top Header Row */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3.5 min-w-0">
-          <div
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br ${palette.bg} text-white shadow-md ${palette.shadow} transition-transform duration-200 group-hover:scale-105 ${
-              isOpen ? "ring-4 ring-emerald-500/30 shadow-emerald-500/30" : ""
-            }`}
-          >
-            <ShiftIcon className="h-5 w-5 stroke-[2.2]" />
-          </div>
-
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="text-[15px] font-bold text-text truncate tracking-tight group-hover:text-primary transition-colors">
-                {shiftTitle}
-              </h3>
-              {shift?.isAdjusted && isClosed && (
-                <span
-                  title="Shift Adjusted: Physical cash counted or denominations didn't match expected system cash"
-                  className="text-warning flex items-center justify-center bg-warning-soft rounded-full p-1 border border-warning/30 shrink-0"
-                >
-                  <AlertTriangle className="size-3" />
-                </span>
-              )}
-            </div>
-            <p className="text-[12px] font-mono text-text-muted truncate mt-0.5">
-              {shift?.shiftNo || "N/A"}
-            </p>
-          </div>
-        </div>
-
-        {/* Status Badge & Direct "i" Info Button & Lock Icon Button */}
-        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <UIBadge
-            variant="soft"
-            color={isOpen ? "success" : isClosed ? "neutral" : "error"}
-            className={`text-xs uppercase font-bold tracking-wider ${
-              isOpen ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" : ""
-            }`}
-          >
-            {shift?.status || "open"}
-          </UIBadge>
-
-          <UIIconButton
-            variant="ghost"
-            size="sm"
-            aria-label={`View details for ${shiftTitle}`}
-            title="View Shift Details"
-            onClick={() => onView?.(shift)}
-            className="text-text-muted hover:text-primary hover:bg-primary/10 h-8 w-8 rounded-lg transition-colors"
-          >
-            <Info className="h-4 w-4" />
-          </UIIconButton>
-
-          {isOpen && (
-            <UIIconButton
-              variant="ghost"
-              size="sm"
-              aria-label={`Lock Shift ${shiftTitle}`}
-              title="Lock Shift"
-              onClick={() => onCloseShift?.(shift)}
-              className="text-amber-600 hover:text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 border border-amber-500/30 h-8 w-8 rounded-lg transition-colors"
-            >
-              <LockKeyhole className="h-4 w-4" />
-            </UIIconButton>
-          )}
-        </div>
-      </div>
-
-      {/* ── Middle Divider ── */}
-      <div className="my-3.5 h-[1px] w-full bg-border/60" />
-
-      {/* ── 2x2 Metadata Grid ── */}
-      <div className="grid grid-cols-2 gap-y-3.5 gap-x-4">
-        {/* Date & Time Range */}
-        <div className="min-w-0">
-          <p className="text-[11.5px] font-medium text-text-muted flex items-center gap-1">
-            <Calendar className="size-3 shrink-0 text-primary" />
-            Date & Session
-          </p>
-          <p className="text-[13px] font-bold text-text truncate mt-0.5">
-            {formatDate(shift?.date || shift?.openedAt)}
-          </p>
-          <p className="text-[11.5px] text-text-muted font-mono truncate">
-            {formatTimeRange(shift?.openedAt, shift?.closedAt)}
-          </p>
-        </div>
-
-        {/* Opened By */}
-        <div className="min-w-0">
-          <p className="text-[11.5px] font-medium text-text-muted flex items-center gap-1">
-            <User className="size-3 shrink-0 text-primary" />
-            Opened By
-          </p>
-          <p className="text-[13px] font-semibold text-text truncate mt-0.5" title={openedByStaff}>
-            {openedByStaff}
-          </p>
-        </div>
-
-        {/* Opening Float */}
-        <div className="min-w-0">
-          <p className="text-[11.5px] font-medium text-text-muted flex items-center gap-1">
-            <Banknote className="size-3 shrink-0 text-emerald-600" />
-            Opening Float
-          </p>
-          <p className="text-[13.5px] font-bold text-text font-mono tabular-nums mt-0.5">
-            {formatCurrency(shift?.openingFloatAmount)}
-          </p>
-        </div>
-
-        {/* Closing Amount */}
-        <div className="min-w-0">
-          <p className="text-[11.5px] font-medium text-text-muted flex items-center gap-1">
-            <TrendingUp className="size-3 shrink-0 text-primary" />
-            Closing Cash
-          </p>
-          {isClosed ? (
-            <p className="text-[13.5px] font-bold text-primary font-mono tabular-nums mt-0.5">
-              {formatCurrency(shift?.actualClosingCashAmount)}
-            </p>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              In Progress
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold text-text truncate">
+              {shiftTitle}
+            </h3>
+            <span className="font-mono text-xs px-2 py-0.5 rounded bg-surface-alt text-text-muted border border-border">
+              {shift.shiftNo || "SFT-000"}
             </span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-text-muted mt-1">
+            <span className="flex items-center gap-1">
+              <Calendar className="size-3.5" />
+              {businessDateStr}
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              <Clock className="size-3.5" />
+              {openTime} – {closeTime}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          {isShiftOpen ? (
+            <UIBadge variant="dot" color="success">
+              Open
+            </UIBadge>
+          ) : isCancelled ? (
+            <UIBadge variant="dot" color="error">
+              Cancelled
+            </UIBadge>
+          ) : (
+            <UIBadge variant="dot" color="neutral">
+              Closed
+            </UIBadge>
           )}
         </div>
       </div>
-    </motion.div>
+
+      {/* Cashier Info */}
+      <div className="flex items-center gap-2.5 pt-1">
+        <div
+          className={`size-8 rounded-full flex items-center justify-center text-xs font-bold border shrink-0 ${avatarColor}`}
+        >
+          {cashierInitials}
+        </div>
+        <div className="min-w-0">
+          <div className="text-xs text-text-muted">Assigned Cashier</div>
+          <div className="text-sm font-medium text-text truncate">
+            {cashierName}
+          </div>
+        </div>
+      </div>
+
+      {/* 4-Metric Grid */}
+      <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-border/60">
+        <div className="bg-surface-alt/50 p-2.5 rounded-lg border border-border/40">
+          <div className="text-[11px] text-text-muted">Opening Float</div>
+          <div className="text-sm font-semibold text-text tabular-nums mt-0.5">
+            {openingFloat}
+          </div>
+        </div>
+
+        <div className="bg-surface-alt/50 p-2.5 rounded-lg border border-border/40">
+          <div className="text-[11px] text-text-muted">Cash Sales</div>
+          <div className="text-sm font-semibold text-text tabular-nums mt-0.5">
+            {cashSales}
+          </div>
+        </div>
+
+        <div className="bg-surface-alt/50 p-2.5 rounded-lg border border-border/40">
+          <div className="text-[11px] text-text-muted">Deposits</div>
+          <div className="text-sm font-semibold text-text tabular-nums mt-0.5">
+            {deposits}
+          </div>
+        </div>
+
+        <div className="bg-surface-alt/50 p-2.5 rounded-lg border border-border/40">
+          <div className="text-[11px] text-text-muted">Withdrawals</div>
+          <div className="text-sm font-semibold text-text tabular-nums mt-0.5">
+            {withdrawals}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Actions */}
+      <div
+        className="flex items-center justify-end gap-2 pt-2 border-t border-border/60"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <UIButton
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onView?.(shift)}
+          startIcon={<Eye className="size-3.5" />}
+          className="h-8 text-xs"
+        >
+          View Details
+        </UIButton>
+
+        {isShiftOpen && (
+          <UIButton
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => onCloseShift?.(shift)}
+            startIcon={<LockKeyhole className="size-3.5 text-warning" />}
+            className="h-8 text-xs text-warning hover:bg-warning-soft"
+          >
+            Close Shift
+          </UIButton>
+        )}
+      </div>
+    </div>
   );
 };
 
