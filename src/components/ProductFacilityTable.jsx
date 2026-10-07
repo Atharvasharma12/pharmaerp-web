@@ -199,10 +199,11 @@ const ProductFacilityTable = ({ data }) => {
   const [limit, setLimit] = useState(5);
   const [search, setSearch] = useState("");
   const [lowStockFilter, setLowStockFilter] = useState(false);
-  const { activeBranchId, activeCompanyId } = useUser();
+  const { activeBranchId: userBranchId, activeCompanyId } = useUser();
+  const { branches, getCompanyBranches, currentBranch } = useBranch();
+  const activeBranchId = currentBranch?._id || currentBranch?.id || userBranchId;
   const [selectedBranch, setSelectedBranch] = useState(activeBranchId || "");
   const [selectedProductForModal, setSelectedProductForModal] = useState(null);
-  const { branches, getCompanyBranches } = useBranch();
 
   /* ---------------- SELECTION ---------------- */
   const [selectedIds, setSelectedIds] = useState([]);
