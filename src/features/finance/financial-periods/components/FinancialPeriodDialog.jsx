@@ -84,8 +84,12 @@ export function FinancialPeriodDialog({
     }
   }, [isOpen, mode]);
 
-  const handleFieldChange = (name, value) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleFieldChange = (name, valueOrEvent) => {
+    let val = valueOrEvent;
+    if (valueOrEvent && typeof valueOrEvent === "object" && "target" in valueOrEvent) {
+      val = valueOrEvent.target.type === "checkbox" ? valueOrEvent.target.checked : valueOrEvent.target.value;
+    }
+    setFormData((prev) => ({ ...prev, [name]: val }));
     setFormErrors((prev) => ({ ...prev, [name]: "", submit: "" }));
   };
 
@@ -166,13 +170,19 @@ export function FinancialPeriodDialog({
   };
 
   return (
-    <UIModal isOpen={isOpen} onClose={onClose} size="md" mobileSheet>
+    <UIModal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      mobileSheet
+      className="w-full max-w-2xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-3xl border border-border bg-surface shadow-2xl overflow-hidden"
+    >
       <UIModalHeader>
         <UIModalTitle>{title}</UIModalTitle>
         <UIModalDescription>{subtitle}</UIModalDescription>
       </UIModalHeader>
 
-      <UIModalBody>
+      <UIModalBody className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7 space-y-6">
         {serverError && (
           <UIAlert variant="error" onDismiss={() => setServerError(null)}>
             {serverError}
@@ -243,7 +253,7 @@ export function FinancialPeriodDialog({
                 <UISelect
                   label="Period Type"
                   value={formData.periodType}
-                  onChange={(e) => handleFieldChange("periodType", e.target.value)}
+                  onChange={(val) => handleFieldChange("periodType", val)}
                   options={typeOptions}
                   required
                 />
@@ -259,7 +269,7 @@ export function FinancialPeriodDialog({
               <UISelect
                 label="Initial Period Status"
                 value={formData.status}
-                onChange={(e) => handleFieldChange("status", e.target.value)}
+                onChange={(val) => handleFieldChange("status", val)}
                 options={statusOptions}
                 required
               />
@@ -268,7 +278,7 @@ export function FinancialPeriodDialog({
                 <UICheckbox
                   label="Set as Current Active Period"
                   checked={formData.isCurrent}
-                  onChange={(e) => handleFieldChange("isCurrent", e.target.checked)}
+                  onChange={(checked) => handleFieldChange("isCurrent", checked)}
                   helperText="Only one period can be active at a time."
                 />
               </div>

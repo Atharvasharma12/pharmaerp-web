@@ -126,8 +126,12 @@ export function SupplierDialog({
     }
   }, [isOpen, mode, supplierData]);
 
-  const handleFieldChange = (name, value) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleFieldChange = (name, valueOrEvent) => {
+    let val = valueOrEvent;
+    if (valueOrEvent && typeof valueOrEvent === "object" && "target" in valueOrEvent) {
+      val = valueOrEvent.target.type === "checkbox" ? valueOrEvent.target.checked : valueOrEvent.target.value;
+    }
+    setFormData((prev) => ({ ...prev, [name]: val }));
     setFormErrors((prev) => ({ ...prev, [name]: "", submit: "" }));
   };
 
@@ -239,13 +243,19 @@ export function SupplierDialog({
   };
 
   return (
-    <UIModal isOpen={isOpen} onClose={onClose} size="lg" mobileSheet>
+    <UIModal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="xl"
+      mobileSheet
+      className="w-full max-w-4xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-3xl border border-border bg-surface shadow-2xl overflow-hidden"
+    >
       <UIModalHeader>
         <UIModalTitle>{title}</UIModalTitle>
         <UIModalDescription>{subtitle}</UIModalDescription>
       </UIModalHeader>
 
-      <UIModalBody>
+      <UIModalBody className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7 space-y-6">
         {serverError && (
           <UIAlert variant="error" onDismiss={() => setServerError(null)}>
             {serverError}
@@ -328,7 +338,7 @@ export function SupplierDialog({
                 <UISelect
                   label="Supplier Type"
                   value={formData.supplierType}
-                  onChange={(e) => handleFieldChange("supplierType", e.target.value)}
+                  onChange={(val) => handleFieldChange("supplierType", val)}
                   options={supplierTypeOptions}
                   required
                 />
@@ -364,7 +374,7 @@ export function SupplierDialog({
               <UISelect
                 label="Status"
                 value={formData.status}
-                onChange={(e) => handleFieldChange("status", e.target.value)}
+                onChange={(val) => handleFieldChange("status", val)}
                 options={statusOptions}
               />
             </UIFormSection>
@@ -484,7 +494,7 @@ export function SupplierDialog({
                 <UISelect
                   label="Balance Type"
                   value={formData.openingBalanceType}
-                  onChange={(e) => handleFieldChange("openingBalanceType", e.target.value)}
+                  onChange={(val) => handleFieldChange("openingBalanceType", val)}
                   options={balanceTypeOptions}
                 />
               </div>

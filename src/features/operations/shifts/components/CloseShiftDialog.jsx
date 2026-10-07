@@ -30,11 +30,13 @@ import {
   AlertTriangle,
   CheckCircle2,
   AlertCircle,
+  Snowflake,
+  Zap,
+  RotateCcw,
+  HandCoins,
 } from "lucide-react";
 import { PostShiftCloseDialog } from "./PostShiftCloseDialog";
 
-const DENOMINATIONS_LEFT = [500, 200, 100, 50, 20];
-const DENOMINATIONS_RIGHT = [10, 5, 2, 1];
 const ALL_DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
 
 const DENOM_CONFIG = {
@@ -101,6 +103,10 @@ export const CloseShiftDialog = ({
     ALL_DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {})
   );
 
+  const [frozenCounts, setFrozenCounts] = useState(
+    ALL_DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {})
+  );
+
   const {
     fetchBranchCash,
     currentBranchCash,
@@ -150,16 +156,75 @@ export const CloseShiftDialog = ({
       setCounts(
         ALL_DENOMINATIONS.reduce((acc, n) => ({ ...acc, [n]: "" }), {})
       );
+      setFrozenCounts(
+        ALL_DENOMINATIONS.reduce((acc, n) => ({ ...acc, [n]: "" }), {})
+      );
       setNote("");
       setLocalError(null);
     }
   }, [isOpen, runningDenominations]);
 
   const handleCountChange = (denom, val) => {
+    const newCount = val === "" ? "" : Math.max(0, parseInt(val, 10) || 0);
     setCounts((prev) => ({
       ...prev,
-      [denom]: val === "" ? "" : Math.max(0, parseInt(val, 10) || 0),
+      [denom]: newCount,
     }));
+    // Auto-clamp frozen if user lowers counted notes below existing frozen count
+    setFrozenCounts((prev) => {
+      const numericCount = Number(newCount) || 0;
+      const currentFrozen = Number(prev[denom]) || 0;
+      if (currentFrozen > numericCount) {
+        return {
+          ...prev,
+          [denom]: numericCount === 0 ? "" : String(numericCount),
+        };
+      }
+      return prev;
+    });
+  };
+
+  const handleFrozenChange = (denom, val) => {
+    const counted = Number(counts[denom]) || 0;
+    if (val === "") {
+      setFrozenCounts((prev) => ({ ...prev, [denom]: "" }));
+      return;
+    }
+    const parsed = Math.max(0, parseInt(val, 10) || 0);
+    const clamped = Math.min(parsed, counted);
+    setFrozenCounts((prev) => ({
+      ...prev,
+      [denom]: String(clamped),
+    }));
+  };
+
+  // Quick Freeze Actions
+  const handleFreezeHighDenoms = () => {
+    setFrozenCounts((prev) => {
+      const next = { ...prev };
+      [500, 200, 100].forEach((n) => {
+        const counted = Number(counts[n]) || 0;
+        next[n] = counted > 0 ? String(counted) : "";
+      });
+      return next;
+    });
+  };
+
+  const handleFreezeAll = () => {
+    setFrozenCounts((prev) => {
+      const next = {};
+      ALL_DENOMINATIONS.forEach((n) => {
+        const counted = Number(counts[n]) || 0;
+        next[n] = counted > 0 ? String(counted) : "";
+      });
+      return next;
+    });
+  };
+
+  const handleClearFrozen = () => {
+    setFrozenCounts(
+      ALL_DENOMINATIONS.reduce((acc, n) => ({ ...acc, [n]: "" }), {})
+    );
   };
 
   const handleAutoFill = () => {
@@ -171,13 +236,58 @@ export const CloseShiftDialog = ({
       updated[d] = found && found.quantity > 0 ? String(found.quantity) : "0";
     });
     setCounts(updated);
+    // Clamp frozen counts against new autofilled counts
+    setFrozenCounts((prev) => {
+      const next = { ...prev };
+      ALL_DENOMINATIONS.forEach((d) => {
+        const counted = Number(updated[d]) || 0;
+        const currentFrozen = Number(next[d]) || 0;
+        if (currentFrozen > counted) {
+          next[d] = counted === 0 ? "" : String(counted);
+        }
+      });
+      return next;
+    });
   };
+
+  // Running denomination counts (auto-calculated: counted - frozen)
+  const runningCounts = useMemo(() => {
+    const result = {};
+    ALL_DENOMINATIONS.forEach((n) => {
+      const counted = Number(counts[n]) || 0;
+      const frozen = Number(frozenCounts[n]) || 0;
+      result[n] = Math.max(0, counted - frozen);
+    });
+    return result;
+  }, [counts, frozenCounts]);
 
   const totalCounted = useMemo(() => {
     return ALL_DENOMINATIONS.reduce((sum, n) => {
       return sum + (Number(counts[n]) || 0) * n;
     }, 0);
   }, [counts]);
+
+  const totalFrozen = useMemo(() => {
+    return ALL_DENOMINATIONS.reduce((sum, n) => {
+      return sum + (Number(frozenCounts[n]) || 0) * n;
+    }, 0);
+  }, [frozenCounts]);
+
+  const totalRunning = useMemo(() => {
+    return Math.max(0, totalCounted - totalFrozen);
+  }, [totalCounted, totalFrozen]);
+
+  const frozenValidation = useMemo(() => {
+    const errors = [];
+    ALL_DENOMINATIONS.forEach((n) => {
+      const counted = Number(counts[n]) || 0;
+      const frozen = Number(frozenCounts[n]) || 0;
+      if (frozen > counted) {
+        errors.push(`₹${n}: Frozen count (${frozen}) exceeds counted notes (${counted})`);
+      }
+    });
+    return errors;
+  }, [counts, frozenCounts]);
 
   // Reconciled Metrics
   const openingFloat = Number(summary?.openingFloatAmount || shift?.openingFloatAmount || 0);
@@ -244,12 +354,18 @@ export const CloseShiftDialog = ({
   const gstPercent = totalSales > 0 ? ((totalGst / totalSales) * 100).toFixed(1) : "0.0";
 
   // Branch Cash Values
-  const runningCashAfterClosing = Math.max(0, Number(branchRunningCash || totalCounted || 0));
-  const frozenCash = Number(currentBranchCash?.frozenCash || 0);
-  const totalBranchCash = runningCashAfterClosing + frozenCash;
+  const runningCashAfterClosing = totalRunning;
+  const currentFrozenCash = Number(currentBranchCash?.frozenCash || 0);
+  const projectedFrozenCash = currentFrozenCash + totalFrozen;
+  const projectedTotalBranchCash = runningCashAfterClosing + projectedFrozenCash;
 
   const handleLockShift = async () => {
     setLocalError(null);
+
+    if (frozenValidation.length > 0) {
+      setLocalError(frozenValidation[0]);
+      return;
+    }
 
     const closingDenominations = ALL_DENOMINATIONS.filter(
       (n) => (Number(counts[n]) || 0) > 0
@@ -257,6 +373,13 @@ export const CloseShiftDialog = ({
       denomination: n,
       count: Number(counts[n]),
       amount: Number(counts[n]) * n,
+    }));
+
+    const frozenDenominations = ALL_DENOMINATIONS.filter(
+      (n) => (Number(frozenCounts[n]) || 0) > 0
+    ).map((n) => ({
+      denomination: n,
+      quantity: Number(frozenCounts[n]),
     }));
 
     try {
@@ -268,8 +391,8 @@ export const CloseShiftDialog = ({
             actualClosingCashAmount: totalCounted,
             closingDenominations,
             note,
-            carryForwardAmount: totalCounted,
-            frozenDenominations: [],
+            carryForwardAmount: totalRunning,
+            frozenDenominations,
           },
         })
       ).unwrap();
@@ -555,51 +678,110 @@ export const CloseShiftDialog = ({
               </div>
             </div>
 
-            {/* Right Column: Counted Denominations (col-span-7) */}
+            {/* Right Column: Counted Denominations & Frozen Transfer (col-span-7) */}
             <div className="lg:col-span-7 bg-surface rounded-xl border border-border/80 p-4 space-y-2.5 shadow-xs">
-              <div className="flex items-center justify-between pb-1 border-b border-border/60">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-border/60">
                 <div className="flex items-center gap-2">
                   <div className="size-6 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                     <Banknote className="size-3.5" />
                   </div>
-                  <h3 className="text-xs font-bold text-text">
-                    Counted Denominations (Cash in Drawer)
-                  </h3>
+                  <div>
+                    <h3 className="text-xs font-bold text-text">
+                      Counted Denominations &amp; Cash Split
+                    </h3>
+                  </div>
                 </div>
 
-                <UIButton
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  onClick={handleAutoFill}
-                  startIcon={<Download className="size-3" />}
-                  className="h-7 text-[10px] px-2.5 font-semibold text-text"
-                >
-                  Auto Fill from Running Cash
-                </UIButton>
+                {/* Quick actions */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <UIButton
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    onClick={handleAutoFill}
+                    startIcon={<Download className="size-3" />}
+                    className="h-6.5 text-[10px] px-2 font-medium text-text cursor-pointer"
+                    title="Fill counts from running cash in drawer"
+                  >
+                    Auto Fill
+                  </UIButton>
+
+                  <button
+                    type="button"
+                    onClick={handleFreezeHighDenoms}
+                    disabled={totalCounted === 0}
+                    className="h-6.5 text-[10px] font-semibold px-2 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30 transition flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    title="Transfer all counted ₹500, ₹200, ₹100 notes into Frozen Reserve Vault"
+                  >
+                    <Zap className="size-3 text-amber-500" />
+                    <span>Freeze High</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleFreezeAll}
+                    disabled={totalCounted === 0}
+                    className="h-6.5 text-[10px] font-medium px-2 rounded-md bg-surface border border-border text-text-muted hover:text-text transition flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    title="Transfer all counted cash into Frozen Reserve Vault"
+                  >
+                    <Snowflake className="size-3 text-sky-500" />
+                    <span>Freeze All</span>
+                  </button>
+
+                  {totalFrozen > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearFrozen}
+                      className="h-6.5 text-[10px] font-medium px-1.5 rounded-md text-text-muted hover:text-text transition flex items-center gap-0.5 cursor-pointer"
+                      title="Reset frozen counts to 0"
+                    >
+                      <RotateCcw className="size-2.5" />
+                      <span>Clear</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* 2-Column Denominations Grid */}
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                {/* Left Column (500, 200, 100, 50, 20) */}
-                <div className="space-y-1.5">
-                  <div className="grid grid-cols-12 text-[10px] font-semibold text-text-muted px-1">
-                    <span className="col-span-5">Denomination</span>
-                    <span className="col-span-3 text-center">Count</span>
-                    <span className="col-span-4 text-right">Amount</span>
+              {/* Denominations & Freeze Table */}
+              <div className="border border-border/80 rounded-xl overflow-hidden bg-surface">
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-1.5 px-3 py-2 bg-surface-alt/70 border-b border-border/70 text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                  <div className="col-span-3">Denom</div>
+                  <div className="col-span-3 text-center">Counted (Drawer)</div>
+                  <div className="col-span-3 text-center text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1">
+                    <Snowflake className="size-2.5" />
+                    <span>To Frozen Vault</span>
                   </div>
+                  <div className="col-span-3 text-right text-emerald-600 dark:text-emerald-400 flex items-center justify-end gap-1">
+                    <HandCoins className="size-2.5" />
+                    <span>Next Shift (Float)</span>
+                  </div>
+                </div>
 
-                  {DENOMINATIONS_LEFT.map((note) => {
+                {/* Rows */}
+                <div className="divide-y divide-border/50 max-h-[290px] overflow-y-auto">
+                  {ALL_DENOMINATIONS.map((note) => {
                     const countVal = counts[note] || "";
-                    const amountVal = (Number(countVal) || 0) * note;
+                    const frozenVal = frozenCounts[note] || "";
+                    const countedNum = Number(countVal) || 0;
+                    const frozenNum = Number(frozenVal) || 0;
+                    const runningNum = Math.max(0, countedNum - frozenNum);
+                    const isOverFrozen = frozenNum > countedNum;
                     const cfg = DENOM_CONFIG[note];
 
                     return (
                       <div
                         key={note}
-                        className="grid grid-cols-12 items-center gap-1.5 py-1 px-1 rounded-lg hover:bg-surface-alt/40 transition-colors"
+                        className={`grid grid-cols-12 items-center gap-1.5 px-3 py-1.5 transition-colors ${
+                          isOverFrozen
+                            ? "bg-rose-500/10"
+                            : frozenNum > 0
+                            ? "bg-amber-500/[0.03] hover:bg-amber-500/[0.07]"
+                            : "hover:bg-surface-alt/40"
+                        }`}
                       >
-                        <div className="col-span-5">
+                        {/* Denomination badge */}
+                        <div className="col-span-3 flex items-center gap-1.5">
                           <span
                             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${cfg.color}`}
                           >
@@ -608,6 +790,7 @@ export const CloseShiftDialog = ({
                           </span>
                         </div>
 
+                        {/* Counted in Drawer (input) */}
                         <div className="col-span-3">
                           <input
                             type="number"
@@ -615,58 +798,46 @@ export const CloseShiftDialog = ({
                             value={countVal}
                             onChange={(e) => handleCountChange(note, e.target.value)}
                             placeholder="0"
-                            className="w-full text-center font-mono text-xs border border-border/80 bg-surface rounded py-0.5 px-1 outline-none focus:border-primary font-bold text-text transition-colors"
+                            className="w-full text-center font-mono text-xs border border-border/80 bg-surface rounded-md py-1 px-1 outline-none focus:border-primary font-bold text-text transition-colors"
                           />
                         </div>
 
-                        <div className="col-span-4 text-right font-mono text-[11px] font-semibold text-text tabular-nums">
-                          {formatCurrency(amountVal)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Right Column (10, 5, 2, 1) */}
-                <div className="space-y-1.5">
-                  <div className="grid grid-cols-12 text-[10px] font-semibold text-text-muted px-1">
-                    <span className="col-span-5">Denomination</span>
-                    <span className="col-span-3 text-center">Count</span>
-                    <span className="col-span-4 text-right">Amount</span>
-                  </div>
-
-                  {DENOMINATIONS_RIGHT.map((note) => {
-                    const countVal = counts[note] || "";
-                    const amountVal = (Number(countVal) || 0) * note;
-                    const cfg = DENOM_CONFIG[note];
-
-                    return (
-                      <div
-                        key={note}
-                        className="grid grid-cols-12 items-center gap-1.5 py-1 px-1 rounded-lg hover:bg-surface-alt/40 transition-colors"
-                      >
-                        <div className="col-span-5">
-                          <span
-                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${cfg.color}`}
-                          >
-                            <Banknote className="size-2.5" />
-                            <span>₹ {note}</span>
-                          </span>
-                        </div>
-
+                        {/* To Frozen Vault (input) */}
                         <div className="col-span-3">
                           <input
                             type="number"
                             min="0"
-                            value={countVal}
-                            onChange={(e) => handleCountChange(note, e.target.value)}
+                            max={countedNum}
+                            value={frozenVal}
+                            onChange={(e) => handleFrozenChange(note, e.target.value)}
                             placeholder="0"
-                            className="w-full text-center font-mono text-xs border border-border/80 bg-surface rounded py-0.5 px-1 outline-none focus:border-primary font-bold text-text transition-colors"
+                            disabled={countedNum === 0}
+                            className={`w-full text-center font-mono text-xs border rounded-md py-1 px-1 outline-none transition-colors font-bold ${
+                              countedNum === 0
+                                ? "bg-surface-alt/30 border-border/40 text-text-muted/30 cursor-not-allowed"
+                                : isOverFrozen
+                                ? "border-rose-500 bg-rose-500/10 text-rose-600 focus:border-rose-500"
+                                : frozenNum > 0
+                                ? "border-amber-400 dark:border-amber-500/50 bg-amber-50/70 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 focus:border-amber-500"
+                                : "border-border/80 bg-surface text-text focus:border-amber-500 hover:border-amber-300"
+                            }`}
                           />
                         </div>
 
-                        <div className="col-span-4 text-right font-mono text-[11px] font-semibold text-text tabular-nums">
-                          {formatCurrency(amountVal)}
+                        {/* Next Shift Running (read-only count + value) */}
+                        <div className="col-span-3 text-right">
+                          {runningNum > 0 ? (
+                            <div className="inline-flex flex-col items-end">
+                              <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                {runningNum} pcs
+                              </span>
+                              <span className="text-[10px] font-mono text-text-muted">
+                                ₹{(runningNum * note).toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] font-mono text-text-muted/40">—</span>
+                          )}
                         </div>
                       </div>
                     );
@@ -674,19 +845,40 @@ export const CloseShiftDialog = ({
                 </div>
               </div>
 
-              {/* Total Counted Banner */}
-              <div className="bg-emerald-500/10 dark:bg-emerald-950/20 border border-emerald-500/20 rounded-xl p-2.5 px-3.5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="size-6 rounded-md bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                    <Banknote className="size-3.5" />
+              {/* Split Totals Banner */}
+              <div className="bg-surface-alt/70 border border-border/80 rounded-xl p-2.5 px-3.5 grid grid-cols-3 gap-2 divide-x divide-border/60">
+                {/* Total Counted */}
+                <div className="text-left">
+                  <div className="text-[10px] font-medium text-text-muted flex items-center gap-1">
+                    <Banknote className="size-3" />
+                    <span>Counted in Drawer</span>
                   </div>
-                  <span className="text-xs font-bold text-text">
-                    Total Counted Cash
-                  </span>
+                  <div className="text-sm font-bold font-mono text-text mt-0.5 tabular-nums">
+                    {formatCurrency(totalCounted)}
+                  </div>
                 </div>
-                <span className="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
-                  {formatCurrency(totalCounted)}
-                </span>
+
+                {/* To Frozen Reserve */}
+                <div className="text-center pl-2">
+                  <div className="text-[10px] font-medium text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1">
+                    <Snowflake className="size-3" />
+                    <span>To Frozen Vault</span>
+                  </div>
+                  <div className="text-sm font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5 tabular-nums">
+                    {formatCurrency(totalFrozen)}
+                  </div>
+                </div>
+
+                {/* Running Next Shift */}
+                <div className="text-right pl-2">
+                  <div className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center justify-end gap-1">
+                    <HandCoins className="size-3" />
+                    <span>Next Shift (Float)</span>
+                  </div>
+                  <div className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5 tabular-nums">
+                    {formatCurrency(totalRunning)}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -704,23 +896,36 @@ export const CloseShiftDialog = ({
 
               <div className="space-y-1.5 text-xs">
                 <div className="flex justify-between items-center py-0.5">
-                  <span className="text-text-muted text-[11px]">Running Cash (After Closing)</span>
-                  <span className="font-mono font-semibold text-text">
+                  <span className="text-text-muted text-[11px] flex items-center gap-1">
+                    <HandCoins className="size-3 text-emerald-500" />
+                    <span>Running Cash (Next Shift)</span>
+                  </span>
+                  <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
                     {formatCurrency(runningCashAfterClosing)}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center py-0.5">
-                  <span className="text-text-muted text-[11px]">Frozen Cash</span>
-                  <span className="font-mono font-semibold text-text">
-                    {formatCurrency(frozenCash)}
+                  <span className="text-text-muted text-[11px] flex items-center gap-1">
+                    <Snowflake className="size-3 text-amber-500" />
+                    <span>Frozen Reserve (Vault)</span>
                   </span>
+                  <div className="flex items-center gap-1.5">
+                    {totalFrozen > 0 && (
+                      <span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1 py-0.2 rounded">
+                        +{formatCurrency(totalFrozen)}
+                      </span>
+                    )}
+                    <span className="font-mono font-semibold text-text">
+                      {formatCurrency(projectedFrozenCash)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex justify-between items-center pt-2 border-t border-border/60 font-bold">
                   <span className="text-text">Total Branch Cash</span>
                   <span className="font-mono text-text">
-                    {formatCurrency(totalBranchCash)}
+                    {formatCurrency(projectedTotalBranchCash)}
                   </span>
                 </div>
               </div>
@@ -785,6 +990,45 @@ export const CloseShiftDialog = ({
                   </div>
                 </div>
 
+                {/* Frozen Reserve Split Check */}
+                <div className="flex items-start gap-2">
+                  {frozenValidation.length > 0 ? (
+                    <div className="size-4 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0 mt-0.5">
+                      <AlertCircle className="size-3" />
+                    </div>
+                  ) : totalFrozen > 0 ? (
+                    <div className="size-4 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5">
+                      <Snowflake className="size-3" />
+                    </div>
+                  ) : (
+                    <div className="size-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5">
+                      <CheckCircle2 className="size-3" />
+                    </div>
+                  )}
+                  <div>
+                    <div className={`text-[11px] font-bold ${
+                      frozenValidation.length > 0
+                        ? "text-rose-600 dark:text-rose-400"
+                        : totalFrozen > 0
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-emerald-600 dark:text-emerald-400"
+                    }`}>
+                      {frozenValidation.length > 0
+                        ? "Frozen count exceeds counted notes"
+                        : totalFrozen > 0
+                        ? `${formatCurrency(totalFrozen)} to Frozen Vault`
+                        : "All counted cash kept as Running"}
+                    </div>
+                    <div className="text-[10px] text-text-muted">
+                      {frozenValidation.length > 0
+                        ? frozenValidation[0]
+                        : totalFrozen > 0
+                        ? `${formatCurrency(totalRunning)} remains in drawer for next shift`
+                        : "Zero cash moved to frozen reserve"}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Transaction Data Check */}
                 <div className="flex items-start gap-2">
                   <div className="size-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5">
@@ -792,25 +1036,10 @@ export const CloseShiftDialog = ({
                   </div>
                   <div>
                     <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                      All transaction data is loaded
+                      Transaction data loaded
                     </div>
                     <div className="text-[10px] text-text-muted">
                       {totalBills} bills, {formatCurrency(totalSales)} sales
-                    </div>
-                  </div>
-                </div>
-
-                {/* Denomination Validity */}
-                <div className="flex items-start gap-2">
-                  <div className="size-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckCircle2 className="size-3" />
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                      Denomination count is valid
-                    </div>
-                    <div className="text-[10px] text-text-muted">
-                      Counts match total amount
                     </div>
                   </div>
                 </div>
@@ -826,7 +1055,7 @@ export const CloseShiftDialog = ({
             variant="outline"
             size="sm"
             onClick={onClose}
-            className="h-9 px-4 text-xs font-semibold"
+            className="h-9 px-4 text-xs font-semibold cursor-pointer"
           >
             Cancel
           </UIButton>
@@ -837,8 +1066,9 @@ export const CloseShiftDialog = ({
             size="sm"
             onClick={handleLockShift}
             isLoading={updateShiftStatusStatus === API_STATUS.LOADING}
+            disabled={frozenValidation.length > 0}
             startIcon={<Lock className="size-4" />}
-            className="h-9 px-5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-xs"
+            className="h-9 px-5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             Close Shift
           </UIButton>
@@ -847,8 +1077,8 @@ export const CloseShiftDialog = ({
 
       <PostShiftCloseDialog
         isOpen={showPostClose}
-        frozenAmount={closedShiftData?.frozenAtClose || 0}
-        runningAmount={closedShiftData?.carryForwardAmount || 0}
+        frozenAmount={closedShiftData?.frozenAtClose ?? totalFrozen}
+        runningAmount={closedShiftData?.carryForwardAmount ?? totalRunning}
         onOpenNewShift={() => {
           setShowPostClose(false);
           onClose();

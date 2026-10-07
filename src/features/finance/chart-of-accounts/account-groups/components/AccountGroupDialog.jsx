@@ -74,8 +74,12 @@ export function AccountGroupDialog({
     }
   }, [isOpen, mode, groupData]);
 
-  const handleFieldChange = (name, value) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleFieldChange = (name, valueOrEvent) => {
+    let val = valueOrEvent;
+    if (valueOrEvent && typeof valueOrEvent === "object" && "target" in valueOrEvent) {
+      val = valueOrEvent.target.type === "checkbox" ? valueOrEvent.target.checked : valueOrEvent.target.value;
+    }
+    setFormData((prev) => ({ ...prev, [name]: val }));
     setFormErrors((prev) => ({ ...prev, [name]: "", submit: "" }));
   };
 
@@ -159,13 +163,19 @@ export function AccountGroupDialog({
   };
 
   return (
-    <UIModal isOpen={isOpen} onClose={onClose} size="sm" mobileSheet>
+    <UIModal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      mobileSheet
+      className="w-full max-w-2xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-3xl border border-border bg-surface shadow-2xl overflow-hidden"
+    >
       <UIModalHeader>
         <UIModalTitle>{title}</UIModalTitle>
         <UIModalDescription>{subtitle}</UIModalDescription>
       </UIModalHeader>
 
-      <UIModalBody>
+      <UIModalBody className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7 space-y-6">
         {serverError && (
           <UIAlert variant="error" onDismiss={() => setServerError(null)}>
             {serverError}
@@ -236,7 +246,7 @@ export function AccountGroupDialog({
                 <UISelect
                   label="Nature"
                   value={formData.nature}
-                  onChange={(e) => handleFieldChange("nature", e.target.value)}
+                  onChange={(val) => handleFieldChange("nature", val)}
                   options={natureOptions}
                   error={Boolean(formErrors.nature)}
                   helperText={formErrors.nature}
@@ -248,7 +258,7 @@ export function AccountGroupDialog({
               <UISelect
                 label="Status"
                 value={formData.status}
-                onChange={(e) => handleFieldChange("status", e.target.value)}
+                onChange={(val) => handleFieldChange("status", val)}
                 options={statusOptions}
               />
 

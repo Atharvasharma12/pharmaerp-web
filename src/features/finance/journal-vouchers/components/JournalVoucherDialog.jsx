@@ -116,8 +116,12 @@ export function JournalVoucherDialog({
     return opts;
   }, [accounts]);
 
-  const handleFieldChange = (name, value) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleFieldChange = (name, valueOrEvent) => {
+    let val = valueOrEvent;
+    if (valueOrEvent && typeof valueOrEvent === "object" && "target" in valueOrEvent) {
+      val = valueOrEvent.target.type === "checkbox" ? valueOrEvent.target.checked : valueOrEvent.target.value;
+    }
+    setFormData((prev) => ({ ...prev, [name]: val }));
     setFormErrors((prev) => ({ ...prev, [name]: "", submit: "" }));
   };
 
@@ -269,13 +273,19 @@ export function JournalVoucherDialog({
   };
 
   return (
-    <UIModal isOpen={isOpen} onClose={onClose} size="xl" mobileSheet>
+    <UIModal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="xl"
+      mobileSheet
+      className="w-full max-w-5xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-3xl border border-border bg-surface shadow-2xl overflow-hidden"
+    >
       <UIModalHeader>
         <UIModalTitle>{title}</UIModalTitle>
         <UIModalDescription>{subtitle}</UIModalDescription>
       </UIModalHeader>
 
-      <UIModalBody>
+      <UIModalBody className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7 space-y-6">
         {serverError && (
           <UIAlert variant="error" onDismiss={() => setServerError(null)}>
             {serverError}
@@ -375,7 +385,7 @@ export function JournalVoucherDialog({
                 <UISelect
                   label="Voucher Type"
                   value={formData.voucherType}
-                  onChange={(e) => handleFieldChange("voucherType", e.target.value)}
+                  onChange={(val) => handleFieldChange("voucherType", val)}
                   options={voucherTypeOptions}
                   required
                 />
@@ -435,7 +445,7 @@ export function JournalVoucherDialog({
                         <td className="px-3 py-2">
                           <UISelect
                             value={line.accountId}
-                            onChange={(e) => handleLineChange(idx, "accountId", e.target.value)}
+                            onChange={(val) => handleLineChange(idx, "accountId", val)}
                             options={accountSelectOptions}
                             size="small"
                           />

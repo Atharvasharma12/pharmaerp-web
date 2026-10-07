@@ -86,8 +86,12 @@ export function FundTransferDialog({
     }));
   }, [bankAccounts]);
 
-  const handleFieldChange = (name, value) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleFieldChange = (name, valueOrEvent) => {
+    let val = valueOrEvent;
+    if (valueOrEvent && typeof valueOrEvent === "object" && "target" in valueOrEvent) {
+      val = valueOrEvent.target.type === "checkbox" ? valueOrEvent.target.checked : valueOrEvent.target.value;
+    }
+    setFormData((prev) => ({ ...prev, [name]: val }));
     setFormErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
@@ -148,13 +152,19 @@ export function FundTransferDialog({
     : "Transfer money between bank accounts or cash accounts.";
 
   return (
-    <UIModal isOpen={isOpen} onClose={onClose} size="md" mobileSheet>
+    <UIModal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      mobileSheet
+      className="w-full max-w-2xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-3xl border border-border bg-surface shadow-2xl overflow-hidden"
+    >
       <UIModalHeader>
         <UIModalTitle>{title}</UIModalTitle>
         <UIModalDescription>{subtitle}</UIModalDescription>
       </UIModalHeader>
 
-      <UIModalBody>
+      <UIModalBody className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7 space-y-6">
         {isFetching && <UISkeleton rows={5} />}
 
         {serverError && !isFetching && (
@@ -216,7 +226,7 @@ export function FundTransferDialog({
                 <UISelect
                   label="From Account (Source)"
                   value={formData.fromAccountId}
-                  onChange={(e) => handleFieldChange("fromAccountId", e.target.value)}
+                  onChange={(val) => handleFieldChange("fromAccountId", val)}
                   options={bankOptions}
                   error={Boolean(formErrors.fromAccountId)}
                   helperText={formErrors.fromAccountId}
@@ -226,7 +236,7 @@ export function FundTransferDialog({
                 <UISelect
                   label="To Account (Destination)"
                   value={formData.toAccountId}
-                  onChange={(e) => handleFieldChange("toAccountId", e.target.value)}
+                  onChange={(val) => handleFieldChange("toAccountId", val)}
                   options={bankOptions}
                   error={Boolean(formErrors.toAccountId)}
                   helperText={formErrors.toAccountId}

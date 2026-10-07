@@ -139,12 +139,17 @@ export function AccountDialog({
     return [{ label: "Select Category", value: "" }, ...filtered];
   }, [derivedNature]);
 
-  const handleFieldChange = (name, value) => {
+  const handleFieldChange = (name, valueOrEvent) => {
+    let val = valueOrEvent;
+    if (valueOrEvent && typeof valueOrEvent === "object" && "target" in valueOrEvent) {
+      val = valueOrEvent.target.type === "checkbox" ? valueOrEvent.target.checked : valueOrEvent.target.value;
+    }
+
     setFormData((prev) => {
-      const nextData = { ...prev, [name]: value };
+      const nextData = { ...prev, [name]: val };
 
       if (name === "accountGroupId") {
-        const group = accountGroups.find((g) => (g._id || g.id) === value);
+        const group = accountGroups.find((g) => (g._id || g.id) === val);
         if (group && group.nature) {
           const nat = group.nature.toUpperCase();
           nextData.accountNature = nat;
@@ -263,13 +268,19 @@ export function AccountDialog({
   );
 
   return (
-    <UIModal isOpen={isOpen} onClose={onClose} size="md" mobileSheet>
+    <UIModal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="xl"
+      mobileSheet
+      className="w-full max-w-4xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-3xl border border-border bg-surface shadow-2xl overflow-hidden"
+    >
       <UIModalHeader>
         <UIModalTitle>{title}</UIModalTitle>
         <UIModalDescription>{subtitle}</UIModalDescription>
       </UIModalHeader>
 
-      <UIModalBody>
+      <UIModalBody className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7 space-y-6">
         {serverError && (
           <UIAlert variant="error" onDismiss={() => setServerError(null)}>
             {serverError}
@@ -331,7 +342,7 @@ export function AccountDialog({
                 <UISelect
                   label="Account Group"
                   value={formData.accountGroupId}
-                  onChange={(e) => handleFieldChange("accountGroupId", e.target.value)}
+                  onChange={(val) => handleFieldChange("accountGroupId", val)}
                   options={groupOptions}
                   error={Boolean(formErrors.accountGroupId)}
                   helperText={formErrors.accountGroupId}
@@ -357,7 +368,7 @@ export function AccountDialog({
               <UISelect
                 label="Account Category"
                 value={formData.accountCategory}
-                onChange={(e) => handleFieldChange("accountCategory", e.target.value)}
+                onChange={(val) => handleFieldChange("accountCategory", val)}
                 options={categoryOptions}
                 error={Boolean(formErrors.accountCategory)}
                 helperText={formErrors.accountCategory || "Filtered based on selected Group Nature"}
@@ -403,7 +414,7 @@ export function AccountDialog({
                 <UISelect
                   label="Balance Type"
                   value={formData.openingBalanceType}
-                  onChange={(e) => handleFieldChange("openingBalanceType", e.target.value)}
+                  onChange={(val) => handleFieldChange("openingBalanceType", val)}
                   options={balanceTypeOptions}
                   disabled={isEdit}
                 />
@@ -412,7 +423,7 @@ export function AccountDialog({
               <UISelect
                 label="Status"
                 value={formData.status}
-                onChange={(e) => handleFieldChange("status", e.target.value)}
+                onChange={(val) => handleFieldChange("status", val)}
                 options={statusOptions}
               />
 

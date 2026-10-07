@@ -92,8 +92,12 @@ export function ChequeDialog({
     }));
   }, [bankAccounts]);
 
-  const handleFieldChange = (name, value) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleFieldChange = (name, valueOrEvent) => {
+    let val = valueOrEvent;
+    if (valueOrEvent && typeof valueOrEvent === "object" && "target" in valueOrEvent) {
+      val = valueOrEvent.target.type === "checkbox" ? valueOrEvent.target.checked : valueOrEvent.target.value;
+    }
+    setFormData((prev) => ({ ...prev, [name]: val }));
     setFormErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
@@ -174,13 +178,19 @@ export function ChequeDialog({
   };
 
   return (
-    <UIModal isOpen={isOpen} onClose={onClose} size="md" mobileSheet>
+    <UIModal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      mobileSheet
+      className="w-full max-w-2xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-3xl border border-border bg-surface shadow-2xl overflow-hidden"
+    >
       <UIModalHeader>
         <UIModalTitle>{title}</UIModalTitle>
         <UIModalDescription>{subtitle}</UIModalDescription>
       </UIModalHeader>
 
-      <UIModalBody>
+      <UIModalBody className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7 space-y-6">
         {isFetching && <UISkeleton rows={5} />}
 
         {serverError && !isFetching && (
@@ -243,7 +253,7 @@ export function ChequeDialog({
                 <UISelect
                   label="Cheque Type"
                   value={formData.type}
-                  onChange={(e) => handleFieldChange("type", e.target.value)}
+                  onChange={(val) => handleFieldChange("type", val)}
                   options={chequeTypeOptions}
                   required
                 />
@@ -263,7 +273,7 @@ export function ChequeDialog({
                 <UISelect
                   label="Bank Account"
                   value={formData.bankAccountId}
-                  onChange={(e) => handleFieldChange("bankAccountId", e.target.value)}
+                  onChange={(val) => handleFieldChange("bankAccountId", val)}
                   options={bankOptions}
                   error={Boolean(formErrors.bankAccountId)}
                   helperText={formErrors.bankAccountId}
