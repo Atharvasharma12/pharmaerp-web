@@ -47,6 +47,7 @@ import customerService from "../../services/customerService";
 import CustomerImportPreviewModal from "../../components/CustomerImportPreviewModal";
 import ImportConfigModal from "../../components/ImportConfigModal";
 import OutstandingImportPreviewModal from "../../components/OutstandingImportPreviewModal";
+import * as XLSX from "xlsx";
 
 const SORT_OPTIONS = [
   { value: "name_asc", label: "Name: A to Z" },
@@ -118,14 +119,203 @@ const CustomersDesktopPage = ({
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Chunked Import State
+  const [chunkState, setChunkState] = useState({
+    chunks: [],
+    currentIndex: 0,
+    isImporting: false,
+    isModalOpen: false,
+    error: null,
+    stats: { successful: 0, failed: 0, errors: [] },
+    totalRecords: 0
+  });
+
+  const abortControllerRef = React.useRef(null);
+
   const handleImportClick = () => {
     setIsImportConfigOpen(true);
   };
 
+  const processChunk = async (chunkIndex, chunks, currentStats) => {
+    if (chunkIndex >= chunks.length) {
+      setChunkState(prev => ({ ...prev, isImporting: false, currentIndex: chunkIndex }));
+      alert(`Import complete! Successful: ${currentStats.successful}, Failed: ${currentStats.failed}`);
+      handleRefresh();
+      return;
+    }
+
+    setChunkState(prev => ({ ...prev, currentIndex: chunkIndex, error: null }));
+
+    try {
+      const chunk = chunks[chunkIndex];
+      const res = await customerService.importChunk({
+        customers: chunk,
+        importType: activeImportType
+      });
+
+      const result = res.data?.data?.importResult || { successful: 0, failed: 0, errors: [] };
+      const newStats = {
+        successful: currentStats.successful + (result.successful || 0),
+        failed: currentStats.failed + (result.failed || 0),
+        errors: [...currentStats.errors, ...(result.errors || [])]
+      };
+
+      setChunkState(prev => ({ ...prev, stats: newStats }));
+
+      // Process next chunk
+      if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+        processChunk(chunkIndex + 1, chunks, newStats);
+      }
+    } catch (err) {
+      setChunkState(prev => ({ 
+        ...prev, 
+        isImporting: false, 
+        error: err?.response?.data?.message || err.message || "Failed to import chunk" 
+      }));
+    }
+  };
+
   const handleImportSubmit = async (file, importType) => {
+    setActiveImportType(importType);
+    
+    if (importType === "b2c") {
+      try {
+        setIsUploading(true);
+        setIsImportConfigOpen(false);
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // Read as array of arrays first to find the header row
+        const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+
+        if (rawRows.length === 0) {
+          alert("File is empty or invalid.");
+          setIsUploading(false);
+          return;
+        }
+
+        // Find the header row (look for common keywords and multiple columns)
+        let headerRowIndex = 0;
+        for (let i = 0; i < Math.min(20, rawRows.length); i++) {
+          const validCells = rawRows[i].filter(c => String(c).trim() !== "");
+          const rowStr = rawRows[i].map(c => String(c).toLowerCase()).join(" ");
+          
+          if (
+            validCells.length >= 2 && 
+            (rowStr.includes("name") || rowStr.includes("customer") || rowStr.includes("patient") || rowStr.includes("client") || rowStr.includes("ledger") || rowStr.includes("party") || rowStr.includes("title")) &&
+            (rowStr.includes("mobile") || rowStr.includes("phone") || rowStr.includes("contact") || rowStr.includes("sno") || rowStr.includes("s.no") || rowStr.includes("balance") || rowStr.includes("email") || rowStr.includes("city") || rowStr.includes("location") || rowStr.includes("district") || rowStr.includes("town") || rowStr.includes("station") || rowStr.includes("address") || rowStr.includes("address1"))
+          ) {
+            headerRowIndex = i;
+            break;
+          }
+        }
+
+        let headers = rawRows[headerRowIndex].map(h => String(h).toLowerCase().trim());
+        
+        // Fallback: standard assumption
+        if (!headers.some(h => h.includes("name") || h.includes("customer") || h.includes("patient") || h.includes("client") || h.includes("ledger") || h.includes("party"))) {
+          headers = headers.map((h, i) => i === 0 ? "name" : i === 1 ? "mobile" : h);
+        }
+
+        const dataRows = rawRows.slice(headerRowIndex + 1);
+
+        const dataObjects = dataRows.map(rowArr => {
+          const obj = {};
+          let lastHeader = "";
+          headers.forEach((h, idx) => {
+            let currentHeader = h;
+            if (currentHeader) {
+              lastHeader = currentHeader;
+            } else if (lastHeader.includes("mobile") || lastHeader.includes("phone")) {
+              currentHeader = `${lastHeader}_${idx}`; 
+            }
+            
+            if (currentHeader && rowArr[idx] !== undefined && rowArr[idx] !== "") {
+              obj[currentHeader] = rowArr[idx];
+            }
+          });
+          return obj;
+        }).filter(row => Object.keys(row).length > 0);
+
+        // Normalize and extract required fields
+        const validCustomersData = [];
+        for (const lowerRow of dataObjects) {
+          const businessName = String(lowerRow["name"] || lowerRow["customer name"] || lowerRow["customer"] || lowerRow["supplier name"] || lowerRow["ledger name"] || lowerRow["party name"] || lowerRow["ledger"] || lowerRow["patient name"] || lowerRow["patient"] || lowerRow["client"] || lowerRow["client name"] || "").trim();
+          
+          let mobile = "";
+          const mobileKeys = Object.keys(lowerRow).filter(k => k.includes("mobile") || k.includes("phone") || k.includes("contact"));
+          for (const mk of mobileKeys) {
+            const val = String(lowerRow[mk]).replace(/\D/g, ''); 
+            if (val.length >= 10) {
+              const potentialMobile = val.substring(val.length - 10);
+              if (/^[6-9][0-9]{9}$/.test(potentialMobile)) {
+                if (!mobile) {
+                  mobile = potentialMobile;
+                }
+              }
+            }
+          }
+
+          const email = String(lowerRow["email"] || "").trim();
+          const gstNumber = String(lowerRow["gstin"] || lowerRow["gstin no."] || lowerRow["gstin no"] || lowerRow["gst"] || lowerRow["gst number"] || lowerRow["gst no"] || lowerRow["gst no."] || lowerRow["tin"] || "").trim();
+          let panNumber = String(lowerRow["pan"] || lowerRow["panno"] || lowerRow["pan number"] || lowerRow["pan no."] || lowerRow["pan no"] || "").trim();
+          
+          let addressLine1 = String(lowerRow["address1"] || lowerRow["address"] || lowerRow["address & details"] || "").trim();
+          let city = String(lowerRow["city"] || lowerRow["location"] || lowerRow["district"] || lowerRow["town"] || lowerRow["station"] || "").trim();
+          const pincode = String(lowerRow["pin"] || lowerRow["pincode"] || "").trim();
+          
+          if (addressLine1 && !city) {
+            city = addressLine1;
+            addressLine1 = "";
+          }
+
+          const normalizedName = businessName.toLowerCase().replace(/\s+/g, ' ').trim();
+          if (businessName && normalizedName !== "ledger name" && normalizedName !== "name" && normalizedName !== "customer name") {
+            validCustomersData.push({
+              name: businessName,
+              mobile: mobile || undefined,
+              billingAddress: {
+                city: city || undefined,
+              },
+              customerType: "other"
+            });
+          }
+        }
+
+        if (validCustomersData.length === 0) {
+          alert("No valid customers found in the file. Ensure you have a 'Name' column.");
+          setIsUploading(false);
+          return;
+        }
+
+        const CHUNK_SIZE = 250;
+        const chunks = [];
+        for (let i = 0; i < validCustomersData.length; i += CHUNK_SIZE) {
+          chunks.push(validCustomersData.slice(i, i + CHUNK_SIZE));
+        }
+
+        setChunkState({
+          chunks,
+          currentIndex: 0,
+          isImporting: false,
+          isModalOpen: true,
+          error: null,
+          stats: { successful: 0, failed: 0, errors: [] },
+          totalRecords: validCustomersData.length
+        });
+      } catch (error) {
+        alert("Failed to parse Excel file locally: " + error.message);
+      } finally {
+        setIsUploading(false);
+      }
+      return;
+    }
+
+    // Default B2B logic via preview
     try {
       setIsUploading(true);
-      setActiveImportType(importType);
       const formData = new FormData();
       formData.append("file", file);
       formData.append("importType", importType);
@@ -874,8 +1064,92 @@ const CustomersDesktopPage = ({
         </div>
       )}
 
+      {/* ── Chunked Import Progress Modal ── */}
+      <UIModal
+        isOpen={chunkState.isModalOpen}
+        onClose={() => {
+          if (chunkState.isImporting) {
+            alert("Please pause the import before closing.");
+            return;
+          }
+          setChunkState(prev => ({ ...prev, isModalOpen: false }));
+        }}
+        className="max-w-md"
+      >
+        <UIModalHeader>
+          <UIModalTitle>Importing Large File</UIModalTitle>
+          <UIModalDescription>
+            Importing {chunkState.totalRecords} records in batches...
+          </UIModalDescription>
+        </UIModalHeader>
+        <UIModalBody>
+          <div className="space-y-4 py-2">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="font-medium text-text">Progress</span>
+                <span className="text-text-muted">{chunkState.currentIndex} / {chunkState.chunks.length} Chunks</span>
+              </div>
+              <div className="w-full bg-surface-alt rounded-full h-2.5">
+                <div 
+                  className="bg-primary h-2.5 rounded-full transition-all" 
+                  style={{ width: `${chunkState.chunks.length > 0 ? (chunkState.currentIndex / chunkState.chunks.length) * 100 : 0}%` }}
+                ></div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-success/10 border border-success/20 p-3 rounded-xl">
+                <p className="text-xs font-semibold text-success">Successful</p>
+                <p className="text-lg font-bold text-success">{chunkState.stats.successful}</p>
+              </div>
+              <div className="bg-error/10 border border-error/20 p-3 rounded-xl">
+                <p className="text-xs font-semibold text-error">Failed</p>
+                <p className="text-lg font-bold text-error">{chunkState.stats.failed}</p>
+              </div>
+            </div>
+
+            {chunkState.error && (
+              <div className="p-3 bg-error/10 border border-error/20 rounded-xl text-xs text-error overflow-y-auto max-h-32">
+                <p className="font-bold mb-1">Import Paused due to Error:</p>
+                {chunkState.error}
+              </div>
+            )}
+          </div>
+        </UIModalBody>
+        <UIModalFooter>
+          <UIButton 
+            variant="ghost" 
+            onClick={() => {
+               if (chunkState.isImporting) {
+                 if (abortControllerRef.current) {
+                   abortControllerRef.current.abort();
+                 }
+                 setChunkState(prev => ({ ...prev, isImporting: false }));
+               } else {
+                 setChunkState(prev => ({ ...prev, isModalOpen: false }));
+               }
+            }}
+          >
+            {chunkState.isImporting ? "Pause" : "Close"}
+          </UIButton>
+          
+          {!chunkState.isImporting && chunkState.currentIndex < chunkState.chunks.length && (
+            <UIButton 
+              variant="primary" 
+              onClick={() => {
+                abortControllerRef.current = new AbortController();
+                setChunkState(prev => ({ ...prev, isImporting: true }));
+                processChunk(chunkState.currentIndex, chunkState.chunks, chunkState.stats);
+              }}
+            >
+              {chunkState.currentIndex === 0 ? "Start Import" : "Resume Import"}
+            </UIButton>
+          )}
+        </UIModalFooter>
+      </UIModal>
+
       {/* ── Import Preview Modal ── */}
-            <ImportConfigModal
+      <ImportConfigModal
         isOpen={isImportConfigOpen}
         onClose={() => setIsImportConfigOpen(false)}
         onImportSubmit={handleImportSubmit}
