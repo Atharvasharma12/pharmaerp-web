@@ -87,6 +87,10 @@ const customerService = {
   confirmImport(customers, importType = "b2b") {
     return apiClient.post(ENDPOINTS.CUSTOMER.IMPORT_CONFIRM, { customers, importType });
   },
+
+  importChunk(payload) {
+    return apiClient.post(ENDPOINTS.CUSTOMER.IMPORT_CHUNK, payload, { timeout: 120000 });
+  },
 };
 
 export default customerService;

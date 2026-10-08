@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 
 import { API_STATUS, ROUTES } from "@/constants";
 import { useIsMobile } from "@/hooks";
+import useBranch from "@/features/branch/hooks/useBranch";
+import useActiveShift from "@/features/operations/shifts/hooks/useActiveShift";
 
 import useCashExchange from "../hooks/useCashExchange";
 import CashExchangesDesktopPage from "./desktop/CashExchangesDesktopPage";
@@ -11,6 +13,9 @@ import CashExchangesMobilePage from "./mobile/CashExchangesMobilePage";
 const CashExchangesPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { currentBranch } = useBranch();
+  const { activeShift } = useActiveShift(currentBranch?._id);
+  const isShiftActive = Boolean(activeShift);
 
   const {
     cashExchanges,
@@ -40,8 +45,9 @@ const CashExchangesPage = () => {
       limit: pageSize,
       search: searchParams.search || undefined,
       status: searchParams.status === "all" ? undefined : searchParams.status,
+      branchId: currentBranch?._id || undefined,
     }),
-    [currentPage, pageSize, searchParams],
+    [currentPage, pageSize, searchParams, currentBranch?._id],
   );
 
   const fetchData = useCallback(() => {
@@ -95,10 +101,10 @@ const CashExchangesPage = () => {
     [navigate],
   );
 
-  const handleCreateNew = useCallback(
-    () => navigate(ROUTES.CREATE_CASH_EXCHANGE),
-    [navigate],
-  );
+  const handleCreateNew = useCallback(() => {
+    if (!isShiftActive) return;
+    navigate(ROUTES.CREATE_CASH_EXCHANGE);
+  }, [navigate, isShiftActive]);
 
   const isLoading = getCashExchangesStatus === API_STATUS.LOADING;
   const isCancelling = cancelCashExchangeStatus === API_STATUS.LOADING;

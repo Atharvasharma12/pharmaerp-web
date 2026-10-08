@@ -37,6 +37,7 @@ const flattenNavItems = (items, prefix = "") => {
         icon: item.icon || Layers,
         permission: item.permission,
         permissions: item.permissions,
+        keywords: item.keywords || [],
         category: prefix || "Navigation",
       });
     }

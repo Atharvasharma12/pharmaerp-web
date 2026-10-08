@@ -55,11 +55,15 @@ import { SalesCheckoutModal } from "../../components/SalesCheckoutModal";
 import { SalesReceiptModal } from "../../components/SalesReceiptModal";
 import { SalesCustomerSidebar } from "../../components/SalesCustomerSidebar";
 import { SalesCustomerDoctorInfo } from "../../components/SalesCustomerDoctorInfo";
+import { POSSessionGatekeeperCard } from "../../components/POSSessionGatekeeperCard";
+import OpenBusinessDayDialog from "@/features/operations/business-days/components/OpenBusinessDayDialog";
+import { CreateShiftDialog } from "@/features/operations/shifts/components/CreateShiftDialog";
+
 import customerService from "@/features/parties/customers/services/customerService";
 import invoiceService from "@/features/sales/services/invoiceService";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
-import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate, useLocation } from "react-router-dom";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
 
@@ -196,35 +200,80 @@ const QuickCreateCustomerModal = ({ open, onClose, defaultName, customerType, bi
 };
 
 export const SalesDesktopPage = () => {
-  const [billingMode, setBillingMode] = useState("B2C"); // "B2C" | "B2B"
+  const location = useLocation();
+  const initialInvoice = location.state?.invoice;
+  const isEditMode = Boolean(initialInvoice);
+
+  const [billingMode, setBillingMode] = useState(initialInvoice?.billingMode || "B2C"); // "B2C" | "B2B"
   const [b2bPartyType, setB2bPartyType] = useState("all"); // "all" | "wholesaler" | "retailer"
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const [selectedB2cCustomer, setSelectedB2cCustomer] = useState(null);
-  const [selectedB2bParty, setSelectedB2bParty] = useState(null);
+  const [selectedB2cCustomer, setSelectedB2cCustomer] = useState(
+    initialInvoice?.billingMode !== "B2B" && (initialInvoice?.customerId || initialInvoice?.customer)
+      ? { id: initialInvoice.customerId || "legacy", _id: initialInvoice.customerId || "legacy", name: initialInvoice.customer || "Walk-in Customer", mobile: initialInvoice.phone }
+      : null
+  );
+  const [selectedB2bParty, setSelectedB2bParty] = useState(
+    initialInvoice?.billingMode === "B2B" && (initialInvoice?.customerId || initialInvoice?.customer)
+      ? { id: initialInvoice.customerId || "legacy", _id: initialInvoice.customerId || "legacy", name: initialInvoice.customer, mobile: initialInvoice.phone }
+      : null
+  );
   const [b2bPartiesFromBackend, setB2bPartiesFromBackend] = useState([]);
 
   const [isQuickCreateCustomerModalOpen, setIsQuickCreateCustomerModalOpen] = useState(false);
   const [quickCreateCustomerName, setQuickCreateCustomerName] = useState("");
   const [quickCreateCustomerType, setQuickCreateCustomerType] = useState("retail");
 
-  
-
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    if (!initialInvoice?.items) return [];
+    return initialInvoice.items.map(item => ({
+      ...item,
+      id: item.productId || item.id || `legacy-${Math.random()}`,
+      name: item.name,
+      brand: item.brand || item.manufacturer || "Pharma",
+      category: item.category || "Tablet",
+      batch: item.batch || item.batchNo || "",
+      pack: item.pack || item.packSize || "10S",
+      rack: item.rack || "F1/AE2",
+      hsn: item.hsn || "3004",
+      gst: item.gst || item.gstRate || 0,
+      ratePct: item.ratePct || (item.rateCPercentage !== undefined ? `${item.rateCPercentage}%` : "16%"),
+      rateCPercentage: item.rateCPercentage,
+      expiry: item.expiry || null,
+      stock: item.stock ?? 100,
+      mrp: item.mrp || item.price || 0,
+      price: item.price || 0,
+      disc: item.disc || item.itemDiscount || 0,
+      qty: item.qty || 1,
+      schemeDiscountPercent: item.schemeDiscountPercent || 0,
+    }));
+  });
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
-  const [customerName, setCustomerName] = useState("");
-  const [doctorName, setDoctorName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerName, setCustomerName] = useState(
+    initialInvoice?.billingMode !== "B2B" ? (initialInvoice?.customer || "") : ""
+  );
+  const [doctorName, setDoctorName] = useState(initialInvoice?.doctorName || "");
+  const [customerPhone, setCustomerPhone] = useState(
+    initialInvoice?.billingMode !== "B2B" ? (initialInvoice?.phone || "") : ""
+  );
 
   const { currentBranch } = useBranch();
   const { activeShift, status: shiftStatus } = useActiveShift(currentBranch?._id);
   const navigate = useNavigate();
+
+  const { openBusinessDay, getOpenBusinessDayStatus } = useSelector((state) => state.businessDay);
+  const [isBusinessDayModalOpen, setIsBusinessDayModalOpen] = useState(false);
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const dispatch = useDispatch();
+
+  const handleCloseBusinessDayModal = () => setIsBusinessDayModalOpen(false);
+  const handleCloseShiftModal = () => setIsShiftModalOpen(false);
 
   const getLocalDateString = (dateObj) => {
     const d = dateObj ? new Date(dateObj) : new Date();
@@ -355,8 +404,9 @@ export const SalesDesktopPage = () => {
 
         if (mapped.length > 0) {
           setSelectedB2bParty(prev => {
-            const stillExists = prev && mapped.find(m => m.id === prev.id);
-            return stillExists ? prev : null;
+            if (!prev) return null;
+            const match = mapped.find(m => m.id === prev.id || m.id === prev._id || (prev.id === "legacy" && m.name === prev.name));
+            return match || prev;
           });
         } else {
           setSelectedB2bParty(null);
@@ -651,7 +701,7 @@ export const SalesDesktopPage = () => {
     let targetCustomerId = activeCustomer?.id || activeCustomer?._id;
 
     // Fallback: If no customer explicitly selected (e.g. walk-in B2C), fetch or use first customer from backend
-    if (!targetCustomerId) {
+    if (!targetCustomerId || targetCustomerId === "legacy") {
       try {
         const cRes = await customerService.getCustomers({ limit: 1 });
         const cList = cRes.data?.data?.customers || cRes.data?.customers || cRes.data?.data || [];
@@ -666,7 +716,7 @@ export const SalesDesktopPage = () => {
     // Post to backend API
     if (targetCustomerId) {
       const activeBranchId = saleData.items?.[0]?.branchId || saleData.items?.[0]?.facilityId || null;
-      await invoiceService.recordCustomerSale(targetCustomerId, {
+      const payload = {
         invoiceNo: saleData.invoiceNo,
         billingMode,
         branchId: activeBranchId,
@@ -679,7 +729,13 @@ export const SalesDesktopPage = () => {
         payments: saleData.payments,
         items: saleData.items,
         date: activeShift?.date ? new Date(activeShift.date).toISOString() : new Date().toISOString(),
-      });
+      };
+
+      if (isEditMode && initialInvoice?.id) {
+        await invoiceService.updateCustomerSale(targetCustomerId, initialInvoice.id, payload);
+      } else {
+        await invoiceService.recordCustomerSale(targetCustomerId, payload);
+      }
     }
 
     // On confirmed backend success, close checkout, set completed sale state, open receipt, and clear cart
@@ -707,12 +763,66 @@ export const SalesDesktopPage = () => {
   }
 
   if (!activeShift) {
+    const isDayOpen = Boolean(openBusinessDay);
+
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
-        <Store className="size-16 text-text-muted" />
-        <h2 className="text-2xl font-bold text-text">No open shift is present</h2>
-        <p className="text-text-muted">You must open a shift before you can access POS billing.</p>
-        <UIButton variant="primary" onClick={() => navigate("/operations/shifts")}>Go to Shifts</UIButton>
+      <div className="relative min-h-[calc(100vh-80px)] w-full flex items-center justify-center p-6 bg-slate-50/80 dark:bg-neutral-950 overflow-hidden font-sans">
+        {/* Blurred realistic POS background mockup to mirror the exact uploaded design */}
+        <div className="absolute inset-0 filter blur-[5px] opacity-35 dark:opacity-15 pointer-events-none select-none scale-102 flex flex-col bg-bg">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 bg-surface border-b border-border">
+            <div className="space-y-1">
+              <h1 className="text-xl font-bold text-text">POS Billing</h1>
+              <p className="text-xs text-text-muted">Scan products, add to cart and create sale</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold">Recall Bill</span>
+              <span className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold">Hold Bill</span>
+              <span className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold">+ New Bill</span>
+            </div>
+          </div>
+          {/* Content grid preview */}
+          <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 p-4 space-y-4">
+              <div className="h-10 bg-surface rounded-xl border border-border" />
+              <div className="flex gap-2">
+                {["All", "Prescription", "OTC", "Healthcare", "Personal Care", "Vitamins", "Devices"].map((t) => (
+                  <span key={t} className="px-3 py-1 rounded-full bg-surface border border-border text-xs">{t}</span>
+                ))}
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div key={i} className="h-36 rounded-xl bg-surface border border-border p-3 space-y-2">
+                    <div className="h-16 bg-surface-alt rounded-lg" />
+                    <div className="h-3 w-3/4 bg-surface-alt rounded" />
+                    <div className="h-3 w-1/2 bg-surface-alt rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="w-80 border-l border-border bg-surface p-4 space-y-3">
+              <div className="h-5 w-24 bg-surface-alt rounded" />
+              <div className="h-40 bg-surface-alt/40 rounded-xl" />
+            </div>
+          </div>
+        </div>
+
+        {/* Soft backdrop scrim */}
+        <div className="absolute inset-0 bg-slate-900/10 dark:bg-black/40 backdrop-blur-[2px] pointer-events-none" />
+
+        {/* Reusable Pre-Session Gatekeeper Card */}
+        <div className="relative z-10">
+          <POSSessionGatekeeperCard
+            isDayOpen={isDayOpen}
+            openBusinessDay={openBusinessDay}
+            currentBranch={currentBranch}
+            onOpenBusinessDay={() => setIsBusinessDayModalOpen(true)}
+            onStartShift={() => setIsShiftModalOpen(true)}
+          />
+        </div>
+
+        <OpenBusinessDayDialog isOpen={isBusinessDayModalOpen} onClose={handleCloseBusinessDayModal} />
+        <CreateShiftDialog isOpen={isShiftModalOpen} onClose={handleCloseShiftModal} />
       </div>
     );
   }
@@ -1258,6 +1368,9 @@ export const SalesDesktopPage = () => {
         billingMode={billingMode}
         activeShift={activeShift}
         cartSummary={{ items: cart, subtotal: cartSubtotal }}
+        initialPayments={initialInvoice?.payments}
+        initialDenominations={initialInvoice?.denominations}
+        initialReturnedDenominations={initialInvoice?.returnedDenominations}
         onCompleteSale={handleCompleteSale}
       />
 

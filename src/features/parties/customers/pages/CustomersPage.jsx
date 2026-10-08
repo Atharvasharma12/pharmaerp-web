@@ -12,6 +12,8 @@ import useCompany from "@/features/company/hooks/useCompany";
 import CustomersMobilePage from "./mobile/CustomersMobilePage";
 import CustomersDesktopPage from "./desktop/CustomersDesktopPage";
 
+import CustomerDialog from "../components/CustomerDialog";
+
 const initialFilters = {
   search: "",
   status: "all",

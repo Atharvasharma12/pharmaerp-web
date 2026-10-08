@@ -1,5 +1,4 @@
 import { ROUTES } from "@/constants";
-
 import {
   CustomersPage,
   CreateCustomerPage,
@@ -12,7 +11,6 @@ const customerRoutes = [
     path: ROUTES.CUSTOMERS,
     element: <CustomersPage />,
   },
-
   {
     path: ROUTES.CREATE_CUSTOMER,
     element: <CreateCustomerPage />,

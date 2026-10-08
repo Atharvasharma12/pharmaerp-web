@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { UIModal, UIButton } from "@/components/ui";
 import { PlusCircle, MinusCircle, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 
@@ -19,13 +19,16 @@ export function CashBreakdownModal({
   const [returned, setReturned] = useState(initialReturned);
   const [error, setError] = useState(null);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (isOpen) {
-      setReceived(initialReceived || {});
-      setReturned(initialReturned || {});
-      setError(null);
-    }
-  }, [isOpen]); // Only initialize on open to prevent resetting on parent re-renders
+    if (!isOpen) return;
+    // Initialize from the selected payment once per dialog opening; prop reference
+    // changes while the cashier edits must not overwrite their denomination input.
+    setReceived(initialReceived || {});
+    setReturned(initialReturned || {});
+    setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const receivedTotal = useMemo(() => 
     Object.entries(received).reduce((sum, [d, q]) => sum + Number(d) * q, 0),
@@ -63,6 +66,7 @@ export function CashBreakdownModal({
   }, [expectedChange, availableDenomsMap, received]);
 
   // Auto-calculate returned denominations based on expected change
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (expectedChange > 0) {
       const autoReturned = {};
@@ -82,6 +86,7 @@ export function CashBreakdownModal({
       setReturned({});
     }
   }, [expectedChange, availableDenomsMap, received]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSetCount = (type, denom, val) => {
     const setter = type === 'received' ? setReceived : setReturned;

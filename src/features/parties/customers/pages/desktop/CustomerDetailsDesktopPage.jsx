@@ -103,7 +103,7 @@ const CustomerDetailsDesktopPage = ({
 
     const outstandingVal =
       (Number(safeCustomer.openingBalance) || 0) *
-        (safeCustomer.openingBalanceType === "dr" ? 1 : -1) +
+        (String(safeCustomer.openingBalanceType || "dr").toLowerCase() === "dr" ? 1 : -1) +
       totalSalesVal -
       totalReceiptsVal;
 
@@ -472,8 +472,8 @@ const OverviewTab = ({ customer, metrics, onTabChange, onEdit }) => {
               label="Opening Balance Type"
               value={
                 <AppTag
-                  label={customer.openingBalanceType === "dr" ? "DR (Debit)" : "CR (Credit)"}
-                  colorVariant={customer.openingBalanceType === "dr" ? "primary" : "warning"}
+                  label={String(customer.openingBalanceType || "dr").toLowerCase() === "dr" ? "DR (Debit)" : "CR (Credit)"}
+                  colorVariant={String(customer.openingBalanceType || "dr").toLowerCase() === "dr" ? "primary" : "warning"}
                   variant="soft"
                   rounded="md"
                   sx={{ height: 20, fontSize: "10.5px", fontWeight: 700 }}
@@ -763,11 +763,17 @@ const StatementTab = ({ customer, ledger }) => {
   const ledgerEntries = Array.isArray(ledger?.entries) ? ledger.entries : [];
   const currentPage = ledger?.page || 1;
   const totalEntries = ledger?.total || 0;
-  const totalDebit = ledger?.meta?.totalDebit || 0;
-  const totalCredit = ledger?.meta?.totalCredit || 0;
-  const netBalance = totalDebit - totalCredit;
+  const rawTotalDebit = ledger?.meta?.totalDebit || 0;
+  const rawTotalCredit = ledger?.meta?.totalCredit || 0;
   const rowsPerPage = 5;
   const totalPages = Math.ceil(totalEntries / rowsPerPage);
+
+  const opBal = Number(customer?.openingBalance) || 0;
+  const opBalType = String(customer?.openingBalanceType || "dr").toLowerCase();
+
+  const totalDebit = rawTotalDebit + (opBalType === "dr" ? opBal : 0);
+  const totalCredit = rawTotalCredit + (opBalType === "cr" ? opBal : 0);
+  const netBalance = totalDebit - totalCredit;
 
   // Generate statement data from actual backend ledger entries
   const statementRows = useMemo(() => {
@@ -787,11 +793,9 @@ const StatementTab = ({ customer, ledger }) => {
 
     // Only show Opening Balance at the bottom of the last page
     if (currentPage === totalPages || totalPages === 0) {
-      const opBal = Number(customer.openingBalance) || 0;
-      const opBalType = customer.openingBalanceType || "dr";
       rows.push({
         id: "opening-bal",
-        date: customer.createdAt || "2024-05-28",
+        date: customer?.createdAt || "2024-05-28",
         particulars: "Opening Balance",
         debit: opBalType === "dr" ? opBal : 0,
         credit: opBalType === "cr" ? opBal : 0,

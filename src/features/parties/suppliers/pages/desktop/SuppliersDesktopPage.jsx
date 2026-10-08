@@ -41,6 +41,8 @@ import { AppTable } from "@/components";
 import { TopBarStats } from "@/layouts/app/components/header";
 import supplierService from "../../services/supplierService";
 import SupplierImportPreviewModal from "../../components/SupplierImportPreviewModal";
+import SupplierImportConfigModal from "../../components/SupplierImportConfigModal";
+import SupplierOutstandingImportPreviewModal from "../../components/SupplierOutstandingImportPreviewModal";
 
 const SORT_OPTIONS = [
   { value: "name_asc", label: "Name: A to Z" },
@@ -108,47 +110,50 @@ const SuppliersDesktopPage = ({
   };
 
   // Import State
-  const fileInputRef = useRef(null);
+  const [isImportConfigOpen, setIsImportConfigOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] = useState(false);
+  const [activeImportType, setActiveImportType] = useState("standard");
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
 
   const handleImportClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    setIsImportConfigOpen(true);
   };
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleImportSubmit = async (file, importType) => {
     try {
       setIsUploading(true);
+      setActiveImportType(importType);
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("importType", importType);
       
       const res = await supplierService.previewImport(formData);
       setImportPreviewData(res.data?.data || []);
-      setIsImportModalOpen(true);
+      
+      setIsImportConfigOpen(false);
+
+      if (importType === "outstanding") {
+        setIsOutstandingImportModalOpen(true);
+      } else {
+        setIsImportModalOpen(true);
+      }
     } catch (err) {
       console.error("Failed to upload for preview", err);
       alert(err?.response?.data?.message || "Failed to parse Excel file.");
     } finally {
       setIsUploading(false);
-      // Reset input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
     }
   };
 
   const handleImportSuccess = (successful, failed, errors = []) => {
     setIsImportModalOpen(false);
+    setIsOutstandingImportModalOpen(false);
     if (failed > 0) {
-      alert(`Imported ${successful} suppliers successfully. ${failed} failed.\n\nErrors:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...and more' : ''}`); 
+      alert(`Imported ${successful} successfully. ${failed} failed.\n\nErrors:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...and more' : ''}`); 
     } else {
-      alert(`Imported ${successful} suppliers successfully.`);
+      alert(`Imported ${successful} successfully.`);
     }
     if (successful > 0) {
       handleRefresh();
@@ -278,14 +283,6 @@ const SuppliersDesktopPage = ({
               <RotateCcw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
             </UIIconButton>
 
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              style={{ display: "none" }} 
-              accept=".xlsx,.xls" 
-              onChange={handleFileChange} 
-            />
-            
             <PermissionGate permission="supplier:create">
               <UIButton
                 type="button"
@@ -719,6 +716,20 @@ const SuppliersDesktopPage = ({
       <SupplierImportPreviewModal 
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
+        previewData={importPreviewData}
+        onImportSuccess={handleImportSuccess}
+      />
+      
+      <SupplierImportConfigModal
+        isOpen={isImportConfigOpen}
+        onClose={() => setIsImportConfigOpen(false)}
+        onImportSubmit={handleImportSubmit}
+        isUploading={isUploading}
+      />
+
+      <SupplierOutstandingImportPreviewModal
+        isOpen={isOutstandingImportModalOpen}
+        onClose={() => setIsOutstandingImportModalOpen(false)}
         previewData={importPreviewData}
         onImportSuccess={handleImportSuccess}
       />

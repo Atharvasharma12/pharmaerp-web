@@ -267,7 +267,7 @@ const SupplierImportPreviewModal = ({
             <option value="dr">DR</option>
           </select>
         </div> : 
-        <span className={`text-xs font-semibold ${row.data.openingBalanceType === 'dr' ? 'text-emerald-600' : 'text-rose-600'}`}>
+        <span className={`text-xs font-semibold ${String(row.data.openingBalanceType || '').toLowerCase() === 'dr' ? 'text-emerald-600' : 'text-rose-600'}`}>
           ₹{(row.data.openingBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {row.data.openingBalanceType?.toUpperCase()}
         </span>
       )

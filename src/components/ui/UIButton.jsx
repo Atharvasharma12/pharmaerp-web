@@ -87,7 +87,8 @@ export const UIButton = forwardRef(
         transition={{ type: "spring", stiffness: 500, damping: 25 }}
         onClick={isDisabled ? undefined : onClick}
         className={cn(
-          "inline-flex items-center justify-center font-sans tracking-tight select-none cursor-pointer whitespace-nowrap",
+          "inline-flex flex-row flex-nowrap items-center justify-center font-sans tracking-tight select-none cursor-pointer whitespace-nowrap",
+          "[&_svg]:shrink-0 [&_svg]:inline-block [&_svg]:align-middle [&_svg]:self-center [&_span]:whitespace-nowrap",
           "transition-colors duration-150 ease-out",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-surface",
           "disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:shadow-none",
@@ -100,20 +101,28 @@ export const UIButton = forwardRef(
         {...props}
       >
         {isLoading ? (
-          <>
-            <Loader2 className={cn("animate-spin shrink-0", currentIconSize)} />
-            <span>{loadingText || children}</span>
-          </>
+          <span className="inline-flex flex-row flex-nowrap items-center justify-center gap-2 whitespace-nowrap shrink-0">
+            <Loader2 className={cn("animate-spin shrink-0 self-center", currentIconSize)} />
+            <span className="whitespace-nowrap shrink-0 self-center">{loadingText || children}</span>
+          </span>
         ) : (
           <>
             {startIcon && (
-              <span className={cn("inline-flex shrink-0 items-center justify-center", currentIconSize)}>
+              <span className={cn("inline-flex shrink-0 items-center justify-center self-center", currentIconSize)}>
                 {startIcon}
               </span>
             )}
-            {children && <span>{children}</span>}
+            {children && (
+              typeof children === "string" || typeof children === "number" ? (
+                <span className="whitespace-nowrap shrink-0 self-center">{children}</span>
+              ) : (
+                <span className="inline-flex flex-row flex-nowrap items-center justify-center gap-1.5 whitespace-nowrap shrink-0 self-center">
+                  {children}
+                </span>
+              )
+            )}
             {endIcon && (
-              <span className={cn("inline-flex shrink-0 items-center justify-center", currentIconSize)}>
+              <span className={cn("inline-flex shrink-0 items-center justify-center self-center", currentIconSize)}>
                 {endIcon}
               </span>
             )}

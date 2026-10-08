@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Banknote,
   QrCode,
@@ -49,6 +49,79 @@ const computeSchemeDiscount = (qty, schemePercent) => {
   return { schemeApply: false, finalDiscountPercent: 0 };
 };
 
+/** Stable empty default so the payments-init effect doesn't re-run every render */
+const EMPTY_PAYMENTS = [];
+
+/** Convert a denominations array [{denomination, quantity}] into a {denom: qty} map + total */
+const denomsToMap = (list = []) => {
+  const map = {};
+  let total = 0;
+  list.forEach((d) => {
+    const qty = Number(d?.quantity) || 0;
+    const denom = Number(d?.denomination) || 0;
+    if (qty > 0 && denom > 0) {
+      map[denom] = (map[denom] || 0) + qty;
+      total += denom * qty;
+    }
+  });
+  return { map, total };
+};
+
+/** Map payments saved on an invoice back into checkout-modal row state */
+const buildPaymentMethodLabel = (paymentRows = []) => {
+  const unique = [...new Set(
+    paymentRows
+      .map((row) => String(row?.paymentType || row?.paymentMode || "").trim())
+      .filter(Boolean)
+  )];
+
+  if (unique.length === 0) return "Cash";
+  if (unique.length === 1) return unique[0];
+  return unique.join(", ");
+};
+
+const mapSavedPayments = (saved, rootDenoms = [], rootReturnedDenoms = []) => {
+  let cashRowCount = 0;
+  return saved.map((p, idx) => {
+    let paymentType = p.paymentType || p.paymentMode || "Cash";
+    // Normalize to exact UI casing for display
+    if (String(paymentType).toLowerCase() === "cash") paymentType = "Cash";
+    if (String(paymentType).toLowerCase() === "upi") paymentType = "UPI";
+    
+    let cashDetails = p.cashDetails || null;
+    
+    if (paymentType === "Cash") {
+      cashRowCount++;
+      let denoms = Array.isArray(p.denominations) && p.denominations.length > 0 ? p.denominations : [];
+      let retDenoms = Array.isArray(p.returnedDenominations) && p.returnedDenominations.length > 0 ? p.returnedDenominations : [];
+      
+      if (cashRowCount === 1) {
+        if (denoms.length === 0 && Array.isArray(rootDenoms) && rootDenoms.length > 0) denoms = rootDenoms;
+        if (retDenoms.length === 0 && Array.isArray(rootReturnedDenoms) && rootReturnedDenoms.length > 0) retDenoms = rootReturnedDenoms;
+      }
+
+      if (!cashDetails && (denoms.length > 0 || retDenoms.length > 0)) {
+        const rec = denomsToMap(denoms);
+        const ret = denomsToMap(retDenoms);
+        cashDetails = {
+          received: rec.map,
+          receivedTotal: rec.total,
+          returned: ret.map,
+          returnedTotal: ret.total,
+          netApplied: rec.total - ret.total,
+        };
+      }
+    }
+    
+    return {
+      ...p,
+      id: p.id || p._id || `saved-${idx}`,
+      paymentType,
+      amount: Number(p.amount) || 0,
+      cashDetails,
+    };
+  });
+};
 export const SalesCheckoutModal = ({
   isOpen,
   onClose,
@@ -58,6 +131,9 @@ export const SalesCheckoutModal = ({
   saleDate,
   billingMode = "B2C",
   cartSummary = {},
+  initialPayments = EMPTY_PAYMENTS,
+  initialDenominations = [],
+  initialReturnedDenominations = [],
   onCompleteSale,
   activeShift: activeShiftProp,
 }) => {
@@ -73,7 +149,7 @@ export const SalesCheckoutModal = ({
       getPaymentQrs({});
       fetchBranchCash(currentBranch._id);
     }
-  }, [isOpen, currentBranch?._id, fetchBranchCash]);
+  }, [isOpen, currentBranch?._id, getPaymentQrs, fetchBranchCash]);
 
   // Main operating cash counter (Branch Running Cash)
   const availableCash = useMemo(() => {
@@ -151,9 +227,19 @@ export const SalesCheckoutModal = ({
   // Multi-Row Payments State
   const [payments, setPayments] = useState([]);
   
-  // Initialize payments when modal opens
+  // Initialize payments ONLY when the modal transitions closed -> open.
+  // Guarded by a ref so unstable prop/selector references can never cause a setState loop.
+  const wasOpenRef = useRef(false);
+  const hasSavedPayments = Array.isArray(initialPayments) && initialPayments.length > 0;
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (isOpen) {
+    const justOpened = isOpen && !wasOpenRef.current;
+    wasOpenRef.current = isOpen;
+    if (!justOpened) return;
+
+    if (hasSavedPayments) {
+      setPayments(mapSavedPayments(initialPayments, initialDenominations, initialReturnedDenominations));
+    } else {
       setPayments([
         {
           id: Date.now(),
@@ -163,7 +249,22 @@ export const SalesCheckoutModal = ({
         },
       ]);
     }
-  }, [isOpen, grandTotal, currentBranch?._id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  // New bills: keep the single default cash row in sync when grandTotal changes (e.g. extra discount).
+  // Functional update returns `prev` when nothing changes, so this can't loop.
+  useEffect(() => {
+    if (!isOpen || hasSavedPayments) return;
+    setPayments((prev) => {
+      if (prev.length !== 1) return prev;
+      const row = prev[0];
+      if (row.paymentType !== "Cash" || Number(row.amount) === grandTotal) return prev;
+      return [{ ...row, amount: grandTotal, cashDetails: null }];
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grandTotal]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const [cashBreakdownTarget, setCashBreakdownTarget] = useState(null); // index of row
 
@@ -271,7 +372,7 @@ export const SalesCheckoutModal = ({
         roundOff,
         grandTotal,
         gstSlabs,
-        paymentMethod: "Split",
+        paymentMethod: buildPaymentMethodLabel(payments),
         cashTendered: payments.reduce((sum, p) => p.paymentType === "Cash" ? sum + (p.cashDetails?.receivedTotal || Number(p.amount)) : sum, 0),
         changeDue: payments.reduce((sum, p) => p.paymentType === "Cash" ? sum + (p.cashDetails?.returnedTotal || 0) : sum, 0),
         denominations: [],

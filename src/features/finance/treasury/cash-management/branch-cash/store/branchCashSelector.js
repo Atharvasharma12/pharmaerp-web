@@ -56,6 +56,7 @@ export const selectFrozenCash = (state) => {
 // Status selectors
 export const selectBranchCashListStatus = (state) => state.branchCash.listStatus;
 export const selectBranchCashFetchStatus = (state) => state.branchCash.fetchStatus;
+export const selectInitializeStatus = (state) => state.branchCash.initializeStatus;
 export const selectDepositStatus = (state) => state.branchCash.depositStatus;
 export const selectWithdrawStatus = (state) => state.branchCash.withdrawStatus;
 

@@ -98,7 +98,7 @@ const ImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploading }) => 
                 type="file" 
                 ref={fileInputRef} 
                 style={{ display: "none" }} 
-                accept=".xlsx,.xls,.csv" 
+                accept=".xlsx,.xls,.csv,.txt" 
                 onChange={handleFileChange} 
               />
               {file ? (
@@ -109,7 +109,7 @@ const ImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploading }) => 
               ) : (
                 <div>
                   <p className="text-sm font-semibold text-text">Click to upload or drag and drop</p>
-                  <p className="text-xs text-text-muted mt-1">.xlsx, .xls, or .csv up to 10MB</p>
+                  <p className="text-xs text-text-muted mt-1">.xlsx, .xls, .csv, or .txt up to 10MB</p>
                 </div>
               )}
             </div>
