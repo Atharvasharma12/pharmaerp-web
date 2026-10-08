@@ -85,6 +85,14 @@ export const SIDEBAR_NAV_GROUPS = [
         keywords: ["pos", "billing", "sales", "invoice", "counter"],
       },
       {
+        id: "sale-invoices",
+        label: "Sale Invoices",
+        path: ROUTES.BILLING,
+        icon: Receipt,
+        permissions: ["bill:view", "sale:view"],
+        keywords: ["sale invoices", "sales", "invoices", "bills", "sales register"],
+      },
+      {
         id: "purchases",
         label: "Purchases",
         path: ROUTES.PURCHASES,
@@ -99,6 +107,13 @@ export const SIDEBAR_NAV_GROUPS = [
         icon: Boxes,
         permission: "product:view",
         keywords: ["stock", "inventory", "medicines", "products"],
+      },
+      {
+        id: "transfer-orders",
+        label: "Transfer Orders",
+        path: "/inventory/transfer-orders",
+        icon: ArrowLeftRight,
+        keywords: ["transfer orders", "stock transfer", "inventory transfer", "to"],
       },
       {
         id: "customers",

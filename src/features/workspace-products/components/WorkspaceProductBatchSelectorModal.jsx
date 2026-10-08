@@ -476,8 +476,7 @@ export const WorkspaceProductBatchSelectorModal = ({
     product.gstRate ??
     product.taxRate ??
     product.gst ??
-    product.HsnMaster?.gstRate ??
-    5;
+    product.HsnMaster?.gstRate;
 
   // Calculate totals for confirmed list
   const selectedBatchesList = batches.filter((b) => {
@@ -502,17 +501,17 @@ export const WorkspaceProductBatchSelectorModal = ({
 
     const itemsToAdd = selectedBatchesList.map((b) => {
       const bId = b.id || b._id || b.batchNo;
-      const bNo = b.batchNo || b.batchNumber || b.batch || "B-8801";
-      const bRate = Number(b.rateC ?? b.rate ?? b.price ?? b.saleRate ?? b.rateA ?? product.rateC ?? product.price ?? 134.4);
-      const bMrp = Number(b.mrp ?? product.mrp ?? 160.0);
-      const bExp = b.expiry || b.expiryDate || b.expDate || "11/32";
-      const bRack = b.rack || product.rack || "F1/AE2";
-      const bPack = b.pack || product.pack || "10S";
+      const bNo = b.batchNo || b.batchNumber || b.batch;
+      const bRate = Number(b.rateC ?? b.rate ?? b.price ?? b.saleRate ?? b.rateA ?? product.rateC ?? product.price);
+      const bMrp = Number(b.mrp ?? product.mrp);
+      const bExp = b.expiry || b.expiryDate || b.expDate;
+      const bRack = b.rack || product.rack;
+      const bPack = b.pack || product.pack;
       const bHsn = b.hsn || hsn;
       const bGst = b.gst ?? defaultGstRate;
-      const bRatePct = b.rateCPercentage !== undefined && b.rateCPercentage !== null ? `${b.rateCPercentage}%` : (product.rateCPercentage !== undefined && product.rateCPercentage !== null ? `${product.rateCPercentage}%` : (b.ratePct || product.ratePct || "16%"));
+      const bRatePct = b.rateCPercentage !== undefined && b.rateCPercentage !== null ? `${b.rateCPercentage}%` : (product.rateCPercentage !== undefined && product.rateCPercentage !== null ? `${product.rateCPercentage}%` : (b.ratePct || product.ratePct));
       const bRateCPercentage = b.rateCPercentage !== undefined && b.rateCPercentage !== null ? b.rateCPercentage : product.rateCPercentage;
-      const bStock = b.stock ?? b.batchQty ?? 100;
+      const bStock = b.stock ?? b.batchQty;
 
       const bRateB = Number(b.rateB ?? b.rateb ?? b.ptr ?? product.rateB ?? product.rateb ?? product.ptr ?? 0);
       const bRateA = Number(b.rateA ?? b.ratea ?? product.rateA ?? product.ratea ?? 0);

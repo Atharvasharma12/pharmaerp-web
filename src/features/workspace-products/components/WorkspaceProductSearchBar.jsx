@@ -1,7 +1,7 @@
 // src/features/workspace-products/components/WorkspaceProductSearchBar.jsx
 
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from "react";
-import { Search, X, Loader2, Package, Tag, Building2, Info, CheckCircle2, AlertCircle, Plus, ChevronRight, Hash, FlaskConical, Pill } from "lucide-react";
+import { Search, X, Loader2, Package, Tag, Building2, Info, CheckCircle2, AlertCircle, Plus, ChevronRight, Hash, FlaskConical, Pill, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import workspaceProductService from "../services/workspaceProductService";
 import WorkspaceProductDetailsModal from "./WorkspaceProductDetailsModal";
@@ -417,18 +417,6 @@ export const WorkspaceProductSearchBar = forwardRef(
                             <span className="font-semibold text-sm truncate text-text group-hover/item:text-primary transition-colors">
                               {name}
                             </span>
-
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-full px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider shrink-0 border",
-                                isActive
-                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                                  : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20"
-                              )}
-                            >
-                              <span className={cn("size-1.5 rounded-full", isActive ? "bg-emerald-500" : "bg-slate-400")} />
-                              {status}
-                            </span>
                           </div>
 
                           {/* Secondary attributes row */}
@@ -465,6 +453,18 @@ export const WorkspaceProductSearchBar = forwardRef(
 
                       {/* Right: Actions */}
                       <div className="flex items-center gap-1 shrink-0 ml-2">
+                        {product.stock !== undefined && product.stock > 0 && (
+                          <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30 whitespace-nowrap mr-1">
+                            <Layers className="size-3 text-emerald-600 dark:text-emerald-400" /> {product.stock} Qty
+                          </span>
+                        )}
+                        
+                        {product.stock !== undefined && product.stock <= 0 && (
+                          <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-red-700 dark:text-red-300 bg-red-500/15 px-1.5 py-0.5 rounded border border-red-500/30 whitespace-nowrap mr-1">
+                            <Layers className="size-3 text-red-600 dark:text-red-400" /> Out of Stock
+                          </span>
+                        )}
+
                         {showDetailsPreview && (
                           <button
                             type="button"
