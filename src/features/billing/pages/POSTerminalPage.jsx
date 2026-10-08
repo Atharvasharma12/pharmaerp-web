@@ -1478,4 +1478,3 @@ export const POSTerminalPage = () => {
 };
 
 export default POSTerminalPage;
-

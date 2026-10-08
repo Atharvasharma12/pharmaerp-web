@@ -1063,6 +1063,7 @@ export const SalesDesktopPage = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onSelectProduct={handleSelectWorkspaceProduct}
+              branchId={currentBranch?._id || currentBranch?.id || null}
               placeholder="Scan barcode or search product / medicine by name, SKU, brand..."
               size="md"
               showDetailsPreview
