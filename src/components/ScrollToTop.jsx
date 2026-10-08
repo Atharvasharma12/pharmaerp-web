@@ -20,8 +20,10 @@ export default function ScrollToTop() {
         "main, section, [class*='overflow-auto'], [class*='overflow-y-auto'], [class*='overflow-scroll']"
       );
       scrollableElements.forEach((el) => {
-        el.scrollTop = 0;
-        el.scrollLeft = 0;
+        if (el.getAttribute("data-preserve-scroll") !== "true") {
+          el.scrollTop = 0;
+          el.scrollLeft = 0;
+        }
       });
     };
 

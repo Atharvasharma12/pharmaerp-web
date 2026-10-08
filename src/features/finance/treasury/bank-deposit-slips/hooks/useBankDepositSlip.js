@@ -7,6 +7,8 @@ import {
   getBankDepositSlipById,
   confirmDeposit,
   cancelBankDepositSlip,
+  withdrawFromBankDepositSlip,
+  getCashInTransit,
 } from "../store/bankDepositSlipThunk";
 
 import {
@@ -30,6 +32,10 @@ import {
   selectGetBankDepositSlipStatus,
   selectConfirmDepositStatus,
   selectCancelBankDepositSlipStatus,
+  selectWithdrawFromSlipStatus,
+  selectCashInTransit,
+  selectTotalCIT,
+  selectGetCashInTransitStatus,
 } from "../store/bankDepositSlipSelector";
 
 const useBankDepositSlip = () => {
@@ -56,6 +62,14 @@ const useBankDepositSlip = () => {
   const confirmDepositStatus = useSelector(selectConfirmDepositStatus);
 
   const cancelBankDepositSlipStatus = useSelector(selectCancelBankDepositSlipStatus);
+
+  const withdrawFromSlipStatus = useSelector(selectWithdrawFromSlipStatus);
+
+  const cashInTransit = useSelector(selectCashInTransit);
+
+  const totalCIT = useSelector(selectTotalCIT);
+
+  const getCashInTransitStatus = useSelector(selectGetCashInTransitStatus);
 
   const submitCreateBankDepositSlip = useCallback((payload) => {
     return dispatch(createBankDepositSlip(payload)).unwrap();
@@ -87,6 +101,19 @@ const useBankDepositSlip = () => {
     ).unwrap();
   }, [dispatch]);
 
+  const submitWithdrawFromBankDepositSlip = useCallback((slipId, payload = {}) => {
+    return dispatch(
+      withdrawFromBankDepositSlip({
+        slipId,
+        payload,
+      }),
+    ).unwrap();
+  }, [dispatch]);
+
+  const fetchCashInTransit = useCallback((params = {}) => {
+    return dispatch(getCashInTransit(params)).unwrap();
+  }, [dispatch]);
+
   const clearError = useCallback(() => {
     dispatch(clearBankDepositSlipError());
   }, [dispatch]);
@@ -115,6 +142,8 @@ const useBankDepositSlip = () => {
     bankDepositSlips,
     currentBankDepositSlip,
     managedBankDepositSlip,
+    cashInTransit,
+    totalCIT,
 
     status,
     error,
@@ -125,12 +154,16 @@ const useBankDepositSlip = () => {
     getBankDepositSlipStatus,
     confirmDepositStatus,
     cancelBankDepositSlipStatus,
+    withdrawFromSlipStatus,
+    getCashInTransitStatus,
 
     createBankDepositSlip: submitCreateBankDepositSlip,
     getBankDepositSlips: fetchBankDepositSlips,
     getBankDepositSlipById: fetchBankDepositSlipById,
     confirmDeposit: submitConfirmDeposit,
     cancelBankDepositSlip: submitCancelBankDepositSlip,
+    withdrawFromBankDepositSlip: submitWithdrawFromBankDepositSlip,
+    getCashInTransit: fetchCashInTransit,
 
     clearError,
     clearMessage,

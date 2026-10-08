@@ -149,6 +149,14 @@ const TreasuryPage = () => {
         permission: "bank-deposit-slip:view",
       },
       {
+        id: "cashInTransit",
+        title: "Cash In Transit",
+        description: "Company-wide view of cash in transit to bank",
+        colorVariant: "primary",
+        path: ROUTES.CASH_IN_TRANSIT,
+        permission: "bank-deposit-slip:view",
+      },
+      {
         id: "paymentQrUpi",
         title: "Payment QR / UPI",
         description: "Manage UPI QR codes and digital payments",

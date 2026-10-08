@@ -8,14 +8,25 @@ import useCheque from "../hooks/useCheque";
 import ChequesDesktopPage from "./desktop/ChequesDesktopPage";
 import ChequesMobilePage from "./mobile/ChequesMobilePage";
 
+import ChequeDialog from "../components/ChequeDialog";
+
 const ChequesPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+
+  const [dialogState, setDialogState] = useState({
+    isOpen: false,
+    mode: "create",
+    entityId: null,
+    chequeData: null,
+  });
 
   const {
     cheques,
     getCheques,
     getChequesStatus,
+    getChequeById,
+    createCheque,
     depositCheque,
     clearCheque,
     bounceCheque,
@@ -118,7 +129,7 @@ const ChequesPage = () => {
   );
 
   const handleBounce = useCallback(
-    async (chequeId, reason, bounceCharges = 0) => {
+    async (chequeId, reason = "", bounceCharges = 0) => {
       setActionError("");
       setActionMessage("");
       try {
@@ -157,6 +168,7 @@ const ChequesPage = () => {
   const handleCreateNew = useCallback(() => {
     navigate(ROUTES.CREATE_CHEQUE);
   }, [navigate]);
+
 
   const isLoading = getChequesStatus === API_STATUS.LOADING;
 

@@ -36,6 +36,10 @@ export const setupInterceptors = (apiClient, store) => {
         }
       }
 
+      // 3. Client Local Date for timezone-safe operations (YYYY-MM-DD)
+      const now = new Date();
+      const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      config.headers["x-client-date"] = localDateStr;
       return config;
     },
     (error) => Promise.reject(error),

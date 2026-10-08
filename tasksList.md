@@ -1,3 +1,17 @@
+in day closes show shift wise payment and bill wise payment and every info like everything like expense bill upi and everything
+also add running and reserve anount in day closing
+reserve wise shift wise in day closing
+bankslip is branch scope
+also cash in transit is company scope able to see from where bank slip comes from which branch
+
+company wise dashboard
+branch wise dashboard
+workspace wise dashboard
+
+add inactive logic for everything
+
+now have to upgrade overall day closing ui and logic as well as shift and bank slip ui
+
 unable to open shift or next day until user dayclosed for previous date
 also dayclosing automatic get date from last shift date
 
@@ -59,3 +73,5 @@ add other cash counter -done
 add depsodite and withdrawr in shift and day closing
 
 only able to do cash transaction when shift is open
+
+now go to erp backend ans see account group and account module in chart of account also go and see readme file so that you get context wht we are building we are building phramcy erp and in that we give finacial model we are making dedicated only accounting sofetware now beaqcuse the erp is used by local indian pharmacy so we should make it less complex also currenlty by default we make many account groups and accounts whihc is too muchn also we want to make simple account groupm no need for nested account groups beacuse pharacy software dont have too many account grouops and accounts so we can do like make some most used account groups and used them in accounts also in account have nature but in account groups already have nature so why again put nature in account model

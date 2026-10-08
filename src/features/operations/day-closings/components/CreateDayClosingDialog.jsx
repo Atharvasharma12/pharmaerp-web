@@ -1,3 +1,5 @@
+// src/features/operations/day-closings/components/CreateDayClosingDialog.jsx
+
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -9,17 +11,38 @@ import {
   UIButton,
   UIInput,
   UIAlert,
+  UIBadge,
+  UIStatCard,
+  UIInfoCard,
+  UIDetailRow,
 } from "@/components/ui";
 import { createDayClosing, listDayClosings } from "../store/dayClosingThunk";
 import { apiClient } from "@/services";
 import useBranch from "@/features/branch/hooks/useBranch";
-import { Eye } from "lucide-react";
+import useBranchCash from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
+import {
+  Eye,
+  Banknote,
+  QrCode,
+  Clock,
+  Snowflake,
+  Calendar,
+  Layers,
+  ArrowRight,
+  ShieldCheck,
+  Building2,
+  FileCheck,
+} from "lucide-react";
 import { ViewShiftDialog } from "@/features/operations/shifts/components/ViewShiftDialog";
+
+const fmt = (n) => (Number(n) || 0).toLocaleString("en-IN");
 
 export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
   const { createDayClosingStatus, error } = useSelector((state) => state.dayClosing);
   const { currentBranch } = useBranch();
+  const { currentBranchCash: branchCash, fetchBranchCash: getBranchCash } = useBranchCash();
+  
   const getLocalTodayDateString = (date = new Date()) => {
     const d = new Date(date);
     const year = d.getFullYear();
@@ -35,6 +58,12 @@ export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [selectedShiftForView, setSelectedShiftForView] = useState(null);
+
+  useEffect(() => {
+    if (isOpen && currentBranch?._id) {
+      getBranchCash(currentBranch._id);
+    }
+  }, [isOpen, currentBranch?._id]);
 
   useEffect(() => {
     if (isOpen) {
@@ -65,8 +94,7 @@ export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
         date: selectedDate,
         branchId: currentBranch?._id,
         note,
-      }),
-    );
+      }),    );
 
     if (createDayClosing.fulfilled.match(resultAction)) {
       dispatch(listDayClosings(currentBranch?._id ? { branchId: currentBranch._id } : {}));
@@ -100,7 +128,7 @@ export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   max={todayStr}
-                  className="h-9 text-sm font-medium w-full sm:w-44"
+                  className="h-9 text-sm font-semibold w-full sm:w-44 font-mono border-border/80 focus:ring-primary"
                 />
               </div>
             </div>
@@ -201,6 +229,7 @@ export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
               </div>
             )}
           </UIModalBody>
+
           <UIModalFooter>
             <UIButton variant="ghost" type="button" onClick={onClose}>
               Cancel
@@ -211,7 +240,8 @@ export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
               isLoading={createDayClosingStatus === "loading"}
               disabled={!hasShifts}
             >
-              Create Day Closing
+              <span>Create Day Closing</span>
+              <ArrowRight className="size-4 ml-1 opacity-70" />
             </UIButton>
           </UIModalFooter>
         </form>
@@ -226,3 +256,6 @@ export const CreateDayClosingDialog = ({ isOpen, onClose }) => {
     </>
   );
 };
+
+export default CreateDayClosingDialog;
+

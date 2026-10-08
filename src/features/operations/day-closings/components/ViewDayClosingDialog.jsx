@@ -1,3 +1,5 @@
+// src/features/operations/day-closings/components/ViewDayClosingDialog.jsx
+
 import React, { useEffect, useState } from "react";
 import {
   UIModal,
@@ -12,7 +14,8 @@ import { apiClient } from "@/services";
 import { ViewShiftDialog } from "@/features/operations/shifts/components/ViewShiftDialog";
 import { ShiftFundTransferPanel } from "@/features/operations/shifts/components/ShiftFundTransferPanel";
 
-const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+
+const fmt = (n) => (Number(n) || 0).toLocaleString("en-IN");
 
 export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
   const [summary, setSummary] = useState(null);
@@ -33,6 +36,22 @@ export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
       setSelectedShiftForView(null);
     }
   }, [isOpen, dayClosing]);
+
+  const diff = (summary?.actualClosingCashAmount || 0) - (summary?.expectedClosingCashAmount || 0);
+
+  const getStatusColor = (st) => {
+    switch (st?.toLowerCase()) {
+      case "closed":
+      case "locked":
+        return "emerald";
+      case "draft":
+        return "indigo";
+      case "cancelled":
+        return "rose";
+      default:
+        return "slate";
+    }
+  };
 
   return (
     <>
@@ -281,10 +300,10 @@ export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
             </div>
           )}
         </UIModalBody>
+
         <UIModalFooter>
           <UIButton variant="ghost" onClick={onClose}>
-            Close
-          </UIButton>
+            Close Window          </UIButton>
         </UIModalFooter>
       </UIModal>
 
@@ -297,3 +316,6 @@ export const ViewDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
     </>
   );
 };
+
+export default ViewDayClosingDialog;
+

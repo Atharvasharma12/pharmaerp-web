@@ -283,7 +283,6 @@ const SuppliersDesktopPage = ({
               <RotateCcw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
             </UIIconButton>
 
-
             <PermissionGate permission="supplier:create">
               <UIButton
                 type="button"

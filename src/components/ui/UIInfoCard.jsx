@@ -137,7 +137,11 @@ export const UIInfoCard = forwardRef(
                   curTheme.iconBg
                 )}
               >
-                {icon}
+                {React.isValidElement(icon)
+                  ? icon
+                  : typeof icon === "function" || typeof icon === "object"
+                  ? React.createElement(icon, { className: "size-4" })
+                  : icon}
               </div>
             )}
 

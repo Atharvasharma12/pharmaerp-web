@@ -8,6 +8,10 @@ import usePaymentQr from "../hooks/usePaymentQr";
 import PaymentQrsDesktopPage from "./desktop/PaymentQrsDesktopPage";
 import PaymentQrsMobilePage from "./mobile/PaymentQrsMobilePage";
 
+
+import PaymentQrDialog from "../components/PaymentQrDialog";
+import { UIConfirmDialog } from "@/components/ui";
+
 const INITIAL_FILTERS = {
   search: "",
   status: "all",

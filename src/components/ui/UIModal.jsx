@@ -25,6 +25,7 @@ export const UIModal = forwardRef(
       closeOnBackdrop = true,
       closeOnEsc = true,
       showCloseButton = true,
+      mobileSheet = false,
       children,
       className,
       overlayClassName,
@@ -68,7 +69,12 @@ export const UIModal = forwardRef(
     return createPortal(
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div
+            className={cn(
+              "fixed inset-0 z-50 flex p-4 sm:p-6 overflow-y-auto",
+              mobileSheet ? "items-end sm:items-center justify-center" : "items-center justify-center"
+            )}
+          >
             {/* Backdrop Blur Overlay */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -87,21 +93,28 @@ export const UIModal = forwardRef(
               ref={ref}
               role="dialog"
               aria-modal="true"
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, scale: 0.95, y: mobileSheet ? 20 : 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              exit={{ opacity: 0, scale: 0.96, y: mobileSheet ? 20 : 10 }}
               transition={{
                 type: "spring",
                 stiffness: 420,
                 damping: 28,
               }}
               className={cn(
-                "relative w-full bg-surface border border-border rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col font-sans",
+                "relative w-full bg-surface border border-border shadow-2xl overflow-hidden z-10 flex flex-col font-sans",
+                mobileSheet ? "rounded-t-3xl sm:rounded-3xl" : "rounded-3xl",
                 appliedSize,
                 className
               )}
               {...props}
             >
+              {/* Optional Drag Handle for Mobile Sheets */}
+              {mobileSheet && (
+                <div className="flex justify-center pt-2.5 pb-0.5 sm:hidden">
+                  <div className="w-10 h-1 rounded-full bg-border/80" />
+                </div>
+              )}
               {/* Optional Top-Right Close Button */}
               {showCloseButton && onClose && (
                 <button

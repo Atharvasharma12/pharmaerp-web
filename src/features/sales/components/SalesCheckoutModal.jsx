@@ -1,19 +1,27 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Banknote,
+  QrCode,
+  CreditCard,
   Wallet,
   CheckCircle2,
   AlertCircle,
+  Percent,
   PlusCircle,
+  MinusCircle,
   Calculator,
   Trash2,
+  Receipt,
+  User
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { UIModal, UIButton } from "@/components/ui";
 import { PermissionGate } from "@/components/common/PermissionGate";
 import usePaymentQr from "@/features/finance/treasury/payment-qr/hooks/usePaymentQr";
 import { useBranchCash } from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
+import { ROUTES } from "@/constants";
 import { CashBreakdownModal } from "./CashBreakdownModal";
 
 /** Safe number parser */
@@ -114,7 +122,6 @@ const mapSavedPayments = (saved, rootDenoms = [], rootReturnedDenoms = []) => {
     };
   });
 };
-
 export const SalesCheckoutModal = ({
   isOpen,
   onClose,
@@ -130,6 +137,7 @@ export const SalesCheckoutModal = ({
   onCompleteSale,
   activeShift: activeShiftProp,
 }) => {
+  const navigate = useNavigate();
   const { currentBranch } = useBranch();
   const { paymentQrs, getPaymentQrs } = usePaymentQr();
   const { fetchBranchCash, runningCash, runningDenominations } = useBranchCash();
@@ -157,7 +165,7 @@ export const SalesCheckoutModal = ({
   }, [paymentQrs]);
 
   const [discountPercent, setDiscountPercent] = useState(customer?.defaultDiscount || 0);
-  const notes = "";
+  const [notes, setNotes] = useState("");
 
   // Detailed Billing & Tax Calculations
   const items = cartSummary?.items || [];
