@@ -335,6 +335,7 @@ const SuppliersPage = () => {
         <SuppliersDesktopPage {...pageProps} />
       )}
 
+
       <AppConfirmModal
         open={isDeleteModalOpen}
         onClose={handleCloseDeleteModal}

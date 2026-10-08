@@ -205,6 +205,7 @@ export const ROUTES = {
 
   // Finance - Treasury - Bank Deposit Slips
   BANK_DEPOSIT_SLIPS: "/finance/treasury/bank-deposit-slips",
+  CASH_IN_TRANSIT: "/finance/treasury/cash-in-transit",
   CREATE_BANK_DEPOSIT_SLIP: "/finance/treasury/bank-deposit-slips/create",
   BANK_DEPOSIT_SLIP_DETAILS: (slipId = ":slipId") =>
     `/finance/treasury/bank-deposit-slips/${slipId}`,

@@ -54,6 +54,7 @@ import marketplaceProductReducer from "@/features/marketplace/products/store/mar
 // Operations
 import shiftReducer from "@/features/operations/shifts/store/shiftSlice";
 import dayClosingReducer from "@/features/operations/day-closings/store/dayClosingSlice";
+import businessDayReducer from "@/features/operations/business-days/store/businessDaySlice";
 
 // ---------------------
 // App Reducer
@@ -122,6 +123,7 @@ const appReducer = combineReducers({
   // Operations
   shift: shiftReducer,
   dayClosing: dayClosingReducer,
+  businessDay: businessDayReducer,
 });
 
 /**

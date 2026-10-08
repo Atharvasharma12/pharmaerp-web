@@ -27,6 +27,7 @@ const BankDepositSlipDetailsDesktopPage = ({
   handleConfirmDeposit,
   handleCancelSlip,
   handleBack,
+  onWithdrawClick,
 }) => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -70,6 +71,12 @@ const BankDepositSlipDetailsDesktopPage = ({
               >
                 <FiAlertTriangle size={16} />
                 Cancel Slip
+              </button>
+              <button
+                onClick={onWithdrawClick}
+                className="px-4 py-2 bg-warning-soft hover:bg-warning-soft/80 border border-warning/30 text-warning-dark rounded-lg text-[13px] font-medium transition flex items-center gap-2"
+              >
+                Partial Withdraw
               </button>
               <button
                 onClick={() => setIsConfirmModalOpen(true)}

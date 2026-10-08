@@ -7,6 +7,7 @@ import { useIsMobile } from "@/hooks";
 import useBankDepositSlip from "../hooks/useBankDepositSlip";
 import BankDepositSlipDetailsDesktopPage from "./desktop/BankDepositSlipDetailsDesktopPage";
 import BankDepositSlipDetailsMobilePage from "./mobile/BankDepositSlipDetailsMobilePage";
+import WithdrawFromSlipModal from "../components/WithdrawFromSlipModal";
 
 const BankDepositSlipDetailsPage = () => {
   const { slipId } = useParams();
@@ -30,6 +31,7 @@ const BankDepositSlipDetailsPage = () => {
 
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
 
   const fetchSlipDetails = useCallback(() => {
     if (slipId) {
@@ -109,12 +111,25 @@ const BankDepositSlipDetailsPage = () => {
     handleConfirmDeposit,
     handleCancelSlip,
     handleBack,
+    onWithdrawClick: () => setIsWithdrawModalOpen(true),
   };
 
-  return isMobile ? (
-    <BankDepositSlipDetailsMobilePage {...pageProps} />
-  ) : (
-    <BankDepositSlipDetailsDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <BankDepositSlipDetailsMobilePage {...pageProps} />
+      ) : (
+        <BankDepositSlipDetailsDesktopPage {...pageProps} />
+      )}
+      <WithdrawFromSlipModal
+        isOpen={isWithdrawModalOpen}
+        onClose={() => {
+          setIsWithdrawModalOpen(false);
+          fetchSlipDetails(); // refresh details to see new partial withdrawals
+        }}
+        slip={managedBankDepositSlip}
+      />
+    </>
   );
 };
 
