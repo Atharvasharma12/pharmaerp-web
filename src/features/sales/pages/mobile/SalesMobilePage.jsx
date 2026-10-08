@@ -1,6 +1,6 @@
 // src/features/sales/pages/mobile/SalesMobilePage.jsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -11,6 +11,10 @@ import {
   Receipt,
   User,
   CheckCircle2,
+  Store,
+  CalendarDays,
+  Clock,
+  ArrowRight,
 } from "lucide-react";
 import {
   UICard,
@@ -26,6 +30,14 @@ import {
 } from "../../constants/salesData";
 import { SalesCheckoutModal } from "../../components/SalesCheckoutModal";
 import { SalesReceiptModal } from "../../components/SalesReceiptModal";
+import { POSSessionGatekeeperCard } from "../../components/POSSessionGatekeeperCard";
+import { useSelector, useDispatch } from "react-redux";
+import useBranch from "@/features/branch/hooks/useBranch";
+import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
+import { getOpenBusinessDay } from "@/features/operations/business-days/store/businessDayThunk";
+import OpenBusinessDayDialog from "@/features/operations/business-days/components/OpenBusinessDayDialog";
+import { CreateShiftDialog } from "@/features/operations/shifts/components/CreateShiftDialog";
+import { API_STATUS } from "@/constants";
 
 export const SalesMobilePage = () => {
   const [activeTab, setActiveTab] = useState("catalog"); // "catalog" | "cart"
@@ -37,6 +49,41 @@ export const SalesMobilePage = () => {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+
+  const { currentBranch } = useBranch();
+  const { activeShift, status: shiftStatus, refetch: refetchActiveShift } = useActiveShift(currentBranch?._id);
+  const dispatch = useDispatch();
+  const { openBusinessDay, getOpenBusinessDayStatus } = useSelector((state) => state.businessDay);
+  
+  const [isBusinessDayModalOpen, setIsBusinessDayModalOpen] = useState(false);
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
+
+  useEffect(() => {
+    if (shiftStatus !== "loading") {
+      setInitialCheckDone(true);
+    }
+  }, [shiftStatus]);
+
+  useEffect(() => {
+    if (!activeShift && currentBranch?._id && getOpenBusinessDayStatus === API_STATUS.IDLE) {
+      dispatch(getOpenBusinessDay(currentBranch._id));
+    }
+  }, [activeShift, currentBranch?._id, dispatch, getOpenBusinessDayStatus]);
+
+  const handleCloseBusinessDayModal = () => {
+    setIsBusinessDayModalOpen(false);
+    if (currentBranch?._id) {
+      dispatch(getOpenBusinessDay(currentBranch._id));
+    }
+  };
+
+  const handleCloseShiftModal = () => {
+    setIsShiftModalOpen(false);
+    if (typeof refetchActiveShift === "function") {
+      refetchActiveShift();
+    }
+  };
 
   const categories = ["all", "Tablet", "Capsule", "Syrup", "Injection"];
 
@@ -133,6 +180,34 @@ export const SalesMobilePage = () => {
     setToastMessage(`Added "${formattedItem.name}" to cart.`);
     setTimeout(() => setToastMessage(null), 3000);
   };
+
+  if (!initialCheckDone && shiftStatus === "loading" && !activeShift && !isShiftModalOpen && !isBusinessDayModalOpen) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[100dvh] space-y-4 p-8 bg-bg">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-text-muted">Loading POS...</p>
+      </div>
+    );
+  }
+
+  if (!activeShift) {
+    const isDayOpen = Boolean(openBusinessDay);
+
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 bg-slate-50/80 dark:bg-neutral-950 font-sans relative">
+        <POSSessionGatekeeperCard
+          isDayOpen={isDayOpen}
+          openBusinessDay={openBusinessDay}
+          currentBranch={currentBranch}
+          onOpenBusinessDay={() => setIsBusinessDayModalOpen(true)}
+          onStartShift={() => setIsShiftModalOpen(true)}
+        />
+
+        <OpenBusinessDayDialog isOpen={isBusinessDayModalOpen} onClose={handleCloseBusinessDayModal} />
+        <CreateShiftDialog isOpen={isShiftModalOpen} onClose={handleCloseShiftModal} />
+      </div>
+    );
+  }
 
   return (
     <section className="min-h-[100dvh] w-full bg-bg px-3.5 pt-3 pb-24 font-sans space-y-4">

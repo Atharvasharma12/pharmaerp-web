@@ -5,8 +5,8 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   UIModal,
   UIButton,
-  UIAlert,
   UIBadge,
+  UIAlert,
 } from "@/components/ui";
 import { updateShiftStatus, listShifts } from "../store/shiftThunk";
 import { API_STATUS } from "@/constants";
@@ -35,7 +35,6 @@ import {
   RotateCcw,
   HandCoins,
 } from "lucide-react";
-import { ShiftFundTransferPanel } from "./ShiftFundTransferPanel";
 import { PostShiftCloseDialog } from "./PostShiftCloseDialog";
 
 const ALL_DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
@@ -97,15 +96,15 @@ export const CloseShiftDialog = ({
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState(null);
+  const [showPostClose, setShowPostClose] = useState(false);
+  const [closedShiftData, setClosedShiftData] = useState(null);
 
-  // --- Physical cash counted (actual drawer count) ---
-  const [countedCounts, setCountedCounts] = useState(
-    DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {}),
+  const [counts, setCounts] = useState(
+    ALL_DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {})
   );
 
-  // --- Frozen split: how many of each note goes to frozen reserve ---
   const [frozenCounts, setFrozenCounts] = useState(
-    DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {}),
+    ALL_DENOMINATIONS.reduce((acc, note) => ({ ...acc, [note]: "" }), {})
   );
 
   const {
@@ -121,37 +120,12 @@ export const CloseShiftDialog = ({
     }
   }, [isOpen, shift?.branchId, fetchBranchCash]);
 
-  useEffect(() => {
-    if (isOpen && runningDenominations?.length > 0) {
-      const initial = {};
-      DENOMINATIONS.forEach((d) => {
-        const found = runningDenominations.find(
-          (x) => Number(x.denomination) === d,
-        );
-        initial[d] = found && found.quantity > 0 ? found.quantity : "";
-      });
-      setCountedCounts(initial);
-    }
-    if (!isOpen) {
-      setCountedCounts(
-        DENOMINATIONS.reduce((acc, n) => ({ ...acc, [n]: "" }), {}),
-      );
-      setFrozenCounts(
-        DENOMINATIONS.reduce((acc, n) => ({ ...acc, [n]: "" }), {}),
-      );
-      setNote("");
-      setLocalError(null);
-    }
-  }, [isOpen, runningDenominations]);
-
+  // Load initial summary & populate counts from running denominations
   useEffect(() => {
     if (isOpen && shift?._id) {
       setLoading(true);
       apiClient
         .get(`/operations/shifts/${shift._id}/summary`)
-        .then((res) => setSummary(res.data.data))
-        .catch(console.error)
-
         .then((res) => {
           setSummary(res.data.data);
         })
@@ -165,68 +139,66 @@ export const CloseShiftDialog = ({
     }
   }, [isOpen, shift]);
 
-  // Totals derived from counted denominations
-  const totalCounted = useMemo(() => {
-    return DENOMINATIONS.reduce((sum, n) => {
-      return sum + (Number(countedCounts[n]) || 0) * n;
-    }, 0);
-  }, [countedCounts]);
+  // Sync denominations when runningDenominations available
+  useEffect(() => {
+    if (isOpen && runningDenominations?.length > 0) {
+      const initial = {};
+      ALL_DENOMINATIONS.forEach((d) => {
+        const found = runningDenominations.find(
+          (x) => Number(x.denomination) === d
+        );
+        initial[d] = found && found.quantity > 0 ? String(found.quantity) : "";
+      });
+      setCounts(initial);
+    }
 
-  // Totals derived from frozen selections
-  const totalFrozen = useMemo(() => {
-    return DENOMINATIONS.reduce((sum, n) => {
-      return sum + (Number(frozenCounts[n]) || 0) * n;
-    }, 0);
-  }, [frozenCounts]);
+    if (!isOpen) {
+      setCounts(
+        ALL_DENOMINATIONS.reduce((acc, n) => ({ ...acc, [n]: "" }), {})
+      );
+      setFrozenCounts(
+        ALL_DENOMINATIONS.reduce((acc, n) => ({ ...acc, [n]: "" }), {})
+      );
+      setNote("");
+      setLocalError(null);
+    }
+  }, [isOpen, runningDenominations]);
 
-  // Running = counted - frozen (computed per denomination)
-  const runningCounts = useMemo(() => {
-    const result = {};
-    DENOMINATIONS.forEach((n) => {
-      const counted = Number(countedCounts[n]) || 0;
-      const frozen = Number(frozenCounts[n]) || 0;
-      result[n] = Math.max(0, counted - frozen);
-    });
-    return result;
-  }, [countedCounts, frozenCounts]);
-
-  const totalRunning = useMemo(() => {
-    return DENOMINATIONS.reduce((sum, n) => sum + runningCounts[n] * n, 0);
-  }, [runningCounts]);
-
-  // Validation helpers
-  const frozenValidation = useMemo(() => {
-    const errors = [];
-    DENOMINATIONS.forEach((n) => {
-      const counted = Number(countedCounts[n]) || 0;
-      const frozen = Number(frozenCounts[n]) || 0;
-      if (frozen > counted) {
-        errors.push(`₹${n}: Frozen (${frozen}) cannot exceed counted (${counted})`);
-      }
-    });
-    return errors;
-  }, [countedCounts, frozenCounts]);
-
-  const handleCountedChange = (denom, val) => {
-    setCountedCounts((prev) => ({ ...prev, [denom]: val }));
-    // Also clamp frozen if it now exceeds the new counted value
+  const handleCountChange = (denom, val) => {
+    const newCount = val === "" ? "" : Math.max(0, parseInt(val, 10) || 0);
+    setCounts((prev) => ({
+      ...prev,
+      [denom]: newCount,
+    }));
+    // Auto-clamp frozen if user lowers counted notes below existing frozen count
     setFrozenCounts((prev) => {
-      const newCounted = Number(val) || 0;
-      const frozenVal = Number(prev[denom]) || 0;
-      if (frozenVal > newCounted) {
-        return { ...prev, [denom]: newCounted === 0 ? "" : String(newCounted) };
+      const numericCount = Number(newCount) || 0;
+      const currentFrozen = Number(prev[denom]) || 0;
+      if (currentFrozen > numericCount) {
+        return {
+          ...prev,
+          [denom]: numericCount === 0 ? "" : String(numericCount),
+        };
       }
       return prev;
     });
   };
 
   const handleFrozenChange = (denom, val) => {
-    const counted = Number(countedCounts[denom]) || 0;
-    const newFrozen = Math.min(Number(val) || 0, counted);
-    setFrozenCounts((prev) => ({ ...prev, [denom]: val === "" ? "" : String(newFrozen) }));
+    const counted = Number(counts[denom]) || 0;
+    if (val === "") {
+      setFrozenCounts((prev) => ({ ...prev, [denom]: "" }));
+      return;
+    }
+    const parsed = Math.max(0, parseInt(val, 10) || 0);
+    const clamped = Math.min(parsed, counted);
+    setFrozenCounts((prev) => ({
+      ...prev,
+      [denom]: String(clamped),
+    }));
   };
 
-  // Freeze all high-denomination notes (500, 200, 100) by one click
+  // Quick Freeze Actions
   const handleFreezeHighDenoms = () => {
     setFrozenCounts((prev) => {
       const next = { ...prev };
@@ -238,36 +210,36 @@ export const CloseShiftDialog = ({
     });
   };
 
-  // Freeze everything
   const handleFreezeAll = () => {
-    const next = {};
-    DENOMINATIONS.forEach((n) => {
-      const counted = Number(countedCounts[n]) || 0;
-      next[n] = counted > 0 ? String(counted) : "";
+    setFrozenCounts((prev) => {
+      const next = {};
+      ALL_DENOMINATIONS.forEach((n) => {
+        const counted = Number(counts[n]) || 0;
+        next[n] = counted > 0 ? String(counted) : "";
+      });
+      return next;
     });
-    setFrozenCounts(next);
   };
 
-  // Clear frozen
   const handleClearFrozen = () => {
     setFrozenCounts(
-      DENOMINATIONS.reduce((acc, n) => ({ ...acc, [n]: "" }), {}),
+      ALL_DENOMINATIONS.reduce((acc, n) => ({ ...acc, [n]: "" }), {})
     );
   };
 
   const handleAutoFill = () => {
     const updated = {};
-    DENOMINATIONS.forEach((d) => {
+    ALL_DENOMINATIONS.forEach((d) => {
       const found = runningDenominations?.find(
         (x) => Number(x.denomination) === d
       );
-      updated[d] = found && found.quantity > 0 ? String(found.quantity) : "";
+      updated[d] = found && found.quantity > 0 ? String(found.quantity) : "0";
     });
-    setCountedCounts(updated);
+    setCounts(updated);
     // Clamp frozen counts against new autofilled counts
     setFrozenCounts((prev) => {
       const next = { ...prev };
-      DENOMINATIONS.forEach((d) => {
+      ALL_DENOMINATIONS.forEach((d) => {
         const counted = Number(updated[d]) || 0;
         const currentFrozen = Number(next[d]) || 0;
         if (currentFrozen > counted) {
@@ -277,6 +249,45 @@ export const CloseShiftDialog = ({
       return next;
     });
   };
+
+  // Running denomination counts (auto-calculated: counted - frozen)
+  const runningCounts = useMemo(() => {
+    const result = {};
+    ALL_DENOMINATIONS.forEach((n) => {
+      const counted = Number(counts[n]) || 0;
+      const frozen = Number(frozenCounts[n]) || 0;
+      result[n] = Math.max(0, counted - frozen);
+    });
+    return result;
+  }, [counts, frozenCounts]);
+
+  const totalCounted = useMemo(() => {
+    return ALL_DENOMINATIONS.reduce((sum, n) => {
+      return sum + (Number(counts[n]) || 0) * n;
+    }, 0);
+  }, [counts]);
+
+  const totalFrozen = useMemo(() => {
+    return ALL_DENOMINATIONS.reduce((sum, n) => {
+      return sum + (Number(frozenCounts[n]) || 0) * n;
+    }, 0);
+  }, [frozenCounts]);
+
+  const totalRunning = useMemo(() => {
+    return Math.max(0, totalCounted - totalFrozen);
+  }, [totalCounted, totalFrozen]);
+
+  const frozenValidation = useMemo(() => {
+    const errors = [];
+    ALL_DENOMINATIONS.forEach((n) => {
+      const counted = Number(counts[n]) || 0;
+      const frozen = Number(frozenCounts[n]) || 0;
+      if (frozen > counted) {
+        errors.push(`₹${n}: Frozen count (${frozen}) exceeds counted notes (${counted})`);
+      }
+    });
+    return errors;
+  }, [counts, frozenCounts]);
 
   // Reconciled Metrics
   const openingFloat = Number(summary?.openingFloatAmount || shift?.openingFloatAmount || 0);
@@ -356,24 +367,24 @@ export const CloseShiftDialog = ({
       return;
     }
 
-    // Build arrays for API
-    const closingDenominations = DENOMINATIONS.filter(
-      (n) => (Number(countedCounts[n]) || 0) > 0,
+    const closingDenominations = ALL_DENOMINATIONS.filter(
+      (n) => (Number(counts[n]) || 0) > 0
     ).map((n) => ({
       denomination: n,
-      count: Number(countedCounts[n]),
-      amount: Number(countedCounts[n]) * n,
+      count: Number(counts[n]),
+      amount: Number(counts[n]) * n,
     }));
 
-    const frozenDenominations = DENOMINATIONS.filter(
-      (n) => (Number(frozenCounts[n]) || 0) > 0,
+    const frozenDenominations = ALL_DENOMINATIONS.filter(
+      (n) => (Number(frozenCounts[n]) || 0) > 0
     ).map((n) => ({
       denomination: n,
       quantity: Number(frozenCounts[n]),
     }));
 
     try {
-      const result = await dispatch(        updateShiftStatus({
+      const result = await dispatch(
+        updateShiftStatus({
           id: shift._id,
           payload: {
             status: "closed",
