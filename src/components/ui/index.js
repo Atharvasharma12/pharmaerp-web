@@ -36,6 +36,7 @@ export * from "./UIToast";
 export * from "./UITooltip";
 export * from "./UIDrawer";
 export * from "./UIFileUpload";
+export * from "./UIInfiniteScroll";
 export { default as ContextSwitchLoader } from "./ContextSwitchLoader";
 
 // Legacy Module Re-exports

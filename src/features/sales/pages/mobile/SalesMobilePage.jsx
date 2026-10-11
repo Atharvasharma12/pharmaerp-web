@@ -38,6 +38,7 @@ import { getOpenBusinessDay } from "@/features/operations/business-days/store/bu
 import OpenBusinessDayDialog from "@/features/operations/business-days/components/OpenBusinessDayDialog";
 import { CreateShiftDialog } from "@/features/operations/shifts/components/CreateShiftDialog";
 import { API_STATUS } from "@/constants";
+import invoiceService from "@/features/sales/services/invoiceService";
 
 export const SalesMobilePage = () => {
   const [activeTab, setActiveTab] = useState("catalog"); // "catalog" | "cart"
@@ -129,12 +130,23 @@ export const SalesMobilePage = () => {
   const estTax = cartSubtotal * 0.12;
   const cartGrandTotal = Math.round(cartSubtotal + estTax);
 
-  const handleCompleteSale = (saleData) => {
+  const handleCompleteSale = async (saleData) => {
     setIsCheckoutOpen(false);
-    setCompletedSale(saleData);
+    let savedSale = null;
+    try {
+      const targetCustomerId = saleData.customer?._id || saleData.customer?.id;
+      if (targetCustomerId) {
+        const res = await invoiceService.recordCustomerSale(targetCustomerId, saleData);
+        savedSale = res?.data?.data || res?.data || null;
+      }
+    } catch (err) {
+      console.warn("Mobile sale record error:", err);
+    }
+    const finalData = savedSale ? { ...saleData, ...savedSale } : saleData;
+    setCompletedSale(finalData);
     setIsReceiptOpen(true);
     setCart([]);
-    setToastMessage(`✅ Sale completed (${saleData.invoiceNo})`);
+    setToastMessage(`✅ Sale completed (${finalData.invoiceNo || saleData.invoiceNo})`);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
@@ -194,7 +206,7 @@ export const SalesMobilePage = () => {
     const isDayOpen = Boolean(openBusinessDay);
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 bg-slate-50/80 dark:bg-neutral-950 font-sans relative">
+      <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 bg-bg font-sans relative">
         <POSSessionGatekeeperCard
           isDayOpen={isDayOpen}
           openBusinessDay={openBusinessDay}

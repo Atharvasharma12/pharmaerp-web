@@ -68,14 +68,25 @@ export const BillingMobilePage = () => {
     }
   };
 
-  const handleCancelInvoice = (invId) => {
-    setInvoices((prev) =>
-      prev.map((inv) =>
-        inv.id === invId ? { ...inv, status: "Cancelled", balance: 0 } : inv
-      )
-    );
-    if (selectedInvoice && selectedInvoice.id === invId) {
-      setSelectedInvoice((prev) => ({ ...prev, status: "Cancelled", balance: 0 }));
+  const handleCancelInvoice = async (invId) => {
+    try {
+      await invoiceService.cancelCustomerSale(invId);
+      setInvoices((prev) =>
+        prev.map((inv) =>
+          inv.id === invId ? { ...inv, status: "Cancelled", balance: 0 } : inv
+        )
+      );
+      if (selectedInvoice && selectedInvoice.id === invId) {
+        setSelectedInvoice((prev) => ({ ...prev, status: "Cancelled", balance: 0 }));
+      }
+      setToastMessage("✅ Invoice cancelled successfully.");
+    } catch (error) {
+      console.error(error);
+      const msg = error.response?.data?.message || "Failed to cancel invoice.";
+      setToastMessage(`❌ ${msg}`);
+      throw error;
+    } finally {
+      setTimeout(() => setToastMessage(null), 4000);
     }
   };
 

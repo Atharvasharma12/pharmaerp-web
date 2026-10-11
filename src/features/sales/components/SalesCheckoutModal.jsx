@@ -24,6 +24,8 @@ import useBranch from "@/features/branch/hooks/useBranch";
 import { ROUTES } from "@/constants";
 import { cn } from "@/lib/utils";
 import { CashBreakdownModal, decomposeAmount } from "./CashBreakdownModal";
+import { getBranchInitials } from "@/utils";
+import invoiceService from "../services/invoiceService";
 
 /** Safe number parser */
 const safeNum = (v) => {
@@ -146,6 +148,8 @@ export const SalesCheckoutModal = ({
   initialReturnedDenominations = [],
   onCompleteSale,
   activeShift: activeShiftProp,
+  shiftId: shiftIdProp,
+  existingInvoiceNo = null,
 }) => {
   const navigate = useNavigate();
   const { currentBranch } = useBranch();
@@ -160,6 +164,50 @@ export const SalesCheckoutModal = ({
       fetchBranchCash(currentBranch._id);
     }
   }, [isOpen, currentBranch?._id, getPaymentQrs, fetchBranchCash]);
+
+  // Branch-scoped serial invoice number (e.g. AEB-2627-0001)
+  const defaultInvoiceNo = useMemo(() => {
+    if (existingInvoiceNo) return existingInvoiceNo;
+    const branchInitials = getBranchInitials(currentBranch);
+    const dateObj = saleDate ? new Date(saleDate) : new Date();
+    const month = dateObj.getMonth();
+    const year = dateObj.getFullYear();
+    const fyString = month >= 3
+      ? `${year.toString().slice(-2)}${(year + 1).toString().slice(-2)}`
+      : `${(year - 1).toString().slice(-2)}${year.toString().slice(-2)}`;
+    return `${branchInitials}-${fyString}-0001`;
+  }, [currentBranch, saleDate, existingInvoiceNo]);
+
+  const [nextInvoiceNo, setNextInvoiceNo] = useState("");
+
+  useEffect(() => {
+    if (existingInvoiceNo) return;
+    if (!isOpen || !currentBranch?._id) return;
+    let isMounted = true;
+    invoiceService
+      .getNextInvoiceNumber({
+        branchId: currentBranch._id,
+        date: saleDate ? new Date(saleDate).toISOString() : new Date().toISOString(),
+      })
+      .then((res) => {
+        const fetchedNo =
+          res?.data?.data?.nextInvoiceNo ||
+          res?.data?.data?.nextInvoiceNumber ||
+          res?.data?.nextInvoiceNo ||
+          res?.data?.nextInvoiceNumber;
+        if (isMounted && fetchedNo) {
+          setNextInvoiceNo(fetchedNo);
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not fetch next invoice number:", err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, currentBranch?._id, saleDate, existingInvoiceNo]);
+
+  const displayInvoiceNo = existingInvoiceNo || nextInvoiceNo || defaultInvoiceNo;
 
   // Main operating cash counter (Branch Running Cash)
   const availableCash = useMemo(() => {
@@ -248,6 +296,7 @@ export const SalesCheckoutModal = ({
 
   // Multi-Row Payments State
   const [payments, setPayments] = useState([]);
+  const [isSplitMode, setIsSplitMode] = useState(false);
   
   // Initialize payments ONLY when the modal transitions closed -> open.
   // Guarded by a ref so unstable prop/selector references can never cause a setState loop.
@@ -260,8 +309,11 @@ export const SalesCheckoutModal = ({
     if (!justOpened) return;
 
     if (hasSavedPayments) {
-      setPayments(mapSavedPayments(initialPayments, initialDenominations, initialReturnedDenominations));
+      const mapped = mapSavedPayments(initialPayments, initialDenominations, initialReturnedDenominations);
+      setPayments(mapped);
+      setIsSplitMode(mapped.length > 1);
     } else {
+      setIsSplitMode(false);
       setPayments([
         {
           id: Date.now(),
@@ -331,15 +383,72 @@ export const SalesCheckoutModal = ({
     });
   }, [payments]);
 
+  const handleSelectPrimaryMode = (mode) => {
+    if (mode === "Split") {
+      setIsSplitMode(true);
+      if (payments.length === 1) {
+        const curType = payments[0]?.paymentType || "Cash";
+        const otherType = curType === "Cash" ? "UPI" : "Cash";
+        const half1 = Math.round(grandTotal / 2);
+        const half2 = grandTotal - half1;
+        setPayments([
+          {
+            ...payments[0],
+            amount: half1,
+            cashDetails: null,
+          },
+          {
+            id: Date.now() + 1,
+            paymentType: otherType,
+            amount: half2,
+            paymentQrId: otherType === "UPI" && primaryQr?._id ? String(primaryQr._id) : undefined,
+            branchId: otherType === "Cash" ? currentBranch?._id || "" : undefined,
+          },
+        ]);
+      }
+      return;
+    }
+
+    setIsSplitMode(false);
+    if (mode === "Cash") {
+      setPayments([
+        {
+          id: Date.now(),
+          paymentType: "Cash",
+          amount: grandTotal,
+          branchId: currentBranch?._id || "",
+        },
+      ]);
+    } else if (mode === "UPI") {
+      setPayments([
+        {
+          id: Date.now(),
+          paymentType: "UPI",
+          amount: grandTotal,
+          paymentQrId: primaryQr?._id ? String(primaryQr._id) : undefined,
+        },
+      ]);
+    } else if (mode === "Card") {
+      setPayments([
+        {
+          id: Date.now(),
+          paymentType: "Card",
+          amount: grandTotal,
+        },
+      ]);
+    }
+  };
+
   const handleAddRow = () => {
+    setIsSplitMode(true);
     setPayments([
       ...payments,
       {
         id: Date.now(),
-        paymentType: "Cash",
+        paymentType: "UPI",
         amount: shortfall,
         branchId: currentBranch?._id || "",
-        paymentQrId: undefined,
+        paymentQrId: primaryQr?._id ? String(primaryQr._id) : undefined,
       },
     ]);
   };
@@ -376,9 +485,9 @@ export const SalesCheckoutModal = ({
     setErrorMessage(null);
 
     try {
-      const prefix = isB2B ? "TAX-INV" : "RET-INV";
       const salePayload = {
-        invoiceNo: `${prefix}-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        invoiceNo: displayInvoiceNo,
+        branchId: currentBranch?._id,
         customer: customerPhone ? { ...customer, phone: customerPhone } : customer,
         doctor: doctor || null,
         date: saleDate ? new Date(saleDate).toISOString() : new Date().toISOString(),
@@ -394,7 +503,8 @@ export const SalesCheckoutModal = ({
         roundOff,
         grandTotal,
         gstSlabs,
-        paymentMethod: buildPaymentMethodLabel(payments),
+        paymentMethod: (isSplitMode || payments.length > 1) ? "Split" : (payments[0]?.paymentType || "Cash"),
+        shiftId: shiftIdProp || activeShift?._id || null,
         cashTendered: payments.reduce((sum, p) => p.paymentType === "Cash" ? sum + (p.cashDetails?.receivedTotal || Number(p.amount)) : sum, 0),
         changeDue: payments.reduce((sum, p) => p.paymentType === "Cash" ? sum + (p.cashDetails?.returnedTotal || 0) : sum, 0),
         denominations: [],
@@ -438,7 +548,11 @@ export const SalesCheckoutModal = ({
                 <h2 className="text-[12.5px] font-black uppercase tracking-widest">
                   {isB2B ? "Tax Invoice" : "Retail Receipt"}
                 </h2>
-                <p className="text-[10px] opacity-75 mt-0.5">
+                <div className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full bg-white/20 text-[11px] font-mono font-bold tracking-wider">
+                  <span>Inv:</span>
+                  <span>{displayInvoiceNo}</span>
+                </div>
+                <p className="text-[10px] opacity-75 mt-1">
                   {new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </p>
               </div>
@@ -576,6 +690,45 @@ export const SalesCheckoutModal = ({
                 : "bg-warning-soft text-warning border-warning/30"
             )}>
               {shortfall === 0 ? "✓ Balanced" : `Short ₹${shortfall.toFixed(2)}`}
+            </div>
+          </div>
+
+          {/* Quick Payment Mode Tabs */}
+          <div className="px-5 pt-2.5 pb-2 border-b border-border bg-surface-alt/20 shrink-0">
+            <div className="text-[9.5px] font-bold uppercase tracking-wider text-text-muted mb-1.5 flex items-center justify-between">
+              <span>Payment Mode</span>
+              {isSplitMode && (
+                <span className="text-[9.5px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                  Split Mode Active ({payments.length} parts)
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                { id: "Cash", label: "Cash", icon: Banknote, color: "text-emerald-600", activeCls: "bg-emerald-500/15 border-emerald-500/50 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30" },
+                { id: "UPI", label: "UPI / QR", icon: QrCode, color: "text-purple-600", activeCls: "bg-purple-500/15 border-purple-500/50 text-purple-700 dark:text-purple-300 ring-1 ring-purple-500/30" },
+                { id: "Card", label: "Card", icon: CreditCard, color: "text-blue-600", activeCls: "bg-blue-500/15 border-blue-500/50 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/30" },
+                { id: "Split", label: "Split", icon: Calculator, color: "text-indigo-600", activeCls: "bg-indigo-500/15 border-indigo-500/50 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/30" },
+              ].map((m) => {
+                const Icon = m.icon;
+                const isActive = isSplitMode ? m.id === "Split" : (!isSplitMode && payments.length === 1 && payments[0]?.paymentType === m.id);
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => handleSelectPrimaryMode(m.id)}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border text-xs font-bold transition-all cursor-pointer",
+                      isActive
+                        ? m.activeCls
+                        : "border-border bg-surface text-text hover:bg-surface-hover"
+                    )}
+                  >
+                    <Icon className={cn("size-3.5", m.color)} />
+                    <span>{m.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

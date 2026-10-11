@@ -21,6 +21,9 @@ const invoiceService = {
     return apiClient.put(`/sales/invoices/${invoiceId}/cancel`);
   },
 
+  getNextInvoiceNumber(params = {}) {
+    return apiClient.get("/sales/invoices/next-number", { params });
+  },
 };
 
 export default invoiceService;

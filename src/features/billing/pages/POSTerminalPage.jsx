@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import CustomerDialog from "@/features/parties/customers/components/CustomerDialog";
 import { cn } from "@/lib/utils";
+import { getBranchInitials } from "@/utils";
 import customerService from "@/features/parties/customers/services/customerService";
 import invoiceService from "@/features/sales/services/invoiceService";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
@@ -133,7 +134,41 @@ export const POSTerminalPage = () => {
   }, []);
 
   /* ── Invoice ── */
-  const [invoiceNo] = useState(() => initialInvoice?.invoiceNo || generateInvoiceNo());
+  const [invoiceNo, setInvoiceNo] = useState(() => {
+    if (initialInvoice?.invoiceNo) return initialInvoice.invoiceNo;
+    const branchInitials = getBranchInitials(currentBranch);
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    const fyString = month >= 3
+      ? `${year.toString().slice(-2)}${(year + 1).toString().slice(-2)}`
+      : `${(year - 1).toString().slice(-2)}${year.toString().slice(-2)}`;
+    return `${branchInitials}-${fyString}-0001`;
+  });
+
+  useEffect(() => {
+    if (initialInvoice?.invoiceNo) return;
+    if (!currentBranch?._id) return;
+    let isMounted = true;
+    invoiceService
+      .getNextInvoiceNumber({ branchId: currentBranch._id })
+      .then((res) => {
+        const fetchedNo =
+          res?.data?.data?.nextInvoiceNo ||
+          res?.data?.data?.nextInvoiceNumber ||
+          res?.data?.nextInvoiceNo ||
+          res?.data?.nextInvoiceNumber;
+        if (isMounted && fetchedNo) {
+          setInvoiceNo(fetchedNo);
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not fetch next invoice number:", err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [currentBranch?._id, initialInvoice?.invoiceNo]);
 
   /* ── Billing Mode ── */
   const [billingMode, setBillingMode] = useState(initialInvoice?.billingMode || "B2C");
@@ -660,7 +695,8 @@ export const POSTerminalPage = () => {
         invoiceNo,
         billingMode,
         branchId: currentBranch?._id || null,
-        date: new Date().toISOString(),
+        shiftId: activeShift?._id || initialInvoice?.shiftId || null,
+        date: isEditMode && initialInvoice?.date ? initialInvoice.date : new Date().toISOString(),
         items: cartItems.map((ci) => ({
           productId: ci.productId,
           name: ci.name,
@@ -677,6 +713,7 @@ export const POSTerminalPage = () => {
         discount: calculations.billDiscount + calculations.totalItemDiscount,
         tax: calculations.totalGst,
         grandTotal: calculations.grandTotal,
+        branchId: currentBranch?._id || null,
         paymentMethod,
         cashTendered: Number(cashTendered) || calculations.grandTotal,
         customerName,
@@ -696,12 +733,15 @@ export const POSTerminalPage = () => {
         returnedDenominations: finalReturnedDenominations
       };
 
+      let savedSaleResult = null;
       if (customerId) {
         // B2B — record or update sale against the existing customer
         if (isEditMode) {
-          await invoiceService.updateCustomerSale(customerId, invoiceId, salePayload);
+          const res = await invoiceService.updateCustomerSale(customerId, invoiceId, salePayload);
+          savedSaleResult = res?.data?.data || res?.data || null;
         } else {
-          await invoiceService.recordCustomerSale(customerId, salePayload);
+          const res = await invoiceService.recordCustomerSale(customerId, salePayload);
+          savedSaleResult = res?.data?.data || res?.data || null;
         }
       } else if (billingMode === "B2C" && b2cName) {
         // For B2C with a named customer, create the customer first, then record
@@ -715,9 +755,11 @@ export const POSTerminalPage = () => {
           const newId = newCustomer?._id || newCustomer?.id;
           if (newId) {
             if (isEditMode) {
-              await invoiceService.updateCustomerSale(newId, invoiceId, salePayload);
+              const res = await invoiceService.updateCustomerSale(newId, invoiceId, salePayload);
+              savedSaleResult = res?.data?.data || res?.data || null;
             } else {
-              await invoiceService.recordCustomerSale(newId, salePayload);
+              const res = await invoiceService.recordCustomerSale(newId, salePayload);
+              savedSaleResult = res?.data?.data || res?.data || null;
             }
           }
         } catch (createErr) {
@@ -735,9 +777,11 @@ export const POSTerminalPage = () => {
           const newId = newCustomer?._id || newCustomer?.id;
           if (newId) {
             if (isEditMode) {
-              await invoiceService.updateCustomerSale(newId, invoiceId, salePayload);
+              const res = await invoiceService.updateCustomerSale(newId, invoiceId, salePayload);
+              savedSaleResult = res?.data?.data || res?.data || null;
             } else {
-              await invoiceService.recordCustomerSale(newId, salePayload);
+              const res = await invoiceService.recordCustomerSale(newId, salePayload);
+              savedSaleResult = res?.data?.data || res?.data || null;
             }
           }
         } catch (createErr) {
@@ -745,7 +789,8 @@ export const POSTerminalPage = () => {
         }
       }
 
-      setToast({ type: "success", message: `✅ Invoice ${invoiceNo} ${isEditMode ? "updated" : "billed"} successfully! Grand Total: ${formatCurrency(calculations.grandTotal)}` });
+      const actualInvoiceNo = savedSaleResult?.invoiceNo || invoiceNo;
+      setToast({ type: "success", message: `✅ Invoice ${actualInvoiceNo} ${isEditMode ? "updated" : "billed"} successfully! Grand Total: ${formatCurrency(calculations.grandTotal)}` });
       setTimeout(() => {
         setToast(null);
         if (isEditMode) {

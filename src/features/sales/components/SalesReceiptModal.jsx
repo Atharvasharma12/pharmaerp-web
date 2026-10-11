@@ -23,6 +23,7 @@ export const SalesReceiptModal = ({ isOpen, onClose, saleData }) => {
     invoiceNo = "TAX-INV-2026-0891",
     date: rawDate,
     createdAt: rawCreatedAt,
+    updatedAt: rawUpdatedAt,
     customer = { name: "Walk-in Retail Customer", phone: "9876543210" },
     billingMode = "B2C",
     partyType = "retail",
@@ -43,6 +44,22 @@ export const SalesReceiptModal = ({ isOpen, onClose, saleData }) => {
   const actualDate = rawCreatedAt 
     ? new Date(rawCreatedAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
     : new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  const isEdited = Boolean(
+    rawUpdatedAt &&
+    rawCreatedAt &&
+    new Date(rawUpdatedAt).getTime() - new Date(rawCreatedAt).getTime() > 2000
+  );
+
+  const updatedDate = isEdited
+    ? new Date(rawUpdatedAt).toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
 
   const handlePrint = () => {
     window.print();
@@ -103,6 +120,11 @@ export const SalesReceiptModal = ({ isOpen, onClose, saleData }) => {
                 <span className="font-mono font-bold text-text text-sm">{invoiceNo}</span>
                 <p className="text-[11px] text-text-muted mt-0.5">Bill Date: {billDate}</p>
                 <p className="text-[10px] text-text-muted">Created: {actualDate}</p>
+                {updatedDate && (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                    Updated: {updatedDate}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -128,6 +150,16 @@ export const SalesReceiptModal = ({ isOpen, onClose, saleData }) => {
                   <CreditCard className="size-3" /> Payment
                 </span>
                 <p className="font-bold text-text text-sm leading-tight">{paymentMethod}</p>
+                {paymentMethod === "Split" && Array.isArray(saleData.payments) && saleData.payments.length > 0 && (
+                  <div className="text-[10.5px] text-text-muted space-y-0.5 mt-1 font-mono">
+                    {saleData.payments.map((p, idx) => (
+                      <div key={idx} className="flex justify-end gap-1.5">
+                        <span className="capitalize">{p.paymentType || p.mode}:</span>
+                        <span className="font-semibold text-text">₹{Number(p.amount || 0).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <p className="text-[11px] text-text-muted mt-0.5">Ref: {invoiceNo}-TXN</p>
                 {isB2B && customer.paymentTerms && (
                   <p className="text-success font-semibold text-[11px]">{customer.paymentTerms}</p>

@@ -28,6 +28,7 @@ import {
   X,
   Stethoscope,
   CheckCircle2,
+  Lock,
 } from "lucide-react";
 import useBranch from "@/features/branch/hooks/useBranch";
 
@@ -104,27 +105,14 @@ export const OpenBusinessDayDialog = ({ isOpen, onClose }) => {
   const isTodayClosed = Boolean(suggestedBusinessDate?.isTodayClosed);
 
   useEffect(() => {
-    if (suggestedBusinessDate?.suggestedDate) {
-      let raw = "";
-      if (typeof suggestedBusinessDate.suggestedDate === "string") {
-        raw = suggestedBusinessDate.suggestedDate.split("T")[0];
-      } else {
-        const d = new Date(suggestedBusinessDate.suggestedDate);
-        raw = getLocalDateString(d);
-      }
-
-      // Strictly clamp: Never allow yesterday or past dates
-      if (raw < todayStr) {
-        raw = todayStr;
-      }
-
-      if (isTodayClosed) {
-        setSelectedDate(tomorrowStr);
-      } else {
-        setSelectedDate(raw || todayStr);
-      }
+    // Strictly immutable: Always today if not closed, otherwise tomorrow.
+    // Never allow yesterday or past dates, irrespective of previous business day.
+    if (isTodayClosed) {
+      setSelectedDate(tomorrowStr);
+    } else {
+      setSelectedDate(todayStr);
     }
-  }, [suggestedBusinessDate, todayStr, tomorrowStr, isTodayClosed]);
+  }, [isTodayClosed, todayStr, tomorrowStr]);
 
   useEffect(() => {
     if (openBusinessDayStatus === API_STATUS.SUCCESS) {
@@ -169,8 +157,8 @@ export const OpenBusinessDayDialog = ({ isOpen, onClose }) => {
       {/* ── 1. Dialog Header (No Bottom Border) ───────────────────────────────── */}
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-2.5 sm:gap-3">
-          {/* Emerald rounded-xl icon container */}
-          <div className="size-9 sm:size-9.5 rounded-xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 text-white flex items-center justify-center shrink-0 shadow-xs ring-1 ring-emerald-500/20">
+          {/* Rounded-xl icon container with theme primary */}
+          <div className="size-9 sm:size-9.5 rounded-xl bg-primary text-primary-contrast flex items-center justify-center shrink-0 shadow-xs ring-1 ring-primary/20">
             <CalendarDays className="size-4.5 stroke-[2]" />
           </div>
 
@@ -179,7 +167,7 @@ export const OpenBusinessDayDialog = ({ isOpen, onClose }) => {
               <h3 className="text-base sm:text-[17px] font-bold text-text tracking-tight leading-none">
                 Open Business Day Session
               </h3>
-              <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+              <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md uppercase bg-primary-soft text-primary border border-primary/25">
                 NEW SESSION
               </span>
             </div>
@@ -220,8 +208,8 @@ export const OpenBusinessDayDialog = ({ isOpen, onClose }) => {
       )}
 
       {/* ── 2. Information Callout Banner ─────────────────────────────────── */}
-      <div className="bg-emerald-500/[0.06] dark:bg-emerald-500/[0.12] border border-emerald-500/20 rounded-xl px-3 py-2 sm:px-3.5 sm:py-2.5 flex items-start gap-2.5">
-        <div className="size-4.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+      <div className="bg-primary-soft/40 dark:bg-primary-soft/20 border border-primary/20 rounded-xl px-3 py-2 sm:px-3.5 sm:py-2.5 flex items-start gap-2.5">
+        <div className="size-4.5 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0 mt-0.5">
           <Info className="size-3" />
         </div>
         <div className="min-w-0">
@@ -236,104 +224,61 @@ export const OpenBusinessDayDialog = ({ isOpen, onClose }) => {
         </div>
       </div>
 
-      {/* ── 3. Scheduled Business Date Selection (Today or Tomorrow) ────────── */}
+      {/* ── 3. Fixed Business Date (Immutable Today or Tomorrow) ────────── */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs font-bold text-text">
           <div className="flex items-center gap-1.5">
             <Calendar className="size-3.5 text-text-muted" />
-            <span>Select Business Date</span>
+            <span>Business Date</span>
           </div>
-          <span className="text-[10.5px] font-normal text-text-muted">
-            Only Today and Tomorrow can be opened
-          </span>
+          <div className="flex items-center gap-1 text-[10.5px] text-text-muted font-medium">
+            <Lock className="size-3 text-text-muted" />
+            <span>{isTodayClosed ? "Today closed · Scheduled for tomorrow" : "Fixed to today"}</span>
+          </div>
         </div>
 
-        {/* Quick Date Switcher Buttons (Today vs Tomorrow) */}
-        <div className="grid grid-cols-2 gap-2.5">
-          {/* Today Button */}
-          <button
-            type="button"
-            disabled={isTodayClosed || hasOpenDay || isLoading}
-            onClick={() => setSelectedDate(todayStr)}
-            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative ${
-              selectedDate === todayStr
-                ? "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 text-text ring-2 ring-emerald-500/20"
-                : "border-border bg-surface hover:bg-surface-alt/80 text-text"
-            } ${
-              isTodayClosed
-                ? "opacity-50 cursor-not-allowed bg-surface-alt/40"
-                : ""
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                {isTodayClosed ? "Closed" : "Today"}
-              </span>
-              {selectedDate === todayStr && !isTodayClosed && (
-                <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-              )}
+        {/* Notice when today is already closed */}
+        {isTodayClosed && (
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="size-2 rounded-full bg-amber-500 shrink-0" />
+              <span className="font-semibold text-[11.5px]">Today is closed</span>
+              <span className="text-text-muted text-[11px] truncate">— opening for tomorrow</span>
             </div>
-            <div className="text-xs font-bold text-text mt-0.5">
-              {formatShortDateFromStr(todayStr)}
-            </div>
-            <div className="text-[10px] text-text-muted truncate mt-0.5">
-              {isTodayClosed ? "Session closed" : "Current day session"}
-            </div>
-          </button>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 shrink-0">
+              Tomorrow Available
+            </span>
+          </div>
+        )}
 
-          {/* Tomorrow Button */}
-          <button
-            type="button"
-            disabled={hasOpenDay || isLoading}
-            onClick={() => setSelectedDate(tomorrowStr)}
-            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative ${
-              selectedDate === tomorrowStr
-                ? "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 text-text ring-2 ring-emerald-500/20"
-                : "border-border bg-surface hover:bg-surface-alt/80 text-text"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                {isTodayClosed ? "Recommended" : "Tomorrow"}
-              </span>
-              {selectedDate === tomorrowStr && (
-                <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-              )}
-            </div>
-            <div className="text-xs font-bold text-text mt-0.5">
-              {formatShortDateFromStr(tomorrowStr)}
-            </div>
-            <div className="text-[10px] text-text-muted truncate mt-0.5">
-              {isTodayClosed ? "Next available session" : "Advance session"}
-            </div>
-          </button>
-        </div>
-
-        {/* Selected Date Summary Card */}
+        {/* Fixed Date Card */}
         {isDateDetermining ? (
-          <div className="bg-surface border border-border rounded-xl px-3.5 py-2.5 flex items-center justify-between shadow-2xs">
+          <div className="bg-surface border border-border rounded-xl px-3.5 py-3 flex items-center justify-between shadow-2xs">
             <div className="space-y-1.5 min-w-0 pr-2">
               <div className="h-4 w-44 rounded bg-surface-alt animate-pulse" />
               <div className="h-3 w-60 rounded bg-surface-alt/70 animate-pulse" />
             </div>
-            <div className="h-6 w-18 rounded-md bg-surface-alt animate-pulse shrink-0" />
+            <div className="h-6 w-20 rounded-md bg-surface-alt animate-pulse shrink-0" />
           </div>
         ) : (
-          <div className="bg-surface border border-border rounded-xl px-3.5 py-2 sm:py-2.5 flex items-center justify-between shadow-2xs">
+          <div className="bg-surface-alt/60 border border-border rounded-xl p-3 sm:p-3.5 flex items-center justify-between shadow-2xs">
             <div className="min-w-0 pr-2">
-              <div className="text-sm sm:text-[14.5px] font-bold text-emerald-600 dark:text-emerald-400 font-sans tracking-tight">
+              <div className="text-sm sm:text-[15px] font-bold text-text font-sans tracking-tight">
                 {displayDateText}
               </div>
-              <div className="text-[10.5px] sm:text-[11px] text-text-muted mt-0.5 truncate">
-                {selectedDate === tomorrowStr && isTodayClosed
-                  ? "Today is closed. Starting session for tomorrow."
-                  : suggestedBusinessDate?.reason ||
-                    "Ready to start business operations for this date."}
+              <div className="text-[11px] sm:text-[11.5px] text-text-muted mt-0.5 leading-snug">
+                {isTodayClosed
+                  ? "Today's business session is closed. Opening the next available session for tomorrow."
+                  : "Current calendar day session. All shifts and sales will be recorded under today."}
               </div>
             </div>
 
             {/* Relative Day Badge (TODAY / TOMORROW) */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 font-bold text-[10.5px] tracking-wider shrink-0 select-none">
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold text-[10.5px] tracking-wider shrink-0 select-none border ${
+              isTodayClosed
+                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"
+                : "bg-primary-soft text-primary border-primary/25"
+            }`}>
               <Calendar className="size-3" />
               <span>{badgeText}</span>
             </div>
@@ -342,9 +287,9 @@ export const OpenBusinessDayDialog = ({ isOpen, onClose }) => {
       </div>
 
       {/* ── 4. Session Workflow & Rules Highlighted Panel ─────────────────── */}
-      <div className="bg-emerald-500/[0.03] dark:bg-surface-alt/30 border border-border/80 rounded-xl p-2.5 sm:p-3">
+      <div className="bg-surface-alt/40 border border-border/80 rounded-xl p-2.5 sm:p-3">
         <div className="flex items-center gap-2">
-          <div className="size-5.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+          <div className="size-5.5 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
             <Sparkles className="size-3" />
           </div>
           <div>
@@ -417,7 +362,7 @@ export const OpenBusinessDayDialog = ({ isOpen, onClose }) => {
             disabled={isLoading || hasOpenDay}
             placeholder="e.g., Festival sales promotion, double shift schedule, special remarks..."
             rows={2}
-            className="w-full bg-surface border border-border rounded-xl px-3 py-1.5 text-xs text-text placeholder:text-text-muted/60 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-none outline-none disabled:opacity-50 select-text leading-normal"
+            className="w-full bg-surface border border-border rounded-xl px-3 py-1.5 text-xs text-text placeholder:text-text-muted/60 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none outline-none disabled:opacity-50 select-text leading-normal"
           />
           <div className="text-[10px] font-mono text-text-muted text-right mt-0.5">
             {note.length}/500
@@ -451,7 +396,7 @@ export const OpenBusinessDayDialog = ({ isOpen, onClose }) => {
           }
           startIcon={<Calendar className="size-3.5" />}
           endIcon={<ArrowRight className="size-3.5" />}
-          className="h-8.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium border-none shadow-xs text-xs rounded-lg transition-all"
+          className="h-8.5 px-4 bg-primary hover:bg-primary-hover text-primary-contrast font-medium border-none shadow-xs text-xs rounded-lg transition-all"
         >
           Open Business Day
         </UIButton>

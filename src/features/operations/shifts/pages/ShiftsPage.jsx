@@ -58,7 +58,7 @@ const ShiftsPage = () => {
   const [sortBy, setSortBy] = useState("desc");
   const [viewMode, setViewMode] = useState("table");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(6);
+  const [pageSize, setPageSize] = useState(20);
 
   // Dialog states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
