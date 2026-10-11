@@ -15,6 +15,7 @@ import {
   Palette,
   Lock,
   CreditCard,
+  Store,
 } from "lucide-react";
 
 import { ROUTES } from "@/constants";
@@ -57,6 +58,33 @@ const flattenNavItems = (items, prefix = "") => {
  */
 const QUICK_ACTIONS = [
   {
+    id: "nav-branch-dashboard",
+    label: "Branch Dashboard",
+    fullLabel: "Dashboards › Branch Dashboard",
+    path: ROUTES.BRANCH_DASHBOARD,
+    icon: Store,
+    category: "Dashboards",
+    keywords: ["branch dashboard", "daily sales", "registers", "shift dashboard"],
+  },
+  {
+    id: "nav-company-dashboard",
+    label: "Company Dashboard",
+    fullLabel: "Dashboards › Company Dashboard",
+    path: ROUTES.COMPANY_DASHBOARD,
+    icon: Building2,
+    category: "Dashboards",
+    keywords: ["company dashboard", "financials", "multi branch", "gst overview"],
+  },
+  {
+    id: "nav-workspace-dashboard",
+    label: "Workspace Dashboard",
+    fullLabel: "Dashboards › Workspace Dashboard",
+    path: ROUTES.WORKSPACE_DASHBOARD,
+    icon: Layers,
+    category: "Dashboards",
+    keywords: ["workspace dashboard", "organization", "plan", "quota", "usage"],
+  },
+  {
     id: "action-create-company",
     label: "Create Company",
     fullLabel: "Quick Actions › Create Company",
@@ -96,7 +124,7 @@ const QUICK_ACTIONS = [
     id: "action-create-customer",
     label: "Add New Customer",
     fullLabel: "Quick Actions › Add Customer",
-    path: ROUTES.CREATE_CUSTOMER,
+    path: ROUTES.CUSTOMERS,
     icon: User,
     permission: "customer:create",
     category: "Parties",
@@ -105,7 +133,7 @@ const QUICK_ACTIONS = [
     id: "action-create-supplier",
     label: "Add New Supplier",
     fullLabel: "Quick Actions › Add Supplier",
-    path: ROUTES.CREATE_SUPPLIER,
+    path: ROUTES.SUPPLIERS,
     icon: Truck,
     permission: "supplier:create",
     category: "Parties",
