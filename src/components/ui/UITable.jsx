@@ -3,8 +3,9 @@ import { ArrowUpDown, ArrowUp, ArrowDown, Inbox, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const UITable = forwardRef(
-  ({ children, className, containerClassName, stickyHeader = false, ...props }, ref) => (
+  ({ children, className, containerClassName, containerRef, stickyHeader = false, ...props }, ref) => (
     <div
+      ref={containerRef}
       className={cn(
         "relative w-full overflow-x-auto rounded-2xl border border-border bg-surface shadow-2xs isolate",
         containerClassName
@@ -12,7 +13,11 @@ export const UITable = forwardRef(
     >
       <table
         ref={ref}
-        className={cn("w-full caption-bottom text-sm text-text font-sans border-collapse", className)}
+        className={cn(
+          "w-full caption-bottom text-sm text-text font-sans",
+          stickyHeader ? "border-separate border-spacing-0" : "border-collapse",
+          className
+        )}
         {...props}
       >
         {children}
@@ -22,11 +27,12 @@ export const UITable = forwardRef(
 );
 UITable.displayName = "UITable";
 
-export const UITableHeader = forwardRef(({ children, className, ...props }, ref) => (
+export const UITableHeader = forwardRef(({ children, className, sticky = false, ...props }, ref) => (
   <thead
     ref={ref}
     className={cn(
-      "border-b border-border/80 bg-surface-alt/80 backdrop-blur-xs text-text-muted select-none",
+      "border-b border-border/80 bg-surface-alt/95 backdrop-blur-xs text-text-muted select-none",
+      sticky && "sticky top-0 z-20 shadow-xs",
       className
     )}
     {...props}
@@ -71,6 +77,7 @@ export const UITableHead = forwardRef(
       sortDirection = null, // "asc" | "desc" | null
       onSort,
       align = "left",
+      sticky = false,
       ...props
     },
     ref
@@ -83,6 +90,7 @@ export const UITableHead = forwardRef(
         onClick={sortable ? onSort : undefined}
         className={cn(
           "h-10 px-3.5 align-middle text-xs font-bold uppercase tracking-wider text-text-muted select-none whitespace-nowrap",
+          sticky && "sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs border-b border-border shadow-xs",
           sortable && "cursor-pointer hover:text-text group transition-colors",
           align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left",
           className

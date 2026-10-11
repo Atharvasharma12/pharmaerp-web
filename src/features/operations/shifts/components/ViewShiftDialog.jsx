@@ -23,12 +23,18 @@ import {
   QrCode,
   Wallet,
   ArrowLeftRight,
+  Calculator,
   TrendingUp,
   TrendingDown,
   User,
   ListFilter,
   CheckCircle2,
   AlertCircle,
+  Landmark,
+  XCircle,
+  Ban,
+  Copy,
+  Check,
 } from "lucide-react";
 import { apiClient } from "@/services";
 
@@ -87,6 +93,8 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("cash");
   const [fundFilter, setFundFilter] = useState("all");
+  const [viewingQrItem, setViewingQrItem] = useState(null);
+  const [copiedUpi, setCopiedUpi] = useState(false);
 
   useEffect(() => {
     if (isOpen && shift?._id) {
@@ -150,18 +158,36 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
   const totalDiscount = Number(summary?.totalDiscount || summary?.discountAmount || 0);
   const totalGst = Number(summary?.totalTax || summary?.taxNet || 0);
 
+  // Cancelled Bills Metrics
+  const cancelledBills = Number(summary?.cancelledInvoiceCount ?? shift?.cancelledInvoiceCount ?? 0);
+  const cancelledAmount = Number(summary?.cancelledSalesTotal ?? shift?.cancelledSalesTotal ?? 0);
+  const cancelledCash = Number(summary?.cancelledCashTotal ?? shift?.cancelledCashTotal ?? 0);
+  const cancelledUpi = Number(summary?.cancelledUpiTotal ?? shift?.cancelledUpiTotal ?? 0);
+  const cancelledSplit = Number(summary?.cancelledSplitTotal ?? shift?.cancelledSplitTotal ?? 0);
+  const cancelledInvoices = summary?.cancelledInvoices || shift?.cancelledInvoices || [];
+  const cancelledBreakdown = summary?.cancelledBreakdown || shift?.cancelledBreakdown || null;
+
   // Payment Breakdown
-  const cashNet = Number(summary?.cashNet || 0);
-  const cashBills = Number(summary?.cashInvoiceCount || 0);
+  const cashNet = Number(summary?.cashNet ?? shift?.cashNet ?? 0);
+  const cashBills = Number(summary?.cashInvoiceCount ?? shift?.cashInvoiceCount ?? 0);
 
-  const qrNet = Number(summary?.qrNet || 0);
-  const qrBills = Number(summary?.paymentQrCount || 0);
+  const qrNet = Number(summary?.qrNet ?? shift?.qrNet ?? 0);
+  const qrBills = Number(summary?.paymentQrCount ?? shift?.paymentQrCount ?? 0);
+  const upiBreakdown = summary?.upiBreakdown || shift?.upiBreakdown || [];
 
-  const cardNet = Number(summary?.cardNet || 0);
-  const cardBills = Number(summary?.cardInvoiceCount || 0);
+  const cardNet = Number(summary?.cardNet ?? shift?.cardNet ?? 0);
+  const cardBills = Number(summary?.cardInvoiceCount ?? shift?.cardInvoiceCount ?? 0);
 
-  const walletNet = Number(summary?.walletNet || 0);
-  const walletBills = Number(summary?.walletInvoiceCount || 0);
+  const walletNet = Number(summary?.walletNet ?? shift?.walletNet ?? 0);
+  const walletBills = Number(summary?.walletInvoiceCount ?? shift?.walletInvoiceCount ?? 0);
+
+  const splitNet = Number(summary?.splitNet ?? shift?.splitNet ?? summary?.splitSalesTotal ?? shift?.splitSalesTotal ?? 0);
+  const splitBills = Number(summary?.splitInvoiceCount ?? shift?.splitInvoiceCount ?? 0);
+
+  const splitCashAmount = Number(summary?.splitCashAmount ?? shift?.splitCashAmount ?? 0);
+  const splitUpiAmount = Number(summary?.splitUpiAmount ?? shift?.splitUpiAmount ?? 0);
+  const pureCashAmount = Number(summary?.pureCashAmount ?? shift?.pureCashAmount ?? (cashNet - splitCashAmount));
+  const pureUpiAmount = Number(summary?.pureUpiAmount ?? shift?.pureUpiAmount ?? (qrNet - splitUpiAmount));
 
   const paymentMethods = useMemo(() => {
     const list = [
@@ -171,6 +197,8 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
         icon: Banknote,
         bills: cashBills,
         amount: cashNet,
+        pureAmount: pureCashAmount,
+        splitPortion: splitCashAmount,
         color: "bg-emerald-500",
         textColor: "text-emerald-600 dark:text-emerald-400",
         iconBg: "bg-emerald-50 dark:bg-emerald-950/40",
@@ -181,6 +209,8 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
         icon: QrCode,
         bills: qrBills,
         amount: qrNet,
+        pureAmount: pureUpiAmount,
+        splitPortion: splitUpiAmount,
         color: "bg-blue-500",
         textColor: "text-blue-600 dark:text-blue-400",
         iconBg: "bg-blue-50 dark:bg-blue-950/40",
@@ -191,6 +221,8 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
         icon: CreditCard,
         bills: cardBills,
         amount: cardNet,
+        pureAmount: cardNet,
+        splitPortion: 0,
         color: "bg-purple-500",
         textColor: "text-purple-600 dark:text-purple-400",
         iconBg: "bg-purple-50 dark:bg-purple-950/40",
@@ -201,19 +233,49 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
         icon: Wallet,
         bills: walletBills,
         amount: walletNet,
+        pureAmount: walletNet,
+        splitPortion: 0,
         color: "bg-amber-500",
         textColor: "text-amber-600 dark:text-amber-400",
         iconBg: "bg-amber-50 dark:bg-amber-950/40",
       },
+      {
+        id: "split",
+        label: "Split Payment",
+        icon: Calculator,
+        bills: splitBills,
+        amount: splitNet,
+        splitCash: splitCashAmount,
+        splitUpi: splitUpiAmount,
+        color: "bg-indigo-500",
+        textColor: "text-indigo-600 dark:text-indigo-400",
+        iconBg: "bg-indigo-50 dark:bg-indigo-950/40",
+      },
     ];
 
-    const totalSum = list.reduce((s, p) => s + p.amount, 0) || totalBillAmount || 1;
+    const totalSum = totalBillAmount || (pureCashAmount + pureUpiAmount + cardNet + walletNet + splitNet) || 1;
 
     return list.map((item) => ({
       ...item,
       percentage: ((item.amount / totalSum) * 100).toFixed(1),
     }));
-  }, [cashBills, cashNet, qrBills, qrNet, cardBills, cardNet, walletBills, walletNet, totalBillAmount]);
+  }, [
+    cashBills,
+    cashNet,
+    pureCashAmount,
+    splitCashAmount,
+    qrBills,
+    qrNet,
+    pureUpiAmount,
+    splitUpiAmount,
+    cardBills,
+    cardNet,
+    walletBills,
+    walletNet,
+    splitBills,
+    splitNet,
+    totalBillAmount,
+  ]);
 
   // Denominations Breakdown
   const openingDenominations = useMemo(() => {
@@ -266,7 +328,8 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
   const netMovement = totalDeposits - totalWithdrawals;
 
   return (
-    <UIModal
+    <>
+      <UIModal
       isOpen={isOpen}
       onClose={onClose}
       showCloseButton={false}
@@ -542,10 +605,26 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                           <div className="size-6 rounded-md bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center">
                             <FileText className="size-3.5" />
                           </div>
-                          <span className="text-text-muted font-medium">Total Bills</span>
+                          <span className="text-text-muted font-medium">Active Bills</span>
                         </div>
                         <span className="font-bold text-text text-sm font-mono">{totalBills}</span>
                       </div>
+
+                      {/* Cancelled Bills if any */}
+                      {cancelledBills > 0 && (
+                        <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                          <div className="flex items-center gap-2">
+                            <div className="size-5 rounded-md bg-rose-500 text-white flex items-center justify-center">
+                              <XCircle className="size-3" />
+                            </div>
+                            <span className="text-rose-600 dark:text-rose-400 font-semibold text-[11px]">Cancelled Bills</span>
+                          </div>
+                          <div className="text-right font-mono">
+                            <span className="font-bold text-rose-600 dark:text-rose-400 text-xs block">{cancelledBills} bills</span>
+                            <span className="text-[10px] text-rose-500 block">{formatCurrency(cancelledAmount)}</span>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Total Items Sold */}
                       <div className="flex items-center justify-between py-1">
@@ -583,6 +662,45 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
             {/* ═════════ TAB 2: BILLS & PAYMENTS ═════════ */}
             {activeTab === "bills" && (
               <div className="space-y-4">
+                {/* Cancelled Bills Summary Notice if any */}
+                {cancelledBills > 0 && (
+                  <div className="bg-rose-500/10 border border-rose-500/25 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="size-8 rounded-lg bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Ban className="size-4 stroke-[2]" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                          <span>{cancelledBills} Bill(s) Cancelled in this Shift</span>
+                          <span className="font-mono text-[11px] font-bold bg-rose-500/20 px-2 py-0.5 rounded-full">
+                            {formatCurrency(cancelledAmount)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-text-muted mt-0.5">
+                          Automatically excluded from active sales totals and bank/drawer collections
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] font-mono flex-wrap">
+                      {cancelledCash > 0 && (
+                        <span className="px-2 py-0.5 rounded-md bg-surface border border-rose-500/20 text-rose-600 dark:text-rose-400">
+                          Cash: {formatCurrency(cancelledCash)}
+                        </span>
+                      )}
+                      {cancelledUpi > 0 && (
+                        <span className="px-2 py-0.5 rounded-md bg-surface border border-rose-500/20 text-rose-600 dark:text-rose-400">
+                          UPI: {formatCurrency(cancelledUpi)}
+                        </span>
+                      )}
+                      {cancelledSplit > 0 && (
+                        <span className="px-2 py-0.5 rounded-md bg-surface border border-rose-500/20 text-rose-600 dark:text-rose-400">
+                          Split: {formatCurrency(cancelledSplit)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* 4 Top KPI Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {/* Total Bills */}
@@ -595,7 +713,7 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                         {totalBills}
                       </div>
                       <div className="text-[10px] text-text-muted mt-0.5">
-                        Total Bills
+                        Active Bills {cancelledBills > 0 ? `(${cancelledBills} cancelled)` : ""}
                       </div>
                     </div>
                   </div>
@@ -675,7 +793,14 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                                   <div className={`size-6 rounded-md ${method.iconBg} ${method.textColor} flex items-center justify-center shrink-0`}>
                                     <Icon className="size-3.5" />
                                   </div>
-                                  <span className="font-semibold text-text">{method.label}</span>
+                                  <div>
+                                    <span className="font-semibold text-text">{method.label}</span>
+                                    {method.id === "split" && method.bills > 0 && (
+                                      <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                                        Divided across Cash & UPI
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </td>
 
@@ -683,8 +808,49 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                                 {method.bills}
                               </td>
 
-                              <td className="py-2.5 px-3 text-right font-mono font-bold text-text">
-                                {formatCurrency(method.amount)}
+                              <td className="py-2.5 px-3 text-right">
+                                {method.id === "split" ? (
+                                  <div>
+                                    <div className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                                      {formatCurrency(method.amount)}
+                                    </div>
+                                    <div className="flex items-center justify-end gap-1.5 mt-0.5 text-[10px]">
+                                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold font-mono">
+                                        Cash: {formatCurrency(method.splitCash)}
+                                      </span>
+                                      <span className="text-text-muted">·</span>
+                                      <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold font-mono">
+                                        UPI: {formatCurrency(method.splitUpi)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ) : method.id === "cash" ? (
+                                  <div>
+                                    <div className="font-mono font-bold text-text">
+                                      {formatCurrency(method.amount)}
+                                    </div>
+                                    {method.splitPortion > 0 && (
+                                      <div className="text-[10px] text-text-muted font-normal mt-0.5">
+                                        ({formatCurrency(method.splitPortion)} from Split)
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : method.id === "upi" ? (
+                                  <div>
+                                    <div className="font-mono font-bold text-text">
+                                      {formatCurrency(method.amount)}
+                                    </div>
+                                    {method.splitPortion > 0 && (
+                                      <div className="text-[10px] text-text-muted font-normal mt-0.5">
+                                        ({formatCurrency(method.splitPortion)} from Split)
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="font-mono font-bold text-text">
+                                    {formatCurrency(method.amount)}
+                                  </div>
+                                )}
                               </td>
 
                               <td className="py-2.5 px-3">
@@ -706,6 +872,257 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                       </tbody>
                     </table>
                   </div>
+                </div>
+
+                {/* Dedicated UPI / QR Terminal & Bank Breakdown Card */}
+                {(qrNet > 0 || upiBreakdown.length > 0) && (
+                  <div className="bg-surface rounded-xl border border-border/80 p-4 space-y-3 shadow-xs">
+                    <div className="flex items-center justify-between pb-1 border-b border-border/60">
+                      <div className="flex items-center gap-2">
+                        <QrCode className="size-4 text-blue-600 dark:text-blue-400" />
+                        <div>
+                          <h3 className="text-xs font-bold text-text">
+                            UPI & QR Terminal Collections (Bank Breakdown)
+                          </h3>
+                          <p className="text-[11px] text-text-muted">
+                            {isClosed
+                              ? "Shift finalized — All amounts transferred and credited to respective bank accounts"
+                              : "Shift active — Amounts held until shift lock, then credited to respective bank accounts"}
+                          </p>
+                        </div>
+                      </div>
+                      <UIBadge
+                        variant="soft"
+                        color={isClosed ? "success" : "warning"}
+                        className="text-[10px] font-bold"
+                      >
+                        {isClosed ? "Transferred to Bank" : "Held in Shift"}
+                      </UIBadge>
+                    </div>
+
+                    <div className="overflow-hidden">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-border/60 text-text-muted font-semibold text-[11px]">
+                            <th className="py-2 px-3 text-center w-16">QR Code</th>
+                            <th className="py-2 px-3">UPI ID / Terminal</th>
+                            <th className="py-2 px-3">Destination Bank Account</th>
+                            <th className="py-2 px-3 text-center">Bills Created</th>
+                            <th className="py-2 px-3 text-right">Total Collected</th>
+                            <th className="py-2 px-3 text-center">Transfer Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/40">
+                          {(upiBreakdown.length > 0
+                            ? upiBreakdown
+                            : [
+                                {
+                                  paymentQrId: null,
+                                  upiId: "UPI Direct",
+                                  label: "Primary Counter QR",
+                                  bankName: "Primary Bank Account",
+                                  accountName: "Main Account",
+                                  accountNumber: "",
+                                  billCount: qrBills + (splitBills > 0 ? splitBills : 0),
+                                  pureBillCount: qrBills,
+                                  splitBillCount: splitBills,
+                                  totalAmount: qrNet,
+                                },
+                              ]
+                          ).map((item, idx) => {
+                            const displayBillCount = Number(
+                              item.billCount ||
+                              ((item.pureBillCount || 0) + (item.splitBillCount || 0)) ||
+                              (qrBills + (splitBills > 0 ? splitBills : 0)) ||
+                              item.transactionCount ||
+                              0
+                            );
+                            const displaySplitCount = Number(
+                              item.splitBillCount !== undefined
+                                ? item.splitBillCount
+                                : (splitBills > 0 ? splitBills : 0)
+                            );
+                            const displayPureCount = Number(
+                              item.pureBillCount !== undefined
+                                ? item.pureBillCount
+                                : Math.max(0, displayBillCount - displaySplitCount)
+                            );
+                            const qrSrc =
+                              item.qrImageUrl ||
+                              `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=4&data=${encodeURIComponent(
+                                `upi://pay?pa=${item.upiId || "store@upi"}&pn=${encodeURIComponent(
+                                  item.label || "Store"
+                                )}&cu=INR`
+                              )}`;
+
+                            return (
+                              <tr key={item.paymentQrId || idx} className="hover:bg-surface-alt/40 transition-colors">
+                                <td className="py-2.5 px-3 text-center">
+                                  <div
+                                    className="inline-flex items-center justify-center size-9 rounded-lg bg-white p-1 border border-border shadow-2xs hover:shadow-sm hover:scale-105 transition-all cursor-pointer group"
+                                    onClick={() => setViewingQrItem(item)}
+                                    title="Click to view full UPI QR Code"
+                                  >
+                                    <img
+                                      src={qrSrc}
+                                      alt="UPI QR"
+                                      className="size-full object-contain"
+                                    />
+                                  </div>
+                                </td>
+
+                                <td className="py-2.5 px-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="size-7 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                                      <QrCode className="size-3.5" />
+                                    </div>
+                                    <div>
+                                      <div className="font-semibold text-text">{item.label || item.upiId}</div>
+                                      {item.upiId && item.label && item.label !== item.upiId && (
+                                        <div className="text-[10px] text-text-muted font-mono">{item.upiId}</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td className="py-2.5 px-3">
+                                  <div className="flex items-center gap-2">
+                                    <Landmark className="size-3.5 text-text-muted shrink-0" />
+                                    <div>
+                                      <div className="font-medium text-text">{item.bankName || "Linked Bank"}</div>
+                                      <div className="text-[10px] text-text-muted font-mono">
+                                        {item.accountName} {item.accountNumber && `(${item.accountNumber})`}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td className="py-2.5 px-3 text-center">
+                                  <div className="font-mono font-bold text-text text-xs">
+                                    {displayBillCount} {displayBillCount === 1 ? "bill" : "bills"}
+                                  </div>
+                                  {displaySplitCount > 0 ? (
+                                    <div className="text-[10px] text-text-muted mt-0.5 whitespace-nowrap">
+                                      ({displayPureCount} UPI + {displaySplitCount} Split)
+                                    </div>
+                                  ) : (
+                                    <div className="text-[10px] text-text-muted mt-0.5 whitespace-nowrap">
+                                      ({displayPureCount || displayBillCount} UPI bills)
+                                    </div>
+                                  )}
+                                </td>
+
+                                <td className="py-2.5 px-3 text-right font-mono font-bold text-text">
+                                  {formatCurrency(item.totalAmount)}
+                                </td>
+
+                                <td className="py-2.5 px-3 text-center">
+                                  <span
+                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                      isClosed
+                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                    }`}
+                                  >
+                                    {isClosed ? "Transferred" : "Held"}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Cancelled Bills Breakdown Table ── */}
+                <div className="bg-surface rounded-xl border border-border/80 p-4 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between pb-1 border-b border-border/60">
+                    <div className="flex items-center gap-2">
+                      <Ban className="size-4 text-rose-600 dark:text-rose-400" />
+                      <div>
+                        <h3 className="text-xs font-bold text-text">
+                          Cancelled Bills Breakdown
+                        </h3>
+                        <p className="text-[11px] text-text-muted">
+                          Detailed audit log of all bills cancelled in this shift session
+                        </p>
+                      </div>
+                    </div>
+                    <UIBadge
+                      variant="soft"
+                      color={cancelledBills > 0 ? "error" : "neutral"}
+                      className="text-[10px] font-bold"
+                    >
+                      {cancelledBills > 0 ? `${cancelledBills} Cancelled · ${formatCurrency(cancelledAmount)}` : "0 Cancelled"}
+                    </UIBadge>
+                  </div>
+
+                  {cancelledInvoices.length > 0 ? (
+                    <div className="overflow-hidden">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-border/60 text-text-muted font-semibold text-[11px]">
+                            <th className="py-2 px-3">Invoice No</th>
+                            <th className="py-2 px-3">Cancelled At</th>
+                            <th className="py-2 px-3">Customer</th>
+                            <th className="py-2 px-3">Payment Method</th>
+                            <th className="py-2 px-3 text-right">Bill Amount</th>
+                            <th className="py-2 px-3 text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/40">
+                          {cancelledInvoices.map((inv, idx) => {
+                            const isSplit = inv.paymentMethod === "Split";
+                            return (
+                              <tr key={inv.invoiceId || inv.invoiceNo || idx} className="hover:bg-rose-500/5 transition-colors">
+                                <td className="py-2.5 px-3">
+                                  <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                                    {inv.invoiceNo}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 text-text-muted font-mono text-[11px]">
+                                  {formatShortDate(inv.cancelledAt)} {formatTimeOnly(inv.cancelledAt)}
+                                </td>
+                                <td className="py-2.5 px-3 font-medium text-text">
+                                  {inv.customerName || "Walk-in Customer"}
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-semibold text-text">
+                                      {inv.paymentMethod || "Cash"}
+                                    </span>
+                                    {isSplit && Array.isArray(inv.payments) && inv.payments.length > 0 && (
+                                      <span className="text-[10px] text-text-muted font-mono">
+                                        {inv.payments.map((p) => `${p.paymentType || p.mode}: ₹${p.amount}`).join(" + ")}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
+                                  <span className="line-through text-text-muted mr-1.5 text-[10px]">
+                                    {formatCurrency(inv.grandTotal)}
+                                  </span>
+                                  {formatCurrency(inv.grandTotal)}
+                                </td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                                    Cancelled
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-text-muted text-xs">
+                      <CheckCircle2 className="size-6 text-emerald-500 mx-auto mb-1 opacity-70" />
+                      No bills were cancelled during this shift session.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1020,6 +1437,86 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
         </UIButton>
       </div>
     </UIModal>
+
+    {/* ── 6. QR Code Preview Modal ── */}
+    {viewingQrItem && (
+      <UIModal
+        isOpen={Boolean(viewingQrItem)}
+        onClose={() => setViewingQrItem(null)}
+        showCloseButton={true}
+        className="w-[360px] max-w-[92vw] rounded-2xl border border-border bg-surface shadow-2xl p-5 select-none"
+      >
+        <div className="flex flex-col items-center text-center space-y-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <QrCode className="size-4.5" />
+            </div>
+            <div className="text-left min-w-0">
+              <h3 className="text-sm font-bold text-text truncate">
+                {viewingQrItem.label || "UPI Terminal QR"}
+              </h3>
+              <p className="text-[11px] text-text-muted truncate">
+                {viewingQrItem.bankName || "Destination Bank"}
+              </p>
+            </div>
+          </div>
+
+          {/* QR Code Card */}
+          <div className="size-52 bg-white rounded-2xl p-3 border border-border shadow-md flex items-center justify-center">
+            <img
+              src={
+                viewingQrItem.qrImageUrl ||
+                `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=6&data=${encodeURIComponent(
+                  `upi://pay?pa=${viewingQrItem.upiId || "store@upi"}&pn=${encodeURIComponent(
+                    viewingQrItem.label || "Store"
+                  )}&cu=INR`
+                )}`
+              }
+              alt="UPI QR Code"
+              className="size-full object-contain"
+            />
+          </div>
+
+          {/* UPI ID + 1-Click Copy */}
+          <div className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-surface-alt border border-border text-xs">
+            <span className="font-mono font-semibold text-text truncate">
+              {viewingQrItem.upiId || "—"}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (viewingQrItem.upiId) {
+                  navigator.clipboard.writeText(viewingQrItem.upiId);
+                  setCopiedUpi(true);
+                  setTimeout(() => setCopiedUpi(false), 2000);
+                }
+              }}
+              className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline ml-2 cursor-pointer shrink-0"
+            >
+              {copiedUpi ? (
+                <>
+                  <Check className="size-3.5 text-emerald-600" />
+                  <span className="text-emerald-600">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="size-3.5" />
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {viewingQrItem.accountName && (
+            <div className="text-[11px] text-text-muted">
+              Crediting to: <strong className="text-text">{viewingQrItem.accountName}</strong>{" "}
+              {viewingQrItem.accountNumber && `(${viewingQrItem.accountNumber})`}
+            </div>
+          )}
+        </div>
+      </UIModal>
+    )}
+  </>
   );
 };
 

@@ -40,7 +40,7 @@ const AppDesktopLayout = () => {
           onToggleCollapse={() => setCollapsed((prev) => !prev)}
         />
 
-        <main className="mt-[58px] min-h-[calc(100dvh-58px)] min-w-0 flex-1 overflow-y-auto px-6 py-6">
+        <main className="mt-[58px] min-h-[calc(100dvh-58px)] min-w-0 flex-1 overflow-y-auto px-3 sm:px-5 py-3 sm:py-4">
           <Outlet key={`${currentCompany?._id}-${currentBranch?._id}`} />
         </main>
       </div>

@@ -47,7 +47,7 @@ const SORT_OPTIONS = [
   { label: "Oldest First", value: "asc" },
 ];
 
-const PAGE_SIZE_OPTIONS = [6, 12, 24, 48];
+const PAGE_SIZE_OPTIONS = [20, 40, 60];
 
 export const ShiftsDesktopPage = ({
   shifts = [],

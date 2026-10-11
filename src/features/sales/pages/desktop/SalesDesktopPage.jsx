@@ -753,8 +753,9 @@ export const SalesDesktopPage = () => {
     }
 
     // Post to backend API
+    let savedSaleResult = null;
     if (targetCustomerId) {
-      const activeBranchId = saleData.items?.[0]?.branchId || saleData.items?.[0]?.facilityId || null;
+      const activeBranchId = saleData.branchId || currentBranch?._id || saleData.items?.[0]?.branchId || saleData.items?.[0]?.facilityId || null;
       const payload = {
         invoiceNo: saleData.invoiceNo,
         billingMode,
@@ -768,21 +769,28 @@ export const SalesDesktopPage = () => {
         payments: saleData.payments,
         items: saleData.items,
         date: activeShift?.date ? new Date(activeShift.date).toISOString() : new Date().toISOString(),
+        shiftId: activeShift?._id || saleData.shiftId || null,
       };
 
       if (isEditMode && initialInvoice?.id) {
-        await invoiceService.updateCustomerSale(targetCustomerId, initialInvoice.id, payload);
+        const res = await invoiceService.updateCustomerSale(targetCustomerId, initialInvoice.id, payload);
+        savedSaleResult = res?.data?.data || res?.data || null;
       } else {
-        await invoiceService.recordCustomerSale(targetCustomerId, payload);
+        const res = await invoiceService.recordCustomerSale(targetCustomerId, payload);
+        savedSaleResult = res?.data?.data || res?.data || null;
       }
     }
+
+    const actualInvoiceNo = savedSaleResult?.invoiceNo || saleData.invoiceNo;
 
     // On confirmed backend success, close checkout, set completed sale state, open receipt, and clear cart
     setIsCheckoutOpen(false);
     setCompletedSale({
       ...saleData,
+      invoiceNo: actualInvoiceNo,
       date: activeShift?.date ? new Date(activeShift.date).toISOString() : new Date().toISOString(),
-      createdAt: new Date().toISOString(),
+      createdAt: savedSaleResult?.createdAt || new Date().toISOString(),
+      updatedAt: savedSaleResult?.updatedAt || null,
       billingMode,
       partyType: billingMode === "B2B" ? selectedB2bParty?.partyType || "wholesaler" : "retail",
     });
@@ -796,7 +804,11 @@ export const SalesDesktopPage = () => {
     setShowCustomerHistory(false);
     customerSearchBarRef.current?.clear?.();
     b2bCustomerSearchBarRef.current?.clear?.();
-    setToastMessage(`✅ ${billingMode} Invoice ${saleData.invoiceNo} created & saved in backend.`);
+    setToastMessage(
+      isEditMode
+        ? `✅ ${billingMode} Invoice ${actualInvoiceNo} updated successfully.`
+        : `✅ ${billingMode} Invoice ${actualInvoiceNo} created & saved in backend.`
+    );
     setTimeout(() => setToastMessage(null), 4000);
   };
 
@@ -813,7 +825,7 @@ export const SalesDesktopPage = () => {
     const isDayOpen = Boolean(openBusinessDay);
 
     return (
-      <div className="relative min-h-[calc(100vh-80px)] w-full flex items-center justify-center p-6 bg-slate-50/80 dark:bg-neutral-950 overflow-hidden font-sans">
+      <div className="relative min-h-[calc(100vh-80px)] w-full flex items-center justify-center p-6 bg-bg overflow-hidden font-sans">
         {/* Blurred realistic POS background mockup to mirror the exact uploaded design */}
         <div className="absolute inset-0 filter blur-[5px] opacity-35 dark:opacity-15 pointer-events-none select-none scale-102 flex flex-col bg-bg">
           {/* Header */}
@@ -823,9 +835,9 @@ export const SalesDesktopPage = () => {
               <p className="text-xs text-text-muted">Scan products, add to cart and create sale</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold">Recall Bill</span>
-              <span className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold">Hold Bill</span>
-              <span className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold">+ New Bill</span>
+              <span className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-text">Recall Bill</span>
+              <span className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-text">Hold Bill</span>
+              <span className="px-3.5 py-1.5 rounded-lg bg-primary text-primary-contrast text-xs font-semibold">+ New Bill</span>
             </div>
           </div>
           {/* Content grid preview */}
@@ -834,7 +846,7 @@ export const SalesDesktopPage = () => {
               <div className="h-10 bg-surface rounded-xl border border-border" />
               <div className="flex gap-2">
                 {["All", "Prescription", "OTC", "Healthcare", "Personal Care", "Vitamins", "Devices"].map((t) => (
-                  <span key={t} className="px-3 py-1 rounded-full bg-surface border border-border text-xs">{t}</span>
+                  <span key={t} className="px-3 py-1 rounded-full bg-surface border border-border text-xs text-text-muted">{t}</span>
                 ))}
               </div>
               <div className="grid grid-cols-4 gap-3">
@@ -855,7 +867,7 @@ export const SalesDesktopPage = () => {
         </div>
 
         {/* Soft backdrop scrim */}
-        <div className="absolute inset-0 bg-slate-900/10 dark:bg-black/40 backdrop-blur-[2px] pointer-events-none" />
+        <div className="absolute inset-0 bg-bg/40 backdrop-blur-[2px] pointer-events-none" />
 
         {/* Reusable Pre-Session Gatekeeper Card */}
         <div className="relative z-10">
@@ -1429,6 +1441,8 @@ export const SalesDesktopPage = () => {
         saleDate={saleDate}
         billingMode={billingMode}
         activeShift={activeShift}
+        shiftId={activeShift?._id}
+        existingInvoiceNo={initialInvoice?.invoiceNo}
         cartSummary={{ items: cart, subtotal: cartSubtotal }}
         initialPayments={initialInvoice?.payments}
         initialDenominations={initialInvoice?.denominations}
