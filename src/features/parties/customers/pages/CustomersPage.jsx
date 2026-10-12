@@ -12,6 +12,9 @@ import useCompany from "@/features/company/hooks/useCompany";
 import CustomersMobilePage from "./mobile/CustomersMobilePage";
 import CustomersDesktopPage from "./desktop/CustomersDesktopPage";
 import CustomerDialog from "../components/CustomerDialog";
+import CustomerAdvanceReceiptDialog from "../components/CustomerAdvanceReceiptDialog";
+import CustomerSettlementDialog from "../components/CustomerSettlementDialog";
+import CustomerStatementLedgerDialog from "../components/CustomerStatementLedgerDialog";
 
 const initialFilters = {
   search: "",
@@ -76,6 +79,7 @@ const CustomersPage = () => {
   const {
     customers,
     getCustomers,
+    getCustomerById,
     createCustomer,
     updateCustomer,
     deleteCustomer,
@@ -102,6 +106,13 @@ const CustomersPage = () => {
     customerData: null,
   });
 
+  const [advanceCustomer, setAdvanceCustomer] = useState(null);
+  const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
+  const [settleCustomer, setSettleCustomer] = useState(null);
+  const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
+  const [statementCustomer, setStatementCustomer] = useState(null);
+  const [isStatementLedgerOpen, setIsStatementLedgerOpen] = useState(false);
+
   const isLoading = getCustomersStatus === API_STATUS.LOADING;
   const isDeleting = deleteCustomerStatus === API_STATUS.LOADING;
   const hasError = getCustomersStatus === API_STATUS.ERROR;
@@ -127,7 +138,15 @@ const CustomersPage = () => {
     } catch {
       // Regulated by store selectors
     }
-  }, [getCustomers, currentPage, pageSize, filters.search, filters.status, filters.type, activeSegment]);
+  }, [
+    getCustomers,
+    currentPage,
+    pageSize,
+    filters.search,
+    filters.status,
+    filters.type,
+    activeSegment,
+  ]);
 
   useEffect(() => {
     if (!companyId) return;
@@ -159,13 +178,18 @@ const CustomersPage = () => {
         normalizeText(customer.displayMobile).includes(search);
 
       const matchesStatus =
-        filters.status === "all" || normalizeText(customer.status) === normalizeText(filters.status);
+        filters.status === "all" ||
+        normalizeText(customer.status) === normalizeText(filters.status);
 
       const matchesType =
-        filters.type === "all" || normalizeText(customer.customerType || customer.type) === normalizeText(filters.type);
+        filters.type === "all" ||
+        normalizeText(customer.customerType || customer.type) ===
+          normalizeText(filters.type);
 
       // Segment-based filtering (B2B / B2C)
-      const customerType = normalizeText(customer.customerType || customer.type);
+      const customerType = normalizeText(
+        customer.customerType || customer.type,
+      );
       let matchesSegment = true;
       if (activeSegment === "b2b") {
         matchesSegment = B2B_TYPES.includes(customerType);
@@ -180,9 +204,13 @@ const CustomersPage = () => {
   const stats = useMemo(() => {
     console.log("frontend backendStats:", backendStats);
     if (backendStats) {
-      const netRunning = (backendStats.totalDr || 0) - (backendStats.totalCr || 0);
+      const netRunning =
+        (backendStats.totalDr || 0) - (backendStats.totalCr || 0);
       return {
-        total: (backendStats.active || 0) + (backendStats.inactive || 0) + (backendStats.blocked || 0),
+        total:
+          (backendStats.active || 0) +
+          (backendStats.inactive || 0) +
+          (backendStats.blocked || 0),
         active: backendStats.active || 0,
         inactive: backendStats.inactive || 0,
         blocked: backendStats.blocked || 0,
@@ -193,9 +221,15 @@ const CustomersPage = () => {
       };
     }
     const fallbackTotal = mappedCustomers.length;
-    const active = mappedCustomers.filter((c) => normalizeText(c.status) === "active").length;
-    const inactive = mappedCustomers.filter((c) => normalizeText(c.status) === "inactive").length;
-    const blocked = mappedCustomers.filter((c) => normalizeText(c.status) === "blocked").length;
+    const active = mappedCustomers.filter(
+      (c) => normalizeText(c.status) === "active",
+    ).length;
+    const inactive = mappedCustomers.filter(
+      (c) => normalizeText(c.status) === "inactive",
+    ).length;
+    const blocked = mappedCustomers.filter(
+      (c) => normalizeText(c.status) === "blocked",
+    ).length;
 
     let totalCr = 0;
     let totalDr = 0;
@@ -244,12 +278,42 @@ const CustomersPage = () => {
     });
 
     return [
-      { name: "Retail", count: counts.retail, color: "#16a34a", percent: Math.round((counts.retail / total) * 100) },
-      { name: "Wholesale", count: counts.wholesale, color: "#2563eb", percent: Math.round((counts.wholesale / total) * 100) },
-      { name: "Hospital", count: counts.hospital, color: "#a855f7", percent: Math.round((counts.hospital / total) * 100) },
-      { name: "Clinic", count: counts.clinic, color: "#eab308", percent: Math.round((counts.clinic / total) * 100) },
-      { name: "Corporate", count: counts.corporate, color: "#06b6d4", percent: Math.round((counts.corporate / total) * 100) },
-      { name: "Other", count: counts.other, color: "#6b7280", percent: Math.round((counts.other / total) * 100) },
+      {
+        name: "Retail",
+        count: counts.retail,
+        color: "#16a34a",
+        percent: Math.round((counts.retail / total) * 100),
+      },
+      {
+        name: "Wholesale",
+        count: counts.wholesale,
+        color: "#2563eb",
+        percent: Math.round((counts.wholesale / total) * 100),
+      },
+      {
+        name: "Hospital",
+        count: counts.hospital,
+        color: "#a855f7",
+        percent: Math.round((counts.hospital / total) * 100),
+      },
+      {
+        name: "Clinic",
+        count: counts.clinic,
+        color: "#eab308",
+        percent: Math.round((counts.clinic / total) * 100),
+      },
+      {
+        name: "Corporate",
+        count: counts.corporate,
+        color: "#06b6d4",
+        percent: Math.round((counts.corporate / total) * 100),
+      },
+      {
+        name: "Other",
+        count: counts.other,
+        color: "#6b7280",
+        percent: Math.round((counts.other / total) * 100),
+      },
     ];
   }, [mappedCustomers]);
 
@@ -305,9 +369,26 @@ const CustomersPage = () => {
     setDialogState({ isOpen: true, mode: "create", customerData: null });
   }, []);
 
-  const handleViewCustomer = useCallback((customer) => {
-    setDialogState({ isOpen: true, mode: "view", customerData: customer });
-  }, []);
+  const handleViewCustomer = useCallback(
+    async (customer) => {
+      setDialogState({ isOpen: true, mode: "view", customerData: customer });
+      const custId = customer?._id || customer?.id;
+      if (custId) {
+        try {
+          const fullCustomer = await getCustomerById(custId);
+          if (fullCustomer) {
+            setDialogState((prev) => ({
+              ...prev,
+              customerData: fullCustomer,
+            }));
+          }
+        } catch {
+          // Keep customer data as-is if network fails
+        }
+      }
+    },
+    [getCustomerById],
+  );
 
   const handleEditCustomer = useCallback((customer) => {
     setDialogState({ isOpen: true, mode: "edit", customerData: customer });
@@ -316,6 +397,114 @@ const CustomersPage = () => {
   const handleCloseDialog = useCallback(() => {
     setDialogState((prev) => ({ ...prev, isOpen: false }));
   }, []);
+
+  const handleOpenReceiveAdvance = useCallback((customer) => {
+    setAdvanceCustomer(customer);
+    setIsAdvanceModalOpen(true);
+  }, []);
+
+  const handleCloseReceiveAdvance = useCallback(() => {
+    setIsAdvanceModalOpen(false);
+    setAdvanceCustomer(null);
+  }, []);
+
+  const handleOpenSettleCredit = useCallback((customer) => {
+    setSettleCustomer(customer);
+    setIsSettleModalOpen(true);
+  }, []);
+
+  const handleCloseSettleCredit = useCallback(() => {
+    setIsSettleModalOpen(false);
+    setSettleCustomer(null);
+  }, []);
+
+  const handleOpenStatementLedger = useCallback((customer) => {
+    setStatementCustomer(customer);
+    setIsStatementLedgerOpen(true);
+  }, []);
+
+  const handleCloseStatementLedger = useCallback(() => {
+    setIsStatementLedgerOpen(false);
+    setStatementCustomer(null);
+  }, []);
+
+  const handleViewTransactions = handleOpenStatementLedger;
+
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const triggerRefresh = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+    fetchCustomers();
+  }, [fetchCustomers]);
+
+  const handleAdvanceSuccess = useCallback(async () => {
+    triggerRefresh();
+    if (dialogState.isOpen && dialogState.customerData) {
+      const custId =
+        dialogState.customerData._id || dialogState.customerData.id;
+      if (custId) {
+        try {
+          const updated = await getCustomerById(custId);
+          if (updated) {
+            setDialogState((prev) => ({ ...prev, customerData: updated }));
+          }
+        } catch {
+          // Ignore
+        }
+      }
+    }
+  }, [
+    triggerRefresh,
+    dialogState.isOpen,
+    dialogState.customerData,
+    getCustomerById,
+  ]);
+
+  const handleSettlementSuccess = useCallback(async () => {
+    triggerRefresh();
+    if (dialogState.isOpen && dialogState.customerData) {
+      const custId =
+        dialogState.customerData._id || dialogState.customerData.id;
+      if (custId) {
+        try {
+          const updated = await getCustomerById(custId);
+          if (updated) {
+            setDialogState((prev) => ({ ...prev, customerData: updated }));
+          }
+        } catch {
+          // Ignore
+        }
+      }
+    }
+  }, [
+    triggerRefresh,
+    dialogState.isOpen,
+    dialogState.customerData,
+    getCustomerById,
+  ]);
+
+  const handleStatementSuccess = useCallback(async () => {
+    triggerRefresh();
+    if (dialogState.isOpen && dialogState.customerData) {
+      const custId =
+        dialogState.customerData._id || dialogState.customerData.id;
+      if (custId) {
+        try {
+          const updated = await getCustomerById(custId);
+          if (updated) {
+            setDialogState((prev) => ({ ...prev, customerData: updated }));
+          }
+        } catch {
+          // Ignore
+        }
+      }
+    }
+  }, [
+    triggerRefresh,
+    dialogState.isOpen,
+    dialogState.customerData,
+    getCustomerById,
+  ]);
 
   const handleRequestDeleteCustomer = useCallback((customer) => {
     setSelectedCustomer(customer || null);
@@ -334,16 +523,17 @@ const CustomersPage = () => {
       await deleteCustomer(selectedCustomer._id);
       setIsDeleteModalOpen(false);
       setSelectedCustomer(null);
+      triggerRefresh();
     } catch {
       // Managed gracefully by standard slice errors
     }
-  }, [deleteCustomer, selectedCustomer]);
+  }, [deleteCustomer, selectedCustomer, triggerRefresh]);
 
   const handleRefresh = useCallback(() => {
     clearError();
     clearMessage();
-    fetchCustomers();
-  }, [clearError, clearMessage, fetchCustomers]);
+    triggerRefresh();
+  }, [clearError, clearMessage, triggerRefresh]);
 
   const pageProps = {
     customers: filteredCustomers,
@@ -381,7 +571,11 @@ const CustomersPage = () => {
     handleViewCustomer,
     handleEditCustomer,
     handleDeleteCustomer: handleRequestDeleteCustomer,
+    handleReceiveAdvance: handleOpenReceiveAdvance,
+    handleSettleCredit: handleOpenSettleCredit,
+    handleViewTransactions,
     handleRefresh,
+    refreshKey,
 
     clearMessage,
   };
@@ -401,7 +595,31 @@ const CustomersPage = () => {
         customerData={dialogState.customerData}
         onSubmitCreate={createCustomer}
         onSubmitUpdate={updateCustomer}
-        onSuccess={fetchCustomers}
+        onSuccess={triggerRefresh}
+        onReceiveAdvance={handleOpenReceiveAdvance}
+        onSettleCredit={handleOpenSettleCredit}
+        onViewTransactions={handleViewTransactions}
+      />
+
+      <CustomerAdvanceReceiptDialog
+        isOpen={isAdvanceModalOpen}
+        onClose={handleCloseReceiveAdvance}
+        customer={advanceCustomer}
+        onSuccess={handleAdvanceSuccess}
+      />
+
+      <CustomerSettlementDialog
+        isOpen={isSettleModalOpen}
+        onClose={handleCloseSettleCredit}
+        customer={settleCustomer}
+        onSuccess={handleSettlementSuccess}
+      />
+
+      <CustomerStatementLedgerDialog
+        isOpen={isStatementLedgerOpen}
+        onClose={handleCloseStatementLedger}
+        customer={statementCustomer}
+        onSuccess={handleStatementSuccess}
       />
 
       <UIConfirmDialog

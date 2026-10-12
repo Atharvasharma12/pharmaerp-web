@@ -67,6 +67,7 @@ const formatTime = (val) => {
 const DATE_RANGE_OPTIONS = [
   { label: "Today", value: "today" },
   { label: "Yesterday", value: "yesterday" },
+  { label: "Tomorrow", value: "tomorrow" },
   { label: "Last 7 Days", value: "last7days" },
   { label: "This Week", value: "thisWeek" },
   { label: "This Month", value: "thisMonth" },
@@ -184,6 +185,15 @@ export const BillingDesktopPage = () => {
       const start = new Date(yesterday);
       start.setHours(0, 0, 0, 0);
       const end = new Date(yesterday);
+      end.setHours(23, 59, 59, 999);
+      params.startDate = start.toISOString();
+      params.endDate = end.toISOString();
+    } else if (selectedDateRange === "tomorrow") {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const start = new Date(tomorrow);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(tomorrow);
       end.setHours(23, 59, 59, 999);
       params.startDate = start.toISOString();
       params.endDate = end.toISOString();

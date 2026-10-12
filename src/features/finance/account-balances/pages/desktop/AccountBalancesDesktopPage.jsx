@@ -1,637 +1,826 @@
-import React, { useMemo } from "react";
-import {
-  FiSearch,
-  FiBookOpen,
-  FiArrowUpCircle,
-  FiArrowDownCircle,
-  FiEye,
-  FiRefreshCw,
-  FiMoreHorizontal,
-} from "react-icons/fi";
-import {
-  AppBox,
-  AppBreadcrumb,
-  AppButton,
-  AppCard,
-  AppHeading,
-  AppSelect,
-  AppStack,
-  AppText,
-  AppTable,
-  AppTableSkeleton,
-  AppTag,
-  AppStatCard,
-  AppSearchInput,
-  AppIconButton,
-  AppMenu,
-  AppEmptyState,
-  AppAlert,
-} from "@/components";
-import { formatDate, formatCurrency } from "@/utils";
+// src/features/finance/account-balances/pages/desktop/AccountBalancesDesktopPage.jsx
 
-const balanceTypeOptions = [
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Search,
+  RefreshCw,
+  RotateCcw,
+  BookOpen,
+  ArrowUpRight,
+  ArrowDownRight,
+  Scale,
+  Eye,
+  CheckCircle2,
+  AlertCircle,
+  FileSpreadsheet,
+  Building2,
+  Users,
+  Truck,
+  Layers,
+} from "lucide-react";
+
+import {
+  UIButton,
+  UIInput,
+  UISelect,
+  UIBadge,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UITableEmpty,
+  UITableLoading,
+  UIInfiniteScroll,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
+import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import useBranch from "@/features/branch/hooks/useBranch";
+import accountBalanceService from "../../services/accountBalanceService";
+import { AccountBalanceDetailsDialog } from "../../components/AccountBalanceDetailsDialog";
+
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
+  return Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const formatDate = (val) => {
+  if (!val) return "—";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const formatTime = (val) => {
+  if (!val) return "";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const BALANCE_TYPE_OPTIONS = [
   { label: "All Balance Types", value: "all" },
   { label: "Debit Balances (DR)", value: "dr" },
   { label: "Credit Balances (CR)", value: "cr" },
 ];
 
-const balanceTypeColorMap = {
-  DR: "success",
-  CR: "error",
-};
+const ACCOUNT_NATURE_OPTIONS = [
+  { label: "All Natures", value: "all" },
+  { label: "Asset Accounts", value: "ASSET" },
+  { label: "Liability Accounts", value: "LIABILITY" },
+  { label: "Income Accounts", value: "INCOME" },
+  { label: "Expense Accounts", value: "EXPENSE" },
+  { label: "Equity Accounts", value: "EQUITY" },
+];
 
-const AccountBalancesDesktopPage = ({
-  accountBalances = [],
-  searchParams,
-  currentPage,
-  pageSize,
-  totalBalances,
-  isLoading = false,
-  isRecalculating = false,
-  error,
-  message,
-  clearFeedback,
-  handleSearchChange,
-  handleFilterChange,
-  handlePageChange,
-  handlePageSizeChange,
-  handleRecalculate,
-  handleViewDetails,
-  handleRefresh,
-}) => {
-  // Aggregate stats
-  const stats = useMemo(() => {
-    const counts = { total: totalBalances, dr: 0, cr: 0 };
-    accountBalances.forEach((b) => {
-      const type = String(b.balanceType || "").toUpperCase();
-      if (type === "DR") counts.dr++;
-      else if (type === "CR") counts.cr++;
-    });
-    return counts;
-  }, [accountBalances, totalBalances]);
+const SORT_SELECT_OPTIONS = [
+  { label: "Recent Activity", value: "lastTransactionAt-desc" },
+  { label: "Balance: High to Low", value: "balance-desc" },
+  { label: "Balance: Low to High", value: "balance-asc" },
+  { label: "Account Name: A to Z", value: "name-asc" },
+  { label: "Account Name: Z to A", value: "name-desc" },
+  { label: "Account Code: A to Z", value: "code-asc" },
+];
 
-  const statsList = useMemo(() => [
-    {
-      id: "accounts_tracked",
-      title: "Accounts Tracked",
-      value: stats.total,
-      description: "Chart of accounts monitored",
-      colorVariant: "primary",
-      icon: <FiBookOpen />,
-    },
-    {
-      id: "debit_balances",
-      title: "Debit Balances (DR)",
-      value: stats.dr,
-      description: "Accounts with active debits",
-      colorVariant: "success",
-      icon: <FiArrowUpCircle />,
-    },
-    {
-      id: "credit_balances",
-      title: "Credit Balances (CR)",
-      value: stats.cr,
-      description: "Accounts with active credits",
-      colorVariant: "error",
-      icon: <FiArrowDownCircle />,
-    },
-  ], [stats]);
+const SCOPE_OPTIONS = [
+  { value: "company", label: "Company & Branch Accounts", icon: Building2 },
+  { value: "customer", label: "Customer Accounts", icon: Users },
+  { value: "supplier", label: "Supplier Accounts", icon: Truck },
+  { value: "all", label: "All Ledgers", icon: Layers },
+];
 
-  const getBalanceTypeBadge = (type) => {
-    const raw = String(type || "").toUpperCase();
-    return (
-      <AppTag
-        label={raw}
-        variant="soft"
-        colorVariant={balanceTypeColorMap[raw] || "neutral"}
-        rounded="md"
-        sx={tagSx}
-      />
-    );
+const PAGE_LIMIT = 10;
+
+export const AccountBalancesDesktopPage = () => {
+  const { currentWorkspace } = useWorkspace();
+  const { currentBranch } = useBranch();
+  const tableContainerRef = useRef(null);
+
+  // Balances & Infinite Scroll states
+  const [balances, setBalances] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalBalances, setTotalBalances] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+
+  // Recalculating state per account ID
+  const [recalculatingId, setRecalculatingId] = useState(null);
+
+  // Global Statistics (independent of pagination)
+  const [stats, setStats] = useState({
+    totalAccounts: 0,
+    totalDebit: 0,
+    totalCredit: 0,
+    drCount: 0,
+    crCount: 0,
+  });
+
+  // Filter & Scope States
+  const [accountScope, setAccountScope] = useState("company");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedBalanceType, setSelectedBalanceType] = useState("all");
+  const [selectedNature, setSelectedNature] = useState("all");
+  const [sortOption, setSortOption] = useState("lastTransactionAt-desc");
+
+  // Toast notification state
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // View Details Dialog state (no page redirection)
+  const [selectedAccountIdForView, setSelectedAccountIdForView] = useState(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+
+  // Debounce search input by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Transform and normalize account balance row
+  const formatBalanceRow = (b) => {
+    const account = b.accountId || {};
+    const rawBalance = Number(b.balance || 0);
+    const balanceType = String(b.balanceType || (rawBalance >= 0 ? "dr" : "cr")).toLowerCase();
+    const absBalance = Math.abs(rawBalance);
+
+    return {
+      _id: b._id || `bal-${Date.now()}-${Math.random()}`,
+      accountId: account._id || b.accountId,
+      accountCode: account.accountCode || "—",
+      accountName: account.accountName || "Unnamed Account",
+      accountNature: account.accountNature || "ASSET",
+      accountCategory: account.accountCategory || "GENERAL",
+      debitTotal: Number(b.debitTotal || 0),
+      creditTotal: Number(b.creditTotal || 0),
+      balance: absBalance,
+      balanceType: balanceType,
+      lastTransactionAt: b.lastTransactionAt || b.updatedAt,
+      createdAt: b.createdAt,
+    };
   };
 
-  const columns = useMemo(() => [
-    {
-      id: "accountCode",
-      key: "accountCode",
-      label: "Account Code",
-      minWidth: 140,
-      render: (_, b) => (
-        <AppText variant="body2" sx={tableValueMonoSx}>
-          {b.accountId?.accountCode || "-"}
-        </AppText>
-      ),
-    },
-    {
-      id: "accountName",
-      key: "accountName",
-      label: "Account Name",
-      minWidth: 220,
-      render: (_, b) => (
-        <AppText
-          variant="body2"
-          onClick={() => handleViewDetails(b.accountId?._id || b.accountId)}
-          sx={accountNameSx}
-        >
-          {b.accountId?.accountName || "Unknown Account"}
-        </AppText>
-      ),
-    },
-    {
-      id: "debitTotal",
-      key: "debitTotal",
-      label: "Debit Total (Dr)",
-      minWidth: 150,
-      align: "right",
-      render: (_, b) => (
-        <AppText variant="body2" sx={debitAmountSx}>
-          {formatCurrency(b.debitTotal || 0)}
-        </AppText>
-      ),
-    },
-    {
-      id: "creditTotal",
-      key: "creditTotal",
-      label: "Credit Total (Cr)",
-      minWidth: 150,
-      align: "right",
-      render: (_, b) => (
-        <AppText variant="body2" sx={creditAmountSx}>
-          {formatCurrency(b.creditTotal || 0)}
-        </AppText>
-      ),
-    },
-    {
-      id: "balance",
-      key: "balance",
-      label: "Current Balance",
-      minWidth: 180,
-      align: "right",
-      render: (_, b) => (
-        <AppStack direction="row" align="center" justify="flex-end" gap={0.8}>
-          <AppText variant="body2" sx={balanceAmountSx}>
-            {formatCurrency(b.balance || 0)}
-          </AppText>
-          {getBalanceTypeBadge(b.balanceType)}
-        </AppStack>
-      ),
-    },
-    {
-      id: "lastTransactionAt",
-      key: "lastTransactionAt",
-      label: "Last Activity",
-      minWidth: 150,
-      align: "center",
-      render: (_, b) => (
-        <AppText variant="body2" sx={tableValueSx}>
-          {b.lastTransactionAt ? formatDate(b.lastTransactionAt) : "Never"}
-        </AppText>
-      ),
-    },
-    {
-      id: "actions",
-      key: "actions",
-      label: "Action",
-      align: "right",
-      width: 70,
-      render: (_, b) => (
-        <RowActions
-          balance={b}
-          onView={handleViewDetails}
-          onRecalculate={handleRecalculate}
-          disabled={isRecalculating}
-        />
-      ),
-    },
-  ], [isRecalculating, handleViewDetails, handleRecalculate]);
+  // Build query parameters
+  const buildQueryParams = (page) => {
+    const [sBy, sOrder] = sortOption.split("-");
+    const params = {
+      page,
+      limit: PAGE_LIMIT,
+      branchId: currentBranch?._id || undefined,
+      accountScope,
+    };
+
+    if (debouncedSearch) params.search = debouncedSearch;
+    if (selectedBalanceType && selectedBalanceType !== "all") params.balanceType = selectedBalanceType;
+    if (selectedNature && selectedNature !== "all") params.accountNature = selectedNature;
+    if (sBy) params.sortBy = sBy;
+    if (sOrder) params.sortOrder = sOrder;
+
+    return params;
+  };
+
+  // Fetch initial batch (Page 1) or refresh
+  const fetchInitialBalances = useCallback(async () => {
+    if (!currentWorkspace) return;
+    setIsLoading(true);
+    try {
+      const params = buildQueryParams(1);
+      const res = await accountBalanceService.getAccountBalances(params);
+      const resData = res.data?.data || {};
+      const balanceList = Array.isArray(resData.balances) ? resData.balances : [];
+      const total = resData.total ?? balanceList.length;
+
+      // Update global statistics
+      if (resData.summary) {
+        setStats({
+          totalAccounts: resData.summary.totalAccounts ?? total,
+          totalDebit: resData.summary.totalDebit ?? 0,
+          totalCredit: resData.summary.totalCredit ?? 0,
+          drCount: resData.summary.drCount ?? 0,
+          crCount: resData.summary.crCount ?? 0,
+        });
+      } else {
+        let dr = 0;
+        let cr = 0;
+        let dSum = 0;
+        let cSum = 0;
+        balanceList.forEach((item) => {
+          dSum += Number(item.debitTotal || 0);
+          cSum += Number(item.creditTotal || 0);
+          if (String(item.balanceType).toLowerCase() === "dr") dr++;
+          else if (String(item.balanceType).toLowerCase() === "cr") cr++;
+        });
+        setStats({
+          totalAccounts: total,
+          totalDebit: dSum,
+          totalCredit: cSum,
+          drCount: dr,
+          crCount: cr,
+        });
+      }
+
+      setBalances(balanceList.map(formatBalanceRow));
+      setTotalBalances(total);
+      setCurrentPage(1);
+      setHasMore(balanceList.length < total);
+
+      // Scroll container to top on fresh search / filter change
+      if (tableContainerRef.current) {
+        tableContainerRef.current.scrollTop = 0;
+      }
+    } catch (err) {
+      console.warn("Failed to fetch account balances:", err);
+      setBalances([]);
+      setTotalBalances(0);
+      setHasMore(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    currentWorkspace,
+    currentBranch?._id,
+    debouncedSearch,
+    selectedBalanceType,
+    selectedNature,
+    sortOption,
+    accountScope,
+  ]);
+
+  // Load next batch via Infinite Scroll
+  const handleLoadMore = useCallback(async () => {
+    if (isLoading || isLoadingMore || !hasMore || !currentWorkspace) return;
+
+    setIsLoadingMore(true);
+    const nextPage = currentPage + 1;
+
+    try {
+      const params = buildQueryParams(nextPage);
+      const res = await accountBalanceService.getAccountBalances(params);
+      const resData = res.data?.data || {};
+      const balanceList = Array.isArray(resData.balances) ? resData.balances : [];
+      const total = resData.total ?? totalBalances;
+
+      if (balanceList.length > 0) {
+        setBalances((prev) => {
+          const existingIds = new Set(prev.map((b) => b._id));
+          const newRows = balanceList
+            .map(formatBalanceRow)
+            .filter((b) => !existingIds.has(b._id));
+          const combined = [...prev, ...newRows];
+          setHasMore(combined.length < total);
+          return combined;
+        });
+        setCurrentPage(nextPage);
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.warn("Failed to load more account balances:", err);
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [
+    currentPage,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    currentWorkspace,
+    currentBranch?._id,
+    debouncedSearch,
+    selectedBalanceType,
+    selectedNature,
+    sortOption,
+    accountScope,
+    totalBalances,
+  ]);
+
+  // Trigger re-fetch on filter changes
+  useEffect(() => {
+    fetchInitialBalances();
+  }, [fetchInitialBalances]);
+
+  // Reset all filters to default
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setDebouncedSearch("");
+    setSelectedBalanceType("all");
+    setSelectedNature("all");
+    setSortOption("lastTransactionAt-desc");
+    setAccountScope("company");
+  };
+
+  // Recalculate balance handler with toast feedback
+  const handleRecalculate = async (e, accountId) => {
+    e.stopPropagation();
+    if (!accountId || recalculatingId) return;
+
+    setRecalculatingId(accountId);
+    try {
+      const res = await accountBalanceService.recalculateAccountBalance(accountId);
+      const updatedBalance = res.data?.data;
+      if (updatedBalance) {
+        setBalances((prev) =>
+          prev.map((row) =>
+            row.accountId === accountId
+              ? formatBalanceRow({ ...row, ...updatedBalance })
+              : row
+          )
+        );
+      }
+      setToastMessage("✅ Account balance recalculated successfully.");
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.message || "Failed to recalculate balance.";
+      setToastMessage(`❌ ${msg}`);
+    } finally {
+      setRecalculatingId(null);
+      setTimeout(() => setToastMessage(null), 3500);
+    }
+  };
+
+  // View Details in modal dialog (no page redirection)
+  const handleViewDetails = (accountId) => {
+    if (!accountId) return;
+    setSelectedAccountIdForView(accountId);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleCloseViewDialog = () => {
+    setIsViewDialogOpen(false);
+    setSelectedAccountIdForView(null);
+  };
+
+  const handleModalRecalculateSuccess = () => {
+    fetchInitialBalances();
+  };
+
+  // Helper for Nature Badge
+  const renderNatureBadge = (nature) => {
+    const nat = String(nature || "").toUpperCase();
+    switch (nat) {
+      case "ASSET":
+        return <UIBadge variant="soft" color="info" className="font-semibold text-xs">ASSET</UIBadge>;
+      case "LIABILITY":
+        return <UIBadge variant="soft" color="warning" className="font-semibold text-xs">LIABILITY</UIBadge>;
+      case "INCOME":
+        return <UIBadge variant="soft" color="success" className="font-semibold text-xs">INCOME</UIBadge>;
+      case "EXPENSE":
+        return <UIBadge variant="soft" color="error" className="font-semibold text-xs">EXPENSE</UIBadge>;
+      case "EQUITY":
+        return <UIBadge variant="soft" color="primary" className="font-semibold text-xs">EQUITY</UIBadge>;
+      default:
+        return <UIBadge variant="soft" color="neutral" className="font-semibold text-xs">{nat || "OTHER"}</UIBadge>;
+    }
+  };
+
+  // Helper for Category Tag
+  const renderCategoryTag = (category) => {
+    const cat = String(category || "").toUpperCase();
+    if (cat.includes("CUSTOMER")) {
+      return <span className="text-[10.5px] font-medium text-primary px-1.5 py-0.5 bg-primary/10 rounded-md">Customer</span>;
+    }
+    if (cat.includes("SUPPLIER")) {
+      return <span className="text-[10.5px] font-medium text-amber-600 dark:text-amber-400 px-1.5 py-0.5 bg-amber-500/10 rounded-md">Supplier</span>;
+    }
+    if (cat.includes("CASH") || cat.includes("BANK")) {
+      return <span className="text-[10.5px] font-medium text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 bg-emerald-500/10 rounded-md">Treasury</span>;
+    }
+    if (cat.includes("SALES")) {
+      return <span className="text-[10.5px] font-medium text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 bg-indigo-500/10 rounded-md">Sales</span>;
+    }
+    return <span className="text-[10.5px] font-medium text-text-muted px-1.5 py-0.5 bg-surface-alt rounded-md">{category || "General"}</span>;
+  };
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
-      <div className="mx-auto w-full max-w-[1500px]">
-        {/* Page Header */}
-        <AppBox
-          display="flex"
-          alignItems="flex-start"
-          justifyContent="space-between"
-          sx={pageHeaderSx}
-        >
-          <AppBox sx={pageHeaderContentSx}>
-            <AppHeading level={1} weight={650}>
-              Account Balances
-            </AppHeading>
-            <AppText variant="body2" sx={pageHeaderSubtitleSx}>
-              Audit aggregate balances, track debit/credit ledger sums, and verify chart of accounts.
-            </AppText>
-            <AppBreadcrumb
-              size="small"
-              variant="text"
-              items={[
-                { label: "Dashboard", href: "/" },
-                { label: "Finance & Accounting", href: "/finance" },
-                { label: "Account Balances", current: true },
-              ]}
-              sx={breadcrumbSx}
-              itemSx={breadcrumbItemSx}
-              currentItemSx={breadcrumbCurrentSx}
-            />
-          </AppBox>
-
-          <AppStack
-            direction="row"
-            align="center"
-            justify="flex-end"
-            gap={1.1}
-            sx={{ flexShrink: 0 }}
+    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-3 space-y-2.5 text-text font-sans transition-colors">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 right-8 z-[9999] flex items-center gap-2.5 rounded-2xl border border-primary/30 bg-surface/95 px-4 py-3 text-sm font-semibold text-text shadow-xl backdrop-blur-md"
           >
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiRefreshCw />}
-              onClick={handleRefresh}
-              loading={isLoading}
-              disabled={isLoading}
-              sx={secondaryButtonSx}
-            >
-              Refresh
-            </AppButton>
-          </AppStack>
-        </AppBox>
-
-        {/* Stats Grid */}
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          {statsList.map((stat) => (
-            <AppStatCard
-              key={stat.id}
-              title={stat.title}
-              value={stat.value}
-              subtitle={stat.description}
-              icon={stat.icon}
-              colorVariant={stat.colorVariant}
-              variant="default"
-              sx={statCardSx}
-              iconSx={statIconSx}
-            />
-          ))}
-        </div>
-
-        {/* Feedback alerts */}
-        {(error || message) && (
-          <AppAlert
-            severity={error ? "error" : "success"}
-            variant="soft"
-            title={error ? "Something went wrong" : "Success"}
-            closable
-            onClose={clearFeedback}
-            sx={alertSx}
-          >
-            {error || message}
-          </AppAlert>
+            <CheckCircle2 className="size-5 text-primary shrink-0" />
+            <span>{toastMessage}</span>
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        {/* Table & Filters Card */}
-        <AppCard
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="sm"
-          padding="none"
-          sx={tableCardSx}
-        >
-          {/* Filters Toolbar */}
-          <div className="border-b border-border px-3.5 py-3">
-            <div className="grid grid-cols-[minmax(0,1fr)_180px] items-center gap-3">
-              <AppSearchInput
-                name="search"
-                value={searchParams.search}
-                onChange={handleSearchChange}
-                placeholder="Search account name/code..."
-                clearable
-                onClear={() => handleSearchChange("")}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={searchSx}
-                inputSx={filterInputSx}
-              />
-
-              <AppSelect
-                name="balanceType"
-                value={searchParams.balanceType}
-                onChange={(e) => handleFilterChange("balanceType", e.target.value)}
-                options={balanceTypeOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={selectSx}
-                inputSx={filterInputSx}
-              />
+      {/* ── 1. Compact 4-Card Statistics Grid (Top of Page) ────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {/* Card 1: Total Accounts Tracked */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
+            <BookOpen className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">
+              {accountScope === "customer"
+                ? "Customers Tracked"
+                : accountScope === "supplier"
+                ? "Suppliers Tracked"
+                : accountScope === "company"
+                ? "Operating Accounts"
+                : "Accounts Tracked"}
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.totalAccounts}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              {accountScope === "customer"
+                ? "Customer debtor ledgers"
+                : accountScope === "supplier"
+                ? "Supplier creditor ledgers"
+                : accountScope === "company"
+                ? "Core branch & general ledger"
+                : "All ledger accounts"}
             </div>
           </div>
+        </div>
 
-          {/* Table Container */}
-          {isLoading ? (
-            <AppTableSkeleton rows={8} columns={7} showHeader={false} />
-          ) : accountBalances.length === 0 ? (
-            <AppEmptyState
-              title="No Account Balances Found"
-              description="There are no balances matching your search criteria."
-              icon={<FiBookOpen />}
-              size="page"
-              sx={stateSx}
-            />
-          ) : (
-            <AppTable
-              columns={columns}
-              rows={accountBalances}
-              getRowId={(row) => row._id}
-              dense
-              bordered={false}
-              rounded={false}
-              hover
-              stickyHeader
-              minWidth={1150}
-              maxHeight="calc(100vh - 340px)"
-              sx={tableSx}
-              headSx={tableHeadSx}
-              cellSx={tableCellSx}
+        {/* Card 2: Debit Balances (DR) */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
+            <ArrowUpRight className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-success truncate">
+              {accountScope === "customer"
+                ? "Credit Outstanding (DR)"
+                : accountScope === "supplier"
+                ? "Advance to Vendors (DR)"
+                : "Debit Balances (DR)"}
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.drCount} Accounts
+            </div>
+            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono truncate mt-0.5">
+              ₹{formatCurrency(stats.totalDebit)} volume
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Credit Balances (CR) */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-error-soft text-error flex items-center justify-center shrink-0">
+            <ArrowDownRight className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-error truncate">
+              {accountScope === "customer"
+                ? "Customer Advances (CR)"
+                : accountScope === "supplier"
+                ? "Supplier Payables (CR)"
+                : "Credit Balances (CR)"}
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.crCount} Accounts
+            </div>
+            <div className="text-[10px] text-rose-600 dark:text-rose-400 font-mono truncate mt-0.5">
+              ₹{formatCurrency(stats.totalCredit)} volume
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Net Position */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Scale className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-primary truncate">
+              Net Balance Gap
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              ₹{formatCurrency(Math.abs((stats.totalDebit || 0) - (stats.totalCredit || 0)))}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              {(stats.totalDebit || 0) >= (stats.totalCredit || 0)
+                ? "Net Debit Position"
+                : "Net Credit Position"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 2. Ledger Scope Segmented Selector (Company / Customer / Supplier / All) ── */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-0.5">
+        <div className="flex items-center gap-1 p-1 bg-surface border border-border rounded-xl shadow-2xs overflow-x-auto">
+          {SCOPE_OPTIONS.map((opt) => {
+            const Icon = opt.icon;
+            const isSelected = accountScope === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setAccountScope(opt.value)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all font-semibold select-none cursor-pointer whitespace-nowrap",
+                  isSelected
+                    ? "bg-primary/10 text-primary border border-primary/25 font-bold shadow-2xs"
+                    : "text-text-muted hover:text-text hover:bg-surface-alt/70 border border-transparent"
+                )}
+              >
+                <Icon className={cn("size-3.5 shrink-0", isSelected ? "text-primary" : "text-text-muted")} />
+                <span>{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="text-xs text-text-muted font-medium flex items-center gap-1.5">
+          <span>Active Scope:</span>
+          <UIBadge variant="soft" color="primary" className="font-semibold text-xs">
+            {SCOPE_OPTIONS.find((s) => s.value === accountScope)?.label}
+          </UIBadge>
+          <span className="text-text-muted/60">•</span>
+          <span className="font-mono text-xs font-semibold text-text tabular-nums">
+            {stats.totalAccounts} accounts
+          </span>
+        </div>
+      </div>
+
+      {/* ── 3. Table Filter Toolbar (Using Reusable UI Components) ───────────────── */}
+      <div className="flex flex-wrap items-center gap-2.5">
+        {/* Search Input - Clean text string, no [object Object] */}
+        <div className="flex-1 min-w-[240px] sm:min-w-[280px]">
+          <UIInput
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search account name or code..."
+            startIcon={<Search className="size-4 text-text-muted" />}
+            size="md"
+            variant="outline"
+            isClearable
+            onClear={() => setSearchQuery("")}
+            className="w-full"
+          />
+        </div>
+
+        {/* Balance Type Selector */}
+        <div className="w-[160px] sm:w-[180px]">
+          <UISelect
+            value={selectedBalanceType}
+            onChange={(val) => setSelectedBalanceType(val)}
+            options={BALANCE_TYPE_OPTIONS}
+            placeholder="Balance Type"
+            size="md"
+          />
+        </div>
+
+        {/* Account Nature Selector */}
+        <div className="w-[150px] sm:w-[170px]">
+          <UISelect
+            value={selectedNature}
+            onChange={(val) => setSelectedNature(val)}
+            options={ACCOUNT_NATURE_OPTIONS}
+            placeholder="Account Nature"
+            size="md"
+          />
+        </div>
+
+        {/* Sort Selector */}
+        <div className="w-[170px] sm:w-[190px]">
+          <UISelect
+            value={sortOption}
+            onChange={(val) => setSortOption(val)}
+            options={SORT_SELECT_OPTIONS}
+            placeholder="Sort Order"
+            size="md"
+          />
+        </div>
+
+        {/* Toolbar Action Buttons: Refresh & Reset */}
+        <div className="flex items-center gap-2 ml-auto sm:ml-0">
+          <UIButton
+            type="button"
+            variant="secondary"
+            size="md"
+            disabled={isLoading}
+            onClick={fetchInitialBalances}
+            startIcon={
+              <RefreshCw className={cn("size-3.5 text-primary", isLoading && "animate-spin")} />
+            }
+            className="h-9 px-3 text-xs sm:text-sm font-semibold"
+            title="Refresh Balances"
+          >
+            Refresh
+          </UIButton>
+
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            onClick={handleResetFilters}
+            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
+            className="h-9 px-2.5 text-xs sm:text-sm text-text-muted hover:text-text"
+            title="Reset Filters"
+          >
+            Reset
+          </UIButton>
+        </div>
+      </div>
+
+      {/* ── 4. Constrained-Height Table with Sticky Header & Infinite Scroll ────── */}
+      <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        {/* Internal Vertical Scroll Container: The definitive scroll parent */}
+        <div
+          ref={tableContainerRef}
+          className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-210px)] min-h-[480px] flex-1 divide-y divide-border/60"
+        >
+          <UITable
+            stickyHeader
+            containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+            className="w-full"
+          >
+            {/* Sticky Header: pinned to top of tableContainerRef with solid surface background */}
+            <UITableHeader sticky className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs">
+              <UITableRow className="border-b border-border text-[11px] font-semibold text-text uppercase tracking-wider bg-surface-alt">
+                <UITableHead sticky className="min-w-[240px]">Account Name</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[140px]">Nature & Category</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[140px]">Debit Total (Dr)</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[140px]">Credit Total (Cr)</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[170px]">Closing Balance</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[130px]">Last Activity</UITableHead>
+                <UITableHead sticky align="right" className="w-28">Actions</UITableHead>
+              </UITableRow>
+            </UITableHeader>
+
+            <UITableBody>
+              {isLoading ? (
+                <UITableLoading colSpan={7} rows={8} />
+              ) : balances.length === 0 ? (
+                <UITableEmpty
+                  colSpan={7}
+                  title="No account balances found"
+                  description={
+                    debouncedSearch || selectedBalanceType !== "all" || selectedNature !== "all"
+                      ? "No accounts match your selected filter criteria. Try clearing filters."
+                      : "No account balances recorded yet."
+                  }
+                  action={
+                    (debouncedSearch || selectedBalanceType !== "all" || selectedNature !== "all") ? (
+                      <UIButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleResetFilters}
+                      >
+                        Clear Filters
+                      </UIButton>
+                    ) : undefined
+                  }
+                />
+              ) : (
+                balances.map((b) => {
+                  const isRecalculatingThis = recalculatingId === b.accountId;
+                  const isDebit = b.balanceType === "dr";
+
+                  return (
+                    <UITableRow
+                      key={b._id}
+                      onClick={() => handleViewDetails(b.accountId)}
+                      className="cursor-pointer transition-colors hover:bg-surface-hover/70"
+                    >
+                      {/* Account Name (First Column) */}
+                      <UITableCell>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-text truncate hover:text-primary transition-colors">
+                            {b.accountName}
+                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {renderCategoryTag(b.accountCategory)}
+                          </div>
+                        </div>
+                      </UITableCell>
+
+                      {/* Nature & Category */}
+                      <UITableCell align="center" className="whitespace-nowrap">
+                        {renderNatureBadge(b.accountNature)}
+                      </UITableCell>
+
+                      {/* Debit Total (Dr) */}
+                      <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
+                        ₹{formatCurrency(b.debitTotal)}
+                      </UITableCell>
+
+                      {/* Credit Total (Cr) */}
+                      <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-rose-600 dark:text-rose-400 font-semibold text-xs">
+                        ₹{formatCurrency(b.creditTotal)}
+                      </UITableCell>
+
+                      {/* Closing Balance */}
+                      <UITableCell align="right" className="whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5 font-mono">
+                          <span className="font-bold text-sm text-text tabular-nums">
+                            ₹{formatCurrency(b.balance)}
+                          </span>
+                          {isDebit ? (
+                            <UIBadge variant="soft" color="success" className="font-bold text-[10px] px-1.5 py-0.5">
+                              DR
+                            </UIBadge>
+                          ) : (
+                            <UIBadge variant="soft" color="error" className="font-bold text-[10px] px-1.5 py-0.5">
+                              CR
+                            </UIBadge>
+                          )}
+                        </div>
+                      </UITableCell>
+
+                      {/* Last Activity */}
+                      <UITableCell align="center" className="whitespace-nowrap text-xs text-text-muted">
+                        <div className="flex flex-col items-center">
+                          <span>{formatDate(b.lastTransactionAt)}</span>
+                          <span className="text-[10.5px] font-mono text-text-muted/70">
+                            {formatTime(b.lastTransactionAt)}
+                          </span>
+                        </div>
+                      </UITableCell>
+
+                      {/* Actions */}
+                      <UITableCell align="right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <UIButton
+                            variant="ghost"
+                            size="xs"
+                            disabled={isRecalculatingThis}
+                            onClick={(e) => handleRecalculate(e, b.accountId)}
+                            className="text-text-muted hover:text-text px-2"
+                            title="Recalculate Balance Sheet"
+                          >
+                            <RefreshCw
+                              className={cn(
+                                "size-3.5",
+                                isRecalculatingThis && "animate-spin text-primary"
+                              )}
+                            />
+                          </UIButton>
+
+                          <UIButton
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => handleViewDetails(b.accountId)}
+                            startIcon={<Eye className="size-3.5" />}
+                            className="text-text-muted hover:text-primary px-2"
+                            title="View Account Details"
+                          >
+                            View
+                          </UIButton>
+                        </div>
+                      </UITableCell>
+                    </UITableRow>
+                  );
+                })
+              )}
+            </UITableBody>
+          </UITable>
+
+          {/* Reusable UIInfiniteScroll Component */}
+          {!isLoading && balances.length > 0 && (
+            <UIInfiniteScroll
+              onLoadMore={handleLoadMore}
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              rootRef={tableContainerRef}
+              rootMargin="160px"
+              endMessage={
+                !hasMore && balances.length > 0 ? (
+                  <span className="font-mono text-[11px] text-text-muted select-none py-2 block text-center">
+                    ✓ All {totalBalances} account balances loaded
+                  </span>
+                ) : null
+              }
             />
           )}
-
-          {/* Table Footer */}
-          {totalBalances > pageSize ? (
-            <TableFooter
-              totalBalances={totalBalances}
-              currentPage={currentPage}
-              pageSize={pageSize}
-              handlePageChange={handlePageChange}
-              handlePageSizeChange={handlePageSizeChange}
-            />
-          ) : null}
-        </AppCard>
+        </div>
       </div>
-    </section>
-  );
-};
 
-const RowActions = ({ balance, onView, onRecalculate, disabled }) => {
-  const items = [
-    { id: "view", label: "View Details", icon: <FiEye />, onClick: () => onView(balance.accountId?._id || balance.accountId) },
-    {
-      id: "recalculate",
-      label: "Recalculate",
-      icon: <FiRefreshCw />,
-      onClick: () => onRecalculate(balance.accountId?._id || balance.accountId),
-      disabled
-    },
-  ];
-
-  return (
-    <AppMenu
-      trigger={
-        <button
-          type="button"
-          aria-label="Balance actions"
-          className="inline-flex h-auto w-auto items-center justify-center border-0 bg-transparent p-1.5 text-text-muted hover:text-primary rounded transition hover:bg-surface-hover/40 shadow-none outline-none focus:bg-transparent active:bg-transparent"
-        >
-          <FiMoreHorizontal className="text-[18px]" />
-        </button>
-      }
-      items={items}
-      dense
-      minWidth={140}
-    />
-  );
-};
-
-const TableFooter = ({
-  totalBalances,
-  currentPage,
-  pageSize,
-  handlePageChange,
-  handlePageSizeChange,
-}) => {
-  const startEntry = (currentPage - 1) * pageSize + 1;
-  const endEntry = Math.min(currentPage * pageSize, totalBalances);
-  const totalPages = Math.ceil(totalBalances / pageSize) || 1;
-
-  return (
-    <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
-      <AppText variant="body2" sx={footerTextSx}>
-        Showing {startEntry} to {endEntry} of {totalBalances} balances
-      </AppText>
-
-      <AppStack direction="row" align="center" gap={1}>
-        <AppMenu
-          trigger={
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              endIcon={<FiChevronRight className="rotate-90" />}
-              sx={pageSizeButtonSx}
-            >
-              {pageSize} per page
-            </AppButton>
-          }
-          items={[
-            { id: "10", label: "10 per page", onClick: () => handlePageSizeChange(10) },
-            { id: "20", label: "20 per page", onClick: () => handlePageSizeChange(20) },
-            { id: "50", label: "50 per page", onClick: () => handlePageSizeChange(50) },
-            { id: "100", label: "100 per page", onClick: () => handlePageSizeChange(100) },
-          ]}
-          dense
-          minWidth={120}
-        />
-
-        <AppIconButton
-          icon={<FiChevronLeft />}
-          variant="outlined"
-          colorVariant="neutral"
-          size="small"
-          rounded="md"
-          disabled={currentPage === 1}
-          onClick={() => handlePageChange(currentPage - 1)}
-        />
-
-        <span className="flex h-[31px] min-w-[31px] items-center justify-center rounded-md bg-primary px-2 text-[12px] font-bold text-text-inverse">
-          {currentPage}
-        </span>
-
-        <AppIconButton
-          icon={<FiChevronRight />}
-          variant="outlined"
-          colorVariant="neutral"
-          size="small"
-          rounded="md"
-          disabled={currentPage === totalPages}
-          onClick={() => handlePageChange(currentPage + 1)}
-        />
-      </AppStack>
+      {/* ── 5. Account Balance View Dialog (No Page Redirection) ────────────────── */}
+      <AccountBalanceDetailsDialog
+        isOpen={isViewDialogOpen}
+        onClose={handleCloseViewDialog}
+        accountId={selectedAccountIdForView}
+        onRecalculateSuccess={handleModalRecalculateSuccess}
+      />
     </div>
   );
 };
-
-// Styling variables
-const pageHeaderSx = { width: "100%" };
-const pageHeaderSubtitleSx = {
-  mt: 0.55,
-  fontSize: "13px",
-  lineHeight: "20px",
-  color: "var(--app-color-text-muted)",
-};
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "25px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.45px",
-    color: "var(--app-color-text)",
-  },
-};
-
-const breadcrumbSx = { mt: 1 };
-const breadcrumbItemSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-const breadcrumbCurrentSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const secondaryButtonSx = {
-  height: 36,
-  minWidth: 92,
-  px: 1.4,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-
-const alertSx = { mt: 3 };
-
-const statCardSx = {
-  minHeight: 88,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  p: 1.5,
-  "& p:first-of-type": { fontSize: "11px" },
-  "& h1, & h2, & h3, & h4": { fontSize: "18px" },
-  "& p:last-of-type": { fontSize: "11px" },
-};
-const statIconSx = {
-  width: 38,
-  height: 38,
-  minWidth: 38,
-  borderRadius: "11px",
-};
-
-const tableCardSx = {
-  mt: 3,
-  overflow: "hidden",
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  "& > div": { minWidth: 0 },
-};
-
-const searchSx = { width: "100%" };
-const selectSx = { width: "100%" };
-const filterInputSx = {
-  height: 36,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const tableSx = {
-  "& .MuiTableContainer-root": {
-    borderRadius: 0,
-    scrollbarWidth: "none",
-    msOverflowStyle: "none",
-    "&::-webkit-scrollbar": { display: "none" },
-  },
-};
-const tableHeadSx = {
-  bgcolor: "var(--app-color-surface-alt)",
-  "& .MuiTableCell-root": {
-    fontSize: "11.2px",
-    fontWeight: 750,
-    color: "var(--app-color-text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-  },
-};
-const tableCellSx = {
-  py: 1.2,
-  fontSize: "12px",
-  borderColor: "var(--app-color-border)",
-};
-
-const accountNameSx = {
-  fontSize: "12px",
-  fontWeight: 750,
-  color: "var(--app-color-primary)",
-  cursor: "pointer",
-  "&:hover": {
-    textDecoration: "underline",
-  },
-};
-
-const tableValueSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-const tableValueMonoSx = {
-  fontSize: "12px",
-  fontWeight: 700,
-  fontFamily: "var(--font-mono, monospace)",
-  color: "var(--app-color-text)",
-};
-const debitAmountSx = {
-  fontSize: "12px",
-  fontWeight: 700,
-  color: "var(--app-color-success)",
-};
-const creditAmountSx = {
-  fontSize: "12px",
-  fontWeight: 700,
-  color: "var(--app-color-error)",
-};
-const balanceAmountSx = {
-  fontSize: "12px",
-  fontWeight: 750,
-  color: "var(--app-color-text)",
-};
-
-const tagSx = {
-  width: "fit-content",
-  height: 22,
-  px: 1,
-  fontSize: "10.5px",
-  fontWeight: 700,
-};
-
-const footerTextSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
-const pageSizeButtonSx = {
-  height: 34,
-  minWidth: 122,
-  px: 1.2,
-  fontSize: "12px",
-  fontWeight: 600,
-};
-const stateSx = { minHeight: 430 };
-
-const FiChevronRight = (props) => (
-  <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg" {...props}><polyline points="9 18 15 12 9 6"></polyline></svg>
-);
-const FiChevronLeft = (props) => (
-  <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg" {...props}><polyline points="15 18 9 12 15 6"></polyline></svg>
-);
 
 export default AccountBalancesDesktopPage;

@@ -767,6 +767,8 @@ export const SalesDesktopPage = () => {
         roundOff: saleData.roundOff,
         paymentMethod: saleData.paymentMethod,
         payments: saleData.payments,
+        creditDueDate: saleData.creditDueDate,
+        creditStatus: saleData.creditStatus,
         items: saleData.items,
         date: activeShift?.date ? new Date(activeShift.date).toISOString() : new Date().toISOString(),
         shiftId: activeShift?._id || saleData.shiftId || null,

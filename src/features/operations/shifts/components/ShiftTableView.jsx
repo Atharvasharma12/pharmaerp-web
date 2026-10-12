@@ -180,12 +180,18 @@ export const ShiftTableView = ({
                 : Number(shift.totalFundWithdrawals) || 0;
             const withdrawals = formatCurrency(withdrawalsAmount);
 
+            const advanceCashAmount = Number(shift.advanceCashTotal || 0);
+            const creditCashAmount = Number(shift.creditCashTotal || 0);
+            const totalAdvanceIn = Number((shift.advanceCashTotal || 0) + (shift.advanceUpiTotal || 0));
+            const advanceBillsCount = Number(shift.advanceInvoiceCount || 0);
+            const advanceSalesAmount = Number(shift.advanceSalesTotal || 0);
+
             const expectedCashAmount =
               shift.expectedClosingCashAmount !== undefined &&
               shift.expectedClosingCashAmount !== null &&
               shift.expectedClosingCashAmount > 0
                 ? Number(shift.expectedClosingCashAmount)
-                : openingFloatAmount + cashSalesAmount + depositsAmount - withdrawalsAmount;
+                : openingFloatAmount + cashSalesAmount + advanceCashAmount + creditCashAmount + depositsAmount - withdrawalsAmount;
             const expectedCash = formatCurrency(expectedCashAmount);
 
             return (
@@ -211,11 +217,23 @@ export const ShiftTableView = ({
                       </span>
                     )}
                   </div>
-                  {shift.shiftNo && (
-                    <span className="font-mono text-[11px] text-text-muted mt-0.5 block">
-                      {shift.shiftNo}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    {shift.shiftNo && (
+                      <span className="font-mono text-[11px] text-text-muted">
+                        {shift.shiftNo}
+                      </span>
+                    )}
+                    {totalAdvanceIn > 0 && (
+                      <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded">
+                        Adv In: {formatCurrency(totalAdvanceIn)}
+                      </span>
+                    )}
+                    {advanceBillsCount > 0 && (
+                      <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-1.5 py-0.2 rounded">
+                        Adv Used: {advanceBillsCount} bills ({formatCurrency(advanceSalesAmount)})
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 {/* Column 2: Date & Time (Line 1: Date, Line 2: Time range on single line) */}

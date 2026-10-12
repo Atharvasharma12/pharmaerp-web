@@ -120,6 +120,13 @@ export const ENDPOINTS = {
     IMPORT_PREVIEW: "/parties/customers/import/preview",
     IMPORT_CONFIRM: "/parties/customers/import/confirm",
     IMPORT_CHUNK: "/parties/customers/import/chunk",
+    ADVANCE_RECEIVE: (customerId) => `/parties/customers/${customerId}/advance/receive`,
+    ADVANCE_BALANCE: (customerId) => `/parties/customers/${customerId}/advance/balance`,
+    CREDIT_SETTLE: (customerId) => `/parties/customers/${customerId}/credit/settle`,
+    CREDIT_OUTSTANDING: (customerId) => `/parties/customers/${customerId}/credit/outstanding`,
+    TRANSACTIONS: (customerId) => `/parties/customers/${customerId}/transactions`,
+    STATEMENT: (customerId) => `/parties/customers/${customerId}/statement`,
+    CREDITS_PENDING_ALL: "/parties/customers/credits/pending",
   },
 
   SALES: {

@@ -1,32 +1,47 @@
 // src/features/parties/customers/pages/desktop/CustomersDesktopPage.jsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
+  Search,
+  Filter,
+  RefreshCw,
+  RotateCcw,
   Plus,
   Download,
-  RotateCcw,
-  Search,
+  Receipt,
+  Wallet,
+  Scale,
+  ArrowUpRight,
+  Phone,
+  Mail,
   MoreVertical,
-  AlertTriangle,
   Eye,
   Edit3,
   Trash2,
-  Filter,
+  BookOpen,
+  AlertTriangle,
+  CheckCircle2,
   Building2,
   Contact,
 } from "lucide-react";
+
 import {
   UIButton,
+  UIInput,
   UISelect,
-  UIPagination,
-  UIEmptyState,
-  UIAlert,
-  UISkeleton,
-  UIPageHeader,
-  UIFilterToolbar,
-  PermissionGate,
+  UIBadge,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UITableEmpty,
+  UITableLoading,
+  UIInfiniteScroll,
   UIDropdown,
   UIDropdownTrigger,
   UIDropdownMenu,
@@ -38,10 +53,9 @@ import {
   UIModalDescription,
   UIModalBody,
   UIModalFooter,
-  UIIconButton,
+  PermissionGate,
 } from "@/components/ui";
-import { TopBarStats } from "@/layouts/app/components/header";
-import { AppTable } from "@/components";
+import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants";
 import customerService from "../../services/customerService";
 import CustomerImportPreviewModal from "../../components/CustomerImportPreviewModal";
@@ -49,69 +63,131 @@ import ImportConfigModal from "../../components/ImportConfigModal";
 import OutstandingImportPreviewModal from "../../components/OutstandingImportPreviewModal";
 import * as XLSX from "xlsx";
 
-const SORT_OPTIONS = [
-  { value: "name_asc", label: "Name: A to Z" },
-  { value: "name_desc", label: "Name: Z to A" },
-  { value: "newest", label: "Newest First" },
-  { value: "oldest", label: "Oldest First" },
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
+  return Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const getInitials = (name) => {
+  if (!name) return "CU";
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+};
+
+const CUSTOMER_TYPE_OPTIONS = [
+  { label: "All Customer Types", value: "all" },
+  { label: "Retail", value: "retail" },
+  { label: "Wholesale", value: "wholesale" },
+  { label: "Hospital", value: "hospital" },
+  { label: "Clinic", value: "clinic" },
+  { label: "Corporate", value: "corporate" },
+  { label: "Other", value: "other" },
 ];
 
-const CustomersDesktopPage = ({
-  customers = [],
-  paginatedCustomers: propPaginatedCustomers, // Allow passing paginated if handled by parent
-  stats,
+const BALANCE_FILTER_OPTIONS = [
+  { label: "All Balances", value: "all" },
+  { label: "Credit Outstanding (DR)", value: "dr" },
+  { label: "Advance Available (CR)", value: "cr" },
+  { label: "Over Credit Limit", value: "overlimit" },
+  { label: "Settled / Zero Balance", value: "zero" },
+];
 
-  filters,
-  sortBy,
-  onSortChange,
-  viewMode = "grid",
-  onViewModeChange,
-  activeFilterChips = [],
+const STATUS_OPTIONS = [
+  { label: "All Status", value: "all" },
+  { label: "Active", value: "active" },
+  { label: "Inactive", value: "inactive" },
+  { label: "Blocked", value: "blocked" },
+];
 
-  isLoading,
-  isDeleting,
-  hasError,
-  error,
-  message,
+const SORT_SELECT_OPTIONS = [
+  { label: "Name: A to Z", value: "name-asc" },
+  { label: "Name: Z to A", value: "name-desc" },
+  { label: "Credit Due: High to Low", value: "due-desc" },
+  { label: "Advance: High to Low", value: "adv-desc" },
+  { label: "Newest First", value: "createdAt-desc" },
+  { label: "Oldest First", value: "createdAt-asc" },
+];
 
-  totalCustomers = 0,
-  filteredCustomersCount = 0,
-  hasCustomers,
-  hasFilteredCustomers,
+const SCOPE_MODAL_OPTIONS = [
+  { value: "all", label: "All Customers", icon: Users },
+  { value: "b2b", label: "B2B Accounts", icon: Building2 },
+  { value: "b2c", label: "B2C Walk-ins", icon: Contact },
+];
 
-  handleFilterChange,
-  handleSearchChange,
-  handleRemoveFilter,
-  handleClearFilters,
+const PAGE_LIMIT = 20;
 
+export const CustomersDesktopPage = ({
   handleCreateCustomer,
   handleViewCustomer,
   handleEditCustomer,
   handleDeleteCustomer,
-  handleRefresh,
-
-  currentPage = 1,
-  pageSize = 8,
-  setCurrentPage,
-  setPageSize,
-
-  clearMessage,
-  activeSegment,
+  handleReceiveAdvance,
+  handleSettleCredit,
+  handleViewTransactions,
+  handleRefresh: propHandleRefresh,
+  activeSegment: propActiveSegment,
+  refreshKey = 0,
 }) => {
-  const segmentNavigate = useNavigate();
-  // Parent-controlled pagination
-  const handlePageChange = (newPage) => {
-    if (setCurrentPage) setCurrentPage(newPage);
-  };
-  const handlePageSizeChange = (newSize) => {
-    if (setPageSize) setPageSize(newSize);
-    if (setCurrentPage) setCurrentPage(1);
-  };
+  const navigate = useNavigate();
+  const tableContainerRef = useRef(null);
 
-  const paginatedCustomers = propPaginatedCustomers || customers;
-  const totalPages = Math.ceil(filteredCustomersCount / pageSize) || 1;
+  // Core Customer data and infinite scroll pagination
+  const [customers, setCustomers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  // Import State
+  // Global Financial & Count Statistics (independent of pagination)
+  const [stats, setStats] = useState({
+    totalCustomers: 0,
+    totalDr: 0,
+    totalAdvance: 0,
+    totalCr: 0,
+    netRunning: 0,
+    runningType: "Dr",
+    active: 0,
+    inactive: 0,
+    blocked: 0,
+    drCount: 0,
+    crCount: 0,
+  });
+
+  // Filter & Search States
+  const [customerScope, setCustomerScope] = useState(
+    propActiveSegment === "b2b" ? "b2b" : propActiveSegment === "b2c" ? "b2c" : "all"
+  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedType, setSelectedType] = useState("all");
+  const [selectedBalanceType, setSelectedBalanceType] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [sortOption, setSortOption] = useState("name-asc");
+
+  // Filter Modal Dialog state
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
+  // Active filter count for badge
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (customerScope !== "all") count++;
+    if (selectedType !== "all") count++;
+    if (selectedBalanceType !== "all") count++;
+    if (selectedStatus !== "all") count++;
+    if (sortOption !== "name-asc") count++;
+    return count;
+  }, [customerScope, selectedType, selectedBalanceType, selectedStatus, sortOption]);
+
+  // Excel Import States
   const [isImportConfigOpen, setIsImportConfigOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] = useState(false);
@@ -119,7 +195,7 @@ const CustomersDesktopPage = ({
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Chunked Import State
+  // Chunked Import Modal State
   const [chunkState, setChunkState] = useState({
     chunks: [],
     currentIndex: 0,
@@ -127,68 +203,371 @@ const CustomersDesktopPage = ({
     isModalOpen: false,
     error: null,
     stats: { successful: 0, failed: 0, errors: [] },
-    totalRecords: 0
+    totalRecords: 0,
   });
+  const abortControllerRef = useRef(null);
 
-  const abortControllerRef = React.useRef(null);
+  // Toast feedback state
+  const [toastMessage, setToastMessage] = useState(null);
 
+  // Debounce search input by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Sync customerScope if parent activeSegment changes
+  useEffect(() => {
+    if (propActiveSegment === "b2b") setCustomerScope("b2b");
+    else if (propActiveSegment === "b2c") setCustomerScope("b2c");
+  }, [propActiveSegment]);
+
+  // Format customer row data safely
+  const formatCustomerRow = useCallback((c) => {
+    const id = c._id || c.id;
+    const name = c.name || c.displayName || "Unknown Customer";
+    const customerCode = c.customerCode || c.displayCode || "—";
+    const mobile = c.mobile || c.phone || "—";
+    const email = c.email || "";
+    const type = String(c.customerType || c.type || "retail").toLowerCase();
+    const status = c.status || c.displayStatus || "Active";
+    const creditLimit = Number(c.creditLimit || 0);
+    const creditDays = Number(c.creditDays || 0);
+
+    const advanceBalance = Number(c.advanceBalance || 0);
+    const creditOutstanding = Number(c.creditOutstanding || 0);
+    const outstandingAmount = Number(c.outstandingAmount || 0);
+    const balanceType = String(c.balanceType || (creditOutstanding > 0 ? "dr" : "cr")).toLowerCase();
+
+    const billingAddress = c.billingAddress || c.address || {};
+    const city = billingAddress.city || "";
+    const state = billingAddress.state || "";
+    const gstNumber = c.gstNumber || c.gstin || "";
+    const drugLicense = c.drugLicenseNumber || "";
+
+    return {
+      _id: id,
+      id,
+      name,
+      customerCode,
+      mobile,
+      email,
+      customerType: type,
+      status,
+      creditLimit,
+      creditDays,
+      advanceBalance,
+      creditOutstanding,
+      outstandingAmount,
+      balanceType,
+      city,
+      state,
+      gstNumber,
+      drugLicense,
+      createdAt: c.createdAt || null,
+      updatedAt: c.updatedAt || null,
+      rawCustomer: c,
+    };
+  }, []);
+
+  // Build API Query Parameters
+  const buildQueryParams = useCallback(
+    (page = 1) => {
+      const params = {
+        page,
+        limit: PAGE_LIMIT,
+      };
+
+      if (debouncedSearch) {
+        params.search = debouncedSearch;
+      }
+
+      if (selectedStatus !== "all") {
+        params.status = selectedStatus;
+      }
+
+      // Customer type or segment scope mapping
+      if (selectedType !== "all") {
+        params.customerType = selectedType;
+      } else if (customerScope === "b2b") {
+        params.customerType = "retail,wholesale";
+      } else if (customerScope === "b2c") {
+        params.customerType = "hospital,clinic,corporate,other";
+      }
+
+      return params;
+    },
+    [debouncedSearch, selectedStatus, selectedType, customerScope]
+  );
+
+  // Fetch initial batch (Page 1) or full refresh
+  const fetchInitialCustomers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = buildQueryParams(1);
+      const res = await customerService.getCustomers(params);
+      const resData = res.data?.data || {};
+      const rawList = Array.isArray(resData.customers)
+        ? resData.customers
+        : Array.isArray(resData)
+        ? resData
+        : [];
+      const total = Number(resData.total ?? rawList.length);
+
+      // Extract backend aggregated stats
+      if (resData.stats) {
+        setStats({
+          totalCustomers: total,
+          totalDr: Number(resData.stats.totalDr || 0),
+          totalAdvance: Number(resData.stats.totalAdvance || resData.stats.totalCr || 0),
+          totalCr: Number(resData.stats.totalCr || 0),
+          netRunning: Number(resData.stats.netRunning || 0),
+          runningType: resData.stats.runningType || "Dr",
+          active: Number(resData.stats.active || 0),
+          inactive: Number(resData.stats.inactive || 0),
+          blocked: Number(resData.stats.blocked || 0),
+          drCount: rawList.filter((c) => Number(c.creditOutstanding || 0) > 0).length,
+          crCount: rawList.filter((c) => Number(c.advanceBalance || 0) > 0).length,
+        });
+      } else {
+        let drSum = 0;
+        let advSum = 0;
+        let act = 0;
+        let inact = 0;
+        let blk = 0;
+        rawList.forEach((c) => {
+          drSum += Number(c.creditOutstanding || 0);
+          advSum += Number(c.advanceBalance || 0);
+          const s = String(c.status || "active").toLowerCase();
+          if (s === "active") act++;
+          else if (s === "inactive") inact++;
+          else if (s === "blocked") blk++;
+        });
+        const netGap = Math.abs(drSum - advSum);
+        setStats({
+          totalCustomers: total,
+          totalDr: drSum,
+          totalAdvance: advSum,
+          totalCr: advSum,
+          netRunning: netGap,
+          runningType: drSum >= advSum ? "Dr" : "Cr",
+          active: act,
+          inactive: inact,
+          blocked: blk,
+          drCount: rawList.filter((c) => Number(c.creditOutstanding || 0) > 0).length,
+          crCount: rawList.filter((c) => Number(c.advanceBalance || 0) > 0).length,
+        });
+      }
+
+      const formatted = rawList.map(formatCustomerRow);
+      setCustomers(formatted);
+      setTotalCount(total);
+      setCurrentPage(1);
+      setHasMore(formatted.length < total);
+
+      if (tableContainerRef.current) {
+        tableContainerRef.current.scrollTop = 0;
+      }
+    } catch (err) {
+      console.warn("Failed to fetch customers list:", err);
+      setCustomers([]);
+      setTotalCount(0);
+      setHasMore(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [buildQueryParams, formatCustomerRow]);
+
+  // Load next batch via Infinite Scroll
+  const handleLoadMore = useCallback(async () => {
+    if (isLoading || isLoadingMore || !hasMore) return;
+
+    setIsLoadingMore(true);
+    const nextPage = currentPage + 1;
+
+    try {
+      const params = buildQueryParams(nextPage);
+      const res = await customerService.getCustomers(params);
+      const resData = res.data?.data || {};
+      const rawList = Array.isArray(resData.customers) ? resData.customers : [];
+      const total = Number(resData.total ?? totalCount);
+
+      if (rawList.length > 0) {
+        setCustomers((prev) => {
+          const existingIds = new Set(prev.map((c) => c._id));
+          const newRows = rawList
+            .map(formatCustomerRow)
+            .filter((c) => !existingIds.has(c._id));
+          const combined = [...prev, ...newRows];
+          setHasMore(combined.length < total);
+          return combined;
+        });
+        setCurrentPage(nextPage);
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.warn("Failed to load more customers:", err);
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [
+    currentPage,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    buildQueryParams,
+    totalCount,
+    formatCustomerRow,
+  ]);
+
+  // Initial load and auto re-fetch on filter / refreshKey changes
+  useEffect(() => {
+    fetchInitialCustomers();
+  }, [fetchInitialCustomers, refreshKey]);
+
+  // Unified Refresh Handler
+  const handleRefresh = useCallback(() => {
+    fetchInitialCustomers();
+    if (propHandleRefresh) {
+      propHandleRefresh();
+    }
+    setToastMessage("Customer list refreshed.");
+    setTimeout(() => setToastMessage(null), 2500);
+  }, [fetchInitialCustomers, propHandleRefresh]);
+
+  // Reset Filters Handler
+  const handleResetFilters = useCallback(() => {
+    setSearchQuery("");
+    setDebouncedSearch("");
+    setSelectedType("all");
+    setSelectedBalanceType("all");
+    setSelectedStatus("all");
+    setSortOption("name-asc");
+    setCustomerScope("all");
+    navigate(ROUTES.CUSTOMERS, { replace: true });
+  }, [navigate]);
+
+  // Client-side filtering & sorting on currently loaded customers
+  const filteredAndSortedCustomers = useMemo(() => {
+    let result = [...customers];
+
+    // Filter by balance dropdown
+    if (selectedBalanceType === "dr") {
+      result = result.filter(
+        (c) => c.creditOutstanding > 0 || (c.balanceType === "dr" && c.outstandingAmount > 0)
+      );
+    } else if (selectedBalanceType === "cr") {
+      result = result.filter(
+        (c) => c.advanceBalance > 0 || (c.balanceType === "cr" && c.outstandingAmount > 0)
+      );
+    } else if (selectedBalanceType === "overlimit") {
+      result = result.filter(
+        (c) => c.creditLimit > 0 && c.creditOutstanding > c.creditLimit
+      );
+    } else if (selectedBalanceType === "zero") {
+      result = result.filter(
+        (c) => (c.creditOutstanding || 0) === 0 && (c.advanceBalance || 0) === 0
+      );
+    }
+
+    // Sort result
+    result.sort((a, b) => {
+      switch (sortOption) {
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "due-desc":
+          return (b.creditOutstanding || 0) - (a.creditOutstanding || 0);
+        case "adv-desc":
+          return (b.advanceBalance || 0) - (a.advanceBalance || 0);
+        case "createdAt-desc":
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        case "createdAt-asc":
+          return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [customers, selectedBalanceType, sortOption]);
+
+  // ── Import Handling ────────────────────────────────────────────────────────
   const handleImportClick = () => {
     setIsImportConfigOpen(true);
   };
 
   const processChunk = async (chunkIndex, chunks, currentStats) => {
     if (chunkIndex >= chunks.length) {
-      setChunkState(prev => ({ ...prev, isImporting: false, currentIndex: chunkIndex }));
-      alert(`Import complete! Successful: ${currentStats.successful}, Failed: ${currentStats.failed}`);
+      setChunkState((prev) => ({
+        ...prev,
+        isImporting: false,
+        currentIndex: chunkIndex,
+      }));
+      setToastMessage(
+        `Import complete! Successful: ${currentStats.successful}, Failed: ${currentStats.failed}`
+      );
+      setTimeout(() => setToastMessage(null), 4000);
       handleRefresh();
       return;
     }
 
-    setChunkState(prev => ({ ...prev, currentIndex: chunkIndex, error: null }));
+    setChunkState((prev) => ({ ...prev, currentIndex: chunkIndex, error: null }));
 
     try {
       const chunk = chunks[chunkIndex];
       const res = await customerService.importChunk({
         customers: chunk,
-        importType: activeImportType
+        importType: activeImportType,
       });
 
-      const result = res.data?.data?.importResult || { successful: 0, failed: 0, errors: [] };
+      const result = res.data?.data?.importResult || {
+        successful: 0,
+        failed: 0,
+        errors: [],
+      };
       const newStats = {
         successful: currentStats.successful + (result.successful || 0),
         failed: currentStats.failed + (result.failed || 0),
-        errors: [...currentStats.errors, ...(result.errors || [])]
+        errors: [...currentStats.errors, ...(result.errors || [])],
       };
 
-      setChunkState(prev => ({ ...prev, stats: newStats }));
+      setChunkState((prev) => ({ ...prev, stats: newStats }));
 
-      // Process next chunk
       if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
         processChunk(chunkIndex + 1, chunks, newStats);
       }
     } catch (err) {
-      setChunkState(prev => ({ 
-        ...prev, 
-        isImporting: false, 
-        error: err?.response?.data?.message || err.message || "Failed to import chunk" 
+      setChunkState((prev) => ({
+        ...prev,
+        isImporting: false,
+        error:
+          err?.response?.data?.message || err.message || "Failed to import chunk",
       }));
     }
   };
 
   const handleImportSubmit = async (file, importType) => {
     setActiveImportType(importType);
-    
+
     if (importType === "b2c") {
       try {
         setIsUploading(true);
         setIsImportConfigOpen(false);
         const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        
-        // Read as array of arrays first to find the header row
-        const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+
+        const rawRows = XLSX.utils.sheet_to_json(worksheet, {
+          header: 1,
+          defval: "",
+        });
 
         if (rawRows.length === 0) {
           alert("File is empty or invalid.");
@@ -196,58 +575,102 @@ const CustomersDesktopPage = ({
           return;
         }
 
-        // Find the header row (look for common keywords and multiple columns)
         let headerRowIndex = 0;
         for (let i = 0; i < Math.min(20, rawRows.length); i++) {
-          const validCells = rawRows[i].filter(c => String(c).trim() !== "");
-          const rowStr = rawRows[i].map(c => String(c).toLowerCase()).join(" ");
-          
+          const validCells = rawRows[i].filter((c) => String(c).trim() !== "");
+          const rowStr = rawRows[i].map((c) => String(c).toLowerCase()).join(" ");
+
           if (
-            validCells.length >= 2 && 
-            (rowStr.includes("name") || rowStr.includes("customer") || rowStr.includes("patient") || rowStr.includes("client") || rowStr.includes("ledger") || rowStr.includes("party") || rowStr.includes("title")) &&
-            (rowStr.includes("mobile") || rowStr.includes("phone") || rowStr.includes("contact") || rowStr.includes("sno") || rowStr.includes("s.no") || rowStr.includes("balance") || rowStr.includes("email") || rowStr.includes("city") || rowStr.includes("location") || rowStr.includes("district") || rowStr.includes("town") || rowStr.includes("station") || rowStr.includes("address") || rowStr.includes("address1"))
+            validCells.length >= 2 &&
+            (rowStr.includes("name") ||
+              rowStr.includes("customer") ||
+              rowStr.includes("patient") ||
+              rowStr.includes("client") ||
+              rowStr.includes("ledger") ||
+              rowStr.includes("party")) &&
+            (rowStr.includes("mobile") ||
+              rowStr.includes("phone") ||
+              rowStr.includes("contact") ||
+              rowStr.includes("sno") ||
+              rowStr.includes("balance") ||
+              rowStr.includes("email") ||
+              rowStr.includes("city") ||
+              rowStr.includes("address"))
           ) {
             headerRowIndex = i;
             break;
           }
         }
 
-        let headers = rawRows[headerRowIndex].map(h => String(h).toLowerCase().trim());
-        
-        // Fallback: standard assumption
-        if (!headers.some(h => h.includes("name") || h.includes("customer") || h.includes("patient") || h.includes("client") || h.includes("ledger") || h.includes("party"))) {
-          headers = headers.map((h, i) => i === 0 ? "name" : i === 1 ? "mobile" : h);
+        let headers = rawRows[headerRowIndex].map((h) =>
+          String(h).toLowerCase().trim()
+        );
+
+        if (
+          !headers.some(
+            (h) =>
+              h.includes("name") ||
+              h.includes("customer") ||
+              h.includes("patient") ||
+              h.includes("client") ||
+              h.includes("ledger") ||
+              h.includes("party")
+          )
+        ) {
+          headers = headers.map((h, i) =>
+            i === 0 ? "name" : i === 1 ? "mobile" : h
+          );
         }
 
         const dataRows = rawRows.slice(headerRowIndex + 1);
 
-        const dataObjects = dataRows.map(rowArr => {
-          const obj = {};
-          let lastHeader = "";
-          headers.forEach((h, idx) => {
-            let currentHeader = h;
-            if (currentHeader) {
-              lastHeader = currentHeader;
-            } else if (lastHeader.includes("mobile") || lastHeader.includes("phone")) {
-              currentHeader = `${lastHeader}_${idx}`; 
-            }
-            
-            if (currentHeader && rowArr[idx] !== undefined && rowArr[idx] !== "") {
-              obj[currentHeader] = rowArr[idx];
-            }
-          });
-          return obj;
-        }).filter(row => Object.keys(row).length > 0);
+        const dataObjects = dataRows
+          .map((rowArr) => {
+            const obj = {};
+            let lastHeader = "";
+            headers.forEach((h, idx) => {
+              let currentHeader = h;
+              if (currentHeader) {
+                lastHeader = currentHeader;
+              } else if (
+                lastHeader.includes("mobile") ||
+                lastHeader.includes("phone")
+              ) {
+                currentHeader = `${lastHeader}_${idx}`;
+              }
 
-        // Normalize and extract required fields
+              if (
+                currentHeader &&
+                rowArr[idx] !== undefined &&
+                rowArr[idx] !== ""
+              ) {
+                obj[currentHeader] = rowArr[idx];
+              }
+            });
+            return obj;
+          })
+          .filter((row) => Object.keys(row).length > 0);
+
         const validCustomersData = [];
         for (const lowerRow of dataObjects) {
-          const businessName = String(lowerRow["name"] || lowerRow["customer name"] || lowerRow["customer"] || lowerRow["supplier name"] || lowerRow["ledger name"] || lowerRow["party name"] || lowerRow["ledger"] || lowerRow["patient name"] || lowerRow["patient"] || lowerRow["client"] || lowerRow["client name"] || "").trim();
-          
+          const businessName = String(
+            lowerRow["name"] ||
+              lowerRow["customer name"] ||
+              lowerRow["customer"] ||
+              lowerRow["party name"] ||
+              lowerRow["ledger name"] ||
+              lowerRow["patient name"] ||
+              lowerRow["client name"] ||
+              ""
+          ).trim();
+
           let mobile = "";
-          const mobileKeys = Object.keys(lowerRow).filter(k => k.includes("mobile") || k.includes("phone") || k.includes("contact"));
+          const mobileKeys = Object.keys(lowerRow).filter(
+            (k) =>
+              k.includes("mobile") || k.includes("phone") || k.includes("contact")
+          );
           for (const mk of mobileKeys) {
-            const val = String(lowerRow[mk]).replace(/\D/g, ''); 
+            const val = String(lowerRow[mk]).replace(/\D/g, "");
             if (val.length >= 10) {
               const potentialMobile = val.substring(val.length - 10);
               if (/^[6-9][0-9]{9}$/.test(potentialMobile)) {
@@ -258,34 +681,38 @@ const CustomersDesktopPage = ({
             }
           }
 
-          const email = String(lowerRow["email"] || "").trim();
-          const gstNumber = String(lowerRow["gstin"] || lowerRow["gstin no."] || lowerRow["gstin no"] || lowerRow["gst"] || lowerRow["gst number"] || lowerRow["gst no"] || lowerRow["gst no."] || lowerRow["tin"] || "").trim();
-          let panNumber = String(lowerRow["pan"] || lowerRow["panno"] || lowerRow["pan number"] || lowerRow["pan no."] || lowerRow["pan no"] || "").trim();
-          
-          let addressLine1 = String(lowerRow["address1"] || lowerRow["address"] || lowerRow["address & details"] || "").trim();
-          let city = String(lowerRow["city"] || lowerRow["location"] || lowerRow["district"] || lowerRow["town"] || lowerRow["station"] || "").trim();
-          const pincode = String(lowerRow["pin"] || lowerRow["pincode"] || "").trim();
-          
-          if (addressLine1 && !city) {
-            city = addressLine1;
-            addressLine1 = "";
-          }
+          let city = String(
+            lowerRow["city"] ||
+              lowerRow["location"] ||
+              lowerRow["district"] ||
+              lowerRow["town"] ||
+              lowerRow["address"] ||
+              ""
+          ).trim();
 
-          const normalizedName = businessName.toLowerCase().replace(/\s+/g, ' ').trim();
-          if (businessName && normalizedName !== "ledger name" && normalizedName !== "name" && normalizedName !== "customer name") {
+          const normalizedName = businessName
+            .toLowerCase()
+            .replace(/\s+/g, " ")
+            .trim();
+          if (
+            businessName &&
+            normalizedName !== "ledger name" &&
+            normalizedName !== "name" &&
+            normalizedName !== "customer name"
+          ) {
             validCustomersData.push({
               name: businessName,
               mobile: mobile || undefined,
               billingAddress: {
                 city: city || undefined,
               },
-              customerType: "other"
+              customerType: "other",
             });
           }
         }
 
         if (validCustomersData.length === 0) {
-          alert("No valid customers found in the file. Ensure you have a 'Name' column.");
+          alert("No valid customers found in the file.");
           setIsUploading(false);
           return;
         }
@@ -303,7 +730,7 @@ const CustomersDesktopPage = ({
           isModalOpen: true,
           error: null,
           stats: { successful: 0, failed: 0, errors: [] },
-          totalRecords: validCustomersData.length
+          totalRecords: validCustomersData.length,
         });
       } catch (error) {
         alert("Failed to parse Excel file locally: " + error.message);
@@ -313,30 +740,33 @@ const CustomersDesktopPage = ({
       return;
     }
 
-    // Default B2B logic via preview
+    // Standard B2B import via backend preview
     try {
       setIsUploading(true);
       const formData = new FormData();
       formData.append("file", file);
       formData.append("importType", importType);
-      
+
       const res = await customerService.previewImport(formData);
-      
       setIsImportConfigOpen(false);
 
       if (res.data?.data?.isDirectlyImported) {
         const result = res.data.data.importResult;
         if (result?.failed > 0) {
-          alert(`Directly imported ${result.successful} successfully. ${result.failed} failed.\nErrors: ${result.errors?.join(", ")}`);
+          alert(
+            `Imported ${result.successful} successfully. ${result.failed} failed.\nErrors: ${result.errors?.join(", ")}`
+          );
         } else {
-          alert(`Directly imported ${result?.successful || 0} customers successfully.`);
+          alert(
+            `Directly imported ${result?.successful || 0} customers successfully.`
+          );
         }
         handleRefresh();
         return;
       }
-      
+
       setImportPreviewData(res.data?.data || []);
-      
+
       if (importType === "b2b-outstanding") {
         setIsOutstandingImportModalOpen(true);
       } else {
@@ -353,758 +783,717 @@ const CustomersDesktopPage = ({
     setIsImportModalOpen(false);
     setIsOutstandingImportModalOpen(false);
     if (failed > 0) {
-      alert(`Imported ${successful} successfully. ${failed} failed.\nErrors: ${errors.join(", ")}`);
+      alert(
+        `Imported ${successful} successfully. ${failed} failed.\nErrors: ${errors.join(", ")}`
+      );
     } else {
-      alert(`Imported ${successful} customers successfully.`);
+      setToastMessage(`Imported ${successful} customers successfully.`);
+      setTimeout(() => setToastMessage(null), 3000);
     }
     if (successful > 0) {
       handleRefresh();
     }
   };
 
-  const getInitials = (name) => {
-    if (!name) return "NA";
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .substring(0, 2)
-      .toUpperCase();
-  };
-
-  const getStatusColor = (status) => {
-    const s = String(status).toLowerCase();
-    if (s === "active") return "success";
-    if (s === "inactive") return "error";
-    if (s === "blocked") return "warning";
-    return "primary";
-  };
-
-  const getAddressText = (party) => {
-    const addr =
-      party?.address || party?.billingAddress || party?.shippingAddress;
-
-    const parts = [];
-    if (addr?.city) parts.push(addr.city);
-    else if (addr?.district) parts.push(addr.district);
-
-    if (addr?.state) parts.push(addr.state);
-    else if (addr?.pincode) parts.push(addr.pincode);
-
-    if (parts.length > 0) {
-      return parts.join(", ");
-    }
-
-    return "No Address";
-  };
-
-  const getRandomCompany = (id) => {
-    const companies = [
-      {
-        name: "Starlink",
-        color: "text-[#8B5CF6] border-[#8B5CF6]/20 bg-[#F5F3FF]",
-      },
-      {
-        name: "Marvel",
-        color: "text-[#94A3B8] border-[#94A3B8]/20 bg-[#F1F5F9]",
-      },
-      { name: "BMW", color: "text-[#EAB308] border-[#EAB308]/20 bg-[#FEF9C3]" },
-      { name: "MBM", color: "text-[#0EA5E9] border-[#0EA5E9]/20 bg-[#E0F2FE]" },
-      { name: "KFC", color: "text-[#94A3B8] border-[#94A3B8]/20 bg-[#F1F5F9]" },
-      {
-        name: "TATA",
-        color: "text-[#EC4899] border-[#EC4899]/20 bg-[#FDF2F8]",
-      },
-      {
-        name: "Saltbox",
-        color: "text-[#3B82F6] border-[#3B82F6]/20 bg-[#EFF6FF]",
-      },
-      {
-        name: "TOYOTA",
-        color: "text-[#EF4444] border-[#EF4444]/20 bg-[#FEF2F2]",
-      },
-      {
-        name: "Clorio",
-        color: "text-[#06B6D4] border-[#06B6D4]/20 bg-[#ECFEFF]",
-      },
-      {
-        name: "TikTok",
-        color: "text-[#64748B] border-[#64748B]/20 bg-[#F8FAFC]",
-      },
-      {
-        name: "Dribbble",
-        color: "text-[#8B5CF6] border-[#8B5CF6]/20 bg-[#F5F3FF]",
-      },
-      {
-        name: "Behance",
-        color: "text-[#F97316] border-[#F97316]/20 bg-[#FFF7ED]",
-      },
-    ];
-    const hash = String(id)
-      .split("")
-      .reduce((a, b) => a + b.charCodeAt(0), 0);
-    return companies[hash % companies.length];
-  };
-
-  const activeCount =
-    stats?.active ??
-    customers.filter((c) => String(c.displayStatus).toLowerCase() === "active")
-      .length;
-  const inactiveCount =
-    stats?.inactive ??
-    customers.filter(
-      (c) => String(c.displayStatus).toLowerCase() === "inactive",
-    ).length;
-  const blockedCount =
-    stats?.blocked ??
-    customers.filter((c) => String(c.displayStatus).toLowerCase() === "blocked")
-      .length;
-
-  const topBarStats = [
-    { label: "Total", value: totalCustomers, intent: "primary" },
-    { label: "Active", value: activeCount, intent: "success" },
-    { label: "Inactive", value: inactiveCount, intent: "error" },
-    { label: "Blocked", value: blockedCount, intent: "warning" },
-  ];
-
-  const [isFilterModalOpen, setIsFilterModalOpen] = React.useState(false);
-
-  const shouldShowPagination =
-    hasFilteredCustomers && filteredCustomersCount > pageSize;
-
   return (
-    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-0 max-w-[1440px] mx-auto space-y-2.5">
-      {error && !hasError && (
-        <UIAlert
-          intent="danger"
-          title="Something went wrong"
-          description={error}
-          onClose={clearMessage}
-        />
-      )}
-
-      {/* ── TopBar Stats Teleport ── */}
-      <TopBarStats stats={topBarStats} />
-
-      {/* ── Enterprise UIFilterToolbar Component ── */}
-      <UIFilterToolbar
-        searchQuery={filters.search}
-        onSearchChange={handleSearchChange}
-        searchPlaceholder="Search customer name, email, or mobile..."
-        sortBy={sortBy}
-        onSortChange={onSortChange}
-        sortOptions={SORT_OPTIONS}
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange}
-        activeFilterChips={activeFilterChips}
-        onClearFilters={handleClearFilters}
-        filters={
-          <UIButton
-            variant="outline"
-            size="sm"
-            startIcon={<Filter className="size-4" />}
-            onClick={() => setIsFilterModalOpen(true)}
-            className="w-10 px-0 sm:w-auto sm:px-3 justify-center"
+    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-3 space-y-2.5 text-text font-sans transition-colors">
+      {/* Toast Notification Banner */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.18 }}
+            className="fixed top-4 right-4 z-50 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-alt border border-primary/30 shadow-lg text-text text-xs sm:text-sm font-medium"
           >
-            <span className="hidden sm:inline">Filter</span>
-          </UIButton>
-        }
+            <CheckCircle2 className="size-4.5 text-primary shrink-0" />
+            <span>{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        actions={
-          <div className="flex items-center gap-2 shrink-0 border-l border-border pl-2 ml-1">
-            {/* ── B2B / B2C Segment Toggle ── */}
-            <div className="flex items-center gap-1.5 p-1 bg-surface rounded-xl border border-border shadow-xs w-fit">
-              <button
-                type="button"
-                onClick={() =>
-                  segmentNavigate(`${ROUTES.CUSTOMERS}?segment=b2b`)
-                }
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all duration-200 cursor-pointer ${
-                  activeSegment === "b2b"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-text-muted hover:bg-surface-hover hover:text-text"
-                }`}
-              >
-                <Building2 className="size-3.5" />
-                B2B
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  segmentNavigate(`${ROUTES.CUSTOMERS}?segment=b2c`)
-                }
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all duration-200 cursor-pointer ${
-                  activeSegment === "b2c"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-text-muted hover:bg-surface-hover hover:text-text"
-                }`}
-              >
-                <Contact className="size-3.5" />
-                B2C
-              </button>
-              <button
-                type="button"
-                onClick={() => segmentNavigate(ROUTES.CUSTOMERS)}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12.5px] font-semibold transition-all duration-200 cursor-pointer ${
-                  !activeSegment
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-text-muted hover:bg-surface-hover hover:text-text"
-                }`}
-              >
-                <Users className="size-3.5" />
-                All
-              </button>
-              
-            </div>
-            <UIIconButton
-              variant="ghost"
-              size="sm"
-              className="text-text-muted hover:text-text h-9 w-9"
-              onClick={handleRefresh}
-              title="Refresh"
-            >
-              <RotateCcw
-                className={`size-4 ${isLoading ? "animate-spin" : ""}`}
-              />
-            </UIIconButton>
-
-            <>
-              <PermissionGate permission="customer:create">
-                <UIButton
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  startIcon={<Download className="size-4" />}
-                  onClick={handleImportClick}
-                  disabled={isUploading}
-                >
-                  {isUploading ? "Uploading..." : "Import"}
-                </UIButton>
-              </PermissionGate>
-            </>
-
-            <PermissionGate permission="customer:create">
-              <UIButton
-                type="button"
-                variant="primary"
-                size="sm"
-                startIcon={<Plus className="size-4" />}
-                onClick={handleCreateCustomer}
-              >
-                Add Customer
-              </UIButton>
-            </PermissionGate>
+      {/* ── 1. Clean Single-Row Page Header (Zero Clutter, Completely Free) ────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-0.5 pb-1">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+            <Users className="size-4" />
           </div>
-        }
-      />
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="text-base sm:text-lg font-bold text-text tracking-tight truncate">
+              {customerScope === "b2b"
+                ? "B2B Accounts"
+                : customerScope === "b2c"
+                ? "B2C Walk-ins"
+                : "Customers"}
+            </h1>
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface-alt border border-border text-text-muted font-mono font-medium shrink-0">
+              {stats.totalCustomers || totalCount || 0}
+            </span>
+          </div>
+        </div>
 
-      {/* ── Financial Stats ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-surface rounded-2xl border border-border shadow-xs p-5 flex flex-col justify-center">
-          <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Total Payables</h4>
-          <p className="text-xl font-bold text-rose-600">₹{(stats?.totalCr || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">Cr</span></p>
-        </div>
-        <div className="bg-surface rounded-2xl border border-border shadow-xs p-5 flex flex-col justify-center">
-          <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Total Receivables</h4>
-          <p className="text-xl font-bold text-emerald-600">₹{(stats?.totalDr || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">Dr</span></p>
-        </div>
-        <div className="bg-surface rounded-2xl border border-border shadow-xs p-5 flex flex-col justify-center">
-          <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Net Running Balance</h4>
-          <p className="text-xl font-bold text-primary">₹{(stats?.netRunning || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">{stats?.runningType || 'Cr'}</span></p>
+        {/* Compact Financial Metrics Ribbon (Zero Clutter, Breathable) */}
+        <div className="flex items-center gap-3 text-xs font-mono bg-surface border border-border rounded-xl px-3 py-1.5 shadow-2xs self-start sm:self-auto">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-text-muted font-sans font-medium">Due:</span>
+            <span className="font-bold text-rose-600 dark:text-rose-400 tabular-nums">
+              ₹{formatCurrency(stats.totalDr)}
+            </span>
+            <span className="text-[9.5px] text-rose-500 font-bold">DR</span>
+          </div>
+          <span className="text-border/80">|</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-text-muted font-sans font-medium">Advance:</span>
+            <span className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+              ₹{formatCurrency(stats.totalAdvance || stats.totalCr)}
+            </span>
+            <span className="text-[9.5px] text-emerald-500 font-bold">CR</span>
+          </div>
+          <span className="text-border/80">|</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-text-muted font-sans font-medium">Net:</span>
+            <span className="font-bold text-primary tabular-nums">
+              ₹{formatCurrency(stats.netRunning || Math.abs((stats.totalDr || 0) - (stats.totalAdvance || stats.totalCr || 0)))}
+            </span>
+            <span className="text-[9.5px] text-primary font-bold">
+              {(stats.totalDr || 0) >= (stats.totalAdvance || stats.totalCr || 0) ? "DR" : "CR"}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* ── Filter Modal ── */}
+      {/* ── 2. Streamlined Single-Row Toolbar (Zero Upfront Filter Clutter) ──────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Prominent Search Input */}
+        <div className="flex-1 min-w-[240px] sm:min-w-[280px]">
+          <UIInput
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search customers by name, mobile, code, GSTIN..."
+            startIcon={<Search className="size-4 text-text-muted" />}
+            size="md"
+            variant="outline"
+            isClearable
+            onClear={() => setSearchQuery("")}
+            className="w-full"
+          />
+        </div>
+
+        {/* Filter Modal Trigger Button */}
+        <UIButton
+          type="button"
+          variant={activeFilterCount > 0 ? "secondary" : "outline"}
+          size="md"
+          onClick={() => setIsFilterModalOpen(true)}
+          startIcon={
+            <Filter
+              className={cn("size-3.5", activeFilterCount > 0 ? "text-primary" : "text-text-muted")}
+            />
+          }
+          className={cn(
+            "h-9 px-3 text-xs sm:text-sm font-semibold gap-1.5 transition-all select-none",
+            activeFilterCount > 0 && "border-primary/40 bg-primary/10 text-primary font-bold shadow-2xs"
+          )}
+          title="Open filters dialog"
+        >
+          <span>Filters</span>
+          {activeFilterCount > 0 && (
+            <span className="size-4.5 rounded-full bg-primary text-white text-[10.5px] font-bold flex items-center justify-center">
+              {activeFilterCount}
+            </span>
+          )}
+        </UIButton>
+
+        {/* Quick Reset (only visible when filters or search query are active) */}
+        {(activeFilterCount > 0 || searchQuery) && (
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            onClick={handleResetFilters}
+            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
+            className="h-9 px-2 text-xs text-text-muted hover:text-text"
+            title="Reset all filters"
+          >
+            Reset
+          </UIButton>
+        )}
+
+        {/* Toolbar Action Cluster */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={handleRefresh}
+            className="h-9 w-9 p-0 text-text-muted hover:text-text"
+            title="Refresh customer table"
+          >
+            <RefreshCw
+              className={cn("size-4 text-text-muted hover:text-primary", isLoading && "animate-spin text-primary")}
+            />
+          </UIButton>
+
+          <UIButton
+            type="button"
+            variant="outline"
+            size="md"
+            startIcon={<Receipt className="size-3.5 text-emerald-600 dark:text-emerald-400" />}
+            onClick={() => navigate(ROUTES.CUSTOMER_SETTLEMENTS)}
+            className="h-9 px-3 text-xs font-semibold hidden md:inline-flex"
+            title="Outstanding Collections & Credit Settlements"
+          >
+            Settlements
+          </UIButton>
+
+          <PermissionGate permission="customer:create">
+            <UIButton
+              type="button"
+              variant="outline"
+              size="md"
+              startIcon={<Download className="size-3.5 text-text-muted" />}
+              onClick={handleImportClick}
+              disabled={isUploading}
+              className="h-9 px-3 text-xs font-semibold hidden sm:inline-flex"
+              title="Import Customer Records from Excel"
+            >
+              {isUploading ? "Uploading..." : "Import"}
+            </UIButton>
+          </PermissionGate>
+
+          <PermissionGate permission="customer:create">
+            <UIButton
+              type="button"
+              variant="primary"
+              size="md"
+              startIcon={<Plus className="size-3.5" />}
+              onClick={handleCreateCustomer}
+              className="h-9 px-3.5 text-xs font-semibold shadow-xs"
+            >
+              Add Customer
+            </UIButton>
+          </PermissionGate>
+        </div>
+      </div>
+
+      {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ────── */}
+      <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        {/* Internal Scroll Container: Definitive scroll parent */}
+        <div
+          ref={tableContainerRef}
+          className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-175px)] min-h-[500px] flex-1 divide-y divide-border/60"
+        >
+          <UITable
+            stickyHeader
+            containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+            className="w-full"
+          >
+            {/* Sticky Table Header */}
+            <UITableHeader
+              sticky
+              className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs border-b border-border"
+            >
+              <UITableRow className="border-b border-border text-[11px] font-semibold text-text-muted uppercase tracking-wider bg-surface-alt/70 h-10">
+                <UITableHead sticky className="min-w-[220px]">Customer</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[100px]">Segment</UITableHead>
+                <UITableHead sticky className="min-w-[130px]">Contact</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[110px]">Credit Limit</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[125px]">Advance (CR)</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[130px]">Credit Due (DR)</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[90px]">Status</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[140px]">Actions</UITableHead>
+              </UITableRow>
+            </UITableHeader>
+
+            <UITableBody>
+              {isLoading ? (
+                <UITableLoading colSpan={8} rows={8} />
+              ) : filteredAndSortedCustomers.length === 0 ? (
+                <UITableEmpty
+                  colSpan={8}
+                  title="No customers found"
+                  description={
+                    debouncedSearch || activeFilterCount > 0
+                      ? "No customers match your active filter criteria. Try clearing search or resetting filters."
+                      : "No customer profiles registered yet."
+                  }
+                  action={
+                    debouncedSearch || activeFilterCount > 0 ? (
+                      <UIButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleResetFilters}
+                      >
+                        Clear Filters
+                      </UIButton>
+                    ) : (
+                      <UIButton
+                        variant="primary"
+                        size="sm"
+                        startIcon={<Plus className="size-4" />}
+                        onClick={handleCreateCustomer}
+                      >
+                        Add First Customer
+                      </UIButton>
+                    )
+                  }
+                />
+              ) : (
+                filteredAndSortedCustomers.map((c) => {
+                  const isOverLimit =
+                    c.creditLimit > 0 && c.creditOutstanding > c.creditLimit;
+
+                  return (
+                    <UITableRow
+                      key={c._id}
+                      onClick={() => handleViewCustomer(c.rawCustomer || c)}
+                      className="group cursor-pointer transition-colors hover:bg-surface-hover/70 h-13"
+                    >
+                      {/* 1. Customer: Initials avatar, Name, Code & Location */}
+                      <UITableCell className="py-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="size-8 rounded-lg bg-surface-alt border border-border/80 text-text flex items-center justify-center font-bold text-xs shrink-0 select-none">
+                            {getInitials(c.name)}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-semibold text-text truncate hover:text-primary transition-colors text-xs sm:text-sm leading-tight">
+                              {c.name}
+                            </span>
+                            <div className="flex items-center gap-1 text-[11px] text-text-muted font-mono truncate mt-0.5">
+                              <span>{c.customerCode}</span>
+                              {c.city ? (
+                                <>
+                                  <span className="text-text-muted/30 mx-0.5">•</span>
+                                  <span>{c.city}</span>
+                                </>
+                              ) : c.gstNumber ? (
+                                <>
+                                  <span className="text-text-muted/30 mx-0.5">•</span>
+                                  <span>GST: {c.gstNumber}</span>
+                                </>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      </UITableCell>
+
+                      {/* 2. Segment / Type */}
+                      <UITableCell align="center" className="whitespace-nowrap py-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface-alt border border-border/60 text-text-muted capitalize">
+                          {c.customerType}
+                        </span>
+                      </UITableCell>
+
+                      {/* 3. Contact Info */}
+                      <UITableCell className="py-2">
+                        <div className="flex flex-col text-xs min-w-0">
+                          <span className="font-mono text-text font-medium text-xs truncate">
+                            {c.mobile || "—"}
+                          </span>
+                          {c.email && (
+                            <span className="text-[11px] text-text-muted truncate mt-0.5 max-w-[130px]">
+                              {c.email}
+                            </span>
+                          )}
+                        </div>
+                      </UITableCell>
+
+                      {/* 4. Credit Limit */}
+                      <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-xs py-2">
+                        {c.creditLimit > 0 ? (
+                          <div className="flex flex-col items-end leading-tight">
+                            <span className="font-medium text-text">
+                              ₹{formatCurrency(c.creditLimit)}
+                            </span>
+                            {c.creditDays > 0 && (
+                              <span className="text-[10px] text-text-muted font-sans">
+                                {c.creditDays}d terms
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-text-muted/40 font-mono text-xs">—</span>
+                        )}
+                      </UITableCell>
+
+                      {/* 5. Advance Balance (CR) */}
+                      <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-xs py-2">
+                        {c.advanceBalance > 0 ? (
+                          <div className="inline-flex items-baseline gap-1">
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                              ₹{formatCurrency(c.advanceBalance)}
+                            </span>
+                            <span className="text-[9.5px] font-bold text-emerald-700/80 dark:text-emerald-300/80">
+                              CR
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-text-muted/30 font-mono text-xs">0.00</span>
+                        )}
+                      </UITableCell>
+
+                      {/* 6. Credit Due (DR) */}
+                      <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-xs py-2">
+                        {c.creditOutstanding > 0 ? (
+                          <div className="flex flex-col items-end leading-tight">
+                            <div className="inline-flex items-baseline gap-1">
+                              <span className="font-semibold text-rose-600 dark:text-rose-400">
+                                ₹{formatCurrency(c.creditOutstanding)}
+                              </span>
+                              <span className="text-[9.5px] font-bold text-rose-700/80 dark:text-rose-300/80">
+                                DR
+                              </span>
+                            </div>
+                            {isOverLimit && (
+                              <span className="text-[9.5px] font-semibold text-rose-500 mt-0.5">
+                                Over limit
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-text-muted/30 font-mono text-xs">0.00</span>
+                        )}
+                      </UITableCell>
+
+                      {/* 7. Status */}
+                      <UITableCell align="center" className="whitespace-nowrap py-2">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-text">
+                          <span
+                            className={cn(
+                              "size-1.5 rounded-full shrink-0",
+                              c.status === "Active"
+                                ? "bg-emerald-500"
+                                : c.status === "Inactive"
+                                ? "bg-amber-400"
+                                : "bg-rose-500"
+                            )}
+                          />
+                          <span className="text-text-muted text-[11.5px]">{c.status}</span>
+                        </span>
+                      </UITableCell>
+
+                      {/* 8. Refined Row Actions */}
+                      <UITableCell align="right" className="py-2">
+                        <div
+                          className="flex items-center justify-end gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {/* Quick Advance Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReceiveAdvance(c.rawCustomer || c);
+                            }}
+                            className="h-7 px-2 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-500/10 rounded-md transition-colors border border-transparent hover:border-emerald-500/20 cursor-pointer flex items-center gap-1"
+                            title="Receive Advance"
+                          >
+                            <Wallet className="size-3" />
+                            <span>Adv</span>
+                          </button>
+
+                          {/* Quick Settle Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSettleCredit(c.rawCustomer || c);
+                            }}
+                            className="h-7 px-2 text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-500/10 rounded-md transition-colors border border-transparent hover:border-rose-500/20 cursor-pointer flex items-center gap-1"
+                            title="Settle Credit"
+                          >
+                            <Receipt className="size-3" />
+                            <span>Settle</span>
+                          </button>
+
+                          {/* 3-Dots Dropdown */}
+                          <UIDropdown align="right">
+                            <UIDropdownTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                }}
+                                className="size-7 rounded-md flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-alt transition-colors cursor-pointer"
+                                title="More actions"
+                              >
+                                <MoreVertical className="size-3.5" />
+                              </button>
+                            </UIDropdownTrigger>
+                            <UIDropdownMenu align="right" className="w-48 shadow-lg">
+                              <UIDropdownItem
+                                onClick={(e) => {
+                                  e?.stopPropagation?.();
+                                  handleViewTransactions(c.rawCustomer || c);
+                                }}
+                              >
+                                <BookOpen className="size-4 mr-2 text-primary" />
+                                Statement & Ledger
+                              </UIDropdownItem>
+                              <UIDropdownItem
+                                onClick={(e) => {
+                                  e?.stopPropagation?.();
+                                  handleViewCustomer(c.rawCustomer || c);
+                                }}
+                              >
+                                <Eye className="size-4 mr-2 text-text-muted" />
+                                View Details
+                              </UIDropdownItem>
+                              <UIDropdownItem
+                                onClick={(e) => {
+                                  e?.stopPropagation?.();
+                                  handleEditCustomer(c.rawCustomer || c);
+                                }}
+                              >
+                                <Edit3 className="size-4 mr-2 text-text-muted" />
+                                Edit Profile
+                              </UIDropdownItem>
+                              <UIDropdownDivider />
+                              <UIDropdownItem
+                                onClick={(e) => {
+                                  e?.stopPropagation?.();
+                                  handleDeleteCustomer(c.rawCustomer || c);
+                                }}
+                                className="text-error focus:text-error"
+                              >
+                                <Trash2 className="size-4 mr-2 text-error" />
+                                Delete Customer
+                              </UIDropdownItem>
+                            </UIDropdownMenu>
+                          </UIDropdown>
+                        </div>
+                      </UITableCell>
+                    </UITableRow>
+                  );
+                })
+              )}
+            </UITableBody>
+          </UITable>
+
+          {/* Infinite Scroll Trigger */}
+          {!isLoading && (
+            <UIInfiniteScroll
+              onLoadMore={handleLoadMore}
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* ── Comprehensive Filter & Sort Modal Dialog ─────────────────────────── */}
       <UIModal
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
-        className="overflow-visible"
+        className="max-w-md"
       >
         <UIModalHeader>
-          <UIModalTitle>Filter Customers</UIModalTitle>
+          <UIModalTitle className="flex items-center gap-2 text-base font-bold text-text">
+            <Filter className="size-4.5 text-primary" />
+            Filter & Sort Customers
+          </UIModalTitle>
           <UIModalDescription>
-            Select criteria to filter the customers list.
+            Configure customer segment scope, balance standing, status, and sort sequence.
           </UIModalDescription>
         </UIModalHeader>
-        <UIModalBody className="overflow-visible">
-          <div className="space-y-5 py-2">
+        <UIModalBody>
+          <div className="space-y-4 py-2">
+            {/* 1. Segment Scope Selector */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-text-muted">
-                Type
+              <label className="text-xs font-semibold text-text flex items-center justify-between">
+                <span>Account Segment</span>
+                {customerScope !== "all" && (
+                  <span className="text-[11px] text-primary font-bold">Active Scope</span>
+                )}
+              </label>
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-surface-alt border border-border rounded-xl">
+                {SCOPE_MODAL_OPTIONS.map((opt) => {
+                  const Icon = opt.icon;
+                  const isSelected = customerScope === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setCustomerScope(opt.value)}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                        isSelected
+                          ? "bg-surface text-primary border border-primary/20 shadow-xs font-bold"
+                          : "text-text-muted hover:text-text hover:bg-surface/50 border border-transparent"
+                      )}
+                    >
+                      <Icon className={cn("size-3.5 shrink-0", isSelected ? "text-primary" : "text-text-muted")} />
+                      <span className="truncate">{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Customer Type */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text flex items-center justify-between">
+                <span>Customer Type</span>
+                {selectedType !== "all" && (
+                  <span className="text-[11px] text-primary font-bold">Active Filter</span>
+                )}
               </label>
               <UISelect
-                value={filters.type}
-                onChange={(val) => handleFilterChange({ type: val })}
-                options={[
-                  { label: "All Types", value: "all" },
-                  { label: "Retail", value: "retail" },
-                  { label: "Wholesale", value: "wholesale" },
-                  { label: "Hospital", value: "hospital" },
-                  { label: "Clinic", value: "clinic" },
-                  { label: "Corporate", value: "corporate" },
-                ]}
-                placeholder="All Types"
-                size="sm"
+                value={selectedType}
+                onChange={(val) => setSelectedType(val)}
+                options={CUSTOMER_TYPE_OPTIONS}
+                placeholder="All Customer Types"
+                size="md"
               />
             </div>
 
+            {/* 3. Balance Standing */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-text-muted">
-                Status
+              <label className="text-xs font-semibold text-text flex items-center justify-between">
+                <span>Balance Standing</span>
+                {selectedBalanceType !== "all" && (
+                  <span className="text-[11px] text-primary font-bold">Active Filter</span>
+                )}
               </label>
               <UISelect
-                value={filters.status}
-                onChange={(val) => handleFilterChange({ status: val })}
-                options={[
-                  { label: "All Status", value: "all" },
-                  { label: "Active", value: "active" },
-                  { label: "Inactive", value: "inactive" },
-                  { label: "Blocked", value: "blocked" },
-                ]}
+                value={selectedBalanceType}
+                onChange={(val) => setSelectedBalanceType(val)}
+                options={BALANCE_FILTER_OPTIONS}
+                placeholder="All Balances"
+                size="md"
+              />
+              <span className="text-[11px] text-text-muted block">
+                Filter by Credit Outstanding (DR), Advance (CR), or Over Limit
+              </span>
+            </div>
+
+            {/* 4. Customer Status */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text flex items-center justify-between">
+                <span>Customer Status</span>
+                {selectedStatus !== "all" && (
+                  <span className="text-[11px] text-primary font-bold">Active Filter</span>
+                )}
+              </label>
+              <UISelect
+                value={selectedStatus}
+                onChange={(val) => setSelectedStatus(val)}
+                options={STATUS_OPTIONS}
                 placeholder="All Status"
-                size="sm"
+                size="md"
               />
             </div>
 
+            {/* 5. Sort Sequence */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-text-muted">
-                Sort By
+              <label className="text-xs font-semibold text-text flex items-center justify-between">
+                <span>Sort Sequence</span>
+                {sortOption !== "name-asc" && (
+                  <span className="text-[11px] text-primary font-bold">Custom Sort</span>
+                )}
               </label>
               <UISelect
-                value={sortBy}
-                onChange={onSortChange}
-                options={SORT_OPTIONS}
-                placeholder="Sort By..."
-                size="sm"
+                value={sortOption}
+                onChange={(val) => setSortOption(val)}
+                options={SORT_SELECT_OPTIONS}
+                placeholder="Sort Sequence"
+                size="md"
               />
             </div>
           </div>
         </UIModalBody>
-        <UIModalFooter>
-          <UIButton variant="ghost" onClick={() => handleClearFilters()}>
-            Clear Filters
+        <UIModalFooter className="flex items-center justify-between">
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setCustomerScope("all");
+              setSelectedType("all");
+              setSelectedBalanceType("all");
+              setSelectedStatus("all");
+              setSortOption("name-asc");
+            }}
+            className="text-text-muted hover:text-text text-xs"
+          >
+            Reset Filters
           </UIButton>
           <UIButton
+            type="button"
             variant="primary"
+            size="sm"
             onClick={() => setIsFilterModalOpen(false)}
+            className="px-4 text-xs font-semibold shadow-xs"
           >
             Apply Filters
           </UIButton>
         </UIModalFooter>
       </UIModal>
 
-      {/* ── Main Content: Grid or List (Table) ── */}
-      {hasError ? (
-        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] text-center space-y-3 p-6">
-          <AlertTriangle className="size-9 text-error mx-auto" />
-          <h3 className="text-base font-bold text-text">
-            Unable to load customers list
-          </h3>
-          <p className="text-xs text-text-muted max-w-md mx-auto">
-            {error ||
-              "An error occurred while connecting to servers. Please retry."}
-          </p>
-          <UIButton
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            className="mt-1"
-          >
-            Retry Connection
-          </UIButton>
-        </div>
-      ) : isLoading ? (
-        /* Shimmer Loading Grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="bg-surface rounded-2xl border border-border shadow-xs p-5"
-            >
-              <div className="flex items-center gap-3.5">
-                <UISkeleton className="size-10 rounded-full" />
-                <div className="space-y-2 flex-1">
-                  <UISkeleton className="h-3.5 w-24 rounded" />
-                  <UISkeleton className="h-2.5 w-16 rounded" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-6">
-                <div className="space-y-2">
-                  <UISkeleton className="h-2.5 w-12 rounded" />
-                  <UISkeleton className="h-3.5 w-20 rounded" />
-                </div>
-                <div className="space-y-2">
-                  <UISkeleton className="h-2.5 w-12 rounded" />
-                  <UISkeleton className="h-3.5 w-24 rounded" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : !hasCustomers ? (
-        /* Empty State */
-        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-          <UIEmptyState
-            icon={<Users className="size-9 text-primary" />}
-            title="No customers configured yet"
-            description="Add customer profiles to start recording invoices and pipeline terms."
-            primaryAction={
-              <PermissionGate permission="customer:create">
-                <UIButton
-                  variant="primary"
-                  size="sm"
-                  startIcon={<Plus className="size-4" />}
-                  onClick={handleCreateCustomer}
-                >
-                  Add Customer
-                </UIButton>
-              </PermissionGate>
-            }
-          />
-        </div>
-      ) : !hasFilteredCustomers ? (
-        /* Filter Empty State */
-        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-          <UIEmptyState
-            icon={<Search className="size-9 text-text-muted" />}
-            title="No matching customers found"
-            description="Try changing your search query, status, or type filter criteria."
-            primaryAction={
-              <UIButton
-                variant="outline"
-                size="sm"
-                onClick={handleClearFilters}
-              >
-                Clear Filters
-              </UIButton>
-            }
-          />
-        </div>
-      ) : (
-        /* ── Render Active View: Grid or List (Table) ── */
-        <>
-          {viewMode === "grid" || !viewMode ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {paginatedCustomers.map((customer) => {
-                const co = getRandomCompany(customer.id || customer._id);
-                return (
-                  <div
-                    key={customer.id || customer._id}
-                    className="bg-surface rounded-2xl border border-border shadow-xs p-5 flex flex-col hover:border-border-hover transition-all hover:shadow-sm cursor-pointer"
-                    onClick={() => handleViewCustomer(customer)}
-                  >
-                    {/* Header */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3.5">
-                        {customer.customerType === "corporate" ? (
-                          <div className="size-10 shrink-0 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-[15px]">
-                            {getInitials(customer.displayName)}
-                          </div>
-                        ) : customer.customerType === "hospital" ? (
-                          <div className="size-10 shrink-0 rounded-full bg-warning/10 border border-warning/20 flex items-center justify-center text-warning font-bold text-[15px]">
-                            {getInitials(customer.displayName)}
-                          </div>
-                        ) : (
-                          <div className="size-10 shrink-0 rounded-full bg-surface-alt border border-border flex items-center justify-center overflow-hidden">
-                            <img
-                              src={`https://api.dicebear.com/7.x/notionists/svg?seed=${customer.displayName}&backgroundColor=b6e3f4,c0aede,d1d4f9`}
-                              className="size-full object-cover"
-                              alt="Avatar"
-                            />
-                          </div>
-                        )}
-
-                        <div>
-                          <h4 className="text-[14px] font-bold text-text mb-0.5 leading-snug">
-                            {customer.displayName}
-                          </h4>
-                          <p className="text-[11px] font-semibold text-text-muted flex items-center gap-1.5">
-                            <span
-                              className={`size-1.5 rounded-full shrink-0 ${String(customer.displayStatus).toLowerCase() === "active" ? "bg-success" : "bg-error"}`}
-                            ></span>
-                            <span className="truncate max-w-[120px]">
-                              {getAddressText(customer)}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <UIDropdown align="right">
-                          <UIDropdownTrigger asChild>
-                            <UIIconButton
-                              variant="ghost"
-                              size="sm"
-                              className="text-text-muted hover:text-text p-1.5 -mr-1.5 rounded-md hover:bg-surface-hover transition-colors h-8 w-8"
-                            >
-                              <MoreVertical className="w-[18px] h-[18px]" />
-                            </UIIconButton>
-                          </UIDropdownTrigger>
-
-                          <UIDropdownMenu width="w-48">
-                            <UIDropdownItem
-                              icon={<Eye className="w-4 h-4" />}
-                              onClick={() => handleViewCustomer(customer)}
-                            >
-                              View Details
-                            </UIDropdownItem>
-                            <UIDropdownItem
-                              icon={<Edit3 className="w-4 h-4" />}
-                              onClick={() => handleEditCustomer(customer)}
-                            >
-                              Edit Customer
-                            </UIDropdownItem>
-                            <UIDropdownDivider />
-                            <UIDropdownItem
-                              destructive
-                              icon={<Trash2 className="w-4 h-4" />}
-                              onClick={() => handleDeleteCustomer(customer)}
-                            >
-                              Delete Profile
-                            </UIDropdownItem>
-                          </UIDropdownMenu>
-                        </UIDropdown>
-                      </div>
-                    </div>
-
-                    {/* Info Grid */}
-                    <div className="grid grid-cols-2 gap-4 mt-6">
-                      <div>
-                        <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1">
-                          Mobile
-                        </p>
-                        <p className="text-[13px] font-semibold text-text">
-                          {customer.displayMobile || "-"}
-                        </p>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1">Outstanding</p>
-                        <p className={`text-[13px] font-bold truncate ${customer.balanceType?.toLowerCase() === 'cr' ? 'text-rose-600' : 'text-emerald-600'}`}>
-                          ₹{(customer.outstandingAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {customer.balanceType?.toUpperCase() || "DR"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Footer Badges */}
-                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/50">
-                      <div>
-                        <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1.5">
-                          Type
-                        </p>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-border text-[10.5px] font-bold text-text-muted bg-surface-alt">
-                          {customer.displayType || "Retail"}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1.5">
-                          Code
-                        </p>
-                        <span className="inline-flex items-center text-[10.5px] font-bold text-text">
-                          {customer.displayCode || "-"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="bg-surface rounded-xl shadow-xs border border-border overflow-hidden">
-              <AppTable
-                columns={[
-                  {
-                    id: "name",
-                    key: "displayName",
-                    label: "Customer Name",
-                    render: (_, row) => (
-                      <div className="flex items-center gap-3">
-                        <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                          {getInitials(row.displayName)}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-[13px] text-text">
-                            {row.displayName}
-                          </p>
-                          <p className="text-[11px] text-text-muted">
-                            {row.displayEmail || "-"}
-                          </p>
-                        </div>
-                      </div>
-                    ),
-                  },
-                  {
-                    id: "code",
-                    key: "displayCode",
-                    label: "Code",
-                    render: (_, row) => (
-                      <span className="font-mono text-xs">
-                        {row.displayCode || "-"}
-                      </span>
-                    ),
-                  },
-                  {
-                    id: "type",
-                    key: "displayType",
-                    label: "Type",
-                    render: (_, row) => (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-[5px] border border-[#E2E8F0] text-[10.5px] font-bold text-[#64748B] bg-white">
-                        {row.displayType || "Retail"}
-                      </span>
-                    ),
-                  },
-                  {
-                    id: "mobile",
-                    key: "displayMobile",
-                    label: "Mobile",
-                    render: (_, row) => (
-                      <span className="text-xs text-[#334155]">
-                        {row.displayMobile || "-"}
-                      </span>
-                    ),
-                  },
-                  {
-                    id: "outstanding",
-                    key: "outstanding",
-                    label: "Outstanding",
-                    render: (_, row) => (
-                      <span className={`text-xs font-bold ${row.balanceType?.toLowerCase() === 'cr' ? 'text-rose-600' : 'text-emerald-600'}`}>
-                        ₹{(row.outstandingAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {row.balanceType?.toUpperCase() || "DR"}
-                      </span>
-                    ),
-                  },
-                  {
-                    id: "status",
-                    key: "displayStatus",
-                    label: "Status",
-                    render: (_, row) => (
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-[5px] text-[10.5px] font-bold
-                        ${getStatusColor(row.displayStatus) === "success" ? "bg-[#ECFDF5] text-[#10B981]" : ""}
-                        ${getStatusColor(row.displayStatus) === "error" ? "bg-[#FEF2F2] text-[#EF4444]" : ""}
-                        ${getStatusColor(row.displayStatus) === "warning" ? "bg-[#FFFBEB] text-[#F59E0B]" : ""}
-                        ${getStatusColor(row.displayStatus) === "primary" ? "bg-[#F1F5F9] text-[#64748B]" : ""}
-                      `}
-                      >
-                        {row.displayStatus}
-                      </span>
-                    ),
-                  },
-                  {
-                    id: "actions",
-                    key: "actions",
-                    label: "",
-                    align: "right",
-                    render: (_, row) => (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex justify-end"
-                      >
-                        <UIDropdown align="right">
-                          <UIDropdownTrigger asChild>
-                            <UIIconButton
-                              variant="ghost"
-                              size="sm"
-                              className="text-[#94A3B8] hover:text-[#475569] p-1 rounded hover:bg-[#F1F5F9] transition-colors h-8 w-8"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </UIIconButton>
-                          </UIDropdownTrigger>
-
-                          <UIDropdownMenu width="w-48">
-                            <UIDropdownItem
-                              icon={<Eye className="w-4 h-4" />}
-                              onClick={() => handleViewCustomer(row)}
-                            >
-                              View Details
-                            </UIDropdownItem>
-                            <UIDropdownItem
-                              icon={<Edit3 className="w-4 h-4" />}
-                              onClick={() => handleEditCustomer(row)}
-                            >
-                              Edit Customer
-                            </UIDropdownItem>
-                            <UIDropdownDivider />
-                            <UIDropdownItem
-                              destructive
-                              icon={<Trash2 className="w-4 h-4" />}
-                              onClick={() => handleDeleteCustomer(row)}
-                            >
-                              Delete Profile
-                            </UIDropdownItem>
-                          </UIDropdownMenu>
-                        </UIDropdown>
-                      </div>
-                    ),
-                  },
-                ]}
-                rows={paginatedCustomers}
-                hover
-                bordered={false}
-              />
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ── 4. Bottom Pagination Module ── */}
-      {shouldShowPagination && (
-        <div className="bg-surface rounded-xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] overflow-hidden">
-          <UIPagination
-            page={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredCustomersCount}
-            pageSize={pageSize}
-            pageSizeOptions={[8, 16, 24, 48]}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-            showSummary
-            showPageSize
-          />
-        </div>
-      )}
-
-      {/* ── Chunked Import Progress Modal ── */}
+      {/* ── Chunked Background Import Progress Modal ─────────────────────────────── */}
       <UIModal
         isOpen={chunkState.isModalOpen}
         onClose={() => {
-          if (chunkState.isImporting) {
-            alert("Please pause the import before closing.");
-            return;
+          if (!chunkState.isImporting) {
+            setChunkState((prev) => ({ ...prev, isModalOpen: false }));
           }
-          setChunkState(prev => ({ ...prev, isModalOpen: false }));
         }}
-        className="max-w-md"
       >
         <UIModalHeader>
-          <UIModalTitle>Importing Large File</UIModalTitle>
+          <UIModalTitle>Importing Customers</UIModalTitle>
           <UIModalDescription>
-            Importing {chunkState.totalRecords} records in batches...
+            Processing customer records in batches. Please do not close your browser.
           </UIModalDescription>
         </UIModalHeader>
         <UIModalBody>
           <div className="space-y-4 py-2">
             <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="font-medium text-text">Progress</span>
-                <span className="text-text-muted">{chunkState.currentIndex} / {chunkState.chunks.length} Chunks</span>
+              <div className="flex justify-between text-xs font-semibold mb-1 text-text">
+                <span>Progress</span>
+                <span>
+                  {Math.round(
+                    (chunkState.currentIndex / (chunkState.chunks.length || 1)) * 100
+                  )}
+                  %
+                </span>
               </div>
-              <div className="w-full bg-surface-alt rounded-full h-2.5">
-                <div 
-                  className="bg-primary h-2.5 rounded-full transition-all" 
-                  style={{ width: `${chunkState.chunks.length > 0 ? (chunkState.currentIndex / chunkState.chunks.length) * 100 : 0}%` }}
-                ></div>
+              <div className="w-full bg-border rounded-full h-2.5 overflow-hidden">
+                <div
+                  className="bg-primary h-2.5 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${
+                      (chunkState.currentIndex / (chunkState.chunks.length || 1)) * 100
+                    }%`,
+                  }}
+                />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-success/10 border border-success/20 p-3 rounded-xl">
-                <p className="text-xs font-semibold text-success">Successful</p>
-                <p className="text-lg font-bold text-success">{chunkState.stats.successful}</p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2.5 bg-surface-alt rounded-lg border border-border">
+                <span className="text-text-muted block">Processed Records</span>
+                <span className="font-bold text-text font-mono text-sm">
+                  {Math.min(
+                    chunkState.currentIndex * 250,
+                    chunkState.totalRecords
+                  )}{" "}
+                  / {chunkState.totalRecords}
+                </span>
               </div>
-              <div className="bg-error/10 border border-error/20 p-3 rounded-xl">
-                <p className="text-xs font-semibold text-error">Failed</p>
-                <p className="text-lg font-bold text-error">{chunkState.stats.failed}</p>
+              <div className="p-2.5 bg-surface-alt rounded-lg border border-border">
+                <span className="text-text-muted block">Successful / Failed</span>
+                <span className="font-bold font-mono text-sm">
+                  <span className="text-emerald-600 dark:text-emerald-400">
+                    {chunkState.stats.successful}
+                  </span>{" "}
+                  /{" "}
+                  <span className="text-rose-600 dark:text-rose-400">
+                    {chunkState.stats.failed}
+                  </span>
+                </span>
               </div>
             </div>
 
@@ -1117,38 +1506,43 @@ const CustomersDesktopPage = ({
           </div>
         </UIModalBody>
         <UIModalFooter>
-          <UIButton 
-            variant="ghost" 
+          <UIButton
+            variant="ghost"
             onClick={() => {
-               if (chunkState.isImporting) {
-                 if (abortControllerRef.current) {
-                   abortControllerRef.current.abort();
-                 }
-                 setChunkState(prev => ({ ...prev, isImporting: false }));
-               } else {
-                 setChunkState(prev => ({ ...prev, isModalOpen: false }));
-               }
+              if (chunkState.isImporting) {
+                if (abortControllerRef.current) {
+                  abortControllerRef.current.abort();
+                }
+                setChunkState((prev) => ({ ...prev, isImporting: false }));
+              } else {
+                setChunkState((prev) => ({ ...prev, isModalOpen: false }));
+              }
             }}
           >
             {chunkState.isImporting ? "Pause" : "Close"}
           </UIButton>
-          
-          {!chunkState.isImporting && chunkState.currentIndex < chunkState.chunks.length && (
-            <UIButton 
-              variant="primary" 
-              onClick={() => {
-                abortControllerRef.current = new AbortController();
-                setChunkState(prev => ({ ...prev, isImporting: true }));
-                processChunk(chunkState.currentIndex, chunkState.chunks, chunkState.stats);
-              }}
-            >
-              {chunkState.currentIndex === 0 ? "Start Import" : "Resume Import"}
-            </UIButton>
-          )}
+
+          {!chunkState.isImporting &&
+            chunkState.currentIndex < chunkState.chunks.length && (
+              <UIButton
+                variant="primary"
+                onClick={() => {
+                  abortControllerRef.current = new AbortController();
+                  setChunkState((prev) => ({ ...prev, isImporting: true }));
+                  processChunk(
+                    chunkState.currentIndex,
+                    chunkState.chunks,
+                    chunkState.stats
+                  );
+                }}
+              >
+                {chunkState.currentIndex === 0 ? "Start Import" : "Resume Import"}
+              </UIButton>
+            )}
         </UIModalFooter>
       </UIModal>
 
-      {/* ── Import Preview Modal ── */}
+      {/* ── Excel Import Configuration & Preview Modals ──────────────────────── */}
       <ImportConfigModal
         isOpen={isImportConfigOpen}
         onClose={() => setIsImportConfigOpen(false)}

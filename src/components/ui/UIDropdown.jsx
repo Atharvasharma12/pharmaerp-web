@@ -39,6 +39,9 @@ export const UIDropdown = forwardRef(
         typeof valueOrUpdater === "function"
           ? valueOrUpdater(isOpen)
           : valueOrUpdater;
+      if (nextOpen && containerRef.current) {
+        setTriggerRect(containerRef.current.getBoundingClientRect());
+      }
       if (!isControlled) {
         setUncontrolledOpen(nextOpen);
       }
@@ -93,13 +96,13 @@ export const UIDropdown = forwardRef(
       }
 
       // 2. Horizontal Auto-Flipping
-      if (align === "left") {
+      if (align === "left" || align === "start") {
         if (spaceRight < estimatedWidth && spaceLeft > spaceRight) {
           setResolvedAlign("right");
         } else {
           setResolvedAlign("left");
         }
-      } else if (align === "right") {
+      } else if (align === "right" || align === "end") {
         if (spaceLeft < estimatedWidth && spaceRight > spaceLeft) {
           setResolvedAlign("left");
         } else {
@@ -243,28 +246,50 @@ export const UIDropdownMenu = forwardRef(
     const appliedPlacement =
       explicitPlacement || context?.placement || "bottom";
     const appliedAlign = explicitAlign || context?.align || "right";
-    const isTop = appliedPlacement === "top";
 
-    // Fixed Positioning for Portal Mode
+    const viewportHeight =
+      typeof window !== "undefined"
+        ? window.innerHeight || document.documentElement.clientHeight || 768
+        : 768;
+    const spaceBelow = triggerRect ? viewportHeight - triggerRect.bottom : 300;
+    const spaceAbove = triggerRect ? triggerRect.top : 300;
+    const isTop =
+      appliedPlacement === "top" ||
+      (appliedPlacement !== "bottom" && spaceBelow < 240 && spaceAbove > spaceBelow);
+
+    // Fixed Positioning for Portal Mode with Viewport Edge Clamping
     const getPortalStyle = () => {
       if (!triggerRect) return { display: "none" };
+
+      const viewportWidth =
+        window.innerWidth || document.documentElement.clientWidth || 1024;
+
+      const isRightAligned =
+        appliedAlign === "right" ||
+        appliedAlign === "end" ||
+        (appliedAlign !== "left" && appliedAlign !== "start" && viewportWidth - triggerRect.right < 210);
 
       const computedStyle = {
         position: "fixed",
         zIndex: 9999,
+        maxWidth: "calc(100vw - 16px)",
         ...style,
       };
 
       if (isTop) {
-        computedStyle.bottom = window.innerHeight - triggerRect.top + 6;
+        computedStyle.bottom = Math.max(8, viewportHeight - triggerRect.top + 6);
+        computedStyle.maxHeight = Math.min(360, Math.max(120, spaceAbove - 16));
       } else {
-        computedStyle.top = triggerRect.bottom + 6;
+        computedStyle.top = Math.max(8, triggerRect.bottom + 6);
+        computedStyle.maxHeight = Math.min(360, Math.max(120, spaceBelow - 16));
       }
 
-      if (appliedAlign === "right") {
-        computedStyle.right = window.innerWidth - triggerRect.right;
+      if (isRightAligned) {
+        // Anchor to right edge of trigger, safely clamped at least 8px from viewport edge
+        computedStyle.right = Math.max(8, viewportWidth - triggerRect.right);
       } else {
-        computedStyle.left = triggerRect.left;
+        // Anchor to left edge of trigger, safely clamped inside viewport
+        computedStyle.left = Math.max(8, Math.min(triggerRect.left, viewportWidth - 210));
       }
 
       return computedStyle;
