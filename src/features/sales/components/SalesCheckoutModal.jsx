@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { CashBreakdownModal, decomposeAmount } from "./CashBreakdownModal";
 import { getBranchInitials } from "@/utils";
 import invoiceService from "../services/invoiceService";
+import customerService from "@/features/parties/customers/services/customerService";
 
 /** Safe number parser */
 const safeNum = (v) => {
@@ -90,6 +91,9 @@ const mapSavedPayments = (saved, rootDenoms = [], rootReturnedDenoms = []) => {
     // Normalize to exact UI casing for display
     if (String(paymentType).toLowerCase() === "cash") paymentType = "Cash";
     if (String(paymentType).toLowerCase() === "upi") paymentType = "UPI";
+    if (String(paymentType).toLowerCase() === "credit") paymentType = "Credit";
+    if (String(paymentType).toLowerCase() === "advance" || String(paymentType).toLowerCase() === "wallet") paymentType = "Advance";
+    if (String(paymentType).toLowerCase() === "card") paymentType = "Card";
     
     let cashDetails = p.cashDetails || null;
     
@@ -129,9 +133,9 @@ const mapSavedPayments = (saved, rootDenoms = [], rootReturnedDenoms = []) => {
 const PAYMENT_TYPE_OPTIONS = [
   { value: "Cash", label: "Cash", icon: <Banknote className="size-4 text-emerald-600" /> },
   { value: "UPI", label: "UPI / QR", icon: <QrCode className="size-4 text-purple-600" /> },
+  { value: "Credit", label: "Credit (Pay Later)", icon: <Receipt className="size-4 text-rose-600" /> },
+  { value: "Advance", label: "Advance Deposit", icon: <Wallet className="size-4 text-amber-600" /> },
   { value: "Card", label: "Card", icon: <CreditCard className="size-4 text-blue-600" /> },
-  { value: "Wallet", label: "Wallet / Advance", icon: <Wallet className="size-4 text-amber-600" /> },
-  { value: "Credit", label: "Credit / Ledger", icon: <Receipt className="size-4 text-rose-600" /> },
 ];
 
 export const SalesCheckoutModal = ({
@@ -236,6 +240,40 @@ export const SalesCheckoutModal = ({
 
   const [discountPercent, setDiscountPercent] = useState(customer?.defaultDiscount || 0);
   const [notes, setNotes] = useState("");
+
+  // Real-time Customer Credit & Advance profile
+  const [customerDetails, setCustomerDetails] = useState(null);
+
+  useEffect(() => {
+    const custId = customer?._id || customer?.id;
+    if (isOpen && custId) {
+      let isMounted = true;
+      customerService
+        .getCustomerById(custId)
+        .then((res) => {
+          if (isMounted) {
+            setCustomerDetails(res?.data?.data || res?.data || null);
+          }
+        })
+        .catch(() => {});
+      return () => {
+        isMounted = false;
+      };
+    } else {
+      setCustomerDetails(null);
+    }
+  }, [isOpen, customer?._id, customer?.id]);
+
+  const effectiveCustomer = customerDetails || customer;
+  const creditLimit = Number(effectiveCustomer?.creditLimit || 0);
+  const creditOutstanding = Number(effectiveCustomer?.creditOutstanding || 0);
+  const availableCredit = Number(
+    effectiveCustomer?.availableCredit !== undefined
+      ? effectiveCustomer.availableCredit
+      : Math.max(0, creditLimit - creditOutstanding)
+  );
+  const advanceBalance = Number(effectiveCustomer?.advanceBalance || 0);
+  const creditDays = Number(effectiveCustomer?.creditDays || 15);
 
   // Detailed Billing & Tax Calculations
   const items = cartSummary?.items || [];
@@ -351,12 +389,26 @@ export const SalesCheckoutModal = ({
     if (field === "paymentType" && value === "Cash") {
       updated.branchId = currentBranch?._id || "";
       delete updated.paymentQrId;
+      delete updated.creditDueDate;
     }
     // Auto-select primary QR when switching to UPI
     if (field === "paymentType" && (value === "UPI")) {
       if (!updated.paymentQrId && primaryQr?._id) {
         updated.paymentQrId = String(primaryQr._id);
       }
+      delete updated.creditDueDate;
+    }
+    if (field === "paymentType" && value === "Credit") {
+      if (!updated.creditDueDate) {
+        const defaultDueDate = new Date();
+        defaultDueDate.setDate(defaultDueDate.getDate() + (creditDays || 15));
+        updated.creditDueDate = defaultDueDate.toISOString().split("T")[0];
+      }
+      delete updated.paymentQrId;
+    }
+    if (field === "paymentType" && value === "Advance") {
+      delete updated.paymentQrId;
+      delete updated.creditDueDate;
     }
     if (field === "paymentType" && value !== "Cash") {
       delete updated.cashDetails;
@@ -428,6 +480,25 @@ export const SalesCheckoutModal = ({
           paymentQrId: primaryQr?._id ? String(primaryQr._id) : undefined,
         },
       ]);
+    } else if (mode === "Credit") {
+      const defaultDueDate = new Date();
+      defaultDueDate.setDate(defaultDueDate.getDate() + (creditDays || 15));
+      setPayments([
+        {
+          id: Date.now(),
+          paymentType: "Credit",
+          amount: grandTotal,
+          creditDueDate: defaultDueDate.toISOString().split("T")[0],
+        },
+      ]);
+    } else if (mode === "Advance") {
+      setPayments([
+        {
+          id: Date.now(),
+          paymentType: "Advance",
+          amount: grandTotal,
+        },
+      ]);
     } else if (mode === "Card") {
       setPayments([
         {
@@ -481,6 +552,45 @@ export const SalesCheckoutModal = ({
       return;
     }
 
+    const creditRow = payments.find((p) => p.paymentType === "Credit");
+    const hasCredit = Boolean(creditRow);
+    const advanceRow = payments.find((p) => p.paymentType === "Advance");
+    const hasAdvance = Boolean(advanceRow);
+    const hasCust = Boolean(effectiveCustomer?._id || effectiveCustomer?.id);
+
+    if ((hasCredit || hasAdvance) && !hasCust) {
+      setErrorMessage(
+        hasCredit
+          ? "Credit billing requires selecting a registered customer profile first."
+          : "Advance payment requires selecting a registered customer profile with available deposit."
+      );
+      return;
+    }
+
+    if (hasCredit) {
+      const totalCreditReq = payments
+        .filter((p) => p.paymentType === "Credit")
+        .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      if (totalCreditReq > availableCredit) {
+        setErrorMessage(
+          `Credit limit exceeded! Requested ₹${totalCreditReq.toFixed(2)}, but customer available credit limit is ₹${availableCredit.toFixed(2)}.`
+        );
+        return;
+      }
+    }
+
+    if (hasAdvance) {
+      const totalAdvanceReq = payments
+        .filter((p) => p.paymentType === "Advance")
+        .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      if (totalAdvanceReq > advanceBalance) {
+        setErrorMessage(
+          `Insufficient advance balance! Requested ₹${totalAdvanceReq.toFixed(2)}, but customer advance deposit is ₹${advanceBalance.toFixed(2)}.`
+        );
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -505,6 +615,8 @@ export const SalesCheckoutModal = ({
         gstSlabs,
         paymentMethod: (isSplitMode || payments.length > 1) ? "Split" : (payments[0]?.paymentType || "Cash"),
         shiftId: shiftIdProp || activeShift?._id || null,
+        creditDueDate: creditRow?.creditDueDate || undefined,
+        creditStatus: hasCredit ? "PENDING" : undefined,
         cashTendered: payments.reduce((sum, p) => p.paymentType === "Cash" ? sum + (p.cashDetails?.receivedTotal || Number(p.amount)) : sum, 0),
         changeDue: payments.reduce((sum, p) => p.paymentType === "Cash" ? sum + (p.cashDetails?.returnedTotal || 0) : sum, 0),
         denominations: [],
@@ -513,6 +625,7 @@ export const SalesCheckoutModal = ({
           amount: Number(p.amount),
           paymentQrId: p.paymentQrId,
           txnRefNo: p.txnRefNo,
+          creditDueDate: p.paymentType === "Credit" ? p.creditDueDate : undefined,
           branchId: p.paymentType === "Cash" ? currentBranch?._id : undefined,
           cashPartition: p.paymentType === "Cash" ? "running" : undefined,
           denominations: p.cashDetails?.received 
@@ -703,11 +816,12 @@ export const SalesCheckoutModal = ({
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-5 gap-1.5">
               {[
                 { id: "Cash", label: "Cash", icon: Banknote, color: "text-emerald-600", activeCls: "bg-emerald-500/15 border-emerald-500/50 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30" },
-                { id: "UPI", label: "UPI / QR", icon: QrCode, color: "text-purple-600", activeCls: "bg-purple-500/15 border-purple-500/50 text-purple-700 dark:text-purple-300 ring-1 ring-purple-500/30" },
-                { id: "Card", label: "Card", icon: CreditCard, color: "text-blue-600", activeCls: "bg-blue-500/15 border-blue-500/50 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/30" },
+                { id: "UPI", label: "UPI", icon: QrCode, color: "text-purple-600", activeCls: "bg-purple-500/15 border-purple-500/50 text-purple-700 dark:text-purple-300 ring-1 ring-purple-500/30" },
+                { id: "Credit", label: "Credit", icon: Receipt, color: "text-rose-600", activeCls: "bg-rose-500/15 border-rose-500/50 text-rose-700 dark:text-rose-300 ring-1 ring-rose-500/30" },
+                { id: "Advance", label: "Advance", icon: Wallet, color: "text-amber-600", activeCls: "bg-amber-500/15 border-amber-500/50 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/30" },
                 { id: "Split", label: "Split", icon: Calculator, color: "text-indigo-600", activeCls: "bg-indigo-500/15 border-indigo-500/50 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/30" },
               ].map((m) => {
                 const Icon = m.icon;
@@ -900,6 +1014,115 @@ export const SalesCheckoutModal = ({
                   <div className="p-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 flex items-center gap-1.5 text-[10.5px] text-amber-700 dark:text-amber-300 font-medium">
                     <AlertCircle className="size-3.5 text-amber-600 shrink-0" />
                     <span>Exact currency denominations required for this cash payment.</span>
+                  </div>
+                )}
+
+                {/* If Credit: Customer Credit Balance & Due Date Selector */}
+                {row.paymentType === "Credit" && (
+                  <div className="pt-2 border-t border-rose-500/20 space-y-2 animate-in fade-in">
+                    {!effectiveCustomer?._id && !effectiveCustomer?.id ? (
+                      <div className="p-2 rounded-lg border border-rose-500/30 bg-rose-500/10 text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2">
+                        <AlertCircle className="size-4 shrink-0" />
+                        <span>Credit billing requires selecting a registered customer profile first.</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-3 gap-2 p-2 rounded-lg border border-rose-500/20 bg-rose-500/5 text-center">
+                          <div>
+                            <span className="text-[9px] font-bold text-text-muted uppercase block">Credit Limit</span>
+                            <span className="text-[11px] font-mono font-bold text-text">
+                              ₹{creditLimit.toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-bold text-text-muted uppercase block">Outstanding</span>
+                            <span className="text-[11px] font-mono font-bold text-rose-600">
+                              ₹{creditOutstanding.toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-bold text-text-muted uppercase block">Available</span>
+                            <span className={cn(
+                              "text-[11px] font-mono font-bold",
+                              availableCredit >= Number(row.amount || 0) ? "text-emerald-600" : "text-rose-600"
+                            )}>
+                              ₹{availableCredit.toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                        </div>
+
+                        {Number(row.amount || 0) > availableCredit && (
+                          <div className="p-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 text-[11px] text-rose-600 dark:text-rose-400 font-medium flex items-center gap-1.5">
+                            <AlertCircle className="size-3.5 shrink-0" />
+                            <span>Requested amount exceeds available credit limit by ₹{(Number(row.amount || 0) - availableCredit).toFixed(2)}</span>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3 items-center">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                              Maturity Due Date
+                            </label>
+                            <input
+                              type="date"
+                              value={row.creditDueDate || ""}
+                              min={new Date().toISOString().split("T")[0]}
+                              onChange={(e) => handleUpdate(index, "creditDueDate", e.target.value)}
+                              className="w-full h-8 rounded-lg border border-border bg-surface-alt text-xs font-mono font-bold text-text focus:border-primary focus:outline-none px-2.5"
+                            />
+                          </div>
+                          <div className="text-[10.5px] text-text-muted pt-3">
+                            <span>Grace period: <strong className="text-text">{creditDays} days</strong> default term</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* If Advance: Prepaid Deposit Balance Info */}
+                {row.paymentType === "Advance" && (
+                  <div className="pt-2 border-t border-amber-500/20 space-y-2 animate-in fade-in">
+                    {!effectiveCustomer?._id && !effectiveCustomer?.id ? (
+                      <div className="p-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs text-amber-600 dark:text-amber-400 font-medium flex items-center gap-2">
+                        <AlertCircle className="size-4 shrink-0" />
+                        <span>Advance billing requires selecting a registered customer profile with prepaid deposit.</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="p-2 rounded-lg border border-amber-500/20 bg-amber-500/5 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Wallet className="size-4 text-amber-600" />
+                            <div>
+                              <span className="text-[9.5px] font-bold text-text-muted uppercase block leading-none">
+                                Prepaid Advance Held
+                              </span>
+                              <span className="text-xs font-mono font-bold text-amber-600">
+                                ₹{advanceBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9.5px] font-bold text-text-muted uppercase block leading-none">
+                              Remaining After Bill
+                            </span>
+                            <span className={cn(
+                              "text-xs font-mono font-bold",
+                              advanceBalance >= Number(row.amount || 0) ? "text-emerald-600" : "text-rose-600"
+                            )}>
+                              ₹{Math.max(0, advanceBalance - Number(row.amount || 0)).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {Number(row.amount || 0) > advanceBalance && (
+                          <div className="p-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 text-[11px] text-rose-600 dark:text-rose-400 font-medium flex items-center gap-1.5">
+                            <AlertCircle className="size-3.5 shrink-0" />
+                            <span>Amount exceeds available advance deposit by ₹{(Number(row.amount || 0) - advanceBalance).toFixed(2)}. Consider Split mode.</span>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
               </div>

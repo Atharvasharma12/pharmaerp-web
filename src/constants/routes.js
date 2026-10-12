@@ -56,6 +56,8 @@ export const ROUTES = {
   EDIT_CUSTOMER: (customerId = ":customerId") =>
     `/parties/customers/${customerId}/edit`,
 
+  CUSTOMER_SETTLEMENTS: "/parties/customers/settlements",
+
   // Parties - Suppliers
   SUPPLIERS: "/parties/suppliers",
 
@@ -110,8 +112,6 @@ export const ROUTES = {
 
   // Finance - Account Balances
   ACCOUNT_BALANCES: "/finance/account-balances",
-  ACCOUNT_BALANCE_DETAILS: (accountId = ":accountId") =>
-    `/finance/account-balances/${accountId}`,
 
   // Finance - Journal Vouchers
 

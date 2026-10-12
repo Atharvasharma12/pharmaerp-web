@@ -166,6 +166,32 @@ export const ShiftCard = ({ shift, onView, onCloseShift }) => {
         </div>
       </div>
 
+      {/* Advance & Credit settlement badges */}
+      {(Number((shift.advanceCashTotal || 0) + (shift.advanceUpiTotal || 0)) > 0 ||
+        Number((shift.creditCashTotal || 0) + (shift.creditUpiTotal || 0)) > 0 ||
+        Number(shift.advanceSalesTotal || shift.advanceInvoiceCount || 0) > 0) && (
+        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+          {Number((shift.advanceCashTotal || 0) + (shift.advanceUpiTotal || 0)) > 0 && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              Adv In: {formatCurrency((shift.advanceCashTotal || 0) + (shift.advanceUpiTotal || 0))}
+            </span>
+          )}
+          {Number(shift.advanceSalesTotal || shift.advanceInvoiceCount || 0) > 0 && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+              <span className="size-1.5 rounded-full bg-indigo-500" />
+              Bills Using Adv: {shift.advanceInvoiceCount || 0} ({formatCurrency(shift.advanceSalesTotal || 0)})
+            </span>
+          )}
+          {Number((shift.creditCashTotal || 0) + (shift.creditUpiTotal || 0)) > 0 && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20">
+              <span className="size-1.5 rounded-full bg-sky-500" />
+              Credit: {formatCurrency((shift.creditCashTotal || 0) + (shift.creditUpiTotal || 0))}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* 4-Metric Grid */}
       <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-border/60">
         <div className="bg-surface-alt/50 p-2.5 rounded-lg border border-border/40">

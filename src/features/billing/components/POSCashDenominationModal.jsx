@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { UIModal, UIModalHeader, UIModalTitle, UIModalDescription, UIModalBody, UIModalFooter, UIButton, UIInput } from "@/components/ui";
 
-const DENOMINATIONS = [2000, 500, 200, 100, 50, 20, 10, 5, 2, 1];
+const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
 const INITIAL_COUNTS = DENOMINATIONS.reduce((acc, d) => ({ ...acc, [d]: "" }), {});
 
 export const POSCashDenominationModal = ({

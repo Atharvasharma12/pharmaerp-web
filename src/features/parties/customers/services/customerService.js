@@ -91,6 +91,40 @@ const customerService = {
   importChunk(payload) {
     return apiClient.post(ENDPOINTS.CUSTOMER.IMPORT_CHUNK, payload, { timeout: 120000 });
   },
+
+  /*
+  |--------------------------------------------------------------------------
+  | Advance & Credit
+  |--------------------------------------------------------------------------
+  */
+
+  receiveAdvance(customerId, payload) {
+    return apiClient.post(ENDPOINTS.CUSTOMER.ADVANCE_RECEIVE(customerId), payload);
+  },
+
+  getAdvanceBalance(customerId) {
+    return apiClient.get(ENDPOINTS.CUSTOMER.ADVANCE_BALANCE(customerId));
+  },
+
+  settleCredit(customerId, payload) {
+    return apiClient.post(ENDPOINTS.CUSTOMER.CREDIT_SETTLE(customerId), payload);
+  },
+
+  getCreditOutstanding(customerId, params = {}) {
+    return apiClient.get(ENDPOINTS.CUSTOMER.CREDIT_OUTSTANDING(customerId), { params });
+  },
+
+  getCustomerTransactions(customerId, params = {}) {
+    return apiClient.get(ENDPOINTS.CUSTOMER.TRANSACTIONS(customerId), { params });
+  },
+
+  getCustomerStatement(customerId, params = {}) {
+    return apiClient.get(ENDPOINTS.CUSTOMER.STATEMENT(customerId), { params });
+  },
+
+  getAllPendingCredits(params = {}) {
+    return apiClient.get(ENDPOINTS.CUSTOMER.CREDITS_PENDING_ALL, { params });
+  },
 };
 
 export default customerService;

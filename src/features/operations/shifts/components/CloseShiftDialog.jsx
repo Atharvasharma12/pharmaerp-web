@@ -35,6 +35,7 @@ import {
   RotateCcw,
   HandCoins,
   QrCode,
+  Receipt,
 } from "lucide-react";
 import { PostShiftCloseDialog } from "./PostShiftCloseDialog";
 
@@ -291,17 +292,35 @@ export const CloseShiftDialog = ({
   }, [counts, frozenCounts]);
 
   // Reconciled Metrics
+  // Financial Figures
   const openingFloat = Number(summary?.openingFloatAmount || shift?.openingFloatAmount || 0);
   const cashSales = Number(summary?.cashNet || 0);
   const totalDeposits = Number(summary?.totalDeposits || 0);
   const totalWithdrawals = Number(summary?.totalWithdrawals || 0);
 
+  // Customer Advance & Credit Settlement metrics
+  const advanceCashTotal = Number(summary?.advanceCashTotal || shift?.advanceCashTotal || 0);
+  const advanceCashCount = Number(summary?.advanceCashCount || shift?.advanceCashCount || 0);
+  const advanceUpiTotal = Number(summary?.advanceUpiTotal || shift?.advanceUpiTotal || 0);
+  const advanceUpiCount = Number(summary?.advanceUpiCount || shift?.advanceUpiCount || 0);
+  const totalAdvanceReceived = Number(
+    summary?.totalAdvanceReceived ?? (advanceCashTotal + advanceUpiTotal)
+  );
+  const totalAdvanceReceivedCount = Number(
+    summary?.totalAdvanceReceivedCount ?? (advanceCashCount + advanceUpiCount)
+  );
+
+  const creditCashTotal = Number(summary?.creditCashTotal || shift?.creditCashTotal || 0);
+  const creditCashCount = Number(summary?.creditCashCount || shift?.creditCashCount || 0);
+  const creditUpiTotal = Number(summary?.creditUpiTotal || shift?.creditUpiTotal || 0);
+  const creditUpiCount = Number(summary?.creditUpiCount || shift?.creditUpiCount || 0);
+
   const expectedClosingCash = useMemo(() => {
     if (summary?.expectedClosingCashAmount != null) {
       return Number(summary.expectedClosingCashAmount);
     }
-    return openingFloat + cashSales + totalDeposits - totalWithdrawals;
-  }, [summary, openingFloat, cashSales, totalDeposits, totalWithdrawals]);
+    return openingFloat + cashSales + advanceCashTotal + creditCashTotal + totalDeposits - totalWithdrawals;
+  }, [summary, openingFloat, cashSales, advanceCashTotal, creditCashTotal, totalDeposits, totalWithdrawals]);
 
   const difference = totalCounted - expectedClosingCash;
 
@@ -355,6 +374,14 @@ export const CloseShiftDialog = ({
   const cardUpiBillsCount = Number(
     (summary?.paymentQrCount || 0) + (summary?.cardInvoiceCount || 0)
   );
+
+  const advanceCreditUpiBreakdown = summary?.advanceCreditUpiBreakdown || shift?.advanceCreditUpiBreakdown || [];
+
+  // Credit & Advance Sales Bills during this Shift
+  const creditSalesTotal = Number(summary?.creditSalesTotal ?? shift?.creditSalesTotal ?? 0);
+  const creditBillsCount = Number(summary?.creditInvoiceCount ?? shift?.creditInvoiceCount ?? 0);
+  const advanceSalesTotal = Number(summary?.advanceSalesTotal ?? shift?.advanceSalesTotal ?? 0);
+  const advanceBillsCount = Number(summary?.advanceInvoiceCount ?? shift?.advanceInvoiceCount ?? 0);
 
   // Cancelled Bills Metrics
   const cancelledBills = Number(summary?.cancelledInvoiceCount ?? shift?.cancelledInvoiceCount ?? 0);
@@ -659,6 +686,92 @@ export const CloseShiftDialog = ({
             </div>
           )}
 
+          {/* Customer Advance & Credit UPI Transfer Allocations */}
+          {(advanceCreditUpiBreakdown.length > 0 || advanceUpiTotal + creditUpiTotal > 0) && (
+            <div className="bg-purple-500/10 border border-purple-500/25 rounded-xl p-3 space-y-2">
+              <div className="flex items-center justify-between pb-1 border-b border-purple-500/20">
+                <div className="flex items-center gap-2">
+                  <div className="size-6 rounded-md bg-purple-500/20 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold">
+                    <QrCode className="size-3.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-text">Customer Advance & Credit Settlement UPI Transfers</h4>
+                    <p className="text-[10px] text-text-muted">
+                      Direct shift-close transfer to respective bank accounts for customer advance & credit receipts
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold font-mono text-xs text-purple-700 dark:text-purple-300">
+                    {formatCurrency(advanceUpiTotal + creditUpiTotal)}
+                  </div>
+                  <div className="text-[10px] text-text-muted">
+                    {advanceUpiCount + creditUpiCount} receipts total
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {advanceCreditUpiBreakdown.map((item, idx) => (
+                  <div
+                    key={item.paymentQrId || idx}
+                    className="p-2.5 rounded-lg border border-border/70 bg-surface flex items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-bold text-text text-xs truncate">
+                        {item.bankName || "Bank Account"}
+                        {item.accountNumber && (
+                          <span className="font-mono text-[10px] text-text-muted ml-1">
+                            ({item.accountNumber})
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-text-muted truncate">
+                        {item.label || item.upiId} · {item.sourceType || "Customer Receipt"}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-bold font-mono text-text text-xs">
+                        {formatCurrency(item.totalAmount)}
+                      </div>
+                      <div className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">
+                        {item.transactionCount || 1} {item.transactionCount === 1 ? "receipt" : "receipts"} · Transfer
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Customer Counter Receipts (Cash Drawer Addition Notice) */}
+          {(advanceCashTotal > 0 || creditCashTotal > 0) && (
+            <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-xl p-2.5 px-3 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="font-medium text-text">
+                  Customer Counter Receipts: <strong className="font-mono">{formatCurrency(advanceCashTotal + creditCashTotal)}</strong> added to Cash Drawer
+                </span>
+                <span className="text-text-muted">|</span>
+                <div className="flex items-center gap-1.5">
+                  {advanceCashTotal > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold font-mono text-[11px]">
+                      Advance: {formatCurrency(advanceCashTotal)} ({advanceCashCount} rec)
+                    </span>
+                  )}
+                  {creditCashTotal > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-600 dark:text-sky-400 font-semibold font-mono text-[11px]">
+                      Credit Settled: {formatCurrency(creditCashTotal)} ({creditCashCount} bills)
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider shrink-0">
+                Drawer Cash Verified
+              </span>
+            </div>
+          )}
+
           {/* Split Sales Notice */}
           {splitNet > 0 && (
             <div className="bg-indigo-500/10 border border-indigo-500/25 rounded-xl p-2.5 px-3 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1.5">
@@ -683,6 +796,34 @@ export const CloseShiftDialog = ({
             </div>
           )}
 
+          {/* Credit & Advance Sales Notice */}
+          {(creditSalesTotal > 0 || advanceSalesTotal > 0) && (
+            <div className="bg-rose-500/10 border border-rose-500/25 rounded-xl p-2.5 px-3 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1.5 animate-in fade-in">
+              <div className="flex flex-wrap items-center gap-2">
+                <Receipt className="size-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                <span className="font-medium text-text">
+                  Credit & Advance Sales: <strong className="font-mono">{formatCurrency(creditSalesTotal + advanceSalesTotal)}</strong> across <strong className="font-mono">{creditBillsCount + advanceBillsCount}</strong> {creditBillsCount + advanceBillsCount === 1 ? "bill" : "bills"}
+                </span>
+                <span className="text-text-muted">|</span>
+                <div className="flex items-center gap-1.5">
+                  {creditSalesTotal > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 font-semibold font-mono text-[11px]">
+                      Credit: {formatCurrency(creditSalesTotal)} ({creditBillsCount} {creditBillsCount === 1 ? "bill" : "bills"})
+                    </span>
+                  )}
+                  {advanceSalesTotal > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-semibold font-mono text-[11px]">
+                      Advance: {formatCurrency(advanceSalesTotal)} ({advanceBillsCount} {advanceBillsCount === 1 ? "bill" : "bills"})
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold uppercase tracking-wider shrink-0">
+                Non-Cash Bills
+              </span>
+            </div>
+          )}
+
           {/* Cancelled Bills Notice */}
           {cancelledBills > 0 && (
             <div className="bg-rose-500/10 border border-rose-500/25 rounded-xl p-2.5 px-3 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1.5">
@@ -702,6 +843,63 @@ export const CloseShiftDialog = ({
             </div>
           )}
 
+          {/* ── Customer Advance Received & Bills Using Advance Highlights ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Total Advance Received in Shift */}
+            <div className="bg-surface rounded-xl border border-amber-500/30 p-3 shadow-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="size-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Wallet className="size-4 stroke-[1.8]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-medium text-text-muted">
+                    Total Advance Received
+                  </div>
+                  <div className="text-sm font-bold text-text font-mono mt-0.5 truncate">
+                    {formatCurrency(totalAdvanceReceived)}
+                  </div>
+                  <div className="text-[10px] text-text-muted mt-0.5 flex items-center gap-1.5 flex-wrap">
+                    <span>{totalAdvanceReceivedCount} {totalAdvanceReceivedCount === 1 ? "receipt" : "receipts"}</span>
+                    <span>•</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                      Cash Drawer: +{formatCurrency(advanceCashTotal)}
+                    </span>
+                    <span>•</span>
+                    <span className="text-purple-600 dark:text-purple-400 font-medium">
+                      UPI on Hold: {formatCurrency(advanceUpiTotal)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <UIBadge variant="soft" intent="warning" className="text-[9px] py-0 px-2 shrink-0">
+                Advance In
+              </UIBadge>
+            </div>
+
+            {/* Bills Using Advance (Prepaid customer deduction) */}
+            <div className="bg-surface rounded-xl border border-indigo-500/30 p-3 shadow-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="size-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <Receipt className="size-4 stroke-[1.8]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-medium text-text-muted">
+                    Bills Using Advance
+                  </div>
+                  <div className="text-sm font-bold text-text font-mono mt-0.5 truncate">
+                    {advanceBillsCount} {advanceBillsCount === 1 ? "Bill" : "Bills"}
+                  </div>
+                  <div className="text-[10px] text-text-muted mt-0.5">
+                    Total Deducted: <strong className="font-mono text-indigo-600 dark:text-indigo-400">{formatCurrency(advanceSalesTotal)}</strong> prepaid advance
+                  </div>
+                </div>
+              </div>
+              <UIBadge variant="soft" intent="info" className="text-[9px] py-0 px-2 shrink-0">
+                Prepaid Bills
+              </UIBadge>
+            </div>
+          </div>
+
           {/* ── 5 Top KPI Stat Cards ── */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
             {/* Total Sales */}
@@ -716,7 +914,7 @@ export const CloseShiftDialog = ({
                 {formatCurrency(totalSales)}
               </div>
               <div className="text-[10px] text-text-muted mt-0.5">
-                {totalBills} active {cancelledBills > 0 ? `(${cancelledBills} cancelled)` : ""}
+                {totalBills} active {creditBillsCount > 0 ? `· ${creditBillsCount} Credit` : ""}{advanceBillsCount > 0 ? ` · ${advanceBillsCount} Adv` : ""} {cancelledBills > 0 ? `(${cancelledBills} cancelled)` : ""}
               </div>
             </div>
 
@@ -823,6 +1021,46 @@ export const CloseShiftDialog = ({
                   </span>
                 </div>
 
+                {/* Customer Advance Cash */}
+                {advanceCashTotal > 0 && (
+                  <div className="flex justify-between items-center py-0.5">
+                    <span className="text-text-muted font-medium">Add: Customer Advance Cash ({advanceCashCount || 1} rec)</span>
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      + {formatCurrency(advanceCashTotal)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Customer Credit Settlement Cash */}
+                {creditCashTotal > 0 && (
+                  <div className="flex justify-between items-center py-0.5">
+                    <span className="text-text-muted font-medium">Add: Customer Credit Settled ({creditCashCount || 1} bills)</span>
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      + {formatCurrency(creditCashTotal)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Customer Advance UPI Held */}
+                {advanceUpiTotal > 0 && (
+                  <div className="flex justify-between items-center py-0.5">
+                    <span className="text-text-muted font-medium">Customer Advance UPI ({advanceUpiCount || 1} rec · Held in Shift)</span>
+                    <span className="font-mono font-bold text-purple-600 dark:text-purple-400">
+                      {formatCurrency(advanceUpiTotal)} (Bank Transfer)
+                    </span>
+                  </div>
+                )}
+
+                {/* Bills Using Advance */}
+                {advanceSalesTotal > 0 && (
+                  <div className="flex justify-between items-center py-0.5">
+                    <span className="text-text-muted font-medium">Bills Using Advance ({advanceBillsCount} bills)</span>
+                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                      {formatCurrency(advanceSalesTotal)} (Prepaid)
+                    </span>
+                  </div>
+                )}
+
                 {/* Expected Closing Cash Row */}
                 <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-surface-alt/80 font-bold border border-border/60">
                   <span className="text-text">Expected Closing Cash</span>
@@ -853,6 +1091,26 @@ export const CloseShiftDialog = ({
                     {formatCurrency(difference)}
                   </span>
                 </div>
+
+                {/* Non-Cash Sales Note */}
+                {(creditSalesTotal > 0 || advanceSalesTotal > 0) && (
+                  <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[10.5px] text-text-muted">
+                    <span>Non-Cash Sales (Excluded from Drawer):</span>
+                    <div className="flex items-center gap-1.5 font-mono">
+                      {creditSalesTotal > 0 && (
+                        <span className="text-rose-600 dark:text-rose-400 font-semibold">
+                          Credit: {formatCurrency(creditSalesTotal)} ({creditBillsCount} {creditBillsCount === 1 ? "bill" : "bills"})
+                        </span>
+                      )}
+                      {creditSalesTotal > 0 && advanceSalesTotal > 0 && <span>·</span>}
+                      {advanceSalesTotal > 0 && (
+                        <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                          Advance: {formatCurrency(advanceSalesTotal)} ({advanceBillsCount} {advanceBillsCount === 1 ? "bill" : "bills"})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

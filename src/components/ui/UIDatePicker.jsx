@@ -32,6 +32,7 @@ const datePickerSizes = {
 const DEFAULT_PRESETS = [
   { label: "Today", getValue: () => dayjs().format("YYYY-MM-DD") },
   { label: "Yesterday", getValue: () => dayjs().subtract(1, "day").format("YYYY-MM-DD") },
+  { label: "Tomorrow", getValue: () => dayjs().add(1, "day").format("YYYY-MM-DD") },
   { label: "+30D Expiry", getValue: () => dayjs().add(30, "day").format("YYYY-MM-DD") },
   { label: "+90D", getValue: () => dayjs().add(90, "day").format("YYYY-MM-DD") },
   { label: "+1 Year", getValue: () => dayjs().add(1, "year").format("YYYY-MM-DD") },

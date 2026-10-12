@@ -1,17 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
 
-import { API_STATUS, ROUTES } from "@/constants";
+import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import useBranch from "@/features/branch/hooks/useBranch";
 
 import useAccountBalance from "../hooks/useAccountBalance";
 import AccountBalancesDesktopPage from "./desktop/AccountBalancesDesktopPage";
 import AccountBalancesMobilePage from "./mobile/AccountBalancesMobilePage";
+import { AccountBalanceDetailsDialog } from "../components/AccountBalanceDetailsDialog";
 
-const AccountBalancesPage = () => {
-  const isMobile = useIsMobile();
-  const navigate = useNavigate();
+const MobileAccountBalancesContainer = () => {
   const { currentBranch } = useBranch();
 
   const {
@@ -29,6 +27,7 @@ const AccountBalancesPage = () => {
   const [searchParams, setSearchParams] = useState({
     search: "",
     balanceType: "all",
+    accountScope: "company",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,6 +42,7 @@ const AccountBalancesPage = () => {
         limit: pageSize,
         search: searchParams.search || undefined,
         balanceType: searchParams.balanceType === "all" ? undefined : searchParams.balanceType,
+        accountScope: searchParams.accountScope || "company",
         branchId: currentBranch?._id,
       };
       await getAccountBalances(query);
@@ -55,8 +55,14 @@ const AccountBalancesPage = () => {
     executeQuery();
   }, [currentPage, pageSize, searchParams]);
 
-  const handleSearchChange = useCallback((value) => {
-    setSearchParams((prev) => ({ ...prev, search: value }));
+  const handleSearchChange = useCallback((eOrVal) => {
+    const val =
+      typeof eOrVal === "object" && eOrVal !== null && eOrVal.target
+        ? eOrVal.target.value
+        : typeof eOrVal === "string"
+        ? eOrVal
+        : "";
+    setSearchParams((prev) => ({ ...prev, search: val }));
     setCurrentPage(1);
   }, []);
 
@@ -89,54 +95,63 @@ const AccountBalancesPage = () => {
     [recalculateAccountBalance, executeQuery]
   );
 
-  const handleViewDetails = useCallback(
-    (accountId) => {
-      navigate(ROUTES.ACCOUNT_BALANCE_DETAILS(accountId));
-    },
-    [navigate]
-  );
+  const [selectedAccountIdForView, setSelectedAccountIdForView] = useState(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+
+  const handleViewDetails = useCallback((accountId) => {
+    if (!accountId) return;
+    setSelectedAccountIdForView(accountId);
+    setIsViewDialogOpen(true);
+  }, []);
+
+  const handleCloseViewDialog = useCallback(() => {
+    setIsViewDialogOpen(false);
+    setSelectedAccountIdForView(null);
+  }, []);
 
   const isLoading = getAccountBalancesStatus === API_STATUS.LOADING;
   const isRecalculating = recalculateAccountBalanceStatus === API_STATUS.LOADING;
 
-  const totalBalances = useMemo(() => {
-    return accountBalances?.length || 0;
-  }, [accountBalances]);
+  return (
+    <>
+      <AccountBalancesMobilePage
+        accountBalances={accountBalances || []}
+        searchParams={searchParams}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        totalBalances={accountBalances?.length || 0}
+        isLoading={isLoading}
+        isRecalculating={isRecalculating}
+        error={error || actionError}
+        message={message || actionMessage}
+        clearFeedback={() => {
+          clearError();
+          clearMessage();
+          setActionError("");
+          setActionMessage("");
+        }}
+        handleSearchChange={handleSearchChange}
+        handleFilterChange={handleFilterChange}
+        handlePageChange={handlePageChange}
+        handlePageSizeChange={handlePageSizeChange}
+        handleRecalculate={handleRecalculate}
+        handleViewDetails={handleViewDetails}
+        handleRefresh={executeQuery}
+      />
 
-  const handleRefresh = useCallback(() => {
-    executeQuery();
-  }, [executeQuery]);
-
-  const pageProps = {
-    accountBalances: accountBalances || [],
-    searchParams,
-    currentPage,
-    pageSize,
-    totalBalances,
-    isLoading,
-    isRecalculating,
-    error: error || actionError,
-    message: message || actionMessage,
-    clearFeedback: () => {
-      clearError();
-      clearMessage();
-      setActionError("");
-      setActionMessage("");
-    },
-    handleSearchChange,
-    handleFilterChange,
-    handlePageChange,
-    handlePageSizeChange,
-    handleRecalculate,
-    handleViewDetails,
-    handleRefresh,
-  };
-
-  return isMobile ? (
-    <AccountBalancesMobilePage {...pageProps} />
-  ) : (
-    <AccountBalancesDesktopPage {...pageProps} />
+      <AccountBalanceDetailsDialog
+        isOpen={isViewDialogOpen}
+        onClose={handleCloseViewDialog}
+        accountId={selectedAccountIdForView}
+        onRecalculateSuccess={executeQuery}
+      />
+    </>
   );
+};
+
+const AccountBalancesPage = () => {
+  const isMobile = useIsMobile();
+  return isMobile ? <MobileAccountBalancesContainer /> : <AccountBalancesDesktopPage />;
 };
 
 export default AccountBalancesPage;

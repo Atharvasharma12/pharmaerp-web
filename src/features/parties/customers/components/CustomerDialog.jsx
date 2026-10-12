@@ -32,6 +32,10 @@ import {
   Wallet,
   ArrowRight,
   Hash,
+  PlusCircle,
+  CheckCircle2,
+  Receipt,
+  AlertTriangle,
 } from "lucide-react";
 
 const customerTypeOptions = [
@@ -146,6 +150,10 @@ export function CustomerDialog({
   onSubmitCreate,
   onSubmitUpdate,
   onSuccess,
+  onReceiveAdvance,
+  onSettleCredit,
+  onViewTransactions,
+  onStatementLedger,
 }) {
   const [currentMode, setCurrentMode] = useState(mode);
   const [formData, setFormData] = useState(INITIAL_FORM);
@@ -411,42 +419,92 @@ export function CustomerDialog({
               </div>
             </div>
 
-            {/* 3 Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="rounded-xl border border-border bg-surface p-4 shadow-2xs">
-                <div className="flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider">
-                  <span>Credit Limit</span>
-                  <CreditCard className="size-4 text-emerald-600" />
+            {/* 4 Financial & Credit Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3.5 shadow-2xs">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+                  <span>Credit Outstanding</span>
+                  <CreditCard className="size-4 text-red-500" />
                 </div>
-                <div className="mt-2 text-lg font-bold text-text font-mono">
+                <div className="mt-1.5 text-base font-bold text-red-600 dark:text-red-400 font-mono">
+                  ₹{Number(customerData.creditOutstanding || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                </div>
+                {customerData.overdueCount > 0 ? (
+                  <div className="mt-1 flex items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="size-3" /> {customerData.overdueCount} Overdue Bills
+                  </div>
+                ) : (
+                  <div className="mt-1 text-[11px] text-text-muted">No overdue credit</div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 shadow-2xs">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+                  <span>Advance Held</span>
+                  <Wallet className="size-4 text-emerald-600" />
+                </div>
+                <div className="mt-1.5 text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                  ₹{Number(customerData.advanceBalance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                </div>
+                <div className="mt-1 text-[11px] text-text-muted">Prepaid deposit balance</div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-surface p-3.5 shadow-2xs">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+                  <span>Credit Limit</span>
+                  <ShieldCheck className="size-4 text-emerald-600" />
+                </div>
+                <div className="mt-1.5 text-base font-bold text-text font-mono">
                   ₹{Number(customerData.creditLimit || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </div>
-                <div className="mt-1 text-[11px] text-text-muted">Maximum authorized ledger debt</div>
+                <div className="mt-1 text-[11px] text-text-muted font-mono">
+                  Avail: ₹{Number(customerData.availableCredit !== undefined ? customerData.availableCredit : Math.max(0, (customerData.creditLimit || 0) - (customerData.creditOutstanding || 0))).toLocaleString("en-IN")}
+                </div>
               </div>
 
-              <div className="rounded-xl border border-border bg-surface p-4 shadow-2xs">
-                <div className="flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider">
-                  <span>Opening Balance</span>
-                  <Wallet className="size-4 text-info" />
-                </div>
-                <div className="mt-2 text-lg font-bold text-text font-mono">
-                  ₹{Number(customerData.openingBalance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                  <span className="text-xs font-semibold ml-1.5 px-1.5 py-0.5 rounded-sm bg-surface-alt border border-border">
-                    {(customerData.openingBalanceType || "dr").toUpperCase()}
-                  </span>
-                </div>
-                <div className="mt-1 text-[11px] text-text-muted">Initial migrated baseline</div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-surface p-4 shadow-2xs">
-                <div className="flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider">
+              <div className="rounded-xl border border-border bg-surface p-3.5 shadow-2xs">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-text-muted uppercase tracking-wider">
                   <span>Credit Period</span>
                   <Clock className="size-4 text-amber-500" />
                 </div>
-                <div className="mt-2 text-lg font-bold text-text font-mono">
+                <div className="mt-1.5 text-base font-bold text-text font-mono">
                   {customerData.creditDays || 0} <span className="text-xs font-normal text-text-muted">Days</span>
                 </div>
-                <div className="mt-1 text-[11px] text-text-muted">Standard invoice maturity term</div>
+                <div className="mt-1 text-[11px] text-text-muted">Invoice maturity window</div>
+              </div>
+            </div>
+
+            {/* Financial Quick Actions Toolbar */}
+            <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-surface-alt/40 flex-wrap">
+              <div className="text-xs font-semibold text-text-muted">Financial Workflows:</div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <UIButton
+                  variant="outline"
+                  size="sm"
+                  startIcon={<PlusCircle className="size-3.5 text-emerald-600" />}
+                  onClick={() => onReceiveAdvance && onReceiveAdvance(customerData)}
+                >
+                  Receive Advance
+                </UIButton>
+                <UIButton
+                  variant="outline"
+                  size="sm"
+                  startIcon={<CheckCircle2 className="size-3.5 text-blue-600" />}
+                  onClick={() => onSettleCredit && onSettleCredit(customerData)}
+                >
+                  Settle Credit
+                </UIButton>
+                <UIButton
+                  variant="outline"
+                  size="sm"
+                  startIcon={<Receipt className="size-3.5 text-purple-600" />}
+                  onClick={() => {
+                    const handler = onStatementLedger || onViewTransactions;
+                    if (handler) handler(customerData);
+                  }}
+                >
+                  Statement Ledger
+                </UIButton>
               </div>
             </div>
 
