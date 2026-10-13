@@ -7,6 +7,12 @@ const gstLedgerService = {
     });
   },
 
+  getGstr1Summary(params = {}) {
+    return apiClient.get(ENDPOINTS.GST_LEDGER.GSTR1_SUMMARY, {
+      params,
+    });
+  },
+
   getGstr2Ledger(params = {}) {
     return apiClient.get(ENDPOINTS.GST_LEDGER.GSTR2, {
       params,

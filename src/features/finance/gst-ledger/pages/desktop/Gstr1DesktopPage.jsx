@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import AppDesktopHeader from "@/layouts/app/desktop/AppDesktopHeader";
 import { useGstLedger } from "../../hooks/useGstLedger";
+import { UIInfiniteScroll } from "@/components/ui";
+import useCompany from "@/features/company/hooks/useCompany";
+import { calculateGstr1Summary, deduceGstrGroup } from "../../utils/gstr1SummaryCalculator";
 import {
   FiSearch,
   FiCalendar,
@@ -8,8 +11,7 @@ import {
   FiRefreshCw,
   FiFileText,
   FiPlus,
-  FiChevronLeft,
-  FiChevronRight,
+  FiEye,
   FiCheckCircle,
   FiX,
 } from "react-icons/fi";
@@ -33,16 +35,24 @@ const formatDate = (dateStr) => {
 };
 
 const Gstr1DesktopPage = () => {
+  const tableContainerRef = useRef(null);
+  const { currentCompany } = useCompany();
   const {
     entries,
     total,
-    page,
-    limit,
     loading,
+    isLoadingMore,
+    hasMore,
+    loadMore,
+    handleTableScroll,
     error,
     filters,
     stats,
-    setPage,
+    branches = [],
+    currentBranch,
+    summaryData,
+    summaryLoading,
+    fetchSummary,
     handleFilterChange,
     handleResetFilters,
     refetch,
@@ -51,11 +61,14 @@ const Gstr1DesktopPage = () => {
   } = useGstLedger("GSTR-1");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
   const [formData, setFormData] = useState({
     voucherNumber: "",
     voucherDate: new Date().toISOString().slice(0, 10),
+    branchId: currentBranch?._id || "",
+    groupDescription: "B2B",
     taxableAmount: "",
     cgst: "",
     sgst: "",
@@ -63,7 +76,15 @@ const Gstr1DesktopPage = () => {
     narration: "",
   });
 
-  const totalPages = Math.ceil(total / limit) || 1;
+  // Fallback frontend summary calculation
+  const fallbackSummary = useMemo(() => {
+    return calculateGstr1Summary(entries, {
+      companyGstin: currentCompany?.gstin || "",
+      b2cLargeThreshold: 250000,
+    });
+  }, [entries, currentCompany?.gstin]);
+
+  const activeSummary = summaryData || fallbackSummary;
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
@@ -82,6 +103,8 @@ const Gstr1DesktopPage = () => {
     const result = await createEntry({
       voucherNumber: formData.voucherNumber,
       voucherDate: formData.voucherDate,
+      branchId: formData.branchId || undefined,
+      groupDescription: formData.groupDescription || "B2B",
       taxableAmount: Number(formData.taxableAmount || 0),
       cgst: Number(formData.cgst || 0),
       sgst: Number(formData.sgst || 0),
@@ -95,19 +118,22 @@ const Gstr1DesktopPage = () => {
       setFormData({
         voucherNumber: "",
         voucherDate: new Date().toISOString().slice(0, 10),
+        branchId: currentBranch?._id || "",
+        groupDescription: "B2B",
         taxableAmount: "",
         cgst: "",
         sgst: "",
         igst: "",
         narration: "",
       });
+      fetchSummary();
     } else {
       setFormError(result.error);
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 overflow-y-auto">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-bg overflow-y-auto transition-colors">
       <AppDesktopHeader
         title="GSTR-1 (Outward Supplies)"
         description="View your outward supplies, sales transactions, tax breakdowns, and GSTR-1 filing records."
@@ -115,92 +141,92 @@ const Gstr1DesktopPage = () => {
 
       <div className="p-6 space-y-6">
         {/* KPI Metrics Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs flex flex-col justify-between transition-colors">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-text-muted uppercase tracking-wider">
               Total Invoices
             </span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-slate-900">{stats.count}</span>
-              <span className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                <FiFileText className="w-4 h-4" />
+            <div className="mt-1 flex items-baseline justify-between">
+              <span className="text-lg font-bold text-slate-900 dark:text-text">{stats.count}</span>
+              <span className="p-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded">
+                <FiFileText className="w-3.5 h-3.5" />
               </span>
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs flex flex-col justify-between transition-colors">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-text-muted uppercase tracking-wider">
               Taxable Amount
             </span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-xl font-bold text-slate-900">
+            <div className="mt-1 flex items-baseline justify-between">
+              <span className="text-base font-bold text-slate-900 dark:text-text">
                 {formatCurrency(stats.totalTaxable)}
               </span>
-              <span className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                <FaRupeeSign className="w-4 h-4" />
+              <span className="p-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded">
+                <FaRupeeSign className="w-3.5 h-3.5" />
               </span>
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs flex flex-col justify-between transition-colors">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-text-muted uppercase tracking-wider">
               Total CGST
             </span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-xl font-bold text-emerald-600">
+            <div className="mt-1 flex items-baseline justify-between">
+              <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
                 {formatCurrency(stats.totalCgst)}
               </span>
-              <span className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                <FaRupeeSign className="w-4 h-4" />
+              <span className="p-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded">
+                <FaRupeeSign className="w-3.5 h-3.5" />
               </span>
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs flex flex-col justify-between transition-colors">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-text-muted uppercase tracking-wider">
               Total SGST
             </span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-xl font-bold text-teal-600">
+            <div className="mt-1 flex items-baseline justify-between">
+              <span className="text-base font-bold text-teal-600 dark:text-teal-400">
                 {formatCurrency(stats.totalSgst)}
               </span>
-              <span className="p-2 bg-teal-50 text-teal-600 rounded-lg">
-                <FaRupeeSign className="w-4 h-4" />
+              <span className="p-1 bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded">
+                <FaRupeeSign className="w-3.5 h-3.5" />
               </span>
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs flex flex-col justify-between transition-colors">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-text-muted uppercase tracking-wider">
               Total IGST
             </span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-xl font-bold text-violet-600">
+            <div className="mt-1 flex items-baseline justify-between">
+              <span className="text-base font-bold text-violet-600 dark:text-violet-400">
                 {formatCurrency(stats.totalIgst)}
               </span>
-              <span className="p-2 bg-violet-50 text-violet-600 rounded-lg">
-                <FaRupeeSign className="w-4 h-4" />
+              <span className="p-1 bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 rounded">
+                <FaRupeeSign className="w-3.5 h-3.5" />
               </span>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 rounded-xl shadow-sm flex flex-col justify-between">
-            <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-              Total Outward Value
+          <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50/30 dark:bg-amber-500/10 shadow-xs flex flex-col justify-between transition-colors">
+            <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+              Total GST (Tax)
             </span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-xl font-bold text-white">
-                {formatCurrency(stats.totalAmount)}
+            <div className="mt-1 flex items-baseline justify-between">
+              <span className="text-base font-bold text-amber-600 dark:text-amber-400">
+                {formatCurrency(stats.totalGst)}
               </span>
-              <span className="p-2 bg-slate-700 text-emerald-400 rounded-lg">
-                <FiCheckCircle className="w-4 h-4" />
+              <span className="p-1 bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded">
+                <FaRupeeSign className="w-3.5 h-3.5" />
               </span>
             </div>
           </div>
         </div>
 
         {/* Filter and Controls Toolbar */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="bg-white dark:bg-surface p-4 rounded-xl border border-slate-200 dark:border-border shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-colors">
           <div className="flex flex-wrap items-center gap-3 flex-1">
             <div className="relative flex-1 min-w-[220px]">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -209,7 +235,7 @@ const Gstr1DesktopPage = () => {
                 placeholder="Search voucher # or narration..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange("search", e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-800 dark:text-text placeholder-slate-400 dark:placeholder-text-muted/60 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-surface transition"
               />
             </div>
 
@@ -218,21 +244,37 @@ const Gstr1DesktopPage = () => {
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => handleFilterChange("startDate", e.target.value)}
-                className="pl-3 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="pl-3 pr-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-800 dark:text-text focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
-              <span className="text-slate-400 text-xs font-medium">to</span>
+              <span className="text-slate-400 dark:text-text-muted text-xs font-medium">to</span>
               <input
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => handleFilterChange("endDate", e.target.value)}
-                className="pl-3 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="pl-3 pr-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-800 dark:text-text focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
-            {(filters.search || filters.startDate || filters.endDate) && (
+            {/* Branch Filter Selector */}
+            <div className="min-w-[180px]">
+              <select
+                value={filters.branchId || "all"}
+                onChange={(e) => handleFilterChange("branchId", e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-800 dark:text-text focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-surface transition"
+              >
+                <option value="all">All Branches</option>
+                {branches.map((b) => (
+                  <option key={b._id} value={b._id}>
+                    {b.name} {b._id === currentBranch?._id ? "(Current)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {(filters.search || filters.startDate || filters.endDate || (filters.branchId && filters.branchId !== currentBranch?._id)) && (
               <button
                 onClick={handleResetFilters}
-                className="px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
+                className="px-3 py-2 text-xs font-medium text-slate-600 dark:text-text-muted hover:text-slate-900 dark:hover:text-text bg-slate-100 dark:bg-surface-alt hover:bg-slate-200 dark:hover:bg-surface-hover rounded-lg transition"
               >
                 Reset Filters
               </button>
@@ -240,6 +282,17 @@ const Gstr1DesktopPage = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                fetchSummary();
+                setIsSummaryModalOpen(true);
+              }}
+              className="px-3.5 py-2 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/30 rounded-lg transition flex items-center gap-1.5 shadow-xs"
+            >
+              <FiEye className="w-4 h-4" />
+              GSTR-1 Summary
+            </button>
+
             <button
               onClick={() => setIsModalOpen(true)}
               className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition flex items-center gap-1.5 shadow-xs"
@@ -251,7 +304,7 @@ const Gstr1DesktopPage = () => {
             <button
               onClick={refetch}
               disabled={loading}
-              className="px-3 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+              className="px-3 py-2 text-xs font-medium text-slate-700 dark:text-text-muted bg-white dark:bg-surface border border-slate-200 dark:border-border rounded-lg hover:bg-slate-50 dark:hover:bg-surface-hover transition flex items-center gap-1.5 shadow-xs disabled:opacity-50"
             >
               <FiRefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
               Refresh
@@ -260,7 +313,7 @@ const Gstr1DesktopPage = () => {
             <button
               onClick={exportToCsv}
               disabled={!entries.length}
-              className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition flex items-center gap-1.5 shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-text-muted bg-white dark:bg-surface border border-slate-200 dark:border-border hover:bg-slate-50 dark:hover:bg-surface-hover rounded-lg transition flex items-center gap-1.5 shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FiDownload className="w-3.5 h-3.5" />
               Export CSV
@@ -270,22 +323,28 @@ const Gstr1DesktopPage = () => {
 
         {/* Error Alert */}
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center justify-between">
+          <div className="p-4 bg-red-50 dark:bg-error-soft border border-red-200 dark:border-error/30 rounded-xl text-sm text-red-700 dark:text-error flex items-center justify-between">
             <span>{error}</span>
-            <button onClick={refetch} className="underline font-semibold hover:text-red-900">
+            <button onClick={refetch} className="underline font-semibold hover:text-red-900 dark:hover:text-error-hover">
               Retry
             </button>
           </div>
         )}
 
         {/* Main Data Table */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="overflow-x-auto">
+        <div className="bg-white dark:bg-surface rounded-xl border border-slate-200 dark:border-border shadow-sm overflow-hidden flex flex-col transition-colors">
+          {/* Constrained-Height Scroll Container: limited to ~5 visible records */}
+          <div
+            ref={tableContainerRef}
+            onScroll={handleTableScroll}
+            className="relative overflow-y-auto overflow-x-auto max-h-[280px] flex-1 divide-y divide-slate-100 dark:divide-border/60"
+          >
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-surface-alt shadow-xs">
+                <tr className="border-b border-slate-200 dark:border-border text-xs font-semibold text-slate-600 dark:text-text-muted uppercase tracking-wider bg-slate-50 dark:bg-surface-alt">
                   <th className="py-3.5 px-4">Date</th>
                   <th className="py-3.5 px-4">Voucher No</th>
+                  <th className="py-3.5 px-4">Branch</th>
                   <th className="py-3.5 px-4 text-right">Taxable Amount</th>
                   <th className="py-3.5 px-4 text-right">CGST</th>
                   <th className="py-3.5 px-4 text-right">SGST</th>
@@ -294,60 +353,73 @@ const Gstr1DesktopPage = () => {
                   <th className="py-3.5 px-4">Narration</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
+              <tbody className="divide-y divide-slate-100 dark:divide-border/60 text-sm">
                 {loading ? (
                   Array.from({ length: 5 }).map((_, idx) => (
                     <tr key={idx} className="animate-pulse">
-                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-20"></div></td>
-                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-28"></div></td>
-                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-20 ml-auto"></div></td>
-                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-16 ml-auto"></div></td>
-                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-16 ml-auto"></div></td>
-                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-16 ml-auto"></div></td>
-                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-24 ml-auto"></div></td>
-                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-36"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 dark:bg-surface-alt rounded w-20"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 dark:bg-surface-alt rounded w-28"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 dark:bg-surface-alt rounded w-20"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 dark:bg-surface-alt rounded w-20 ml-auto"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 dark:bg-surface-alt rounded w-16 ml-auto"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 dark:bg-surface-alt rounded w-16 ml-auto"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 dark:bg-surface-alt rounded w-16 ml-auto"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 dark:bg-surface-alt rounded w-24 ml-auto"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-slate-200 dark:bg-surface-alt rounded w-36"></div></td>
                     </tr>
                   ))
                 ) : entries.length > 0 ? (
                   entries.map((entry) => (
-                    <tr key={entry._id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-4 text-slate-700 font-medium whitespace-nowrap">
+                    <tr key={entry._id} className="hover:bg-slate-50/80 dark:hover:bg-surface-hover/70 transition-colors">
+                      <td className="py-3.5 px-4 text-slate-700 dark:text-text-muted font-medium whitespace-nowrap">
                         {formatDate(entry.voucherDate)}
                       </td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-900 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                          {entry.voucherNumber}
+                      <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-text whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
+                            {entry.voucherNumber}
+                          </span>
+                          {(entry.groupDescription || deduceGstrGroup(entry)) && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-surface-alt text-slate-700 dark:text-text-muted border border-slate-200/80 dark:border-border">
+                              {entry.groupDescription || deduceGstrGroup(entry)}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600 dark:text-text-muted font-medium whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-surface-alt text-slate-700 dark:text-text-muted border border-slate-200/60 dark:border-border/60">
+                          {entry.branchId?.name || "-"}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-right font-medium text-slate-800 whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-right font-medium text-slate-800 dark:text-text whitespace-nowrap">
                         {formatCurrency(entry.taxableAmount)}
                       </td>
-                      <td className="py-3.5 px-4 text-right text-emerald-600 font-medium whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-right text-emerald-600 dark:text-emerald-400 font-medium whitespace-nowrap">
                         {formatCurrency(entry.cgst)}
                       </td>
-                      <td className="py-3.5 px-4 text-right text-teal-600 font-medium whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-right text-teal-600 dark:text-teal-400 font-medium whitespace-nowrap">
                         {formatCurrency(entry.sgst)}
                       </td>
-                      <td className="py-3.5 px-4 text-right text-violet-600 font-medium whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-right text-violet-600 dark:text-violet-400 font-medium whitespace-nowrap">
                         {formatCurrency(entry.igst)}
                       </td>
-                      <td className="py-3.5 px-4 text-right font-bold text-slate-900 whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-right font-bold text-slate-900 dark:text-text whitespace-nowrap">
                         {formatCurrency(entry.totalAmount)}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-500 max-w-xs truncate">
+                      <td className="py-3.5 px-4 text-slate-500 dark:text-text-muted max-w-xs truncate">
                         {entry.narration || "-"}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" className="py-12 text-center text-slate-400">
+                    <td colSpan="9" className="py-12 text-center text-slate-400 dark:text-text-muted">
                       <div className="flex flex-col items-center justify-center space-y-2">
-                        <FiFileText className="w-10 h-10 text-slate-300" />
-                        <p className="text-base font-medium text-slate-600">
+                        <FiFileText className="w-10 h-10 text-slate-300 dark:text-text-muted/40" />
+                        <p className="text-base font-medium text-slate-600 dark:text-text">
                           No GSTR-1 records found
                         </p>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-400 dark:text-text-muted">
                           Click "+ New GSTR-1 Record" to record outward sales transactions.
                         </p>
                       </div>
@@ -356,54 +428,49 @@ const Gstr1DesktopPage = () => {
                 )}
               </tbody>
             </table>
+
+            {/* Infinite Scroll Sentinel inside scroll container */}
+            {!loading && entries.length > 0 && (
+              <UIInfiniteScroll
+                onLoadMore={loadMore}
+                hasMore={hasMore}
+                isLoading={isLoadingMore}
+                rootRef={tableContainerRef}
+                rootMargin="40px"
+                endMessage={
+                  !hasMore && entries.length > 0 ? (
+                    <span className="font-mono text-[11px] text-slate-400 dark:text-text-muted select-none">
+                      ✓ All {total} matching GSTR-1 records loaded
+                    </span>
+                  ) : null
+                }
+              />
+            )}
           </div>
 
-          {/* Pagination Footer */}
-          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-            <span className="text-xs text-slate-500">
-              Showing{" "}
-              <span className="font-semibold text-slate-700">
-                {entries.length > 0 ? (page - 1) * limit + 1 : 0}
-              </span>{" "}
-              to{" "}
-              <span className="font-semibold text-slate-700">
-                {Math.min(page * limit, total)}
-              </span>{" "}
-              of <span className="font-semibold text-slate-700">{total}</span> records
+          {/* Records Summary Footer */}
+          <div className="px-4 py-3 bg-slate-50 dark:bg-surface-alt border-t border-slate-200 dark:border-border flex items-center justify-between transition-colors">
+            <span className="text-xs text-slate-500 dark:text-text-muted">
+              Loaded <span className="font-semibold text-slate-700 dark:text-text">{entries.length}</span> of{" "}
+              <span className="font-semibold text-slate-700 dark:text-text">{total}</span> records
             </span>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1 || loading}
-                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition disabled:opacity-40"
-              >
-                <FiChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-semibold text-slate-700 px-2">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages || loading}
-                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition disabled:opacity-40"
-              >
-                <FiChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+            <span className="text-xs font-medium text-slate-500 dark:text-text-muted">
+              Total Outward Value:{" "}
+              <span className="font-semibold text-slate-800 dark:text-text">{formatCurrency(stats.totalAmount)}</span>
+            </span>
           </div>
         </div>
       </div>
 
       {/* New GSTR-1 Entry Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900">Create New GSTR-1 Entry</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-surface rounded-2xl shadow-xl border border-slate-200 dark:border-border w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-100 dark:border-border flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-900 dark:text-text">Create New GSTR-1 Entry</h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"
+                className="text-slate-400 dark:text-text-muted hover:text-slate-600 dark:hover:text-text p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-surface-hover transition"
               >
                 <FiX className="w-5 h-5" />
               </button>
@@ -411,14 +478,14 @@ const Gstr1DesktopPage = () => {
 
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               {formError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                <div className="p-3 bg-red-50 dark:bg-error-soft border border-red-200 dark:border-error/30 rounded-lg text-xs text-red-700 dark:text-error">
                   {formError}
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-text-muted block mb-1">
                     Voucher Number *
                   </label>
                   <input
@@ -428,12 +495,12 @@ const Gstr1DesktopPage = () => {
                     placeholder="e.g. INV-2026-001"
                     value={formData.voucherNumber}
                     onChange={handleFormChange}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-900 dark:text-text focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-surface transition"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-text-muted block mb-1">
                     Voucher Date *
                   </label>
                   <input
@@ -442,13 +509,59 @@ const Gstr1DesktopPage = () => {
                     required
                     value={formData.voucherDate}
                     onChange={handleFormChange}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-900 dark:text-text focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-surface transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                <label className="text-xs font-semibold text-slate-700 dark:text-text-muted block mb-1">
+                  Group Description *
+                </label>
+                <select
+                  name="groupDescription"
+                  required
+                  value={formData.groupDescription}
+                  onChange={handleFormChange}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-900 dark:text-text focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-surface transition"
+                >
+                  <option value="B2B">1. B2B (Registered Recipient)</option>
+                  <option value="B2C (Large) Invoice">2. B2C (Large) Invoice</option>
+                  <option value="B2C (Small) Invoice">3. B2C (Small) Invoice</option>
+                  <option value="Nil Rated">4.1 Nil Rated Supplies</option>
+                  <option value="Exempted">4.2 Exempted Supplies</option>
+                  <option value="Export Invoices">5. Export Invoices</option>
+                  <option value="Tax Liability on Advance">6. Tax Liability on Advance</option>
+                  <option value="Set/off Tax on Advance of prior period">7. Set/off Tax on Advance of prior period</option>
+                  <option value="Credit Note - Registered">8.1 Credit Note - Registered Parties</option>
+                  <option value="Credit Note - Unregistered">8.2 Credit Note - Unregistered Parties</option>
+                  <option value="Debit Note - Registered">8.3 Debit Note - Registered Parties</option>
+                  <option value="Debit Note - Unregistered">8.4 Debit Note - Unregistered Parties</option>
+                  <option value="Refund from Advance">8.5 Refund from Advance</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-text-muted block mb-1">
+                  Branch
+                </label>
+                <select
+                  name="branchId"
+                  value={formData.branchId}
+                  onChange={handleFormChange}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-900 dark:text-text focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-surface transition"
+                >
+                  <option value="">No Branch / Global</option>
+                  {branches.map((b) => (
+                    <option key={b._id} value={b._id}>
+                      {b.name} {b._id === currentBranch?._id ? "(Current)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-text-muted block mb-1">
                   Taxable Amount (₹)
                 </label>
                 <input
@@ -458,13 +571,13 @@ const Gstr1DesktopPage = () => {
                   placeholder="0.00"
                   value={formData.taxableAmount}
                   onChange={handleFormChange}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-900 dark:text-text focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-surface transition"
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-text-muted block mb-1">
                     CGST (₹)
                   </label>
                   <input
@@ -474,12 +587,12 @@ const Gstr1DesktopPage = () => {
                     placeholder="0.00"
                     value={formData.cgst}
                     onChange={handleFormChange}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-900 dark:text-text focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-surface transition"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-text-muted block mb-1">
                     SGST (₹)
                   </label>
                   <input
@@ -489,12 +602,12 @@ const Gstr1DesktopPage = () => {
                     placeholder="0.00"
                     value={formData.sgst}
                     onChange={handleFormChange}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-900 dark:text-text focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-surface transition"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-text-muted block mb-1">
                     IGST (₹)
                   </label>
                   <input
@@ -504,13 +617,13 @@ const Gstr1DesktopPage = () => {
                     placeholder="0.00"
                     value={formData.igst}
                     onChange={handleFormChange}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-900 dark:text-text focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-surface transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                <label className="text-xs font-semibold text-slate-700 dark:text-text-muted block mb-1">
                   Narration / Notes
                 </label>
                 <input
@@ -519,15 +632,15 @@ const Gstr1DesktopPage = () => {
                   placeholder="Optional details or customer info..."
                   value={formData.narration}
                   onChange={handleFormChange}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-sm text-slate-900 dark:text-text focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-surface transition"
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+              <div className="pt-3 border-t border-slate-100 dark:border-border flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-text-muted hover:text-slate-900 dark:hover:text-text bg-slate-100 dark:bg-surface-alt hover:bg-slate-200 dark:hover:bg-surface-hover rounded-lg transition"
                 >
                   Cancel
                 </button>
@@ -540,6 +653,143 @@ const Gstr1DesktopPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* GSTR-1 Summary Modal */}
+      {isSummaryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-surface rounded-2xl shadow-2xl border border-slate-200 dark:border-border w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-4 px-6 border-b border-slate-100 dark:border-border flex items-center justify-between shrink-0">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-text">
+                    GSTR-1 Statutory Summary
+                  </h3>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
+                    Statutory Grouping
+                  </span>
+                  {summaryLoading && (
+                    <span className="text-xs text-indigo-500 animate-pulse font-medium">Calculating database records...</span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-text-muted mt-0.5">
+                  Return Period:{" "}
+                  <span className="font-medium text-slate-700 dark:text-text">
+                    {filters.startDate || filters.endDate
+                      ? `${filters.startDate || "Beginning"} to ${filters.endDate || "Latest"}`
+                      : "All Recorded Periods"}
+                  </span>
+                  {" • "}
+                  Branch:{" "}
+                  <span className="font-medium text-slate-700 dark:text-text">
+                    {filters.branchId && filters.branchId !== "all"
+                      ? branches.find((b) => b._id === filters.branchId)?.name || "Selected Branch"
+                      : "All Branches"}
+                  </span>
+                  {currentCompany?.gstin && (
+                    <>
+                      {" • "}
+                      GSTIN:{" "}
+                      <span className="font-medium text-slate-700 dark:text-text">
+                        {currentCompany.gstin}
+                      </span>
+                    </>
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsSummaryModalOpen(false)}
+                className="text-slate-400 dark:text-text-muted hover:text-slate-600 dark:hover:text-text p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-surface-hover transition"
+                title="Close modal"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto overflow-x-auto flex-1">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-border shadow-xs">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead className="bg-slate-100 dark:bg-surface-alt text-slate-700 dark:text-text-muted font-semibold sticky top-0 z-10 border-b border-slate-200 dark:border-border">
+                    <tr>
+                      <th className="px-4 py-3 text-left min-w-[240px]">Description</th>
+                      <th className="px-3 py-3 text-right w-16">Count</th>
+                      <th className="px-3 py-3 text-right min-w-[100px]">Taxable (₹)</th>
+                      <th className="px-3 py-3 text-right min-w-[90px]">SGST (₹)</th>
+                      <th className="px-3 py-3 text-right min-w-[90px]">CGST (₹)</th>
+                      <th className="px-3 py-3 text-right min-w-[90px]">IGST (₹)</th>
+                      <th className="px-3 py-3 text-right min-w-[80px]">Cess (₹)</th>
+                      <th className="px-3 py-3 text-right min-w-[105px]">Total Tax (₹)</th>
+                      <th className="px-4 py-3 text-right min-w-[115px]">Invoice Value (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-border/40">
+                    {(activeSummary.groups || []).map((group, idx) => {
+                      const isTotal = group.isTotal;
+                      const isSummaryBox = group.isSummaryBox;
+                      const isSub = group.isSubItem;
+
+                      let rowClasses = "transition-colors ";
+                      if (isTotal) {
+                        rowClasses += "bg-slate-100/90 dark:bg-surface-alt font-bold text-slate-900 dark:text-text border-t-2 border-b-2 border-slate-300 dark:border-border";
+                      } else if (isSummaryBox) {
+                        rowClasses += "bg-indigo-50/40 dark:bg-indigo-500/5 font-semibold text-slate-800 dark:text-text";
+                      } else if (isSub) {
+                        rowClasses += "hover:bg-slate-50 dark:hover:bg-surface-hover/50 text-slate-600 dark:text-text-muted text-[11px]";
+                      } else {
+                        rowClasses += "hover:bg-slate-50 dark:hover:bg-surface-hover/50 text-slate-800 dark:text-text font-medium";
+                      }
+
+                      return (
+                        <tr key={idx} className={rowClasses}>
+                          <td className="px-4 py-2.5">
+                            {isSub ? (
+                              <div className="pl-6 flex items-center gap-1.5">
+                                <span className="text-slate-400 dark:text-text-muted/60">-</span>
+                                <span>{group.description}</span>
+                              </div>
+                            ) : isTotal ? (
+                              <span className="font-bold uppercase tracking-wider">{group.description}</span>
+                            ) : isSummaryBox ? (
+                              <span className="font-semibold text-indigo-700 dark:text-indigo-400">{group.description}</span>
+                            ) : (
+                              <span>{group.description}</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-[11px]">{group.count}</td>
+                          <td className="px-3 py-2.5 text-right font-mono">{formatCurrency(group.taxable)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono">{formatCurrency(group.sgst)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono">{formatCurrency(group.cgst)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono">{formatCurrency(group.igst)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono">{formatCurrency(group.cess)}</td>
+                          <td className={`px-3 py-2.5 text-right font-mono ${isTotal ? "text-indigo-700 dark:text-indigo-400 font-bold" : "font-semibold text-slate-900 dark:text-text"}`}>
+                            {formatCurrency(group.totalTax)}
+                          </td>
+                          <td className={`px-4 py-2.5 text-right font-mono ${isTotal ? "text-slate-900 dark:text-text font-bold" : "font-semibold text-slate-900 dark:text-text"}`}>
+                            {formatCurrency(group.invoiceValue)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="p-4 px-6 border-t border-slate-100 dark:border-border bg-slate-50 dark:bg-surface-alt flex items-center justify-between shrink-0">
+              <span className="text-xs text-slate-500 dark:text-text-muted">
+                Statutory summary computed across{" "}
+                <span className="font-semibold text-slate-700 dark:text-text">{total}</span> total database outward records
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsSummaryModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition shadow-xs"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
