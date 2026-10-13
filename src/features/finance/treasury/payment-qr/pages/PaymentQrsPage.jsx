@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { ROUTES, API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 import usePaymentQr from "../hooks/usePaymentQr";
 import PaymentQrsDesktopPage from "./desktop/PaymentQrsDesktopPage";
@@ -52,6 +53,7 @@ const PaymentQrsPage = () => {
     clearMessage,
   } = usePaymentQr();
 
+  const { currentBranch } = useBranch();
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [totalQrs, setTotalQrs] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -63,6 +65,7 @@ const PaymentQrsPage = () => {
           page: params.page || filters.page,
           limit: params.limit || filters.limit,
           search: params.search !== undefined ? params.search : filters.search,
+          branchId: currentBranch?._id || undefined,
         };
 
         if (params.status !== undefined) {
@@ -86,13 +89,13 @@ const PaymentQrsPage = () => {
         console.error("Failed to load payment QR database:", err);
       }
     },
-    [getPaymentQrs, filters]
+    [getPaymentQrs, filters, currentBranch?._id]
   );
 
   // Initial load & filter changes
   useEffect(() => {
     fetchPaymentQrs();
-  }, [filters.page, filters.limit, filters.status, filters.provider]);
+  }, [filters.page, filters.limit, filters.status, filters.provider, currentBranch?._id]);
 
   // Handle Search Input
   useEffect(() => {
@@ -268,6 +271,7 @@ const PaymentQrsPage = () => {
     handleSetPrimary,
     clearError,
     clearMessage,
+    currentBranch,
   };
 
   return (
@@ -284,6 +288,7 @@ const PaymentQrsPage = () => {
         mode={dialogState.mode}
         entityId={dialogState.entityId}
         qrData={dialogState.qrData}
+        currentBranch={currentBranch}
         onSubmitCreate={createPaymentQr}
         onSubmitUpdate={updatePaymentQr}
         onFetchById={getPaymentQrById}

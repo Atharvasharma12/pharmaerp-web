@@ -1,8 +1,8 @@
 // src/features/purchases/pages/desktop/PurchasesDesktopPage.jsx
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Plus,
@@ -11,48 +11,170 @@ import {
   CheckCircle2,
   Clock,
   Eye,
-  AlertCircle,
   FileSpreadsheet,
   RefreshCw,
+  RotateCcw,
+  Receipt,
+  CreditCard,
 } from "lucide-react";
 import {
-  UICard,
   UIButton,
+  UIInput,
+  UISelect,
   UIBadge,
-  UIStatCard,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UITableEmpty,
+  UITableLoading,
+  UIInfiniteScroll,
+  PermissionGate,
 } from "@/components/ui";
-import { AppPagination } from "@/components/ui/data-display";
-import { PermissionGate } from "@/components/common/PermissionGate";
 import { cn } from "@/lib/utils";
-import {
-  PURCHASES_STATS,
-  PURCHASE_SUPPLIERS,
-} from "../../constants/purchasesData";
 import { PurchaseBillPreviewModal } from "../../components/PurchaseBillPreviewModal";
 import { MakePaymentModal } from "../../components/MakePaymentModal";
 import { BulkPaymentModal } from "../../components/BulkPaymentModal";
 import purchaseBillService from "../../services/purchaseBillService";
 
-const statIconMap = {
-  Truck: <Truck className="size-5" />,
-  Package: <Package className="size-5" />,
-  CheckCircle2: <CheckCircle2 className="size-5" />,
-  Clock: <Clock className="size-5" />,
+const PAGE_LIMIT = 20;
+
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
+  return Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 };
+
+const formatDate = (val) => {
+  if (!val) return "-";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return String(val);
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const STATUS_SELECT_OPTIONS = [
+  { label: "All Statuses", value: "all" },
+  { label: "Confirmed", value: "CONFIRMED" },
+  { label: "Received", value: "RECEIVED" },
+  { label: "Paid", value: "PAID" },
+  { label: "Partially Paid", value: "PARTIALLY_PAID" },
+  { label: "Draft", value: "DRAFT" },
+  { label: "Cancelled", value: "CANCELLED" },
+];
 
 export const PurchasesDesktopPage = () => {
   const navigate = useNavigate();
+  const tableContainerRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // Core Data & Infinite Scroll states
   const [bills, setBills] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [pagination, setPagination] = useState({ page: 1, limit: 5, total: 0 });
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalBills, setTotalBills] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+
+  // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
+
+  // Modals & Feedback
   const [selectedBill, setSelectedBill] = useState(null);
   const [paymentBill, setPaymentBill] = useState(null);
   const [isBulkPaymentOpen, setIsBulkPaymentOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
-  const fileInputRef = React.useRef(null);
 
+  // Initial Fetch & Filter Application
+  const fetchInitialBills = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = {
+        page: 1,
+        limit: PAGE_LIMIT,
+      };
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+      if (selectedStatus !== "all") params.status = selectedStatus;
+
+      const res = await purchaseBillService.getPurchaseBills(params);
+      const data = res.data?.data || {};
+      const list = Array.isArray(data.bills) ? data.bills : [];
+      const total = data.total ?? list.length;
+
+      setBills(list);
+      setTotalBills(total);
+      setCurrentPage(1);
+      setHasMore(list.length < total);
+    } catch (err) {
+      console.error("Failed to fetch purchase bills", err);
+      setToastMessage("❌ Failed to load purchase bills");
+      setTimeout(() => setToastMessage(null), 4000);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchQuery, selectedStatus]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchInitialBills();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [fetchInitialBills]);
+
+  // Load More for Infinite Scroll
+  const handleLoadMore = useCallback(async () => {
+    if (isLoading || isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    const nextPage = currentPage + 1;
+
+    try {
+      const params = {
+        page: nextPage,
+        limit: PAGE_LIMIT,
+      };
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+      if (selectedStatus !== "all") params.status = selectedStatus;
+
+      const res = await purchaseBillService.getPurchaseBills(params);
+      const data = res.data?.data || {};
+      const nextList = Array.isArray(data.bills) ? data.bills : [];
+      const total = data.total ?? totalBills;
+
+      if (nextList.length > 0) {
+        setBills((prev) => {
+          const existingIds = new Set(prev.map((b) => b._id || b.id));
+          const newRows = nextList.filter((b) => !existingIds.has(b._id || b.id));
+          const combined = [...prev, ...newRows];
+          setHasMore(combined.length < total);
+          return combined;
+        });
+        setCurrentPage(nextPage);
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.warn("Failed to load more purchase bills:", err);
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [currentPage, hasMore, isLoading, isLoadingMore, searchQuery, selectedStatus, totalBills]);
+
+  // Reset Filters
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setSelectedStatus("all");
+  };
+
+  // Excel Legacy Bills Import
   const handleImportLegacyBills = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -64,335 +186,423 @@ export const PurchasesDesktopPage = () => {
 
       const res = await purchaseBillService.importLegacyBills(formData);
       setToastMessage(`✅ ${res.data?.message || "Imported successfully!"}`);
-      fetchBills();
+      setTimeout(() => setToastMessage(null), 3500);
+      fetchInitialBills();
     } catch (err) {
       console.error("Failed to import legacy bills", err);
       setToastMessage("❌ Failed to import legacy bills");
+      setTimeout(() => setToastMessage(null), 4000);
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const statusTabs = [
-    "all",
-    "DRAFT",
-    "CONFIRMED",
-    "RECEIVED",
-    "CANCELLED",
-  ];
+  // Calculate high-density dynamic stats
+  const stats = useMemo(() => {
+    const count = totalBills || bills.length;
+    let received = 0;
+    let draft = 0;
+    let totalValue = 0;
 
-  const fetchBills = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const params = {
-        page: pagination.page,
-        limit: pagination.limit,
-      };
-      if (searchQuery) params.search = searchQuery;
-      if (selectedStatus !== "all") params.status = selectedStatus;
-
-      const res = await purchaseBillService.getPurchaseBills(params);
-      const data = res.data?.data || {};
-      setBills(data.bills || []);
-      setPagination((prev) => ({ ...prev, total: data.total || 0 }));
-    } catch (err) {
-      console.error("Failed to fetch bills", err);
-      setToastMessage("❌ Failed to load purchase bills");
-      setTimeout(() => setToastMessage(null), 4000);
-    } finally {
-      setIsLoading(false);
+    for (const b of bills) {
+      const st = String(b.status || "").toUpperCase();
+      if (st === "RECEIVED" || st === "CONFIRMED") received += 1;
+      if (st === "DRAFT") draft += 1;
+      totalValue += Number(b.grandTotal || 0);
     }
-  }, [pagination.page, pagination.limit, searchQuery, selectedStatus]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchBills();
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [fetchBills]);
-
-  const handlePageChange = (newPage) => {
-    setPagination((prev) => ({ ...prev, page: newPage }));
-  };
-
-  const handlePageSizeChange = (newSize) => {
-    setPagination((prev) => ({ ...prev, limit: newSize, page: 1 }));
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    setPagination((prev) => ({ ...prev, page: 1 }));
-  };
+    return {
+      total: count,
+      received,
+      draft,
+      totalValue,
+    };
+  }, [totalBills, bills]);
 
   const getStatusBadge = (status) => {
-    switch (status) {
+    const st = String(status || "").toUpperCase();
+    switch (st) {
       case "CONFIRMED":
-        return <UIBadge variant="soft" intent="success">Confirmed</UIBadge>;
+        return <UIBadge variant="soft" color="success">Confirmed</UIBadge>;
       case "RECEIVED":
-        return <UIBadge variant="solid" intent="success">Received</UIBadge>;
+        return <UIBadge variant="solid" color="success">Received</UIBadge>;
       case "PAID":
-        return <UIBadge variant="solid" intent="primary">Paid</UIBadge>;
+        return <UIBadge variant="solid" color="primary">Paid</UIBadge>;
       case "PARTIALLY_PAID":
-        return <UIBadge variant="soft" intent="warning">Partially Paid</UIBadge>;
+        return <UIBadge variant="soft" color="warning">Partially Paid</UIBadge>;
       case "DRAFT":
-        return <UIBadge variant="soft" intent="neutral">Draft</UIBadge>;
+        return <UIBadge variant="soft" color="neutral">Draft</UIBadge>;
       case "CANCELLED":
-        return <UIBadge variant="soft" intent="error">Cancelled</UIBadge>;
+        return <UIBadge variant="soft" color="error">Cancelled</UIBadge>;
       default:
-        return <UIBadge variant="soft" intent="info">{status}</UIBadge>;
+        return <UIBadge variant="soft" color="info">{status}</UIBadge>;
     }
   };
 
   return (
-    <section className="min-h-[100dvh] w-full bg-bg px-4 sm:px-6 lg:px-8 py-6 font-sans">
+    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-4 space-y-2.5 text-text font-sans transition-colors">
       {/* Toast Notification */}
-      {toastMessage && (
-        <motion.div
-          initial={{ opacity: 0, y: -20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="fixed top-6 right-8 z-[9999] flex items-center gap-2.5 rounded-2xl border border-primary/30 bg-surface/95 px-4 py-3 text-sm font-semibold text-text shadow-xl backdrop-blur-md"
-        >
-          <CheckCircle2 className="size-5 text-primary shrink-0" />
-          <span>{toastMessage}</span>
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 right-8 z-[9999] flex items-center gap-2.5 rounded-2xl border border-primary/30 bg-surface/95 px-4 py-3 text-sm font-semibold text-text shadow-xl backdrop-blur-md"
+          >
+            <CheckCircle2 className="size-5 text-primary shrink-0" />
+            <span>{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-text tracking-tight">
-              Purchases & Procurement
-            </h1>
-            <p className="text-xs sm:text-sm text-text-muted mt-0.5">
-              Manage medicine orders, supplier logistics, batch procurement and goods receipts
-            </p>
+      {/* ── 1. Compact 4-Card Statistics Grid ─────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {/* Card 1: Total Purchase Bills */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
+            <Receipt className="size-4.5 stroke-[1.8]" />
           </div>
-
-          <div className="flex items-center gap-3">
-            <PermissionGate
-              permission="purchase:create"
-              fallback={
-                <UIButton variant="primary" size="md" disabled>
-                  Enter Purchase Bill (Requires purchase:create)
-                </UIButton>
-              }
-            >
-              <UIButton
-                variant="primary"
-                size="md"
-                onClick={() => navigate("/purchases/bills/create")}
-                leftIcon={<FileSpreadsheet className="size-4" />}
-              >
-                Enter Purchase Bill
-              </UIButton>
-            </PermissionGate>
-            <UIButton
-              variant="outline"
-              size="md"
-              onClick={() => setIsBulkPaymentOpen(true)}
-              className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-            >
-              Bulk Payment
-            </UIButton>
-            <input
-              type="file"
-              ref={fileInputRef}
-              style={{ display: "none" }}
-              accept=".xlsx,.xls,.csv"
-              onChange={handleImportLegacyBills}
-            />
-            <UIButton
-              variant="outline"
-              size="md"
-              onClick={() => fileInputRef.current?.click()}
-              className="border-primary text-primary hover:bg-primary/5"
-            >
-              Import Legacy Bills
-            </UIButton>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">
+              Total Bills
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.total}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Procurement orders
+            </div>
           </div>
         </div>
 
-
-
-        {/* Purchase Orders Table Card */}
-        <UICard variant="default" className="p-5 sm:p-6 rounded-2xl bg-surface border-border shadow-xs space-y-4">
-          {/* Filters Bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-border/70">
-            <div className="flex items-center gap-2">
-              {/* Search Input */}
-              <div className="relative min-w-[240px] sm:min-w-[280px]">
-                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-text-muted" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  placeholder="Search Bill # or Invoice #..."
-                  className="w-full rounded-xl border border-border bg-surface-alt/70 pl-9 pr-3 py-2 text-xs text-text placeholder:text-text-muted focus:border-primary focus:bg-surface focus:outline-none"
-                />
-              </div>
-
-              {/* Refresh Button */}
-              <UIButton
-                variant="outline"
-                size="icon"
-                onClick={fetchBills}
-                disabled={isLoading}
-                title="Refresh bills"
-                className="shrink-0 rounded-xl bg-surface-alt/70 border-border hover:bg-surface-hover hover:text-primary"
-              >
-                <RefreshCw className={cn("size-4", isLoading && "animate-spin")} />
-              </UIButton>
+        {/* Card 2: Received / Confirmed */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
+            <CheckCircle2 className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-success truncate">
+              Goods Received
             </div>
-
-            {/* Status Tabs */}
-            <div className="flex items-center gap-1 bg-surface-alt p-1 rounded-xl border border-border overflow-x-auto">
-              {statusTabs.map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setSelectedStatus(tab)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold capitalize whitespace-nowrap transition-all cursor-pointer",
-                    selectedStatus === tab
-                      ? "bg-surface text-primary shadow-xs"
-                      : "text-text-muted hover:text-text"
-                  )}
-                >
-                  {tab}
-                </button>
-              ))}
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.received}
+            </div>
+            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono truncate mt-0.5">
+              Confirmed stock receipts
             </div>
           </div>
+        </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs font-sans">
-              <thead>
-                <tr className="border-b border-border text-[11px] font-semibold text-text-muted uppercase tracking-wider bg-surface-alt/30">
-                  <th className="py-3 px-4 font-semibold">Bill Number</th>
-                  <th className="py-3 px-4 font-semibold">Supplier</th>
-                  <th className="py-3 px-3 font-semibold">Bill Date</th>
-                  <th className="py-3 px-3 font-semibold">Rate Basis</th>
-                  <th className="py-3 px-3 font-semibold text-center">Items</th>
-                  <th className="py-3 px-4 font-semibold text-right">Bill Total</th>
-                  <th className="py-3 px-3 font-semibold text-center">Status</th>
-                  <th className="py-3 px-3 text-right"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-text-muted">
-                      Loading bills...
-                    </td>
-                  </tr>
-                ) : bills.length > 0 ? (
-                  bills.map((bill) => (
-                    <tr
-                      key={bill._id || bill.id}
-                      className="group hover:bg-surface-hover/70 transition-colors"
-                    >
-                      {/* Bill Number */}
-                      <td className="py-3 px-4 font-mono font-bold text-primary">
+        {/* Card 3: Draft / Processing */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-warning-soft text-warning flex items-center justify-center shrink-0">
+            <Clock className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-warning truncate">
+              Draft / Pending
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.draft}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Awaiting confirmation
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Total Purchase Value */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <CreditCard className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-primary truncate">
+              Purchase Value
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              ₹{formatCurrency(stats.totalValue)}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Active bill grand total
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 2. Streamlined Single-Row Filter Toolbar ─────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Search Input */}
+        <div className="w-[240px] sm:w-[280px] lg:w-[320px]">
+          <UIInput
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search bill #, invoice # or supplier..."
+            startIcon={<Search className="size-4 text-text-muted" />}
+            size="md"
+            variant="outline"
+            isClearable
+            onClear={() => setSearchQuery("")}
+            className="w-full"
+          />
+        </div>
+
+        {/* Status Dropdown */}
+        <div className="w-[160px] sm:w-[180px]">
+          <UISelect
+            value={selectedStatus}
+            onChange={(val) => setSelectedStatus(val)}
+            options={STATUS_SELECT_OPTIONS}
+            placeholder="All Statuses"
+            size="md"
+          />
+        </div>
+
+        {/* Reset Filter Button */}
+        {(searchQuery || selectedStatus !== "all") && (
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            onClick={handleResetFilters}
+            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
+            className="h-10 px-2 text-xs text-text-muted hover:text-text"
+            title="Reset filters"
+          >
+            Reset
+          </UIButton>
+        )}
+
+        {/* Right-Aligned Action Cluster */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          {/* Refresh Button */}
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={fetchInitialBills}
+            className="h-10 w-10 p-0 text-text-muted hover:text-text"
+            title="Refresh purchase bills"
+          >
+            <RefreshCw
+              className={cn("size-4 text-text-muted hover:text-primary", isLoading && "animate-spin text-primary")}
+            />
+          </UIButton>
+
+          {/* Import Legacy Bills */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            accept=".xlsx,.xls,.csv"
+            onChange={handleImportLegacyBills}
+          />
+          <UIButton
+            type="button"
+            variant="outline"
+            size="md"
+            onClick={() => fileInputRef.current?.click()}
+            className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex border-border hover:bg-surface-alt"
+            title="Import Excel legacy bills"
+          >
+            Import
+          </UIButton>
+
+          {/* Bulk Payment Button */}
+          <UIButton
+            type="button"
+            variant="outline"
+            size="md"
+            onClick={() => setIsBulkPaymentOpen(true)}
+            className="h-10 px-3 text-xs font-semibold border-emerald-600/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+          >
+            Bulk Payment
+          </UIButton>
+
+          {/* Enter Purchase Bill Button */}
+          <PermissionGate
+            permission="purchase:create"
+            fallback={
+              <UIButton variant="primary" size="md" disabled className="h-10 px-3.5 text-xs font-semibold">
+                Enter Bill
+              </UIButton>
+            }
+          >
+            <UIButton
+              type="button"
+              variant="primary"
+              size="md"
+              startIcon={<Plus className="size-3.5" />}
+              onClick={() => navigate("/purchases/bills/create")}
+              className="h-10 px-3.5 text-xs font-semibold shadow-xs"
+            >
+              Enter Bill
+            </UIButton>
+          </PermissionGate>
+        </div>
+      </div>
+
+      {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ──── */}
+      <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        <div
+          ref={tableContainerRef}
+          className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 divide-y divide-border/60"
+        >
+          <UITable
+            stickyHeader
+            containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+            className="w-full text-xs font-sans"
+          >
+            {/* Sticky Table Header */}
+            <UITableHeader sticky className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs">
+              <UITableRow className="border-b border-border text-[11px] font-semibold text-text uppercase tracking-wider bg-surface-alt">
+                <UITableHead sticky className="min-w-[150px]">Bill Number</UITableHead>
+                <UITableHead sticky className="min-w-[220px]">Supplier</UITableHead>
+                <UITableHead sticky className="min-w-[120px]">Bill Date</UITableHead>
+                <UITableHead sticky className="min-w-[100px]">Rate Basis</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[90px]">Items</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[150px]">Bill Total</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[120px]">Status</UITableHead>
+                <UITableHead sticky align="right" className="w-36">Actions</UITableHead>
+              </UITableRow>
+            </UITableHeader>
+
+            <UITableBody>
+              {isLoading ? (
+                <UITableLoading colSpan={8} rows={6} />
+              ) : bills.length === 0 ? (
+                <UITableEmpty
+                  colSpan={8}
+                  title="No purchase bills found"
+                  description={
+                    searchQuery || selectedStatus !== "all"
+                      ? "No bills match your active filter criteria. Try clearing filters."
+                      : "No purchase bills recorded yet."
+                  }
+                  action={
+                    (searchQuery || selectedStatus !== "all") ? (
+                      <UIButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleResetFilters}
+                      >
+                        Clear Filters
+                      </UIButton>
+                    ) : undefined
+                  }
+                />
+              ) : (
+                bills.map((bill) => (
+                  <UITableRow
+                    key={bill._id || bill.id}
+                    onClick={() => setSelectedBill(bill)}
+                    className="cursor-pointer hover:bg-surface-hover/70 transition-colors"
+                  >
+                    {/* Bill Number */}
+                    <UITableCell className="whitespace-nowrap">
+                      <span className="font-bold text-primary font-mono text-[13px] tracking-tight">
                         {bill.purchaseBillNo || "-"}
-                      </td>
+                      </span>
+                    </UITableCell>
 
-                      {/* Supplier */}
-                      <td className="py-3 px-4">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-semibold text-text">{bill.supplierId?.businessName || "-"}</span>
-                          {bill.supplierInvoiceNo && (
-                            <span className="text-[10px] text-text-muted font-medium bg-surface-alt px-1.5 py-0.5 rounded w-fit border border-border/50">
-                              Inv: {bill.supplierInvoiceNo}
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                    {/* Supplier */}
+                    <UITableCell>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-semibold text-text truncate">
+                          {bill.supplierId?.businessName || "-"}
+                        </span>
+                        {bill.supplierInvoiceNo && (
+                          <span className="text-[10px] text-text-muted font-mono font-medium truncate mt-0.5">
+                            Inv: {bill.supplierInvoiceNo}
+                          </span>
+                        )}
+                      </div>
+                    </UITableCell>
 
-                      {/* Order Date */}
-                      <td className="py-3 px-3 text-text-muted font-medium">
-                        {bill.invoiceDate || new Date(bill.createdAt).toLocaleDateString()}
-                      </td>
+                    {/* Bill Date */}
+                    <UITableCell className="whitespace-nowrap text-text-muted font-medium text-xs">
+                      {formatDate(bill.invoiceDate || bill.createdAt)}
+                    </UITableCell>
 
-                      {/* Rate Basis */}
-                      <td className="py-3 px-3 text-text-muted font-medium">
-                        {bill.rateBasis || "PTS"}
-                      </td>
+                    {/* Rate Basis */}
+                    <UITableCell className="whitespace-nowrap text-text-muted font-mono text-xs">
+                      {bill.rateBasis || "PTS"}
+                    </UITableCell>
 
-                      {/* Items */}
-                      <td className="py-3 px-3 text-center font-mono text-text">
-                        {bill.items?.length || 0}
-                      </td>
+                    {/* Items Count */}
+                    <UITableCell align="center" className="font-mono font-semibold text-text tabular-nums">
+                      {bill.items?.length || 0}
+                    </UITableCell>
 
-                      {/* Amount */}
-                      <td className="py-3 px-4 text-right font-mono font-extrabold text-text tabular-nums">
-                        ₹{(bill.grandTotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                      </td>
+                    {/* Grand Total */}
+                    <UITableCell align="right" className="font-mono font-bold text-text tabular-nums text-sm">
+                      ₹{formatCurrency(bill.grandTotal)}
+                    </UITableCell>
 
-                      {/* Status */}
-                      <td className="py-3 px-3 text-center">
-                        {getStatusBadge(bill.status)}
-                      </td>
+                    {/* Status Badge */}
+                    <UITableCell align="center" className="whitespace-nowrap">
+                      {getStatusBadge(bill.status)}
+                    </UITableCell>
 
-                      {/* Action */}
-                      <td className="py-3 px-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {bill.amountDue > 0 && bill.status !== "CANCELLED" && (
-                            <UIButton
-                              variant="ghost"
-                              size="xs"
-                              onClick={() => setPaymentBill(bill)}
-                              className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 font-bold"
-                            >
-                              Make Payment
-                            </UIButton>
-                          )}
+                    {/* Actions */}
+                    <UITableCell align="right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {bill.amountDue > 0 && bill.status !== "CANCELLED" && (
                           <UIButton
                             variant="ghost"
                             size="xs"
-                            onClick={() => setSelectedBill(bill)}
-                            leftIcon={<Eye className="size-3.5" />}
+                            onClick={() => setPaymentBill(bill)}
+                            className="text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-bold text-xs"
                           >
-                            View
+                            Pay
                           </UIButton>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-text-muted">
-                      No purchase bills found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                        )}
+                        <UIButton
+                          variant="ghost"
+                          size="xs"
+                          onClick={() => setSelectedBill(bill)}
+                          startIcon={<Eye className="size-3.5" />}
+                          className="text-text-muted hover:text-primary"
+                        >
+                          View
+                        </UIButton>
+                      </div>
+                    </UITableCell>
+                  </UITableRow>
+                ))
+              )}
+            </UITableBody>
+          </UITable>
 
-          {/* Table Footer with Pagination */}
-          <div className="pt-3 border-t border-border/70">
-            <AppPagination
-              page={pagination.page}
-              count={Math.ceil(pagination.total / pagination.limit) || 1}
-              totalItems={pagination.total}
-              pageSize={pagination.limit}
-              onChange={handlePageChange}
-              onPageSizeChange={handlePageSizeChange}
-              showPageSize
+          {/* Infinite Scroll Trigger */}
+          {!isLoading && bills.length > 0 && (
+            <UIInfiniteScroll
+              onLoadMore={handleLoadMore}
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              rootRef={tableContainerRef}
+              rootMargin="160px"
+              endMessage={
+                !hasMore && bills.length > 0 ? (
+                  <span className="font-mono text-[11px] text-text-muted select-none">
+                    ✓ All {totalBills} matching bills loaded
+                  </span>
+                ) : null
+              }
             />
-          </div>
-        </UICard>
+          )}
+        </div>
       </div>
 
-      {/* Details Modal */}
+      {/* Details Preview Modal */}
       <PurchaseBillPreviewModal
         bill={selectedBill}
         isOpen={Boolean(selectedBill)}
         onClose={() => setSelectedBill(null)}
-        onRefresh={fetchBills}
+        onRefresh={fetchInitialBills}
       />
 
       {/* Make Payment Modal */}
@@ -401,7 +611,7 @@ export const PurchasesDesktopPage = () => {
         isOpen={Boolean(paymentBill)}
         onClose={() => setPaymentBill(null)}
         onRefresh={() => {
-          fetchBills();
+          fetchInitialBills();
           setToastMessage("✅ Payment recorded successfully!");
           setTimeout(() => setToastMessage(null), 4000);
         }}
@@ -412,12 +622,12 @@ export const PurchasesDesktopPage = () => {
         isOpen={isBulkPaymentOpen}
         onClose={() => setIsBulkPaymentOpen(false)}
         onRefresh={() => {
-          fetchBills();
+          fetchInitialBills();
           setToastMessage("✅ Bulk payment allocated successfully!");
           setTimeout(() => setToastMessage(null), 4000);
         }}
       />
-    </section>
+    </div>
   );
 };
 

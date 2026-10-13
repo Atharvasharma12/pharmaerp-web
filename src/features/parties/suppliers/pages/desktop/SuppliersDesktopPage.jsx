@@ -1,29 +1,42 @@
 // src/features/parties/suppliers/pages/desktop/SuppliersDesktopPage.jsx
 
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Users,
+  Search,
+  Filter,
+  RefreshCw,
+  RotateCcw,
   Plus,
   Download,
-  RotateCcw,
-  Search,
-  MoreVertical,
-  AlertTriangle,
   Eye,
   Edit3,
   Trash2,
-  Filter
+  Table2,
+  LayoutGrid,
+  Scale,
+  ArrowDownRight,
+  ArrowUpRight,
+  Phone,
+  Mail,
+  MoreVertical,
+  Building2,
+  AlertTriangle,
 } from "lucide-react";
 import {
   UIButton,
+  UIInput,
   UISelect,
-  UIPagination,
-  UIEmptyState,
-  UIAlert,
-  UISkeleton,
-  UIPageHeader,
-  UIFilterToolbar,
-  PermissionGate,
+  UIBadge,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UITableEmpty,
+  UITableLoading,
+  UIInfiniteScroll,
   UIDropdown,
   UIDropdownTrigger,
   UIDropdownMenu,
@@ -36,13 +49,51 @@ import {
   UIModalBody,
   UIModalFooter,
   UIIconButton,
+  UIAlert,
+  PermissionGate,
 } from "@/components/ui";
-import { AppTable } from "@/components";
-import { TopBarStats } from "@/layouts/app/components/header";
+import { cn } from "@/lib/utils";
 import supplierService from "../../services/supplierService";
 import SupplierImportPreviewModal from "../../components/SupplierImportPreviewModal";
 import SupplierImportConfigModal from "../../components/SupplierImportConfigModal";
 import SupplierOutstandingImportPreviewModal from "../../components/SupplierOutstandingImportPreviewModal";
+
+const PAGE_LIMIT = 20;
+
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
+  return Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const getInitials = (name) => {
+  if (!name) return "SU";
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+};
+
+const SUPPLIER_TYPE_OPTIONS = [
+  { label: "All Types", value: "all" },
+  { label: "Manufacturer", value: "manufacturer" },
+  { label: "Distributor", value: "distributor" },
+  { label: "Wholesaler", value: "wholesaler" },
+  { label: "Retailer", value: "retailer" },
+  { label: "Stockist", value: "stockist" },
+];
+
+const STATUS_OPTIONS = [
+  { label: "All Status", value: "all" },
+  { label: "Active", value: "active" },
+  { label: "Inactive", value: "inactive" },
+  { label: "Blocked", value: "blocked" },
+];
 
 const SORT_OPTIONS = [
   { value: "name_asc", label: "Name: A to Z" },
@@ -51,65 +102,36 @@ const SORT_OPTIONS = [
   { value: "oldest", label: "Oldest First" },
 ];
 
-const SuppliersDesktopPage = ({
-  suppliers = [],
-  paginatedSuppliers: propPaginatedSuppliers, // Allow passing paginated if handled by parent
-  stats,
-  
-  filters,
-  sortBy,
-  onSortChange,
-  viewMode = "grid",
-  onViewModeChange,
-  activeFilterChips = [],
-
-  isLoading,
-  isDeleting,
-  hasError,
-  error,
-  message,
-
-  totalSuppliers = 0,
-  filteredSuppliersCount = 0,
-  hasSuppliers,
-  hasFilteredSuppliers,
-
-  handleFilterChange,
-  handleSearchChange,
-  handleRemoveFilter,
-  handleClearFilters,
-
+export const SuppliersDesktopPage = ({
   handleCreateSupplier,
   handleViewSupplier,
   handleEditSupplier,
   handleDeleteSupplier,
-  handleRefresh,
-
+  handleRefresh: propHandleRefresh,
+  stats: propStats,
+  error: propError,
   clearMessage,
-
-  currentPage: propCurrentPage,
-  pageSize: propPageSize,
-  onPageChange: propOnPageChange,
-  onPageSizeChange: propOnPageSizeChange,
 }) => {
-  // Local pagination if parent doesn't provide it
-  const [localCurrentPage, setLocalCurrentPage] = React.useState(1);
-  const [localPageSize, setLocalPageSize] = React.useState(8);
+  const tableContainerRef = useRef(null);
+  const cardContainerRef = useRef(null);
 
-  const currentPage = propCurrentPage !== undefined ? propCurrentPage : localCurrentPage;
-  const pageSize = propPageSize !== undefined ? propPageSize : localPageSize;
+  // Core Supplier data and infinite scroll pagination
+  const [suppliers, setSuppliers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  const handlePageChange = (page) => {
-    if (propOnPageChange) propOnPageChange(page);
-    else setLocalCurrentPage(page);
-  };
+  // Local Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedType, setSelectedType] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
+  const [viewMode, setViewMode] = useState("table"); // 'table' or 'grid'
 
-  const handlePageSizeChange = (size) => {
-    if (propOnPageSizeChange) propOnPageSizeChange(size);
-    else setLocalPageSize(size);
-  };
-
-  // Import State
+  // Modals & Popovers
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isImportConfigOpen, setIsImportConfigOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] = useState(false);
@@ -117,10 +139,189 @@ const SuppliersDesktopPage = ({
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleImportClick = () => {
-    setIsImportConfigOpen(true);
-  };
+  // Format supplier for display
+  const formatSupplierRow = useCallback((sup) => {
+    const rawType = sup?.supplierType || sup?.type || "distributor";
+    const displayType = String(rawType)
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
 
+    return {
+      ...sup,
+      id: sup?._id,
+      displayName: sup?.businessName || sup?.name || "Supplier",
+      displayCode: sup?.supplierCode || "-",
+      displayType,
+      displayMobile: sup?.mobile || "-",
+      displayEmail: sup?.email || "",
+      displayStatus: sup?.status || "Active",
+      outstandingAmount: Number(sup?.outstandingAmount || 0),
+      balanceType: sup?.balanceType || "cr",
+      gstin: sup?.taxIdentification?.gstin || sup?.gstin || "-",
+      city: sup?.address?.city || sup?.billingAddress?.city || "-",
+      state: sup?.address?.state || sup?.billingAddress?.state || "-",
+    };
+  }, []);
+
+  // Build query params
+  const buildQueryParams = useCallback(
+    (page = 1) => {
+      const params = {
+        page,
+        limit: PAGE_LIMIT,
+      };
+
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+      if (selectedType !== "all") params.supplierType = selectedType;
+      if (selectedStatus !== "all") params.status = selectedStatus;
+
+      // Sort
+      if (sortBy === "name_asc") {
+        params.sortBy = "businessName";
+        params.sortOrder = "asc";
+      } else if (sortBy === "name_desc") {
+        params.sortBy = "businessName";
+        params.sortOrder = "desc";
+      } else if (sortBy === "oldest") {
+        params.sortBy = "createdAt";
+        params.sortOrder = "asc";
+      } else {
+        params.sortBy = "createdAt";
+        params.sortOrder = "desc";
+      }
+
+      return params;
+    },
+    [searchQuery, selectedType, selectedStatus, sortBy]
+  );
+
+  // Initial Fetch
+  const fetchInitialSuppliers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = buildQueryParams(1);
+      const res = await supplierService.getSuppliers(params);
+      const resData = res.data?.data || {};
+      const rawList = Array.isArray(resData.suppliers) ? resData.suppliers : [];
+      const total = Number(resData.total ?? rawList.length);
+
+      const formatted = rawList.map(formatSupplierRow);
+      setSuppliers(formatted);
+      setTotalCount(total);
+      setCurrentPage(1);
+      setHasMore(formatted.length < total);
+
+      if (tableContainerRef.current) {
+        tableContainerRef.current.scrollTop = 0;
+      }
+    } catch (err) {
+      console.warn("Failed to fetch suppliers:", err);
+      setSuppliers([]);
+      setTotalCount(0);
+      setHasMore(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [buildQueryParams, formatSupplierRow]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchInitialSuppliers();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [fetchInitialSuppliers]);
+
+  // Load More Infinite Scroll
+  const handleLoadMore = useCallback(async () => {
+    if (isLoading || isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    const nextPage = currentPage + 1;
+
+    try {
+      const params = buildQueryParams(nextPage);
+      const res = await supplierService.getSuppliers(params);
+      const resData = res.data?.data || {};
+      const rawList = Array.isArray(resData.suppliers) ? resData.suppliers : [];
+      const total = Number(resData.total ?? totalCount);
+
+      if (rawList.length > 0) {
+        setSuppliers((prev) => {
+          const existingIds = new Set(prev.map((s) => s._id || s.id));
+          const newRows = rawList
+            .map(formatSupplierRow)
+            .filter((s) => !existingIds.has(s._id || s.id));
+          const combined = [...prev, ...newRows];
+          setHasMore(combined.length < total);
+          return combined;
+        });
+        setCurrentPage(nextPage);
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.warn("Failed to load more suppliers:", err);
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [currentPage, hasMore, isLoading, isLoadingMore, buildQueryParams, totalCount, formatSupplierRow]);
+
+  // Refresh
+  const handleRefresh = useCallback(() => {
+    fetchInitialSuppliers();
+    if (propHandleRefresh) propHandleRefresh();
+  }, [fetchInitialSuppliers, propHandleRefresh]);
+
+  // Reset Filters
+  const handleResetFilters = useCallback(() => {
+    setSearchQuery("");
+    setSelectedType("all");
+    setSelectedStatus("all");
+    setSortBy("newest");
+  }, []);
+
+  // Compute dynamic stats across loaded or backend stats
+  const stats = useMemo(() => {
+    if (propStats && (propStats.total || propStats.totalCr !== undefined)) {
+      return propStats;
+    }
+    const count = totalCount || suppliers.length;
+    let totalCr = 0;
+    let totalDr = 0;
+    let active = 0;
+    let inactive = 0;
+    let blocked = 0;
+
+    for (const s of suppliers) {
+      const amt = Number(s.outstandingAmount || 0);
+      if (String(s.balanceType).toLowerCase() === "dr") {
+        totalDr += amt;
+      } else {
+        totalCr += amt;
+      }
+      const st = String(s.displayStatus).toLowerCase();
+      if (st === "active") active++;
+      else if (st === "inactive") inactive++;
+      else if (st === "blocked") blocked++;
+    }
+
+    const netRunning = Math.abs(totalCr - totalDr);
+    const runningType = totalCr >= totalDr ? "Cr" : "Dr";
+
+    return {
+      total: count,
+      totalCr,
+      totalDr,
+      netRunning,
+      runningType,
+      active,
+      inactive,
+      blocked,
+    };
+  }, [propStats, totalCount, suppliers]);
+
+  // Import handler
   const handleImportSubmit = async (file, importType) => {
     try {
       setIsUploading(true);
@@ -128,10 +329,9 @@ const SuppliersDesktopPage = ({
       const formData = new FormData();
       formData.append("file", file);
       formData.append("importType", importType);
-      
+
       const res = await supplierService.previewImport(formData);
       setImportPreviewData(res.data?.data || []);
-      
       setIsImportConfigOpen(false);
 
       if (importType === "outstanding") {
@@ -140,194 +340,510 @@ const SuppliersDesktopPage = ({
         setIsImportModalOpen(true);
       }
     } catch (err) {
-      console.error("Failed to upload for preview", err);
+      console.error("Failed to parse supplier Excel", err);
       alert(err?.response?.data?.message || "Failed to parse Excel file.");
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleImportSuccess = (successful, failed, errors = []) => {
-    setIsImportModalOpen(false);
-    setIsOutstandingImportModalOpen(false);
-    if (failed > 0) {
-      alert(`Imported ${successful} successfully. ${failed} failed.\n\nErrors:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...and more' : ''}`); 
-    } else {
-      alert(`Imported ${successful} successfully.`);
-    }
-    if (successful > 0) {
-      handleRefresh();
-    }
-  };
+  const activeFilterCount =
+    (selectedType !== "all" ? 1 : 0) +
+    (selectedStatus !== "all" ? 1 : 0) +
+    (sortBy !== "newest" ? 1 : 0);
 
-  const isServerPaginated = !!propOnPageChange;
-  const paginatedSuppliers = isServerPaginated ? suppliers : suppliers.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-  
-  const totalPages = Math.ceil(filteredSuppliersCount / pageSize) || 1;
-
-
-
-  const getInitials = (name) => {
-    if (!name) return "NA";
-    return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
-  };
-
-  const getStatusColor = (status) => {
+  const getStatusBadge = (status) => {
     const s = String(status).toLowerCase();
-    if (s === "active") return "success";
-    if (s === "inactive") return "error";
-    if (s === "blocked") return "warning";
-    return "primary";
+    if (s === "active") return <UIBadge variant="soft" color="success">Active</UIBadge>;
+    if (s === "inactive") return <UIBadge variant="soft" color="error">Inactive</UIBadge>;
+    if (s === "blocked") return <UIBadge variant="soft" color="warning">Blocked</UIBadge>;
+    return <UIBadge variant="soft" color="neutral">{status}</UIBadge>;
   };
-
-  const getAddressText = (party) => {
-    const addr = party?.address || party?.billingAddress || party?.shippingAddress;
-    
-    const parts = [];
-    if (addr?.city) parts.push(addr.city);
-    else if (addr?.district) parts.push(addr.district);
-    
-    if (addr?.state) parts.push(addr.state);
-    else if (addr?.pincode) parts.push(addr.pincode);
-    
-    if (parts.length > 0) {
-      return parts.join(", ");
-    }
-    
-    return "No Address";
-  };
-
-  const getRandomCompany = (id) => {
-    const companies = [
-      { name: "Starlink", color: "text-[#8B5CF6] border-[#8B5CF6]/20 bg-[#F5F3FF]" },
-      { name: "Marvel", color: "text-[#94A3B8] border-[#94A3B8]/20 bg-[#F1F5F9]" },
-      { name: "BMW", color: "text-[#EAB308] border-[#EAB308]/20 bg-[#FEF9C3]" },
-      { name: "MBM", color: "text-[#0EA5E9] border-[#0EA5E9]/20 bg-[#E0F2FE]" },
-      { name: "KFC", color: "text-[#94A3B8] border-[#94A3B8]/20 bg-[#F1F5F9]" },
-      { name: "TATA", color: "text-[#EC4899] border-[#EC4899]/20 bg-[#FDF2F8]" },
-      { name: "Saltbox", color: "text-[#3B82F6] border-[#3B82F6]/20 bg-[#EFF6FF]" },
-      { name: "TOYOTA", color: "text-[#EF4444] border-[#EF4444]/20 bg-[#FEF2F2]" },
-      { name: "Clorio", color: "text-[#06B6D4] border-[#06B6D4]/20 bg-[#ECFEFF]" },
-      { name: "TikTok", color: "text-[#64748B] border-[#64748B]/20 bg-[#F8FAFC]" },
-      { name: "Dribbble", color: "text-[#8B5CF6] border-[#8B5CF6]/20 bg-[#F5F3FF]" },
-      { name: "Behance", color: "text-[#F97316] border-[#F97316]/20 bg-[#FFF7ED]" }
-    ];
-    const hash = String(id).split("").reduce((a, b) => a + b.charCodeAt(0), 0);
-    return companies[hash % companies.length];
-  };
-
-  const activeCount = stats?.active ?? suppliers.filter(c => String(c.displayStatus).toLowerCase() === 'active').length;
-  const inactiveCount = stats?.inactive ?? suppliers.filter(s => String(s.displayStatus).toLowerCase() === 'inactive').length;
-  const blockedCount = stats?.blocked ?? suppliers.filter(s => String(s.displayStatus).toLowerCase() === 'blocked').length;
-
-  const topBarStats = [
-    { label: "Total", value: totalSuppliers, intent: "primary" },
-    { label: "Active", value: activeCount, intent: "success" },
-    { label: "Inactive", value: inactiveCount, intent: "error" },
-    { label: "Blocked", value: blockedCount, intent: "warning" },
-  ];
-
-  const [isFilterModalOpen, setIsFilterModalOpen] = React.useState(false);
-
-  const shouldShowPagination = hasFilteredSuppliers && filteredSuppliersCount > pageSize;
 
   return (
-    <div className="min-h-screen bg-bg text-text p-3 sm:p-4 lg:p-0 max-w-[1440px] mx-auto space-y-2.5">
-      {error && !hasError && (
+    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-4 space-y-2.5 text-text font-sans transition-colors">
+      {/* Global Error Banner */}
+      {propError && (
         <UIAlert
           intent="danger"
           title="Something went wrong"
-          description={error}
+          description={propError}
           onClose={clearMessage}
         />
       )}
 
-      {/* ── TopBar Stats Teleport ── */}
-      <TopBarStats stats={topBarStats} />
-
-      {/* ── Enterprise UIFilterToolbar Component ── */}
-      <UIFilterToolbar
-        searchQuery={filters.search}
-        onSearchChange={handleSearchChange}
-        searchPlaceholder="Search supplier name, email, or mobile..."
-        sortBy={sortBy}
-        onSortChange={onSortChange}
-        sortOptions={SORT_OPTIONS}
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange}
-        activeFilterChips={activeFilterChips}
-        onClearFilters={handleClearFilters}
-        filters={
-          <UIButton
-            variant="outline"
-            size="sm"
-            startIcon={<Filter className="size-4" />}
-            onClick={() => setIsFilterModalOpen(true)}
-            className="w-10 px-0 sm:w-auto sm:px-3 justify-center"
-          >
-            <span className="hidden sm:inline">Filter</span>
-          </UIButton>
-        }
-        actions={
-          <div className="flex items-center gap-2 shrink-0 border-l border-border pl-2 ml-1">
-            <UIIconButton
-              variant="ghost"
-              size="sm"
-              className="text-text-muted hover:text-text h-9 w-9"
-              onClick={handleRefresh}
-              title="Refresh"
-            >
-              <RotateCcw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
-            </UIIconButton>
-
-            <PermissionGate permission="supplier:create">
-              <UIButton
-                type="button"
-                variant="outline"
-                size="sm"
-                startIcon={<Download className="size-4" />}
-                onClick={handleImportClick}
-                disabled={isUploading}
-              >
-                {isUploading ? "Uploading..." : "Import"}
-              </UIButton>
-            </PermissionGate>
-
-            <PermissionGate permission="supplier:create">
-              <UIButton
-                type="button"
-                variant="primary"
-                size="sm"
-                startIcon={<Plus className="size-4" />}
-                onClick={handleCreateSupplier}
-              >
-                Add Supplier
-              </UIButton>
-            </PermissionGate>
+      {/* ── 1. Compact 4-Card Statistics Grid (Top of Page) ────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {/* Card 1: Total Suppliers */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
+            <Users className="size-4.5 stroke-[1.8]" />
           </div>
-        }
-      />
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">
+              Total Suppliers
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.total}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Verified vendor directory
+            </div>
+          </div>
+        </div>
 
-      {/* ── Financial Stats ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-surface rounded-2xl border border-border shadow-xs p-5 flex flex-col justify-center">
-          <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Total Payables</h4>
-          <p className="text-xl font-bold text-rose-600">₹{(stats?.totalCr || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">Cr</span></p>
+        {/* Card 2: Payable Dues (CR) */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-error-soft text-error flex items-center justify-center shrink-0">
+            <ArrowDownRight className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-error truncate">
+              Payables Due (CR)
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              ₹{formatCurrency(stats.totalCr)}
+            </div>
+            <div className="text-[10px] text-rose-600 dark:text-rose-400 font-mono truncate mt-0.5">
+              Outstanding bills payable
+            </div>
+          </div>
         </div>
-        <div className="bg-surface rounded-2xl border border-border shadow-xs p-5 flex flex-col justify-center">
-          <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Total Receivables</h4>
-          <p className="text-xl font-bold text-emerald-600">₹{(stats?.totalDr || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">Dr</span></p>
+
+        {/* Card 3: Supplier Advances (DR) */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
+            <ArrowUpRight className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-success truncate">
+              Advances (DR)
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              ₹{formatCurrency(stats.totalDr)}
+            </div>
+            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono truncate mt-0.5">
+              Advance payments made
+            </div>
+          </div>
         </div>
-        <div className="bg-surface rounded-2xl border border-border shadow-xs p-5 flex flex-col justify-center">
-          <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Net Running Balance</h4>
-          <p className="text-xl font-bold text-primary">₹{(stats?.netRunning || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">{stats?.runningType || 'Cr'}</span></p>
+
+        {/* Card 4: Net Position */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Scale className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-primary truncate">
+              Net Balance
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              ₹{formatCurrency(stats.netRunning)}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              {stats.runningType === "Cr" ? "Net Payable (Credit)" : "Net Advance (Debit)"}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Filter Modal ── */}
+      {/* ── 2. Streamlined Single-Row Filter Toolbar ─────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Search Input */}
+        <div className="w-[240px] sm:w-[280px] lg:w-[320px]">
+          <UIInput
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search supplier name, mobile, or code..."
+            startIcon={<Search className="size-4 text-text-muted" />}
+            size="md"
+            variant="outline"
+            isClearable
+            onClear={() => setSearchQuery("")}
+            className="w-full"
+          />
+        </div>
+
+        {/* Supplier Type Dropdown */}
+        <div className="w-[160px] sm:w-[180px]">
+          <UISelect
+            value={selectedType}
+            onChange={(val) => setSelectedType(val)}
+            options={SUPPLIER_TYPE_OPTIONS}
+            placeholder="All Types"
+            size="md"
+          />
+        </div>
+
+        {/* Filter Modal Trigger */}
+        <UIButton
+          type="button"
+          variant={activeFilterCount > 0 ? "secondary" : "outline"}
+          size="md"
+          onClick={() => setIsFilterModalOpen(true)}
+          startIcon={
+            <Filter
+              className={cn("size-3.5", activeFilterCount > 0 ? "text-primary" : "text-text-muted")}
+            />
+          }
+          className={cn(
+            "h-10 px-3 text-xs sm:text-sm font-semibold gap-1.5 transition-all select-none",
+            activeFilterCount > 0 && "border-primary/40 bg-primary/10 text-primary font-bold shadow-2xs"
+          )}
+          title="Open filters dialog"
+        >
+          <span>Filters</span>
+          {activeFilterCount > 0 && (
+            <span className="size-4.5 rounded-full bg-primary text-white text-[10.5px] font-bold flex items-center justify-center">
+              {activeFilterCount}
+            </span>
+          )}
+        </UIButton>
+
+        {/* Reset Filter Button */}
+        {(activeFilterCount > 0 || searchQuery || selectedType !== "all") && (
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            onClick={handleResetFilters}
+            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
+            className="h-10 px-2 text-xs text-text-muted hover:text-text"
+            title="Reset filters"
+          >
+            Reset
+          </UIButton>
+        )}
+
+        {/* Right-Aligned Action Cluster */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          {/* Table / Card View Toggle */}
+          <div className="flex items-center bg-surface-alt p-0.5 rounded-xl border border-border">
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors cursor-pointer",
+                viewMode === "table" ? "bg-surface text-primary shadow-2xs" : "text-text-muted hover:text-text"
+              )}
+              title="Table view"
+            >
+              <Table2 className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors cursor-pointer",
+                viewMode === "grid" ? "bg-surface text-primary shadow-2xs" : "text-text-muted hover:text-text"
+              )}
+              title="Card view"
+            >
+              <LayoutGrid className="size-4" />
+            </button>
+          </div>
+
+          {/* Refresh Button */}
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={handleRefresh}
+            className="h-10 w-10 p-0 text-text-muted hover:text-text"
+            title="Refresh suppliers"
+          >
+            <RefreshCw
+              className={cn("size-4 text-text-muted hover:text-primary", isLoading && "animate-spin text-primary")}
+            />
+          </UIButton>
+
+          {/* Import Button */}
+          <PermissionGate permission="supplier:create">
+            <UIButton
+              type="button"
+              variant="outline"
+              size="md"
+              startIcon={<Download className="size-3.5 text-text-muted" />}
+              onClick={() => setIsImportConfigOpen(true)}
+              disabled={isUploading}
+              className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex"
+              title="Import Supplier Records from Excel"
+            >
+              {isUploading ? "Uploading..." : "Import"}
+            </UIButton>
+          </PermissionGate>
+
+          {/* Add Supplier Button */}
+          <PermissionGate permission="supplier:create">
+            <UIButton
+              type="button"
+              variant="primary"
+              size="md"
+              startIcon={<Plus className="size-3.5" />}
+              onClick={handleCreateSupplier}
+              className="h-10 px-3.5 text-xs font-semibold shadow-xs"
+            >
+              Add Supplier
+            </UIButton>
+          </PermissionGate>
+        </div>
+      </div>
+
+      {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ──── */}
+      {viewMode === "table" ? (
+        <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+          <div
+            ref={tableContainerRef}
+            className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 divide-y divide-border/60"
+          >
+            <UITable
+              stickyHeader
+              containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+              className="w-full text-xs font-sans"
+            >
+              {/* Sticky Table Header */}
+              <UITableHeader sticky className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs">
+                <UITableRow className="border-b border-border text-[11px] font-semibold text-text uppercase tracking-wider bg-surface-alt">
+                  <UITableHead sticky className="min-w-[220px]">Supplier Name</UITableHead>
+                  <UITableHead sticky className="min-w-[110px]">Code</UITableHead>
+                  <UITableHead sticky className="min-w-[130px]">Type</UITableHead>
+                  <UITableHead sticky className="min-w-[140px]">Mobile</UITableHead>
+                  <UITableHead sticky align="right" className="min-w-[150px]">Balance</UITableHead>
+                  <UITableHead sticky align="center" className="min-w-[100px]">Status</UITableHead>
+                  <UITableHead sticky align="right" className="w-20">Actions</UITableHead>
+                </UITableRow>
+              </UITableHeader>
+
+              <UITableBody>
+                {isLoading ? (
+                  <UITableLoading colSpan={7} rows={6} />
+                ) : suppliers.length === 0 ? (
+                  <UITableEmpty
+                    colSpan={7}
+                    title="No suppliers found"
+                    description={
+                      searchQuery || selectedType !== "all" || selectedStatus !== "all"
+                        ? "No suppliers match your active filter criteria. Try clearing filters."
+                        : "No supplier accounts recorded yet."
+                    }
+                    action={
+                      (searchQuery || selectedType !== "all" || selectedStatus !== "all") ? (
+                        <UIButton
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleResetFilters}
+                        >
+                          Clear Filters
+                        </UIButton>
+                      ) : undefined
+                    }
+                  />
+                ) : (
+                  suppliers.map((sup) => {
+                    const isCredit = sup.balanceType?.toLowerCase() === "cr";
+
+                    return (
+                      <UITableRow
+                        key={sup._id || sup.id}
+                        onClick={() => handleViewSupplier(sup)}
+                        className="cursor-pointer hover:bg-surface-hover/70 transition-colors"
+                      >
+                        {/* Supplier Name */}
+                        <UITableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                              {getInitials(sup.displayName)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-[13px] text-text truncate">
+                                {sup.displayName}
+                              </p>
+                              <p className="text-[11px] text-text-muted truncate">
+                                {sup.displayEmail || sup.city || "-"}
+                              </p>
+                            </div>
+                          </div>
+                        </UITableCell>
+
+                        {/* Code */}
+                        <UITableCell className="font-mono text-xs font-semibold text-text-muted whitespace-nowrap">
+                          {sup.displayCode}
+                        </UITableCell>
+
+                        {/* Type */}
+                        <UITableCell className="whitespace-nowrap">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-border text-[10.5px] font-bold text-text-muted bg-surface-alt">
+                            {sup.displayType}
+                          </span>
+                        </UITableCell>
+
+                        {/* Mobile */}
+                        <UITableCell className="font-mono text-xs text-text whitespace-nowrap">
+                          {sup.displayMobile}
+                        </UITableCell>
+
+                        {/* Outstanding Balance */}
+                        <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums">
+                          <div className="flex flex-col items-end">
+                            <span
+                              className={cn(
+                                "font-bold text-sm",
+                                isCredit ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
+                              )}
+                            >
+                              ₹{formatCurrency(sup.outstandingAmount)}
+                            </span>
+                            <span className="text-[9.5px] text-text-muted font-semibold uppercase">
+                              {sup.balanceType?.toUpperCase() || "CR"}
+                            </span>
+                          </div>
+                        </UITableCell>
+
+                        {/* Status */}
+                        <UITableCell align="center" className="whitespace-nowrap">
+                          {getStatusBadge(sup.displayStatus)}
+                        </UITableCell>
+
+                        {/* Actions */}
+                        <UITableCell align="right" onClick={(e) => e.stopPropagation()}>
+                          <UIDropdown align="right">
+                            <UIDropdownTrigger asChild>
+                              <UIIconButton
+                                variant="ghost"
+                                size="sm"
+                                className="text-text-muted hover:text-text h-8 w-8"
+                              >
+                                <MoreVertical className="size-4" />
+                              </UIIconButton>
+                            </UIDropdownTrigger>
+
+                            <UIDropdownMenu width="w-44">
+                              <UIDropdownItem
+                                icon={<Eye className="size-3.5" />}
+                                onClick={() => handleViewSupplier(sup)}
+                              >
+                                View Details
+                              </UIDropdownItem>
+                              <UIDropdownItem
+                                icon={<Edit3 className="size-3.5" />}
+                                onClick={() => handleEditSupplier(sup)}
+                              >
+                                Edit Profile
+                              </UIDropdownItem>
+                              <UIDropdownDivider />
+                              <UIDropdownItem
+                                destructive
+                                icon={<Trash2 className="size-3.5" />}
+                                onClick={() => handleDeleteSupplier(sup)}
+                              >
+                                Delete
+                              </UIDropdownItem>
+                            </UIDropdownMenu>
+                          </UIDropdown>
+                        </UITableCell>
+                      </UITableRow>
+                    );
+                  })
+                )}
+              </UITableBody>
+            </UITable>
+
+            {/* Infinite Scroll Trigger */}
+            {!isLoading && suppliers.length > 0 && (
+              <UIInfiniteScroll
+                onLoadMore={handleLoadMore}
+                hasMore={hasMore}
+                isLoading={isLoadingMore}
+                rootRef={tableContainerRef}
+                rootMargin="160px"
+                endMessage={
+                  !hasMore && suppliers.length > 0 ? (
+                    <span className="font-mono text-[11px] text-text-muted select-none">
+                      ✓ All {totalCount} matching suppliers loaded
+                    </span>
+                  ) : null
+                }
+              />
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Grid View */
+        <div
+          ref={cardContainerRef}
+          className="relative overflow-y-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 space-y-4"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {suppliers.map((sup) => (
+              <div
+                key={sup._id || sup.id}
+                onClick={() => handleViewSupplier(sup)}
+                className="bg-surface rounded-2xl border border-border p-4 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                        {getInitials(sup.displayName)}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-sm text-text truncate">{sup.displayName}</h4>
+                        <p className="text-xs text-text-muted font-mono">{sup.displayCode}</p>
+                      </div>
+                    </div>
+                    {getStatusBadge(sup.displayStatus)}
+                  </div>
+
+                  <div className="space-y-1 text-xs text-text-muted mb-3">
+                    <div className="flex items-center gap-1.5">
+                      <Phone className="size-3" />
+                      <span>{sup.displayMobile}</span>
+                    </div>
+                    {sup.displayEmail && (
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Mail className="size-3" />
+                        <span className="truncate">{sup.displayEmail}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-border/60 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-text-muted font-semibold uppercase">Balance</p>
+                    <p className={cn("text-xs font-bold font-mono", sup.balanceType === "dr" ? "text-emerald-600" : "text-rose-600")}>
+                      ₹{formatCurrency(sup.outstandingAmount)} {sup.balanceType?.toUpperCase()}
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold text-text-muted bg-surface-alt px-2 py-0.5 rounded border border-border">
+                    {sup.displayType}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Infinite Scroll Trigger */}
+          <UIInfiniteScroll
+            onLoadMore={handleLoadMore}
+            hasMore={hasMore}
+            isLoading={isLoadingMore}
+            rootRef={cardContainerRef}
+            rootMargin="160px"
+            endMessage={
+              !hasMore && suppliers.length > 0 ? (
+                <span className="font-mono text-[11px] text-text-muted select-none">
+                  ✓ All {totalCount} matching suppliers loaded
+                </span>
+              ) : null
+            }
+          />
+        </div>
+      )}
+
+      {/* ── Filter Modal ──────────────────────────────────────────────────────── */}
       <UIModal
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
@@ -335,58 +851,44 @@ const SuppliersDesktopPage = ({
       >
         <UIModalHeader>
           <UIModalTitle>Filter Suppliers</UIModalTitle>
-          <UIModalDescription>Select criteria to filter the suppliers list.</UIModalDescription>
+          <UIModalDescription>Refine supplier list by type, status, or sorting.</UIModalDescription>
         </UIModalHeader>
-        <UIModalBody className="overflow-visible">
-          <div className="space-y-5 py-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-text-muted">Type</label>
-              <UISelect
-                value={filters.type}
-                onChange={(val) => handleFilterChange({ type: val })}
-                options={[
-                  { label: "All Types", value: "all" },
-                  { label: "Manufacturer", value: "manufacturer" },
-                  { label: "Distributor", value: "distributor" },
-                  { label: "Wholesaler", value: "wholesaler" },
-                  { label: "Retailer", value: "retailer" },
-                  { label: "Stockist", value: "stockist" },
-                ]}
-                placeholder="All Types"
-                size="sm"
-              />
-            </div>
+        <UIModalBody className="overflow-visible space-y-4 py-2">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted">Supplier Type</label>
+            <UISelect
+              value={selectedType}
+              onChange={(val) => setSelectedType(val)}
+              options={SUPPLIER_TYPE_OPTIONS}
+              placeholder="All Types"
+              size="md"
+            />
+          </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-text-muted">Status</label>
-              <UISelect
-                value={filters.status}
-                onChange={(val) => handleFilterChange({ status: val })}
-                options={[
-                  { label: "All Status", value: "all" },
-                  { label: "Active", value: "active" },
-                  { label: "Inactive", value: "inactive" },
-                  { label: "Blocked", value: "blocked" },
-                ]}
-                placeholder="All Status"
-                size="sm"
-              />
-            </div>
-            
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-text-muted">Sort By</label>
-              <UISelect
-                value={sortBy}
-                onChange={onSortChange}
-                options={SORT_OPTIONS}
-                placeholder="Sort By..."
-                size="sm"
-              />
-            </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted">Status</label>
+            <UISelect
+              value={selectedStatus}
+              onChange={(val) => setSelectedStatus(val)}
+              options={STATUS_OPTIONS}
+              placeholder="All Status"
+              size="md"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted">Sort By</label>
+            <UISelect
+              value={sortBy}
+              onChange={(val) => setSortBy(val)}
+              options={SORT_OPTIONS}
+              placeholder="Sort By..."
+              size="md"
+            />
           </div>
         </UIModalBody>
         <UIModalFooter>
-          <UIButton variant="ghost" onClick={() => handleClearFilters()}>
+          <UIButton variant="ghost" onClick={handleResetFilters}>
             Clear Filters
           </UIButton>
           <UIButton variant="primary" onClick={() => setIsFilterModalOpen(false)}>
@@ -395,343 +897,32 @@ const SuppliersDesktopPage = ({
         </UIModalFooter>
       </UIModal>
 
-      {/* ── Main Content: Grid or List (Table) ── */}
-      {hasError ? (
-        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] text-center space-y-3 p-6">
-          <AlertTriangle className="size-9 text-error mx-auto" />
-          <h3 className="text-base font-bold text-text">
-            Unable to load suppliers list
-          </h3>
-          <p className="text-xs text-text-muted max-w-md mx-auto">
-            {error || "An error occurred while connecting to servers. Please retry."}
-          </p>
-          <UIButton
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            className="mt-1"
-          >
-            Retry Connection
-          </UIButton>
-        </div>
-      ) : isLoading ? (
-        /* Shimmer Loading Grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, idx) => (
-            <div key={idx} className="bg-surface rounded-2xl border border-border shadow-xs p-5">
-              <div className="flex items-center gap-3.5">
-                <UISkeleton className="size-10 rounded-full" />
-                <div className="space-y-2 flex-1">
-                  <UISkeleton className="h-3.5 w-24 rounded" />
-                  <UISkeleton className="h-2.5 w-16 rounded" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-6">
-                <div className="space-y-2">
-                  <UISkeleton className="h-2.5 w-12 rounded" />
-                  <UISkeleton className="h-3.5 w-20 rounded" />
-                </div>
-                <div className="space-y-2">
-                  <UISkeleton className="h-2.5 w-12 rounded" />
-                  <UISkeleton className="h-3.5 w-24 rounded" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : !hasSuppliers ? (
-        /* Empty State */
-        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-          <UIEmptyState
-            icon={<Users className="size-9 text-primary" />}
-            title="No suppliers configured yet"
-            description="Add supplier profiles to start managing your supply chain."
-            primaryAction={
-              <PermissionGate permission="supplier:create">
-                <UIButton
-                  variant="primary"
-                  size="sm"
-                  startIcon={<Plus className="size-4" />}
-                  onClick={handleCreateSupplier}
-                >
-                  Add Supplier
-                </UIButton>
-              </PermissionGate>
-            }
-          />
-        </div>
-      ) : !hasFilteredSuppliers ? (
-        /* Filter Empty State */
-        <div className="py-10 bg-surface rounded-2xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-          <UIEmptyState
-            icon={<Search className="size-9 text-text-muted" />}
-            title="No matching suppliers found"
-            description="Try changing your search query, status, or type filter criteria."
-            primaryAction={
-              <UIButton variant="outline" size="sm" onClick={handleClearFilters}>
-                Clear Filters
-              </UIButton>
-            }
-          />
-        </div>
-      ) : (
-        /* ── Render Active View: Grid or List (Table) ── */
-        <>
-          {viewMode === "grid" || !viewMode ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {paginatedSuppliers.map((supplier) => {
-                const co = getRandomCompany(supplier.id || supplier._id);
-                return (
-                <div 
-                  key={supplier.id || supplier._id} 
-                  className="bg-surface rounded-2xl border border-border shadow-xs p-5 flex flex-col hover:border-border-hover transition-all hover:shadow-sm cursor-pointer"
-                  onClick={() => handleViewSupplier(supplier)}
-                >
-                  {/* Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3.5">
-                      {supplier.supplierType === "distributor" ? (
-                        <div className="size-10 shrink-0 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-[15px]">
-                          {getInitials(supplier.displayName)}
-                        </div>
-                      ) : supplier.supplierType === "manufacturer" ? (
-                        <div className="size-10 shrink-0 rounded-full bg-warning/10 border border-warning/20 flex items-center justify-center text-warning font-bold text-[15px]">
-                          {getInitials(supplier.displayName)}
-                        </div>
-                      ) : (
-                        <div className="size-10 shrink-0 rounded-full bg-surface-alt border border-border flex items-center justify-center overflow-hidden">
-                          <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${supplier.displayName}&backgroundColor=b6e3f4,c0aede,d1d4f9`} className="size-full object-cover" alt="Avatar" />
-                        </div>
-                      )}
-                      
-                      <div>
-                        <h4 className="text-[14px] font-bold text-text mb-0.5 leading-snug">{supplier.displayName}</h4>
-                        <p className="text-[11px] font-semibold text-text-muted flex items-center gap-1.5">
-                          <span className={`size-1.5 rounded-full shrink-0 ${String(supplier.displayStatus).toLowerCase() === 'active' ? 'bg-success' : 'bg-error'}`}></span> 
-                          <span className="truncate max-w-[120px]">{getAddressText(supplier)}</span>
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <UIDropdown align="right">
-                        <UIDropdownTrigger asChild>
-                          <UIIconButton
-                            variant="ghost"
-                            size="sm"
-                            className="text-text-muted hover:text-text p-1.5 -mr-1.5 rounded-md hover:bg-surface-hover transition-colors h-8 w-8"
-                          >
-                            <MoreVertical className="w-[18px] h-[18px]" />
-                          </UIIconButton>
-                        </UIDropdownTrigger>
-            
-                        <UIDropdownMenu width="w-48">
-                          <UIDropdownItem
-                            icon={<Eye className="w-4 h-4" />}
-                            onClick={() => handleViewSupplier(supplier)}
-                          >
-                            View Details
-                          </UIDropdownItem>
-                          <UIDropdownItem
-                            icon={<Edit3 className="w-4 h-4" />}
-                            onClick={() => handleEditSupplier(supplier)}
-                          >
-                            Edit Supplier
-                          </UIDropdownItem>
-                          <UIDropdownDivider />
-                          <UIDropdownItem
-                            destructive
-                            icon={<Trash2 className="w-4 h-4" />}
-                            onClick={() => handleDeleteSupplier(supplier)}
-                          >
-                            Delete Profile
-                          </UIDropdownItem>
-                        </UIDropdownMenu>
-                      </UIDropdown>
-                    </div>
-                  </div>
-                  
-                  {/* Info Grid */}
-                  <div className="grid grid-cols-2 gap-4 mt-6">
-                    <div>
-                      <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1">Mobile</p>
-                      <p className="text-[13px] font-semibold text-text">{supplier.displayMobile || "-"}</p>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1">Outstanding</p>
-                      <p className={`text-[13px] font-bold truncate ${supplier.balanceType?.toLowerCase() === 'dr' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        ₹{(supplier.outstandingAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} {supplier.balanceType?.toUpperCase() || "CR"}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Footer Badges */}
-                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/50">
-                    <div>
-                      <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1.5">Type</p>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-border text-[10.5px] font-bold text-text-muted bg-surface-alt">
-                        {supplier.displayType || "Supplier"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <p className="text-[10px] font-semibold tracking-wide text-text-muted mb-1.5">Code</p>
-                      <span className="inline-flex items-center text-[10.5px] font-bold text-text">
-                        {supplier.displayCode || "-"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )})}
-            </div>
-          ) : (
-            <div className="bg-surface rounded-xl shadow-xs border border-border overflow-hidden">
-              <AppTable
-                columns={[
-                  {
-                    id: "name",
-                    key: "displayName",
-                    label: "Supplier Name",
-                    render: (_, row) => (
-                      <div className="flex items-center gap-3">
-                        <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                          {getInitials(row.displayName)}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-[13px] text-text">{row.displayName}</p>
-                          <p className="text-[11px] text-text-muted">{row.displayEmail || "-"}</p>
-                        </div>
-                      </div>
-                    )
-                  },
-                  {
-                    id: "code",
-                    key: "displayCode",
-                    label: "Code",
-                    render: (_, row) => <span className="font-mono text-xs">{row.displayCode || "-"}</span>
-                  },
-                  {
-                    id: "type",
-                    key: "displayType",
-                    label: "Type",
-                    render: (_, row) => (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-[5px] border border-[#E2E8F0] text-[10.5px] font-bold text-[#64748B] bg-white">
-                        {row.displayType || "Supplier"}
-                      </span>
-                    )
-                  },
-                  {
-                    id: "mobile",
-                    key: "displayMobile",
-                    label: "Mobile",
-                    render: (_, row) => <span className="text-xs text-[#334155]">{row.displayMobile || "-"}</span>
-                  },
-                  {
-                    id: "status",
-                    key: "displayStatus",
-                    label: "Status",
-                    render: (_, row) => (
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-[5px] text-[10.5px] font-bold
-                        ${getStatusColor(row.displayStatus) === 'success' ? 'bg-[#ECFDF5] text-[#10B981]' : ''}
-                        ${getStatusColor(row.displayStatus) === 'error' ? 'bg-[#FEF2F2] text-[#EF4444]' : ''}
-                        ${getStatusColor(row.displayStatus) === 'warning' ? 'bg-[#FFFBEB] text-[#F59E0B]' : ''}
-                        ${getStatusColor(row.displayStatus) === 'primary' ? 'bg-[#F1F5F9] text-[#64748B]' : ''}
-                      `}>
-                        {row.displayStatus}
-                      </span>
-                    )
-                  },
-                  {
-                    id: "actions",
-                    key: "actions",
-                    label: "",
-                    align: "right",
-                    render: (_, row) => (
-                      <div onClick={(e) => e.stopPropagation()} className="flex justify-end">
-                        <UIDropdown align="right">
-                          <UIDropdownTrigger asChild>
-                            <UIIconButton
-                              variant="ghost"
-                              size="sm"
-                              className="text-[#94A3B8] hover:text-[#475569] p-1 rounded hover:bg-[#F1F5F9] transition-colors h-8 w-8"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </UIIconButton>
-                          </UIDropdownTrigger>
-              
-                          <UIDropdownMenu width="w-48">
-                            <UIDropdownItem
-                              icon={<Eye className="w-4 h-4" />}
-                              onClick={() => handleViewSupplier(row)}
-                            >
-                              View Details
-                            </UIDropdownItem>
-                            <UIDropdownItem
-                              icon={<Edit3 className="w-4 h-4" />}
-                              onClick={() => handleEditSupplier(row)}
-                            >
-                              Edit Supplier
-                            </UIDropdownItem>
-                            <UIDropdownDivider />
-                            <UIDropdownItem
-                              destructive
-                              icon={<Trash2 className="w-4 h-4" />}
-                              onClick={() => handleDeleteSupplier(row)}
-                            >
-                              Delete Profile
-                            </UIDropdownItem>
-                          </UIDropdownMenu>
-                        </UIDropdown>
-                      </div>
-                    )
-                  }
-                ]}
-                rows={paginatedSuppliers}
-                hover
-                bordered={false}
-              />
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ── 4. Bottom Pagination Module ── */}
-      {shouldShowPagination && (
-        <div className="bg-surface rounded-xl shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.06] overflow-hidden">
-          <UIPagination
-            page={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredSuppliersCount}
-            pageSize={pageSize}
-            pageSizeOptions={[8, 12, 24, 48]}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-            showSummary
-            showPageSize
-          />
-        </div>
-      )}
-
-      {/* ── Import Preview Modal ── */}
-      <SupplierImportPreviewModal 
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        previewData={importPreviewData}
-        onImportSuccess={handleImportSuccess}
-      />
-      
+      {/* ── Import Modals ────────────────────────────────────────────────────── */}
       <SupplierImportConfigModal
         isOpen={isImportConfigOpen}
         onClose={() => setIsImportConfigOpen(false)}
-        onImportSubmit={handleImportSubmit}
-        isUploading={isUploading}
+        onSubmit={handleImportSubmit}
+        isLoading={isUploading}
+      />
+
+      <SupplierImportPreviewModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        previewData={importPreviewData}
+        onSuccess={() => {
+          setIsImportModalOpen(false);
+          handleRefresh();
+        }}
       />
 
       <SupplierOutstandingImportPreviewModal
         isOpen={isOutstandingImportModalOpen}
         onClose={() => setIsOutstandingImportModalOpen(false)}
         previewData={importPreviewData}
-        onImportSuccess={handleImportSuccess}
+        onSuccess={() => {
+          setIsOutstandingImportModalOpen(false);
+          handleRefresh();
+        }}
       />
     </div>
   );

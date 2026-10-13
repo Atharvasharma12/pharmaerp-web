@@ -50,27 +50,10 @@ export const BillingMobilePage = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handleMarkPaid = (invId) => {
-    setInvoices((prev) =>
-      prev.map((inv) =>
-        inv.id === invId
-          ? { ...inv, status: "Paid", paidAmount: inv.amount, balance: 0 }
-          : inv
-      )
-    );
-    if (selectedInvoice && selectedInvoice.id === invId) {
-      setSelectedInvoice((prev) => ({
-        ...prev,
-        status: "Paid",
-        paidAmount: prev.amount,
-        balance: 0,
-      }));
-    }
-  };
 
-  const handleCancelInvoice = async (invId) => {
+  const handleCancelInvoice = async (invId, cancelPayload = {}) => {
     try {
-      await invoiceService.cancelCustomerSale(invId);
+      await invoiceService.cancelCustomerSale(invId, cancelPayload);
       setInvoices((prev) =>
         prev.map((inv) =>
           inv.id === invId ? { ...inv, status: "Cancelled", balance: 0 } : inv
@@ -214,7 +197,6 @@ export const BillingMobilePage = () => {
         invoice={selectedInvoice}
         isOpen={Boolean(selectedInvoice)}
         onClose={() => setSelectedInvoice(null)}
-        onMarkPaid={handleMarkPaid}
         onCancelInvoice={handleCancelInvoice}
       />
     </section>

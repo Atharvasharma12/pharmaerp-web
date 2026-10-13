@@ -72,6 +72,7 @@ const PaymentQrsMobilePage = ({
   handleSetPrimary,
   clearError,
   clearMessage,
+  currentBranch,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
   const hasFilteredQrs = pagedQrs.length > 0;
@@ -111,7 +112,7 @@ const PaymentQrsMobilePage = ({
                 Payment QRs
               </AppHeading>
               <AppText variant="body2" sx={pageSubtitleSx}>
-                UPI QR settlement directories ({stats.totalCount || 0})
+                {currentBranch ? `${currentBranch.name} (${stats.totalCount || 0})` : `UPI QR directories (${stats.totalCount || 0})`}
               </AppText>
             </AppBox>
 

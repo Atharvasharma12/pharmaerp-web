@@ -233,13 +233,15 @@ export const CustomersDesktopPage = ({
     const email = c.email || "";
     const type = String(c.customerType || c.type || "retail").toLowerCase();
     const status = c.status || c.displayStatus || "Active";
-    const creditLimit = Number(c.creditLimit || 0);
-    const creditDays = Number(c.creditDays || 0);
+    const creditLimit = Math.max(0, Number(c.creditLimit || 0));
+    const creditDays = Math.max(0, Number(c.creditDays || 0));
 
-    const advanceBalance = Number(c.advanceBalance || 0);
-    const creditOutstanding = Number(c.creditOutstanding || 0);
-    const outstandingAmount = Number(c.outstandingAmount || 0);
-    const balanceType = String(c.balanceType || (creditOutstanding > 0 ? "dr" : "cr")).toLowerCase();
+    const advanceBalance = Math.max(0, Number(c.advanceBalance ?? c.advance ?? 0));
+    const creditOutstanding = Math.max(0, Number(c.creditOutstanding ?? c.credit ?? c.creditDue ?? 0));
+    const outstandingAmount = Math.max(0, Number(c.outstandingAmount ?? creditOutstanding ?? 0));
+    const balanceType = String(
+      c.balanceType || (creditOutstanding > 0 ? "dr" : advanceBalance > 0 ? "cr" : "zero")
+    ).toLowerCase();
 
     const billingAddress = c.billingAddress || c.address || {};
     const city = billingAddress.city || "";
@@ -1043,23 +1045,21 @@ export const CustomersDesktopPage = ({
               className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs border-b border-border"
             >
               <UITableRow className="border-b border-border text-[11px] font-semibold text-text-muted uppercase tracking-wider bg-surface-alt/70 h-10">
-                <UITableHead sticky className="min-w-[220px]">Customer</UITableHead>
+                <UITableHead sticky className="min-w-[240px]">Customer</UITableHead>
                 <UITableHead sticky align="center" className="min-w-[100px]">Segment</UITableHead>
-                <UITableHead sticky className="min-w-[130px]">Contact</UITableHead>
                 <UITableHead sticky align="right" className="min-w-[110px]">Credit Limit</UITableHead>
                 <UITableHead sticky align="right" className="min-w-[125px]">Advance (CR)</UITableHead>
                 <UITableHead sticky align="right" className="min-w-[130px]">Credit Due (DR)</UITableHead>
-                <UITableHead sticky align="center" className="min-w-[90px]">Status</UITableHead>
-                <UITableHead sticky align="right" className="min-w-[140px]">Actions</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[80px]">Actions</UITableHead>
               </UITableRow>
             </UITableHeader>
 
             <UITableBody>
               {isLoading ? (
-                <UITableLoading colSpan={8} rows={8} />
+                <UITableLoading colSpan={6} rows={8} />
               ) : filteredAndSortedCustomers.length === 0 ? (
                 <UITableEmpty
-                  colSpan={8}
+                  colSpan={6}
                   title="No customers found"
                   description={
                     debouncedSearch || activeFilterCount > 0
@@ -1098,8 +1098,8 @@ export const CustomersDesktopPage = ({
                       onClick={() => handleViewCustomer(c.rawCustomer || c)}
                       className="group cursor-pointer transition-colors hover:bg-surface-hover/70 h-13"
                     >
-                      {/* 1. Customer: Initials avatar, Name, Code & Location */}
-                      <UITableCell className="py-2">
+                      {/* 1. Customer: Line 1 = Name, Line 2 = Mobile (No Customer ID) */}
+                      <UITableCell className="py-2.5">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="size-8 rounded-lg bg-surface-alt border border-border/80 text-text flex items-center justify-center font-bold text-xs shrink-0 select-none">
                             {getInitials(c.name)}
@@ -1108,17 +1108,12 @@ export const CustomersDesktopPage = ({
                             <span className="font-semibold text-text truncate hover:text-primary transition-colors text-xs sm:text-sm leading-tight">
                               {c.name}
                             </span>
-                            <div className="flex items-center gap-1 text-[11px] text-text-muted font-mono truncate mt-0.5">
-                              <span>{c.customerCode}</span>
+                            <div className="flex items-center gap-1.5 text-[11.5px] text-text-muted font-mono truncate mt-0.5">
+                              <span>{c.mobile && c.mobile !== "—" ? c.mobile : "—"}</span>
                               {c.city ? (
                                 <>
-                                  <span className="text-text-muted/30 mx-0.5">•</span>
-                                  <span>{c.city}</span>
-                                </>
-                              ) : c.gstNumber ? (
-                                <>
-                                  <span className="text-text-muted/30 mx-0.5">•</span>
-                                  <span>GST: {c.gstNumber}</span>
+                                  <span className="text-text-muted/40 font-sans">•</span>
+                                  <span className="font-sans text-text-muted/80">{c.city}</span>
                                 </>
                               ) : null}
                             </div>
@@ -1133,21 +1128,7 @@ export const CustomersDesktopPage = ({
                         </span>
                       </UITableCell>
 
-                      {/* 3. Contact Info */}
-                      <UITableCell className="py-2">
-                        <div className="flex flex-col text-xs min-w-0">
-                          <span className="font-mono text-text font-medium text-xs truncate">
-                            {c.mobile || "—"}
-                          </span>
-                          {c.email && (
-                            <span className="text-[11px] text-text-muted truncate mt-0.5 max-w-[130px]">
-                              {c.email}
-                            </span>
-                          )}
-                        </div>
-                      </UITableCell>
-
-                      {/* 4. Credit Limit */}
+                      {/* 3. Credit Limit */}
                       <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-xs py-2">
                         {c.creditLimit > 0 ? (
                           <div className="flex flex-col items-end leading-tight">
@@ -1204,58 +1185,15 @@ export const CustomersDesktopPage = ({
                         )}
                       </UITableCell>
 
-                      {/* 7. Status */}
-                      <UITableCell align="center" className="whitespace-nowrap py-2">
-                        <span className="inline-flex items-center gap-1.5 text-xs text-text">
-                          <span
-                            className={cn(
-                              "size-1.5 rounded-full shrink-0",
-                              c.status === "Active"
-                                ? "bg-emerald-500"
-                                : c.status === "Inactive"
-                                ? "bg-amber-400"
-                                : "bg-rose-500"
-                            )}
-                          />
-                          <span className="text-text-muted text-[11.5px]">{c.status}</span>
-                        </span>
-                      </UITableCell>
+
 
                       {/* 8. Refined Row Actions */}
                       <UITableCell align="right" className="py-2">
                         <div
-                          className="flex items-center justify-end gap-1"
+                          className="flex items-center justify-end"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {/* Quick Advance Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleReceiveAdvance(c.rawCustomer || c);
-                            }}
-                            className="h-7 px-2 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-500/10 rounded-md transition-colors border border-transparent hover:border-emerald-500/20 cursor-pointer flex items-center gap-1"
-                            title="Receive Advance"
-                          >
-                            <Wallet className="size-3" />
-                            <span>Adv</span>
-                          </button>
-
-                          {/* Quick Settle Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSettleCredit(c.rawCustomer || c);
-                            }}
-                            className="h-7 px-2 text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-500/10 rounded-md transition-colors border border-transparent hover:border-rose-500/20 cursor-pointer flex items-center gap-1"
-                            title="Settle Credit"
-                          >
-                            <Receipt className="size-3" />
-                            <span>Settle</span>
-                          </button>
-
-                          {/* 3-Dots Dropdown */}
+                          {/* Actions Dropdown */}
                           <UIDropdown align="right">
                             <UIDropdownTrigger asChild>
                               <button
@@ -1269,43 +1207,61 @@ export const CustomersDesktopPage = ({
                                 <MoreVertical className="size-3.5" />
                               </button>
                             </UIDropdownTrigger>
-                            <UIDropdownMenu align="right" className="w-48 shadow-lg">
+                            <UIDropdownMenu align="right" className="w-52 shadow-lg">
                               <UIDropdownItem
+                                icon={<Wallet className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                                onClick={(e) => {
+                                  e?.stopPropagation?.();
+                                  handleReceiveAdvance(c.rawCustomer || c);
+                                }}
+                              >
+                                Receive Advance
+                              </UIDropdownItem>
+                              <UIDropdownItem
+                                icon={<Receipt className="size-4 text-rose-600 dark:text-rose-400 shrink-0" />}
+                                onClick={(e) => {
+                                  e?.stopPropagation?.();
+                                  handleSettleCredit(c.rawCustomer || c);
+                                }}
+                              >
+                                Settle Credit
+                              </UIDropdownItem>
+                              <UIDropdownItem
+                                icon={<BookOpen className="size-4 text-primary shrink-0" />}
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleViewTransactions(c.rawCustomer || c);
                                 }}
                               >
-                                <BookOpen className="size-4 mr-2 text-primary" />
                                 Statement & Ledger
                               </UIDropdownItem>
                               <UIDropdownItem
+                                icon={<Eye className="size-4 text-text-muted shrink-0" />}
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleViewCustomer(c.rawCustomer || c);
                                 }}
                               >
-                                <Eye className="size-4 mr-2 text-text-muted" />
                                 View Details
                               </UIDropdownItem>
                               <UIDropdownItem
+                                icon={<Edit3 className="size-4 text-text-muted shrink-0" />}
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleEditCustomer(c.rawCustomer || c);
                                 }}
                               >
-                                <Edit3 className="size-4 mr-2 text-text-muted" />
                                 Edit Profile
                               </UIDropdownItem>
                               <UIDropdownDivider />
                               <UIDropdownItem
+                                destructive
+                                icon={<Trash2 className="size-4 text-error shrink-0" />}
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleDeleteCustomer(c.rawCustomer || c);
                                 }}
-                                className="text-error focus:text-error"
                               >
-                                <Trash2 className="size-4 mr-2 text-error" />
                                 Delete Customer
                               </UIDropdownItem>
                             </UIDropdownMenu>

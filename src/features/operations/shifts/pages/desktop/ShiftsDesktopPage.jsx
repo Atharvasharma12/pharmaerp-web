@@ -1,6 +1,6 @@
 // src/features/operations/shifts/pages/desktop/ShiftsDesktopPage.jsx
 
-import React from "react";
+import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
   Users,
   Play,
@@ -9,12 +9,11 @@ import {
   Plus,
   RotateCcw,
   Download,
-  ChevronDown,
   Search,
-  ArrowUpDown,
   Table2,
   LayoutGrid,
   Clock,
+  RefreshCw,
 } from "lucide-react";
 import {
   UIButton,
@@ -23,7 +22,7 @@ import {
   UISelect,
   UIEmptyState,
   UIAlert,
-  UIPagination,
+  UIInfiniteScroll,
 } from "@/components/ui";
 
 import {
@@ -34,9 +33,10 @@ import {
   CloseShiftDialog,
 } from "../../components";
 import CloseBusinessDayDialog from "@/features/operations/business-days/components/CloseBusinessDayDialog";
+import { cn } from "@/lib/utils";
 
 const STATUS_SELECT_OPTIONS = [
-  { label: "All", value: "all" },
+  { label: "All Statuses", value: "all" },
   { label: "Open", value: "open" },
   { label: "Closed", value: "closed" },
   { label: "Cancelled", value: "cancelled" },
@@ -47,13 +47,13 @@ const SORT_OPTIONS = [
   { label: "Oldest First", value: "asc" },
 ];
 
-const PAGE_SIZE_OPTIONS = [20, 40, 60];
+const INITIAL_BATCH = 20;
 
 export const ShiftsDesktopPage = ({
   shifts = [],
-  paginatedShifts = [],
+  paginatedShifts,
   allShifts = [],
-  stats = [],
+  stats: propStats,
 
   filters = {},
   sortBy = "desc",
@@ -65,17 +65,6 @@ export const ShiftsDesktopPage = ({
   hasError,
   error,
   message,
-
-  totalShifts = 0,
-  filteredShiftsCount = 0,
-  hasShifts = false,
-  hasFilteredShifts = false,
-
-  currentPage = 1,
-  pageSize = 6,
-  totalPages = 1,
-  handlePageChange,
-  handlePageSizeChange,
 
   handleFilterChange,
   handleSearchChange,
@@ -94,17 +83,35 @@ export const ShiftsDesktopPage = ({
   isCloseBusinessDayOpen,
   setIsCloseBusinessDayOpen,
 }) => {
-  // ── Stat Calculations using Real Data (Matching Screenshot 4 Cards) ───────
+  const tableContainerRef = useRef(null);
+  const cardContainerRef = useRef(null);
+
+  // Client-side Infinite Scroll state
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
+
   const activeDataset = allShifts.length > 0 ? allShifts : shifts;
   const totalCount = activeDataset.length;
   const openCount = activeDataset.filter((s) => s.status === "open").length;
   const closedCount = activeDataset.filter((s) => s.status === "closed").length;
   const cancelledCount = activeDataset.filter((s) => s.status === "cancelled").length;
 
-  const displayShifts = paginatedShifts;
-  const totalEntries = filteredShiftsCount || shifts.length;
-  const isTableView = viewMode !== "card" && viewMode !== "grid";
   const hasOpenShift = openCount > 0;
+  const isTableView = viewMode !== "card" && viewMode !== "grid";
+
+  // Reset infinite scroll batch when dataset or filters change
+  useEffect(() => {
+    setVisibleCount(INITIAL_BATCH);
+  }, [shifts.length, filters.date, filters.status, filters.search]);
+
+  const visibleShifts = useMemo(() => {
+    return shifts.slice(0, visibleCount);
+  }, [shifts, visibleCount]);
+
+  const hasMore = visibleCount < shifts.length;
+
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + 20, shifts.length));
+  }, [shifts.length]);
 
   const handleExportCSV = () => {
     const listToExport = shifts.length ? shifts : allShifts;
@@ -147,9 +154,15 @@ export const ShiftsDesktopPage = ({
     document.body.removeChild(link);
   };
 
+  const isFiltered = Boolean(
+    filters.search ||
+    filters.date ||
+    (filters.status && filters.status !== "all")
+  );
+
   return (
-    <div className="w-full bg-bg min-h-full p-6 lg:p-8 space-y-6 text-text font-sans transition-colors">
-      {/* ── Global Error Message Banner ── */}
+    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-4 space-y-2.5 text-text font-sans transition-colors">
+      {/* Global Error Banner */}
       {error && !hasError && (
         <UIAlert
           intent="danger"
@@ -159,53 +172,212 @@ export const ShiftsDesktopPage = ({
         />
       )}
 
-      {/* ── Page Header: Title, Subtitle & Action Buttons (No Breadcrumbs) ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-[28px] font-bold text-text tracking-tight leading-tight">
-            Shifts
-          </h1>
-          <p className="text-sm text-text-muted mt-1">
-            Manage cashier shifts and cash drawer sessions
-          </p>
+      {/* ── 1. Compact 4-Card Statistics Grid ─────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {/* Card 1: Total Shifts */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
+            <Users className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">
+              Total Shifts
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {totalCount}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              All cashier sessions
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+        {/* Card 2: Open Shifts */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
+            <Play className="size-4 fill-current" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-success truncate">
+              Open Shifts
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {openCount}
+            </div>
+            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono truncate mt-0.5">
+              Currently active sessions
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Closed Shifts */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-surface-alt text-text flex items-center justify-center shrink-0">
+            <CheckCircle2 className="size-4.5 stroke-[2]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">
+              Closed Shifts
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {closedCount}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Reconciled & completed
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Cancelled Shifts */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-error-soft text-error flex items-center justify-center shrink-0">
+            <XCircle className="size-4.5 stroke-[2]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-error truncate">
+              Cancelled Shifts
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {cancelledCount}
+            </div>
+            <div className="text-[10px] text-rose-600 dark:text-rose-400 font-mono truncate mt-0.5">
+              Unstarted or terminated
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 2. Streamlined Single-Row Filter Toolbar ─────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Search Input */}
+        <div className="w-[200px] sm:w-[240px] lg:w-[280px]">
+          <UIInput
+            type="text"
+            value={filters.search || ""}
+            onChange={(e) => handleSearchChange?.(e.target.value)}
+            placeholder="Search shift #, name, or cashier..."
+            startIcon={<Search className="size-4 text-text-muted" />}
+            size="md"
+            variant="outline"
+            isClearable
+            onClear={() => handleSearchChange?.("")}
+            className="w-full"
+          />
+        </div>
+
+        {/* Date Picker */}
+        <div className="w-[145px] sm:w-[160px]">
+          <UIDatePicker
+            value={filters.date || ""}
+            onChange={(val) => handleFilterChange?.({ date: val || "" })}
+            placeholder="Select date"
+            size="md"
+            isClearable
+          />
+        </div>
+
+        {/* Status Dropdown */}
+        <div className="w-[140px] sm:w-[150px]">
+          <UISelect
+            value={filters.status || "all"}
+            onChange={(val) => handleFilterChange?.({ status: val })}
+            options={STATUS_SELECT_OPTIONS}
+            placeholder="Status"
+            size="md"
+          />
+        </div>
+
+        {/* Sort Dropdown */}
+        <div className="w-[140px] sm:w-[150px]">
+          <UISelect
+            value={sortBy || "desc"}
+            onChange={(val) => onSortChange?.(val)}
+            options={SORT_OPTIONS}
+            placeholder="Sort by"
+            size="md"
+          />
+        </div>
+
+        {/* Reset Filter Button */}
+        {isFiltered && (
           <UIButton
             type="button"
-            variant="outline"
+            variant="ghost"
             size="md"
-            onClick={handleRefresh}
-            startIcon={
-              <RotateCcw
-                className={`size-4 text-text-muted ${isLoading ? "animate-spin" : ""}`}
-              />
-            }
-            className="h-10 px-3.5 shadow-2xs font-medium"
+            onClick={handleClearFilters}
+            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
+            className="h-10 px-2 text-xs text-text-muted hover:text-text"
+            title="Reset all filters"
           >
-            Refresh
+            Reset
+          </UIButton>
+        )}
+
+        {/* Right-Aligned Action Cluster */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          {/* Table / Card View Toggle */}
+          <div className="flex items-center bg-surface-alt p-0.5 rounded-xl border border-border">
+            <button
+              type="button"
+              onClick={() => onViewModeChange?.("table")}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors cursor-pointer",
+                isTableView ? "bg-surface text-primary shadow-2xs" : "text-text-muted hover:text-text"
+              )}
+              title="Table view"
+            >
+              <Table2 className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onViewModeChange?.("card")}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors cursor-pointer",
+                !isTableView ? "bg-surface text-primary shadow-2xs" : "text-text-muted hover:text-text"
+              )}
+              title="Card view"
+            >
+              <LayoutGrid className="size-4" />
+            </button>
+          </div>
+
+          {/* Refresh Button */}
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={handleRefresh}
+            className="h-10 w-10 p-0 text-text-muted hover:text-text"
+            title="Refresh shifts"
+          >
+            <RefreshCw
+              className={cn("size-4 text-text-muted hover:text-primary", isLoading && "animate-spin text-primary")}
+            />
           </UIButton>
 
+          {/* Export CSV */}
           <UIButton
             type="button"
             variant="outline"
             size="md"
             onClick={handleExportCSV}
-            startIcon={<Download className="size-4 text-text-muted" />}
-            endIcon={<ChevronDown className="size-3.5 opacity-60 ml-0.5" />}
-            className="h-10 px-3.5 shadow-2xs font-medium"
+            startIcon={<Download className="size-3.5" />}
+            className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex"
+            title="Export shifts to CSV"
           >
             Export
           </UIButton>
 
+          {/* New Shift Button (when no shift is currently open) */}
           {!hasOpenShift && (
             <UIButton
               type="button"
               variant="primary"
               size="md"
-              onClick={() => setIsCreateOpen(true)}
-              startIcon={<Plus className="size-4 stroke-[2.5]" />}
-              className="h-10 px-4 shadow-xs font-semibold"
+              startIcon={<Plus className="size-3.5" />}
+              onClick={() => setIsCreateOpen?.(true)}
+              className="h-10 px-3.5 text-xs font-semibold shadow-xs"
             >
               New Shift
             </UIButton>
@@ -213,204 +385,31 @@ export const ShiftsDesktopPage = ({
         </div>
       </div>
 
-      {/* ── 4 Stat Cards Row (Exact Match from Screenshot & Active Color Tokens) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        {/* Card 1: Total Shifts */}
-        <div className="bg-surface rounded-xl border border-border p-5 flex items-center gap-4 shadow-xs transition-colors">
-          <div className="size-12 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <Users className="size-6 stroke-[1.8]" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[13px] font-medium text-text-muted truncate">
-              Total Shifts
-            </div>
-            <div className="text-2xl sm:text-[26px] font-bold text-text mt-0.5 leading-tight">
-              {totalCount}
-            </div>
-            <div className="text-xs text-text-muted mt-0.5">
-              All shift sessions
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: Open Shifts (Soft green tinted background per image) */}
-        <div className="bg-emerald-500/[0.04] dark:bg-emerald-950/20 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30 p-5 flex items-center gap-4 shadow-xs transition-colors">
-          <div className="size-12 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <Play className="size-5 fill-current" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[13px] font-semibold text-emerald-600 dark:text-emerald-400 truncate">
-              Open Shifts
-            </div>
-            <div className="text-2xl sm:text-[26px] font-bold text-text mt-0.5 leading-tight">
-              {openCount}
-            </div>
-            <div className="text-xs text-text-muted mt-0.5">
-              Currently active
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3: Closed Shifts */}
-        <div className="bg-surface rounded-xl border border-border p-5 flex items-center gap-4 shadow-xs transition-colors">
-          <div className="size-12 rounded-xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="size-6 stroke-[2]" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[13px] font-medium text-text-muted truncate">
-              Closed Shifts
-            </div>
-            <div className="text-2xl sm:text-[26px] font-bold text-text mt-0.5 leading-tight">
-              {closedCount}
-            </div>
-            <div className="text-xs text-text-muted mt-0.5">
-              Completed
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Cancelled Shifts (Soft red tinted background per image) */}
-        <div className="bg-red-500/[0.04] dark:bg-red-950/20 rounded-xl border border-red-500/20 dark:border-red-500/30 p-5 flex items-center gap-4 shadow-xs transition-colors">
-          <div className="size-12 rounded-xl bg-red-500 text-white flex items-center justify-center shrink-0">
-            <XCircle className="size-6 stroke-[2]" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[13px] font-semibold text-red-600 dark:text-red-400 truncate">
-              Cancelled Shifts
-            </div>
-            <div className="text-2xl sm:text-[26px] font-bold text-text mt-0.5 leading-tight">
-              {cancelledCount}
-            </div>
-            <div className="text-xs text-text-muted mt-0.5">
-              Did not start
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Search & Filter Toolbar with Table / Card Toggle ────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Left Side: Date, Search, Status, Sort By */}
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-          {/* Reusable UIDatePicker */}
-          <div className="w-[180px] sm:w-[210px]">
-            <UIDatePicker
-              value={filters.date || ""}
-              onChange={(val) => handleFilterChange?.({ date: val || "" })}
-              placeholder="Date..."
-              size="md"
-              presets
-              isClearable
-            />
-          </div>
-
-          {/* Reusable UIInput for Search */}
-          <div className="flex-1 min-w-[240px] max-w-md">
-            <UIInput
-              type="text"
-              value={filters.search || ""}
-              onChange={(e) => handleSearchChange?.(e.target.value)}
-              placeholder="Search by shift no, name or cashier..."
-              startIcon={<Search className="size-4 text-text-muted" />}
-              size="md"
-              variant="outline"
-              isClearable
-              onClear={() => handleSearchChange?.("")}
-              className="w-full"
-            />
-          </div>
-
-          {/* Reusable UISelect for Status */}
-          <div className="w-[130px]">
-            <UISelect
-              value={filters.status || "all"}
-              onChange={(val) => handleFilterChange?.({ status: val })}
-              options={STATUS_SELECT_OPTIONS}
-              placeholder="Status"
-              size="md"
-            />
-          </div>
-
-          {/* Reusable UISelect for Sort By */}
-          <div className="w-[155px]">
-            <UISelect
-              value={sortBy || "desc"}
-              onChange={(val) => onSortChange?.(val)}
-              options={SORT_OPTIONS}
-              placeholder="Sort By"
-              size="md"
-              startIcon={<ArrowUpDown className="size-3.5 text-text-muted" />}
-            />
-          </div>
-
-          {/* Reset Filters button if any active filter */}
-          {(filters.search || filters.date || (filters.status && filters.status !== "all")) && (
-            <UIButton
-              type="button"
-              variant="secondary"
-              size="md"
-              onClick={handleClearFilters}
-              className="h-10 px-3.5"
-            >
-              Reset
-            </UIButton>
-          )}
-        </div>
-
-        {/* Right Side: Segmented Table / Card View Switcher */}
-        <div className="flex items-center gap-1.5 p-1 bg-surface-alt/70 border border-border rounded-xl shrink-0">
-          <button
-            type="button"
-            onClick={() => onViewModeChange?.("table")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-              isTableView
-                ? "bg-primary text-primary-contrast shadow-xs"
-                : "text-text-muted hover:text-text hover:bg-surface-hover"
-            }`}
-          >
-            <Table2 className="size-4" />
-            <span>Table</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onViewModeChange?.("card")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-              !isTableView
-                ? "bg-primary text-primary-contrast shadow-xs"
-                : "text-text-muted hover:text-text hover:bg-surface-hover"
-            }`}
-          >
-            <LayoutGrid className="size-4" />
-            <span>Card</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ── Main Data View (Table or Card Grid) or Empty State ──────────────── */}
-      {displayShifts.length === 0 ? (
-        <div className="bg-surface rounded-xl border border-border p-8 shadow-xs">
+      {/* ── 3. Main Data View (Table with Sticky Header or Card Grid) ────────── */}
+      {shifts.length === 0 ? (
+        <div className="bg-surface rounded-2xl border border-border p-8 shadow-2xs">
           <UIEmptyState
             icon={<Clock className="size-8 text-primary" />}
             title="No shifts found"
             description={
-              filters.search || filters.date || (filters.status && filters.status !== "all")
+              isFiltered
                 ? "No shift sessions matched your filter criteria. Try clearing your filters."
                 : hasOpenShift
                 ? "No additional shifts found. Close the active shift before opening a new one."
                 : "No shift sessions opened yet. Open a New Shift to start cashier operations."
             }
             actionText={
-              filters.search || filters.date || (filters.status && filters.status !== "all")
+              isFiltered
                 ? "Clear Filters"
                 : !hasOpenShift
                 ? "New Shift"
                 : undefined
             }
             onAction={
-              filters.search || filters.date || (filters.status && filters.status !== "all")
+              isFiltered
                 ? handleClearFilters
                 : !hasOpenShift
-                ? () => setIsCreateOpen(true)
+                ? () => setIsCreateOpen?.(true)
                 : undefined
             }
             actionIcon={!hasOpenShift ? <Plus className="size-4" /> : undefined}
@@ -418,34 +417,43 @@ export const ShiftsDesktopPage = ({
           />
         </div>
       ) : isTableView ? (
-        /* ── Table View: Table & UIPagination Enclosed in Same Card with 0 Gap (Like Business Days) ── */
-        <div className="bg-surface rounded-xl border border-border shadow-xs overflow-hidden transition-colors">
-          <ShiftTableView
-            shifts={displayShifts}
-            onView={setViewShift}
-            onCloseShift={setCloseShift}
-          />
-
-          {totalEntries > 0 && (
-            <UIPagination
-              page={currentPage}
-              totalPages={totalPages}
-              totalItems={totalEntries}
-              pageSize={pageSize}
-              pageSizeOptions={PAGE_SIZE_OPTIONS}
-              onPageChange={handlePageChange}
-              onPageSizeChange={handlePageSizeChange}
-              showSummary
-              showPageSize
-              className="border-t border-border/60 bg-transparent px-4 py-3"
+        /* Table View */
+        <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+          <div
+            ref={tableContainerRef}
+            className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 divide-y divide-border/60"
+          >
+            <ShiftTableView
+              shifts={visibleShifts}
+              onView={setViewShift}
+              onCloseShift={setCloseShift}
             />
-          )}
+
+            {/* Infinite Scroll Trigger */}
+            <UIInfiniteScroll
+              onLoadMore={handleLoadMore}
+              hasMore={hasMore}
+              isLoading={false}
+              rootRef={tableContainerRef}
+              rootMargin="160px"
+              endMessage={
+                !hasMore && shifts.length > 0 ? (
+                  <span className="font-mono text-[11px] text-text-muted select-none">
+                    ✓ All {shifts.length} matching shifts loaded
+                  </span>
+                ) : null
+              }
+            />
+          </div>
         </div>
       ) : (
-        /* ── Card View: Grid of Shift Cards with Pagination ── */
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayShifts.map((shift) => (
+        /* Card View */
+        <div
+          ref={cardContainerRef}
+          className="relative overflow-y-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 space-y-4"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {visibleShifts.map((shift) => (
               <ShiftCard
                 key={shift._id}
                 shift={shift}
@@ -455,50 +463,51 @@ export const ShiftsDesktopPage = ({
             ))}
           </div>
 
-          {totalEntries > 0 && (
-            <div className="bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
-              <UIPagination
-                page={currentPage}
-                totalPages={totalPages}
-                totalItems={totalEntries}
-                pageSize={pageSize}
-                pageSizeOptions={PAGE_SIZE_OPTIONS}
-                onPageChange={handlePageChange}
-                onPageSizeChange={handlePageSizeChange}
-                showSummary
-                showPageSize
-                className="border-t-0 border-none bg-transparent px-4 py-3"
-              />
-            </div>
-          )}
+          {/* Infinite Scroll Trigger */}
+          <UIInfiniteScroll
+            onLoadMore={handleLoadMore}
+            hasMore={hasMore}
+            isLoading={false}
+            rootRef={cardContainerRef}
+            rootMargin="160px"
+            endMessage={
+              !hasMore && shifts.length > 0 ? (
+                <span className="font-mono text-[11px] text-text-muted select-none">
+                  ✓ All {shifts.length} matching shifts loaded
+                </span>
+              ) : null
+            }
+          />
         </div>
       )}
 
-      {/* ── Dialog Modals (Fully Preserved Business & Backend Logic) ───────── */}
+      {/* ── Dialogs ──────────────────────────────────────────────────────────── */}
       <CreateShiftDialog
         isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
+        onClose={() => setIsCreateOpen?.(false)}
+        openBusinessDay={openBusinessDay}
+        onSuccess={handleRefresh}
       />
+
       <ViewShiftDialog
-        isOpen={!!viewShift}
-        onClose={() => setViewShift(null)}
+        isOpen={Boolean(viewShift)}
         shift={viewShift}
-        onCloseShift={(s) => {
-          setViewShift(null);
-          setCloseShift(s);
-        }}
+        onClose={() => setViewShift?.(null)}
       />
+
       <CloseShiftDialog
-        isOpen={!!closeShift}
-        onClose={() => setCloseShift(null)}
+        isOpen={Boolean(closeShift)}
         shift={closeShift}
-        onOpenNewShift={() => setIsCreateOpen(true)}
-        onCreateDayClosing={() => setIsCloseBusinessDayOpen(true)}
+        onClose={() => setCloseShift?.(null)}
+        onSuccess={handleRefresh}
+        onOpenCloseBusinessDay={() => setIsCloseBusinessDayOpen?.(true)}
       />
+
       <CloseBusinessDayDialog
         isOpen={isCloseBusinessDayOpen}
-        onClose={() => setIsCloseBusinessDayOpen(false)}
         businessDay={openBusinessDay}
+        onClose={() => setIsCloseBusinessDayOpen?.(false)}
+        onSuccess={handleRefresh}
       />
     </div>
   );

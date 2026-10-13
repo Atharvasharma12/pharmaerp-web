@@ -31,6 +31,8 @@ import {
   Store,
   Plus,
   Info,
+  PauseCircle,
+  Play,
 } from "lucide-react";
 import CustomerDialog from "@/features/parties/customers/components/CustomerDialog";
 import { cn } from "@/lib/utils";
@@ -46,9 +48,15 @@ import useBranch from "@/features/branch/hooks/useBranch";
 import { API_STATUS } from "@/constants";
 import { getOpenBusinessDay } from "@/features/operations/business-days/store/businessDayThunk";
 import OpenBusinessDayDialog from "@/features/operations/business-days/components/OpenBusinessDayDialog";
-import { CreateShiftDialog } from "@/features/operations/shifts/components/CreateShiftDialog";
 import { POSCashDenominationModal } from "../components/POSCashDenominationModal";
 import { UIBadge, UIButton } from "@/components/ui";
+import {
+  HoldBillModal,
+  HeldBillsModal,
+  ResumeConflictDialog,
+  OrderInvoiceModal,
+} from "@/features/sales/components";
+import { useHoldBills } from "@/features/sales/hooks/useHoldBills";
 import { CalendarDays, ArrowRight, Sparkles } from "lucide-react";
 /* ─────────────── CONSTANTS ─────────────── */
 const BILLING_MODES = [
@@ -230,6 +238,25 @@ export const POSTerminalPage = () => {
   const [isDenominationModalOpen, setIsDenominationModalOpen] = useState(false);
   const [invoiceDenominations, setInvoiceDenominations] = useState(initialInvoice?.denominations || []);
   const [invoiceReturnedDenominations, setInvoiceReturnedDenominations] = useState(initialInvoice?.returnedDenominations || []);
+
+  /* ── Order Invoice Preview Modal ── */
+  const [completedInvoiceData, setCompletedInvoiceData] = useState(null);
+  const [isInvoicePreviewOpen, setIsInvoicePreviewOpen] = useState(false);
+
+  /* ── Hold Bill System ── */
+  const {
+    heldBills,
+    count: heldBillsCount,
+    holdBill,
+    resumeBill,
+    discardBill,
+    clearAll: clearAllHeldBills,
+  } = useHoldBills();
+
+  const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
+  const [isHeldBillsModalOpen, setIsHeldBillsModalOpen] = useState(false);
+  const [pendingResumeBill, setPendingResumeBill] = useState(null);
+  const [isResumeConflictOpen, setIsResumeConflictOpen] = useState(false);
 
   useEffect(() => {
     if (!currentBranch?._id) return;
@@ -791,14 +818,36 @@ export const POSTerminalPage = () => {
 
       const actualInvoiceNo = savedSaleResult?.invoiceNo || invoiceNo;
       setToast({ type: "success", message: `✅ Invoice ${actualInvoiceNo} ${isEditMode ? "updated" : "billed"} successfully! Grand Total: ${formatCurrency(calculations.grandTotal)}` });
-      setTimeout(() => {
-        setToast(null);
-        if (isEditMode) {
-          navigate("/billing");
-        } else {
-          window.location.reload();
-        }
-      }, 3000);
+      
+      const invoiceDocData = {
+        ...salePayload,
+        ...savedSaleResult,
+        invoiceNo: actualInvoiceNo,
+        customerName: billingMode === "B2B" ? selectedParty?.name || b2bSearchQuery : b2cName || "Walk-in Customer",
+        customerPhone: billingMode === "B2B" ? selectedParty?.mobile : b2cPhone,
+        customer: billingMode === "B2B" ? selectedParty : { name: b2cName || "Walk-in Customer", phone: b2cPhone },
+        items: cartItems.map((ci, idx) => ({
+          sr: idx + 1,
+          name: ci.name,
+          brand: ci.manufacturer || ci.brand,
+          hsn: ci.hsn || "30049099",
+          batch: ci.batchNo || ci.batch,
+          expiry: ci.expiryDate || ci.expiry,
+          mrp: ci.mrp || ci.rate,
+          qty: ci.qty,
+          price: ci.rate || ci.mrp,
+          disc: ci.itemDiscount || 0,
+          gst: ci.gstRate || ci.gst || 12,
+        })),
+        grandTotal: calculations.grandTotal,
+        subtotal: calculations.subtotal,
+        discount: calculations.totalDiscount,
+        tax: calculations.totalTax,
+        paymentMethod,
+        date: activeShift?.date || new Date().toISOString(),
+      };
+      setCompletedInvoiceData(invoiceDocData);
+      setIsInvoicePreviewOpen(true);
     } catch (err) {
       console.error("Submit bill error:", err);
       setToast({ type: "error", message: "❌ Failed to submit bill. Please try again." });
@@ -811,6 +860,164 @@ export const POSTerminalPage = () => {
   /* ────────────────── NEW BILL (RESET) ────────────────── */
   const handleNewBill = () => {
     window.location.reload();
+  };
+
+  /* ────────────────── HOLD & RESUME HANDLERS ───────────── */
+  const handleOpenHoldModal = () => {
+    if (cartItems.length === 0) {
+      setToast({ type: "error", message: "Cart is empty. Add products to hold a bill." });
+      setTimeout(() => setToast(null), 3000);
+      return;
+    }
+    setIsHoldModalOpen(true);
+  };
+
+  const handleConfirmHoldBill = (note) => {
+    const formattedCart = cartItems.map((ci) => ({
+      id: ci.productId,
+      productId: ci.productId,
+      name: ci.name,
+      productCode: ci.productCode,
+      batch: ci.batchNo,
+      batchNo: ci.batchNo,
+      expiry: ci.expiryDate,
+      expiryDate: ci.expiryDate,
+      qty: ci.qty,
+      mrp: ci.mrp,
+      price: ci.rate || ci.mrp,
+      disc: ci.itemDiscount || 0,
+      itemDiscount: ci.itemDiscount || 0,
+      gst: ci.gstRate || 0,
+      gstRate: ci.gstRate || 0,
+      manufacturer: ci.manufacturer,
+      pack: ci.pack,
+    }));
+
+    const customerObj = billingMode === "B2B" ? selectedParty : null;
+    const customerDisplayName = billingMode === "B2B" ? (selectedParty?.name || b2bSearchQuery) : b2cName;
+    const customerDisplayPhone = billingMode === "B2B" ? (selectedParty?.mobile || "") : b2cPhone;
+
+    const held = holdBill({
+      billingMode,
+      customer: customerObj,
+      customerName: customerDisplayName,
+      customerPhone: customerDisplayPhone,
+      doctorName: "",
+      saleDate: new Date().toISOString(),
+      cart: formattedCart,
+      note,
+    });
+
+    setCartItems([]);
+    setSelectedParty(null);
+    setB2bSearchQuery("");
+    setB2cName("");
+    setB2cPhone("");
+    setDiscount(0);
+    setCashTendered("");
+    setIsHoldModalOpen(false);
+
+    setToast({ type: "success", message: `⏸️ Bill ${held?.holdNumber || ""} held successfully.` });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const executeResumeBill = (targetBill) => {
+    if (!targetBill) return;
+
+    setBillingMode(targetBill.billingMode || "B2C");
+
+    if (targetBill.billingMode === "B2B") {
+      setSelectedParty(targetBill.customer || null);
+      setB2bSearchQuery(targetBill.customerName || "");
+      setB2cName("");
+      setB2cPhone("");
+    } else {
+      setSelectedParty(null);
+      setB2bSearchQuery("");
+      setB2cName(targetBill.customerName || "");
+      setB2cPhone(targetBill.customerPhone || "");
+    }
+
+    const restoredCart = (targetBill.cart || []).map((item) => ({
+      productId: item.productId || item.id,
+      name: item.name,
+      productCode: item.productCode || "",
+      batchNo: item.batchNo || item.batch || "",
+      expiryDate: item.expiryDate || item.expiry || null,
+      qty: item.qty || 1,
+      mrp: item.mrp || item.price || 0,
+      rate: item.price || item.mrp || 0,
+      ptr: item.ptr || 0,
+      gstRate: item.gstRate || item.gst || 0,
+      itemDiscount: item.disc || item.itemDiscount || 0,
+      manufacturer: item.manufacturer || item.brand || "",
+      pack: item.pack || "",
+    }));
+
+    setCartItems(restoredCart);
+    resumeBill(targetBill.id);
+
+    setIsResumeConflictOpen(false);
+    setIsHeldBillsModalOpen(false);
+    setPendingResumeBill(null);
+
+    setToast({ type: "success", message: `▶️ Bill ${targetBill.holdNumber || ""} resumed.` });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleRequestResumeBill = (heldBill) => {
+    if (cartItems.length > 0) {
+      setPendingResumeBill(heldBill);
+      setIsResumeConflictOpen(true);
+    } else {
+      executeResumeBill(heldBill);
+    }
+  };
+
+  const handleHoldCurrentAndResume = () => {
+    if (!pendingResumeBill) return;
+
+    const formattedCart = cartItems.map((ci) => ({
+      id: ci.productId,
+      productId: ci.productId,
+      name: ci.name,
+      productCode: ci.productCode,
+      batch: ci.batchNo,
+      batchNo: ci.batchNo,
+      expiry: ci.expiryDate,
+      expiryDate: ci.expiryDate,
+      qty: ci.qty,
+      mrp: ci.mrp,
+      price: ci.rate || ci.mrp,
+      disc: ci.itemDiscount || 0,
+      itemDiscount: ci.itemDiscount || 0,
+      gst: ci.gstRate || 0,
+      gstRate: ci.gstRate || 0,
+      manufacturer: ci.manufacturer,
+      pack: ci.pack,
+    }));
+
+    const customerObj = billingMode === "B2B" ? selectedParty : null;
+    const customerDisplayName = billingMode === "B2B" ? (selectedParty?.name || b2bSearchQuery) : b2cName;
+    const customerDisplayPhone = billingMode === "B2B" ? (selectedParty?.mobile || "") : b2cPhone;
+
+    holdBill({
+      billingMode,
+      customer: customerObj,
+      customerName: customerDisplayName,
+      customerPhone: customerDisplayPhone,
+      doctorName: "",
+      saleDate: new Date().toISOString(),
+      cart: formattedCart,
+      note: `Swapped while resuming ${pendingResumeBill.holdNumber}`,
+    });
+
+    executeResumeBill(pendingResumeBill);
+  };
+
+  const handleDiscardCurrentAndResume = () => {
+    if (!pendingResumeBill) return;
+    executeResumeBill(pendingResumeBill);
   };
 
   /* ═══════════════════════════════════════════════════════════
@@ -894,8 +1101,29 @@ export const POSTerminalPage = () => {
           ))}
         </div>
 
-        {/* Right — Clock & Shortcuts */}
+        {/* Right — Held Bills Queue, Clock & Shortcuts */}
         <div className="flex items-center gap-3">
+          {/* Held Bills Queue Trigger Button */}
+          <button
+            type="button"
+            onClick={() => setIsHeldBillsModalOpen(true)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer",
+              heldBillsCount > 0
+                ? "bg-amber-500/15 border-amber-500/35 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 shadow-xs"
+                : "bg-surface-alt border-border text-text-muted hover:text-text hover:bg-surface"
+            )}
+            title="Held Bills Queue (F7)"
+          >
+            <PauseCircle className="size-3.5 text-amber-500 shrink-0" />
+            <span>Held Bills</span>
+            {heldBillsCount > 0 && (
+              <span className="size-4.5 rounded-full bg-amber-500 text-white font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
+                {heldBillsCount}
+              </span>
+            )}
+          </button>
+
           <div className="flex items-center gap-1.5 text-text-muted">
             <Clock className="size-3.5" />
             <span className="text-xs font-mono font-semibold tabular-nums">{currentTime}</span>
@@ -1531,14 +1759,32 @@ export const POSTerminalPage = () => {
               </span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleNewBill}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-text-muted bg-surface-alt/50 border border-border hover:bg-surface-hover hover:text-text transition-all cursor-pointer"
-            >
-              <Plus className="size-3.5" />
-              <span>New Bill</span>
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleOpenHoldModal}
+                disabled={cartItems.length === 0}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer",
+                  cartItems.length > 0
+                    ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20"
+                    : "bg-surface-alt/50 border-border text-text-disabled cursor-not-allowed"
+                )}
+                title="Hold this bill"
+              >
+                <PauseCircle className="size-3.5 text-amber-500 shrink-0" />
+                <span>Hold Bill</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleNewBill}
+                className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-text-muted bg-surface-alt/50 border border-border hover:bg-surface-hover hover:text-text transition-all cursor-pointer"
+              >
+                <Plus className="size-3.5" />
+                <span>New Bill</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1556,6 +1802,78 @@ export const POSTerminalPage = () => {
         initialDenominations={invoiceDenominations}
         initialReturnedDenominations={invoiceReturnedDenominations}
         requiredAmount={calculations.grandTotal}
+      />
+
+      {/* ── HOLD BILL MODALS ───────────────────────────── */}
+      <HoldBillModal
+        isOpen={isHoldModalOpen}
+        onClose={() => setIsHoldModalOpen(false)}
+        onConfirmHold={handleConfirmHoldBill}
+        cartSummary={{
+          items: cartItems,
+          itemCount: calculations.totalItems,
+          grandTotal: calculations.grandTotal,
+          customerName:
+            billingMode === "B2B"
+              ? selectedParty?.name || b2bSearchQuery
+              : b2cName,
+          customerPhone:
+            billingMode === "B2B"
+              ? selectedParty?.mobile || ""
+              : b2cPhone,
+          billingMode,
+        }}
+      />
+
+      <HeldBillsModal
+        isOpen={isHeldBillsModalOpen}
+        onClose={() => setIsHeldBillsModalOpen(false)}
+        heldBills={heldBills}
+        branchName={currentBranch?.name || "Active Branch"}
+        onResume={handleRequestResumeBill}
+        onDiscard={discardBill}
+        onClearAll={clearAllHeldBills}
+      />
+
+      <ResumeConflictDialog
+        isOpen={isResumeConflictOpen}
+        onClose={() => {
+          setIsResumeConflictOpen(false);
+          setPendingResumeBill(null);
+        }}
+        targetHeldBill={pendingResumeBill}
+        currentCartCount={calculations.totalItems}
+        currentCartTotal={calculations.grandTotal}
+        currentCustomerName={
+          billingMode === "B2B"
+            ? selectedParty?.name || b2bSearchQuery || "B2B Party"
+            : b2cName || "Walk-in Customer"
+        }
+        onHoldCurrentAndResume={handleHoldCurrentAndResume}
+        onDiscardCurrentAndResume={handleDiscardCurrentAndResume}
+      />
+
+      <OrderInvoiceModal
+        isOpen={isInvoicePreviewOpen}
+        onClose={() => {
+          setIsInvoicePreviewOpen(false);
+          setCompletedInvoiceData(null);
+          if (isEditMode) {
+            navigate("/billing");
+          } else {
+            handleNewBill();
+          }
+        }}
+        onNewSale={() => {
+          setIsInvoicePreviewOpen(false);
+          setCompletedInvoiceData(null);
+          if (isEditMode) {
+            navigate("/billing");
+          } else {
+            handleNewBill();
+          }
+        }}
+        saleData={completedInvoiceData}
       />
     </div>
   );

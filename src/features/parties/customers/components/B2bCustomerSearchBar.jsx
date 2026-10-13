@@ -49,22 +49,28 @@ export const B2bCustomerSearchBar = forwardRef(
       input: inputRef.current,
     }));
 
-    // Local & API B2C Customer Filter (excluding wholesalers & retailers)
+    // Local & API B2B Customer Filter
     const executeSearch = useCallback(
       async (query) => {
-        setIsLoading(true);
-
         const q = (query || "").trim().toLowerCase();
+
+        // Until the user actively types to search, do NOT show customers
+        if (!q) {
+          setResults([]);
+          setIsLoading(false);
+          setIsOpen(false);
+          return;
+        }
+
+        setIsLoading(true);
 
         let apiResults = [];
         try {
-          if (q || !q) { // fetch default on mount
-            const types = b2bPartyType === "all" ? "retail,wholesale" : (b2bPartyType === "wholesaler" ? "wholesale" : "retail");
-            const res = await customerService.getCustomers({ search: q || undefined, customerType: types, limit: 10 });
-            const list = res.data?.data?.customers || res.data?.customers || res.data?.data || [];
-            if (Array.isArray(list)) {
-              apiResults = list;
-            }
+          const types = b2bPartyType === "all" ? "retail,wholesale" : (b2bPartyType === "wholesaler" ? "wholesale" : "retail");
+          const res = await customerService.getCustomers({ search: q, customerType: types, limit: 50 });
+          const list = res.data?.data?.customers || res.data?.customers || res.data?.data || [];
+          if (Array.isArray(list)) {
+            apiResults = list;
           }
         } catch (err) {
           console.warn("API Customer search failed:", err);
@@ -89,11 +95,19 @@ export const B2bCustomerSearchBar = forwardRef(
         setResults(mappedResults);
         setIsLoading(false);
       },
-      []
+      [b2bPartyType]
     );
 
-    // Initial load and query change effect
+    // Initial load and query change effect - ONLY run if user has typed something
     useEffect(() => {
+      const q = (currentValue || "").trim();
+      if (!q) {
+        setResults([]);
+        setIsLoading(false);
+        setIsOpen(false);
+        return;
+      }
+
       const timer = setTimeout(() => {
         executeSearch(currentValue);
       }, debounceMs);
@@ -107,6 +121,23 @@ export const B2bCustomerSearchBar = forwardRef(
         setSearchTerm(selectedCustomer.name);
       }
     }, [selectedCustomer, isOpen]);
+
+    // Scroll highlighted item into view during keyboard navigation (Arrow Up / Down)
+    useEffect(() => {
+      if (selectedIndex >= 0 && listRef.current) {
+        const container = listRef.current;
+        const selectedEl = container.querySelector(`[data-index="${selectedIndex}"]`) || container.children[selectedIndex];
+        if (selectedEl) {
+          if (selectedIndex === 0) {
+            container.scrollTop = 0;
+          } else if (selectedIndex === results.length - 1) {
+            container.scrollTop = container.scrollHeight;
+          } else if (typeof selectedEl.scrollIntoView === "function") {
+            selectedEl.scrollIntoView({ block: "nearest", inline: "nearest" });
+          }
+        }
+      }
+    }, [selectedIndex, results.length]);
 
     // Click outside handler
     useEffect(() => {
@@ -125,7 +156,13 @@ export const B2bCustomerSearchBar = forwardRef(
       if (!isControlled) {
         setSearchTerm(val);
       }
-      setIsOpen(true);
+      if (onInputChange) onInputChange(val);
+      if (val.trim()) {
+        setIsOpen(true);
+      } else {
+        setIsOpen(false);
+        setResults([]);
+      }
       setSelectedIndex(-1);
     };
 
@@ -134,7 +171,9 @@ export const B2bCustomerSearchBar = forwardRef(
         setSearchTerm("");
       }
       setSelectedIndex(-1);
-      setIsOpen(true);
+      setIsOpen(false);
+      setResults([]);
+      if (onInputChange) onInputChange("");
       inputRef.current?.focus();
     };
 
@@ -150,7 +189,9 @@ export const B2bCustomerSearchBar = forwardRef(
 
     const handleKeyDown = (e) => {
       if (!isOpen && e.key === "ArrowDown") {
-        setIsOpen(true);
+        if (currentValue?.trim() && results.length > 0) {
+          setIsOpen(true);
+        }
         return;
       }
 
@@ -203,7 +244,11 @@ export const B2bCustomerSearchBar = forwardRef(
             type="text"
             value={currentValue}
             onChange={handleInputChange}
-            onFocus={() => setIsOpen(true)}
+            onFocus={() => {
+              if (currentValue && currentValue.trim().length > 0 && results.length > 0) {
+                setIsOpen(true);
+              }
+            }}
             onKeyDown={handleKeyDown}
             disabled={disabled}
             autoFocus={autoFocus}
@@ -223,8 +268,8 @@ export const B2bCustomerSearchBar = forwardRef(
           )}
         </div>
 
-        {/* Dropdown Results List */}
-        {isOpen && (
+        {/* Dropdown Results List - Only render when open AND user has searched */}
+        {isOpen && Boolean(currentValue?.trim()) && (
           <div
             className={cn(
               "absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-2xl border border-border bg-surface shadow-[var(--app-shadow-xl)] animate-in fade-in-50 zoom-in-95 duration-100",
@@ -242,7 +287,7 @@ export const B2bCustomerSearchBar = forwardRef(
             </div>
 
             {/* Results */}
-            <div ref={listRef} className="max-h-[280px] overflow-y-auto p-1.5 space-y-1">
+            <div ref={listRef} className="relative max-h-[320px] overflow-y-auto p-1.5 space-y-1 scroll-smooth">
               {results.length > 0 ? (
                 results.map((cust, idx) => {
                   const isSelected = selectedCustomer?.id === cust.id || idx === selectedIndex;
@@ -250,6 +295,7 @@ export const B2bCustomerSearchBar = forwardRef(
                   return (
                     <div
                       key={cust.id || idx}
+                      data-index={idx}
                       onMouseEnter={() => setSelectedIndex(idx)}
                       onClick={() => handleSelect(cust)}
                       className={cn(

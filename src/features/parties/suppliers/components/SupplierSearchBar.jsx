@@ -107,6 +107,23 @@ export const SupplierSearchBar = forwardRef(
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // Scroll highlighted item into view during keyboard navigation (Arrow Up / Down)
+    useEffect(() => {
+      if (selectedIndex >= 0 && listRef.current) {
+        const container = listRef.current;
+        const selectedEl = container.querySelector(`[data-index="${selectedIndex}"]`) || container.children[selectedIndex];
+        if (selectedEl) {
+          if (selectedIndex === 0) {
+            container.scrollTop = 0;
+          } else if (selectedIndex === results.length - 1) {
+            container.scrollTop = container.scrollHeight;
+          } else if (typeof selectedEl.scrollIntoView === "function") {
+            selectedEl.scrollIntoView({ block: "nearest", inline: "nearest" });
+          }
+        }
+      }
+    }, [selectedIndex, results.length]);
+
     const handleInputChange = (e) => {
       const val = e.target.value;
       if (!isControlled) {
@@ -225,7 +242,7 @@ export const SupplierSearchBar = forwardRef(
               </span>
             </div>
 
-            <div ref={listRef} className="max-h-[280px] overflow-y-auto p-1.5 space-y-1">
+            <div ref={listRef} className="relative max-h-[320px] overflow-y-auto p-1.5 space-y-1 scroll-smooth">
               {results.length > 0 ? (
                 results.map((supp, idx) => {
                   const isSelected = selectedSupplier?.id === supp.id || idx === selectedIndex;
@@ -233,6 +250,7 @@ export const SupplierSearchBar = forwardRef(
                   return (
                     <div
                       key={supp.id || idx}
+                      data-index={idx}
                       onMouseEnter={() => setSelectedIndex(idx)}
                       onClick={() => handleSelect(supp)}
                       className={cn(

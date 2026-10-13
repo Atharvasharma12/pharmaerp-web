@@ -17,8 +17,8 @@ const invoiceService = {
     return apiClient.put(`${ENDPOINTS.SALES.INVOICES.BY_CUSTOMER(customerId)}/${invoiceId}`, payload);
   },
 
-  cancelCustomerSale(invoiceId) {
-    return apiClient.put(`/sales/invoices/${invoiceId}/cancel`);
+  cancelCustomerSale(invoiceId, payload = {}) {
+    return apiClient.put(`/sales/invoices/${invoiceId}/cancel`, payload);
   },
 
   getNextInvoiceNumber(params = {}) {

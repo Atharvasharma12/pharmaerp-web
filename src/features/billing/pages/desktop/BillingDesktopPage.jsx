@@ -11,7 +11,11 @@ import {
   Banknote,
   QrCode,
   RotateCcw,
+  PauseCircle,
+  SlidersHorizontal,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants";
 import {
   UIButton,
   UIInput,
@@ -33,7 +37,11 @@ import useWorkspace from "@/features/workspace/hooks/useWorkspace";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
 import invoiceService from "@/features/sales/services/invoiceService";
+import usePaymentQr from "@/features/finance/treasury/payment-qr/hooks/usePaymentQr";
 import { BillingInvoiceDetailsDrawer } from "../../components/BillingInvoiceDetailsDrawer";
+import BillingInvoiceFilterModal from "../../components/BillingInvoiceFilterModal";
+import { HeldBillsModal } from "@/features/sales/components";
+import { useHoldBills } from "@/features/sales/hooks/useHoldBills";
 
 const formatCurrency = (val) => {
   if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
@@ -79,6 +87,8 @@ const PAYMENT_TYPE_OPTIONS = [
   { label: "Cash", value: "Cash" },
   { label: "UPI", value: "UPI" },
   { label: "Split", value: "Split" },
+  { label: "Credit", value: "Credit" },
+  { label: "Advance", value: "Advance" },
 ];
 
 const STATUS_SELECT_OPTIONS = [
@@ -101,8 +111,25 @@ const SORT_SELECT_OPTIONS = [
 const PAGE_LIMIT = 10;
 
 export const BillingDesktopPage = () => {
+  const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const { currentBranch } = useBranch();
+
+  // ── Hold Bill System ──
+  const {
+    heldBills,
+    count: heldBillsCount,
+    discardBill,
+    clearAll: clearAllHeldBills,
+  } = useHoldBills();
+  const [isHeldBillsModalOpen, setIsHeldBillsModalOpen] = useState(false);
+
+  const handleResumeFromBilling = (heldBill) => {
+    setIsHeldBillsModalOpen(false);
+    navigate(ROUTES.SALES || "/sales", {
+      state: { resumeHeldBill: heldBill },
+    });
+  };
   useActiveShift(currentBranch?._id);
   const tableContainerRef = useRef(null);
 
@@ -137,8 +164,70 @@ export const BillingDesktopPage = () => {
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [selectedPaymentType, setSelectedPaymentType] = useState("all");
+  const [selectedPaymentQr, setSelectedPaymentQr] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [sortOption, setSortOption] = useState("date-desc");
+  const [fromInvoice, setFromInvoice] = useState("");
+  const [toInvoice, setToInvoice] = useState("");
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
+  // Compute active count for filters inside the Filter Modal
+  const modalActiveFiltersCount = useMemo(() => {
+    let count = 0;
+    if (fromInvoice.trim()) count++;
+    if (toInvoice.trim()) count++;
+    if (selectedStatus && selectedStatus !== "all") count++;
+    if (sortOption && sortOption !== "date-desc") count++;
+    return count;
+  }, [fromInvoice, toInvoice, selectedStatus, sortOption]);
+
+  // Load branch UPI QR codes for UPI sub-filter
+  const { paymentQrs, getPaymentQrs } = usePaymentQr();
+
+  useEffect(() => {
+    if (currentWorkspace) {
+      getPaymentQrs({
+        branchId: currentBranch?._id || undefined,
+        status: "ACTIVE",
+      });
+    }
+  }, [currentWorkspace, currentBranch?._id, getPaymentQrs]);
+
+  // Construct options for branch UPI QR sub-filter
+  const upiQrOptions = useMemo(() => {
+    const list = (paymentQrs || []).filter((q) => {
+      if (q.status && q.status !== "ACTIVE") return false;
+      if (!currentBranch?._id) return true;
+      const qBranchId = q.branchId?._id || q.branchId;
+      return !qBranchId || String(qBranchId) === String(currentBranch._id);
+    });
+    return [
+      { label: "All UPI QR Codes", value: "all" },
+      ...list.map((qr) => {
+        const bankName =
+          qr.bankAccountId?.bankMasterId?.bankName ||
+          qr.bankAccountId?.accountName ||
+          qr.bankAccountId?.accountHolderName ||
+          "";
+        const labelText = qr.label
+          ? `${qr.label}${bankName ? ` (${bankName})` : ""}`
+          : bankName
+          ? `${bankName} (${qr.upiId})`
+          : qr.upiId;
+        return {
+          label: labelText,
+          value: String(qr._id),
+        };
+      }),
+    ];
+  }, [paymentQrs, currentBranch?._id]);
+
+  const handlePaymentTypeChange = (val) => {
+    setSelectedPaymentType(val);
+    if (val !== "UPI") {
+      setSelectedPaymentQr("all");
+    }
+  };
 
   // Derive sort column and direction
   const [sortBy, sortOrder] = useMemo(() => {
@@ -255,11 +344,34 @@ export const BillingDesktopPage = () => {
         ? String(rawPhone).trim()
         : "—";
 
+    const shiftObj =
+      s.shift && typeof s.shift === "object"
+        ? s.shift
+        : s.shiftId && typeof s.shiftId === "object"
+        ? s.shiftId
+        : {};
+
+    const shiftNo =
+      shiftObj.shiftNo ||
+      shiftObj.shiftNumber ||
+      s.shiftNo ||
+      s.shiftNumber ||
+      null;
+
+    const shiftName =
+      shiftObj.shiftName ||
+      s.shiftName ||
+      (shiftObj.openPeriod
+        ? `${shiftObj.openPeriod.charAt(0).toUpperCase() + shiftObj.openPeriod.slice(1)} Shift`
+        : null);
+
     return {
       id: s._id || s.id || `inv-${Date.now()}-${Math.random()}`,
       shiftId: (s.shiftId && typeof s.shiftId === "object") ? s.shiftId._id : (s.shiftId || null),
-      shift: (s.shiftId && typeof s.shiftId === "object") ? s.shiftId : (s.shift || null),
-      shiftStatus: (s.shiftId && typeof s.shiftId === "object") ? s.shiftId.status : (s.shiftStatus || null),
+      shift: shiftObj._id ? shiftObj : (s.shift || null),
+      shiftNo,
+      shiftName,
+      shiftStatus: shiftObj.status || (s.shiftStatus || null),
       createdAt: s.createdAt || null,
       updatedAt: s.updatedAt || null,
       branchId: s.branchId || null,
@@ -280,6 +392,7 @@ export const BillingDesktopPage = () => {
       balance: Math.max(0, Number(s.grandTotal || 0) - Number(s.cashTendered || s.grandTotal || 0)),
       status: s.status || "Paid",
       paymentMode: s.paymentMethod || s.paymentMode || "Cash",
+      creditDueDate: s.creditDueDate || s.dueDate || (Array.isArray(s.payments) ? s.payments.find((p) => p.creditDueDate)?.creditDueDate : null) || null,
       billingMode: s.billingMode || "B2C",
       createdByName: s.createdByName || (s.createdByEmail ? s.createdByEmail.split("@")[0] : "System User"),
       createdByEmail: s.createdByEmail || null,
@@ -303,8 +416,11 @@ export const BillingDesktopPage = () => {
         search: debouncedSearch || undefined,
         status: selectedStatus !== "all" ? selectedStatus : undefined,
         paymentMethod: selectedPaymentType !== "all" ? selectedPaymentType : undefined,
+        paymentQrId: (selectedPaymentType === "UPI" && selectedPaymentQr !== "all") ? selectedPaymentQr : undefined,
         sortBy: sBy,
         sortOrder: sOrder,
+        fromInvoice: fromInvoice.trim() || undefined,
+        toInvoice: toInvoice.trim() || undefined,
         ...dateParams,
       };
 
@@ -369,7 +485,10 @@ export const BillingDesktopPage = () => {
     debouncedSearch,
     selectedStatus,
     selectedPaymentType,
+    selectedPaymentQr,
     sortOption,
+    fromInvoice,
+    toInvoice,
     buildDateParams,
   ]);
 
@@ -389,8 +508,11 @@ export const BillingDesktopPage = () => {
         search: debouncedSearch || undefined,
         status: selectedStatus !== "all" ? selectedStatus : undefined,
         paymentMethod: selectedPaymentType !== "all" ? selectedPaymentType : undefined,
+        paymentQrId: (selectedPaymentType === "UPI" && selectedPaymentQr !== "all") ? selectedPaymentQr : undefined,
         sortBy: sBy,
         sortOrder: sOrder,
+        fromInvoice: fromInvoice.trim() || undefined,
+        toInvoice: toInvoice.trim() || undefined,
         ...dateParams,
       };
 
@@ -428,7 +550,10 @@ export const BillingDesktopPage = () => {
     debouncedSearch,
     selectedStatus,
     selectedPaymentType,
+    selectedPaymentQr,
     sortOption,
+    fromInvoice,
+    toInvoice,
     buildDateParams,
     totalInvoices,
   ]);
@@ -445,34 +570,18 @@ export const BillingDesktopPage = () => {
     setCustomStartDate("");
     setCustomEndDate("");
     setSelectedPaymentType("all");
+    setSelectedPaymentQr("all");
     setSelectedStatus("all");
     setSortOption("date-desc");
+    setFromInvoice("");
+    setToInvoice("");
   };
 
-  // Payment status & cancellation handlers
-  const handleMarkPaid = (invId) => {
-    setInvoices((prev) =>
-      prev.map((inv) =>
-        inv.id === invId
-          ? { ...inv, status: "Paid", paidAmount: inv.amount, balance: 0 }
-          : inv
-      )
-    );
-    if (selectedInvoice && selectedInvoice.id === invId) {
-      setSelectedInvoice((prev) => ({
-        ...prev,
-        status: "Paid",
-        paidAmount: prev.amount,
-        balance: 0,
-      }));
-    }
-    setToastMessage("✅ Invoice marked as Paid.");
-    setTimeout(() => setToastMessage(null), 3000);
-  };
+  // Cancellation handler
 
-  const handleCancelInvoice = async (invId) => {
+  const handleCancelInvoice = async (invId, cancelPayload = {}) => {
     try {
-      await invoiceService.cancelCustomerSale(invId);
+      await invoiceService.cancelCustomerSale(invId, cancelPayload);
       setInvoices((prev) =>
         prev.map((inv) =>
           inv.id === invId ? { ...inv, status: "Cancelled", balance: 0 } : inv
@@ -530,23 +639,24 @@ export const BillingDesktopPage = () => {
   };
 
   // Render Payment Type Badge
-  const renderPaymentTypeBadge = (paymentMode, isSplitHighlighted = false) => {
+  const renderPaymentTypeBadge = (paymentMode, isSplitHighlighted = false, creditDueDate = null) => {
     const mode = String(paymentMode || "").trim();
-    if (mode === "Cash") {
+    const modeUpper = mode.toUpperCase();
+    if (modeUpper === "CASH") {
       return (
         <UIBadge variant="soft" color="success" className="font-semibold text-xs">
           Cash
         </UIBadge>
       );
     }
-    if (mode === "UPI") {
+    if (modeUpper === "UPI") {
       return (
         <UIBadge variant="soft" color="info" className="font-semibold text-xs">
           UPI
         </UIBadge>
       );
     }
-    if (mode === "Split") {
+    if (modeUpper === "SPLIT") {
       return (
         <div className="inline-flex flex-col items-center gap-0.5">
           <UIBadge
@@ -565,6 +675,27 @@ export const BillingDesktopPage = () => {
             </span>
           )}
         </div>
+      );
+    }
+    if (modeUpper === "CREDIT") {
+      return (
+        <div className="inline-flex flex-col items-center gap-0.5">
+          <UIBadge variant="soft" color="warning" className="font-semibold text-xs border border-amber-500/30">
+            Credit
+          </UIBadge>
+          {creditDueDate && (
+            <span className="text-[9.5px] font-bold text-amber-600 dark:text-amber-400 font-mono tracking-tight">
+              Due: {formatDate(creditDueDate)}
+            </span>
+          )}
+        </div>
+      );
+    }
+    if (modeUpper === "ADVANCE") {
+      return (
+        <UIBadge variant="soft" color="primary" className="font-semibold text-xs border border-primary/30">
+          Advance
+        </UIBadge>
       );
     }
     return (
@@ -1002,34 +1133,46 @@ export const BillingDesktopPage = () => {
         <div className="w-[145px]">
           <UISelect
             value={selectedPaymentType}
-            onChange={(val) => setSelectedPaymentType(val)}
+            onChange={handlePaymentTypeChange}
             options={PAYMENT_TYPE_OPTIONS}
             placeholder="All Payments"
             size="md"
           />
         </div>
 
-        {/* Status Selector */}
-        <div className="w-[140px]">
-          <UISelect
-            value={selectedStatus}
-            onChange={(val) => setSelectedStatus(val)}
-            options={STATUS_SELECT_OPTIONS}
-            placeholder="All Statuses"
-            size="md"
-          />
-        </div>
+        {/* UPI QR Sub-Filter (shown only when UPI selected) */}
+        {selectedPaymentType === "UPI" && (
+          <div className="w-[180px] sm:w-[210px] animate-in fade-in-50 duration-200">
+            <UISelect
+              value={selectedPaymentQr}
+              onChange={(val) => setSelectedPaymentQr(val)}
+              options={upiQrOptions}
+              placeholder="All UPI QRs"
+              size="md"
+            />
+          </div>
+        )}
 
-        {/* Sort Selector */}
-        <div className="w-[170px] sm:w-[185px]">
-          <UISelect
-            value={sortOption}
-            onChange={(val) => setSortOption(val)}
-            options={SORT_SELECT_OPTIONS}
-            placeholder="Sort Invoices"
-            size="md"
-          />
-        </div>
+        {/* Advanced Filter Modal Button (with active badge count) */}
+        <UIButton
+          type="button"
+          variant={modalActiveFiltersCount > 0 ? "primary" : "secondary"}
+          size="md"
+          onClick={() => setIsFilterModalOpen(true)}
+          startIcon={<SlidersHorizontal className="size-4" />}
+          className={cn(
+            "h-10 px-3.5 shrink-0 transition-all",
+            modalActiveFiltersCount > 0 && "font-bold shadow-xs"
+          )}
+          title="Open Advanced Filters"
+        >
+          <span>Filters</span>
+          {modalActiveFiltersCount > 0 && (
+            <span className="size-5 rounded-full bg-white/25 text-white font-mono text-[10.5px] font-bold flex items-center justify-center shrink-0 ml-1">
+              {modalActiveFiltersCount}
+            </span>
+          )}
+        </UIButton>
 
         {/* Refresh Button */}
         <UIButton
@@ -1043,7 +1186,7 @@ export const BillingDesktopPage = () => {
               className={cn("size-4 text-primary", isLoading && "animate-spin")}
             />
           }
-          className="h-10 px-3.5"
+          className="h-10 px-3.5 shrink-0"
           title="Refresh Invoices"
         >
           Refresh
@@ -1056,8 +1199,8 @@ export const BillingDesktopPage = () => {
           size="md"
           onClick={handleResetFilters}
           startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
-          className="h-10 px-3 text-text-muted hover:text-text"
-          title="Reset Filters"
+          className="h-10 px-3 text-text-muted hover:text-text shrink-0"
+          title="Reset All Filters"
         >
           Reset
         </UIButton>
@@ -1141,8 +1284,9 @@ export const BillingDesktopPage = () => {
                 invoices.map((inv) => {
                   const split = getSplitBreakdown(inv);
                   const isSplit = String(inv.paymentMode || "").toUpperCase() === "SPLIT" || (Array.isArray(inv.payments) && inv.payments.length > 1) || (split.cash > 0 && split.upi > 0);
-                  const isSplitUnderSingleFilter =
-                    (selectedPaymentType === "Cash" || selectedPaymentType === "UPI") && isSplit;
+                  const isSplitUnderCash = selectedPaymentType === "Cash" && isSplit;
+                  const isSplitUnderUpi = selectedPaymentType === "UPI" && isSplit;
+                  const isSplitUnderSingleFilter = isSplitUnderCash || isSplitUnderUpi;
 
                   return (
                     <UITableRow
@@ -1150,14 +1294,25 @@ export const BillingDesktopPage = () => {
                       onClick={() => setSelectedInvoice(inv)}
                       className={cn(
                         "cursor-pointer transition-colors",
-                        isSplitUnderSingleFilter
-                          ? "bg-amber-500/[0.04] dark:bg-amber-500/[0.09] hover:bg-amber-500/[0.08] dark:hover:bg-amber-500/[0.14] border-l-[3.5px] border-l-amber-500"
-                          : "hover:bg-surface-hover/70"
+                        isSplitUnderCash
+                          ? "bg-emerald-500/[0.05] dark:bg-emerald-500/[0.10] hover:bg-emerald-500/[0.09] dark:hover:bg-emerald-500/[0.15] border-l-[3.5px] border-l-emerald-500"
+                          : isSplitUnderUpi
+                            ? "bg-sky-500/[0.05] dark:bg-sky-500/[0.10] hover:bg-sky-500/[0.09] dark:hover:bg-sky-500/[0.15] border-l-[3.5px] border-l-sky-500"
+                            : "hover:bg-surface-hover/70"
                       )}
                     >
-                      {/* Invoice No */}
-                      <UITableCell mono className="font-bold text-primary font-mono whitespace-nowrap">
-                        {inv.invoiceNo}
+                      {/* Invoice No & Shift */}
+                      <UITableCell className="whitespace-nowrap">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold text-primary font-mono text-[13px] tracking-tight">
+                            {inv.invoiceNo}
+                          </span>
+                          <span className="text-[11px] text-text-muted font-mono truncate">
+                            {inv.shiftNo
+                              ? `Shift: ${inv.shiftNo}${inv.shiftName ? ` (${inv.shiftName})` : ""}`
+                              : (inv.shiftName ? `Shift: ${inv.shiftName}` : "Shift: —")}
+                          </span>
+                        </div>
                       </UITableCell>
 
                       {/* Customer / Patient */}
@@ -1193,38 +1348,86 @@ export const BillingDesktopPage = () => {
 
                       {/* Payment Type */}
                       <UITableCell align="center" className="whitespace-nowrap">
-                        {renderPaymentTypeBadge(inv.paymentMode, isSplitUnderSingleFilter)}
+                        {renderPaymentTypeBadge(inv.paymentMode, isSplitUnderSingleFilter, inv.creditDueDate)}
                       </UITableCell>
 
-                      {/* Amount with Split Breakdown */}
+                      {/* Amount with Split Breakdown & Dynamic Blurring */}
                       <UITableCell align="right">
                         <div className="flex flex-col items-end">
-                          <span className="font-mono font-bold text-text tabular-nums text-sm">
-                            ₹{formatCurrency(inv.amount)}
-                          </span>
-                          {isSplit && (
-                            <div className="mt-0.5 flex flex-col items-end text-[10.5px] font-mono leading-tight">
-                              {split.cash > 0 && (
-                                <span className={cn(
-                                  "font-semibold",
-                                  selectedPaymentType === "Cash"
-                                    ? "text-emerald-600 dark:text-emerald-400 underline decoration-emerald-500/40"
-                                    : "text-emerald-600 dark:text-emerald-400"
-                                )}>
-                                  Cash: ₹{formatCurrency(split.cash)}
+                          {isSplit ? (
+                            selectedPaymentType === "Cash" ? (
+                              // Cash filter selected: Highlight Cash amount, Blur UPI amount
+                              <div className="flex flex-col items-end">
+                                <div className="flex items-baseline gap-1.5">
+                                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Cash:</span>
+                                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-sm">
+                                    ₹{formatCurrency(split.cash)}
+                                  </span>
+                                </div>
+                                {split.upi > 0 && (
+                                  <div
+                                    className="flex items-baseline gap-1 mt-0.5 filter blur-[2px] opacity-40 select-none transition-all cursor-not-allowed"
+                                    title="UPI amount (blurred in Cash view)"
+                                  >
+                                    <span className="text-[10px] text-text-muted">UPI:</span>
+                                    <span className="font-mono text-[11px] text-text-muted tabular-nums">
+                                      ₹{formatCurrency(split.upi)}
+                                    </span>
+                                  </div>
+                                )}
+                                <span className="text-[9.5px] text-text-muted/70 font-mono mt-0.5">
+                                  Total: ₹{formatCurrency(inv.amount)}
                                 </span>
-                              )}
-                              {split.upi > 0 && (
-                                <span className={cn(
-                                  "font-semibold",
-                                  selectedPaymentType === "UPI"
-                                    ? "text-sky-600 dark:text-sky-400 underline decoration-sky-500/40"
-                                    : "text-sky-600 dark:text-sky-400"
-                                )}>
-                                  UPI: ₹{formatCurrency(split.upi)}
+                              </div>
+                            ) : selectedPaymentType === "UPI" ? (
+                              // UPI filter selected: Highlight UPI amount, Blur Cash amount
+                              <div className="flex flex-col items-end">
+                                <div className="flex items-baseline gap-1.5">
+                                  <span className="text-[11px] font-semibold text-sky-600 dark:text-sky-400">UPI:</span>
+                                  <span className="font-mono font-bold text-sky-600 dark:text-sky-400 tabular-nums text-sm">
+                                    ₹{formatCurrency(split.upi)}
+                                  </span>
+                                </div>
+                                {split.cash > 0 && (
+                                  <div
+                                    className="flex items-baseline gap-1 mt-0.5 filter blur-[2px] opacity-40 select-none transition-all cursor-not-allowed"
+                                    title="Cash amount (blurred in UPI view)"
+                                  >
+                                    <span className="text-[10px] text-text-muted">Cash:</span>
+                                    <span className="font-mono text-[11px] text-text-muted tabular-nums">
+                                      ₹{formatCurrency(split.cash)}
+                                    </span>
+                                  </div>
+                                )}
+                                <span className="text-[9.5px] text-text-muted/70 font-mono mt-0.5">
+                                  Total: ₹{formatCurrency(inv.amount)}
                                 </span>
-                              )}
-                            </div>
+                              </div>
+                            ) : (
+                              // Standard view (All Payments / Split / Credit / Advance)
+                              <div className="flex flex-col items-end">
+                                <span className="font-mono font-bold text-text tabular-nums text-sm">
+                                  ₹{formatCurrency(inv.amount)}
+                                </span>
+                                <div className="mt-0.5 flex flex-col items-end text-[10.5px] font-mono leading-tight">
+                                  {split.cash > 0 && (
+                                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                      Cash: ₹{formatCurrency(split.cash)}
+                                    </span>
+                                  )}
+                                  {split.upi > 0 && (
+                                    <span className="font-semibold text-sky-600 dark:text-sky-400">
+                                      UPI: ₹{formatCurrency(split.upi)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          ) : (
+                            // Regular non-split invoices
+                            <span className="font-mono font-bold text-text tabular-nums text-sm">
+                              ₹{formatCurrency(inv.amount)}
+                            </span>
                           )}
                         </div>
                       </UITableCell>
@@ -1278,8 +1481,33 @@ export const BillingDesktopPage = () => {
         invoice={selectedInvoice}
         isOpen={Boolean(selectedInvoice)}
         onClose={() => setSelectedInvoice(null)}
-        onMarkPaid={handleMarkPaid}
         onCancelInvoice={handleCancelInvoice}
+      />
+
+      {/* ── Advanced Invoice Filters Dialog ── */}
+      <BillingInvoiceFilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        initialFilters={{
+          fromInvoice,
+          toInvoice,
+          status: selectedStatus,
+          sortBy: sortOption,
+        }}
+        onApply={(newFilters) => {
+          setFromInvoice(newFilters.fromInvoice || "");
+          setToInvoice(newFilters.toInvoice || "");
+          setSelectedStatus(newFilters.status || "all");
+          setSortOption(newFilters.sortBy || "date-desc");
+        }}
+        onReset={() => {
+          setFromInvoice("");
+          setToInvoice("");
+          setSelectedStatus("all");
+          setSortOption("date-desc");
+        }}
+        statusOptions={STATUS_SELECT_OPTIONS}
+        sortOptions={SORT_SELECT_OPTIONS}
       />
     </div>
   );
