@@ -15,6 +15,7 @@ import {
   Wallet,
   Scale,
   ArrowUpRight,
+  ArrowDownRight,
   Phone,
   Mail,
   MoreVertical,
@@ -176,16 +177,15 @@ export const CustomersDesktopPage = ({
   // Filter Modal Dialog state
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
-  // Active filter count for badge
+  // Active filter count for badge (filters configured inside modal)
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (customerScope !== "all") count++;
     if (selectedType !== "all") count++;
     if (selectedBalanceType !== "all") count++;
     if (selectedStatus !== "all") count++;
     if (sortOption !== "name-asc") count++;
     return count;
-  }, [customerScope, selectedType, selectedBalanceType, selectedStatus, sortOption]);
+  }, [selectedType, selectedBalanceType, selectedStatus, sortOption]);
 
   // Excel Import States
   const [isImportConfigOpen, setIsImportConfigOpen] = useState(false);
@@ -813,60 +813,95 @@ export const CustomersDesktopPage = ({
         )}
       </AnimatePresence>
 
-      {/* ── 1. Clean Single-Row Page Header (Zero Clutter, Completely Free) ────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-0.5 pb-1">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
-            <Users className="size-4" />
+      {/* ── 1. Compact 4-Card Statistics Grid (Top of Page) ────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {/* Card 1: Total Customers */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
+            <Users className="size-4.5 stroke-[1.8]" />
           </div>
-          <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-text tracking-tight truncate">
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">
               {customerScope === "b2b"
                 ? "B2B Accounts"
                 : customerScope === "b2c"
                 ? "B2C Walk-ins"
-                : "Customers"}
-            </h1>
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface-alt border border-border text-text-muted font-mono font-medium shrink-0">
+                : "Total Customers"}
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               {stats.totalCustomers || totalCount || 0}
-            </span>
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              {customerScope === "b2b"
+                ? "B2B wholesale & commercial"
+                : customerScope === "b2c"
+                ? "B2C retail walk-in accounts"
+                : "Registered customer base"}
+            </div>
           </div>
         </div>
 
-        {/* Compact Financial Metrics Ribbon (Zero Clutter, Breathable) */}
-        <div className="flex items-center gap-3 text-xs font-mono bg-surface border border-border rounded-xl px-3 py-1.5 shadow-2xs self-start sm:self-auto">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-text-muted font-sans font-medium">Due:</span>
-            <span className="font-bold text-rose-600 dark:text-rose-400 tabular-nums">
+        {/* Card 2: Credit Receivables (DR) */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-error-soft text-error flex items-center justify-center shrink-0">
+            <ArrowDownRight className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-error truncate">
+              Credit Receivables (DR)
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               ₹{formatCurrency(stats.totalDr)}
-            </span>
-            <span className="text-[9.5px] text-rose-500 font-bold">DR</span>
+            </div>
+            <div className="text-[10px] text-rose-600 dark:text-rose-400 font-mono truncate mt-0.5">
+              {stats.drCount || 0} accounts with dues
+            </div>
           </div>
-          <span className="text-border/80">|</span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-text-muted font-sans font-medium">Advance:</span>
-            <span className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+        </div>
+
+        {/* Card 3: Customer Advances (CR) */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
+            <ArrowUpRight className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-success truncate">
+              Customer Advances (CR)
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               ₹{formatCurrency(stats.totalAdvance || stats.totalCr)}
-            </span>
-            <span className="text-[9.5px] text-emerald-500 font-bold">CR</span>
+            </div>
+            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono truncate mt-0.5">
+              {stats.crCount || 0} accounts with advance
+            </div>
           </div>
-          <span className="text-border/80">|</span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-text-muted font-sans font-medium">Net:</span>
-            <span className="font-bold text-primary tabular-nums">
+        </div>
+
+        {/* Card 4: Net Position */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Scale className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-primary truncate">
+              Net Position
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               ₹{formatCurrency(stats.netRunning || Math.abs((stats.totalDr || 0) - (stats.totalAdvance || stats.totalCr || 0)))}
-            </span>
-            <span className="text-[9.5px] text-primary font-bold">
-              {(stats.totalDr || 0) >= (stats.totalAdvance || stats.totalCr || 0) ? "DR" : "CR"}
-            </span>
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              {(stats.totalDr || 0) >= (stats.totalAdvance || stats.totalCr || 0)
+                ? "Net Debit Position (Receivable)"
+                : "Net Credit Position (Advance Held)"}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── 2. Streamlined Single-Row Toolbar (Zero Upfront Filter Clutter) ──────── */}
+      {/* ── 2. Streamlined Single-Row Toolbar ─────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* Prominent Search Input */}
-        <div className="flex-1 min-w-[240px] sm:min-w-[280px]">
+        {/* Compact Search Input (Decreased Width, Not Stretching Full Width) */}
+        <div className="w-[240px] sm:w-[280px] lg:w-[320px]">
           <UIInput
             type="text"
             value={searchQuery}
@@ -878,6 +913,17 @@ export const CustomersDesktopPage = ({
             isClearable
             onClear={() => setSearchQuery("")}
             className="w-full"
+          />
+        </div>
+
+        {/* Upfront Best Filter: Customer Scope / Segment (B2B, B2C, All) */}
+        <div className="w-[170px] sm:w-[195px]">
+          <UISelect
+            value={customerScope}
+            onChange={(val) => setCustomerScope(val)}
+            options={SCOPE_MODAL_OPTIONS}
+            placeholder="All Customers"
+            size="md"
           />
         </div>
 
@@ -893,7 +939,7 @@ export const CustomersDesktopPage = ({
             />
           }
           className={cn(
-            "h-9 px-3 text-xs sm:text-sm font-semibold gap-1.5 transition-all select-none",
+            "h-10 px-3 text-xs sm:text-sm font-semibold gap-1.5 transition-all select-none",
             activeFilterCount > 0 && "border-primary/40 bg-primary/10 text-primary font-bold shadow-2xs"
           )}
           title="Open filters dialog"
@@ -907,14 +953,14 @@ export const CustomersDesktopPage = ({
         </UIButton>
 
         {/* Quick Reset (only visible when filters or search query are active) */}
-        {(activeFilterCount > 0 || searchQuery) && (
+        {(activeFilterCount > 0 || searchQuery || customerScope !== "all") && (
           <UIButton
             type="button"
             variant="ghost"
             size="md"
             onClick={handleResetFilters}
             startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
-            className="h-9 px-2 text-xs text-text-muted hover:text-text"
+            className="h-10 px-2 text-xs text-text-muted hover:text-text"
             title="Reset all filters"
           >
             Reset
@@ -929,7 +975,7 @@ export const CustomersDesktopPage = ({
             size="md"
             disabled={isLoading}
             onClick={handleRefresh}
-            className="h-9 w-9 p-0 text-text-muted hover:text-text"
+            className="h-10 w-10 p-0 text-text-muted hover:text-text"
             title="Refresh customer table"
           >
             <RefreshCw
@@ -943,7 +989,7 @@ export const CustomersDesktopPage = ({
             size="md"
             startIcon={<Receipt className="size-3.5 text-emerald-600 dark:text-emerald-400" />}
             onClick={() => navigate(ROUTES.CUSTOMER_SETTLEMENTS)}
-            className="h-9 px-3 text-xs font-semibold hidden md:inline-flex"
+            className="h-10 px-3 text-xs font-semibold hidden md:inline-flex"
             title="Outstanding Collections & Credit Settlements"
           >
             Settlements
@@ -957,7 +1003,7 @@ export const CustomersDesktopPage = ({
               startIcon={<Download className="size-3.5 text-text-muted" />}
               onClick={handleImportClick}
               disabled={isUploading}
-              className="h-9 px-3 text-xs font-semibold hidden sm:inline-flex"
+              className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex"
               title="Import Customer Records from Excel"
             >
               {isUploading ? "Uploading..." : "Import"}
@@ -971,7 +1017,7 @@ export const CustomersDesktopPage = ({
               size="md"
               startIcon={<Plus className="size-3.5" />}
               onClick={handleCreateCustomer}
-              className="h-9 px-3.5 text-xs font-semibold shadow-xs"
+              className="h-10 px-3.5 text-xs font-semibold shadow-xs"
             >
               Add Customer
             </UIButton>
