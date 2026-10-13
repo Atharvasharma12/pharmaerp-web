@@ -8,6 +8,8 @@ import React, {
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Check, X, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 const renderSelectIcon = (icon, className) => {
   if (!icon) return null;
   if (React.isValidElement(icon)) return icon;
