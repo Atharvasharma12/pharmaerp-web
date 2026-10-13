@@ -154,6 +154,23 @@ const HeaderSearchBar = ({ className = "" }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Scroll highlighted item into view during keyboard navigation (Arrow Up / Down)
+  useEffect(() => {
+    if (selectedIndex >= 0 && commandListRef.current) {
+      const container = commandListRef.current;
+      const selectedEl = container.children[selectedIndex];
+      if (selectedEl) {
+        if (selectedIndex === 0) {
+          container.scrollTop = 0;
+        } else if (selectedIndex === filteredCommands.length - 1) {
+          container.scrollTop = container.scrollHeight;
+        } else if (typeof selectedEl.scrollIntoView === "function") {
+          selectedEl.scrollIntoView({ block: "nearest", inline: "nearest" });
+        }
+      }
+    }
+  }, [selectedIndex, filteredCommands.length]);
+
   return (
     <div
       ref={containerRef}

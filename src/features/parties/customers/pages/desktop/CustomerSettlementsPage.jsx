@@ -1,41 +1,94 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   UIButton,
   UIInput,
+  UISelect,
   UIBadge,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UITableEmpty,
+  UITableLoading,
+  UIInfiniteScroll,
   UIAlert,
 } from "@/components/ui";
 import {
   CreditCard,
   AlertTriangle,
   Search,
-  Filter,
   CheckCircle2,
-  Receipt,
   Phone,
-  ArrowRight,
   RefreshCw,
   Users,
   ShieldAlert,
   ArrowLeft,
-  Building2,
+  RotateCcw,
+  Receipt,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ROUTES } from "@/constants";
 import customerService from "../../services/customerService";
 import CustomerSettlementDialog from "../../components/CustomerSettlementDialog";
 
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
+  return Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const getInitials = (name) => {
+  if (!name) return "CU";
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+};
+
+const FILTER_MODE_OPTIONS = [
+  { value: "all", label: "All Debtors" },
+  { value: "overdue", label: "Overdue Only" },
+];
+
+const SORT_OPTIONS = [
+  { value: "outstanding", label: "Highest Debt" },
+  { value: "oldestDue", label: "Oldest Due Date" },
+  { value: "name", label: "Customer Name: A-Z" },
+];
+
+const PAGE_SIZE = 20;
+
 export default function CustomerSettlementsPage() {
   const navigate = useNavigate();
+  const tableContainerRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ stats: {}, customers: [] });
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterMode, setFilterMode] = useState("all"); // 'all' | 'overdue'
   const [sortBy, setSortBy] = useState("outstanding"); // 'outstanding' | 'oldestDue' | 'name'
   const [error, setError] = useState(null);
+  const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
 
   // Settlement dialog
   const [settlingCustomer, setSettlingCustomer] = useState(null);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const fetchSettlements = useCallback(async () => {
     setLoading(true);
@@ -59,12 +112,12 @@ export default function CustomerSettlementsPage() {
   const customers = data.customers || [];
   const now = new Date();
 
-  // Filter and sort
+  // Filter and sort customers
   const filteredCustomers = useMemo(() => {
     let list = [...customers];
 
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
+    if (debouncedSearch) {
+      const term = debouncedSearch.toLowerCase();
       list = list.filter(
         (c) =>
           c.customerName?.toLowerCase().includes(term) ||
@@ -88,268 +141,390 @@ export default function CustomerSettlementsPage() {
     }
 
     return list;
-  }, [customers, searchTerm, filterMode, sortBy, now]);
+  }, [customers, debouncedSearch, filterMode, sortBy, now]);
+
+  // Reset display limit and scroll on filter change
+  useEffect(() => {
+    setDisplayLimit(PAGE_SIZE);
+    if (tableContainerRef.current) {
+      tableContainerRef.current.scrollTop = 0;
+    }
+  }, [debouncedSearch, filterMode, sortBy]);
+
+  const displayedCustomers = useMemo(() => {
+    return filteredCustomers.slice(0, displayLimit);
+  }, [filteredCustomers, displayLimit]);
+
+  const hasMore = displayedCustomers.length < filteredCustomers.length;
+
+  const handleLoadMore = useCallback(() => {
+    if (hasMore) {
+      setDisplayLimit((prev) => prev + PAGE_SIZE);
+    }
+  }, [hasMore]);
+
+  const handleResetFilters = useCallback(() => {
+    setSearchTerm("");
+    setDebouncedSearch("");
+    setFilterMode("all");
+    setSortBy("outstanding");
+  }, []);
 
   return (
-    <div className="min-h-screen bg-background text-text p-4 sm:p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/parties/customers")}
-            className="size-10 rounded-xl border border-border bg-surface flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-alt transition-colors cursor-pointer"
-            title="Back to Customers"
-          >
-            <ArrowLeft className="size-5" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text">
-                Customer Credit Settlements & Receivables
-              </h1>
-              <UIBadge variant="danger" size="sm">
-                Collections
-              </UIBadge>
+    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-3 space-y-2.5 text-text font-sans transition-colors">
+      {error && <UIAlert variant="danger">{error}</UIAlert>}
+
+      {/* ── 1. Compact 4-Card Statistics Grid (Top of Page) ────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {/* Card 1: Total Receivables Debt */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-error-soft text-error flex items-center justify-center shrink-0">
+            <CreditCard className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-error truncate">
+              Total Receivables Debt
             </div>
-            <p className="text-xs text-text-muted mt-1">
-              Company-wide outstanding credit debt tracking, aging, and settlement ledger.
-            </p>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              ₹{formatCurrency(stats.grandTotalOutstanding)}
+            </div>
+            <div className="text-[10px] text-rose-600 dark:text-rose-400 font-mono truncate mt-0.5">
+              Unpaid customer credit invoices
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 self-end sm:self-auto">
-          <UIButton
+        {/* Card 2: Overdue Amount */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-warning-soft text-warning flex items-center justify-center shrink-0">
+            <ShieldAlert className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-warning truncate">
+              Overdue Amount
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              ₹{formatCurrency(stats.overdueAmount)}
+            </div>
+            <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono truncate mt-0.5">
+              Past agreed credit maturity
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Overdue Invoices */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Receipt className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-primary truncate">
+              Overdue Invoices
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.overdueInvoicesCount || 0} Bills
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Require collection follow-up
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Debtor Customers */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
+            <Users className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">
+              Debtor Accounts
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.totalCustomers || customers.length || 0}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Customers with balance due
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 2. Streamlined Single-Row Toolbar ─────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Compact Search Input (Decreased Width, Not Stretching Full Width) */}
+        <div className="w-[240px] sm:w-[280px] lg:w-[320px]">
+          <UIInput
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search customer name, code, phone..."
+            startIcon={<Search className="size-4 text-text-muted" />}
+            size="md"
             variant="outline"
-            size="sm"
-            startIcon={<RefreshCw className="size-3.5" />}
-            onClick={fetchSettlements}
-            isLoading={loading}
+            isClearable
+            onClear={() => setSearchTerm("")}
+            className="w-full"
+          />
+        </div>
+
+        {/* Upfront Debtor Filter Selector (UISelect) */}
+        <div className="w-[160px] sm:w-[180px]">
+          <UISelect
+            value={filterMode}
+            onChange={(val) => setFilterMode(val)}
+            options={FILTER_MODE_OPTIONS}
+            placeholder="Debtor Filter"
+            size="md"
+          />
+        </div>
+
+        {/* Upfront Sort Selector (UISelect) */}
+        <div className="w-[170px] sm:w-[190px]">
+          <UISelect
+            value={sortBy}
+            onChange={(val) => setSortBy(val)}
+            options={SORT_OPTIONS}
+            placeholder="Sort By"
+            size="md"
+          />
+        </div>
+
+        {/* Quick Reset Button */}
+        {(searchTerm || filterMode !== "all" || sortBy !== "outstanding") && (
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            onClick={handleResetFilters}
+            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
+            className="h-10 px-2 text-xs text-text-muted hover:text-text"
+            title="Reset all filters"
           >
-            Refresh
+            Reset
+          </UIButton>
+        )}
+
+        {/* Toolbar Action Cluster */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            disabled={loading}
+            onClick={fetchSettlements}
+            className="h-10 w-10 p-0 text-text-muted hover:text-text"
+            title="Refresh settlements list"
+          >
+            <RefreshCw
+              className={cn("size-4 text-text-muted hover:text-primary", loading && "animate-spin text-primary")}
+            />
+          </UIButton>
+
+          <UIButton
+            type="button"
+            variant="outline"
+            size="md"
+            startIcon={<ArrowLeft className="size-3.5" />}
+            onClick={() => navigate(ROUTES.CUSTOMERS || "/parties/customers")}
+            className="h-10 px-3 text-xs font-semibold"
+            title="Back to Customers Directory"
+          >
+            Customers
           </UIButton>
         </div>
       </div>
 
-      {error && <UIAlert variant="danger">{error}</UIAlert>}
-
-      {/* 4 Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl border border-red-500/20 bg-linear-to-br from-red-500/5 to-surface p-5 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider">
-            <span>Total Receivables Debt</span>
-            <div className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center">
-              <CreditCard className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-red-600 dark:text-red-400">
-            ₹{Number(stats.grandTotalOutstanding || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-          </div>
-          <div className="mt-2 text-xs text-text-muted">Total unpaid credit invoice value</div>
-        </div>
-
-        <div className="rounded-2xl border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-surface p-5 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider">
-            <span>Overdue Amount</span>
-            <div className="size-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
-              <ShieldAlert className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">
-            ₹{Number(stats.overdueAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-          </div>
-          <div className="mt-2 text-xs text-text-muted">Past agreed credit maturity date</div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-surface p-5 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider">
-            <span>Overdue Invoices</span>
-            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <AlertTriangle className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-text">
-            {stats.overdueInvoicesCount || 0} <span className="text-sm font-normal text-text-muted">Bills</span>
-          </div>
-          <div className="mt-2 text-xs text-text-muted">Require payment follow-up</div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-surface p-5 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider">
-            <span>Debtor Customers</span>
-            <div className="size-8 rounded-lg bg-surface-alt text-text flex items-center justify-center">
-              <Users className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-text">
-            {stats.totalCustomers || 0}
-          </div>
-          <div className="mt-2 text-xs text-text-muted">Active customers carrying debt</div>
-        </div>
-      </div>
-
-      {/* Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-2xl border border-border bg-surface">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input
-              type="text"
-              placeholder="Search by customer, code, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-surface-alt/40 text-xs text-text focus:outline-hidden focus:ring-1 focus:ring-primary"
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-surface-alt/60 p-1 rounded-xl">
-            <button
-              type="button"
-              onClick={() => setFilterMode("all")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                filterMode === "all"
-                  ? "bg-surface text-text shadow-2xs font-bold"
-                  : "text-text-muted hover:text-text"
-              }`}
-            >
-              All Debtors ({customers.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterMode("overdue")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                filterMode === "overdue"
-                  ? "bg-surface text-amber-600 dark:text-amber-400 shadow-2xs font-bold"
-                  : "text-text-muted hover:text-text"
-              }`}
-            >
-              Overdue Only
-            </button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-text-muted shrink-0">Sort:</span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-2.5 py-1.5 rounded-xl border border-border bg-surface text-xs text-text"
+      {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ────── */}
+      <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        <div
+          ref={tableContainerRef}
+          className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-175px)] min-h-[500px] flex-1 divide-y divide-border/60"
+        >
+          <UITable
+            stickyHeader
+            containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+            className="w-full"
           >
-            <option value="outstanding">Highest Debt</option>
-            <option value="oldestDue">Oldest Due Date</option>
-            <option value="name">Customer Name</option>
-          </select>
-        </div>
-      </div>
+            <UITableHeader
+              sticky
+              className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs border-b border-border"
+            >
+              <UITableRow className="border-b border-border text-[11px] font-semibold text-text-muted uppercase tracking-wider bg-surface-alt/70 h-10">
+                <UITableHead sticky className="min-w-[220px]">Customer</UITableHead>
+                <UITableHead sticky className="min-w-[130px]">Contact</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[110px]">Unpaid Bills</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[140px]">Total Debt Due</UITableHead>
+                <UITableHead sticky className="min-w-[130px]">Oldest Due Date</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[120px]">Credit Limit</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[110px]">Aging Status</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[100px]">Actions</UITableHead>
+              </UITableRow>
+            </UITableHeader>
 
-      {/* Customer Settlements Table */}
-      <div className="overflow-x-auto rounded-2xl border border-border bg-surface shadow-xs">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-surface-alt/60 text-text-muted uppercase font-bold border-b border-border">
-            <tr>
-              <th className="p-3.5">Customer</th>
-              <th className="p-3.5">Contact</th>
-              <th className="p-3.5 text-center">Unpaid Bills</th>
-              <th className="p-3.5 text-right">Total Debt Due</th>
-              <th className="p-3.5">Oldest Due Date</th>
-              <th className="p-3.5 text-right">Credit Limit</th>
-              <th className="p-3.5 text-center">Aging Status</th>
-              <th className="p-3.5 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {loading ? (
-              <tr>
-                <td colSpan={8} className="p-8 text-center text-text-muted">
-                  Loading receivables data...
-                </td>
-              </tr>
-            ) : filteredCustomers.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="p-8 text-center text-text-muted">
-                  No customers found matching the search criteria.
-                </td>
-              </tr>
-            ) : (
-              filteredCustomers.map((c) => {
-                const isOverdue = c.oldestDueDate && new Date(c.oldestDueDate) < now;
+            <UITableBody>
+              {loading ? (
+                <UITableLoading colSpan={8} rows={8} />
+              ) : displayedCustomers.length === 0 ? (
+                <UITableEmpty
+                  colSpan={8}
+                  title="No debtor accounts found"
+                  description={
+                    debouncedSearch || filterMode !== "all"
+                      ? "No customer accounts match your active filter criteria. Try clearing search or filters."
+                      : "No pending credit accounts registered at this time."
+                  }
+                  action={
+                    debouncedSearch || filterMode !== "all" ? (
+                      <UIButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleResetFilters}
+                      >
+                        Clear Filters
+                      </UIButton>
+                    ) : undefined
+                  }
+                />
+              ) : (
+                displayedCustomers.map((c) => {
+                  const isOverdue = c.oldestDueDate && new Date(c.oldestDueDate) < now;
 
-                return (
-                  <tr key={c.customerId} className="hover:bg-surface-alt/40 transition-colors">
-                    <td className="p-3.5">
-                      <div className="font-bold text-text text-sm">{c.customerName}</div>
-                      {c.customerCode && (
-                        <span className="font-mono text-[11px] text-text-muted">
-                          {c.customerCode}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3.5">
-                      {c.mobile ? (
-                        <div className="font-mono text-text flex items-center gap-1">
-                          <Phone className="size-3 text-text-muted" /> {c.mobile}
+                  return (
+                    <UITableRow
+                      key={c.customerId}
+                      className="group transition-colors hover:bg-surface-hover/70 h-13"
+                    >
+                      {/* Customer Initials & Name */}
+                      <UITableCell className="py-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="size-8 rounded-lg bg-surface-alt border border-border/80 text-text flex items-center justify-center font-bold text-xs shrink-0 select-none">
+                            {getInitials(c.customerName)}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-semibold text-text truncate text-xs sm:text-sm leading-tight">
+                              {c.customerName}
+                            </span>
+                            {c.customerCode && (
+                              <span className="text-[11px] text-text-muted font-mono truncate mt-0.5">
+                                {c.customerCode}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      ) : (
-                        <span className="text-text-muted">-</span>
-                      )}
-                    </td>
-                    <td className="p-3.5 text-center">
-                      <UIBadge variant="neutral" size="sm">
-                        {c.invoiceCount} Bills
-                      </UIBadge>
-                    </td>
-                    <td className="p-3.5 text-right font-mono font-bold text-sm text-red-600 dark:text-red-400">
-                      ₹{Number(c.totalOutstanding || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="p-3.5 font-mono">
-                      {c.oldestDueDate ? (
-                        <span
-                          className={`flex items-center gap-1 ${
-                            isOverdue ? "text-amber-600 dark:text-amber-400 font-bold" : "text-text-muted"
-                          }`}
-                        >
-                          {new Date(c.oldestDueDate).toLocaleDateString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                          {isOverdue && <AlertTriangle className="size-3 text-amber-500" />}
+                      </UITableCell>
+
+                      {/* Contact */}
+                      <UITableCell className="py-2">
+                        {c.mobile ? (
+                          <div className="font-mono text-text flex items-center gap-1 text-xs">
+                            <Phone className="size-3 text-text-muted shrink-0" />
+                            <span>{c.mobile}</span>
+                          </div>
+                        ) : (
+                          <span className="text-text-muted text-xs">—</span>
+                        )}
+                      </UITableCell>
+
+                      {/* Unpaid Bills */}
+                      <UITableCell align="center" className="py-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface-alt border border-border/60 text-text-muted">
+                          {c.invoiceCount} Bills
                         </span>
-                      ) : (
-                        <span className="text-text-muted">N/A</span>
-                      )}
-                    </td>
-                    <td className="p-3.5 text-right font-mono text-text">
-                      ₹{Number(c.creditLimit || 0).toLocaleString("en-IN")}
-                    </td>
-                    <td className="p-3.5 text-center">
-                      <UIBadge variant={isOverdue ? "warning" : "danger"} size="sm">
-                        {isOverdue ? "OVERDUE" : "ACTIVE DEBT"}
-                      </UIBadge>
-                    </td>
-                    <td className="p-3.5 text-right">
-                      <div className="flex items-center justify-end">
-                        <UIButton
-                          variant="primary"
-                          size="sm"
-                          startIcon={<CheckCircle2 className="size-3.5" />}
-                          onClick={() =>
-                            setSettlingCustomer({
-                              _id: c.customerId,
-                              name: c.customerName,
-                              customerCode: c.customerCode,
-                            })
-                          }
+                      </UITableCell>
+
+                      {/* Total Debt Due */}
+                      <UITableCell align="right" className="py-2">
+                        <span className="font-bold text-rose-600 dark:text-rose-400 font-mono text-xs sm:text-sm tabular-nums">
+                          ₹{formatCurrency(c.totalOutstanding)}
+                        </span>
+                      </UITableCell>
+
+                      {/* Oldest Due Date */}
+                      <UITableCell className="py-2 font-mono text-xs">
+                        {c.oldestDueDate ? (
+                          <div className="flex items-center gap-1">
+                            <span
+                              className={cn(
+                                isOverdue
+                                  ? "text-amber-600 dark:text-amber-400 font-bold"
+                                  : "text-text-muted"
+                              )}
+                            >
+                              {new Date(c.oldestDueDate).toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </span>
+                            {isOverdue && <AlertTriangle className="size-3 text-amber-500 shrink-0" />}
+                          </div>
+                        ) : (
+                          <span className="text-text-muted">—</span>
+                        )}
+                      </UITableCell>
+
+                      {/* Credit Limit */}
+                      <UITableCell align="right" className="py-2 font-mono text-xs tabular-nums text-text">
+                        ₹{formatCurrency(c.creditLimit)}
+                      </UITableCell>
+
+                      {/* Aging Status */}
+                      <UITableCell align="center" className="py-2">
+                        <UIBadge
+                          variant="soft"
+                          color={isOverdue ? "warning" : "error"}
+                          className="font-semibold text-xs"
                         >
-                          Settle
-                        </UIButton>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                          {isOverdue ? "OVERDUE" : "ACTIVE DEBT"}
+                        </UIBadge>
+                      </UITableCell>
+
+                      {/* Actions */}
+                      <UITableCell align="right" className="py-2">
+                        <div className="flex items-center justify-end">
+                          <UIButton
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            startIcon={<CheckCircle2 className="size-3.5" />}
+                            onClick={() =>
+                              setSettlingCustomer({
+                                _id: c.customerId,
+                                name: c.customerName,
+                                customerCode: c.customerCode,
+                              })
+                            }
+                            className="h-8 px-3 text-xs font-semibold shadow-2xs"
+                          >
+                            Settle
+                          </UIButton>
+                        </div>
+                      </UITableCell>
+                    </UITableRow>
+                  );
+                })
+              )}
+            </UITableBody>
+          </UITable>
+
+          {/* Reusable UIInfiniteScroll Component */}
+          {!loading && displayedCustomers.length > 0 && (
+            <UIInfiniteScroll
+              onLoadMore={handleLoadMore}
+              hasMore={hasMore}
+              isLoading={false}
+              rootRef={tableContainerRef}
+              rootMargin="160px"
+              endMessage={
+                !hasMore && filteredCustomers.length > 0 ? (
+                  <span className="font-mono text-[11px] text-text-muted select-none py-2 block text-center">
+                    ✓ All {filteredCustomers.length} debtor customer accounts loaded
+                  </span>
+                ) : null
+              }
+            />
+          )}
+        </div>
       </div>
 
       {/* Settle Dialog Modal */}

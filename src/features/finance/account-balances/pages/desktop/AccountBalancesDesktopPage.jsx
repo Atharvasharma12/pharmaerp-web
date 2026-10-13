@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
+  Filter,
   RefreshCw,
   RotateCcw,
   BookOpen,
@@ -34,6 +35,12 @@ import {
   UITableEmpty,
   UITableLoading,
   UIInfiniteScroll,
+  UIModal,
+  UIModalHeader,
+  UIModalTitle,
+  UIModalDescription,
+  UIModalBody,
+  UIModalFooter,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
@@ -135,6 +142,18 @@ export const AccountBalancesDesktopPage = () => {
   const [selectedBalanceType, setSelectedBalanceType] = useState("all");
   const [selectedNature, setSelectedNature] = useState("all");
   const [sortOption, setSortOption] = useState("lastTransactionAt-desc");
+
+  // Filter Modal Dialog state
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
+  // Active filter count for badge (tracks filters configured in modal)
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedBalanceType !== "all") count++;
+    if (selectedNature !== "all") count++;
+    if (sortOption !== "lastTransactionAt-desc") count++;
+    return count;
+  }, [selectedBalanceType, selectedNature, sortOption]);
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState(null);
@@ -520,46 +539,9 @@ export const AccountBalancesDesktopPage = () => {
         </div>
       </div>
 
-      {/* ── 2. Ledger Scope Segmented Selector (Company / Customer / Supplier / All) ── */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-0.5">
-        <div className="flex items-center gap-1 p-1 bg-surface border border-border rounded-xl shadow-2xs overflow-x-auto">
-          {SCOPE_OPTIONS.map((opt) => {
-            const Icon = opt.icon;
-            const isSelected = accountScope === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setAccountScope(opt.value)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all font-semibold select-none cursor-pointer whitespace-nowrap",
-                  isSelected
-                    ? "bg-primary/10 text-primary border border-primary/25 font-bold shadow-2xs"
-                    : "text-text-muted hover:text-text hover:bg-surface-alt/70 border border-transparent"
-                )}
-              >
-                <Icon className={cn("size-3.5 shrink-0", isSelected ? "text-primary" : "text-text-muted")} />
-                <span>{opt.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="text-xs text-text-muted font-medium flex items-center gap-1.5">
-          <span>Active Scope:</span>
-          <UIBadge variant="soft" color="primary" className="font-semibold text-xs">
-            {SCOPE_OPTIONS.find((s) => s.value === accountScope)?.label}
-          </UIBadge>
-          <span className="text-text-muted/60">•</span>
-          <span className="font-mono text-xs font-semibold text-text tabular-nums">
-            {stats.totalAccounts} accounts
-          </span>
-        </div>
-      </div>
-
-      {/* ── 3. Table Filter Toolbar (Using Reusable UI Components) ───────────────── */}
-      <div className="flex flex-wrap items-center gap-2.5">
-        {/* Search Input - Clean text string, no [object Object] */}
+      {/* ── 2. Streamlined Single-Row Toolbar (Customer Desktop Page Pattern) ────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Prominent Search Input */}
         <div className="flex-1 min-w-[240px] sm:min-w-[280px]">
           <UIInput
             type="text"
@@ -575,41 +557,59 @@ export const AccountBalancesDesktopPage = () => {
           />
         </div>
 
-        {/* Balance Type Selector */}
-        <div className="w-[160px] sm:w-[180px]">
+        {/* Upfront Best Filter: Account Scope */}
+        <div className="w-[180px] sm:w-[220px]">
           <UISelect
-            value={selectedBalanceType}
-            onChange={(val) => setSelectedBalanceType(val)}
-            options={BALANCE_TYPE_OPTIONS}
-            placeholder="Balance Type"
+            value={accountScope}
+            onChange={(val) => setAccountScope(val)}
+            options={SCOPE_OPTIONS}
+            placeholder="Account Scope"
             size="md"
           />
         </div>
 
-        {/* Account Nature Selector */}
-        <div className="w-[150px] sm:w-[170px]">
-          <UISelect
-            value={selectedNature}
-            onChange={(val) => setSelectedNature(val)}
-            options={ACCOUNT_NATURE_OPTIONS}
-            placeholder="Account Nature"
-            size="md"
-          />
-        </div>
+        {/* Filter Modal Trigger Button */}
+        <UIButton
+          type="button"
+          variant={activeFilterCount > 0 ? "secondary" : "outline"}
+          size="md"
+          onClick={() => setIsFilterModalOpen(true)}
+          startIcon={
+            <Filter
+              className={cn("size-3.5", activeFilterCount > 0 ? "text-primary" : "text-text-muted")}
+            />
+          }
+          className={cn(
+            "h-10 px-3 text-xs sm:text-sm font-semibold gap-1.5 transition-all select-none",
+            activeFilterCount > 0 && "border-primary/40 bg-primary/10 text-primary font-bold shadow-2xs"
+          )}
+          title="Open filters dialog"
+        >
+          <span>Filters</span>
+          {activeFilterCount > 0 && (
+            <span className="size-4.5 rounded-full bg-primary text-white text-[10.5px] font-bold flex items-center justify-center">
+              {activeFilterCount}
+            </span>
+          )}
+        </UIButton>
 
-        {/* Sort Selector */}
-        <div className="w-[170px] sm:w-[190px]">
-          <UISelect
-            value={sortOption}
-            onChange={(val) => setSortOption(val)}
-            options={SORT_SELECT_OPTIONS}
-            placeholder="Sort Order"
+        {/* Quick Reset (only visible when filters or search query are active) */}
+        {(activeFilterCount > 0 || searchQuery || accountScope !== "company") && (
+          <UIButton
+            type="button"
+            variant="ghost"
             size="md"
-          />
-        </div>
+            onClick={handleResetFilters}
+            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
+            className="h-10 px-2 text-xs text-text-muted hover:text-text"
+            title="Reset all filters"
+          >
+            Reset
+          </UIButton>
+        )}
 
-        {/* Toolbar Action Buttons: Refresh & Reset */}
-        <div className="flex items-center gap-2 ml-auto sm:ml-0">
+        {/* Toolbar Action Cluster */}
+        <div className="flex items-center gap-1.5 ml-auto">
           <UIButton
             type="button"
             variant="secondary"
@@ -619,22 +619,10 @@ export const AccountBalancesDesktopPage = () => {
             startIcon={
               <RefreshCw className={cn("size-3.5 text-primary", isLoading && "animate-spin")} />
             }
-            className="h-9 px-3 text-xs sm:text-sm font-semibold"
+            className="h-10 px-3 text-xs sm:text-sm font-semibold"
             title="Refresh Balances"
           >
             Refresh
-          </UIButton>
-
-          <UIButton
-            type="button"
-            variant="ghost"
-            size="md"
-            onClick={handleResetFilters}
-            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
-            className="h-9 px-2.5 text-xs sm:text-sm text-text-muted hover:text-text"
-            title="Reset Filters"
-          >
-            Reset
           </UIButton>
         </div>
       </div>
@@ -812,7 +800,135 @@ export const AccountBalancesDesktopPage = () => {
         </div>
       </div>
 
-      {/* ── 5. Account Balance View Dialog (No Page Redirection) ────────────────── */}
+      {/* ── 5. Filter Dialog (Modal) ──────────────────────────────────────────────── */}
+      <UIModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        size="md"
+      >
+        <UIModalHeader>
+          <UIModalTitle>Filter Account Balances</UIModalTitle>
+          <UIModalDescription>
+            Refine ledgers by scope, balance standing, accounting nature, and sorting.
+          </UIModalDescription>
+        </UIModalHeader>
+        <UIModalBody>
+          <div className="space-y-4 py-2">
+            {/* 1. Account Scope */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text flex items-center justify-between">
+                <span>Account Scope</span>
+                {accountScope !== "company" && (
+                  <span className="text-[11px] text-primary font-bold">Active Scope</span>
+                )}
+              </label>
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-surface-alt border border-border rounded-xl">
+                {SCOPE_OPTIONS.map((opt) => {
+                  const Icon = opt.icon;
+                  const isSelected = accountScope === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setAccountScope(opt.value)}
+                      className={cn(
+                        "flex items-center justify-start gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                        isSelected
+                          ? "bg-surface text-primary border border-primary/20 shadow-xs font-bold"
+                          : "text-text-muted hover:text-text hover:bg-surface/50 border border-transparent"
+                      )}
+                    >
+                      <Icon className={cn("size-3.5 shrink-0", isSelected ? "text-primary" : "text-text-muted")} />
+                      <span className="truncate">{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Balance Standing */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text flex items-center justify-between">
+                <span>Balance Standing</span>
+                {selectedBalanceType !== "all" && (
+                  <span className="text-[11px] text-primary font-bold">Active Filter</span>
+                )}
+              </label>
+              <UISelect
+                value={selectedBalanceType}
+                onChange={(val) => setSelectedBalanceType(val)}
+                options={BALANCE_TYPE_OPTIONS}
+                placeholder="All Balance Types"
+                size="md"
+              />
+              <span className="text-[11px] text-text-muted block">
+                Filter by Debit Balances (DR) or Credit Balances (CR)
+              </span>
+            </div>
+
+            {/* 3. Account Nature */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text flex items-center justify-between">
+                <span>Accounting Nature</span>
+                {selectedNature !== "all" && (
+                  <span className="text-[11px] text-primary font-bold">Active Filter</span>
+                )}
+              </label>
+              <UISelect
+                value={selectedNature}
+                onChange={(val) => setSelectedNature(val)}
+                options={ACCOUNT_NATURE_OPTIONS}
+                placeholder="All Natures"
+                size="md"
+              />
+            </div>
+
+            {/* 4. Sort Sequence */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text flex items-center justify-between">
+                <span>Sort Sequence</span>
+                {sortOption !== "lastTransactionAt-desc" && (
+                  <span className="text-[11px] text-primary font-bold">Custom Sort</span>
+                )}
+              </label>
+              <UISelect
+                value={sortOption}
+                onChange={(val) => setSortOption(val)}
+                options={SORT_SELECT_OPTIONS}
+                placeholder="Sort Sequence"
+                size="md"
+              />
+            </div>
+          </div>
+        </UIModalBody>
+        <UIModalFooter className="flex items-center justify-between">
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSelectedBalanceType("all");
+              setSelectedNature("all");
+              setSortOption("lastTransactionAt-desc");
+              setAccountScope("company");
+            }}
+            className="text-text-muted hover:text-text text-xs"
+          >
+            Reset Filters
+          </UIButton>
+          <UIButton
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={() => setIsFilterModalOpen(false)}
+            className="px-4 text-xs font-semibold shadow-xs"
+          >
+            Apply Filters
+          </UIButton>
+        </UIModalFooter>
+      </UIModal>
+
+      {/* ── 6. Account Balance View Dialog (No Page Redirection) ────────────────── */}
       <AccountBalanceDetailsDialog
         isOpen={isViewDialogOpen}
         onClose={handleCloseViewDialog}

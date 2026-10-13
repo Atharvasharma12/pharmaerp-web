@@ -15,6 +15,7 @@ import {
   Wallet,
   Scale,
   ArrowUpRight,
+  ArrowDownRight,
   Phone,
   Mail,
   MoreVertical,
@@ -176,16 +177,15 @@ export const CustomersDesktopPage = ({
   // Filter Modal Dialog state
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
-  // Active filter count for badge
+  // Active filter count for badge (filters configured inside modal)
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (customerScope !== "all") count++;
     if (selectedType !== "all") count++;
     if (selectedBalanceType !== "all") count++;
     if (selectedStatus !== "all") count++;
     if (sortOption !== "name-asc") count++;
     return count;
-  }, [customerScope, selectedType, selectedBalanceType, selectedStatus, sortOption]);
+  }, [selectedType, selectedBalanceType, selectedStatus, sortOption]);
 
   // Excel Import States
   const [isImportConfigOpen, setIsImportConfigOpen] = useState(false);
@@ -233,13 +233,15 @@ export const CustomersDesktopPage = ({
     const email = c.email || "";
     const type = String(c.customerType || c.type || "retail").toLowerCase();
     const status = c.status || c.displayStatus || "Active";
-    const creditLimit = Number(c.creditLimit || 0);
-    const creditDays = Number(c.creditDays || 0);
+    const creditLimit = Math.max(0, Number(c.creditLimit || 0));
+    const creditDays = Math.max(0, Number(c.creditDays || 0));
 
-    const advanceBalance = Number(c.advanceBalance || 0);
-    const creditOutstanding = Number(c.creditOutstanding || 0);
-    const outstandingAmount = Number(c.outstandingAmount || 0);
-    const balanceType = String(c.balanceType || (creditOutstanding > 0 ? "dr" : "cr")).toLowerCase();
+    const advanceBalance = Math.max(0, Number(c.advanceBalance ?? c.advance ?? 0));
+    const creditOutstanding = Math.max(0, Number(c.creditOutstanding ?? c.credit ?? c.creditDue ?? 0));
+    const outstandingAmount = Math.max(0, Number(c.outstandingAmount ?? creditOutstanding ?? 0));
+    const balanceType = String(
+      c.balanceType || (creditOutstanding > 0 ? "dr" : advanceBalance > 0 ? "cr" : "zero")
+    ).toLowerCase();
 
     const billingAddress = c.billingAddress || c.address || {};
     const city = billingAddress.city || "";
@@ -813,60 +815,95 @@ export const CustomersDesktopPage = ({
         )}
       </AnimatePresence>
 
-      {/* ── 1. Clean Single-Row Page Header (Zero Clutter, Completely Free) ────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-0.5 pb-1">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
-            <Users className="size-4" />
+      {/* ── 1. Compact 4-Card Statistics Grid (Top of Page) ────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {/* Card 1: Total Customers */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
+            <Users className="size-4.5 stroke-[1.8]" />
           </div>
-          <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-text tracking-tight truncate">
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">
               {customerScope === "b2b"
                 ? "B2B Accounts"
                 : customerScope === "b2c"
                 ? "B2C Walk-ins"
-                : "Customers"}
-            </h1>
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface-alt border border-border text-text-muted font-mono font-medium shrink-0">
+                : "Total Customers"}
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               {stats.totalCustomers || totalCount || 0}
-            </span>
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              {customerScope === "b2b"
+                ? "B2B wholesale & commercial"
+                : customerScope === "b2c"
+                ? "B2C retail walk-in accounts"
+                : "Registered customer base"}
+            </div>
           </div>
         </div>
 
-        {/* Compact Financial Metrics Ribbon (Zero Clutter, Breathable) */}
-        <div className="flex items-center gap-3 text-xs font-mono bg-surface border border-border rounded-xl px-3 py-1.5 shadow-2xs self-start sm:self-auto">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-text-muted font-sans font-medium">Due:</span>
-            <span className="font-bold text-rose-600 dark:text-rose-400 tabular-nums">
+        {/* Card 2: Credit Receivables (DR) */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-error-soft text-error flex items-center justify-center shrink-0">
+            <ArrowDownRight className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-error truncate">
+              Credit Receivables (DR)
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               ₹{formatCurrency(stats.totalDr)}
-            </span>
-            <span className="text-[9.5px] text-rose-500 font-bold">DR</span>
+            </div>
+            <div className="text-[10px] text-rose-600 dark:text-rose-400 font-mono truncate mt-0.5">
+              {stats.drCount || 0} accounts with dues
+            </div>
           </div>
-          <span className="text-border/80">|</span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-text-muted font-sans font-medium">Advance:</span>
-            <span className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+        </div>
+
+        {/* Card 3: Customer Advances (CR) */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
+            <ArrowUpRight className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-success truncate">
+              Customer Advances (CR)
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               ₹{formatCurrency(stats.totalAdvance || stats.totalCr)}
-            </span>
-            <span className="text-[9.5px] text-emerald-500 font-bold">CR</span>
+            </div>
+            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono truncate mt-0.5">
+              {stats.crCount || 0} accounts with advance
+            </div>
           </div>
-          <span className="text-border/80">|</span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-text-muted font-sans font-medium">Net:</span>
-            <span className="font-bold text-primary tabular-nums">
+        </div>
+
+        {/* Card 4: Net Position */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Scale className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-primary truncate">
+              Net Position
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               ₹{formatCurrency(stats.netRunning || Math.abs((stats.totalDr || 0) - (stats.totalAdvance || stats.totalCr || 0)))}
-            </span>
-            <span className="text-[9.5px] text-primary font-bold">
-              {(stats.totalDr || 0) >= (stats.totalAdvance || stats.totalCr || 0) ? "DR" : "CR"}
-            </span>
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              {(stats.totalDr || 0) >= (stats.totalAdvance || stats.totalCr || 0)
+                ? "Net Debit Position (Receivable)"
+                : "Net Credit Position (Advance Held)"}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── 2. Streamlined Single-Row Toolbar (Zero Upfront Filter Clutter) ──────── */}
+      {/* ── 2. Streamlined Single-Row Toolbar ─────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* Prominent Search Input */}
-        <div className="flex-1 min-w-[240px] sm:min-w-[280px]">
+        {/* Compact Search Input (Decreased Width, Not Stretching Full Width) */}
+        <div className="w-[240px] sm:w-[280px] lg:w-[320px]">
           <UIInput
             type="text"
             value={searchQuery}
@@ -878,6 +915,17 @@ export const CustomersDesktopPage = ({
             isClearable
             onClear={() => setSearchQuery("")}
             className="w-full"
+          />
+        </div>
+
+        {/* Upfront Best Filter: Customer Scope / Segment (B2B, B2C, All) */}
+        <div className="w-[170px] sm:w-[195px]">
+          <UISelect
+            value={customerScope}
+            onChange={(val) => setCustomerScope(val)}
+            options={SCOPE_MODAL_OPTIONS}
+            placeholder="All Customers"
+            size="md"
           />
         </div>
 
@@ -893,7 +941,7 @@ export const CustomersDesktopPage = ({
             />
           }
           className={cn(
-            "h-9 px-3 text-xs sm:text-sm font-semibold gap-1.5 transition-all select-none",
+            "h-10 px-3 text-xs sm:text-sm font-semibold gap-1.5 transition-all select-none",
             activeFilterCount > 0 && "border-primary/40 bg-primary/10 text-primary font-bold shadow-2xs"
           )}
           title="Open filters dialog"
@@ -907,14 +955,14 @@ export const CustomersDesktopPage = ({
         </UIButton>
 
         {/* Quick Reset (only visible when filters or search query are active) */}
-        {(activeFilterCount > 0 || searchQuery) && (
+        {(activeFilterCount > 0 || searchQuery || customerScope !== "all") && (
           <UIButton
             type="button"
             variant="ghost"
             size="md"
             onClick={handleResetFilters}
             startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
-            className="h-9 px-2 text-xs text-text-muted hover:text-text"
+            className="h-10 px-2 text-xs text-text-muted hover:text-text"
             title="Reset all filters"
           >
             Reset
@@ -929,7 +977,7 @@ export const CustomersDesktopPage = ({
             size="md"
             disabled={isLoading}
             onClick={handleRefresh}
-            className="h-9 w-9 p-0 text-text-muted hover:text-text"
+            className="h-10 w-10 p-0 text-text-muted hover:text-text"
             title="Refresh customer table"
           >
             <RefreshCw
@@ -943,7 +991,7 @@ export const CustomersDesktopPage = ({
             size="md"
             startIcon={<Receipt className="size-3.5 text-emerald-600 dark:text-emerald-400" />}
             onClick={() => navigate(ROUTES.CUSTOMER_SETTLEMENTS)}
-            className="h-9 px-3 text-xs font-semibold hidden md:inline-flex"
+            className="h-10 px-3 text-xs font-semibold hidden md:inline-flex"
             title="Outstanding Collections & Credit Settlements"
           >
             Settlements
@@ -957,7 +1005,7 @@ export const CustomersDesktopPage = ({
               startIcon={<Download className="size-3.5 text-text-muted" />}
               onClick={handleImportClick}
               disabled={isUploading}
-              className="h-9 px-3 text-xs font-semibold hidden sm:inline-flex"
+              className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex"
               title="Import Customer Records from Excel"
             >
               {isUploading ? "Uploading..." : "Import"}
@@ -971,7 +1019,7 @@ export const CustomersDesktopPage = ({
               size="md"
               startIcon={<Plus className="size-3.5" />}
               onClick={handleCreateCustomer}
-              className="h-9 px-3.5 text-xs font-semibold shadow-xs"
+              className="h-10 px-3.5 text-xs font-semibold shadow-xs"
             >
               Add Customer
             </UIButton>
@@ -997,23 +1045,21 @@ export const CustomersDesktopPage = ({
               className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs border-b border-border"
             >
               <UITableRow className="border-b border-border text-[11px] font-semibold text-text-muted uppercase tracking-wider bg-surface-alt/70 h-10">
-                <UITableHead sticky className="min-w-[220px]">Customer</UITableHead>
+                <UITableHead sticky className="min-w-[240px]">Customer</UITableHead>
                 <UITableHead sticky align="center" className="min-w-[100px]">Segment</UITableHead>
-                <UITableHead sticky className="min-w-[130px]">Contact</UITableHead>
                 <UITableHead sticky align="right" className="min-w-[110px]">Credit Limit</UITableHead>
                 <UITableHead sticky align="right" className="min-w-[125px]">Advance (CR)</UITableHead>
                 <UITableHead sticky align="right" className="min-w-[130px]">Credit Due (DR)</UITableHead>
-                <UITableHead sticky align="center" className="min-w-[90px]">Status</UITableHead>
-                <UITableHead sticky align="right" className="min-w-[140px]">Actions</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[80px]">Actions</UITableHead>
               </UITableRow>
             </UITableHeader>
 
             <UITableBody>
               {isLoading ? (
-                <UITableLoading colSpan={8} rows={8} />
+                <UITableLoading colSpan={6} rows={8} />
               ) : filteredAndSortedCustomers.length === 0 ? (
                 <UITableEmpty
-                  colSpan={8}
+                  colSpan={6}
                   title="No customers found"
                   description={
                     debouncedSearch || activeFilterCount > 0
@@ -1052,8 +1098,8 @@ export const CustomersDesktopPage = ({
                       onClick={() => handleViewCustomer(c.rawCustomer || c)}
                       className="group cursor-pointer transition-colors hover:bg-surface-hover/70 h-13"
                     >
-                      {/* 1. Customer: Initials avatar, Name, Code & Location */}
-                      <UITableCell className="py-2">
+                      {/* 1. Customer: Line 1 = Name, Line 2 = Mobile (No Customer ID) */}
+                      <UITableCell className="py-2.5">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="size-8 rounded-lg bg-surface-alt border border-border/80 text-text flex items-center justify-center font-bold text-xs shrink-0 select-none">
                             {getInitials(c.name)}
@@ -1062,17 +1108,12 @@ export const CustomersDesktopPage = ({
                             <span className="font-semibold text-text truncate hover:text-primary transition-colors text-xs sm:text-sm leading-tight">
                               {c.name}
                             </span>
-                            <div className="flex items-center gap-1 text-[11px] text-text-muted font-mono truncate mt-0.5">
-                              <span>{c.customerCode}</span>
+                            <div className="flex items-center gap-1.5 text-[11.5px] text-text-muted font-mono truncate mt-0.5">
+                              <span>{c.mobile && c.mobile !== "—" ? c.mobile : "—"}</span>
                               {c.city ? (
                                 <>
-                                  <span className="text-text-muted/30 mx-0.5">•</span>
-                                  <span>{c.city}</span>
-                                </>
-                              ) : c.gstNumber ? (
-                                <>
-                                  <span className="text-text-muted/30 mx-0.5">•</span>
-                                  <span>GST: {c.gstNumber}</span>
+                                  <span className="text-text-muted/40 font-sans">•</span>
+                                  <span className="font-sans text-text-muted/80">{c.city}</span>
                                 </>
                               ) : null}
                             </div>
@@ -1087,21 +1128,7 @@ export const CustomersDesktopPage = ({
                         </span>
                       </UITableCell>
 
-                      {/* 3. Contact Info */}
-                      <UITableCell className="py-2">
-                        <div className="flex flex-col text-xs min-w-0">
-                          <span className="font-mono text-text font-medium text-xs truncate">
-                            {c.mobile || "—"}
-                          </span>
-                          {c.email && (
-                            <span className="text-[11px] text-text-muted truncate mt-0.5 max-w-[130px]">
-                              {c.email}
-                            </span>
-                          )}
-                        </div>
-                      </UITableCell>
-
-                      {/* 4. Credit Limit */}
+                      {/* 3. Credit Limit */}
                       <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-xs py-2">
                         {c.creditLimit > 0 ? (
                           <div className="flex flex-col items-end leading-tight">
@@ -1158,58 +1185,15 @@ export const CustomersDesktopPage = ({
                         )}
                       </UITableCell>
 
-                      {/* 7. Status */}
-                      <UITableCell align="center" className="whitespace-nowrap py-2">
-                        <span className="inline-flex items-center gap-1.5 text-xs text-text">
-                          <span
-                            className={cn(
-                              "size-1.5 rounded-full shrink-0",
-                              c.status === "Active"
-                                ? "bg-emerald-500"
-                                : c.status === "Inactive"
-                                ? "bg-amber-400"
-                                : "bg-rose-500"
-                            )}
-                          />
-                          <span className="text-text-muted text-[11.5px]">{c.status}</span>
-                        </span>
-                      </UITableCell>
+
 
                       {/* 8. Refined Row Actions */}
                       <UITableCell align="right" className="py-2">
                         <div
-                          className="flex items-center justify-end gap-1"
+                          className="flex items-center justify-end"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {/* Quick Advance Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleReceiveAdvance(c.rawCustomer || c);
-                            }}
-                            className="h-7 px-2 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-500/10 rounded-md transition-colors border border-transparent hover:border-emerald-500/20 cursor-pointer flex items-center gap-1"
-                            title="Receive Advance"
-                          >
-                            <Wallet className="size-3" />
-                            <span>Adv</span>
-                          </button>
-
-                          {/* Quick Settle Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSettleCredit(c.rawCustomer || c);
-                            }}
-                            className="h-7 px-2 text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-500/10 rounded-md transition-colors border border-transparent hover:border-rose-500/20 cursor-pointer flex items-center gap-1"
-                            title="Settle Credit"
-                          >
-                            <Receipt className="size-3" />
-                            <span>Settle</span>
-                          </button>
-
-                          {/* 3-Dots Dropdown */}
+                          {/* Actions Dropdown */}
                           <UIDropdown align="right">
                             <UIDropdownTrigger asChild>
                               <button
@@ -1223,43 +1207,61 @@ export const CustomersDesktopPage = ({
                                 <MoreVertical className="size-3.5" />
                               </button>
                             </UIDropdownTrigger>
-                            <UIDropdownMenu align="right" className="w-48 shadow-lg">
+                            <UIDropdownMenu align="right" className="w-52 shadow-lg">
                               <UIDropdownItem
+                                icon={<Wallet className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                                onClick={(e) => {
+                                  e?.stopPropagation?.();
+                                  handleReceiveAdvance(c.rawCustomer || c);
+                                }}
+                              >
+                                Receive Advance
+                              </UIDropdownItem>
+                              <UIDropdownItem
+                                icon={<Receipt className="size-4 text-rose-600 dark:text-rose-400 shrink-0" />}
+                                onClick={(e) => {
+                                  e?.stopPropagation?.();
+                                  handleSettleCredit(c.rawCustomer || c);
+                                }}
+                              >
+                                Settle Credit
+                              </UIDropdownItem>
+                              <UIDropdownItem
+                                icon={<BookOpen className="size-4 text-primary shrink-0" />}
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleViewTransactions(c.rawCustomer || c);
                                 }}
                               >
-                                <BookOpen className="size-4 mr-2 text-primary" />
                                 Statement & Ledger
                               </UIDropdownItem>
                               <UIDropdownItem
+                                icon={<Eye className="size-4 text-text-muted shrink-0" />}
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleViewCustomer(c.rawCustomer || c);
                                 }}
                               >
-                                <Eye className="size-4 mr-2 text-text-muted" />
                                 View Details
                               </UIDropdownItem>
                               <UIDropdownItem
+                                icon={<Edit3 className="size-4 text-text-muted shrink-0" />}
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleEditCustomer(c.rawCustomer || c);
                                 }}
                               >
-                                <Edit3 className="size-4 mr-2 text-text-muted" />
                                 Edit Profile
                               </UIDropdownItem>
                               <UIDropdownDivider />
                               <UIDropdownItem
+                                destructive
+                                icon={<Trash2 className="size-4 text-error shrink-0" />}
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleDeleteCustomer(c.rawCustomer || c);
                                 }}
-                                className="text-error focus:text-error"
                               >
-                                <Trash2 className="size-4 mr-2 text-error" />
                                 Delete Customer
                               </UIDropdownItem>
                             </UIDropdownMenu>

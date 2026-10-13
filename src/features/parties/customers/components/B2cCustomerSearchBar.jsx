@@ -54,19 +54,25 @@ export const B2cCustomerSearchBar = forwardRef(
     // Local & API B2C Customer Filter (excluding wholesalers & retailers)
     const executeSearch = useCallback(
       async (query) => {
-        setIsLoading(true);
-
         const q = (query || "").trim().toLowerCase();
 
-        // 1. Filter local B2C retail customers
+        // Until the user actively types to search, do NOT show customers
+        if (!q) {
+          setResults([]);
+          setIsLoading(false);
+          setIsOpen(false);
+          return;
+        }
+
+        setIsLoading(true);
+
+        // 1. Filter local B2C retail customers matching the typed search query
         const localMatches = POS_DEFAULT_CUSTOMERS.filter((cust) => {
           // Exclude any wholesaler or retailer parties
           const partyType = (cust.partyType || "").toLowerCase();
           if (partyType === "wholesaler" || partyType === "retailer") {
             return false;
           }
-
-          if (!q) return true;
 
           const nameMatch = cust.name?.toLowerCase().includes(q);
           const phoneMatch = cust.phone?.toLowerCase().includes(q);
@@ -78,16 +84,14 @@ export const B2cCustomerSearchBar = forwardRef(
 
         let apiResults = [];
         try {
-          if (q) {
-            const res = await customerService.getCustomers({ search: q, limit: 10 });
-            const list = res.data?.data?.customers || res.data?.customers || res.data?.data || [];
-            if (Array.isArray(list)) {
-              // Filter out wholesaler and retailer parties from API response
-              apiResults = list.filter((c) => {
-                const type = (c.customerType || c.partyType || c.type || "").toLowerCase();
-                return type !== "wholesale" && type !== "wholesaler" && type !== "retail" && type !== "retailer";
-              });
-            }
+          const res = await customerService.getCustomers({ search: q, limit: 50 });
+          const list = res.data?.data?.customers || res.data?.customers || res.data?.data || [];
+          if (Array.isArray(list)) {
+            // Filter out wholesaler and retailer parties from API response
+            apiResults = list.filter((c) => {
+              const type = (c.customerType || c.partyType || c.type || "").toLowerCase();
+              return type !== "wholesale" && type !== "wholesaler" && type !== "retail" && type !== "retailer";
+            });
           }
         } catch (err) {
           // Fallback gracefully to local matches if backend offline
@@ -97,7 +101,7 @@ export const B2cCustomerSearchBar = forwardRef(
         // Combine local and API results removing duplicates
         const combined = [];
         apiResults.forEach((apiCust) => {
-          if (!combined.some((c) => c.id === apiCust._id || c.id === apiCust.id || c.phone === apiCust.phone)) {
+          if (!combined.some((c) => c.id === apiCust._id || c.id === apiCust.id || (c.phone && c.phone === apiCust.phone))) {
             combined.push({
               id: apiCust._id || apiCust.id,
               name: apiCust.name || apiCust.displayName,
@@ -110,14 +114,37 @@ export const B2cCustomerSearchBar = forwardRef(
           }
         });
 
+        // Also merge local matches that aren't already included
+        localMatches.forEach((localCust) => {
+          if (!combined.some((c) => c.id === localCust.id || (c.phone && c.phone === localCust.phone) || c.name?.toLowerCase() === localCust.name?.toLowerCase())) {
+            combined.push({
+              id: localCust.id,
+              name: localCust.name,
+              phone: localCust.phone || "",
+              email: localCust.email || "",
+              doctor: localCust.doctor || "Dr. Self",
+              creditBalance: localCust.creditBalance || 0,
+              billingType: "B2C",
+            });
+          }
+        });
+
         setResults(combined);
         setIsLoading(false);
       },
       []
     );
 
-    // Initial load and query change effect
+    // Initial load and query change effect - ONLY run if user has typed something
     useEffect(() => {
+      const q = (currentValue || "").trim();
+      if (!q) {
+        setResults([]);
+        setIsLoading(false);
+        setIsOpen(false);
+        return;
+      }
+
       const timer = setTimeout(() => {
         executeSearch(currentValue);
       }, debounceMs);
@@ -131,6 +158,23 @@ export const B2cCustomerSearchBar = forwardRef(
         setSearchTerm(selectedCustomer.name);
       }
     }, [selectedCustomer, isOpen]);
+
+    // Scroll highlighted item into view during keyboard navigation (Arrow Up / Down)
+    useEffect(() => {
+      if (selectedIndex >= 0 && listRef.current) {
+        const container = listRef.current;
+        const selectedEl = container.querySelector(`[data-index="${selectedIndex}"]`) || container.children[selectedIndex];
+        if (selectedEl) {
+          if (selectedIndex === 0) {
+            container.scrollTop = 0;
+          } else if (selectedIndex === results.length - 1) {
+            container.scrollTop = container.scrollHeight;
+          } else if (typeof selectedEl.scrollIntoView === "function") {
+            selectedEl.scrollIntoView({ block: "nearest", inline: "nearest" });
+          }
+        }
+      }
+    }, [selectedIndex, results.length]);
 
     // Click outside handler
     useEffect(() => {
@@ -150,7 +194,12 @@ export const B2cCustomerSearchBar = forwardRef(
         setSearchTerm(val);
       }
       if (onInputChange) onInputChange(val);
-      setIsOpen(true);
+      if (val.trim()) {
+        setIsOpen(true);
+      } else {
+        setIsOpen(false);
+        setResults([]);
+      }
       setSelectedIndex(-1);
     };
 
@@ -159,7 +208,9 @@ export const B2cCustomerSearchBar = forwardRef(
         setSearchTerm("");
       }
       setSelectedIndex(-1);
-      setIsOpen(true);
+      setIsOpen(false);
+      setResults([]);
+      if (onInputChange) onInputChange("");
       inputRef.current?.focus();
     };
 
@@ -175,7 +226,9 @@ export const B2cCustomerSearchBar = forwardRef(
 
     const handleKeyDown = (e) => {
       if (!isOpen && e.key === "ArrowDown") {
-        setIsOpen(true);
+        if (currentValue?.trim() && results.length > 0) {
+          setIsOpen(true);
+        }
         return;
       }
 
@@ -228,7 +281,11 @@ export const B2cCustomerSearchBar = forwardRef(
             type="text"
             value={currentValue}
             onChange={handleInputChange}
-            onFocus={() => setIsOpen(true)}
+            onFocus={() => {
+              if (currentValue && currentValue.trim().length > 0 && results.length > 0) {
+                setIsOpen(true);
+              }
+            }}
             onKeyDown={handleKeyDown}
             disabled={disabled}
             autoFocus={autoFocus}
@@ -248,8 +305,8 @@ export const B2cCustomerSearchBar = forwardRef(
           )}
         </div>
 
-        {/* Dropdown Results List */}
-        {isOpen && (
+        {/* Dropdown Results List - Only render when open AND user has searched */}
+        {isOpen && Boolean(currentValue?.trim()) && (
           <div
             className={cn(
               "absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-2xl border border-border bg-surface shadow-[var(--app-shadow-xl)] animate-in fade-in-50 zoom-in-95 duration-100",
@@ -267,7 +324,7 @@ export const B2cCustomerSearchBar = forwardRef(
             </div>
 
             {/* Results */}
-            <div ref={listRef} className="max-h-[280px] overflow-y-auto p-1.5 space-y-1">
+            <div ref={listRef} className="relative max-h-[320px] overflow-y-auto p-1.5 space-y-1 scroll-smooth">
               {results.length > 0 ? (
                 results.map((cust, idx) => {
                   const isSelected = selectedCustomer?.id === cust.id || idx === selectedIndex;
@@ -275,6 +332,7 @@ export const B2cCustomerSearchBar = forwardRef(
                   return (
                     <div
                       key={cust.id || idx}
+                      data-index={idx}
                       onMouseEnter={() => setSelectedIndex(idx)}
                       onClick={() => handleSelect(cust)}
                       className={cn(

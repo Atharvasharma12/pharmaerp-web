@@ -31,6 +31,8 @@ import { UIModal, UIButton, UIBadge } from "@/components/ui";
 import { PermissionGate } from "@/components/common/PermissionGate";
 import useBranch from "@/features/branch/hooks/useBranch";
 import shiftService from "@/features/operations/shifts/services/shiftService";
+import { OrderInvoiceModal } from "@/features/sales/components";
+import CancelInvoiceRefundModal from "./CancelInvoiceRefundModal";
 import { cn } from "@/lib/utils";
 
 const DENOM_CONFIG = {
@@ -113,7 +115,6 @@ export const BillingInvoiceDetailsDrawer = ({
   invoice,
   isOpen,
   onClose,
-  onMarkPaid,
   onCancelInvoice,
 }) => {
   const navigate = useNavigate();
@@ -124,6 +125,7 @@ export const BillingInvoiceDetailsDrawer = ({
   const [isCheckingShift, setIsCheckingShift] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   // Reset & verify shift status on modal open
   useEffect(() => {
@@ -201,11 +203,11 @@ export const BillingInvoiceDetailsDrawer = ({
   const isShiftOpen = resolvedShiftStatus === "open";
   const canEditOrCancel = invoice && invoice.status !== "Cancelled" && isShiftOpen;
 
-  const handleConfirmCancel = async () => {
+  const handleConfirmCancel = async (cancelData = {}) => {
     if (isCancelling || !invoice?.id) return;
     setIsCancelling(true);
     try {
-      await onCancelInvoice(invoice.id);
+      await onCancelInvoice(invoice.id, cancelData);
       setShowConfirmCancel(false);
     } catch (err) {
       console.error("Cancel invoice error:", err);
@@ -217,7 +219,7 @@ export const BillingInvoiceDetailsDrawer = ({
   if (!isOpen || !invoice) return null;
 
   const handlePrint = () => {
-    window.print();
+    setIsPrintModalOpen(true);
   };
 
   const getStatusBadge = (status) => {
@@ -750,8 +752,37 @@ export const BillingInvoiceDetailsDrawer = ({
                   )}
                 </div>
               </div>
+            ) : String(invoice.paymentMode || "").toUpperCase() === "CREDIT" || invoice.creditDueDate ? (
+              /* Credit Sale Settlement Card */
+              <div className="p-3.5 rounded-xl bg-amber-500/[0.08] dark:bg-amber-500/[0.12] border border-amber-500/30 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <Calendar className="size-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">
+                      Credit Sale • Due Date
+                    </span>
+                    <p className="font-mono font-bold text-text text-sm">
+                      {invoice.creditDueDate
+                        ? new Date(invoice.creditDueDate).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "Term not specified"}
+                    </p>
+                  </div>
+                </div>
+                <div className="font-mono text-right">
+                  <span className="text-[10px] text-text-muted block">Settlement Status</span>
+                  <UIBadge variant="soft" color="warning" size="sm" className="font-semibold">
+                    Credit Outstanding
+                  </UIBadge>
+                </div>
+              </div>
             ) : (
-              /* Other (Card / Credit / Other) */
+              /* Other (Card / Other) */
               <div className="p-3.5 rounded-xl bg-surface border border-border flex items-center justify-between text-xs">
                 <div>
                   <span className="text-[10.5px] font-bold text-text-muted uppercase">Digital Settlement</span>
@@ -959,19 +990,6 @@ export const BillingInvoiceDetailsDrawer = ({
                 </>
               )}
 
-              {invoice.status !== "Paid" && invoice.status !== "Cancelled" && (
-                <PermissionGate permission="bill:update">
-                  <UIButton
-                    variant="primary"
-                    size="sm"
-                    onClick={() => onMarkPaid(invoice.id)}
-                    disabled={isCancelling}
-                    startIcon={<CheckCircle2 className="size-4" />}
-                  >
-                    Mark as Paid
-                  </UIButton>
-                </PermissionGate>
-              )}
 
               <UIButton variant="outline" size="sm" onClick={onClose} disabled={isCancelling}>
                 Close
@@ -982,51 +1000,20 @@ export const BillingInvoiceDetailsDrawer = ({
       </UIModal>
 
       {/* Cancel Bill Confirmation Dialog */}
-      <UIModal
+      {/* ── Cancel Sale & Cash Refund Dialog ── */}
+      <CancelInvoiceRefundModal
         isOpen={showConfirmCancel}
-        onClose={isCancelling ? undefined : () => setShowConfirmCancel(false)}
-        closeOnBackdrop={!isCancelling}
-        closeOnEsc={!isCancelling}
-        showCloseButton={!isCancelling}
-        size="sm"
-      >
-        <div className="p-6 space-y-4 font-sans">
-          <div className="flex items-start gap-3">
-            <div className="size-10 rounded-full bg-error-soft text-error flex items-center justify-center shrink-0">
-              <AlertTriangle className="size-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-text">Cancel Sale Bill?</h3>
-              <p className="text-sm text-text-muted mt-1 leading-relaxed">
-                Are you sure you want to cancel invoice <span className="font-semibold text-text font-mono">{invoice.invoiceNo}</span>?
-                This action will return items to inventory, adjust shift cash and totals, and void this transaction.
-              </p>
-            </div>
-          </div>
+        onClose={() => !isCancelling && setShowConfirmCancel(false)}
+        onConfirm={handleConfirmCancel}
+        invoice={invoice}
+        isCancelling={isCancelling}
+      />
 
-          <div className="flex justify-end items-center gap-3 pt-3 border-t border-border">
-            <UIButton
-              variant="outline"
-              size="sm"
-              onClick={() => setShowConfirmCancel(false)}
-              disabled={isCancelling}
-            >
-              Keep Bill
-            </UIButton>
-            <UIButton
-              variant="destructive"
-              size="sm"
-              onClick={handleConfirmCancel}
-              isLoading={isCancelling}
-              loadingText="Cancelling Bill..."
-              disabled={isCancelling}
-              startIcon={<Trash2 className="size-4" />}
-            >
-              Yes, Cancel Bill
-            </UIButton>
-          </div>
-        </div>
-      </UIModal>
+      <OrderInvoiceModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        saleData={invoice}
+      />
     </>
   );
 };

@@ -15,6 +15,7 @@ import {
   CalendarDays,
   Clock,
   ArrowRight,
+  PauseCircle,
 } from "lucide-react";
 import {
   UICard,
@@ -29,8 +30,16 @@ import {
   POS_DEFAULT_CUSTOMERS,
 } from "../../constants/salesData";
 import { SalesCheckoutModal } from "../../components/SalesCheckoutModal";
+import { OrderInvoiceModal } from "../../components/OrderInvoiceModal";
+import { SalesInvoicePreviewModal } from "../../components/SalesInvoicePreviewModal";
 import { SalesReceiptModal } from "../../components/SalesReceiptModal";
 import { POSSessionGatekeeperCard } from "../../components/POSSessionGatekeeperCard";
+import {
+  HoldBillModal,
+  HeldBillsModal,
+  ResumeConflictDialog,
+} from "../../components";
+import { useHoldBills } from "../../hooks/useHoldBills";
 import { useSelector, useDispatch } from "react-redux";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
@@ -46,19 +55,36 @@ export const SalesMobilePage = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedCustomer, setSelectedCustomer] = useState(POS_DEFAULT_CUSTOMERS[0]);
   const [cart, setCart] = useState([]);
+  const [isInvoicePreviewOpen, setIsInvoicePreviewOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
   const { currentBranch } = useBranch();
-  const { activeShift, status: shiftStatus, refetch: refetchActiveShift } = useActiveShift(currentBranch?._id);
+  const branchId = currentBranch?._id || currentBranch?.id || null;
+  const { activeShift, status: shiftStatus, refetch: refetchActiveShift } = useActiveShift(branchId);
   const dispatch = useDispatch();
   const { openBusinessDay, getOpenBusinessDayStatus } = useSelector((state) => state.businessDay);
   
   const [isBusinessDayModalOpen, setIsBusinessDayModalOpen] = useState(false);
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
+
+  // ── Hold Bill System ──
+  const {
+    heldBills,
+    count: heldBillsCount,
+    holdBill,
+    resumeBill,
+    discardBill,
+    clearAll: clearAllHeldBills,
+  } = useHoldBills();
+
+  const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
+  const [isHeldBillsModalOpen, setIsHeldBillsModalOpen] = useState(false);
+  const [pendingResumeBill, setPendingResumeBill] = useState(null);
+  const [isResumeConflictOpen, setIsResumeConflictOpen] = useState(false);
 
   useEffect(() => {
     if (shiftStatus !== "loading") {
@@ -67,15 +93,15 @@ export const SalesMobilePage = () => {
   }, [shiftStatus]);
 
   useEffect(() => {
-    if (!activeShift && currentBranch?._id && getOpenBusinessDayStatus === API_STATUS.IDLE) {
-      dispatch(getOpenBusinessDay(currentBranch._id));
+    if (!activeShift && branchId && getOpenBusinessDayStatus === API_STATUS.IDLE) {
+      dispatch(getOpenBusinessDay(branchId));
     }
-  }, [activeShift, currentBranch?._id, dispatch, getOpenBusinessDayStatus]);
+  }, [activeShift, branchId, dispatch, getOpenBusinessDayStatus]);
 
   const handleCloseBusinessDayModal = () => {
     setIsBusinessDayModalOpen(false);
-    if (currentBranch?._id) {
-      dispatch(getOpenBusinessDay(currentBranch._id));
+    if (branchId) {
+      dispatch(getOpenBusinessDay(branchId));
     }
   };
 
@@ -129,6 +155,73 @@ export const SalesMobilePage = () => {
   const cartItemCount = cart.reduce((acc, item) => acc + item.qty, 0);
   const estTax = cartSubtotal * 0.12;
   const cartGrandTotal = Math.round(cartSubtotal + estTax);
+
+  // ── Hold & Resume Handlers ──
+  const handleOpenHoldModal = () => {
+    if (cart.length === 0) return;
+    setIsHoldModalOpen(true);
+  };
+
+  const handleConfirmHoldBill = (note) => {
+    const held = holdBill({
+      billingMode: "B2C",
+      customer: selectedCustomer,
+      customerName: selectedCustomer?.name || "",
+      customerPhone: selectedCustomer?.phone || "",
+      doctorName: "",
+      saleDate: new Date().toISOString(),
+      cart,
+      note,
+    });
+
+    setCart([]);
+    setIsHoldModalOpen(false);
+    setToastMessage(`⏸️ Bill ${held?.holdNumber || ""} held successfully.`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const executeResumeBill = (targetBill) => {
+    if (!targetBill) return;
+    setSelectedCustomer(targetBill.customer || POS_DEFAULT_CUSTOMERS[0]);
+    setCart(Array.isArray(targetBill.cart) ? targetBill.cart : []);
+    resumeBill(targetBill.id);
+
+    setIsResumeConflictOpen(false);
+    setIsHeldBillsModalOpen(false);
+    setPendingResumeBill(null);
+
+    setToastMessage(`▶️ Bill ${targetBill.holdNumber || ""} resumed.`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleRequestResumeBill = (heldBill) => {
+    if (cart.length > 0) {
+      setPendingResumeBill(heldBill);
+      setIsResumeConflictOpen(true);
+    } else {
+      executeResumeBill(heldBill);
+    }
+  };
+
+  const handleHoldCurrentAndResume = () => {
+    if (!pendingResumeBill) return;
+    holdBill({
+      billingMode: "B2C",
+      customer: selectedCustomer,
+      customerName: selectedCustomer?.name || "",
+      customerPhone: selectedCustomer?.phone || "",
+      doctorName: "",
+      saleDate: new Date().toISOString(),
+      cart,
+      note: `Swapped while resuming ${pendingResumeBill.holdNumber}`,
+    });
+    executeResumeBill(pendingResumeBill);
+  };
+
+  const handleDiscardCurrentAndResume = () => {
+    if (!pendingResumeBill) return;
+    executeResumeBill(pendingResumeBill);
+  };
 
   const handleCompleteSale = async (saleData) => {
     setIsCheckoutOpen(false);
@@ -235,9 +328,24 @@ export const SalesMobilePage = () => {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-extrabold text-text tracking-tight">POS Terminal</h1>
-          <span className="text-xs font-mono font-bold text-primary bg-primary-soft px-2.5 py-1 rounded-full">
-            {cartItemCount} in Cart
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsHeldBillsModalOpen(true)}
+              className={cn(
+                "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer",
+                heldBillsCount > 0
+                  ? "bg-amber-500/15 border-amber-500/35 text-amber-700 dark:text-amber-300"
+                  : "bg-surface-alt border-border text-text-muted"
+              )}
+            >
+              <PauseCircle className="size-3 text-amber-500 shrink-0" />
+              <span>Held ({heldBillsCount})</span>
+            </button>
+            <span className="text-xs font-mono font-bold text-primary bg-primary-soft px-2.5 py-1 rounded-full">
+              {cartItemCount} in Cart
+            </span>
+          </div>
         </div>
 
         {/* Tab Pills */}
@@ -369,22 +477,51 @@ export const SalesMobilePage = () => {
               <span className="text-primary font-mono">₹{cartGrandTotal.toLocaleString("en-IN")}</span>
             </div>
 
-            <PermissionGate permission="pos:create">
+            <div className="flex items-center gap-2 mt-2">
+              <PermissionGate permission="pos:create">
+                <UIButton
+                  variant="primary"
+                  size="md"
+                  className="flex-1 justify-center text-xs font-bold"
+                  disabled={cart.length === 0}
+                  onClick={() => setIsInvoicePreviewOpen(true)}
+                >
+                  Proceed (₹{cartGrandTotal})
+                </UIButton>
+              </PermissionGate>
+
               <UIButton
-                variant="primary"
+                type="button"
+                variant="outline"
                 size="md"
-                className="w-full justify-center text-xs font-bold mt-2"
                 disabled={cart.length === 0}
-                onClick={() => setIsCheckoutOpen(true)}
+                onClick={handleOpenHoldModal}
+                className="px-3 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 font-bold text-xs shrink-0 cursor-pointer"
+                title="Hold Bill"
               >
-                Proceed to Checkout (₹{cartGrandTotal})
+                <PauseCircle className="size-4" />
               </UIButton>
-            </PermissionGate>
+            </div>
           </div>
         </div>
       )}
 
       {/* Modals */}
+      <SalesInvoicePreviewModal
+        isOpen={isInvoicePreviewOpen}
+        onClose={() => setIsInvoicePreviewOpen(false)}
+        onProceedToCheckout={() => {
+          setIsInvoicePreviewOpen(false);
+          setIsCheckoutOpen(true);
+        }}
+        cart={cart}
+        customer={selectedCustomer}
+        customerName={selectedCustomer?.name}
+        customerPhone={selectedCustomer?.phone}
+        billingMode="B2C"
+        cartGrandTotal={cartGrandTotal}
+      />
+
       <SalesCheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
@@ -393,10 +530,50 @@ export const SalesMobilePage = () => {
         onCompleteSale={handleCompleteSale}
       />
 
-      <SalesReceiptModal
+      <OrderInvoiceModal
         isOpen={isReceiptOpen}
         onClose={() => setIsReceiptOpen(false)}
+        onNewSale={() => setIsReceiptOpen(false)}
         saleData={completedSale}
+      />
+
+      {/* ── HOLD BILL MODALS ── */}
+      <HoldBillModal
+        isOpen={isHoldModalOpen}
+        onClose={() => setIsHoldModalOpen(false)}
+        onConfirmHold={handleConfirmHoldBill}
+        cartSummary={{
+          items: cart,
+          itemCount: cartItemCount,
+          grandTotal: cartGrandTotal,
+          customerName: selectedCustomer?.name || "",
+          customerPhone: selectedCustomer?.phone || "",
+          billingMode: "B2C",
+        }}
+      />
+
+      <HeldBillsModal
+        isOpen={isHeldBillsModalOpen}
+        onClose={() => setIsHeldBillsModalOpen(false)}
+        heldBills={heldBills}
+        branchName={currentBranch?.name || "Active Branch"}
+        onResume={handleRequestResumeBill}
+        onDiscard={discardBill}
+        onClearAll={clearAllHeldBills}
+      />
+
+      <ResumeConflictDialog
+        isOpen={isResumeConflictOpen}
+        onClose={() => {
+          setIsResumeConflictOpen(false);
+          setPendingResumeBill(null);
+        }}
+        targetHeldBill={pendingResumeBill}
+        currentCartCount={cartItemCount}
+        currentCartTotal={cartGrandTotal}
+        currentCustomerName={selectedCustomer?.name || "Walk-in Customer"}
+        onHoldCurrentAndResume={handleHoldCurrentAndResume}
+        onDiscardCurrentAndResume={handleDiscardCurrentAndResume}
       />
     </section>
   );

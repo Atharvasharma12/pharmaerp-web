@@ -35,6 +35,13 @@ export const SalesReceiptModal = ({ isOpen, onClose, saleData }) => {
     paymentMethod = "Cash",
   } = saleData;
 
+  const creditDueDate =
+    saleData.creditDueDate ||
+    saleData.dueDate ||
+    (Array.isArray(saleData.payments)
+      ? saleData.payments.find((p) => p.creditDueDate)?.creditDueDate
+      : null);
+
   const isB2B = billingMode === "B2B";
 
   const billDate = rawDate 
@@ -158,6 +165,20 @@ export const SalesReceiptModal = ({ isOpen, onClose, saleData }) => {
                         <span className="font-semibold text-text">₹{Number(p.amount || 0).toFixed(2)}</span>
                       </div>
                     ))}
+                  </div>
+                )}
+                {creditDueDate && (
+                  <div className="mt-1.5 px-2 py-1 rounded-md bg-rose-500/10 border border-rose-500/20 text-right">
+                    <span className="text-[9px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider block">
+                      Credit Due Date
+                    </span>
+                    <span className="font-mono font-bold text-rose-700 dark:text-rose-300 text-xs">
+                      {new Date(creditDueDate).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
                   </div>
                 )}
                 <p className="text-[11px] text-text-muted mt-0.5">Ref: {invoiceNo}-TXN</p>

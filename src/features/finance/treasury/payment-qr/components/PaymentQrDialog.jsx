@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 
 import useBankAccount from "@/features/finance/treasury/bank-management/bank-accounts/hooks/useBankAccount";
+import useBranch from "@/features/branch/hooks/useBranch";
 
 const PROVIDER_OPTIONS = [
   { label: "Google Pay (GPay)", value: "GPAY", description: "Google Pay for Business" },
@@ -200,11 +201,14 @@ export function PaymentQrDialog({
   mode = "create",
   entityId = null,
   qrData = null,
+  currentBranch = null,
   onSubmitCreate,
   onSubmitUpdate,
   onFetchById,
   onSuccess,
 }) {
+  const branchHook = useBranch();
+  const effectiveBranch = currentBranch || branchHook?.currentBranch;
   const { bankAccounts = [], getBankAccounts } = useBankAccount();
 
   const [formData, setFormData] = useState(INITIAL_FORM);
@@ -397,7 +401,13 @@ export function PaymentQrDialog({
 
     try {
       if (mode === "create") {
+        if (!effectiveBranch?._id) {
+          setServerError("Please select an active branch before creating a payment QR code.");
+          setIsSubmitting(false);
+          return;
+        }
         const payload = {
+          branchId: effectiveBranch._id,
           bankAccountId: formData.bankAccountId,
           upiId: formData.upiId.trim().toLowerCase(),
           label: formData.label.trim(),

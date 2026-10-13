@@ -157,17 +157,18 @@ export const SalesCheckoutModal = ({
 }) => {
   const navigate = useNavigate();
   const { currentBranch } = useBranch();
+  const branchId = currentBranch?._id || currentBranch?.id;
   const { paymentQrs, getPaymentQrs } = usePaymentQr();
   const { fetchBranchCash, runningCash, runningDenominations } = useBranchCash();
   const reduxActiveShift = useSelector((state) => state.shift?.activeShift);
   const activeShift = activeShiftProp ?? reduxActiveShift;
 
   useEffect(() => {
-    if (isOpen && currentBranch?._id) {
-      getPaymentQrs({});
-      fetchBranchCash(currentBranch._id);
+    if (isOpen && branchId) {
+      getPaymentQrs({ branchId, status: "ACTIVE" });
+      fetchBranchCash(branchId);
     }
-  }, [isOpen, currentBranch?._id, getPaymentQrs, fetchBranchCash]);
+  }, [isOpen, branchId, getPaymentQrs, fetchBranchCash]);
 
   // Branch-scoped serial invoice number (e.g. AEB-2627-0001)
   const defaultInvoiceNo = useMemo(() => {
@@ -186,11 +187,11 @@ export const SalesCheckoutModal = ({
 
   useEffect(() => {
     if (existingInvoiceNo) return;
-    if (!isOpen || !currentBranch?._id) return;
+    if (!isOpen || !branchId) return;
     let isMounted = true;
     invoiceService
       .getNextInvoiceNumber({
-        branchId: currentBranch._id,
+        branchId,
         date: saleDate ? new Date(saleDate).toISOString() : new Date().toISOString(),
       })
       .then((res) => {
@@ -209,7 +210,7 @@ export const SalesCheckoutModal = ({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, currentBranch?._id, saleDate, existingInvoiceNo]);
+  }, [isOpen, branchId, saleDate, existingInvoiceNo]);
 
   const displayInvoiceNo = existingInvoiceNo || nextInvoiceNo || defaultInvoiceNo;
 
@@ -218,25 +219,34 @@ export const SalesCheckoutModal = ({
     return runningCash || 0;
   }, [runningCash]);
 
+  // Filter QRs strictly for the current branch
+  const branchQrs = useMemo(() => {
+    if (!paymentQrs || !branchId) return [];
+    return paymentQrs.filter((q) => {
+      const qBranchId = q.branchId?._id || q.branchId?.id || q.branchId;
+      return !qBranchId || String(qBranchId) === String(branchId);
+    });
+  }, [paymentQrs, branchId]);
+
   // Primary QR — pre-selected for UPI payments (zero friction for cashier)
   const primaryQr = useMemo(() => {
-    if (!paymentQrs || paymentQrs.length === 0) return null;
-    return paymentQrs.find((q) => q.isPrimary && q.status === "ACTIVE") ||
-           paymentQrs.find((q) => q.status === "ACTIVE") ||
-           paymentQrs[0] || null;
-  }, [paymentQrs]);
+    if (!branchQrs || branchQrs.length === 0) return null;
+    return branchQrs.find((q) => q.isPrimary && q.status === "ACTIVE") ||
+           branchQrs.find((q) => q.status === "ACTIVE") ||
+           branchQrs[0] || null;
+  }, [branchQrs]);
 
   const upiOptions = useMemo(() => {
-    const activeList = (paymentQrs || []).filter((q) => q.status === "ACTIVE");
+    const activeList = (branchQrs || []).filter((q) => q.status === "ACTIVE");
     if (activeList.length === 0) {
-      return [{ value: "", label: "No active UPI QR configured", disabled: true }];
+      return [{ value: "", label: "No active UPI QR configured for this branch", disabled: true }];
     }
     return activeList.map((qr) => ({
       value: String(qr._id),
       label: qr.label ? `${qr.label} (${qr.upiId})${qr.isPrimary ? " ★" : ""}` : qr.upiId,
       icon: <QrCode className="size-3.5 text-purple-600" />,
     }));
-  }, [paymentQrs]);
+  }, [branchQrs]);
 
   const [discountPercent, setDiscountPercent] = useState(customer?.defaultDiscount || 0);
   const [notes, setNotes] = useState("");
@@ -357,7 +367,7 @@ export const SalesCheckoutModal = ({
           id: Date.now(),
           paymentType: "Cash",
           amount: grandTotal,
-          branchId: currentBranch?._id || "",
+          branchId: branchId || "",
         },
       ]);
     }
@@ -387,7 +397,7 @@ export const SalesCheckoutModal = ({
     const next = [...payments];
     const updated = { ...next[index], [field]: value };
     if (field === "paymentType" && value === "Cash") {
-      updated.branchId = currentBranch?._id || "";
+      updated.branchId = branchId || "";
       delete updated.paymentQrId;
       delete updated.creditDueDate;
     }
@@ -400,7 +410,8 @@ export const SalesCheckoutModal = ({
     }
     if (field === "paymentType" && value === "Credit") {
       if (!updated.creditDueDate) {
-        const defaultDueDate = new Date();
+        const baseDate = saleDate ? new Date(saleDate) : new Date();
+        const defaultDueDate = new Date(baseDate);
         defaultDueDate.setDate(defaultDueDate.getDate() + (creditDays || 15));
         updated.creditDueDate = defaultDueDate.toISOString().split("T")[0];
       }
@@ -454,7 +465,7 @@ export const SalesCheckoutModal = ({
             paymentType: otherType,
             amount: half2,
             paymentQrId: otherType === "UPI" && primaryQr?._id ? String(primaryQr._id) : undefined,
-            branchId: otherType === "Cash" ? currentBranch?._id || "" : undefined,
+            branchId: otherType === "Cash" ? branchId || "" : undefined,
           },
         ]);
       }
@@ -468,7 +479,7 @@ export const SalesCheckoutModal = ({
           id: Date.now(),
           paymentType: "Cash",
           amount: grandTotal,
-          branchId: currentBranch?._id || "",
+          branchId: branchId || "",
         },
       ]);
     } else if (mode === "UPI") {
@@ -481,7 +492,8 @@ export const SalesCheckoutModal = ({
         },
       ]);
     } else if (mode === "Credit") {
-      const defaultDueDate = new Date();
+      const baseDate = saleDate ? new Date(saleDate) : new Date();
+      const defaultDueDate = new Date(baseDate);
       defaultDueDate.setDate(defaultDueDate.getDate() + (creditDays || 15));
       setPayments([
         {
@@ -518,7 +530,7 @@ export const SalesCheckoutModal = ({
         id: Date.now(),
         paymentType: "UPI",
         amount: shortfall,
-        branchId: currentBranch?._id || "",
+        branchId: branchId || "",
         paymentQrId: primaryQr?._id ? String(primaryQr._id) : undefined,
       },
     ]);
@@ -597,7 +609,7 @@ export const SalesCheckoutModal = ({
     try {
       const salePayload = {
         invoiceNo: displayInvoiceNo,
-        branchId: currentBranch?._id,
+        branchId: branchId || undefined,
         customer: customerPhone ? { ...customer, phone: customerPhone } : customer,
         doctor: doctor || null,
         date: saleDate ? new Date(saleDate).toISOString() : new Date().toISOString(),
@@ -626,7 +638,7 @@ export const SalesCheckoutModal = ({
           paymentQrId: p.paymentQrId,
           txnRefNo: p.txnRefNo,
           creditDueDate: p.paymentType === "Credit" ? p.creditDueDate : undefined,
-          branchId: p.paymentType === "Cash" ? currentBranch?._id : undefined,
+          branchId: p.paymentType === "Cash" ? branchId : undefined,
           cashPartition: p.paymentType === "Cash" ? "running" : undefined,
           denominations: p.cashDetails?.received 
             ? Object.entries(p.cashDetails.received).map(([val, qty]) => ({ denomination: Number(val), quantity: qty }))
@@ -1058,23 +1070,66 @@ export const SalesCheckoutModal = ({
                           </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-3 items-center">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
-                              Maturity Due Date
-                            </label>
-                            <input
-                              type="date"
-                              value={row.creditDueDate || ""}
-                              min={new Date().toISOString().split("T")[0]}
-                              onChange={(e) => handleUpdate(index, "creditDueDate", e.target.value)}
-                              className="w-full h-8 rounded-lg border border-border bg-surface-alt text-xs font-mono font-bold text-text focus:border-primary focus:outline-none px-2.5"
-                            />
-                          </div>
-                          <div className="text-[10.5px] text-text-muted pt-3">
-                            <span>Grace period: <strong className="text-text">{creditDays} days</strong> default term</span>
-                          </div>
-                        </div>
+                        {(() => {
+                          const baseTime = saleDate
+                            ? new Date(saleDate).getTime()
+                            : new Date().setHours(0, 0, 0, 0);
+                          const dueTime = row.creditDueDate
+                            ? new Date(row.creditDueDate).getTime()
+                            : 0;
+                          const diffDays =
+                            dueTime && !isNaN(dueTime)
+                              ? Math.max(0, Math.round((dueTime - baseTime) / (1000 * 60 * 60 * 24)))
+                              : (creditDays || 15);
+
+                          return (
+                            <div className="space-y-2 pt-1 border-t border-border/50">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                                  Maturity Due Date
+                                </label>
+                                <span className="text-[11px] font-medium text-text-muted">
+                                  Term: <strong className="text-primary font-mono font-bold">{diffDays} days</strong>
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-center">
+                                <input
+                                  type="date"
+                                  value={row.creditDueDate || ""}
+                                  min={new Date().toISOString().split("T")[0]}
+                                  onChange={(e) => handleUpdate(index, "creditDueDate", e.target.value)}
+                                  className="w-full h-8.5 rounded-lg border border-border bg-surface-alt text-xs font-mono font-bold text-text focus:border-primary focus:outline-none px-2.5"
+                                />
+
+                                <div className="flex items-center gap-1.5">
+                                  {[7, 15, 30, 45].map((preset) => {
+                                    const isSelected = diffDays === preset;
+                                    return (
+                                      <button
+                                        key={preset}
+                                        type="button"
+                                        onClick={() => {
+                                          const d = new Date(baseTime);
+                                          d.setDate(d.getDate() + preset);
+                                          handleUpdate(index, "creditDueDate", d.toISOString().split("T")[0]);
+                                        }}
+                                        className={cn(
+                                          "flex-1 h-7 rounded-md text-[10.5px] font-semibold transition-all cursor-pointer border",
+                                          isSelected
+                                            ? "bg-primary text-primary-foreground border-primary shadow-2xs font-bold"
+                                            : "bg-surface-alt hover:bg-surface border-border text-text-muted hover:text-text"
+                                        )}
+                                      >
+                                        {preset}d
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </>
                     )}
                   </div>

@@ -81,15 +81,20 @@ export default function CustomerPaymentMethodPanel({
   // Load branch cash and payment QRs
   useEffect(() => {
     if (currentBranch?._id) {
-      getPaymentQrs({});
+      getPaymentQrs({ branchId: currentBranch._id, status: "ACTIVE" });
       fetchBranchCash(currentBranch._id);
     }
   }, [currentBranch?._id, getPaymentQrs, fetchBranchCash]);
 
-  // Active payment QRs and auto-select primary QR
+  // Active payment QRs strictly for the current branch and auto-select primary QR
   const activeQrs = useMemo(() => {
-    return (paymentQrs || []).filter((q) => q.status === "ACTIVE");
-  }, [paymentQrs]);
+    if (!paymentQrs || !currentBranch?._id) return [];
+    return paymentQrs.filter((q) => {
+      if (q.status && q.status !== "ACTIVE") return false;
+      const qBranchId = q.branchId?._id || q.branchId;
+      return !qBranchId || String(qBranchId) === String(currentBranch._id);
+    });
+  }, [paymentQrs, currentBranch?._id]);
 
   const primaryQr = useMemo(() => {
     if (activeQrs.length === 0) return null;
@@ -105,7 +110,7 @@ export default function CustomerPaymentMethodPanel({
 
   const upiOptions = useMemo(() => {
     if (activeQrs.length === 0) {
-      return [{ value: "", label: "No active UPI QR configured", disabled: true }];
+      return [{ value: "", label: "No active UPI QR configured for this branch", disabled: true }];
     }
     return activeQrs.map((qr) => ({
       value: String(qr._id),

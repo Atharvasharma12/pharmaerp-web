@@ -1,28 +1,83 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { FiPlus, FiEye, FiCheck, FiFilter, FiRefreshCw, FiEdit, FiX } from "react-icons/fi";
+// src/pages/inventory/TransferOrdersPage.jsx
+
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  ArrowLeftRight,
+  Truck,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Eye,
+  Edit3,
+  Check,
+  X,
+  Building2,
+} from "lucide-react";
 import transferOrderService from "../../features/transfer-order/services/transferOrderService";
 import useBranch from "../../features/branch/hooks/useBranch";
-import { uiToast as toast } from "@/components/ui";
+import {
+  UIButton,
+  UISelect,
+  UIBadge,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UITableEmpty,
+  UITableLoading,
+  UIInfiniteScroll,
+  uiToast as toast,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
+
+const PAGE_LIMIT = 20;
+
+const formatDate = (val) => {
+  if (!val) return "-";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return String(val);
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const STATUS_OPTIONS = [
+  { label: "All Statuses", value: "all" },
+  { label: "In Transit", value: "IN_TRANSIT" },
+  { label: "Completed", value: "COMPLETED" },
+  { label: "Cancelled", value: "CANCELLED" },
+];
 
 const TransferOrdersPage = () => {
-  const [transferOrders, setTransferOrders] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [receivingId, setReceivingId] = useState(null);
-  
-  const [page, setPage] = useState(1);
-  const [limit] = useState(10);
-  const [total, setTotal] = useState(0);
-
+  const navigate = useNavigate();
+  const tableContainerRef = useRef(null);
   const { branches, getCompanyBranches, currentBranch } = useBranch();
-  
+
+  // Core Data & Infinite Scroll states
+  const [transferOrders, setTransferOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+
+  // Filters
   const [filters, setFilters] = useState({
-    status: "",
-    sourceBranchId: "",
-    destinationBranchId: "",
+    status: "all",
+    sourceBranchId: "all",
+    destinationBranchId: "all",
   });
 
-  // Modal State
+  // Action Loading & Modal states
+  const [receivingId, setReceivingId] = useState(null);
   const [viewingOrder, setViewingOrder] = useState(null);
   const [loadingViewId, setLoadingViewId] = useState(null);
 
@@ -30,37 +85,100 @@ const TransferOrdersPage = () => {
     getCompanyBranches();
   }, [getCompanyBranches]);
 
-  const fetchTransferOrders = async () => {
+  // Source & Destination Facility options for UISelect
+  const branchOptions = useMemo(() => {
+    const list = Array.isArray(branches) ? branches : [];
+    return [
+      { label: "All Facilities", value: "all" },
+      ...list.map((b) => ({
+        label: b.name || "Branch",
+        value: b._id || b.id,
+      })),
+    ];
+  }, [branches]);
+
+  // Initial Fetch
+  const fetchInitialOrders = useCallback(async () => {
+    setIsLoading(true);
     try {
-      setLoading(true);
-      const res = await transferOrderService.getTransferOrders({
-        page,
-        limit,
-        ...filters,
-      });
-      setTransferOrders(res?.data?.data?.transferOrders || []);
-      setTotal(res?.data?.data?.total || 0);
+      const params = {
+        page: 1,
+        limit: PAGE_LIMIT,
+      };
+      if (filters.status !== "all") params.status = filters.status;
+      if (filters.sourceBranchId !== "all") params.sourceBranchId = filters.sourceBranchId;
+      if (filters.destinationBranchId !== "all") params.destinationBranchId = filters.destinationBranchId;
+
+      const res = await transferOrderService.getTransferOrders(params);
+      const data = res?.data?.data || {};
+      const list = Array.isArray(data.transferOrders) ? data.transferOrders : [];
+      const total = data.total ?? list.length;
+
+      setTransferOrders(list);
+      setTotalOrders(total);
+      setCurrentPage(1);
+      setHasMore(list.length < total);
     } catch (error) {
       toast.error("Failed to load transfer orders");
       console.error(error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
-    fetchTransferOrders();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, filters]);
+    fetchInitialOrders();
+  }, [fetchInitialOrders]);
 
+  // Load More for Infinite Scroll
+  const handleLoadMore = useCallback(async () => {
+    if (isLoading || isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    const nextPage = currentPage + 1;
+
+    try {
+      const params = {
+        page: nextPage,
+        limit: PAGE_LIMIT,
+      };
+      if (filters.status !== "all") params.status = filters.status;
+      if (filters.sourceBranchId !== "all") params.sourceBranchId = filters.sourceBranchId;
+      if (filters.destinationBranchId !== "all") params.destinationBranchId = filters.destinationBranchId;
+
+      const res = await transferOrderService.getTransferOrders(params);
+      const data = res?.data?.data || {};
+      const nextList = Array.isArray(data.transferOrders) ? data.transferOrders : [];
+      const total = data.total ?? totalOrders;
+
+      if (nextList.length > 0) {
+        setTransferOrders((prev) => {
+          const existingIds = new Set(prev.map((o) => o._id || o.id));
+          const newRows = nextList.filter((o) => !existingIds.has(o._id || o.id));
+          const combined = [...prev, ...newRows];
+          setHasMore(combined.length < total);
+          return combined;
+        });
+        setCurrentPage(nextPage);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.warn("Failed to load more transfer orders:", error);
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [currentPage, hasMore, isLoading, isLoadingMore, filters, totalOrders]);
+
+  // Receive transfer order
   const handleReceive = async (id) => {
     if (!window.confirm("Are you sure you want to receive this order and update inventory?")) return;
-    
+
     try {
       setReceivingId(id);
       await transferOrderService.receiveTransferOrder(id);
       toast.success("Transfer order received successfully");
-      fetchTransferOrders();
+      fetchInitialOrders();
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to receive transfer order");
     } finally {
@@ -68,6 +186,7 @@ const TransferOrdersPage = () => {
     }
   };
 
+  // View order details
   const handleView = async (id) => {
     try {
       setLoadingViewId(id);
@@ -81,254 +200,445 @@ const TransferOrdersPage = () => {
     }
   };
 
-  const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
-    setPage(1);
+  const handleResetFilters = () => {
+    setFilters({
+      status: "all",
+      sourceBranchId: "all",
+      destinationBranchId: "all",
+    });
   };
 
+  // Compute dynamic stats
+  const stats = useMemo(() => {
+    const total = totalOrders || transferOrders.length;
+    let inTransit = 0;
+    let completed = 0;
+    let cancelled = 0;
+
+    for (const o of transferOrders) {
+      const st = String(o.status || "").toUpperCase();
+      if (st === "IN_TRANSIT") inTransit += 1;
+      else if (st === "COMPLETED") completed += 1;
+      else if (st === "CANCELLED") cancelled += 1;
+    }
+
+    return { total, inTransit, completed, cancelled };
+  }, [totalOrders, transferOrders]);
+
+  const getStatusBadge = (status) => {
+    const st = String(status || "").toUpperCase();
+    switch (st) {
+      case "COMPLETED":
+        return <UIBadge variant="soft" color="success">Completed</UIBadge>;
+      case "IN_TRANSIT":
+        return <UIBadge variant="soft" color="warning">In Transit</UIBadge>;
+      case "CANCELLED":
+        return <UIBadge variant="soft" color="error">Cancelled</UIBadge>;
+      default:
+        return <UIBadge variant="soft" color="neutral">{status?.replace("_", " ")}</UIBadge>;
+    }
+  };
+
+  const isFiltered =
+    filters.status !== "all" ||
+    filters.sourceBranchId !== "all" ||
+    filters.destinationBranchId !== "all";
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Transfer Orders</h1>
-          <p className="text-gray-500 text-sm">Manage stock transfers between facilities</p>
+    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-4 space-y-2.5 text-text font-sans transition-colors">
+      {/* ── 1. Compact 4-Card Statistics Grid ─────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {/* Card 1: Total Transfers */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
+            <ArrowLeftRight className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">
+              Total Transfers
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.total}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Inter-branch transfers
+            </div>
+          </div>
         </div>
-        <Link
-          to="/inventory/transfer-orders/create"
-          className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-        >
-          <FiPlus /> New Transfer
-        </Link>
+
+        {/* Card 2: In Transit */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-warning-soft text-warning flex items-center justify-center shrink-0">
+            <Truck className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-warning truncate">
+              In Transit
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.inTransit}
+            </div>
+            <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono truncate mt-0.5">
+              En route to destination
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Completed */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
+            <CheckCircle2 className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-success truncate">
+              Completed
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.completed}
+            </div>
+            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono truncate mt-0.5">
+              Received & restocked
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Cancelled */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-error-soft text-error flex items-center justify-center shrink-0">
+            <XCircle className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-error truncate">
+              Cancelled
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.cancelled}
+            </div>
+            <div className="text-[10px] text-rose-600 dark:text-rose-400 font-mono truncate mt-0.5">
+              Terminated orders
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-2xs border border-gray-200 mb-6 p-4">
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
-            <select
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            >
-              <option value="">All Statuses</option>
-              <option value="IN_TRANSIT">In Transit</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-          </div>
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Source Facility</label>
-            <select
-              name="sourceBranchId"
-              value={filters.sourceBranchId}
-              onChange={handleFilterChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            >
-              <option value="">All Facilities</option>
-              {branches.map(b => (
-                <option key={b._id} value={b._id}>{b.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Destination Facility</label>
-            <select
-              name="destinationBranchId"
-              value={filters.destinationBranchId}
-              onChange={handleFilterChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            >
-              <option value="">All Facilities</option>
-              {branches.map(b => (
-                <option key={b._id} value={b._id}>{b.name}</option>
-              ))}
-            </select>
-          </div>
-          <button
-            onClick={fetchTransferOrders}
-            className="p-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600"
-            title="Refresh"
+      {/* ── 2. Streamlined Single-Row Filter Toolbar ─────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Status Dropdown */}
+        <div className="w-[150px] sm:w-[170px]">
+          <UISelect
+            value={filters.status}
+            onChange={(val) => setFilters((prev) => ({ ...prev, status: val }))}
+            options={STATUS_OPTIONS}
+            placeholder="All Statuses"
+            size="md"
+          />
+        </div>
+
+        {/* Source Facility Dropdown */}
+        <div className="w-[170px] sm:w-[200px]">
+          <UISelect
+            value={filters.sourceBranchId}
+            onChange={(val) => setFilters((prev) => ({ ...prev, sourceBranchId: val }))}
+            options={branchOptions}
+            placeholder="Source Facility"
+            size="md"
+          />
+        </div>
+
+        {/* Destination Facility Dropdown */}
+        <div className="w-[170px] sm:w-[200px]">
+          <UISelect
+            value={filters.destinationBranchId}
+            onChange={(val) => setFilters((prev) => ({ ...prev, destinationBranchId: val }))}
+            options={branchOptions}
+            placeholder="Destination Facility"
+            size="md"
+          />
+        </div>
+
+        {/* Reset Filter Button */}
+        {isFiltered && (
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            onClick={handleResetFilters}
+            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
+            className="h-10 px-2 text-xs text-text-muted hover:text-text"
+            title="Reset filters"
           >
-            <FiRefreshCw className={loading ? "animate-spin" : ""} />
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-2xs border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-600 uppercase">
-                <th className="p-4 font-semibold">Transfer No</th>
-                <th className="p-4 font-semibold">Source</th>
-                <th className="p-4 font-semibold">Destination</th>
-                <th className="p-4 font-semibold">Status</th>
-                <th className="p-4 font-semibold">Date</th>
-                <th className="p-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {loading ? (
-                <tr>
-                  <td colSpan="6" className="p-8 text-center text-gray-500">Loading...</td>
-                </tr>
-              ) : transferOrders.length > 0 ? (
-                transferOrders.map((order) => (
-                  <tr key={order._id} className="hover:bg-gray-50">
-                    <td className="p-4 font-medium text-gray-800">{order.transferNo}</td>
-                    <td className="p-4 text-sm text-gray-600">{order.sourceBranchId?.name}</td>
-                    <td className="p-4 text-sm text-gray-600">{order.destinationBranchId?.name}</td>
-                    <td className="p-4">
-                      <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                        order.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
-                        order.status === 'IN_TRANSIT' ? 'bg-amber-100 text-amber-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {order.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="p-4 text-sm text-gray-600">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="p-4 flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleView(order._id)}
-                        disabled={loadingViewId === order._id}
-                        className="p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded transition-colors"
-                        title="View Details"
-                      >
-                        {loadingViewId === order._id ? <FiRefreshCw className="size-4 animate-spin" /> : <FiEye className="size-4" />}
-                      </button>
-                      
-                      {order.status === "IN_TRANSIT" && currentBranch?._id === order.sourceBranchId?._id && (
-                        <Link
-                          to={`/inventory/transfer-orders/${order._id}/edit`}
-                          className="p-1.5 text-blue-500 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors"
-                          title="Edit Transfer"
-                        >
-                          <FiEdit className="size-4" />
-                        </Link>
-                      )}
-
-                      {order.status === "IN_TRANSIT" && currentBranch?._id === order.destinationBranchId?._id && (
-                        <button
-                          onClick={() => handleReceive(order._id)}
-                          disabled={receivingId === order._id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
-                        >
-                          <FiCheck /> {receivingId === order._id ? "Receiving..." : "Receive"}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="p-8 text-center text-gray-500">
-                    No transfer orders found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        
-        {total > limit && (
-          <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50 text-sm">
-            <span className="text-gray-600">Showing {transferOrders.length} of {total}</span>
-            <div className="flex gap-2">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1 bg-white border border-gray-300 rounded-md disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                disabled={page * limit >= total}
-                onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1 bg-white border border-gray-300 rounded-md disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+            Reset
+          </UIButton>
         )}
+
+        {/* Right-Aligned Action Cluster */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          {/* Refresh Button */}
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={fetchInitialOrders}
+            className="h-10 w-10 p-0 text-text-muted hover:text-text"
+            title="Refresh transfer orders"
+          >
+            <RefreshCw
+              className={cn("size-4 text-text-muted hover:text-primary", isLoading && "animate-spin text-primary")}
+            />
+          </UIButton>
+
+          {/* New Transfer Button */}
+          <UIButton
+            type="button"
+            variant="primary"
+            size="md"
+            startIcon={<Plus className="size-3.5" />}
+            onClick={() => navigate("/inventory/transfer-orders/create")}
+            className="h-10 px-3.5 text-xs font-semibold shadow-xs"
+          >
+            New Transfer
+          </UIButton>
+        </div>
       </div>
 
-      {/* View Details Modal */}
+      {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ──── */}
+      <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        <div
+          ref={tableContainerRef}
+          className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 divide-y divide-border/60"
+        >
+          <UITable
+            stickyHeader
+            containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+            className="w-full text-xs font-sans"
+          >
+            {/* Sticky Table Header */}
+            <UITableHeader sticky className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs">
+              <UITableRow className="border-b border-border text-[11px] font-semibold text-text uppercase tracking-wider bg-surface-alt">
+                <UITableHead sticky className="min-w-[150px]">Transfer No</UITableHead>
+                <UITableHead sticky className="min-w-[200px]">Source Facility</UITableHead>
+                <UITableHead sticky className="min-w-[200px]">Destination Facility</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[120px]">Status</UITableHead>
+                <UITableHead sticky className="min-w-[120px]">Date</UITableHead>
+                <UITableHead sticky align="right" className="w-36">Actions</UITableHead>
+              </UITableRow>
+            </UITableHeader>
+
+            <UITableBody>
+              {isLoading ? (
+                <UITableLoading colSpan={6} rows={6} />
+              ) : transferOrders.length === 0 ? (
+                <UITableEmpty
+                  colSpan={6}
+                  title="No transfer orders found"
+                  description={
+                    isFiltered
+                      ? "No transfers match your filter criteria. Try clearing filters."
+                      : "No stock transfer orders recorded between facilities yet."
+                  }
+                  action={
+                    isFiltered ? (
+                      <UIButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleResetFilters}
+                      >
+                        Clear Filters
+                      </UIButton>
+                    ) : undefined
+                  }
+                />
+              ) : (
+                transferOrders.map((order) => {
+                  const canEdit =
+                    order.status === "IN_TRANSIT" &&
+                    currentBranch?._id === order.sourceBranchId?._id;
+                  const canReceive =
+                    order.status === "IN_TRANSIT" &&
+                    currentBranch?._id === order.destinationBranchId?._id;
+
+                  return (
+                    <UITableRow
+                      key={order._id || order.id}
+                      onClick={() => handleView(order._id)}
+                      className="cursor-pointer hover:bg-surface-hover/70 transition-colors"
+                    >
+                      {/* Transfer No */}
+                      <UITableCell className="whitespace-nowrap">
+                        <span className="font-bold text-primary font-mono text-[13px] tracking-tight">
+                          {order.transferNo || "-"}
+                        </span>
+                      </UITableCell>
+
+                      {/* Source Facility */}
+                      <UITableCell>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="size-3.5 text-text-muted shrink-0" />
+                          <span className="font-medium text-text truncate">
+                            {order.sourceBranchId?.name || "Source Facility"}
+                          </span>
+                        </div>
+                      </UITableCell>
+
+                      {/* Destination Facility */}
+                      <UITableCell>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="size-3.5 text-text-muted shrink-0" />
+                          <span className="font-medium text-text truncate">
+                            {order.destinationBranchId?.name || "Destination Facility"}
+                          </span>
+                        </div>
+                      </UITableCell>
+
+                      {/* Status */}
+                      <UITableCell align="center" className="whitespace-nowrap">
+                        {getStatusBadge(order.status)}
+                      </UITableCell>
+
+                      {/* Date */}
+                      <UITableCell className="whitespace-nowrap text-text-muted font-medium text-xs">
+                        {formatDate(order.createdAt)}
+                      </UITableCell>
+
+                      {/* Actions */}
+                      <UITableCell align="right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {canReceive && (
+                            <UIButton
+                              variant="ghost"
+                              size="xs"
+                              disabled={receivingId === order._id}
+                              onClick={() => handleReceive(order._id)}
+                              startIcon={<Check className="size-3.5" />}
+                              className="text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-bold text-xs"
+                            >
+                              {receivingId === order._id ? "Receiving..." : "Receive"}
+                            </UIButton>
+                          )}
+                          {canEdit && (
+                            <Link
+                              to={`/inventory/transfer-orders/${order._id}/edit`}
+                              className="p-1.5 text-text-muted hover:text-primary rounded-lg transition-colors"
+                              title="Edit Transfer"
+                            >
+                              <Edit3 className="size-3.5" />
+                            </Link>
+                          )}
+                          <UIButton
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => handleView(order._id)}
+                            startIcon={
+                              loadingViewId === order._id ? (
+                                <RefreshCw className="size-3.5 animate-spin" />
+                              ) : (
+                                <Eye className="size-3.5" />
+                              )
+                            }
+                            className="text-text-muted hover:text-primary"
+                          >
+                            View
+                          </UIButton>
+                        </div>
+                      </UITableCell>
+                    </UITableRow>
+                  );
+                })
+              )}
+            </UITableBody>
+          </UITable>
+
+          {/* Infinite Scroll Trigger */}
+          {!isLoading && transferOrders.length > 0 && (
+            <UIInfiniteScroll
+              onLoadMore={handleLoadMore}
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              rootRef={tableContainerRef}
+              rootMargin="160px"
+              endMessage={
+                !hasMore && transferOrders.length > 0 ? (
+                  <span className="font-mono text-[11px] text-text-muted select-none">
+                    ✓ All {totalOrders} matching transfer orders loaded
+                  </span>
+                ) : null
+              }
+            />
+          )}
+        </div>
+      </div>
+
+      {/* ── View Details Modal ──────────────────────────────────────────────── */}
       {viewingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col max-h-[85vh]">
-            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-50 duration-200">
+          <div className="bg-surface rounded-2xl border border-border shadow-xl w-full max-w-3xl flex flex-col max-h-[85vh] overflow-hidden text-text font-sans">
+            <div className="flex items-center justify-between p-4 border-b border-border bg-surface-alt/50">
               <div>
-                <h3 className="text-lg font-semibold text-gray-800">Transfer Order Details</h3>
-                <p className="text-sm text-gray-500 font-mono mt-0.5">{viewingOrder.transferNo}</p>
+                <h3 className="text-base sm:text-lg font-bold text-text">Transfer Order Details</h3>
+                <p className="text-xs text-primary font-mono font-semibold mt-0.5">{viewingOrder.transferNo}</p>
               </div>
-              <button onClick={() => setViewingOrder(null)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
-                <FiX className="text-xl" />
+              <button
+                type="button"
+                onClick={() => setViewingOrder(null)}
+                className="p-1.5 hover:bg-surface-hover rounded-xl text-text-muted hover:text-text transition-colors cursor-pointer"
+              >
+                <X className="size-5" />
               </button>
             </div>
-            
-            <div className="flex-1 overflow-y-auto p-6">
-              
-              <div className="grid grid-cols-2 gap-6 mb-6">
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Source Facility</p>
-                  <p className="font-medium text-gray-800">{viewingOrder.sourceBranchId?.name}</p>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-surface-alt/70 p-3 rounded-xl border border-border">
+                  <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Source Facility</p>
+                  <p className="text-xs sm:text-sm font-semibold text-text truncate">{viewingOrder.sourceBranchId?.name}</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Destination Facility</p>
-                  <p className="font-medium text-gray-800">{viewingOrder.destinationBranchId?.name}</p>
+                <div className="bg-surface-alt/70 p-3 rounded-xl border border-border">
+                  <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Destination Facility</p>
+                  <p className="text-xs sm:text-sm font-semibold text-text truncate">{viewingOrder.destinationBranchId?.name}</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Status</p>
-                  <span className={`inline-block px-2.5 py-1 text-xs font-medium rounded-full ${
-                    viewingOrder.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
-                    viewingOrder.status === 'IN_TRANSIT' ? 'bg-amber-100 text-amber-800' :
-                    'bg-gray-200 text-gray-800'
-                  }`}>
-                    {viewingOrder.status.replace('_', ' ')}
-                  </span>
+                <div className="bg-surface-alt/70 p-3 rounded-xl border border-border">
+                  <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Status</p>
+                  <div>{getStatusBadge(viewingOrder.status)}</div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Created At</p>
-                  <p className="font-medium text-gray-800">{new Date(viewingOrder.createdAt).toLocaleString()}</p>
+                <div className="bg-surface-alt/70 p-3 rounded-xl border border-border">
+                  <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Created At</p>
+                  <p className="text-xs font-mono font-medium text-text">{new Date(viewingOrder.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
 
               {viewingOrder.remarks && (
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-gray-800 mb-2">Remarks</h4>
-                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-700">
+                <div>
+                  <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Remarks</h4>
+                  <div className="bg-surface-alt/70 p-3 rounded-xl border border-border text-xs text-text">
                     {viewingOrder.remarks}
                   </div>
                 </div>
               )}
 
-              <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">Transfer Items</h4>
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-600 uppercase">
-                      <th className="p-3 font-semibold">Product</th>
-                      <th className="p-3 font-semibold">Batch No</th>
-                      <th className="p-3 font-semibold text-right">Transfer Qty</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {viewingOrder.items?.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50/50">
-                        <td className="p-3 font-medium text-gray-800 text-sm">{item.product?.name || "Unknown Product"}</td>
-                        <td className="p-3 text-sm text-gray-600 font-mono">{item.batchNo}</td>
-                        <td className="p-3 text-sm text-gray-800 font-medium text-right">{item.transferQty}</td>
+              <div>
+                <h4 className="text-xs font-bold text-text uppercase tracking-wider mb-2">Transfer Items</h4>
+                <div className="border border-border rounded-xl overflow-hidden bg-surface">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-surface-alt/80 border-b border-border text-[11px] text-text-muted uppercase tracking-wider">
+                        <th className="p-3 font-semibold">Product</th>
+                        <th className="p-3 font-semibold">Batch No</th>
+                        <th className="p-3 font-semibold text-right">Transfer Qty</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {viewingOrder.items?.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-surface-hover/50 transition-colors">
+                          <td className="p-3 font-medium text-text">{item.product?.name || "Product"}</td>
+                          <td className="p-3 text-text-muted font-mono">{item.batchNo}</td>
+                          <td className="p-3 text-text font-bold text-right font-mono tabular-nums">{item.transferQty}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-
             </div>
           </div>
         </div>

@@ -65,6 +65,7 @@ const PaymentQrsDesktopPage = ({
   isLoading = false,
   serverError,
   serverMessage,
+  currentBranch,
   handleFilterChange,
   handleRemoveChip,
   handleClearFilters,
@@ -258,8 +259,21 @@ const PaymentQrsDesktopPage = ({
       <div className="mx-auto w-full max-w-[1400px]">
         {/* Page Header */}
         <PageHeader
-          title="Payment QR & UPI"
-          subtitle="Manage store payment receiver QR codes and linked settlement bank accounts."
+          title={
+            <div className="flex items-center gap-3">
+              <span>Payment QR & UPI</span>
+              {currentBranch && (
+                <span className="inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary border border-primary/25">
+                  Branch: {currentBranch.name}
+                </span>
+              )}
+            </div>
+          }
+          subtitle={
+            currentBranch
+              ? `Manage counter payment receiver QR codes deployed at ${currentBranch.name}.`
+              : "Manage store payment receiver QR codes and linked settlement bank accounts."
+          }
           extra={
             <AppStack direction="row" gap={2} align="center">
               <AppBreadcrumb

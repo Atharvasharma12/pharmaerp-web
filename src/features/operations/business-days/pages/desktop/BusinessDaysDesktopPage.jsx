@@ -1,16 +1,18 @@
 // src/features/operations/business-days/pages/desktop/BusinessDaysDesktopPage.jsx
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   CalendarDays,
   Clock,
   Plus,
   Search,
-  MoreVertical,
   CheckCircle2,
   AlertCircle,
   Eye,
   LockKeyhole,
+  MoreVertical,
+  RefreshCw,
+  RotateCcw,
 } from "lucide-react";
 import {
   UIButton,
@@ -19,8 +21,14 @@ import {
   UISelect,
   UIBadge,
   UIEmptyState,
-  UIPagination,
   UIAlert,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UIInfiniteScroll,
 } from "@/components/ui";
 
 import {
@@ -28,6 +36,7 @@ import {
   ViewBusinessDayDialog,
   CloseBusinessDayDialog,
 } from "../../components";
+import { cn } from "@/lib/utils";
 
 const formatDate = (val) => {
   if (!val) return "-";
@@ -53,7 +62,7 @@ const formatTime = (val) => {
 
 const formatCurrencyNumber = (val) => {
   if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
-  return Number(val).toLocaleString("en-US", {
+  return Number(val).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -66,18 +75,15 @@ const STATUS_SELECT_OPTIONS = [
   { label: "With Issues", value: "with_issues" },
 ];
 
+const INITIAL_BATCH = 20;
+
 export const BusinessDaysDesktopPage = ({
   businessDays = [],
-  paginatedBusinessDays = [],
+  paginatedBusinessDays,
   allBusinessDays = [],
-  stats = [],
+  stats: propStats,
 
   filters = {},
-  currentPage = 1,
-  pageSize = 10,
-  totalPages = 1,
-  handlePageChange,
-
   handleFilterChange,
   handleSearchChange,
   handleClearFilters,
@@ -99,7 +105,9 @@ export const BusinessDaysDesktopPage = ({
   handleOpenDialog,
   handleCloseDialog,
 }) => {
+  const tableContainerRef = useRef(null);
   const [activeMenuRowId, setActiveMenuRowId] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
 
   // Close actions menu popover on outside mousedown
   useEffect(() => {
@@ -112,7 +120,12 @@ export const BusinessDaysDesktopPage = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ── Stat Calculations using Real Data (No Mock Data) ──────────────────────
+  // Reset infinite scroll count on filters/data change
+  useEffect(() => {
+    setVisibleCount(INITIAL_BATCH);
+  }, [businessDays.length, filters.date, filters.status, filters.search]);
+
+  // Stat Calculations using Active Data
   const totalCount = allBusinessDays.length;
   const openCount = allBusinessDays.filter((d) => d.status === "open").length;
   const closedCount = allBusinessDays.filter((d) => d.status === "closed").length;
@@ -128,12 +141,25 @@ export const BusinessDaysDesktopPage = ({
     openCount > 0 ||
     allBusinessDays.some((d) => d.status === "open");
 
-  const displayDays = paginatedBusinessDays;
-  const totalEntries = businessDays.length || allBusinessDays.length;
+  const visibleDays = useMemo(() => {
+    return businessDays.slice(0, visibleCount);
+  }, [businessDays, visibleCount]);
+
+  const hasMore = visibleCount < businessDays.length;
+
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + 20, businessDays.length));
+  }, [businessDays.length]);
+
+  const isFiltered = Boolean(
+    filters.search ||
+    filters.date ||
+    (filters.status && filters.status !== "all")
+  );
 
   return (
-    <div className="w-full bg-bg min-h-full p-6 lg:p-8 space-y-6 text-text font-sans transition-colors">
-      {/* ── Global Error Message Banner ── */}
+    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-4 space-y-2.5 text-text font-sans transition-colors">
+      {/* Global Error Banner */}
       {error && !hasError && (
         <UIAlert
           intent="danger"
@@ -143,115 +169,90 @@ export const BusinessDaysDesktopPage = ({
         />
       )}
 
-      {/* ── Page Header Row: Title, Subtitle, & "+ Open Business Day" Primary Action ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-[28px] font-bold text-text tracking-tight leading-tight">
-            Business Day
-          </h1>
-          <p className="text-sm text-text-muted mt-1">
-            Manage daily business operations, monitor status, and view session summaries.
-          </p>
-        </div>
-
-        {!hasOpenDay && (
-          <UIButton
-            type="button"
-            variant="primary"
-            size="md"
-            onClick={() => setIsOpenDialogOpen(true)}
-            startIcon={<Plus className="size-4 stroke-[2.5]" />}
-            className="shadow-xs shrink-0"
-          >
-            Open Business Day
-          </UIButton>
-        )}
-      </div>
-
-      {/* ── 4 Stat Cards Row (Respects Active Color Theme & Light/Dark Mode) ──── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      {/* ── 1. Compact 4-Card Statistics Grid ─────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
         {/* Card 1: Total Business Days */}
-        <div className="bg-surface rounded-xl border border-border p-5 flex items-center gap-4 shadow-xs transition-colors">
-          <div className="size-12 rounded-xl bg-info-soft text-info flex items-center justify-center shrink-0">
-            <CalendarDays className="size-6 stroke-[1.8]" />
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
+            <CalendarDays className="size-4.5 stroke-[1.8]" />
           </div>
           <div className="min-w-0">
-            <div className="text-[13px] font-medium text-text-muted truncate">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">
               Total Business Days
             </div>
-            <div className="text-2xl sm:text-[26px] font-bold text-text mt-0.5 leading-tight">
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               {totalCount}
             </div>
-            <div className="text-xs text-text-muted mt-0.5">
-              This month
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Operating sessions
             </div>
           </div>
         </div>
 
         {/* Card 2: Open */}
-        <div className="bg-surface rounded-xl border border-border p-5 flex items-center gap-4 shadow-xs transition-colors">
-          <div className="size-12 rounded-xl bg-success-soft text-success flex items-center justify-center shrink-0">
-            <CheckCircle2 className="size-6 stroke-[1.8]" />
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
+            <CheckCircle2 className="size-4.5 stroke-[1.8]" />
           </div>
           <div className="min-w-0">
-            <div className="text-[13px] font-medium text-success truncate">
-              Open
+            <div className="text-[11.5px] font-medium text-success truncate">
+              Open Day
             </div>
-            <div className="text-2xl sm:text-[26px] font-bold text-text mt-0.5 leading-tight">
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               {openCount}
             </div>
-            <div className="text-xs text-text-muted mt-0.5">
+            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono truncate mt-0.5">
               Currently active
             </div>
           </div>
         </div>
 
         {/* Card 3: Closed */}
-        <div className="bg-surface rounded-xl border border-border p-5 flex items-center gap-4 shadow-xs transition-colors">
-          <div className="size-12 rounded-xl bg-warning-soft text-warning flex items-center justify-center shrink-0">
-            <Clock className="size-6 stroke-[1.8]" />
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-surface-alt text-text flex items-center justify-center shrink-0">
+            <Clock className="size-4.5 stroke-[1.8]" />
           </div>
           <div className="min-w-0">
-            <div className="text-[13px] font-medium text-warning truncate">
-              Closed
+            <div className="text-[11.5px] font-medium text-text-muted truncate">
+              Closed Days
             </div>
-            <div className="text-2xl sm:text-[26px] font-bold text-text mt-0.5 leading-tight">
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               {closedCount}
             </div>
-            <div className="text-xs text-text-muted mt-0.5">
-              This month
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Reconciled & ended
             </div>
           </div>
         </div>
 
         {/* Card 4: With Issues */}
-        <div className="bg-surface rounded-xl border border-border p-5 flex items-center gap-4 shadow-xs transition-colors">
-          <div className="size-12 rounded-xl bg-error-soft text-error flex items-center justify-center shrink-0">
-            <AlertCircle className="size-6 stroke-[1.8]" />
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-error-soft text-error flex items-center justify-center shrink-0">
+            <AlertCircle className="size-4.5 stroke-[1.8]" />
           </div>
           <div className="min-w-0">
-            <div className="text-[13px] font-medium text-error truncate">
+            <div className="text-[11.5px] font-medium text-error truncate">
               With Issues
             </div>
-            <div className="text-2xl sm:text-[26px] font-bold text-text mt-0.5 leading-tight">
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               {issuesCount}
             </div>
-            <div className="text-xs text-text-muted mt-0.5">
+            <div className="text-[10px] text-rose-600 dark:text-rose-400 font-mono truncate mt-0.5">
               Requires attention
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Search & Filter Toolbar (Using Reusable UI Components) ─────────── */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Reusable UIInput for Search */}
-        <div className="flex-1 min-w-[280px]">
+      {/* ── 2. Streamlined Single-Row Filter Toolbar ─────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Search Input */}
+        <div className="w-[200px] sm:w-[240px] lg:w-[280px]">
           <UIInput
             type="text"
             value={filters.search || ""}
             onChange={(e) => handleSearchChange?.(e.target.value)}
-            placeholder="Search business date, session, or reference..."
+            placeholder="Search date, session, or branch..."
             startIcon={<Search className="size-4 text-text-muted" />}
             size="md"
             variant="outline"
@@ -261,20 +262,19 @@ export const BusinessDaysDesktopPage = ({
           />
         </div>
 
-        {/* Reusable UIDatePicker for specific date or preset filtering */}
-        <div className="w-[200px] sm:w-[230px]">
+        {/* Date Picker */}
+        <div className="w-[145px] sm:w-[160px]">
           <UIDatePicker
             value={filters.date || ""}
             onChange={(val) => handleFilterChange?.({ date: val || "" })}
-            placeholder="Filter by date..."
+            placeholder="Select date"
             size="md"
-            presets
             isClearable
           />
         </div>
 
-        {/* Reusable UISelect for Status */}
-        <div className="w-[150px]">
+        {/* Status Dropdown */}
+        <div className="w-[140px] sm:w-[155px]">
           <UISelect
             value={filters.status || "all"}
             onChange={(val) => handleFilterChange?.({ status: val })}
@@ -284,45 +284,81 @@ export const BusinessDaysDesktopPage = ({
           />
         </div>
 
-        {/* Reusable UIButton for Reset */}
-        <UIButton
-          type="button"
-          variant="secondary"
-          size="md"
-          onClick={handleClearFilters}
-          className="h-10 px-4"
-        >
-          Reset
-        </UIButton>
+        {/* Reset Filter Button */}
+        {isFiltered && (
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            onClick={handleClearFilters}
+            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
+            className="h-10 px-2 text-xs text-text-muted hover:text-text"
+            title="Reset filters"
+          >
+            Reset
+          </UIButton>
+        )}
+
+        {/* Right-Aligned Action Cluster */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          {/* Refresh Button */}
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={handleRefresh}
+            className="h-10 w-10 p-0 text-text-muted hover:text-text"
+            title="Refresh business days"
+          >
+            <RefreshCw
+              className={cn("size-4 text-text-muted hover:text-primary", isLoading && "animate-spin text-primary")}
+            />
+          </UIButton>
+
+          {/* Open Business Day Button (when no day is open) */}
+          {!hasOpenDay && (
+            <UIButton
+              type="button"
+              variant="primary"
+              size="md"
+              startIcon={<Plus className="size-3.5" />}
+              onClick={() => setIsOpenDialogOpen(true)}
+              className="h-10 px-3.5 text-xs font-semibold shadow-xs"
+            >
+              Open Business Day
+            </UIButton>
+          )}
+        </div>
       </div>
 
-      {/* ── Main Data Table or Empty State (No Fake Mock Data) ──────────────── */}
-      {displayDays.length === 0 ? (
-        <div className="bg-surface rounded-xl border border-border p-8 shadow-xs">
+      {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ──── */}
+      {businessDays.length === 0 ? (
+        <div className="bg-surface rounded-2xl border border-border p-8 shadow-2xs">
           <UIEmptyState
             icon={<CalendarDays className="size-8 text-primary" />}
             title="No business days found"
             description={
-              filters.search || filters.date || (filters.status && filters.status !== "all")
+              isFiltered
                 ? "No business day sessions matched your filter criteria. Try clearing your filters."
                 : "No business day sessions opened yet. Open a Business Day to start operations."
             }
             actionText={
-              filters.search || filters.date || (filters.status && filters.status !== "all")
+              isFiltered
                 ? "Clear Filters"
                 : !hasOpenDay
                 ? "Open Business Day"
                 : undefined
             }
             onAction={
-              filters.search || filters.date || (filters.status && filters.status !== "all")
+              isFiltered
                 ? handleClearFilters
                 : !hasOpenDay
                 ? () => setIsOpenDialogOpen(true)
                 : undefined
             }
             actionIcon={
-              filters.search || filters.date || (filters.status && filters.status !== "all")
+              isFiltered
                 ? undefined
                 : !hasOpenDay
                 ? <Plus className="size-4" />
@@ -332,43 +368,33 @@ export const BusinessDaysDesktopPage = ({
           />
         </div>
       ) : (
-        <div className="bg-surface rounded-xl border border-border shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-border bg-surface-alt/40 text-[13px] font-semibold text-text select-none">
-                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
-                    Business Date
-                  </th>
-                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
-                    Branch
-                  </th>
-                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
-                    Status
-                  </th>
-                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
-                    Opening Time
-                  </th>
-                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
-                    Closing Time
-                  </th>
-                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
-                    Total Sales (₱)
-                  </th>
-                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
-                    Total Cash (₱)
-                  </th>
-                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap text-center">
-                    Sessions
-                  </th>
-                  <th className="py-3.5 px-4 font-semibold whitespace-nowrap text-right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+        <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+          <div
+            ref={tableContainerRef}
+            className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 divide-y divide-border/60"
+          >
+            <UITable
+              stickyHeader
+              containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+              className="w-full text-xs font-sans"
+            >
+              {/* Sticky Table Header */}
+              <UITableHeader sticky className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs">
+                <UITableRow className="border-b border-border text-[11px] font-semibold text-text uppercase tracking-wider bg-surface-alt">
+                  <UITableHead sticky className="min-w-[130px]">Business Date</UITableHead>
+                  <UITableHead sticky className="min-w-[170px]">Branch</UITableHead>
+                  <UITableHead sticky align="center" className="min-w-[110px]">Status</UITableHead>
+                  <UITableHead sticky className="min-w-[120px]">Opening Time</UITableHead>
+                  <UITableHead sticky className="min-w-[120px]">Closing Time</UITableHead>
+                  <UITableHead sticky align="right" className="min-w-[130px]">Total Sales (₹)</UITableHead>
+                  <UITableHead sticky align="right" className="min-w-[130px]">Total Cash (₹)</UITableHead>
+                  <UITableHead sticky align="center" className="min-w-[90px]">Sessions</UITableHead>
+                  <UITableHead sticky align="right" className="w-24">Actions</UITableHead>
+                </UITableRow>
+              </UITableHeader>
 
-              <tbody>
-                {displayDays.map((bd) => {
+              <UITableBody>
+                {visibleDays.map((bd) => {
                   const dayDate = formatDate(bd.businessDate);
                   const branchName =
                     bd.branchName ||
@@ -402,23 +428,23 @@ export const BusinessDaysDesktopPage = ({
                     }`;
 
                   return (
-                    <tr
+                    <UITableRow
                       key={bd._id}
                       onClick={() => handleOpenDialog?.(bd, "view")}
-                      className="border-b border-border/60 hover:bg-surface-hover transition-colors cursor-pointer text-sm text-text"
+                      className="cursor-pointer hover:bg-surface-hover/70 transition-colors"
                     >
                       {/* Business Date */}
-                      <td className="py-3.5 px-4 font-medium text-text whitespace-nowrap">
+                      <UITableCell className="font-bold text-primary font-mono text-[13px] whitespace-nowrap">
                         {dayDate}
-                      </td>
+                      </UITableCell>
 
                       {/* Branch */}
-                      <td className="py-3.5 px-4 text-text-muted whitespace-nowrap">
+                      <UITableCell className="text-text font-medium truncate">
                         {branchName}
-                      </td>
+                      </UITableCell>
 
-                      {/* Status: Reusable UIBadge with dot variant */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
+                      {/* Status */}
+                      <UITableCell align="center" className="whitespace-nowrap">
                         {isDayOpen ? (
                           <UIBadge variant="dot" color="success">
                             Open
@@ -432,89 +458,71 @@ export const BusinessDaysDesktopPage = ({
                             Closed
                           </UIBadge>
                         )}
-                      </td>
+                      </UITableCell>
 
                       {/* Opening Time */}
-                      <td className="py-3.5 px-4 text-text-muted whitespace-nowrap">
+                      <UITableCell className="text-text-muted font-mono whitespace-nowrap text-xs">
                         {openTime}
-                      </td>
+                      </UITableCell>
 
                       {/* Closing Time */}
-                      <td className="py-3.5 px-4 text-text-muted whitespace-nowrap">
+                      <UITableCell className="text-text-muted font-mono whitespace-nowrap text-xs">
                         {closeTime}
-                      </td>
+                      </UITableCell>
 
-                      {/* Total Sales (₱) */}
-                      <td className="py-3.5 px-4 text-text whitespace-nowrap tabular-nums">
-                        {totalSales}
-                      </td>
+                      {/* Total Sales */}
+                      <UITableCell align="right" className="font-mono font-bold text-text tabular-nums text-sm">
+                        ₹{totalSales}
+                      </UITableCell>
 
-                      {/* Total Cash (₱) */}
-                      <td className="py-3.5 px-4 text-text whitespace-nowrap tabular-nums">
-                        {totalCash}
-                      </td>
+                      {/* Total Cash */}
+                      <UITableCell align="right" className="font-mono font-semibold text-text tabular-nums text-xs">
+                        ₹{totalCash}
+                      </UITableCell>
 
                       {/* Sessions */}
-                      <td className="py-3.5 px-4 text-center text-text-muted whitespace-nowrap">
+                      <UITableCell align="center" className="font-mono font-medium text-text-muted text-xs">
                         {sessionsDisplay}
-                      </td>
+                      </UITableCell>
 
-                      {/* Actions (⋮ 3 Dots Menu Button) */}
-                      <td
-                        className="py-3.5 px-4 text-right whitespace-nowrap"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div
-                          className="relative inline-block text-left"
-                          data-actions-menu
-                        >
+                      {/* Actions */}
+                      <UITableCell align="right" onClick={(e) => e.stopPropagation()}>
+                        <div className="relative inline-block text-left" data-actions-menu>
                           <button
                             type="button"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              setActiveMenuRowId((prev) =>
-                                prev === bd._id ? null : bd._id
-                              );
+                              setActiveMenuRowId((prev) => (prev === bd._id ? null : bd._id));
                             }}
-                            className="p-1 rounded-md text-text-muted hover:text-text hover:bg-surface-hover transition-colors cursor-pointer"
-                            title="Actions"
-                            aria-label="Actions"
+                            className="p-1 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors cursor-pointer"
+                            title="More options"
                           >
                             <MoreVertical className="size-4" />
                           </button>
 
                           {activeMenuRowId === bd._id && (
-                            <div
-                              className="absolute right-0 top-full mt-1 w-44 bg-surface border border-border rounded-lg shadow-lg py-1 z-30"
-                              onClick={(e) => e.stopPropagation()}
-                            >
+                            <div className="absolute right-0 mt-1 w-44 rounded-xl border border-border bg-surface py-1.5 shadow-lg z-50 animate-in fade-in-50 zoom-in-95 duration-150">
                               <button
                                 type="button"
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
+                                onClick={() => {
                                   setActiveMenuRowId(null);
                                   handleOpenDialog?.(bd, "view");
                                 }}
-                                className="w-full text-left px-3 py-2 text-xs font-medium text-text hover:bg-surface-hover flex items-center gap-2 transition-colors cursor-pointer"
+                                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text hover:bg-surface-hover transition-colors text-left"
                               >
                                 <Eye className="size-3.5 text-text-muted" />
-                                <span>View Details</span>
+                                <span>View Summary</span>
                               </button>
 
                               {isDayOpen && (
                                 <button
                                   type="button"
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
+                                  onClick={() => {
                                     setActiveMenuRowId(null);
                                     handleOpenDialog?.(bd, "close");
                                   }}
-                                  className="w-full text-left px-3 py-2 text-xs font-medium text-warning hover:bg-warning-soft flex items-center gap-2 transition-colors cursor-pointer"
+                                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-error hover:bg-error-soft transition-colors text-left font-medium"
                                 >
                                   <LockKeyhole className="size-3.5" />
                                   <span>Close Business Day</span>
@@ -523,31 +531,33 @@ export const BusinessDaysDesktopPage = ({
                             </div>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </UITableCell>
+                    </UITableRow>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </UITableBody>
+            </UITable>
 
-          {/* ── Reusable UIPagination Component Touching Table with No Top Border Line ── */}
-          {totalEntries > 0 && (
-            <UIPagination
-              page={currentPage}
-              totalPages={totalPages}
-              totalItems={totalEntries}
-              pageSize={pageSize}
-              onPageChange={handlePageChange}
-              showSummary
-              showPageSize={false}
-              className="border-t-0 border-none bg-transparent px-4 py-3"
+            {/* Infinite Scroll Trigger */}
+            <UIInfiniteScroll
+              onLoadMore={handleLoadMore}
+              hasMore={hasMore}
+              isLoading={false}
+              rootRef={tableContainerRef}
+              rootMargin="160px"
+              endMessage={
+                !hasMore && businessDays.length > 0 ? (
+                  <span className="font-mono text-[11px] text-text-muted select-none">
+                    ✓ All {businessDays.length} matching business days loaded
+                  </span>
+                ) : null
+              }
             />
-          )}
+          </div>
         </div>
       )}
 
-      {/* ── Dialog Modals (Fully Preserved Business & Backend Logic) ───────── */}
+      {/* ── Dialog Modals ────────────────────────────────────────────────────── */}
       <OpenBusinessDayDialog
         isOpen={isOpenDialogOpen}
         onClose={() => setIsOpenDialogOpen(false)}
