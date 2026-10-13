@@ -1,12 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import AppMobileHeader from "@/layouts/app/mobile/AppMobileHeader";
 import { useGstLedger } from "../../hooks/useGstLedger";
 import { UIInfiniteScroll } from "@/components/ui";
+import useCompany from "@/features/company/hooks/useCompany";
+import { calculateGstr1Summary, deduceGstrGroup } from "../../utils/gstr1SummaryCalculator";
 import {
   FiSearch,
   FiFilter,
   FiDownload,
   FiPlus,
+  FiEye,
   FiFileText,
   FiX,
 } from "react-icons/fi";
@@ -29,6 +32,7 @@ const formatDate = (dateStr) => {
 };
 
 const Gstr1MobilePage = () => {
+  const { currentCompany } = useCompany();
   const {
     entries,
     total,
@@ -41,6 +45,9 @@ const Gstr1MobilePage = () => {
     stats,
     branches = [],
     currentBranch,
+    summaryData,
+    summaryLoading,
+    fetchSummary,
     handleFilterChange,
     handleResetFilters,
     refetch,
@@ -50,18 +57,30 @@ const Gstr1MobilePage = () => {
 
   const [showFilters, setShowFilters] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
   const [formData, setFormData] = useState({
     voucherNumber: "",
     voucherDate: new Date().toISOString().slice(0, 10),
     branchId: currentBranch?._id || "",
+    groupDescription: "B2B",
     taxableAmount: "",
     cgst: "",
     sgst: "",
     igst: "",
     narration: "",
   });
+
+  // Fallback summary computation
+  const fallbackSummary = useMemo(() => {
+    return calculateGstr1Summary(entries, {
+      companyGstin: currentCompany?.gstin || "",
+      b2cLargeThreshold: 250000,
+    });
+  }, [entries, currentCompany?.gstin]);
+
+  const activeSummary = summaryData || fallbackSummary;
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
@@ -81,6 +100,7 @@ const Gstr1MobilePage = () => {
       voucherNumber: formData.voucherNumber,
       voucherDate: formData.voucherDate,
       branchId: formData.branchId || undefined,
+      groupDescription: formData.groupDescription || "B2B",
       taxableAmount: Number(formData.taxableAmount || 0),
       cgst: Number(formData.cgst || 0),
       sgst: Number(formData.sgst || 0),
@@ -95,12 +115,14 @@ const Gstr1MobilePage = () => {
         voucherNumber: "",
         voucherDate: new Date().toISOString().slice(0, 10),
         branchId: currentBranch?._id || "",
+        groupDescription: "B2B",
         taxableAmount: "",
         cgst: "",
         sgst: "",
         igst: "",
         narration: "",
       });
+      fetchSummary();
     } else {
       setFormError(result.error);
     }
@@ -155,8 +177,20 @@ const Gstr1MobilePage = () => {
           </div>
 
           <button
+            onClick={() => {
+              fetchSummary();
+              setIsSummaryModalOpen(true);
+            }}
+            className="p-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-lg text-xs font-medium flex items-center gap-1 shadow-xs"
+            title="GSTR-1 Summary"
+          >
+            <FiEye className="w-4 h-4" />
+          </button>
+
+          <button
             onClick={() => setIsModalOpen(true)}
             className="p-2 bg-indigo-600 text-white rounded-lg text-xs font-medium flex items-center gap-1 shadow-xs"
+            title="New GSTR-1 Record"
           >
             <FiPlus className="w-4 h-4" />
           </button>
@@ -267,9 +301,16 @@ const Gstr1MobilePage = () => {
                 className="bg-white dark:bg-surface p-4 rounded-xl border border-slate-200 dark:border-border shadow-xs space-y-3 transition-colors"
               >
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
-                    {entry.voucherNumber}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
+                      {entry.voucherNumber}
+                    </span>
+                    {(entry.groupDescription || deduceGstrGroup(entry)) && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-surface-alt text-slate-700 dark:text-text-muted border border-slate-200/80 dark:border-border">
+                        {entry.groupDescription || deduceGstrGroup(entry)}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     {entry.branchId?.name && (
                       <span className="text-[10px] bg-slate-100 dark:bg-surface-alt text-slate-600 dark:text-text-muted px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-border/60">
@@ -412,6 +453,33 @@ const Gstr1MobilePage = () => {
 
               <div>
                 <label className="text-[11px] font-semibold text-slate-700 dark:text-text-muted block mb-1">
+                  Group Description *
+                </label>
+                <select
+                  name="groupDescription"
+                  required
+                  value={formData.groupDescription}
+                  onChange={handleFormChange}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-surface-alt border border-slate-200 dark:border-border rounded-lg text-xs text-slate-900 dark:text-text focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="B2B">1. B2B (Registered Recipient)</option>
+                  <option value="B2C (Large) Invoice">2. B2C (Large) Invoice</option>
+                  <option value="B2C (Small) Invoice">3. B2C (Small) Invoice</option>
+                  <option value="Nil Rated">4.1 Nil Rated Supplies</option>
+                  <option value="Exempted">4.2 Exempted Supplies</option>
+                  <option value="Export Invoices">5. Export Invoices</option>
+                  <option value="Tax Liability on Advance">6. Tax Liability on Advance</option>
+                  <option value="Set/off Tax on Advance of prior period">7. Set/off Tax on Advance</option>
+                  <option value="Credit Note - Registered">8.1 Credit Note - Registered</option>
+                  <option value="Credit Note - Unregistered">8.2 Credit Note - Unregistered</option>
+                  <option value="Debit Note - Registered">8.3 Debit Note - Registered</option>
+                  <option value="Debit Note - Unregistered">8.4 Debit Note - Unregistered</option>
+                  <option value="Refund from Advance">8.5 Refund from Advance</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-700 dark:text-text-muted block mb-1">
                   Branch
                 </label>
                 <select
@@ -522,6 +590,114 @@ const Gstr1MobilePage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* GSTR-1 Mobile Summary Modal */}
+      {isSummaryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white dark:bg-surface rounded-t-2xl sm:rounded-2xl shadow-xl border border-slate-200 dark:border-border w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-150">
+            <div className="p-4 border-b border-slate-100 dark:border-border flex items-center justify-between shrink-0">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-text">
+                    GSTR-1 Statutory Summary
+                  </h3>
+                  {summaryLoading && (
+                    <span className="text-[10px] text-indigo-500 animate-pulse font-medium">Calculating...</span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-text-muted mt-0.5">
+                  Across all {total} database outward records
+                </p>
+              </div>
+              <button
+                onClick={() => setIsSummaryModalOpen(false)}
+                className="text-slate-400 dark:text-text-muted hover:text-slate-600 dark:hover:text-text p-1"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 overflow-y-auto overflow-x-auto flex-1">
+              <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-border shadow-xs">
+                <table className="w-full text-[11px] text-left border-collapse min-w-[700px]">
+                  <thead className="bg-slate-100 dark:bg-surface-alt text-slate-700 dark:text-text-muted font-semibold sticky top-0 z-10 border-b border-slate-200 dark:border-border">
+                    <tr>
+                      <th className="px-3 py-2 text-left min-w-[180px]">Description</th>
+                      <th className="px-2 py-2 text-right w-12">Count</th>
+                      <th className="px-2 py-2 text-right min-w-[80px]">Taxable</th>
+                      <th className="px-2 py-2 text-right min-w-[70px]">SGST</th>
+                      <th className="px-2 py-2 text-right min-w-[70px]">CGST</th>
+                      <th className="px-2 py-2 text-right min-w-[70px]">IGST</th>
+                      <th className="px-2 py-2 text-right min-w-[60px]">Cess</th>
+                      <th className="px-2 py-2 text-right min-w-[85px]">Total Tax</th>
+                      <th className="px-3 py-2 text-right min-w-[95px]">Invoice Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-border/40">
+                    {(activeSummary.groups || []).map((group, idx) => {
+                      const isTotal = group.isTotal;
+                      const isSummaryBox = group.isSummaryBox;
+                      const isSub = group.isSubItem;
+
+                      let rowClasses = "transition-colors ";
+                      if (isTotal) {
+                        rowClasses += "bg-slate-100/90 dark:bg-surface-alt font-bold text-slate-900 dark:text-text border-t-2 border-b-2 border-slate-300 dark:border-border";
+                      } else if (isSummaryBox) {
+                        rowClasses += "bg-indigo-50/40 dark:bg-indigo-500/5 font-semibold text-slate-800 dark:text-text";
+                      } else if (isSub) {
+                        rowClasses += "hover:bg-slate-50 dark:hover:bg-surface-hover/50 text-slate-600 dark:text-text-muted text-[10px]";
+                      } else {
+                        rowClasses += "hover:bg-slate-50 dark:hover:bg-surface-hover/50 text-slate-800 dark:text-text font-medium";
+                      }
+
+                      return (
+                        <tr key={idx} className={rowClasses}>
+                          <td className="px-3 py-2">
+                            {isSub ? (
+                              <div className="pl-4 flex items-center gap-1">
+                                <span className="text-slate-400 dark:text-text-muted/60">-</span>
+                                <span>{group.description}</span>
+                              </div>
+                            ) : isTotal ? (
+                              <span className="font-bold uppercase tracking-wider">{group.description}</span>
+                            ) : isSummaryBox ? (
+                              <span className="font-semibold text-indigo-700 dark:text-indigo-400">{group.description}</span>
+                            ) : (
+                              <span>{group.description}</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2 text-right font-mono text-[10px]">{group.count}</td>
+                          <td className="px-2 py-2 text-right font-mono">{formatCurrency(group.taxable)}</td>
+                          <td className="px-2 py-2 text-right font-mono">{formatCurrency(group.sgst)}</td>
+                          <td className="px-2 py-2 text-right font-mono">{formatCurrency(group.cgst)}</td>
+                          <td className="px-2 py-2 text-right font-mono">{formatCurrency(group.igst)}</td>
+                          <td className="px-2 py-2 text-right font-mono">{formatCurrency(group.cess)}</td>
+                          <td className={`px-2 py-2 text-right font-mono ${isTotal ? "text-indigo-700 dark:text-indigo-400 font-bold" : "font-semibold text-slate-900 dark:text-text"}`}>
+                            {formatCurrency(group.totalTax)}
+                          </td>
+                          <td className={`px-3 py-2 text-right font-mono ${isTotal ? "text-slate-900 dark:text-text font-bold" : "font-semibold text-slate-900 dark:text-text"}`}>
+                            {formatCurrency(group.invoiceValue)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="p-3 border-t border-slate-100 dark:border-border bg-slate-50 dark:bg-surface-alt flex items-center justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsSummaryModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

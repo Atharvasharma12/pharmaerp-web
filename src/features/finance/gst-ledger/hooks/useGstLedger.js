@@ -298,6 +298,37 @@ export const useGstLedger = (type = "GSTR-1") => {
     }
   };
 
+  const [summaryData, setSummaryData] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
+  const fetchSummary = useCallback(async () => {
+    if (type !== "GSTR-1") return null;
+    setSummaryLoading(true);
+    try {
+      const params = { ...filters };
+      Object.keys(params).forEach((key) => {
+        if (params[key] === "" || params[key] === null || params[key] === undefined) {
+          delete params[key];
+        }
+      });
+      const response = await gstLedgerService.getGstr1Summary(params);
+      const data = response?.data?.data || response?.data || null;
+      setSummaryData(data);
+      return data;
+    } catch (err) {
+      console.error("Error fetching GSTR-1 summary:", err);
+      return null;
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [type, filters]);
+
+  useEffect(() => {
+    if (type === "GSTR-1") {
+      fetchSummary();
+    }
+  }, [type, filters, fetchSummary]);
+
   return {
     entries,
     total,
@@ -313,6 +344,9 @@ export const useGstLedger = (type = "GSTR-1") => {
     stats,
     branches,
     currentBranch,
+    summaryData,
+    summaryLoading,
+    fetchSummary,
     setPage,
     handleFilterChange,
     handleResetFilters,
