@@ -8,7 +8,18 @@ import React, {
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Check, X, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
+const renderSelectIcon = (icon, className) => {
+  if (!icon) return null;
+  if (React.isValidElement(icon)) return icon;
+  if (
+    typeof icon === "function" ||
+    (typeof icon === "object" && icon !== null && icon.$$typeof)
+  ) {
+    const IconComponent = icon;
+    return <IconComponent className={cn("size-full", className)} />;
+  }
+  return icon;
+};
 
 const selectSizes = {
   sm: {
@@ -341,8 +352,8 @@ export const UISelect = forwardRef(
           {/* Selected value or placeholder */}
           <div className="flex items-center gap-2 truncate pr-2">
             {selectedOption?.icon && (
-              <span className={cn("shrink-0 text-text-muted", currentSize.iconSize)}>
-                {selectedOption.icon}
+              <span className={cn("shrink-0 text-text-muted flex items-center justify-center", currentSize.iconSize)}>
+                {renderSelectIcon(selectedOption.icon)}
               </span>
             )}
             <span
@@ -473,12 +484,12 @@ export const UISelect = forwardRef(
                           {opt.icon && (
                             <span
                               className={cn(
-                                "shrink-0",
+                                "shrink-0 flex items-center justify-center",
                                 isSelected ? "text-primary" : "text-text-muted",
                                 currentSize.iconSize
                               )}
                             >
-                              {opt.icon}
+                              {renderSelectIcon(opt.icon)}
                             </span>
                           )}
                           <div className="flex flex-col min-w-0">
