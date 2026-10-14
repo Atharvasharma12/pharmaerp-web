@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { uiToast as toast } from "@/components/ui";
 import useBranch from "../../features/branch/hooks/useBranch";
+import useCompany from "../../features/company/hooks/useCompany";
 import transferOrderService from "../../features/transfer-order/services/transferOrderService";
 import workspaceProductService from "../../features/workspace-products/services/workspaceProductService";
 
@@ -32,6 +33,7 @@ import {
 
 const CreateTransferOrderPage = () => {
   const navigate = useNavigate();
+  const { currentCompany } = useCompany();
   const { currentBranch, branches = [], getCompanyBranches } = useBranch();
 
   // Source facility is strictly locked to current active branch
@@ -206,6 +208,8 @@ const CreateTransferOrderPage = () => {
     try {
       setSubmitting(true);
       await transferOrderService.createTransferOrder({
+        companyId: currentCompany?._id,
+        branchId: sourceBranchId,
         sourceBranchId,
         destinationBranchId,
         remarks: remarks.trim(),
