@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import AppMobileHeader from "@/layouts/app/mobile/AppMobileHeader";
+import { ROUTES } from "@/constants";
 import { useGstLedger } from "../../hooks/useGstLedger";
 import { UIInfiniteScroll } from "@/components/ui";
 import useCompany from "@/features/company/hooks/useCompany";
@@ -133,6 +135,28 @@ const Gstr1MobilePage = () => {
       <AppMobileHeader title="GSTR-1 (Outward Supplies)" />
 
       <div className="flex-1 p-4 overflow-y-auto space-y-4">
+        {/* Mobile GST Navigation Tabs */}
+        <div className="flex rounded-xl bg-slate-200/70 dark:bg-surface-alt p-1 gap-1">
+          <Link
+            to={ROUTES.GSTR1}
+            className="flex-1 py-1.5 text-center text-xs font-bold rounded-lg bg-white dark:bg-surface text-slate-900 dark:text-text shadow-xs"
+          >
+            GSTR-1
+          </Link>
+          <Link
+            to={ROUTES.GSTR2}
+            className="flex-1 py-1.5 text-center text-xs font-medium rounded-lg text-slate-600 dark:text-text-muted hover:text-slate-900 dark:hover:text-text"
+          >
+            GSTR-2
+          </Link>
+          <Link
+            to={ROUTES.GSTR3B}
+            className="flex-1 py-1.5 text-center text-xs font-medium rounded-lg text-slate-600 dark:text-text-muted hover:text-slate-900 dark:hover:text-text"
+          >
+            GSTR-3B
+          </Link>
+        </div>
+
         {/* KPI Summary Cards Scrollable */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs min-w-[120px] flex-1 transition-colors">

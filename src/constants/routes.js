@@ -78,6 +78,7 @@ export const ROUTES = {
   // Finance - GST Ledger
   GSTR1: "/finance/gst-ledger/gstr-1",
   GSTR2: "/finance/gst-ledger/gstr-2",
+  GSTR3B: "/finance/gst-ledger/gstr-3b",
 
   // Finance - Reports
   REPORTS: "/finance/reports",

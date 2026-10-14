@@ -1,5 +1,7 @@
 import React, { useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import AppDesktopHeader from "@/layouts/app/desktop/AppDesktopHeader";
+import { ROUTES } from "@/constants";
 import { useGstLedger } from "../../hooks/useGstLedger";
 import { UIInfiniteScroll } from "@/components/ui";
 import {
@@ -11,6 +13,7 @@ import {
   FiPlus,
   FiCheckCircle,
   FiX,
+  FiLayers,
 } from "react-icons/fi";
 import { FaRupeeSign } from "react-icons/fa";
 
@@ -118,6 +121,31 @@ const Gstr2DesktopPage = () => {
       />
 
       <div className="p-6 space-y-6">
+        {/* GST Navigation Tabs */}
+        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-border pb-3">
+          <Link
+            to={ROUTES.GSTR1}
+            className="px-4 py-2 text-xs font-semibold rounded-lg transition flex items-center gap-2 bg-white dark:bg-surface text-slate-700 dark:text-text-muted hover:bg-slate-100 dark:hover:bg-surface-hover border border-slate-200 dark:border-border"
+          >
+            <FiFileText className="w-4 h-4" />
+            GSTR-1 (Sales)
+          </Link>
+          <Link
+            to={ROUTES.GSTR2}
+            className="px-4 py-2 text-xs font-bold rounded-lg transition flex items-center gap-2 bg-indigo-600 text-white shadow-xs"
+          >
+            <FiFileText className="w-4 h-4" />
+            GSTR-2 (Purchases)
+          </Link>
+          <Link
+            to={ROUTES.GSTR3B}
+            className="px-4 py-2 text-xs font-semibold rounded-lg transition flex items-center gap-2 bg-white dark:bg-surface text-slate-700 dark:text-text-muted hover:bg-slate-100 dark:hover:bg-surface-hover border border-slate-200 dark:border-border"
+          >
+            <FiLayers className="w-4 h-4" />
+            GSTR-3B (Summary Return)
+          </Link>
+        </div>
+
         {/* KPI Metrics Dashboard */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs flex flex-col justify-between transition-colors">
@@ -260,6 +288,14 @@ const Gstr2DesktopPage = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <Link
+              to={ROUTES.GSTR3B}
+              className="px-3.5 py-2 text-xs font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 dark:hover:bg-purple-500/20 border border-purple-200 dark:border-purple-500/30 rounded-lg transition flex items-center gap-1.5 shadow-xs"
+            >
+              <FiLayers className="w-4 h-4" />
+              GSTR-3B Return
+            </Link>
+
             <button
               onClick={() => setIsModalOpen(true)}
               className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition flex items-center gap-1.5 shadow-xs"

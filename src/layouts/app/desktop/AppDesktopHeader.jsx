@@ -131,7 +131,9 @@ const getPageTitle = (pathname) => {
   if (pathname.startsWith("/operations/business-days")) return "Business Days";
   if (pathname.startsWith("/finance/journal-vouchers")) return "Journal Vouchers";
   if (pathname.startsWith("/finance/ledger")) return "General Ledger";
-  if (pathname.startsWith("/finance/financial-periods")) return "Financial Periods";
+  if (pathname.startsWith("/finance/gst-ledger/gstr-1")) return "GSTR-1 Outward Supplies";
+  if (pathname.startsWith("/finance/gst-ledger/gstr-2")) return "GSTR-2 Inward Supplies";
+  if (pathname.startsWith("/finance/gst-ledger/gstr-3b")) return "GSTR-3B Summary Return";
   if (pathname.startsWith("/finance/reports")) return "Financial Reports";
   if (pathname.startsWith("/finance")) return "Finance";
 
@@ -561,6 +563,27 @@ const getBreadcrumbs = (pathname, isSetupComplete = false) => {
       root,
       { label: "Finance", to: ROUTES.FINANCIAL_PERIODS },
       { label: "Financial Periods", to: null },
+    ];
+  }
+  if (pathname.startsWith("/finance/gst-ledger/gstr-1")) {
+    return [
+      root,
+      { label: "GST Reports", to: ROUTES.GSTR1 },
+      { label: "GSTR-1", to: null },
+    ];
+  }
+  if (pathname.startsWith("/finance/gst-ledger/gstr-2")) {
+    return [
+      root,
+      { label: "GST Reports", to: ROUTES.GSTR2 },
+      { label: "GSTR-2", to: null },
+    ];
+  }
+  if (pathname.startsWith("/finance/gst-ledger/gstr-3b")) {
+    return [
+      root,
+      { label: "GST Reports", to: ROUTES.GSTR3B },
+      { label: "GSTR-3B", to: null },
     ];
   }
   if (pathname.startsWith("/finance/reports")) {
