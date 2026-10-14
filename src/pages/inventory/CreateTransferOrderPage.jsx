@@ -1,7 +1,7 @@
 // src/pages/inventory/CreateTransferOrderPage.jsx
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -33,11 +33,17 @@ import {
 
 const CreateTransferOrderPage = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const isEditMode = Boolean(id);
+
   const { currentCompany } = useCompany();
   const { currentBranch, branches = [], getCompanyBranches } = useBranch();
 
-  // Source facility is strictly locked to current active branch
-  const sourceBranchId = currentBranch?._id || "";
+  const [loadingOrder, setLoadingOrder] = useState(isEditMode);
+  const [existingOrder, setExistingOrder] = useState(null);
+
+  // Source facility is strictly locked to current active branch (or source branch of existing order)
+  const sourceBranchId = existingOrder?.sourceBranchId?._id || currentBranch?._id || "";
   const [destinationBranchId, setDestinationBranchId] = useState("");
   const [remarks, setRemarks] = useState("");
   const [items, setItems] = useState([]);
@@ -58,31 +64,85 @@ const CreateTransferOrderPage = () => {
     }
   }, [getCompanyBranches]);
 
+  // Load existing order if in edit mode
+  useEffect(() => {
+    if (!id) return;
+    let isMounted = true;
+
+    const loadOrder = async () => {
+      try {
+        setLoadingOrder(true);
+        const res = await transferOrderService.getTransferOrderById(id);
+        const order = res?.data?.data || res?.data;
+        if (!isMounted) return;
+
+        if (!order) {
+          toast.error("Transfer order not found");
+          navigate("/inventory/transfer-orders");
+          return;
+        }
+
+        if (order.status !== "IN_TRANSIT" && order.status !== "PENDING") {
+          toast.error(`Cannot edit a transfer order with status: ${order.status}`);
+          navigate("/inventory/transfer-orders");
+          return;
+        }
+
+        setExistingOrder(order);
+        setDestinationBranchId(
+          order.destinationBranchId?._id || order.destinationBranchId || ""
+        );
+        setRemarks(order.remarks || "");
+
+        const mappedItems = (order.items || []).map((item) => ({
+          product: item.product?._id || item.product,
+          productName: item.product?.name || "Product",
+          batch: item.batch?._id || item.batch,
+          batchNo: item.batchNo,
+          transferQty: item.transferQty,
+          availableQty: 99999,
+        }));
+        setItems(mappedItems);
+      } catch (err) {
+        console.error("Failed to load transfer order:", err);
+        toast.error("Failed to load transfer order details");
+        navigate("/inventory/transfer-orders");
+      } finally {
+        if (isMounted) setLoadingOrder(false);
+      }
+    };
+
+    loadOrder();
+    return () => {
+      isMounted = false;
+    };
+  }, [id, navigate]);
+
   // Destination facilities: strictly EXCLUDE current active branch
   const destinationBranches = useMemo(() => {
     if (!branches || !Array.isArray(branches)) return [];
     return branches.filter(
-      (b) => b._id !== currentBranch?._id && b.status !== "inactive"
+      (b) => b._id !== sourceBranchId && b.status !== "inactive"
     );
-  }, [branches, currentBranch?._id]);
+  }, [branches, sourceBranchId]);
 
   // If destination matches current branch, clear it
   useEffect(() => {
-    if (destinationBranchId && destinationBranchId === currentBranch?._id) {
+    if (destinationBranchId && destinationBranchId === sourceBranchId) {
       setDestinationBranchId("");
     }
-  }, [destinationBranchId, currentBranch?._id]);
+  }, [destinationBranchId, sourceBranchId]);
 
-  // If user switches active branch from top header while drafting, reset items & destination
+  // If user switches active branch from top header while drafting new order, reset items & destination
   const prevBranchRef = useRef(currentBranch?._id);
   useEffect(() => {
-    if (prevBranchRef.current && prevBranchRef.current !== currentBranch?._id) {
+    if (!isEditMode && prevBranchRef.current && prevBranchRef.current !== currentBranch?._id) {
       setItems([]);
       setDestinationBranchId("");
       toast.info("Active facility changed. Staged products were reset to match new facility.");
     }
     prevBranchRef.current = currentBranch?._id;
-  }, [currentBranch?._id]);
+  }, [currentBranch?._id, isEditMode]);
 
   const destinationBranch = useMemo(() => {
     return destinationBranches.find((b) => b._id === destinationBranchId);
@@ -207,10 +267,7 @@ const CreateTransferOrderPage = () => {
 
     try {
       setSubmitting(true);
-      await transferOrderService.createTransferOrder({
-        companyId: currentCompany?._id,
-        branchId: sourceBranchId,
-        sourceBranchId,
+      const payload = {
         destinationBranchId,
         remarks: remarks.trim(),
         items: items.map((i) => ({
@@ -219,17 +276,43 @@ const CreateTransferOrderPage = () => {
           batchNo: i.batchNo,
           transferQty: i.transferQty,
         })),
-      });
+      };
 
-      toast.success("Transfer order created successfully!");
+      if (isEditMode) {
+        await transferOrderService.updateTransferOrder(id, payload);
+        toast.success("Transfer order updated successfully!");
+      } else {
+        await transferOrderService.createTransferOrder({
+          companyId: currentCompany?._id,
+          branchId: sourceBranchId,
+          sourceBranchId,
+          ...payload,
+        });
+        toast.success("Transfer order created successfully!");
+      }
+
       navigate("/inventory/transfer-orders");
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Failed to create transfer order");
+      toast.error(
+        error.response?.data?.message ||
+          (isEditMode
+            ? "Failed to update transfer order"
+            : "Failed to create transfer order")
+      );
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loadingOrder) {
+    return (
+      <div className="w-full min-h-[60vh] flex flex-col items-center justify-center gap-3 text-text-muted font-sans">
+        <RefreshCw className="size-7 animate-spin text-primary" />
+        <p className="text-sm font-medium">Loading transfer order details...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-bg min-h-full px-4 sm:px-6 py-6 space-y-6 text-text font-sans transition-colors">
@@ -247,15 +330,19 @@ const CreateTransferOrderPage = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold tracking-tight text-text">
-                Create Transfer Order
+                {isEditMode
+                  ? `Edit Transfer Order ${existingOrder?.transferNo ? `(${existingOrder.transferNo})` : ""}`
+                  : "Create Transfer Order"}
               </h1>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
                 <Truck className="size-3" />
-                Inter-Facility
+                {isEditMode ? "Edit Mode" : "Inter-Facility"}
               </span>
             </div>
             <p className="text-xs text-text-muted mt-0.5">
-              Dispatch inventory batches from your current facility to a target branch
+              {isEditMode
+                ? "Modify destination branch, remarks, or transfer quantities"
+                : "Dispatch inventory batches from your current facility to a target branch"}
             </p>
           </div>
         </div>
@@ -572,12 +659,12 @@ const CreateTransferOrderPage = () => {
               {submitting ? (
                 <>
                   <RefreshCw className="size-4 animate-spin" />
-                  <span>Creating Transfer Order...</span>
+                  <span>{isEditMode ? "Updating Transfer Order..." : "Creating Transfer Order..."}</span>
                 </>
               ) : (
                 <>
                   <ArrowRight className="size-4" />
-                  <span>Dispatch Transfer Order</span>
+                  <span>{isEditMode ? "Save Changes" : "Dispatch Transfer Order"}</span>
                 </>
               )}
             </button>
@@ -586,7 +673,9 @@ const CreateTransferOrderPage = () => {
             <div className="flex items-start gap-2 pt-2 text-[11px] text-text-muted">
               <ShieldCheck className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
               <span>
-                Inventory will be placed in transit status and deducted from origin stock upon order creation.
+                {isEditMode
+                  ? "Changes to items will automatically recalculate and adjust inventory stock in the source facility."
+                  : "Inventory will be placed in transit status and deducted from origin stock upon order creation."}
               </span>
             </div>
           </div>
