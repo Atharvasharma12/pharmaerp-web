@@ -1,15 +1,13 @@
-// src/features/parties/customers/components/B2cCustomerSearchBar.jsx
-
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from "react";
-import { Search, X, Loader2, User, Phone, Stethoscope, CreditCard, Plus, ChevronRight, Check } from "lucide-react";
+import { Search, X, Loader2, User, Phone, CreditCard, Plus, ChevronRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import customerService from "../services/customerService";
-import { POS_DEFAULT_CUSTOMERS } from "@/features/sales/constants/salesData";
 
 /**
  * B2cCustomerSearchBar
- * Dedicated search bar for B2C Retail Customers & Patients (excluding Wholesalers & Retailers).
- * Supports real-time debounced search by customer name, phone, email, or doctor name.
+ * Dedicated search bar for Company Customers.
+ * Supports real-time debounced search by customer name or phone.
+ * Restricts queries strictly to active company, enforces 2-char minimum, and limits top 5 matches.
  */
 export const B2cCustomerSearchBar = forwardRef(
   (
@@ -17,7 +15,7 @@ export const B2cCustomerSearchBar = forwardRef(
       value: controlledValue,
       selectedCustomer,
       onSelectCustomer,
-      placeholder = "Search B2C customer by name, phone, or doctor...",
+      placeholder = "Search customer by name or phone...",
       size = "md", // "sm" | "md" | "lg"
       debounceMs = 250,
       disabled = false,
@@ -51,13 +49,13 @@ export const B2cCustomerSearchBar = forwardRef(
       input: inputRef.current,
     }));
 
-    // Local & API B2C Customer Filter (excluding wholesalers & retailers)
+    // Company Customer Search via backend API (minimum 2 chars, top 5 results)
     const executeSearch = useCallback(
       async (query) => {
-        const q = (query || "").trim().toLowerCase();
+        const q = (query || "").trim();
 
-        // Until the user actively types to search, do NOT show customers
-        if (!q) {
+        // Require at least 2 characters before querying backend or opening results
+        if (!q || q.length < 2) {
           setResults([]);
           setIsLoading(false);
           setIsOpen(false);
@@ -66,79 +64,37 @@ export const B2cCustomerSearchBar = forwardRef(
 
         setIsLoading(true);
 
-        // 1. Filter local B2C retail customers matching the typed search query
-        const localMatches = POS_DEFAULT_CUSTOMERS.filter((cust) => {
-          // Exclude any wholesaler or retailer parties
-          const partyType = (cust.partyType || "").toLowerCase();
-          if (partyType === "wholesaler" || partyType === "retailer") {
-            return false;
-          }
-
-          const nameMatch = cust.name?.toLowerCase().includes(q);
-          const phoneMatch = cust.phone?.toLowerCase().includes(q);
-          const docMatch = cust.doctor?.toLowerCase().includes(q);
-          const emailMatch = cust.email?.toLowerCase().includes(q);
-
-          return nameMatch || phoneMatch || docMatch || emailMatch;
-        });
-
-        let apiResults = [];
         try {
-          const res = await customerService.getCustomers({ search: q, limit: 50 });
+          // Strictly fetch company-scoped customers from API with top 5 limit
+          const res = await customerService.getCustomers({ search: q, limit: 5 });
           const list = res.data?.data?.customers || res.data?.customers || res.data?.data || [];
           if (Array.isArray(list)) {
-            // Filter out wholesaler and retailer parties from API response
-            apiResults = list.filter((c) => {
-              const type = (c.customerType || c.partyType || c.type || "").toLowerCase();
-              return type !== "wholesale" && type !== "wholesaler" && type !== "retail" && type !== "retailer";
-            });
-          }
-        } catch (err) {
-          // Fallback gracefully to local matches if backend offline
-          console.warn("API Customer search fallback to local:", err);
-        }
-
-        // Combine local and API results removing duplicates
-        const combined = [];
-        apiResults.forEach((apiCust) => {
-          if (!combined.some((c) => c.id === apiCust._id || c.id === apiCust.id || (c.phone && c.phone === apiCust.phone))) {
-            combined.push({
+            const top5 = list.slice(0, 5).map((apiCust) => ({
               id: apiCust._id || apiCust.id,
               name: apiCust.name || apiCust.displayName,
               phone: apiCust.phone || apiCust.mobile || "",
               email: apiCust.email || "",
-              doctor: apiCust.doctor || apiCust.prescribingDoctor || "Dr. Self",
-              creditBalance: apiCust.creditBalance || apiCust.balance || 0,
+              creditBalance: apiCust.creditBalance || apiCust.advanceBalance || 0,
               billingType: "B2C",
-            });
+            }));
+            setResults(top5);
+          } else {
+            setResults([]);
           }
-        });
-
-        // Also merge local matches that aren't already included
-        localMatches.forEach((localCust) => {
-          if (!combined.some((c) => c.id === localCust.id || (c.phone && c.phone === localCust.phone) || c.name?.toLowerCase() === localCust.name?.toLowerCase())) {
-            combined.push({
-              id: localCust.id,
-              name: localCust.name,
-              phone: localCust.phone || "",
-              email: localCust.email || "",
-              doctor: localCust.doctor || "Dr. Self",
-              creditBalance: localCust.creditBalance || 0,
-              billingType: "B2C",
-            });
-          }
-        });
-
-        setResults(combined);
-        setIsLoading(false);
+        } catch (err) {
+          console.warn("API Customer search failed:", err);
+          setResults([]);
+        } finally {
+          setIsLoading(false);
+        }
       },
       []
     );
 
-    // Initial load and query change effect - ONLY run if user has typed something
+    // Initial load and query change effect - ONLY run if at least 2 characters typed
     useEffect(() => {
       const q = (currentValue || "").trim();
-      if (!q) {
+      if (!q || q.length < 2) {
         setResults([]);
         setIsLoading(false);
         setIsOpen(false);
@@ -194,7 +150,7 @@ export const B2cCustomerSearchBar = forwardRef(
         setSearchTerm(val);
       }
       if (onInputChange) onInputChange(val);
-      if (val.trim()) {
+      if (val.trim().length >= 2) {
         setIsOpen(true);
       } else {
         setIsOpen(false);
@@ -282,7 +238,7 @@ export const B2cCustomerSearchBar = forwardRef(
             value={currentValue}
             onChange={handleInputChange}
             onFocus={() => {
-              if (currentValue && currentValue.trim().length > 0 && results.length > 0) {
+              if (currentValue && currentValue.trim().length >= 2 && results.length > 0) {
                 setIsOpen(true);
               }
             }}
@@ -305,8 +261,8 @@ export const B2cCustomerSearchBar = forwardRef(
           )}
         </div>
 
-        {/* Dropdown Results List - Only render when open AND user has searched */}
-        {isOpen && Boolean(currentValue?.trim()) && (
+        {/* Dropdown Results List - Only render when open AND user has typed at least 2 characters */}
+        {isOpen && Boolean(currentValue?.trim()?.length >= 2) && (
           <div
             className={cn(
               "absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-2xl border border-border bg-surface shadow-[var(--app-shadow-xl)] animate-in fade-in-50 zoom-in-95 duration-100",
@@ -316,10 +272,10 @@ export const B2cCustomerSearchBar = forwardRef(
             {/* Dropdown Top Bar */}
             <div className="flex items-center justify-between border-b border-border/60 bg-surface-alt/60 px-3.5 py-2 text-[11px] font-semibold text-text-muted">
               <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
-                <User className="size-3" /> Retail Customers & Patients (B2C)
+                <User className="size-3" /> Company Customers
               </span>
               <span className="text-[10px] text-text-muted/70">
-                {results.length} found
+                {results.length} found (max 5)
               </span>
             </div>
 
@@ -359,25 +315,13 @@ export const B2cCustomerSearchBar = forwardRef(
                             <span className="font-bold text-xs truncate text-text group-hover/item:text-primary transition-colors">
                               {cust.name}
                             </span>
-                            {cust.id === "cust-walkin" && (
-                              <span className="rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider">
-                                Walk-In
-                              </span>
-                            )}
                           </div>
 
-                          <div className="flex items-center gap-3 text-[11px] text-text-muted mt-0.5">
-                            {cust.phone && (
-                              <span className="flex items-center gap-1 font-mono">
-                                <Phone className="size-3" /> {cust.phone}
-                              </span>
-                            )}
-                            {cust.doctor && (
-                              <span className="flex items-center gap-1 truncate max-w-[160px]">
-                                <Stethoscope className="size-3 text-blue-500" /> {cust.doctor}
-                              </span>
-                            )}
-                          </div>
+                          {cust.phone && (
+                            <div className="flex items-center gap-1 text-[11px] text-text-muted mt-0.5 font-mono">
+                              <Phone className="size-3" /> {cust.phone}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -394,9 +338,9 @@ export const B2cCustomerSearchBar = forwardRef(
                 })
               ) : !isLoading ? (
                 <div className="p-4 text-center">
-                  <p className="text-xs font-semibold text-text">No B2C customer found</p>
+                  <p className="text-xs font-semibold text-text">No customer found</p>
                   <p className="text-[11px] text-text-muted mt-0.5">
-                    No matching retail customer for &quot;{currentValue}&quot;
+                    No matching customer in company for &quot;{currentValue}&quot;
                   </p>
 
                   {showAddNewAction && (
@@ -407,7 +351,6 @@ export const B2cCustomerSearchBar = forwardRef(
                           id: `cust-custom-${Date.now()}`,
                           name: currentValue || "New Customer",
                           phone: "",
-                          doctor: "Dr. Self",
                           billingType: "B2C",
                         };
                         handleSelect(newCust);

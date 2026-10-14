@@ -4,7 +4,6 @@ import { ROUTES } from "@/constants";
 import {
   CashTransactionsPage,
   CreateCashTransactionPage,
-  CashTransactionDetailsPage,
 } from "../pages";
 
 const cashTransactionRoutes = [
@@ -15,10 +14,6 @@ const cashTransactionRoutes = [
   {
     path: ROUTES.CREATE_CASH_TRANSACTION,
     element: <CreateCashTransactionPage />,
-  },
-  {
-    path: ROUTES.CASH_TRANSACTION_DETAILS(),
-    element: <CashTransactionDetailsPage />,
   },
 ];
 

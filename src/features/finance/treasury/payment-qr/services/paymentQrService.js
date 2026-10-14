@@ -30,6 +30,10 @@ const paymentQrService = {
   getPaymentQrStats(paymentQrId, params = {}) {
     return apiClient.get(ENDPOINTS.PAYMENT_QR.STATS(paymentQrId), { params });
   },
+
+  getUpiTransactions(params = {}) {
+    return apiClient.get(ENDPOINTS.PAYMENT_QR.TRANSACTIONS, { params });
+  },
 };
 
 export default paymentQrService;

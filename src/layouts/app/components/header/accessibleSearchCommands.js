@@ -16,10 +16,12 @@ import {
   Lock,
   CreditCard,
   Store,
+  QrCode,
 } from "lucide-react";
 
 import { ROUTES } from "@/constants";
 import { SIDEBAR_NAV_GROUPS } from "../sidebar/sidebarNavConfig";
+
 
 /**
  * Recursively flattens sidebar nav items into searchable commands.
@@ -83,6 +85,26 @@ const QUICK_ACTIONS = [
     icon: Layers,
     category: "Dashboards",
     keywords: ["workspace dashboard", "organization", "plan", "quota", "usage"],
+  },
+  {
+    id: "nav-upi-transactions",
+    label: "UPI Transactions",
+    fullLabel: "Treasury › UPI Transactions",
+    path: ROUTES.UPI_TRANSACTIONS,
+    icon: QrCode,
+    permission: "payment-qr:view",
+    category: "Treasury",
+    keywords: [
+      "upi tally",
+      "upi reconciliation",
+      "upi transactions",
+      "google pay",
+      "phonepe",
+      "paytm",
+      "digital collections",
+      "online payments",
+      "qr payments",
+    ],
   },
   {
     id: "action-create-company",

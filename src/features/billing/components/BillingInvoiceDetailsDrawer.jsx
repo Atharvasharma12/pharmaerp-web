@@ -111,6 +111,9 @@ const resolveUpiAccount = (sourceObj) => {
   };
 };
 
+// Global in-memory cache for shift statuses across invoice drawer clicks to eliminate network latency
+const shiftStatusCache = new Map();
+
 export const BillingInvoiceDetailsDrawer = ({
   invoice,
   isOpen,
@@ -127,7 +130,32 @@ export const BillingInvoiceDetailsDrawer = ({
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
-  // Reset & verify shift status on modal open
+  const invShiftId = invoice?.shiftId?._id || invoice?.shift?._id || invoice?.shiftId;
+
+  // Immediate synchronous determination (0ms frame-0 resolution)
+  const immediateShiftStatus = useMemo(() => {
+    if (!invoice) return null;
+    if (invoice.shiftStatus) return invoice.shiftStatus;
+    if (invoice.shift?.status) return invoice.shift.status;
+    if (invShiftId && shiftStatusCache.has(String(invShiftId))) {
+      return shiftStatusCache.get(String(invShiftId)).status;
+    }
+    if (reduxActiveShift) {
+      if (invShiftId && String(invShiftId) === String(reduxActiveShift._id)) {
+        return reduxActiveShift.status || "open";
+      }
+      if (invShiftId && reduxActiveShift._id && String(invShiftId) !== String(reduxActiveShift._id)) {
+        return "closed";
+      }
+    }
+    return null;
+  }, [invoice, invShiftId, reduxActiveShift]);
+
+  const resolvedShiftStatus = shiftData?.status || immediateShiftStatus || null;
+  const isShiftOpen = resolvedShiftStatus === "open";
+  const canEditOrCancel = invoice && invoice.status !== "Cancelled" && isShiftOpen;
+
+  // Background shift fetch only if status is not already resolved
   useEffect(() => {
     setIsCancelling(false);
     setShowConfirmCancel(false);
@@ -137,71 +165,49 @@ export const BillingInvoiceDetailsDrawer = ({
       return;
     }
 
-    const invShiftId = invoice.shiftId?._id || invoice.shift?._id || invoice.shiftId;
-
-    // 1. If invoice already has populated shift status
-    if (invoice.shiftStatus || invoice.shift?.status) {
-      setShiftData({
-        status: invoice.shiftStatus || invoice.shift?.status,
-        _id: invShiftId,
-      });
+    if (!invShiftId) {
+      setShiftData(null);
       return;
     }
 
-    // 2. If reduxActiveShift is available and matches
-    if (reduxActiveShift && (!invShiftId || String(invShiftId) === String(reduxActiveShift._id))) {
-      setShiftData(reduxActiveShift);
+    if (immediateShiftStatus) {
+      const entry = { status: immediateShiftStatus, _id: invShiftId };
+      shiftStatusCache.set(String(invShiftId), entry);
+      setShiftData(entry);
       return;
     }
 
-    // 3. Direct backend query to ensure zero false negatives
+    if (shiftStatusCache.has(String(invShiftId))) {
+      setShiftData(shiftStatusCache.get(String(invShiftId)));
+      return;
+    }
+
+    let isSubscribed = true;
     setIsCheckingShift(true);
-    if (invShiftId) {
-      shiftService
-        .getShiftById(invShiftId)
-        .then((res) => {
-          const s = res.data?.data;
-          if (s) {
-            setShiftData(s);
-          } else {
-            setShiftData({ status: "closed" });
-          }
-        })
-        .catch(() => {
-          shiftService
-            .getOpenShift({ branchId: invoice.branchId || currentBranch?._id })
-            .then((res) => {
-              const active = res.data?.data;
-              if (active && String(active._id) === String(invShiftId)) {
-                setShiftData(active);
-              } else {
-                setShiftData({ status: "closed" });
-              }
-            })
-            .catch(() => setShiftData(null));
-        })
-        .finally(() => setIsCheckingShift(false));
-    } else {
-      shiftService
-        .getOpenShift({ branchId: invoice.branchId || currentBranch?._id })
-        .then((res) => {
-          setShiftData(res.data?.data || null);
-        })
-        .catch(() => setShiftData(null))
-        .finally(() => setIsCheckingShift(false));
-    }
-  }, [isOpen, invoice?.id, invoice?.shiftId, reduxActiveShift, currentBranch?._id]);
 
-  const resolvedShiftStatus =
-    shiftData?.status ||
-    invoice?.shiftStatus ||
-    invoice?.shift?.status ||
-    (reduxActiveShift && (!invoice?.shiftId || String(invoice?.shiftId) === String(reduxActiveShift?._id))
-      ? reduxActiveShift.status
-      : null);
+    shiftService
+      .getShiftById(invShiftId)
+      .then((res) => {
+        if (!isSubscribed) return;
+        const s = res.data?.data;
+        const entry = s ? { status: s.status || "closed", _id: invShiftId } : { status: "closed", _id: invShiftId };
+        shiftStatusCache.set(String(invShiftId), entry);
+        setShiftData(entry);
+      })
+      .catch(() => {
+        if (!isSubscribed) return;
+        const fallback = { status: "closed", _id: invShiftId };
+        shiftStatusCache.set(String(invShiftId), fallback);
+        setShiftData(fallback);
+      })
+      .finally(() => {
+        if (isSubscribed) setIsCheckingShift(false);
+      });
 
-  const isShiftOpen = resolvedShiftStatus === "open";
-  const canEditOrCancel = invoice && invoice.status !== "Cancelled" && isShiftOpen;
+    return () => {
+      isSubscribed = false;
+    };
+  }, [isOpen, invoice?.id, invShiftId, immediateShiftStatus]);
 
   const handleConfirmCancel = async (cancelData = {}) => {
     if (isCancelling || !invoice?.id) return;
@@ -215,8 +221,6 @@ export const BillingInvoiceDetailsDrawer = ({
       setIsCancelling(false);
     }
   };
-
-  if (!isOpen || !invoice) return null;
 
   const handlePrint = () => {
     setIsPrintModalOpen(true);
@@ -237,83 +241,149 @@ export const BillingInvoiceDetailsDrawer = ({
     }
   };
 
-  const isB2B = invoice.billingMode === "B2B";
-  const items = Array.isArray(invoice.items) ? invoice.items : [];
+  // Parse detailed payment breakdown & denominations once per invoice
+  const paymentBreakdown = useMemo(() => {
+    if (!invoice) {
+      return {
+        isB2B: false,
+        items: [],
+        cashTotal: 0,
+        upiTotal: 0,
+        otherTotal: 0,
+        cashDenoms: [],
+        returnedDenoms: [],
+        upiDetails: [],
+        isSplit: false,
+        cashTendered: 0,
+        changeDue: 0,
+        paymentMethodUpper: "",
+      };
+    }
 
-  // Parse detailed payment breakdown & denominations
-  const paymentMethodUpper = String(invoice.paymentMode || invoice.paymentMethod || "").trim().toUpperCase();
-  const rawPayments = Array.isArray(invoice.payments) ? invoice.payments : [];
-  const isSplit = paymentMethodUpper === "SPLIT" || rawPayments.length > 1;
+    const isB2B = invoice.billingMode === "B2B";
+    const items = Array.isArray(invoice.items) ? invoice.items : [];
+    const paymentMethodUpper = String(invoice.paymentMode || invoice.paymentMethod || "").trim().toUpperCase();
+    const rawPayments = Array.isArray(invoice.payments) ? invoice.payments : [];
+    const isSplit = paymentMethodUpper === "SPLIT" || rawPayments.length > 1;
 
-  let cashTotal = 0;
-  let upiTotal = 0;
-  let otherTotal = 0;
-  let cashDenoms = normalizeDenominations(invoice.denominations);
-  let returnedDenoms = normalizeDenominations(invoice.returnedDenominations);
-  let upiDetails = [];
+    let cashTotal = 0;
+    let upiTotal = 0;
+    let otherTotal = 0;
+    let cashDenoms = normalizeDenominations(invoice.denominations);
+    let returnedDenoms = normalizeDenominations(invoice.returnedDenominations);
+    const upiDetails = [];
 
-  const invoiceQrAccount = resolveUpiAccount(invoice);
+    const invoiceQrAccount = resolveUpiAccount(invoice);
 
-  if (rawPayments.length > 0) {
-    for (const p of rawPayments) {
-      const type = String(p.paymentType || p.paymentMode || p.type || "").toUpperCase();
-      const amt = Number(p.amount || 0);
-      if (type.includes("UPI") || type.includes("QR")) {
-        upiTotal += amt;
-        const pQrAccount = resolveUpiAccount(p) || invoiceQrAccount;
-        upiDetails.push({
-          amount: amt,
-          ref: p.txnRefNo || p.referenceNo || p.transactionId || null,
-          account: pQrAccount,
-        });
-      } else if (type.includes("CASH")) {
-        cashTotal += amt;
-        if (p.denominations && p.denominations.length > 0 && cashDenoms.length === 0) {
-          cashDenoms = normalizeDenominations(p.denominations);
+    if (rawPayments.length > 0) {
+      for (const p of rawPayments) {
+        const type = String(p.paymentType || p.paymentMode || p.type || "").toUpperCase();
+        const amt = Number(p.amount || 0);
+        if (type.includes("UPI") || type.includes("QR")) {
+          upiTotal += amt;
+          const pQrAccount = resolveUpiAccount(p) || invoiceQrAccount;
+          upiDetails.push({
+            amount: amt,
+            ref: p.txnRefNo || p.referenceNo || p.transactionId || null,
+            account: pQrAccount,
+          });
+        } else if (type.includes("CASH")) {
+          cashTotal += amt;
+          if (p.denominations && p.denominations.length > 0 && cashDenoms.length === 0) {
+            cashDenoms = normalizeDenominations(p.denominations);
+          }
+          if (p.returnedDenominations && p.returnedDenominations.length > 0 && returnedDenoms.length === 0) {
+            returnedDenoms = normalizeDenominations(p.returnedDenominations);
+          }
+        } else {
+          otherTotal += amt;
         }
-        if (p.returnedDenominations && p.returnedDenominations.length > 0 && returnedDenoms.length === 0) {
-          returnedDenoms = normalizeDenominations(p.returnedDenominations);
-        }
-      } else {
-        otherTotal += amt;
       }
+    } else if (isSplit) {
+      const grand = Number(invoice.amount || 0);
+      const tendered = Number(invoice.cashTendered || 0);
+      if (tendered > 0) {
+        cashTotal = Math.min(grand, tendered);
+        upiTotal = Math.max(0, grand - cashTotal);
+      }
+      if (upiTotal > 0) {
+        upiDetails.push({
+          amount: upiTotal,
+          ref: invoice.txnRefNo || invoice.referenceNo || null,
+          account: invoiceQrAccount,
+        });
+      }
+    } else if (paymentMethodUpper === "UPI") {
+      upiTotal = Number(invoice.amount || 0);
+      upiDetails.push({
+        amount: upiTotal,
+        ref: invoice.txnRefNo || invoice.referenceNo || null,
+        account: invoiceQrAccount,
+      });
+    } else {
+      otherTotal = Number(invoice.amount || 0);
     }
-  } else if (isSplit) {
-    const grand = Number(invoice.amount || 0);
-    const tendered = Number(invoice.cashTendered || 0);
-    if (tendered > 0) {
-      cashTotal = Math.min(grand, tendered);
-      upiTotal = Math.max(0, grand - cashTotal);
-    }
-    if (upiTotal > 0) {
+
+    if (upiTotal > 0 && upiDetails.length === 0) {
       upiDetails.push({
         amount: upiTotal,
         ref: invoice.txnRefNo || invoice.referenceNo || null,
         account: invoiceQrAccount,
       });
     }
-  } else if (paymentMethodUpper === "UPI") {
-    upiTotal = Number(invoice.amount || 0);
-    upiDetails.push({
-      amount: upiTotal,
-      ref: invoice.txnRefNo || invoice.referenceNo || null,
-      account: invoiceQrAccount,
-    });
-  } else {
-    otherTotal = Number(invoice.amount || 0);
-  }
 
-  // Fallback: If upiTotal > 0 but upiDetails is empty, guarantee an entry
-  if (upiTotal > 0 && upiDetails.length === 0) {
-    upiDetails.push({
-      amount: upiTotal,
-      ref: invoice.txnRefNo || invoice.referenceNo || null,
-      account: invoiceQrAccount,
-    });
-  }
+    const cashTendered = Number(invoice.cashTendered || invoice.paidAmount || cashTotal);
+    const changeDue = Number(invoice.changeDue || 0);
 
-  const cashTendered = Number(invoice.cashTendered || invoice.paidAmount || cashTotal);
-  const changeDue = Number(invoice.changeDue || 0);
+    return {
+      isB2B,
+      items,
+      cashTotal,
+      upiTotal,
+      otherTotal,
+      cashDenoms,
+      returnedDenoms,
+      upiDetails,
+      isSplit,
+      cashTendered,
+      changeDue,
+      paymentMethodUpper,
+    };
+  }, [invoice]);
+
+  const {
+    isB2B,
+    items,
+    cashTotal,
+    upiTotal,
+    otherTotal,
+    cashDenoms,
+    returnedDenoms,
+    upiDetails,
+    isSplit,
+    cashTendered,
+    changeDue,
+    paymentMethodUpper,
+  } = paymentBreakdown;
+
+  // Memoize GST tax slab calculations
+  const gstSlabEntries = useMemo(() => {
+    if (!items || items.length === 0) return [];
+    const slabs = {};
+    for (const item of items) {
+      const gstRate = Number(item.gst) || 5;
+      const lineSubtotal = Number(item.qty || 1) * Number(item.price || 0);
+      const lineTax = (lineSubtotal * gstRate) / 100;
+      if (!slabs[gstRate]) {
+        slabs[gstRate] = { taxableAmount: 0, taxAmount: 0 };
+      }
+      slabs[gstRate].taxableAmount += lineSubtotal;
+      slabs[gstRate].taxAmount += lineTax;
+    }
+    return Object.entries(slabs);
+  }, [items]);
+
+  if (!isOpen || !invoice) return null;
 
   return (
     <>
@@ -851,57 +921,40 @@ export const BillingInvoiceDetailsDrawer = ({
           </div>
 
           {/* Dynamic GST Tax Slab Breakdown Table */}
-          {(() => {
-            const gstSlabs = {};
-            items.forEach((item) => {
-              const gstRate = Number(item.gst) || 5;
-              const lineSubtotal = Number(item.qty || 1) * Number(item.price || 0);
-              const lineTax = (lineSubtotal * gstRate) / 100;
-              if (!gstSlabs[gstRate]) {
-                gstSlabs[gstRate] = { taxableAmount: 0, taxAmount: 0 };
-              }
-              gstSlabs[gstRate].taxableAmount += lineSubtotal;
-              gstSlabs[gstRate].taxAmount += lineTax;
-            });
-
-            const slabEntries = Object.entries(gstSlabs);
-            if (slabEntries.length === 0) return null;
-
-            return (
-              <div className="space-y-1.5">
-                <h3 className="font-bold text-xs uppercase tracking-wider text-text-muted">
-                  GST Tax Slab Breakdown
-                </h3>
-                <div className="overflow-x-auto rounded-xl border border-border bg-surface-alt/20">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="border-b border-border bg-surface-alt/70 text-[10.5px] font-bold text-text-muted uppercase select-none">
-                        <th className="py-2 px-3">GST Rate Slab</th>
-                        <th className="py-2 px-3 text-right">Taxable Amount</th>
-                        <th className="py-2 px-3 text-right font-mono">CGST</th>
-                        <th className="py-2 px-3 text-right font-mono">SGST</th>
-                        <th className="py-2 px-3 text-right">Total Tax</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/60">
-                      {slabEntries.map(([rate, data]) => {
-                        const halfTax = data.taxAmount / 2;
-                        return (
-                          <tr key={rate} className="hover:bg-surface-hover/30">
-                            <td className="py-2 px-3 font-bold text-purple-600 dark:text-purple-400">{rate}% Slab</td>
-                            <td className="py-2 px-3 text-right font-mono text-text">₹{data.taxableAmount.toFixed(2)}</td>
-                            <td className="py-2 px-3 text-right font-mono text-text-muted">₹{halfTax.toFixed(2)} ({Number(rate) / 2}%)</td>
-                            <td className="py-2 px-3 text-right font-mono text-text-muted">₹{halfTax.toFixed(2)} ({Number(rate) / 2}%)</td>
-                            <td className="py-2 px-3 text-right font-mono font-bold text-purple-600 dark:text-purple-400">₹{data.taxAmount.toFixed(2)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+          {gstSlabEntries.length > 0 && (
+            <div className="space-y-1.5">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-text-muted">
+                GST Tax Slab Breakdown
+              </h3>
+              <div className="overflow-x-auto rounded-xl border border-border bg-surface-alt/20">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-border bg-surface-alt/70 text-[10.5px] font-bold text-text-muted uppercase select-none">
+                      <th className="py-2 px-3">GST Rate Slab</th>
+                      <th className="py-2 px-3 text-right">Taxable Amount</th>
+                      <th className="py-2 px-3 text-right font-mono">CGST</th>
+                      <th className="py-2 px-3 text-right font-mono">SGST</th>
+                      <th className="py-2 px-3 text-right">Total Tax</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {gstSlabEntries.map(([rate, data]) => {
+                      const halfTax = data.taxAmount / 2;
+                      return (
+                        <tr key={rate} className="hover:bg-surface-hover/30">
+                          <td className="py-2 px-3 font-bold text-purple-600 dark:text-purple-400">{rate}% Slab</td>
+                          <td className="py-2 px-3 text-right font-mono text-text">₹{data.taxableAmount.toFixed(2)}</td>
+                          <td className="py-2 px-3 text-right font-mono text-text-muted">₹{halfTax.toFixed(2)} ({Number(rate) / 2}%)</td>
+                          <td className="py-2 px-3 text-right font-mono text-text-muted">₹{halfTax.toFixed(2)} ({Number(rate) / 2}%)</td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-purple-600 dark:text-purple-400">₹{data.taxAmount.toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            );
-          })()}
+            </div>
+          )}
 
           {/* Financial Calculation Summary Box */}
           <div className="p-4 rounded-xl border border-border bg-surface-alt/40 space-y-2 text-xs font-mono">
@@ -1001,19 +1054,24 @@ export const BillingInvoiceDetailsDrawer = ({
 
       {/* Cancel Bill Confirmation Dialog */}
       {/* ── Cancel Sale & Cash Refund Dialog ── */}
-      <CancelInvoiceRefundModal
-        isOpen={showConfirmCancel}
-        onClose={() => !isCancelling && setShowConfirmCancel(false)}
-        onConfirm={handleConfirmCancel}
-        invoice={invoice}
-        isCancelling={isCancelling}
-      />
+      {showConfirmCancel && (
+        <CancelInvoiceRefundModal
+          isOpen={showConfirmCancel}
+          onClose={() => !isCancelling && setShowConfirmCancel(false)}
+          onConfirm={handleConfirmCancel}
+          invoice={invoice}
+          isCancelling={isCancelling}
+        />
+      )}
 
-      <OrderInvoiceModal
-        isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
-        saleData={invoice}
-      />
+      {/* Print Document Modal */}
+      {isPrintModalOpen && (
+        <OrderInvoiceModal
+          isOpen={isPrintModalOpen}
+          onClose={() => setIsPrintModalOpen(false)}
+          saleData={invoice}
+        />
+      )}
     </>
   );
 };

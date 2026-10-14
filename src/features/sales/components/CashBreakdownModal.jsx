@@ -48,6 +48,89 @@ export const decomposeAmount = (amount) => {
   return res;
 };
 
+/**
+ * Decompose change amount strictly constrained by the cash drawer's available denominations & quantities.
+ * - Will NOT select denominations not present in drawer (count === 0 or missing).
+ * - Will NOT select a quantity greater than what is present in the drawer.
+ * - Backtracks to find the minimal note count combination matching exact amount.
+ */
+export const decomposeChangeWithDrawer = (amount, drawerMap = {}) => {
+  const target = Math.max(0, Math.round(amount));
+  if (target <= 0) return {};
+
+  const hasDrawerStock = drawerMap && Object.values(drawerMap).some((qty) => Number(qty) > 0);
+  if (!hasDrawerStock) {
+    return {};
+  }
+
+  // Filter available denominations that exist in drawer with quantity > 0 and <= target
+  const denoms = ALL_DENOMS.filter((d) => d <= target && (Number(drawerMap[d]) || 0) > 0);
+  if (denoms.length === 0) return {};
+
+  // 1. Fast Greedy decomposition pass (instant 0ms for standard currency)
+  let remGreedy = target;
+  const greedy = {};
+  for (const d of denoms) {
+    const avail = Number(drawerMap[d]) || 0;
+    if (avail > 0 && remGreedy >= d) {
+      const take = Math.min(Math.floor(remGreedy / d), avail);
+      if (take > 0) {
+        greedy[d] = take;
+        remGreedy -= take * d;
+      }
+    }
+  }
+
+  if (remGreedy === 0) {
+    return greedy;
+  }
+
+  // 2. Bounded minimal-note search if greedy left remainder (capped to prevent CPU freeze)
+  let bestSolution = null;
+  let bestCount = Infinity;
+  let steps = 0;
+  const MAX_STEPS = 300;
+
+  const solve = (index, remaining, current) => {
+    if (++steps > MAX_STEPS) return false;
+    if (remaining === 0) {
+      const count = Object.values(current).reduce((s, c) => s + c, 0);
+      if (count < bestCount) {
+        bestCount = count;
+        bestSolution = { ...current };
+      }
+      return true;
+    }
+    if (index >= denoms.length) return false;
+
+    const d = denoms[index];
+    const maxAvailable = Number(drawerMap[d]) || 0;
+    const maxPossible = Math.min(Math.floor(remaining / d), maxAvailable);
+
+    for (let c = maxPossible; c >= 0; c--) {
+      if (steps > MAX_STEPS) break;
+      const currentCount = Object.values(current).reduce((s, cnt) => s + cnt, 0);
+      if (currentCount + c >= bestCount) continue;
+
+      if (c > 0) current[d] = c;
+      const found = solve(index + 1, remaining - c * d, current);
+      if (c > 0) delete current[d];
+
+      if (found && bestCount <= currentCount + c) break;
+    }
+    return bestSolution !== null;
+  };
+
+  solve(0, target, {});
+
+  if (bestSolution) {
+    return bestSolution;
+  }
+
+  // 3. Fallback: Return partial greedy result
+  return greedy;
+};
+
 export function CashBreakdownModal({
   isOpen,
   onClose,
@@ -63,6 +146,34 @@ export function CashBreakdownModal({
   const [returned, setReturned] = useState({});
   const [isCustomizingChange, setIsCustomizingChange] = useState(false);
   const [error, setError] = useState(null);
+
+  // Available denominations map for drawer context & strict physical limits
+  const availableDenomsMap = useMemo(() => {
+    const map = {};
+    if (Array.isArray(availableDenominations)) {
+      availableDenominations.forEach((d) => {
+        if (!d) return;
+        const denom = Number(d.denomination || d.val || d.note || 0);
+        const qty = Number(d.quantity ?? d.count ?? d.qty ?? 0);
+        if (denom > 0) {
+          map[denom] = Math.max(0, qty);
+        }
+      });
+    } else if (availableDenominations && typeof availableDenominations === "object") {
+      Object.entries(availableDenominations).forEach(([d, q]) => {
+        const denom = Number(d);
+        const qty = Number(q);
+        if (denom > 0) {
+          map[denom] = Math.max(0, qty);
+        }
+      });
+    }
+    return map;
+  }, [availableDenominations]);
+
+  const hasDrawerStock = useMemo(() => {
+    return Object.values(availableDenomsMap).some((qty) => Number(qty) > 0);
+  }, [availableDenomsMap]);
 
   // Initialize cleanly when modal transitions from closed to open
   useEffect(() => {
@@ -98,19 +209,19 @@ export function CashBreakdownModal({
     [returned]
   );
 
-  const expectedChange = Math.max(0, receivedTotal - targetAmount);
+  const expectedChange = Math.max(0, receivedTotal - Number(targetAmount || 0));
   const netApplied = receivedTotal - returnedTotal;
 
-  // Auto-calculate optimal returned change denominations whenever expectedChange changes (unless customized)
+  // Auto-calculate optimal returned change denominations strictly constrained by cash drawer
   useEffect(() => {
     if (!isCustomizingChange) {
       if (expectedChange > 0) {
-        setReturned(decomposeAmount(expectedChange));
+        setReturned(decomposeChangeWithDrawer(expectedChange, availableDenomsMap));
       } else {
         setReturned({});
       }
     }
-  }, [expectedChange, isCustomizingChange]);
+  }, [expectedChange, isCustomizingChange, availableDenomsMap]);
 
   const totalReceivedNotes = useMemo(() =>
     Object.values(received).reduce((sum, q) => sum + (Number(q) || 0), 0),
@@ -121,19 +232,6 @@ export function CashBreakdownModal({
     Object.values(returned).reduce((sum, q) => sum + (Number(q) || 0), 0),
     [returned]
   );
-
-  // Available denominations map for drawer context display
-  const availableDenomsMap = useMemo(() => {
-    const map = {};
-    if (Array.isArray(availableDenominations)) {
-      availableDenominations.forEach((d) => {
-        if (d && d.denomination) {
-          map[d.denomination] = Number(d.quantity) || 0;
-        }
-      });
-    }
-    return map;
-  }, [availableDenominations]);
 
   // Quick tender presets
   const quickTenders = useMemo(() => {
@@ -201,10 +299,17 @@ export function CashBreakdownModal({
   };
 
   const handleUpdateReturned = (denom, delta) => {
+    const d = Number(denom);
+    const maxAvailable = hasDrawerStock ? (Number(availableDenomsMap[d]) || 0) : Infinity;
+
     setReturned((prev) => {
       const next = { ...prev };
       const current = Number(next[denom]) || 0;
-      const nextVal = Math.max(0, current + delta);
+      let nextVal = current + delta;
+      if (nextVal > maxAvailable) {
+        nextVal = maxAvailable;
+      }
+      nextVal = Math.max(0, nextVal);
       if (nextVal === 0) {
         delete next[denom];
       } else {
@@ -595,15 +700,15 @@ export function CashBreakdownModal({
                       <div className="p-2.5 rounded-xl border border-dashed border-amber-500/40 bg-surface space-y-2 mt-2">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 block">
-                            Adjust Notes Manually
+                            Adjust Notes Manually (Drawer Capped)
                           </span>
                           <button
                             type="button"
                             onClick={() => {
-                              setReturned(decomposeAmount(expectedChange));
+                              setReturned(decomposeChangeWithDrawer(expectedChange, availableDenomsMap));
                               setIsCustomizingChange(false);
                             }}
-                            className="text-[10px] text-primary hover:underline font-bold"
+                            className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
                           >
                             Auto-Fix
                           </button>
@@ -611,24 +716,48 @@ export function CashBreakdownModal({
                         <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-0.5">
                           {ALL_DENOMS.map((d) => {
                             const count = Number(returned[d]) || 0;
+                            const avail = Number(availableDenomsMap[d]) || 0;
+                            const isOutOfStock = hasDrawerStock && avail === 0;
+                            const isMaxed = hasDrawerStock && count >= avail;
 
                             return (
-                              <div key={`adj-${d}`} className="flex items-center justify-between p-1 border rounded bg-surface-alt/40 text-xs">
-                                <span className="font-bold text-[11px]">₹{d}</span>
+                              <div
+                                key={`adj-${d}`}
+                                className={cn(
+                                  "flex items-center justify-between p-1.5 border rounded-lg text-xs transition-colors",
+                                  isOutOfStock
+                                    ? "bg-surface-alt/30 border-border/40 opacity-50"
+                                    : "bg-surface-alt/60 border-border"
+                                )}
+                              >
+                                <div>
+                                  <span className="font-bold text-[11px] block">₹{d}</span>
+                                  <span className="text-[9px] text-text-muted block">
+                                    {hasDrawerStock ? `In drawer: ${avail}` : "Uncapped"}
+                                  </span>
+                                </div>
                                 <div className="flex items-center gap-1">
                                   <button
                                     type="button"
                                     disabled={count === 0}
                                     onClick={() => handleUpdateReturned(d, -1)}
-                                    className="size-4 flex items-center justify-center text-text-muted hover:text-error disabled:opacity-30 cursor-pointer"
+                                    className="size-4.5 rounded flex items-center justify-center text-text-muted hover:text-error disabled:opacity-20 cursor-pointer"
                                   >
                                     <Minus className="size-2.5" />
                                   </button>
                                   <span className="font-mono font-bold w-4 text-center text-[11px]">{count}</span>
                                   <button
                                     type="button"
+                                    disabled={isMaxed || isOutOfStock}
                                     onClick={() => handleUpdateReturned(d, 1)}
-                                    className="size-4 flex items-center justify-center text-text-muted hover:text-success cursor-pointer"
+                                    className="size-4.5 rounded flex items-center justify-center text-text-muted hover:text-success disabled:opacity-20 cursor-pointer"
+                                    title={
+                                      isOutOfStock
+                                        ? `No ₹${d} notes in cash drawer`
+                                        : isMaxed
+                                        ? `Maximum ${avail} available in cash drawer`
+                                        : `Add ₹${d}`
+                                    }
                                   >
                                     <Plus className="size-2.5" />
                                   </button>
@@ -652,60 +781,62 @@ export function CashBreakdownModal({
           </div>
         </div>
 
-        {/* ── 6. COMPACT VALIDATION STATUS (Removed annoying prompt note) ── */}
-        <div className="shrink-0 mb-3">
-          {receivedTotal > 0 && receivedTotal < targetAmount && (
-            <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-center justify-between">
-              <span>Customer gave ₹{receivedTotal.toFixed(2)} — still short of ₹{targetAmount.toFixed(2)}</span>
-              <span className="font-mono font-bold">Short: ₹{(targetAmount - receivedTotal).toFixed(2)}</span>
-            </div>
-          )}
+        {/* ── 6. ACTION FOOTER (Single Cancel on Left, Centered Message in Middle, Confirm on Right) ─────────── */}
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-border shrink-0">
+          {/* Left: Single Dismiss Button (Removed redundant Close button) */}
+          <UIButton variant="outline" size="sm" onClick={onClose} className="px-4 shrink-0">
+            Cancel
+          </UIButton>
 
-          {receivedTotal >= targetAmount && returnedTotal !== expectedChange && (
-            <div className="p-2 rounded-lg bg-error-soft border border-error/30 text-error text-xs flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="size-3.5 shrink-0" />
-                <span>Returned change (₹{returnedTotal}) does not match expected change (₹{expectedChange})</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setReturned(decomposeAmount(expectedChange));
-                  setIsCustomizingChange(false);
-                }}
-                className="text-xs font-bold text-primary underline cursor-pointer ml-2"
-              >
-                Auto-Fix Return
-              </button>
-            </div>
-          )}
-
-          {receivedTotal >= targetAmount && returnedTotal === expectedChange && (
-            <div className="p-2 rounded-lg bg-success-soft/80 border border-success/30 text-success text-xs flex items-center justify-between">
-              <span className="flex items-center gap-1.5 font-medium">
-                <CheckCircle2 className="size-4" /> Ready to finalize cash tender: Net ₹{netApplied.toFixed(2)}
+          {/* Middle: Centered Dynamic Status / Validation Message */}
+          <div className="flex-1 flex items-center justify-center min-w-0 px-2">
+            {receivedTotal <= 0 ? (
+              <span className="text-xs text-text-muted italic truncate">
+                Select denominations received from customer
               </span>
-              <span className="font-bold">✓ Balanced</span>
-            </div>
-          )}
-        </div>
-
-        {/* ── 7. ACTION FOOTER (Cancel, Close, and Confirm) ─────────── */}
-        <div className="flex items-center justify-between pt-3 border-t border-border shrink-0">
-          <div className="flex items-center gap-2">
-            <UIButton variant="ghost" size="sm" onClick={onClose}>
-              Cancel
-            </UIButton>
-            <UIButton variant="outline" size="sm" onClick={onClose}>
-              Close
-            </UIButton>
+            ) : receivedTotal < targetAmount ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-medium max-w-full truncate">
+                <AlertCircle className="size-3.5 shrink-0 text-amber-600" />
+                <span className="truncate">
+                  Tender ₹{receivedTotal.toFixed(2)} — short by ₹{(Number(targetAmount) - receivedTotal).toFixed(2)}
+                </span>
+              </div>
+            ) : returnedTotal !== expectedChange ? (
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-error-soft border border-error/30 text-error text-xs font-medium max-w-full">
+                <AlertCircle className="size-3.5 shrink-0" />
+                <span className="truncate">
+                  {hasDrawerStock && expectedChange > 0 && returnedTotal < expectedChange
+                    ? `Drawer lacks change: selected ₹${returnedTotal.toFixed(2)} of ₹${expectedChange.toFixed(2)}`
+                    : `Change mismatch: ₹${returnedTotal.toFixed(2)} of ₹${expectedChange.toFixed(2)}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReturned(decomposeChangeWithDrawer(expectedChange, availableDenomsMap));
+                    setIsCustomizingChange(false);
+                  }}
+                  className="text-xs font-bold text-primary underline cursor-pointer shrink-0 hover:text-primary-hover ml-1"
+                >
+                  Auto-Fix
+                </button>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success-soft/80 border border-success/30 text-success text-xs font-medium max-w-full truncate">
+                <CheckCircle2 className="size-3.5 shrink-0 text-success" />
+                <span className="font-semibold truncate">
+                  Ready to finalize cash tender: Net ₹{netApplied.toFixed(2)}
+                </span>
+                <span className="text-[11px] font-bold opacity-80 shrink-0">✓ Balanced</span>
+              </div>
+            )}
           </div>
 
+          {/* Right: Confirm Cash Action Button */}
           <UIButton
             variant="success"
             size="sm"
             onClick={handleConfirm}
-            className="px-6 font-bold"
+            className="px-6 font-bold shrink-0"
             disabled={isConfirmDisabled}
             startIcon={<CheckCircle2 className="size-4" />}
           >

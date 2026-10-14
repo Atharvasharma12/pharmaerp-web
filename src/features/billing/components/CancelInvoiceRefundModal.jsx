@@ -12,7 +12,7 @@ import {
   FileText
 } from "lucide-react";
 import { UIModal, UIButton, UIBadge } from "@/components/ui";
-import { CashBreakdownModal, decomposeAmount } from "@/features/sales/components/CashBreakdownModal";
+import { CashBreakdownModal, decomposeAmount, decomposeChangeWithDrawer } from "@/features/sales/components/CashBreakdownModal";
 import { useBranchCash } from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { cn } from "@/lib/utils";
@@ -53,7 +53,7 @@ export const CancelInvoiceRefundModal = ({
 
   // Calculate invoice cash amount
   const cashAmount = useMemo(() => {
-    if (!invoice) return 0;
+    if (!isOpen || !invoice) return 0;
     const rawPayments = Array.isArray(invoice.payments) ? invoice.payments : [];
     if (rawPayments.length > 0) {
       let sum = 0;
@@ -70,7 +70,7 @@ export const CancelInvoiceRefundModal = ({
       return Number(invoice.grandTotal || invoice.amount || 0);
     }
     return 0;
-  }, [invoice]);
+  }, [isOpen, invoice]);
 
   const hasCashPortion = cashAmount > 0;
 
@@ -86,7 +86,7 @@ export const CancelInvoiceRefundModal = ({
 
   // Extract initial / original denominations
   const originalNotesMap = useMemo(() => {
-    if (!invoice || cashAmount <= 0) return {};
+    if (!isOpen || !invoice || cashAmount <= 0) return {};
     const denoms = invoice.denominations;
     if (Array.isArray(denoms) && denoms.length > 0) {
       const map = {};
@@ -102,9 +102,22 @@ export const CancelInvoiceRefundModal = ({
         return map;
       }
     }
-    // Decomposed fallback to match cashAmount exactly
+    // Decomposed fallback to match cashAmount exactly (constrained by drawer stock if present)
+    if (Array.isArray(runningDenominations) && runningDenominations.length > 0) {
+      const drawerMap = {};
+      runningDenominations.forEach((d) => {
+        const denom = Number(d.denomination || d.val || d.note || 0);
+        const qty = Number(d.quantity || d.count || d.qty || 0);
+        if (denom > 0) drawerMap[denom] = qty;
+      });
+      const drawerDecomp = decomposeChangeWithDrawer(cashAmount, drawerMap);
+      const decompTotal = Object.entries(drawerDecomp).reduce((s, [n, q]) => s + Number(n) * q, 0);
+      if (Math.abs(decompTotal - cashAmount) < 0.01) {
+        return drawerDecomp;
+      }
+    }
     return decomposeAmount(cashAmount);
-  }, [invoice, cashAmount]);
+  }, [isOpen, invoice, cashAmount, runningDenominations]);
 
   // Initialize refund notes on open
   useEffect(() => {
