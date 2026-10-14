@@ -1,47 +1,163 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiTrash2, FiSearch } from "react-icons/fi";
+// src/pages/inventory/CreateTransferOrderPage.jsx
+
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowLeftRight,
+  Building2,
+  Lock,
+  Package,
+  Boxes,
+  Trash2,
+  AlertCircle,
+  CheckCircle2,
+  Search,
+  RefreshCw,
+  FileText,
+  Truck,
+  Plus,
+  ShieldCheck,
+} from "lucide-react";
 import { uiToast as toast } from "@/components/ui";
 import useBranch from "../../features/branch/hooks/useBranch";
+import useCompany from "../../features/company/hooks/useCompany";
 import transferOrderService from "../../features/transfer-order/services/transferOrderService";
-import { apiClient } from "@/services";
 import workspaceProductService from "../../features/workspace-products/services/workspaceProductService";
 
 import {
   WorkspaceProductSearchBar,
-  WorkspaceProductBatchSelectorModal
+  WorkspaceProductBatchSelectorModal,
 } from "@/features/workspace-products/components";
 
 const CreateTransferOrderPage = () => {
   const navigate = useNavigate();
-  const { branches, getCompanyBranches } = useBranch();
+  const { id } = useParams();
+  const isEditMode = Boolean(id);
 
-  const [sourceBranchId, setSourceBranchId] = useState("");
+  const { currentCompany } = useCompany();
+  const { currentBranch, branches = [], getCompanyBranches } = useBranch();
+
+  const [loadingOrder, setLoadingOrder] = useState(isEditMode);
+  const [existingOrder, setExistingOrder] = useState(null);
+
+  // Source facility is strictly locked to current active branch (or source branch of existing order)
+  const sourceBranchId = existingOrder?.sourceBranchId?._id || currentBranch?._id || "";
   const [destinationBranchId, setDestinationBranchId] = useState("");
   const [remarks, setRemarks] = useState("");
   const [items, setItems] = useState([]);
 
   const [submitting, setSubmitting] = useState(false);
 
-  // Search & Modal State
+  // Search & Batch Modal State
   const [searchQuery, setSearchQuery] = useState("");
   const searchBarRef = useRef(null);
 
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [selectedProductForBatches, setSelectedProductForBatches] = useState(null);
 
+  // Fetch branches on mount
   useEffect(() => {
-    getCompanyBranches();
+    if (getCompanyBranches) {
+      getCompanyBranches().catch(() => {});
+    }
   }, [getCompanyBranches]);
 
-  const getBranchName = (id) => {
-    return branches.find(b => b._id === id)?.name || "Selected Facility";
-  };
+  // Load existing order if in edit mode
+  useEffect(() => {
+    if (!id) return;
+    let isMounted = true;
+
+    const loadOrder = async () => {
+      try {
+        setLoadingOrder(true);
+        const res = await transferOrderService.getTransferOrderById(id);
+        const order = res?.data?.data || res?.data;
+        if (!isMounted) return;
+
+        if (!order) {
+          toast.error("Transfer order not found");
+          navigate("/inventory/transfer-orders");
+          return;
+        }
+
+        if (order.status !== "IN_TRANSIT" && order.status !== "PENDING") {
+          toast.error(`Cannot edit a transfer order with status: ${order.status}`);
+          navigate("/inventory/transfer-orders");
+          return;
+        }
+
+        setExistingOrder(order);
+        setDestinationBranchId(
+          order.destinationBranchId?._id || order.destinationBranchId || ""
+        );
+        setRemarks(order.remarks || "");
+
+        const mappedItems = (order.items || []).map((item) => ({
+          product: item.product?._id || item.product,
+          productName: item.product?.name || "Product",
+          batch: item.batch?._id || item.batch,
+          batchNo: item.batchNo,
+          transferQty: item.transferQty,
+          availableQty: 99999,
+        }));
+        setItems(mappedItems);
+      } catch (err) {
+        console.error("Failed to load transfer order:", err);
+        toast.error("Failed to load transfer order details");
+        navigate("/inventory/transfer-orders");
+      } finally {
+        if (isMounted) setLoadingOrder(false);
+      }
+    };
+
+    loadOrder();
+    return () => {
+      isMounted = false;
+    };
+  }, [id, navigate]);
+
+  // Destination facilities: strictly EXCLUDE current active branch
+  const destinationBranches = useMemo(() => {
+    if (!branches || !Array.isArray(branches)) return [];
+    return branches.filter(
+      (b) => b._id !== sourceBranchId && b.status !== "inactive"
+    );
+  }, [branches, sourceBranchId]);
+
+  // If destination matches current branch, clear it
+  useEffect(() => {
+    if (destinationBranchId && destinationBranchId === sourceBranchId) {
+      setDestinationBranchId("");
+    }
+  }, [destinationBranchId, sourceBranchId]);
+
+  // If user switches active branch from top header while drafting new order, reset items & destination
+  const prevBranchRef = useRef(currentBranch?._id);
+  useEffect(() => {
+    if (!isEditMode && prevBranchRef.current && prevBranchRef.current !== currentBranch?._id) {
+      setItems([]);
+      setDestinationBranchId("");
+      toast.info("Active facility changed. Staged products were reset to match new facility.");
+    }
+    prevBranchRef.current = currentBranch?._id;
+  }, [currentBranch?._id, isEditMode]);
+
+  const destinationBranch = useMemo(() => {
+    return destinationBranches.find((b) => b._id === destinationBranchId);
+  }, [destinationBranches, destinationBranchId]);
+
+  // Total metrics
+  const totalItemsCount = items.length;
+  const totalUnitsCount = useMemo(() => {
+    return items.reduce((sum, item) => sum + (Number(item.transferQty) || 0), 0);
+  }, [items]);
 
   const handleSelectWorkspaceProduct = async (prod, details) => {
     const p = details || prod;
     if (!sourceBranchId) {
-      toast.error("Please select a source facility first");
+      toast.error("Active facility not detected. Please select a facility first.");
       setSearchQuery("");
       searchBarRef.current?.clear?.();
       return;
@@ -53,19 +169,20 @@ const CreateTransferOrderPage = () => {
       const res = await workspaceProductService.getProductFacilityBatchesByQueryV2({
         page: 1,
         limit: 50,
-        filters: { facility: sourceBranchId, inStockOnly: true, product: prodId }
+        filters: { facility: sourceBranchId, inStockOnly: true, product: prodId },
       });
-      const fetchedBatches = res?.data?.data?.batches || res?.data?.batches || res?.data?.data || [];
+      const fetchedBatches =
+        res?.data?.data?.batches || res?.data?.batches || res?.data?.data || [];
 
       if (fetchedBatches.length === 0) {
-        toast.error("No stock available for this product in the source facility.");
+        toast.error(`No stock available for "${p.name || p.displayName}" in ${currentBranch?.name || "current facility"}.`);
         setSearchQuery("");
         searchBarRef.current?.clear?.();
         return;
       }
 
       // Ensure properties align with what the BatchSelectorModal expects
-      const mappedBatches = fetchedBatches.map(b => ({
+      const mappedBatches = fetchedBatches.map((b) => ({
         ...b,
         productId: prodId,
         productName: p.name || p.displayName,
@@ -88,19 +205,19 @@ const CreateTransferOrderPage = () => {
 
     setItems((prev) => {
       let updatedItems = [...prev];
-      list.forEach(item => {
+      list.forEach((item) => {
         // Prevent duplicate batches
-        if (updatedItems.find(i => i.batch === item.batchId)) {
-          toast.error(`Batch ${item.batchNo} is already in the transfer list`);
+        if (updatedItems.find((i) => i.batch === item.batchId)) {
+          toast.error(`Batch ${item.batch || item.batchNo} is already in the transfer list`);
           return;
         }
         updatedItems.push({
           product: item.productId,
           productName: item.name || item.productName || "Unknown Product",
           batch: item.batchId,
-          batchNo: item.batch, // the modal returns the batch number as 'batch'
-          availableQty: item.stock, // the modal returns available stock as 'stock'
-          transferQty: item.qty || 1
+          batchNo: item.batch || item.batchNo,
+          availableQty: item.stock || item.qty || 0,
+          transferQty: item.qty || 1,
         });
       });
       return updatedItems;
@@ -108,14 +225,20 @@ const CreateTransferOrderPage = () => {
   };
 
   const handleRemoveItem = (index) => {
-    setItems(items.filter((_, i) => i !== index));
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleClearAllItems = () => {
+    if (window.confirm("Remove all staged products from this transfer order?")) {
+      setItems([]);
+    }
   };
 
   const handleQtyChange = (index, val) => {
     const newItems = [...items];
-    const qty = parseInt(val) || 0;
+    const qty = parseInt(val, 10) || 0;
     if (newItems[index].availableQty && qty > newItems[index].availableQty) {
-      toast.error("Transfer quantity cannot exceed available quantity");
+      toast.error(`Transfer quantity cannot exceed available stock (${newItems[index].availableQty})`);
       newItems[index].transferQty = newItems[index].availableQty;
     } else {
       newItems[index].transferQty = qty;
@@ -125,116 +248,224 @@ const CreateTransferOrderPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!sourceBranchId) return toast.error("Select source facility");
-    if (!destinationBranchId) return toast.error("Select destination facility");
-    if (sourceBranchId === destinationBranchId) return toast.error("Source and destination cannot be the same");
-    if (items.length === 0) return toast.error("Add at least one item to transfer");
+    if (!sourceBranchId) {
+      return toast.error("Active facility not identified. Please refresh or select a facility.");
+    }
+    if (!destinationBranchId) {
+      return toast.error("Please select a destination facility.");
+    }
+    if (sourceBranchId === destinationBranchId) {
+      return toast.error("Source and destination facility cannot be the same.");
+    }
+    if (items.length === 0) {
+      return toast.error("Add at least one product batch to transfer.");
+    }
 
-    // validate qtys
-    if (items.some(i => i.transferQty <= 0)) {
-      return toast.error("Transfer quantity must be greater than 0");
+    if (items.some((i) => !i.transferQty || i.transferQty <= 0)) {
+      return toast.error("All item quantities must be greater than 0.");
     }
 
     try {
       setSubmitting(true);
-      await transferOrderService.createTransferOrder({
-        sourceBranchId,
+      const payload = {
         destinationBranchId,
-        remarks,
-        items: items.map(i => ({
+        remarks: remarks.trim(),
+        items: items.map((i) => ({
           product: i.product,
           batch: i.batch,
           batchNo: i.batchNo,
-          transferQty: i.transferQty
-        }))
-      });
-      toast.success("Transfer order created successfully");
+          transferQty: i.transferQty,
+        })),
+      };
+
+      if (isEditMode) {
+        await transferOrderService.updateTransferOrder(id, payload);
+        toast.success("Transfer order updated successfully!");
+      } else {
+        await transferOrderService.createTransferOrder({
+          companyId: currentCompany?._id,
+          branchId: sourceBranchId,
+          sourceBranchId,
+          ...payload,
+        });
+        toast.success("Transfer order created successfully!");
+      }
+
       navigate("/inventory/transfer-orders");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to create transfer order");
+      console.error(error);
+      toast.error(
+        error.response?.data?.message ||
+          (isEditMode
+            ? "Failed to update transfer order"
+            : "Failed to create transfer order")
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  return (
-    <div className="p-6 max-w-6xl mx-auto flex flex-col gap-6">
-      <div className="flex items-center gap-4">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-          <FiArrowLeft className="text-xl text-gray-600" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Create Transfer Order</h1>
-          <p className="text-gray-500 text-sm">Transfer stock between facilities</p>
-        </div>
+  if (loadingOrder) {
+    return (
+      <div className="w-full min-h-[60vh] flex flex-col items-center justify-center gap-3 text-text-muted font-sans">
+        <RefreshCw className="size-7 animate-spin text-primary" />
+        <p className="text-sm font-medium">Loading transfer order details...</p>
       </div>
+    );
+  }
 
-      <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-6 items-start">
-        {/* Left Column - Facilities and Remarks */}
-        <div className="w-full md:w-1/3 flex flex-col gap-6 sticky top-6">
-          <div className="bg-white p-5 rounded-xl shadow-2xs border border-gray-200">
-            <h2 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2 uppercase tracking-wider">Transfer Details</h2>
-
-            <div className="flex flex-col gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Source Facility *</label>
-                <select
-                  required
-                  value={sourceBranchId}
-                  onChange={(e) => {
-                    setSourceBranchId(e.target.value);
-                    setItems([]); // reset items if source changes
-                  }}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                >
-                  <option value="">Select Source</option>
-                  {branches.map(b => (
-                    <option key={b._id} value={b._id}>{b.name} ({b.type})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Destination Facility *</label>
-                <select
-                  required
-                  value={destinationBranchId}
-                  onChange={(e) => setDestinationBranchId(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                >
-                  <option value="">Select Destination</option>
-                  {branches.map(b => (
-                    <option key={b._id} value={b._id}>{b.name} ({b.type})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Remarks / Notes</label>
-                <textarea
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 resize-none h-24"
-                  placeholder="Optional notes for this transfer"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full py-2.5 mt-2 text-black bg-primary-600 border border-transparent rounded-lg hover:bg-primary-700 font-semibold transition-colors disabled:opacity-50"
-              >
-                {submitting ? "Creating..." : "Submit"}
-              </button>
+  return (
+    <div className="w-full bg-bg min-h-full px-4 sm:px-6 py-6 space-y-6 text-text font-sans transition-colors">
+      {/* ── 1. Top Header & Navigation ────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate("/inventory/transfer-orders")}
+            className="p-2 rounded-xl border border-border bg-surface hover:bg-surface-hover text-text-muted hover:text-text transition-colors shadow-2xs"
+            title="Back to Transfer Orders"
+          >
+            <ArrowLeft className="size-4" />
+          </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold tracking-tight text-text">
+                {isEditMode
+                  ? `Edit Transfer Order ${existingOrder?.transferNo ? `(${existingOrder.transferNo})` : ""}`
+                  : "Create Transfer Order"}
+              </h1>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                <Truck className="size-3" />
+                {isEditMode ? "Edit Mode" : "Inter-Facility"}
+              </span>
             </div>
+            <p className="text-xs text-text-muted mt-0.5">
+              {isEditMode
+                ? "Modify destination branch, remarks, or transfer quantities"
+                : "Dispatch inventory batches from your current facility to a target branch"}
+            </p>
           </div>
         </div>
 
-        {/* Right Column - Items to Transfer */}
-        <div className="w-full md:w-2/3 flex flex-col gap-4">
+        {/* Quick summary status badge */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface border border-border text-xs text-text-muted shadow-2xs">
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Origin: <strong className="text-text font-semibold">{currentBranch?.name || "Active Facility"}</strong></span>
+          </div>
+        </div>
+      </div>
 
-          <div className="bg-white p-5 rounded-xl shadow-2xs border border-gray-200">
-            <h2 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2 uppercase tracking-wider">Add Products</h2>
+      {/* ── 2. Visual Transfer Route Card ─────────────────────────────────── */}
+      <div className="bg-surface rounded-2xl border border-border p-4 sm:p-5 shadow-xs transition-colors">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+          {/* Source Facility (LOCKED to Current Branch) */}
+          <div className="flex-1 bg-surface-alt/70 dark:bg-surface-alt/40 rounded-xl p-3.5 border border-border flex items-start gap-3">
+            <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+              <Building2 className="size-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                  Source Facility (Origin)
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20">
+                  <Lock className="size-2.5" />
+                  Active Branch Only
+                </span>
+              </div>
+              <div className="text-base font-bold text-text truncate mt-1">
+                {currentBranch?.name || "Active Facility"}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-text-muted mt-0.5">
+                <span className="px-1.5 py-0.2 rounded bg-surface border border-border text-[11px]">
+                  {currentBranch?.type || "Facility"}
+                </span>
+                {currentBranch?.code && (
+                  <span className="font-mono text-[11px]">Code: {currentBranch.code}</span>
+                )}
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                  • Dispatches Outward
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Directional Indicator */}
+          <div className="flex items-center justify-center shrink-0 py-1 lg:py-0">
+            <div className="size-9 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shadow-2xs">
+              <ArrowRight className="size-4.5" />
+            </div>
+          </div>
+
+          {/* Destination Facility (Dropdown with Current Branch Removed) */}
+          <div className="flex-1 bg-surface-alt/70 dark:bg-surface-alt/40 rounded-xl p-3.5 border border-border flex items-start gap-3">
+            <div className="size-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
+              <Truck className="size-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="destinationBranchSelect"
+                  className="text-[11px] font-bold text-text-muted uppercase tracking-wider block"
+                >
+                  Destination Facility (Target) *
+                </label>
+              </div>
+
+              {destinationBranches.length > 0 ? (
+                <div className="mt-1">
+                  <select
+                    id="destinationBranchSelect"
+                    value={destinationBranchId}
+                    onChange={(e) => setDestinationBranchId(e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm font-semibold text-text bg-surface border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition cursor-pointer"
+                  >
+                    <option value="" className="text-text-muted">
+                      -- Select Target Branch --
+                    </option>
+                    {destinationBranches.map((b) => (
+                      <option key={b._id} value={b._id} className="text-text">
+                        {b.name} {b.type ? `(${b.type})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-text-muted mt-1">
+                    Current branch ({currentBranch?.name}) is excluded to prevent circular transfers.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-1 p-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                  <AlertCircle className="size-4 shrink-0" />
+                  <span>No other facilities available in this company to receive inventory.</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3. Main Form Section (2-Column Grid) ─────────────────────────── */}
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Product Search & Staged Items Table (8 Cols) */}
+        <div className="lg:col-span-8 flex flex-col gap-5">
+          {/* Product Search Card */}
+          <div className="bg-surface rounded-2xl border border-border p-5 shadow-xs transition-colors">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="text-sm font-bold text-text flex items-center gap-2">
+                  <Package className="size-4 text-primary" />
+                  Select Products to Transfer
+                </h2>
+                <p className="text-xs text-text-muted mt-0.5">
+                  Search medicines and inventory available at <strong>{currentBranch?.name || "current facility"}</strong>
+                </p>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-surface-alt border border-border text-text">
+                {totalItemsCount} {totalItemsCount === 1 ? "batch" : "batches"} staged
+              </span>
+            </div>
+
             <div className="relative">
               <WorkspaceProductSearchBar
                 ref={searchBarRef}
@@ -242,52 +473,102 @@ const CreateTransferOrderPage = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onSelectProduct={handleSelectWorkspaceProduct}
                 branchId={sourceBranchId || null}
-                placeholder="Search products by name, SKU, or barcode to add..."
+                placeholder="Search catalog by medicine name, barcode, salt, or SKU..."
               />
-              {!sourceBranchId && (
-                <div className="absolute inset-0 z-10 bg-white/50 backdrop-blur-[1px] rounded-lg flex items-center justify-center border border-gray-200 cursor-not-allowed">
-                  <p className="text-sm font-medium text-gray-500">Select a Source Facility to start searching</p>
-                </div>
-              )}
             </div>
           </div>
 
-          <div className="bg-white p-0 rounded-xl shadow-2xs border border-gray-200 overflow-hidden flex flex-col min-h-[300px]">
+          {/* Staged Transfer Items Table Card */}
+          <div className="bg-surface rounded-2xl border border-border overflow-hidden shadow-xs transition-colors">
+            <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Boxes className="size-4.5 text-primary" />
+                <h3 className="text-sm font-bold text-text">
+                  Transfer Manifest Items
+                </h3>
+                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+                  {totalItemsCount}
+                </span>
+              </div>
+
+              {items.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAllItems}
+                  className="text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="size-3.5" />
+                  Clear List
+                </button>
+              )}
+            </div>
+
             {items.length > 0 ? (
-              <div className="overflow-x-auto flex-1">
+              <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wider">
-                      <th className="p-4 font-semibold">Product</th>
-                      <th className="p-4 font-semibold">Batch No</th>
-                      <th className="p-4 font-semibold text-right">Available Qty</th>
-                      <th className="p-4 font-semibold text-right w-32">Transfer Qty</th>
-                      <th className="p-4 font-semibold text-center w-16">Action</th>
+                    <tr className="bg-surface-alt border-b border-border text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                      <th className="py-3 px-4 w-12 text-center">#</th>
+                      <th className="py-3 px-4">Product</th>
+                      <th className="py-3 px-4">Batch Number</th>
+                      <th className="py-3 px-4 text-right">Available Stock</th>
+                      <th className="py-3 px-4 text-right w-36">Transfer Qty</th>
+                      <th className="py-3 px-4 text-center w-16">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-border text-xs text-text">
                     {items.map((item, index) => (
-                      <tr key={item.batch} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="p-4 font-medium text-gray-800 text-sm">{item.productName}</td>
-                        <td className="p-4 text-sm text-gray-600 font-mono">{item.batchNo}</td>
-                        <td className="p-4 text-sm text-gray-600 text-right">{item.availableQty}</td>
-                        <td className="p-4 text-right">
-                          <input
-                            type="number"
-                            min="1"
-                            max={item.availableQty}
-                            value={item.transferQty}
-                            onChange={(e) => handleQtyChange(index, e.target.value)}
-                            className="w-full px-2 py-1.5 text-right text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500"
-                          />
+                      <tr key={item.batch} className="hover:bg-surface-hover/60 transition-colors">
+                        <td className="py-3.5 px-4 text-center text-text-muted font-mono font-medium">
+                          {index + 1}
                         </td>
-                        <td className="p-4 text-center">
+                        <td className="py-3.5 px-4">
+                          <div className="font-bold text-text text-sm">
+                            {item.productName}
+                          </div>
+                          <div className="text-[11px] text-text-muted mt-0.5">
+                            Batch ID: <span className="font-mono">{item.batch?.slice(-6) || "-"}</span>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-surface-alt border border-border text-text">
+                            {item.batchNo}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <span className="font-semibold text-text font-mono">
+                            {item.availableQty}
+                          </span>
+                          <span className="text-[11px] text-text-muted ml-1">units</span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <input
+                              type="number"
+                              min="1"
+                              max={item.availableQty}
+                              value={item.transferQty}
+                              onChange={(e) => handleQtyChange(index, e.target.value)}
+                              className="w-24 px-2.5 py-1.5 text-right font-bold text-sm font-mono border border-border bg-surface text-text rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleQtyChange(index, item.availableQty)}
+                              title="Set to max available stock"
+                              className="px-1.5 py-1 text-[10px] font-bold text-primary hover:bg-primary/10 rounded transition-colors"
+                            >
+                              MAX
+                            </button>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(index)}
-                            className="p-1.5 text-gray-400 hover:bg-rose-50 hover:text-rose-500 rounded transition-colors"
+                            className="p-1.5 text-text-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            title="Remove item"
                           >
-                            <FiTrash2 className="size-4" />
+                            <Trash2 className="size-4" />
                           </button>
                         </td>
                       </tr>
@@ -296,16 +577,108 @@ const CreateTransferOrderPage = () => {
                 </table>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gray-50/50">
-                <div className="size-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                  <FiSearch className="size-5 text-gray-400" />
+              <div className="py-12 px-6 flex flex-col items-center justify-center text-center">
+                <div className="size-14 rounded-2xl bg-surface-alt border border-border flex items-center justify-center text-text-muted mb-3 shadow-2xs">
+                  <Boxes className="size-7 stroke-[1.5]" />
                 </div>
-                <h3 className="text-sm font-medium text-gray-800">No items added yet</h3>
-                <p className="text-xs text-gray-500 max-w-sm mt-1">Search for products using the bar above to add them to this transfer order.</p>
+                <h4 className="text-sm font-bold text-text">No Products Staged for Transfer</h4>
+                <p className="text-xs text-text-muted max-w-sm mt-1">
+                  Use the product search bar above to look up medicines and select batches available at {currentBranch?.name || "this branch"}.
+                </p>
               </div>
             )}
           </div>
+        </div>
 
+        {/* Right Column: Order Details, Notes & Submit (4 Cols) */}
+        <div className="lg:col-span-4 flex flex-col gap-5 sticky top-24">
+          <div className="bg-surface rounded-2xl border border-border p-5 shadow-xs transition-colors space-y-4">
+            <h3 className="text-sm font-bold text-text flex items-center gap-2 pb-3 border-b border-border">
+              <FileText className="size-4 text-primary" />
+              Transfer Summary
+            </h3>
+
+            {/* Quick Metrics Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl bg-surface-alt border border-border">
+                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">
+                  Total Items
+                </span>
+                <span className="text-xl font-bold font-mono text-text mt-0.5 block">
+                  {totalItemsCount}
+                </span>
+                <span className="text-[10px] text-text-muted">Unique Batches</span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-surface-alt border border-border">
+                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">
+                  Total Units
+                </span>
+                <span className="text-xl font-bold font-mono text-primary mt-0.5 block">
+                  {totalUnitsCount}
+                </span>
+                <span className="text-[10px] text-text-muted">Stock Quantity</span>
+              </div>
+            </div>
+
+            {/* Route Summary */}
+            <div className="p-3 rounded-xl bg-surface-alt/70 border border-border text-xs space-y-2">
+              <div className="flex items-center justify-between text-text-muted">
+                <span>From (Origin):</span>
+                <strong className="text-text">{currentBranch?.name || "Active Facility"}</strong>
+              </div>
+              <div className="flex items-center justify-between text-text-muted">
+                <span>To (Target):</span>
+                <strong className={destinationBranch ? "text-indigo-600 dark:text-indigo-400 font-bold" : "text-amber-600"}>
+                  {destinationBranch ? destinationBranch.name : "Not selected"}
+                </strong>
+              </div>
+            </div>
+
+            {/* Remarks / Notes */}
+            <div className="space-y-1.5">
+              <label htmlFor="transferRemarks" className="text-xs font-semibold text-text block">
+                Transfer Remarks & Notes
+              </label>
+              <textarea
+                id="transferRemarks"
+                rows={3}
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                placeholder="e.g., Stock rebalancing request, urgent store replenishment, etc."
+                className="w-full px-3 py-2 text-xs bg-surface border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition resize-none text-text placeholder:text-text-muted/60"
+              />
+            </div>
+
+            {/* Submit Action Button */}
+            <button
+              type="submit"
+              disabled={submitting || items.length === 0 || !destinationBranchId}
+              className="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {submitting ? (
+                <>
+                  <RefreshCw className="size-4 animate-spin" />
+                  <span>{isEditMode ? "Updating Transfer Order..." : "Creating Transfer Order..."}</span>
+                </>
+              ) : (
+                <>
+                  <ArrowRight className="size-4" />
+                  <span>{isEditMode ? "Save Changes" : "Dispatch Transfer Order"}</span>
+                </>
+              )}
+            </button>
+
+            {/* Helper tips */}
+            <div className="flex items-start gap-2 pt-2 text-[11px] text-text-muted">
+              <ShieldCheck className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+              <span>
+                {isEditMode
+                  ? "Changes to items will automatically recalculate and adjust inventory stock in the source facility."
+                  : "Inventory will be placed in transit status and deducted from origin stock upon order creation."}
+              </span>
+            </div>
+          </div>
         </div>
       </form>
 
@@ -315,7 +688,7 @@ const CreateTransferOrderPage = () => {
         onClose={() => setIsBatchModalOpen(false)}
         product={selectedProductForBatches}
         billingMode={"B2B"}
-        branchName={getBranchName(sourceBranchId)}
+        branchName={currentBranch?.name || "Current Facility"}
         onConfirmAddToCart={handleConfirmAddBatchToCart}
       />
     </div>

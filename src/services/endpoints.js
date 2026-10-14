@@ -211,7 +211,9 @@ export const ENDPOINTS = {
 
   GST_LEDGER: {
     GSTR1: "/finance/gst-ledger/gstr-1",
+    GSTR1_SUMMARY: "/finance/gst-ledger/gstr-1/summary",
     GSTR2: "/finance/gst-ledger/gstr-2",
+    GSTR3B_SUMMARY: "/finance/gst-ledger/gstr-3b/summary",
   },
 
   REPORTS: {

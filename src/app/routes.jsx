@@ -389,6 +389,10 @@ export const router = createBrowserRouter([
             path: "/inventory/transfer-orders/create",
             element: <CreateTransferOrderPage />,
           },
+          {
+            path: "/inventory/transfer-orders/:id/edit",
+            element: <CreateTransferOrderPage />,
+          },
           ...catalogRoutes.map((route) => ({
             ...route,
             element: (

@@ -23,6 +23,7 @@ export const B2bCustomerSearchBar = forwardRef(
       autoFocus = false,
       showAddNewAction = true,
       onAddNewCustomer,
+      onInputChange,
       className = "",
       inputClassName = "",
       dropdownClassName = "",
@@ -94,6 +95,9 @@ export const B2bCustomerSearchBar = forwardRef(
 
         setResults(mappedResults);
         setIsLoading(false);
+        if (q) {
+          setIsOpen(true);
+        }
       },
       [b2bPartyType]
     );
@@ -156,6 +160,9 @@ export const B2bCustomerSearchBar = forwardRef(
       if (!isControlled) {
         setSearchTerm(val);
       }
+      if (selectedCustomer && onSelectCustomer) {
+        onSelectCustomer(null);
+      }
       if (onInputChange) onInputChange(val);
       if (val.trim().length >= 2) {
         setIsOpen(true);
@@ -173,6 +180,7 @@ export const B2bCustomerSearchBar = forwardRef(
       setSelectedIndex(-1);
       setIsOpen(false);
       setResults([]);
+      if (onSelectCustomer) onSelectCustomer(null);
       if (onInputChange) onInputChange("");
       inputRef.current?.focus();
     };
@@ -247,6 +255,9 @@ export const B2bCustomerSearchBar = forwardRef(
             onFocus={() => {
               if (currentValue && currentValue.trim().length >= 2 && results.length > 0) {
                 setIsOpen(true);
+                if (results.length === 0) {
+                  executeSearch(currentValue);
+                }
               }
             }}
             onKeyDown={handleKeyDown}
@@ -288,7 +299,12 @@ export const B2bCustomerSearchBar = forwardRef(
 
             {/* Results */}
             <div ref={listRef} className="relative max-h-[320px] overflow-y-auto p-1.5 space-y-1 scroll-smooth">
-              {results.length > 0 ? (
+              {isLoading ? (
+                <div className="flex items-center justify-center py-6 text-text-muted">
+                  <Loader2 className="size-4 animate-spin text-purple-600 dark:text-purple-400 mr-2" />
+                  <span className="text-xs font-medium">Searching commercial parties...</span>
+                </div>
+              ) : results.length > 0 ? (
                 results.map((cust, idx) => {
                   const isSelected = selectedCustomer?.id === cust.id || idx === selectedIndex;
 

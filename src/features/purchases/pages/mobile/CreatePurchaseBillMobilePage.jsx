@@ -37,9 +37,9 @@ export const CreatePurchaseBillMobilePage = () => {
   const [rateBasis, setRateBasis] = useState("PTS");
 
   const getGstRate = (p) => {
-    if (!p) return 12;
+    if (!p) return 0;
     const val = p.globalProduct?.gstRate ?? p.hsnTaxpercent ?? p.gstRate ?? p.gst ?? p.taxRate;
-    return val !== undefined && val !== null && val !== "" ? Number(val) : 12;
+    return val !== undefined && val !== null && val !== "" ? Number(val) : 0;
   };
 
   const getHsnCode = (p) => {
@@ -170,7 +170,7 @@ export const CreatePurchaseBillMobilePage = () => {
   };
 
   const cartSubtotal = cart.reduce((acc, item) => acc + getItemAmount(item), 0);
-  const estTax = cart.reduce((acc, item) => acc + (getItemAmount(item) * (Number(item.gst) || 12)) / 100, 0);
+  const estTax = cart.reduce((acc, item) => acc + (getItemAmount(item) * (item.gst !== undefined && item.gst !== null && item.gst !== "" ? Number(item.gst) : 0)) / 100, 0);
   const cartGrandTotal = Math.round(cartSubtotal + estTax);
   const cartItemCount = cart.reduce((acc, item) => acc + (Number(item.qty) || 1), 0);
 
