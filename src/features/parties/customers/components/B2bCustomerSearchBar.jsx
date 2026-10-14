@@ -49,13 +49,13 @@ export const B2bCustomerSearchBar = forwardRef(
       input: inputRef.current,
     }));
 
-    // Local & API B2B Customer Filter
+    // Local & API B2B Customer Filter (minimum 2 chars, top 5 results)
     const executeSearch = useCallback(
       async (query) => {
         const q = (query || "").trim().toLowerCase();
 
-        // Until the user actively types to search, do NOT show customers
-        if (!q) {
+        // Dropdown & API search require at least 2 characters
+        if (!q || q.length < 2) {
           setResults([]);
           setIsLoading(false);
           setIsOpen(false);
@@ -67,7 +67,7 @@ export const B2bCustomerSearchBar = forwardRef(
         let apiResults = [];
         try {
           const types = b2bPartyType === "all" ? "retail,wholesale" : (b2bPartyType === "wholesaler" ? "wholesale" : "retail");
-          const res = await customerService.getCustomers({ search: q, customerType: types, limit: 50 });
+          const res = await customerService.getCustomers({ search: q, customerType: types, limit: 5 });
           const list = res.data?.data?.customers || res.data?.customers || res.data?.data || [];
           if (Array.isArray(list)) {
             apiResults = list;
@@ -76,8 +76,8 @@ export const B2bCustomerSearchBar = forwardRef(
           console.warn("API Customer search failed:", err);
         }
 
-        // Map API results
-        const mappedResults = apiResults.map((apiCust) => ({
+        // Map top 5 API results
+        const mappedResults = apiResults.slice(0, 5).map((apiCust) => ({
           id: apiCust._id || apiCust.id,
           name: apiCust.name || apiCust.displayName,
           companyName: apiCust.companyName || apiCust.name,
@@ -98,10 +98,10 @@ export const B2bCustomerSearchBar = forwardRef(
       [b2bPartyType]
     );
 
-    // Initial load and query change effect - ONLY run if user has typed something
+    // Initial load and query change effect - ONLY run if user has typed at least 2 characters
     useEffect(() => {
       const q = (currentValue || "").trim();
-      if (!q) {
+      if (!q || q.length < 2) {
         setResults([]);
         setIsLoading(false);
         setIsOpen(false);
@@ -157,7 +157,7 @@ export const B2bCustomerSearchBar = forwardRef(
         setSearchTerm(val);
       }
       if (onInputChange) onInputChange(val);
-      if (val.trim()) {
+      if (val.trim().length >= 2) {
         setIsOpen(true);
       } else {
         setIsOpen(false);
@@ -245,7 +245,7 @@ export const B2bCustomerSearchBar = forwardRef(
             value={currentValue}
             onChange={handleInputChange}
             onFocus={() => {
-              if (currentValue && currentValue.trim().length > 0 && results.length > 0) {
+              if (currentValue && currentValue.trim().length >= 2 && results.length > 0) {
                 setIsOpen(true);
               }
             }}
@@ -268,8 +268,8 @@ export const B2bCustomerSearchBar = forwardRef(
           )}
         </div>
 
-        {/* Dropdown Results List - Only render when open AND user has searched */}
-        {isOpen && Boolean(currentValue?.trim()) && (
+        {/* Dropdown Results List - Only render when open AND user has typed at least 2 characters */}
+        {isOpen && Boolean(currentValue?.trim()?.length >= 2) && (
           <div
             className={cn(
               "absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-2xl border border-border bg-surface shadow-[var(--app-shadow-xl)] animate-in fade-in-50 zoom-in-95 duration-100",
@@ -282,7 +282,7 @@ export const B2bCustomerSearchBar = forwardRef(
                 <Building2 className="size-3" /> Commercial Parties (B2B)
               </span>
               <span className="text-[10px] text-text-muted/70">
-                {results.length} found
+                {results.length} found (max 5)
               </span>
             </div>
 

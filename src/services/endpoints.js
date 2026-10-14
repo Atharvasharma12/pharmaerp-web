@@ -345,6 +345,9 @@ export const ENDPOINTS = {
     // Per-UPI transaction statistics
     STATS: (paymentQrId) =>
       `/finance/treasury/payment-qr/${paymentQrId}/stats`,
+
+    // Multi-source UPI reconciliation transactions
+    TRANSACTIONS: "/finance/treasury/payment-qr/transactions",
   },
 
   CHEQUE: {

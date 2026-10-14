@@ -34,9 +34,14 @@ import {
   selectDeletePaymentQrStatus,
   selectSetPrimaryPaymentQrStatus,
 } from "../store/paymentQrSelector";
+import paymentQrService from "../services/paymentQrService";
 
 const usePaymentQr = () => {
   const dispatch = useDispatch();
+
+  const fetchUpiTransactions = useCallback((params = {}) => {
+    return paymentQrService.getUpiTransactions(params);
+  }, []);
 
   const paymentQrs = useSelector(selectPaymentQrs);
 
@@ -151,6 +156,7 @@ const usePaymentQr = () => {
     deletePaymentQr: submitDeletePaymentQr,
     setPrimaryPaymentQr: submitSetPrimaryPaymentQr,
     getPaymentQrStats: fetchPaymentQrStats,
+    getUpiTransactions: fetchUpiTransactions,
 
     clearError,
     clearMessage,

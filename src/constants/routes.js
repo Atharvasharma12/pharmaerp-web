@@ -161,6 +161,11 @@ export const ROUTES = {
   EDIT_PAYMENT_QR: (paymentQrId = ":paymentQrId") =>
     `/finance/treasury/payment-qrs/${paymentQrId}/edit`,
 
+  // Finance - Treasury - UPI Transactions & Daily Tally
+  UPI_TRANSACTIONS: "/finance/treasury/upi-transactions",
+
+
+
   // Finance - Treasury - Bank Transactions
 
   BANK_TRANSACTIONS: "/finance/treasury/bank-transactions",

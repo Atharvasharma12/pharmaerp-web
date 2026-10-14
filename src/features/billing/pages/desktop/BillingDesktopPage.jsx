@@ -1,6 +1,7 @@
 // src/features/billing/pages/desktop/BillingDesktopPage.jsx
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -131,6 +132,7 @@ export const BillingDesktopPage = () => {
     });
   };
   useActiveShift(currentBranch?._id);
+  const reduxActiveShift = useSelector((state) => state.shift?.activeShift);
   const tableContainerRef = useRef(null);
 
   // Invoices & Pagination / Infinite Scroll states
@@ -365,13 +367,56 @@ export const BillingDesktopPage = () => {
         ? `${shiftObj.openPeriod.charAt(0).toUpperCase() + shiftObj.openPeriod.slice(1)} Shift`
         : null);
 
+    const rawShiftId = (s.shiftId && typeof s.shiftId === "object")
+      ? s.shiftId._id
+      : (s.shiftId || (s.shift && typeof s.shift === "object" ? s.shift._id : s.shift) || null);
+
+    let resolvedShiftStatus = shiftObj.status || s.shiftStatus || null;
+    if (!resolvedShiftStatus && reduxActiveShift) {
+      if (rawShiftId && String(rawShiftId) === String(reduxActiveShift._id)) {
+        resolvedShiftStatus = reduxActiveShift.status || "open";
+      } else if (rawShiftId && reduxActiveShift._id && String(rawShiftId) !== String(reduxActiveShift._id)) {
+        resolvedShiftStatus = "closed";
+      }
+    }
+
+    // Precompute split breakdown once so table render never lags
+    let splitCash = 0;
+    let splitUpi = 0;
+    const rawPayments = Array.isArray(s.payments) ? s.payments : [];
+    if (rawPayments.length > 0) {
+      for (const p of rawPayments) {
+        const type = String(p.paymentType || p.paymentMode || p.type || p.mode || "").toUpperCase();
+        const amt = Number(p.amount || 0);
+        if (type.includes("UPI") || type.includes("QR")) {
+          splitUpi += amt;
+        } else if (type.includes("CASH")) {
+          splitCash += amt;
+        }
+      }
+    } else if (String(s.paymentMethod || s.paymentMode || "").toUpperCase() === "SPLIT") {
+      const grand = Number(s.grandTotal || s.totalAmount || 0);
+      const tendered = Number(s.cashTendered || 0);
+      if (tendered > 0) {
+        splitCash = Math.min(grand, tendered);
+        splitUpi = Math.max(0, grand - splitCash);
+      }
+    }
+
+    const isSplit =
+      String(s.paymentMethod || s.paymentMode || "").toUpperCase() === "SPLIT" ||
+      rawPayments.length > 1 ||
+      (splitCash > 0 && splitUpi > 0);
+
     return {
       id: s._id || s.id || `inv-${Date.now()}-${Math.random()}`,
-      shiftId: (s.shiftId && typeof s.shiftId === "object") ? s.shiftId._id : (s.shiftId || null),
+      shiftId: rawShiftId,
       shift: shiftObj._id ? shiftObj : (s.shift || null),
       shiftNo,
       shiftName,
-      shiftStatus: shiftObj.status || (s.shiftStatus || null),
+      shiftStatus: resolvedShiftStatus,
+      split: { cash: splitCash, upi: splitUpi },
+      isSplit,
       createdAt: s.createdAt || null,
       updatedAt: s.updatedAt || null,
       branchId: s.branchId || null,
@@ -1282,8 +1327,8 @@ export const BillingDesktopPage = () => {
                 />
               ) : (
                 invoices.map((inv) => {
-                  const split = getSplitBreakdown(inv);
-                  const isSplit = String(inv.paymentMode || "").toUpperCase() === "SPLIT" || (Array.isArray(inv.payments) && inv.payments.length > 1) || (split.cash > 0 && split.upi > 0);
+                  const split = inv.split || getSplitBreakdown(inv);
+                  const isSplit = inv.isSplit ?? (split.cash > 0 && split.upi > 0);
                   const isSplitUnderCash = selectedPaymentType === "Cash" && isSplit;
                   const isSplitUnderUpi = selectedPaymentType === "UPI" && isSplit;
                   const isSplitUnderSingleFilter = isSplitUnderCash || isSplitUnderUpi;

@@ -27,6 +27,8 @@ import {
 } from "@/components";
 import { ROUTES } from "@/constants";
 import { formatCurrency, formatDate } from "@/utils";
+import { CashTransactionDetailsDialog } from "../../components";
+import { BillingInvoiceDetailsDrawer } from "@/features/billing/components/BillingInvoiceDetailsDrawer";
 
 const typeOptions = [
   { label: "All Types", value: "all" },
@@ -68,6 +70,8 @@ const CashTransactionsMobilePage = ({
 }) => {
   const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [selectedInvoiceForDrawer, setSelectedInvoiceForDrawer] = useState(null);
 
   const partitionOptions = useMemo(() => {
     return [
@@ -81,8 +85,25 @@ const CashTransactionsMobilePage = ({
     navigate(ROUTES.CREATE_CASH_TRANSACTION);
   };
 
-  const handleCardClick = (transactionId) => {
-    navigate(ROUTES.CASH_TRANSACTION_DETAILS(transactionId));
+  const handleCardClick = (transaction) => {
+    setSelectedTransaction(transaction);
+  };
+
+  const handleOpenInvoiceDrawer = (txn) => {
+    setSelectedTransaction(null);
+    const inv = txn.invoice || {};
+    setSelectedInvoiceForDrawer({
+      id: inv._id || inv.id || txn.rawId || txn._id || txn.id,
+      invoiceNo: inv.invoiceNo || txn.referenceNumber,
+      amount: txn.amount,
+      grandTotal: inv.grandTotal || txn.amount,
+      date: inv.date || txn.transactionDate,
+      customer: inv.customerId?.name || txn.counterpartyAccountId?.accountName,
+      phone: inv.customerId?.mobile || inv.customerId?.phone,
+      items: inv.items || [],
+      payments: inv.payments || [],
+      status: inv.status,
+    });
   };
 
   const getDirectionBadge = (direction) => {
@@ -289,7 +310,7 @@ const CashTransactionsMobilePage = ({
                         align="center"
                         gap={1.5}
                         sx={{ minWidth: 0, flex: 1, cursor: "pointer" }}
-                        onClick={() => handleCardClick(tx._id)}
+                        onClick={() => handleCardClick(tx)}
                       >
                         <div className="w-10 h-10 rounded-lg bg-primary-soft flex items-center justify-center text-primary shrink-0 shadow-sm border border-primary/10">
                           <LuWallet className="text-[20px]" />
@@ -325,7 +346,7 @@ const CashTransactionsMobilePage = ({
                               icon: <FiEye />,
                               onClick: (e) => {
                                 e.stopPropagation();
-                                handleCardClick(tx._id);
+                                handleCardClick(tx);
                               },
                             },
                           ]}
@@ -421,6 +442,24 @@ const CashTransactionsMobilePage = ({
           )}
         </div>
       </AppBox>
+
+      {/* Cash Transaction Details Dialog */}
+      {selectedTransaction && (
+        <CashTransactionDetailsDialog
+          isOpen={Boolean(selectedTransaction)}
+          onClose={() => setSelectedTransaction(null)}
+          transaction={selectedTransaction}
+          onOpenInvoiceDrawer={handleOpenInvoiceDrawer}
+          onTransactionUpdated={() => handleRefresh?.()}
+        />
+      )}
+
+      {/* Full Invoice Drawer if drill down is triggered */}
+      <BillingInvoiceDetailsDrawer
+        invoice={selectedInvoiceForDrawer}
+        isOpen={Boolean(selectedInvoiceForDrawer)}
+        onClose={() => setSelectedInvoiceForDrawer(null)}
+      />
     </section>
   );
 };
