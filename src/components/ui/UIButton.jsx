@@ -14,6 +14,10 @@ const buttonVariants = {
     "bg-transparent text-text hover:bg-surface-hover text-text-muted hover:text-text active:scale-[0.98]",
   destructive:
     "bg-error text-error-contrast hover:bg-error-hover shadow-sm hover:shadow active:scale-[0.98] border border-error/20",
+  danger:
+    "bg-error text-error-contrast hover:bg-error-hover shadow-sm hover:shadow active:scale-[0.98] border border-error/20",
+  error:
+    "bg-error text-error-contrast hover:bg-error-hover shadow-sm hover:shadow active:scale-[0.98] border border-error/20",
   soft:
     "bg-primary-soft text-primary hover:bg-primary/15 border border-primary/10 active:scale-[0.98]",
   success:
