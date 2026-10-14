@@ -26,6 +26,12 @@ const gstLedgerService = {
   createGstr2Ledger(payload) {
     return apiClient.post(ENDPOINTS.GST_LEDGER.GSTR2, payload);
   },
+
+  getGstr3bSummary(params = {}) {
+    return apiClient.get(ENDPOINTS.GST_LEDGER.GSTR3B_SUMMARY, {
+      params,
+    });
+  },
 };
 
 export default gstLedgerService;

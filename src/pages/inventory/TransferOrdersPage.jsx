@@ -16,6 +16,8 @@ import {
   Check,
   X,
   Building2,
+  Ban,
+  AlertTriangle,
 } from "lucide-react";
 import transferOrderService from "../../features/transfer-order/services/transferOrderService";
 import useBranch from "../../features/branch/hooks/useBranch";
@@ -32,6 +34,7 @@ import {
   UITableEmpty,
   UITableLoading,
   UIInfiniteScroll,
+  UIConfirmDialog,
   uiToast as toast,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -80,6 +83,9 @@ const TransferOrdersPage = () => {
   const [receivingId, setReceivingId] = useState(null);
   const [viewingOrder, setViewingOrder] = useState(null);
   const [loadingViewId, setLoadingViewId] = useState(null);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     getCompanyBranches();
@@ -197,6 +203,53 @@ const TransferOrdersPage = () => {
       console.error(error);
     } finally {
       setLoadingViewId(null);
+    }
+  };
+
+  // Open cancel warning confirmation dialog
+  const handleOpenCancelConfirm = (order) => {
+    setOrderToCancel(order);
+    setCancelConfirmOpen(true);
+  };
+
+  // Execute transfer order cancellation
+  const handleCancelOrder = async () => {
+    if (!orderToCancel?._id && !orderToCancel?.id) return;
+    const targetId = orderToCancel._id || orderToCancel.id;
+
+    try {
+      setIsCancelling(true);
+      const res = await transferOrderService.cancelTransferOrder(targetId);
+      const updatedOrder = res?.data?.data || res?.data;
+
+      toast.success(
+        `Transfer Order ${orderToCancel.transferNo || ""} cancelled successfully. Inventory restored.`
+      );
+
+      // Update transfer orders table list
+      setTransferOrders((prev) =>
+        prev.map((o) =>
+          (o._id || o.id) === targetId ? { ...o, status: "CANCELLED" } : o
+        )
+      );
+
+      // If details modal is open for this order, immediately update its view
+      if (
+        viewingOrder &&
+        (viewingOrder._id || viewingOrder.id) === targetId
+      ) {
+        setViewingOrder(updatedOrder || { ...viewingOrder, status: "CANCELLED" });
+      }
+
+      setCancelConfirmOpen(false);
+      setOrderToCancel(null);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Failed to cancel transfer order"
+      );
+      console.error("Cancel transfer order error:", error);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -607,6 +660,24 @@ const TransferOrdersPage = () => {
                 </div>
               </div>
 
+              {viewingOrder.status === "CANCELLED" && (
+                <div className="bg-error/10 border border-error/20 rounded-xl p-3.5 text-xs text-error flex items-start gap-2.5">
+                  <XCircle className="size-4 shrink-0 text-error mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-bold text-error">Transfer Order Cancelled</p>
+                    <p className="text-[11px] text-error/90 mt-0.5">
+                      This order was cancelled and inventory quantities were automatically restored to {viewingOrder.sourceBranchId?.name || "the source facility"}.
+                    </p>
+                    {viewingOrder.cancelledAt && (
+                      <p className="text-[10px] font-mono text-error/75 mt-1">
+                        Cancelled on {new Date(viewingOrder.cancelledAt).toLocaleString()}
+                        {viewingOrder.cancelledBy?.name ? ` by ${viewingOrder.cancelledBy.name}` : ""}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {viewingOrder.remarks && (
                 <div>
                   <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Remarks</h4>
@@ -640,9 +711,63 @@ const TransferOrdersPage = () => {
                 </div>
               </div>
             </div>
+
+            {/* Modal Actions Footer */}
+            <div className="flex items-center justify-between p-4 border-t border-border bg-surface-alt/40 mt-auto">
+              <div>
+                {(viewingOrder.status === "IN_TRANSIT" || viewingOrder.status === "PENDING") && (
+                  <UIButton
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    startIcon={<Ban className="size-3.5" />}
+                    onClick={() => handleOpenCancelConfirm(viewingOrder)}
+                    disabled={isCancelling}
+                    className="font-semibold shadow-2xs hover:bg-error-hover"
+                  >
+                    Cancel Transfer Order
+                  </UIButton>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <UIButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setViewingOrder(null)}
+                >
+                  Close
+                </UIButton>
+              </div>
+            </div>
           </div>
         </div>
       )}
+
+      {/* ── Cancel Order Confirmation Warning Dialog ────────────────────────── */}
+      <UIConfirmDialog
+        isOpen={cancelConfirmOpen}
+        onClose={() => {
+          if (!isCancelling) {
+            setCancelConfirmOpen(false);
+            setOrderToCancel(null);
+          }
+        }}
+        onConfirm={handleCancelOrder}
+        intent="danger"
+        icon={<AlertTriangle className="size-6 text-error" />}
+        title="Cancel Transfer Order?"
+        description="Are you sure you want to cancel this transfer order? This action cannot be undone. All deducted inventory quantities will be immediately restored back into the source facility's stock."
+        itemName={orderToCancel ? `Transfer Order: ${orderToCancel.transferNo}` : undefined}
+        itemDetails={
+          orderToCancel
+            ? `Source Facility: ${orderToCancel.sourceBranchId?.name || "Source Facility"} (${orderToCancel.items?.length || 0} item(s) to restore)`
+            : undefined
+        }
+        confirmText="Yes, Cancel Order"
+        cancelText="Keep Order"
+        isLoading={isCancelling}
+      />
     </div>
   );
 };

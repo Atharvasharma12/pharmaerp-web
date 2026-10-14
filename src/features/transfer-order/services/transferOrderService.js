@@ -16,6 +16,10 @@ class TransferOrderService {
   async receiveTransferOrder(id) {
     return apiClient.post(`/transfer-orders/${id}/receive`);
   }
+
+  async cancelTransferOrder(id, data = {}) {
+    return apiClient.post(`/transfer-orders/${id}/cancel`, data);
+  }
 }
 
 export default new TransferOrderService();
