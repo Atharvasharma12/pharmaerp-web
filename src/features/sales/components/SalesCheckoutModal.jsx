@@ -23,7 +23,7 @@ import { useBranchCash } from "@/features/finance/treasury/cash-management/branc
 import useBranch from "@/features/branch/hooks/useBranch";
 import { ROUTES } from "@/constants";
 import { cn } from "@/lib/utils";
-import { CashBreakdownModal, decomposeAmount } from "./CashBreakdownModal";
+import { CashBreakdownModal } from "./CashBreakdownModal";
 import { getBranchInitials } from "@/utils";
 import invoiceService from "../services/invoiceService";
 import customerService from "@/features/parties/customers/services/customerService";
@@ -53,82 +53,7 @@ const computeSchemeDiscount = (qty, schemePercent) => {
   return { schemeApply: false, finalDiscountPercent: 0 };
 };
 
-/** Stable empty default so the payments-init effect doesn't re-run every render */
-const EMPTY_PAYMENTS = [];
 
-/** Convert a denominations array [{denomination, quantity}] into a {denom: qty} map + total */
-const denomsToMap = (list = []) => {
-  const map = {};
-  let total = 0;
-  list.forEach((d) => {
-    const qty = Number(d?.quantity) || 0;
-    const denom = Number(d?.denomination) || 0;
-    if (qty > 0 && denom > 0) {
-      map[denom] = (map[denom] || 0) + qty;
-      total += denom * qty;
-    }
-  });
-  return { map, total };
-};
-
-/** Map payments saved on an invoice back into checkout-modal row state */
-const buildPaymentMethodLabel = (paymentRows = []) => {
-  const unique = [...new Set(
-    paymentRows
-      .map((row) => String(row?.paymentType || row?.paymentMode || "").trim())
-      .filter(Boolean)
-  )];
-
-  if (unique.length === 0) return "Cash";
-  if (unique.length === 1) return unique[0];
-  return unique.join(", ");
-};
-
-const mapSavedPayments = (saved, rootDenoms = [], rootReturnedDenoms = []) => {
-  let cashRowCount = 0;
-  return saved.map((p, idx) => {
-    let paymentType = p.paymentType || p.paymentMode || "Cash";
-    // Normalize to exact UI casing for display
-    if (String(paymentType).toLowerCase() === "cash") paymentType = "Cash";
-    if (String(paymentType).toLowerCase() === "upi") paymentType = "UPI";
-    if (String(paymentType).toLowerCase() === "credit") paymentType = "Credit";
-    if (String(paymentType).toLowerCase() === "advance" || String(paymentType).toLowerCase() === "wallet") paymentType = "Advance";
-    if (String(paymentType).toLowerCase() === "card") paymentType = "Card";
-    
-    let cashDetails = p.cashDetails || null;
-    
-    if (paymentType === "Cash") {
-      cashRowCount++;
-      let denoms = Array.isArray(p.denominations) && p.denominations.length > 0 ? p.denominations : [];
-      let retDenoms = Array.isArray(p.returnedDenominations) && p.returnedDenominations.length > 0 ? p.returnedDenominations : [];
-      
-      if (cashRowCount === 1) {
-        if (denoms.length === 0 && Array.isArray(rootDenoms) && rootDenoms.length > 0) denoms = rootDenoms;
-        if (retDenoms.length === 0 && Array.isArray(rootReturnedDenoms) && rootReturnedDenoms.length > 0) retDenoms = rootReturnedDenoms;
-      }
-
-      if (!cashDetails && (denoms.length > 0 || retDenoms.length > 0)) {
-        const rec = denomsToMap(denoms);
-        const ret = denomsToMap(retDenoms);
-        cashDetails = {
-          received: rec.map,
-          receivedTotal: rec.total,
-          returned: ret.map,
-          returnedTotal: ret.total,
-          netApplied: rec.total - ret.total,
-        };
-      }
-    }
-    
-    return {
-      ...p,
-      id: p.id || p._id || `saved-${idx}`,
-      paymentType,
-      amount: Number(p.amount) || 0,
-      cashDetails,
-    };
-  });
-};
 
 const PAYMENT_TYPE_OPTIONS = [
   { value: "Cash", label: "Cash", icon: <Banknote className="size-4 text-emerald-600" /> },
@@ -144,12 +69,10 @@ export const SalesCheckoutModal = ({
   customer,
   customerPhone,
   doctor,
+  doctorId,
   saleDate,
   billingMode = "B2C",
   cartSummary = {},
-  initialPayments = EMPTY_PAYMENTS,
-  initialDenominations = [],
-  initialReturnedDenominations = [],
   onCompleteSale,
   activeShift: activeShiftProp,
   shiftId: shiftIdProp,
@@ -349,35 +272,34 @@ export const SalesCheckoutModal = ({
   // Initialize payments ONLY when the modal transitions closed -> open.
   // Guarded by a ref so unstable prop/selector references can never cause a setState loop.
   const wasOpenRef = useRef(false);
-  const hasSavedPayments = Array.isArray(initialPayments) && initialPayments.length > 0;
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const justOpened = isOpen && !wasOpenRef.current;
     wasOpenRef.current = isOpen;
     if (!justOpened) return;
 
-    if (hasSavedPayments) {
-      const mapped = mapSavedPayments(initialPayments, initialDenominations, initialReturnedDenominations);
-      setPayments(mapped);
-      setIsSplitMode(mapped.length > 1);
-    } else {
-      setIsSplitMode(false);
-      setPayments([
-        {
-          id: Date.now(),
-          paymentType: "Cash",
-          amount: grandTotal,
-          branchId: branchId || "",
-        },
-      ]);
-    }
+    // Full reset on opening: never carry over previous bill amounts or denominations
+    setIsSplitMode(false);
+    setPayments([
+      {
+        id: Date.now(),
+        paymentType: "Cash",
+        amount: grandTotal,
+        branchId: branchId || "",
+        cashDetails: null,
+      },
+    ]);
+    setDiscountPercent(customer?.defaultDiscount || 0);
+    setNotes("");
+    setErrorMessage(null);
+    setCashBreakdownTarget(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // New bills: keep the single default cash row in sync when grandTotal changes (e.g. extra discount).
+  // Keep the single default cash row in sync when grandTotal changes (e.g. quantity adjustment, item addition/removal, extra discount).
   // Functional update returns `prev` when nothing changes, so this can't loop.
   useEffect(() => {
-    if (!isOpen || hasSavedPayments) return;
+    if (!isOpen) return;
     setPayments((prev) => {
       if (prev.length !== 1) return prev;
       const row = prev[0];
@@ -612,6 +534,7 @@ export const SalesCheckoutModal = ({
         branchId: branchId || undefined,
         customer: customerPhone ? { ...customer, phone: customerPhone } : customer,
         doctor: doctor || null,
+        doctorId: doctorId || null,
         date: saleDate ? new Date(saleDate).toISOString() : new Date().toISOString(),
         billingMode,
         partyType: isB2B ? customer?.partyType || "wholesaler" : "retail_consumer",
@@ -951,33 +874,11 @@ export const SalesCheckoutModal = ({
                     </div>
 
                     {/* Col 2: Notes / Denominations Stepper Button */}
-                    <div className="flex items-center gap-1.5">
-                      {!row.cashDetails && (
-                        <UIButton
-                          variant="outline"
-                          size="xs"
-                          type="button"
-                          onClick={() => {
-                            const amt = Number(row.amount) || 0;
-                            const exactMap = decomposeAmount(amt);
-                            handleUpdate(index, "cashDetails", {
-                              received: exactMap,
-                              returned: {},
-                              receivedTotal: amt,
-                              returnedTotal: 0,
-                              netApplied: amt,
-                            });
-                          }}
-                          className="h-8 text-[10.5px] font-bold border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 shrink-0"
-                          title="Instantly accept exact cash notes"
-                        >
-                          Exact ₹{Math.round(Number(row.amount) || 0)}
-                        </UIButton>
-                      )}
+                    <div className="flex items-center gap-1.5 flex-1">
                       <UIButton
                         variant={row.cashDetails ? "soft" : "outline"}
                         size="xs"
-                        fullWidth={!!row.cashDetails}
+                        fullWidth
                         onClick={() => setCashBreakdownTarget(index)}
                         startIcon={<Calculator className="size-3" />}
                         className={cn(
@@ -985,7 +886,7 @@ export const SalesCheckoutModal = ({
                           !row.cashDetails ? "border-amber-400/60 text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20" : ""
                         )}
                       >
-                        {row.cashDetails ? "Edit Notes" : "Drawer Notes *"}
+                        {row.cashDetails ? "Edit Notes" : "Cash Drawer & Notes *"}
                       </UIButton>
                     </div>
                   </div>

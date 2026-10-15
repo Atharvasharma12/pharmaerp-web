@@ -69,6 +69,12 @@ export const ROUTES = {
   EDIT_SUPPLIER: (supplierId = ":supplierId") =>
     `/parties/suppliers/${supplierId}/edit`,
 
+  // Clinical - Doctors (Prescription Reference)
+  DOCTORS: "/doctors",
+  CREATE_DOCTOR: "/doctors/create",
+  DOCTOR_DETAILS: (doctorId = ":doctorId") => `/doctors/${doctorId}`,
+  EDIT_DOCTOR: (doctorId = ":doctorId") => `/doctors/${doctorId}/edit`,
+
   // Finance
   FINANCE: "/finance",
 
@@ -283,6 +289,8 @@ export const ROUTES = {
 
   // Sales & POS
   SALES: "/sales",
+  SALE_EDIT: (invoiceId = ":invoiceId") => `/sales/edit/${invoiceId}`,
+  SALE_EDIT_ROUTE: "/sales/edit/:invoiceId",
 
   // Billing & Invoices
   BILLING: "/billing",

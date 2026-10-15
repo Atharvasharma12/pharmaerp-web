@@ -1018,7 +1018,10 @@ export const BillingInvoiceDetailsDrawer = ({
                     <UIButton
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate("/sales", { state: { invoice } })}
+                      onClick={() => {
+                        const targetId = invoice._id || invoice.id || invoice.invoiceNo;
+                        navigate(`/sales/edit/${targetId}`, { state: { invoice } });
+                      }}
                       disabled={isCancelling}
                       startIcon={<Edit2 className="size-4 text-primary" />}
                     >

@@ -11,6 +11,7 @@ import accessControlReducer from "@/features/access-control/store/accessControlS
 
 import customerReducer from "@/features/parties/customers/store/customerSlice";
 import supplierReducer from "@/features/parties/suppliers/store/supplierSlice";
+import doctorReducer from "@/features/doctors/store/doctorSlice";
 
 import accountGroupReducer from "@/features/finance/chart-of-accounts/account-groups/store/accountGroupSlice";
 import accountReducer from "@/features/finance/chart-of-accounts/accounts/store/accountSlice";
@@ -76,6 +77,9 @@ const appReducer = combineReducers({
   // Parties
   customer: customerReducer,
   supplier: supplierReducer,
+
+  // Clinical / Doctor Reference
+  doctor: doctorReducer,
 
   // Finance
   accountGroup: accountGroupReducer,

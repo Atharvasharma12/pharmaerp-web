@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from "react";
-import { Search, X, Loader2, User, Phone, CreditCard, Plus, ChevronRight, Check } from "lucide-react";
+import { Search, X, Loader2, User, Phone, MapPin, CreditCard, Plus, ChevronRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import customerService from "../services/customerService";
 
@@ -65,19 +65,34 @@ export const B2cCustomerSearchBar = forwardRef(
         setIsLoading(true);
 
         try {
-          // Strictly fetch company-scoped customers from API with top 5 limit
-          const res = await customerService.getCustomers({ search: q, limit: 5 });
+          // Strictly fetch company-scoped customers from API with generous limit for dropdown scrolling
+          const res = await customerService.getCustomers({ search: q, limit: 50 });
           const list = res.data?.data?.customers || res.data?.customers || res.data?.data || [];
           if (Array.isArray(list)) {
-            const top5 = list.slice(0, 5).map((apiCust) => ({
-              id: apiCust._id || apiCust.id,
-              name: apiCust.name || apiCust.displayName,
-              phone: apiCust.phone || apiCust.mobile || "",
-              email: apiCust.email || "",
-              creditBalance: apiCust.creditBalance || apiCust.advanceBalance || 0,
-              billingType: "B2C",
-            }));
-            setResults(top5);
+            const mapped = list.map((apiCust) => {
+              const address =
+                apiCust.address ||
+                (apiCust.billingAddress
+                  ? [apiCust.billingAddress.addressLine1, apiCust.billingAddress.city]
+                      .filter(Boolean)
+                      .join(", ")
+                  : "") ||
+                "";
+
+              return {
+                id: apiCust._id || apiCust.id,
+                _id: apiCust._id || apiCust.id,
+                name: apiCust.name || apiCust.displayName,
+                phone: apiCust.phone || apiCust.mobile || "",
+                email: apiCust.email || "",
+                address,
+                billingAddress: apiCust.billingAddress,
+                creditBalance: apiCust.creditBalance || apiCust.advanceBalance || 0,
+                billingType: "B2C",
+                ...apiCust,
+              };
+            });
+            setResults(mapped);
           } else {
             setResults([]);
           }
@@ -101,6 +116,7 @@ export const B2cCustomerSearchBar = forwardRef(
         return;
       }
 
+      setIsLoading(true);
       const timer = setTimeout(() => {
         executeSearch(currentValue);
       }, debounceMs);
@@ -119,11 +135,11 @@ export const B2cCustomerSearchBar = forwardRef(
     useEffect(() => {
       if (selectedIndex >= 0 && listRef.current) {
         const container = listRef.current;
-        const selectedEl = container.querySelector(`[data-index="${selectedIndex}"]`) || container.children[selectedIndex];
+        const selectedEl = container.querySelector(`[data-index="${selectedIndex}"]`);
         if (selectedEl) {
           if (selectedIndex === 0) {
             container.scrollTop = 0;
-          } else if (selectedIndex === results.length - 1) {
+          } else if (selectedIndex === results.length) {
             container.scrollTop = container.scrollHeight;
           } else if (typeof selectedEl.scrollIntoView === "function") {
             selectedEl.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -190,16 +206,28 @@ export const B2cCustomerSearchBar = forwardRef(
 
       if (!isOpen) return;
 
+      const hasCreateOption = showAddNewAction && Boolean(currentValue?.trim());
+      const totalItems = (isLoading ? 0 : results.length) + (hasCreateOption ? 1 : 0);
+
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
+        if (totalItems === 0) return;
+        setSelectedIndex((prev) => (prev < totalItems - 1 ? prev + 1 : 0));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
+        if (totalItems === 0) return;
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : totalItems - 1));
       } else if (e.key === "Enter") {
-        if (selectedIndex >= 0 && results[selectedIndex]) {
+        if (selectedIndex >= 0) {
           e.preventDefault();
-          handleSelect(results[selectedIndex]);
+          if (!isLoading && selectedIndex < results.length && results[selectedIndex]) {
+            handleSelect(results[selectedIndex]);
+          } else if (hasCreateOption && (isLoading || selectedIndex === results.length)) {
+            setIsOpen(false);
+            if (onAddNewCustomer) {
+              onAddNewCustomer(currentValue.trim());
+            }
+          }
         }
       } else if (e.key === "Escape") {
         setIsOpen(false);
@@ -265,23 +293,42 @@ export const B2cCustomerSearchBar = forwardRef(
         {isOpen && Boolean(currentValue?.trim()?.length >= 2) && (
           <div
             className={cn(
-              "absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-2xl border border-border bg-surface shadow-[var(--app-shadow-xl)] animate-in fade-in-50 zoom-in-95 duration-100",
+              "absolute left-0 right-0 top-[calc(100%+6px)] z-50 flex flex-col h-[340px] overflow-hidden rounded-2xl border border-border bg-surface shadow-[var(--app-shadow-xl)] animate-in fade-in-50 zoom-in-95 duration-100",
               dropdownClassName
             )}
           >
             {/* Dropdown Top Bar */}
-            <div className="flex items-center justify-between border-b border-border/60 bg-surface-alt/60 px-3.5 py-2 text-[11px] font-semibold text-text-muted">
+            <div className="flex items-center justify-between border-b border-border/60 bg-surface-alt/60 px-3.5 py-2 text-[11px] font-semibold text-text-muted shrink-0">
               <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
                 <User className="size-3" /> Company Customers
               </span>
               <span className="text-[10px] text-text-muted/70">
-                {results.length} found (max 5)
+                {isLoading ? "Searching..." : `${results.length} found`}
               </span>
             </div>
 
-            {/* Results */}
-            <div ref={listRef} className="relative max-h-[320px] overflow-y-auto p-1.5 space-y-1 scroll-smooth">
-              {results.length > 0 ? (
+            {/* Results / Skeletons / Empty state Area */}
+            <div ref={listRef} className="flex-1 overflow-y-auto p-1.5 space-y-1 scroll-smooth min-h-0">
+              {isLoading ? (
+                /* Skeleton Loader (4 items matching customer card geometry) */
+                <div className="space-y-1">
+                  {Array.from({ length: 4 }).map((_, sIdx) => (
+                    <div
+                      key={`skeleton-cust-${sIdx}`}
+                      className="flex items-start gap-2.5 rounded-xl p-2.5 border border-border/40 bg-surface-alt/30 animate-pulse select-none"
+                    >
+                      <div className="size-8 rounded-lg bg-border/50 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0 space-y-2 py-0.5">
+                        <div className="h-3.5 bg-border/60 rounded w-1/3" />
+                        <div className="flex items-center gap-2">
+                          <div className="h-2.5 bg-border/40 rounded w-20" />
+                          <div className="h-2.5 bg-border/40 rounded w-32" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : results.length > 0 ? (
                 results.map((cust, idx) => {
                   const isSelected = selectedCustomer?.id === cust.id || idx === selectedIndex;
 
@@ -317,53 +364,82 @@ export const B2cCustomerSearchBar = forwardRef(
                             </span>
                           </div>
 
-                          {cust.phone && (
-                            <div className="flex items-center gap-1 text-[11px] text-text-muted mt-0.5 font-mono">
-                              <Phone className="size-3" /> {cust.phone}
-                            </div>
-                          )}
+                          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-0.5">
+                            {cust.phone && (
+                              <div className="flex items-center gap-1 text-[11px] text-text-muted font-mono shrink-0">
+                                <Phone className="size-3 text-text-muted/70" /> {cust.phone}
+                              </div>
+                            )}
+                            {cust.address && (
+                              <div className="flex items-center gap-1 text-[11px] text-text-muted truncate max-w-[280px]">
+                                <MapPin className="size-3 text-emerald-600/70 dark:text-emerald-400/70 shrink-0" />
+                                <span className="truncate">{cust.address}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0 ml-2">
-                        {cust.creditBalance > 0 && (
-                          <span className="text-[10px] font-mono font-bold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                            Due: ₹{cust.creditBalance}
-                          </span>
-                        )}
                         {isSelected && <Check className="size-4 text-primary" />}
                       </div>
                     </div>
                   );
                 })
-              ) : !isLoading ? (
-                <div className="p-4 text-center">
+              ) : (
+                <div className="h-full min-h-[160px] flex flex-col items-center justify-center p-4 text-center">
                   <p className="text-xs font-semibold text-text">No customer found</p>
                   <p className="text-[11px] text-text-muted mt-0.5">
-                    No matching customer in company for &quot;{currentValue}&quot;
+                    No matching customer in directory for &quot;{currentValue}&quot;
                   </p>
-
-                  {showAddNewAction && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newCust = {
-                          id: `cust-custom-${Date.now()}`,
-                          name: currentValue || "New Customer",
-                          phone: "",
-                          billingType: "B2C",
-                        };
-                        handleSelect(newCust);
-                        if (onAddNewCustomer) onAddNewCustomer(currentValue);
-                      }}
-                      className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-primary/90 transition-all cursor-pointer"
-                    >
-                      <Plus className="size-3.5" /> Use &quot;{currentValue}&quot; as Customer
-                    </button>
-                  )}
                 </div>
-              ) : null}
+              )}
             </div>
+
+            {/* Last Option: Create User (Fixed position at bottom) */}
+            {showAddNewAction && Boolean(currentValue?.trim()) && (
+              <div className="p-1 border-t border-border bg-surface-alt/60 shrink-0 backdrop-blur-xs">
+                <button
+                  type="button"
+                  data-index={results.length}
+                  onClick={() => {
+                    setIsOpen(false);
+                    if (onAddNewCustomer) {
+                      onAddNewCustomer(currentValue.trim());
+                    }
+                  }}
+                  onMouseEnter={() => setSelectedIndex(results.length)}
+                  className={cn(
+                    "w-full flex items-center justify-between gap-2 p-2 rounded-xl text-left text-xs transition-colors cursor-pointer",
+                    selectedIndex === results.length
+                      ? "bg-primary text-white font-bold shadow-xs"
+                      : "hover:bg-primary/10 text-primary font-semibold bg-primary/5 border border-primary/20"
+                  )}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className={cn(
+                        "size-6 rounded-md flex items-center justify-center shrink-0",
+                        selectedIndex === results.length ? "bg-white/20 text-white" : "bg-primary/20 text-primary"
+                      )}
+                    >
+                      <Plus className="size-3.5 stroke-[2.5]" />
+                    </div>
+                    <div className="truncate">
+                      Create User &quot;<span className="font-bold underline decoration-dotted">{currentValue.trim()}</span>&quot;
+                    </div>
+                  </div>
+                  <span
+                    className={cn(
+                      "text-[10px] uppercase font-mono tracking-wider font-bold shrink-0 px-1.5 py-0.5 rounded",
+                      selectedIndex === results.length ? "bg-white/20 text-white" : "bg-primary/15 text-primary"
+                    )}
+                  >
+                    + Add New
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -54,6 +54,7 @@ import marketplaceStoreRoutes from "@/features/marketplace/stores/routes/marketp
 import marketplaceProductRoutes from "@/features/marketplace/products/routes/marketplaceProductRoutes";
 import customerRoutes from "@/features/parties/customers/routes/customerRoutes";
 import supplierRoutes from "@/features/parties/suppliers/routes/supplierRoutes";
+import doctorRoutes from "@/features/doctors/routes/doctorRoutes";
 import financeRoutes from "@/features/finance/routes/financeRoutes";
 import journalVoucherRoutes from "@/features/finance/journal-vouchers/routes/journalVoucherRoutes";
 import accountGroupRoutes from "@/features/finance/chart-of-accounts/account-groups/routes/accountGroupRoutes";
@@ -275,6 +276,9 @@ export const router = createBrowserRouter([
               // Parties
           ...guardRouteList(customerRoutes, "customer"),
           ...guardRouteList(supplierRoutes, "supplier"),
+
+              // Clinical References
+          ...guardRouteList(doctorRoutes, "doctor"),
 
               // Finance & Chart of Accounts
           ...financeRoutes.map((route) => ({

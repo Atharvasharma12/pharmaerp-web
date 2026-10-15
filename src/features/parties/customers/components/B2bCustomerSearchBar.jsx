@@ -1,7 +1,7 @@
 // src/features/parties/customers/components/B2bCustomerSearchBar.jsx
 
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from "react";
-import { Search, X, Loader2, Building2, Phone, Briefcase, Plus, Check } from "lucide-react";
+import { Search, X, Loader2, Building2, Phone, MapPin, Briefcase, Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import customerService from "../services/customerService";
 
@@ -67,7 +67,7 @@ export const B2bCustomerSearchBar = forwardRef(
         let apiResults = [];
         try {
           const types = b2bPartyType === "all" ? "retail,wholesale" : (b2bPartyType === "wholesaler" ? "wholesale" : "retail");
-          const res = await customerService.getCustomers({ search: q, customerType: types, limit: 5 });
+          const res = await customerService.getCustomers({ search: q, customerType: types, limit: 50 });
           const list = res.data?.data?.customers || res.data?.customers || res.data?.data || [];
           if (Array.isArray(list)) {
             apiResults = list;
@@ -76,21 +76,36 @@ export const B2bCustomerSearchBar = forwardRef(
           console.warn("API Customer search failed:", err);
         }
 
-        // Map top 5 API results
-        const mappedResults = apiResults.slice(0, 5).map((apiCust) => ({
-          id: apiCust._id || apiCust.id,
-          name: apiCust.name || apiCust.displayName,
-          companyName: apiCust.companyName || apiCust.name,
-          phone: apiCust.phone || apiCust.mobile || "",
-          gstin: apiCust.gstNumber || "",
-          partyType: apiCust.customerType || "wholesale",
-          creditLimit: apiCust.creditLimit || 0,
-          creditDays: apiCust.creditDays || 0,
-          outstandingAmount: apiCust.outstandingAmount || 0,
-          openingBalance: apiCust.openingBalance || 0,
-          balanceType: apiCust.balanceType || apiCust.openingBalanceType || "dr",
-          billingType: "B2B",
-        }));
+        // Map API results
+        const mappedResults = apiResults.map((apiCust) => {
+          const address =
+            apiCust.address ||
+            (apiCust.billingAddress
+              ? [apiCust.billingAddress.addressLine1, apiCust.billingAddress.city]
+                  .filter(Boolean)
+                  .join(", ")
+              : "") ||
+            "";
+
+          return {
+            id: apiCust._id || apiCust.id,
+            _id: apiCust._id || apiCust.id,
+            name: apiCust.name || apiCust.displayName,
+            companyName: apiCust.companyName || apiCust.name,
+            phone: apiCust.phone || apiCust.mobile || "",
+            gstin: apiCust.gstNumber || "",
+            address,
+            billingAddress: apiCust.billingAddress,
+            partyType: apiCust.customerType || "wholesale",
+            creditLimit: apiCust.creditLimit || 0,
+            creditDays: apiCust.creditDays || 0,
+            outstandingAmount: apiCust.outstandingAmount || 0,
+            openingBalance: apiCust.openingBalance || 0,
+            balanceType: apiCust.balanceType || apiCust.openingBalanceType || "dr",
+            billingType: "B2B",
+            ...apiCust,
+          };
+        });
 
         setResults(mappedResults);
         setIsLoading(false);
@@ -282,12 +297,12 @@ export const B2bCustomerSearchBar = forwardRef(
                 <Building2 className="size-3" /> Commercial Parties (B2B)
               </span>
               <span className="text-[10px] text-text-muted/70">
-                {results.length} found (max 5)
+                {results.length} found
               </span>
             </div>
 
             {/* Results */}
-            <div ref={listRef} className="relative max-h-[320px] overflow-y-auto p-1.5 space-y-1 scroll-smooth">
+            <div ref={listRef} className="relative max-h-[300px] overflow-y-auto p-1.5 space-y-1 scroll-smooth">
               {results.length > 0 ? (
                 results.map((cust, idx) => {
                   const isSelected = selectedCustomer?.id === cust.id || idx === selectedIndex;
@@ -329,15 +344,21 @@ export const B2bCustomerSearchBar = forwardRef(
                             )}
                           </div>
 
-                          <div className="flex items-center gap-3 text-[11px] text-text-muted mt-0.5">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-text-muted mt-0.5">
                             {cust.phone && (
-                              <span className="flex items-center gap-1 font-mono">
-                                <Phone className="size-3" /> {cust.phone}
+                              <span className="flex items-center gap-1 font-mono shrink-0">
+                                <Phone className="size-3 text-text-muted/70" /> {cust.phone}
                               </span>
                             )}
                             {cust.gstin && (
-                              <span className="flex items-center gap-1 truncate max-w-[160px]">
-                                <Briefcase className="size-3 text-purple-500" /> {cust.gstin}
+                              <span className="flex items-center gap-1 truncate max-w-[150px] shrink-0">
+                                <Briefcase className="size-3 text-purple-500/70" /> {cust.gstin}
+                              </span>
+                            )}
+                            {cust.address && (
+                              <span className="flex items-center gap-1 truncate max-w-[240px]">
+                                <MapPin className="size-3 text-purple-500/70 shrink-0" />
+                                <span className="truncate">{cust.address}</span>
                               </span>
                             )}
                           </div>
