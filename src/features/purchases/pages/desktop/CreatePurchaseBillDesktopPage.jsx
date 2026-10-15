@@ -420,9 +420,9 @@ export const CreatePurchaseBillDesktopPage = () => {
   }, [selectedSupplier]);
 
   const getGstRate = (p) => {
-    if (!p) return 12;
+    if (!p) return 0;
     const val = p.globalProduct?.gstRate ?? p.hsnTaxpercent ?? p.gstRate ?? p.gst ?? p.taxRate;
-    return val !== undefined && val !== null && val !== "" ? Number(val) : 12;
+    return val !== undefined && val !== null && val !== "" ? Number(val) : 0;
   };
 
   const getHsnCode = (p) => {
@@ -598,7 +598,7 @@ export const CreatePurchaseBillDesktopPage = () => {
     const taxable = getItemTaxableAmount(item);
     const extraDiscFactor = 1 - (Number(extraDiscountPct) || 0) / 100;
     const adjustedTaxable = taxable * extraDiscFactor;
-    const gstPct = Number(item.gst) || 12;
+    const gstPct = item.gst !== undefined && item.gst !== null && item.gst !== "" ? Number(item.gst) : 0;
     return acc + (adjustedTaxable * gstPct) / 100;
   }, 0);
 
@@ -609,7 +609,7 @@ export const CreatePurchaseBillDesktopPage = () => {
   const getTaxSlabBreakdown = () => {
     const slabs = {};
     cart.forEach((item) => {
-      const gstPct = Number(item.gst) || 12;
+      const gstPct = item.gst !== undefined && item.gst !== null && item.gst !== "" ? Number(item.gst) : 0;
       const lineTaxable = getItemTaxableAmount(item);
       const lineTax = (lineTaxable * gstPct) / 100;
 
@@ -779,7 +779,7 @@ export const CreatePurchaseBillDesktopPage = () => {
             cRatePct: Number(item.cRatePct) || 0,
             mrp: Number(item.mrp) || 0,
             hsn: item.hsn || "",
-            gst: Number(item.gst) || 12,
+            gst: item.gst !== undefined && item.gst !== null && item.gst !== "" ? Number(item.gst) : 0,
             rate: Number(item.rate) || 0,
             amount: getItemTaxableAmount(item),
             rateA: rA,
@@ -1158,8 +1158,8 @@ export const CreatePurchaseBillDesktopPage = () => {
                               type="number"
                               min="0"
                               max="100"
-                              value={item.gst === 0 ? "" : (item.gst ?? "")}
-                              onChange={(e) => updateItemField(item.id, "gst", e.target.value === "" ? 0 : Number(e.target.value))}
+                              value={item.gst ?? ""}
+                              onChange={(e) => updateItemField(item.id, "gst", e.target.value === "" ? "" : Number(e.target.value))}
                               className="w-12 text-center rounded border border-border bg-surface px-1 py-0.5 font-mono text-xs font-bold text-purple-600 focus:border-primary focus:outline-none"
                             />
                           </td>
@@ -1354,7 +1354,7 @@ export const CreatePurchaseBillDesktopPage = () => {
                       <td className="py-2 px-2 font-mono text-center text-text">{item.disc || 0}%</td>
                       <td className="py-2 px-2 font-mono text-right text-text">₹{Number(item.mrp || 0).toFixed(2)}</td>
                       <td className="py-2 px-2 font-mono text-[11px] text-text-muted">{item.hsn || "-"}</td>
-                      <td className="py-2 px-2 font-mono text-center font-bold text-purple-600">{item.gst || 12}%</td>
+                      <td className="py-2 px-2 font-mono text-center font-bold text-purple-600">{item.gst ?? 0}%</td>
                       <td className="py-2 px-2 font-mono text-right font-bold text-text">₹{Number((rateBasis === "PTR" ? (item.rateB || item.rate) : (item.rateA || item.rate)) || 0).toFixed(2)}</td>
                       <td className="py-2 px-2 font-mono text-center text-text">{item.cRatePct || 0}%</td>
                       <td className="py-2 px-2.5 font-mono text-right font-extrabold text-emerald-600">

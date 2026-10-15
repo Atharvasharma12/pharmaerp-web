@@ -7,6 +7,12 @@ const gstLedgerService = {
     });
   },
 
+  getGstr1Summary(params = {}) {
+    return apiClient.get(ENDPOINTS.GST_LEDGER.GSTR1_SUMMARY, {
+      params,
+    });
+  },
+
   getGstr2Ledger(params = {}) {
     return apiClient.get(ENDPOINTS.GST_LEDGER.GSTR2, {
       params,
@@ -19,6 +25,12 @@ const gstLedgerService = {
 
   createGstr2Ledger(payload) {
     return apiClient.post(ENDPOINTS.GST_LEDGER.GSTR2, payload);
+  },
+
+  getGstr3bSummary(params = {}) {
+    return apiClient.get(ENDPOINTS.GST_LEDGER.GSTR3B_SUMMARY, {
+      params,
+    });
   },
 };
 

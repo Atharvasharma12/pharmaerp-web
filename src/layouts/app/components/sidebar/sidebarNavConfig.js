@@ -326,6 +326,14 @@ export const SIDEBAR_NAV_GROUPS = [
                 permission: "ledger:view",
                 keywords: ["gstr2", "gstr-2", "purchase tax"],
               },
+              {
+                id: "gstr-3b",
+                label: "GSTR-3B",
+                path: ROUTES.GSTR3B,
+                icon: FileText,
+                permission: "ledger:view",
+                keywords: ["gstr3b", "gstr-3b", "gst return", "summary return", "gstr3"],
+              },
             ],
           },
           {

@@ -1372,7 +1372,7 @@ export const SalesDesktopPage = () => {
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
           {/* Customer Strip */}
-          <div className="shrink-0 border-b border-border bg-surface">
+          <div className="relative z-30 shrink-0 border-b border-border bg-surface">
             {billingMode === "B2C" ? (
               <div className="px-4 pt-3.5 pb-2.5">
                 <SalesCustomerDoctorInfo
