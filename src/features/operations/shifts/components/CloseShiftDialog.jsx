@@ -12,6 +12,7 @@ import { updateShiftStatus, listShifts } from "../store/shiftThunk";
 import { API_STATUS } from "@/constants";
 import { apiClient } from "@/services";
 import { useBranchCash } from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
+import { useHoldBills } from "@/features/sales/hooks/useHoldBills";
 import {
   Lock,
   X,
@@ -115,6 +116,12 @@ export const CloseShiftDialog = ({
     runningCash: branchRunningCash,
     runningDenominations,
   } = useBranchCash();
+
+  const {
+    heldBills,
+    count: heldBillsCount,
+    clearAll: clearAllHeldBills,
+  } = useHoldBills();
 
   useEffect(() => {
     if (isOpen && shift?.branchId) {
@@ -405,6 +412,13 @@ export const CloseShiftDialog = ({
   const handleLockShift = async () => {
     setLocalError(null);
 
+    if (heldBillsCount > 0) {
+      setLocalError(
+        `Active held bills detected (${heldBillsCount}). Please clear all held bills before locking and closing the shift.`
+      );
+      return;
+    }
+
     if (frozenValidation.length > 0) {
       setLocalError(frozenValidation[0]);
       return;
@@ -440,6 +454,8 @@ export const CloseShiftDialog = ({
         })
       ).unwrap();
 
+      // Clear any remaining held bills as the shift is officially closed
+      clearAllHeldBills();
       dispatch(listShifts());
       setClosedShiftData(result);
       setShowPostClose(true);
@@ -490,6 +506,40 @@ export const CloseShiftDialog = ({
               title="Error"
               description={localError || shiftError}
             />
+          )}
+
+          {/* Active Held Bills Gate Notice */}
+          {heldBillsCount > 0 && (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs animate-in fade-in">
+              <div className="flex items-center gap-3">
+                <div className="size-9 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="size-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                    <span>Active Held Bills Detected</span>
+                    <UIBadge variant="soft" intent="warning" className="text-[10px] font-bold py-0 px-1.5">
+                      {heldBillsCount} {heldBillsCount === 1 ? "Bill" : "Bills"} on Hold
+                    </UIBadge>
+                  </div>
+                  <p className="text-[11px] text-amber-700/90 dark:text-amber-400/90 mt-0.5">
+                    You have {heldBillsCount} bill(s) on hold for this branch. A shift cannot be closed with active held bills. Click &quot;Clear All Held Bills&quot; to discard them and proceed with closing the shift.
+                  </p>
+                </div>
+              </div>
+              <UIButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  clearAllHeldBills();
+                }}
+                startIcon={<RotateCcw className="size-3.5" />}
+                className="h-8.5 px-3.5 text-xs font-bold border-amber-500/50 text-amber-800 dark:text-amber-200 bg-amber-500/15 hover:bg-amber-500/25 shrink-0 cursor-pointer shadow-2xs"
+              >
+                Clear All Held Bills
+              </UIButton>
+            </div>
           )}
 
           {/* ── Meta Information Bar (6 Items) ── */}
@@ -1496,18 +1546,33 @@ export const CloseShiftDialog = ({
             Cancel
           </UIButton>
 
-          <UIButton
-            type="button"
-            variant="danger"
-            size="sm"
-            onClick={handleLockShift}
-            isLoading={updateShiftStatusStatus === API_STATUS.LOADING}
-            disabled={frozenValidation.length > 0}
-            startIcon={<Lock className="size-4" />}
-            className="h-9 px-5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
-            Close Shift
-          </UIButton>
+          {heldBillsCount > 0 ? (
+            <UIButton
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                clearAllHeldBills();
+              }}
+              startIcon={<RotateCcw className="size-4" />}
+              className="h-9 px-5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer"
+            >
+              Clear {heldBillsCount} Held {heldBillsCount === 1 ? "Bill" : "Bills"} to Close Shift
+            </UIButton>
+          ) : (
+            <UIButton
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={handleLockShift}
+              isLoading={updateShiftStatusStatus === API_STATUS.LOADING}
+              disabled={frozenValidation.length > 0}
+              startIcon={<Lock className="size-4" />}
+              className="h-9 px-5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              Close Shift
+            </UIButton>
+          )}
         </div>
       </UIModal>
 

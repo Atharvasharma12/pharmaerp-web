@@ -27,9 +27,11 @@ export const UIInfiniteScroll = ({
   hasMore = false,
   isLoading = false,
   rootRef = null,
+  scrollContainerRef = null,
   rootMargin = "160px",
   threshold = 0.1,
   loader = null,
+  loadingIndicator = null,
   endMessage = null,
   disabled = false,
   className = "",
@@ -41,6 +43,15 @@ export const UIInfiniteScroll = ({
 
   const hasMoreRef = useRef(hasMore);
   hasMoreRef.current = hasMore;
+
+  // Ensure threshold is always a valid number between 0 and 1
+  const safeThreshold =
+    typeof threshold === "number" && threshold >= 0 && threshold <= 1
+      ? threshold
+      : 0.1;
+
+  const resolvedRoot = (rootRef || scrollContainerRef)?.current || null;
+  const activeLoader = loader || loadingIndicator;
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -59,9 +70,9 @@ export const UIInfiniteScroll = ({
         }
       },
       {
-        root: rootRef?.current || null,
+        root: resolvedRoot,
         rootMargin,
-        threshold,
+        threshold: safeThreshold,
       }
     );
 
@@ -70,7 +81,7 @@ export const UIInfiniteScroll = ({
     return () => {
       observer.disconnect();
     };
-  }, [onLoadMore, rootRef, rootMargin, threshold, disabled]);
+  }, [onLoadMore, resolvedRoot, rootMargin, safeThreshold, disabled]);
 
   return (
     <div className={cn("w-full flex flex-col", className)}>
@@ -86,7 +97,7 @@ export const UIInfiniteScroll = ({
       {/* Loading Indicator */}
       {isLoading && (
         <div className="py-4 flex items-center justify-center gap-2 text-xs font-medium text-text-muted select-none">
-          {loader || (
+          {activeLoader || (
             <>
               <Loader2 className="size-4 animate-spin text-primary" />
               <span>Loading more items...</span>

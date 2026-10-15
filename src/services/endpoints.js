@@ -129,6 +129,17 @@ export const ENDPOINTS = {
     CREDITS_PENDING_ALL: "/parties/customers/credits/pending",
   },
 
+  DOCTOR: {
+    CREATE: "/doctors",
+    LIST: "/doctors",
+    BY_ID: (doctorId) => `/doctors/${doctorId}`,
+  },
+  DOCTORS: {
+    CREATE: "/doctors",
+    LIST: "/doctors",
+    BY_ID: (doctorId) => `/doctors/${doctorId}`,
+  },
+
   SALES: {
     INVOICES: {
       ALL: "/sales/invoices",

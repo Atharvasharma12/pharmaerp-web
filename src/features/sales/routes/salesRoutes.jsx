@@ -9,6 +9,14 @@ export const salesRoutes = [
     path: ROUTES.SALES,
     element: <SalesPage />,
   },
+  {
+    path: ROUTES.SALE_EDIT_ROUTE || "/sales/edit/:invoiceId",
+    element: <SalesPage />,
+  },
+  {
+    path: "/sale/edit/:invoiceId",
+    element: <SalesPage />,
+  },
 ];
 
 export default salesRoutes;

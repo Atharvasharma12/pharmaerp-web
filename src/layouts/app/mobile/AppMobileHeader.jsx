@@ -30,6 +30,7 @@ const getPageTitle = (pathname) => {
   if (pathname.startsWith("/parties/customers")) return "Customers";
   if (pathname.startsWith("/parties/suppliers")) return "Suppliers";
   if (pathname.startsWith("/parties")) return "Parties";
+  if (pathname.startsWith("/doctors")) return "Doctors";
   if (pathname.startsWith("/finance")) return "Finance";
   if (pathname.startsWith("/marketplace")) return "Marketplace";
   if (

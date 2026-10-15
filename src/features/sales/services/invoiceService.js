@@ -24,6 +24,10 @@ const invoiceService = {
   getNextInvoiceNumber(params = {}) {
     return apiClient.get("/sales/invoices/next-number", { params });
   },
+
+  getInvoiceById(invoiceId) {
+    return apiClient.get(`/sales/invoices/${invoiceId}`);
+  },
 };
 
 export default invoiceService;

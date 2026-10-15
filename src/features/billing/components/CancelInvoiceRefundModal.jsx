@@ -12,7 +12,7 @@ import {
   FileText
 } from "lucide-react";
 import { UIModal, UIButton, UIBadge } from "@/components/ui";
-import { CashBreakdownModal, decomposeAmount, decomposeChangeWithDrawer } from "@/features/sales/components/CashBreakdownModal";
+import { CashBreakdownModal } from "@/features/sales/components/CashBreakdownModal";
 import { useBranchCash } from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
 import { cn } from "@/lib/utils";
@@ -48,6 +48,7 @@ export const CancelInvoiceRefundModal = ({
   const { fetchBranchCash, runningCash, runningDenominations } = useBranchCash();
 
   const [refundNotes, setRefundNotes] = useState({});
+  const [customerChangeNotes, setCustomerChangeNotes] = useState({});
   const [cancelReason, setCancelReason] = useState("");
   const [isCashKeypadOpen, setIsCashKeypadOpen] = useState(false);
 
@@ -84,51 +85,17 @@ export const CancelInvoiceRefundModal = ({
     }
   }, [isOpen, invoice?.branchId, currentBranch?._id, fetchBranchCash]);
 
-  // Extract initial / original denominations
-  const originalNotesMap = useMemo(() => {
-    if (!isOpen || !invoice || cashAmount <= 0) return {};
-    const denoms = invoice.denominations;
-    if (Array.isArray(denoms) && denoms.length > 0) {
-      const map = {};
-      denoms.forEach((d) => {
-        const note = Number(d.denomination || d.val || d.note || 0);
-        const qty = Number(d.quantity || d.count || d.qty || 0);
-        if (note > 0 && qty > 0) {
-          map[note] = qty;
-        }
-      });
-      const originalTotal = Object.entries(map).reduce((s, [n, q]) => s + Number(n) * q, 0);
-      if (Math.abs(originalTotal - cashAmount) < 0.01) {
-        return map;
-      }
-    }
-    // Decomposed fallback to match cashAmount exactly (constrained by drawer stock if present)
-    if (Array.isArray(runningDenominations) && runningDenominations.length > 0) {
-      const drawerMap = {};
-      runningDenominations.forEach((d) => {
-        const denom = Number(d.denomination || d.val || d.note || 0);
-        const qty = Number(d.quantity || d.count || d.qty || 0);
-        if (denom > 0) drawerMap[denom] = qty;
-      });
-      const drawerDecomp = decomposeChangeWithDrawer(cashAmount, drawerMap);
-      const decompTotal = Object.entries(drawerDecomp).reduce((s, [n, q]) => s + Number(n) * q, 0);
-      if (Math.abs(decompTotal - cashAmount) < 0.01) {
-        return drawerDecomp;
-      }
-    }
-    return decomposeAmount(cashAmount);
-  }, [isOpen, invoice, cashAmount, runningDenominations]);
-
-  // Initialize refund notes on open
+  // Initialize refund notes cleanly on open (Do NOT prefill denominations)
   useEffect(() => {
     if (isOpen) {
-      setRefundNotes(originalNotesMap);
+      setRefundNotes({});
+      setCustomerChangeNotes({});
       setCancelReason("");
       setIsCashKeypadOpen(false);
     }
-  }, [isOpen, originalNotesMap]);
+  }, [isOpen]);
 
-  // Total amount selected for refund
+  // Total cash dispensed from drawer
   const refundTotal = useMemo(() => {
     return Object.entries(refundNotes).reduce(
       (sum, [denom, qty]) => sum + Number(denom) * (Number(qty) || 0),
@@ -136,10 +103,20 @@ export const CancelInvoiceRefundModal = ({
     );
   }, [refundNotes]);
 
-  const difference = cashAmount - refundTotal;
-  const isExactMatch = Math.abs(difference) < 0.01;
+  // Total change returned by customer into drawer
+  const customerChangeTotal = useMemo(() => {
+    return Object.entries(customerChangeNotes).reduce(
+      (sum, [denom, qty]) => sum + Number(denom) * (Number(qty) || 0),
+      0
+    );
+  }, [customerChangeNotes]);
 
-  // Active notes list sorted descending
+  // Net cash deducted from drawer = Cash Dispensed - Customer Change Received
+  const netRefundTotal = refundTotal - customerChangeTotal;
+  const difference = cashAmount - netRefundTotal;
+  const isExactMatch = Math.abs(difference) < 0.01 && refundTotal > 0;
+
+  // Active dispensed notes list sorted descending
   const activeNotesList = useMemo(() => {
     return Object.entries(refundNotes)
       .filter(([, qty]) => Number(qty) > 0)
@@ -147,24 +124,36 @@ export const CancelInvoiceRefundModal = ({
       .sort((a, b) => b.denomination - a.denomination);
   }, [refundNotes]);
 
-  // Handle keypad confirmation from CashBreakdownModal
+  // Active customer change notes list sorted descending
+  const activeCustomerChangeList = useMemo(() => {
+    return Object.entries(customerChangeNotes)
+      .filter(([, qty]) => Number(qty) > 0)
+      .map(([denom, qty]) => ({ denomination: Number(denom), quantity: Number(qty) }))
+      .sort((a, b) => b.denomination - a.denomination);
+  }, [customerChangeNotes]);
+
+  // Handle keypad confirmation from CashBreakdownModal (in mode="cancel")
   const handleConfirmKeypad = (result) => {
-    if (result && result.received) {
-      setRefundNotes(result.received);
+    if (result) {
+      setRefundNotes(result.dispensed || result.received || {});
+      setCustomerChangeNotes(result.customerChange || result.returned || {});
     }
     setIsCashKeypadOpen(false);
   };
 
-  const handleResetToExact = () => {
-    setRefundNotes(originalNotesMap);
+  const handleClearNotes = () => {
+    setRefundNotes({});
+    setCustomerChangeNotes({});
   };
 
   const handleProceedCancel = async () => {
     if (hasCashPortion && !isExactMatch) return;
-    const formattedDenoms = activeNotesList;
+    const formattedRefundDenoms = activeNotesList;
+    const formattedChangeDenoms = activeCustomerChangeList;
     await onConfirm({
       cancelReason: cancelReason.trim() || "Sale Cancelled by Staff",
-      refundDenominations: hasCashPortion ? formattedDenoms : [],
+      refundDenominations: hasCashPortion ? formattedRefundDenoms : [],
+      customerChangeDenominations: hasCashPortion ? formattedChangeDenoms : [],
     });
   };
 
@@ -241,15 +230,22 @@ export const CancelInvoiceRefundModal = ({
               </div>
 
               {/* Status & Amount Verification */}
-              <div className="flex items-center justify-between p-2 rounded-lg bg-surface border border-border">
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-text-muted block">Selected to Return</span>
-                  <span className={cn(
-                    "text-base font-mono font-bold",
-                    isExactMatch ? "text-success" : "text-error"
-                  )}>
-                    {formatCurrency(refundTotal)}
-                  </span>
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface border border-border">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase text-text-muted">Net Cash Refund:</span>
+                    <span className={cn(
+                      "text-base font-mono font-bold",
+                      isExactMatch ? "text-success" : "text-error"
+                    )}>
+                      {formatCurrency(netRefundTotal)}
+                    </span>
+                  </div>
+                  {customerChangeTotal > 0 && (
+                    <span className="text-[10.5px] text-text-muted font-medium block">
+                      (Dispensed: {formatCurrency(refundTotal)} - Customer Change: {formatCurrency(customerChangeTotal)})
+                    </span>
+                  )}
                 </div>
 
                 <div className="text-right">
@@ -261,77 +257,117 @@ export const CancelInvoiceRefundModal = ({
                   ) : (
                     <span className="inline-flex items-center gap-1 text-xs font-bold text-error">
                       <AlertCircle className="size-3.5" />
-                      {difference > 0 ? `Short by ${formatCurrency(difference)}` : `Over by ${formatCurrency(Math.abs(difference))}`}
+                      {refundTotal === 0
+                        ? `Target ${formatCurrency(cashAmount)}`
+                        : difference > 0
+                        ? `Short by ${formatCurrency(difference)}`
+                        : `Over by ${formatCurrency(Math.abs(difference))}`}
                     </span>
                   )}
                 </div>
               </div>
 
               {/* Active Notes Badges Display */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[10.5px] font-bold text-text-muted">
-                  <span>Refund Note Breakdown:</span>
-                  <span>{activeNotesList.reduce((s, n) => s + n.quantity, 0)} Notes Total</span>
-                </div>
-
+              <div className="space-y-2">
                 {activeNotesList.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {activeNotesList.map((n) => {
-                      const theme = DENOM_THEMES[n.denomination] || {
-                        bg: "bg-surface-alt",
-                        border: "border-border",
-                        text: "text-text",
-                      };
-                      return (
-                        <span
-                          key={n.denomination}
-                          className={cn(
-                            "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-mono font-bold shadow-2xs",
-                            theme.bg,
-                            theme.border,
-                            theme.text
-                          )}
-                        >
-                          <span>₹{n.denomination}</span>
-                          <span className="opacity-60 text-[10.5px]">×</span>
-                          <span>{n.quantity}</span>
-                          <span className="text-[10px] opacity-75 font-normal ml-0.5">
-                            (= ₹{n.denomination * n.quantity})
-                          </span>
-                        </span>
-                      );
-                    })}
-                  </div>
+                  <>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[10.5px] font-bold text-text-muted">
+                        <span>Dispensed from Drawer ({activeNotesList.reduce((s, n) => s + n.quantity, 0)} pcs):</span>
+                        <span className="font-mono">{formatCurrency(refundTotal)}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {activeNotesList.map((n) => {
+                          const theme = DENOM_THEMES[n.denomination] || {
+                            bg: "bg-surface-alt",
+                            border: "border-border",
+                            text: "text-text",
+                          };
+                          return (
+                            <span
+                              key={`dispensed-${n.denomination}`}
+                              className={cn(
+                                "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-mono font-bold shadow-2xs",
+                                theme.bg,
+                                theme.border,
+                                theme.text
+                              )}
+                            >
+                              <span>₹{n.denomination}</span>
+                              <span className="opacity-60 text-[10.5px]">×</span>
+                              <span>{n.quantity}</span>
+                              <span className="text-[10px] opacity-75 font-normal ml-0.5">
+                                (= ₹{n.denomination * n.quantity})
+                              </span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Customer Change Received (if any) */}
+                    {activeCustomerChangeList.length > 0 && (
+                      <div className="space-y-1 pt-1.5 border-t border-border/50">
+                        <div className="flex items-center justify-between text-[10.5px] font-bold text-emerald-700 dark:text-emerald-300">
+                          <span>Change Received from Customer ({activeCustomerChangeList.reduce((s, n) => s + n.quantity, 0)} pcs):</span>
+                          <span className="font-mono text-emerald-600">+{formatCurrency(customerChangeTotal)}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {activeCustomerChangeList.map((n) => (
+                            <span
+                              key={`change-${n.denomination}`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-mono font-bold shadow-2xs"
+                            >
+                              <span>₹{n.denomination}</span>
+                              <span className="opacity-60 text-[10.5px]">×</span>
+                              <span>{n.quantity}</span>
+                              <span className="text-[10px] opacity-75 font-normal ml-0.5">
+                                (= ₹{n.denomination * n.quantity})
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <div className="p-2 rounded-lg border border-dashed border-border text-center text-xs text-text-muted">
-                    No refund denominations selected.
+                  <div className="p-3 rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 text-center text-xs text-amber-700 dark:text-amber-300 flex items-center justify-center gap-2">
+                    <AlertCircle className="size-4 shrink-0" />
+                    <span>Please open the Cash Drawer to count and select the physical refund notes (Target: ₹{cashAmount.toFixed(2)}).</span>
                   </div>
                 )}
               </div>
 
               {/* Denomination Action Buttons */}
               <div className="flex items-center gap-2 pt-1 border-t border-amber-500/20">
-                <UIButton
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  onClick={handleResetToExact}
-                  startIcon={<RotateCcw className="size-3" />}
-                  className="h-8 text-xs font-semibold"
-                  title="Reset back to original notes or exact auto-breakdown"
-                >
-                  Exact Original
-                </UIButton>
+                {activeNotesList.length > 0 && (
+                  <UIButton
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    onClick={handleClearNotes}
+                    startIcon={<RotateCcw className="size-3" />}
+                    className="h-8 text-xs font-semibold"
+                    title="Clear selected refund notes"
+                  >
+                    Clear Notes
+                  </UIButton>
+                )}
 
                 <UIButton
                   type="button"
-                  variant="soft"
+                  variant={activeNotesList.length > 0 ? "outline" : "soft"}
                   size="xs"
                   onClick={() => setIsCashKeypadOpen(true)}
                   startIcon={<Calculator className="size-3.5" />}
-                  className="h-8 text-xs font-bold flex-1 border border-primary/30 text-primary hover:bg-primary/10"
+                  className={cn(
+                    "h-8 text-xs font-bold flex-1 border",
+                    activeNotesList.length === 0
+                      ? "border-amber-400/60 text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20"
+                      : "border-primary/30 text-primary hover:bg-primary/10"
+                  )}
                 >
-                  Change Denomination (Drawer Keypad)
+                  {activeNotesList.length > 0 ? "Edit Refund & Change Notes" : "Select Refund Notes (Cash Drawer) *"}
                 </UIButton>
               </div>
             </div>
@@ -380,20 +416,21 @@ export const CancelInvoiceRefundModal = ({
               disabled={isCancelling || (hasCashPortion && !isExactMatch)}
               startIcon={<Trash2 className="size-4" />}
             >
-              {hasCashPortion ? `Refund ₹${cashAmount} & Cancel` : "Yes, Cancel Bill"}
+              {hasCashPortion ? `Refund ₹${netRefundTotal > 0 ? netRefundTotal.toFixed(2) : cashAmount.toFixed(2)} & Cancel` : "Yes, Cancel Bill"}
             </UIButton>
           </div>
         </div>
       </UIModal>
 
-      {/* Embedded CashBreakdownModal for full interactive note selection */}
+      {/* Embedded CashBreakdownModal in mode="cancel" for full interactive note selection */}
       <CashBreakdownModal
+        mode="cancel"
         isOpen={isCashKeypadOpen}
         onClose={() => setIsCashKeypadOpen(false)}
         onConfirm={handleConfirmKeypad}
         targetAmount={cashAmount}
         initialReceived={refundNotes}
-        initialReturned={{}}
+        initialReturned={customerChangeNotes}
         availableDenominations={runningDenominations || []}
         availableBalance={runningCash || 0}
         cashAccountName="Branch Cash (Running Drawer)"

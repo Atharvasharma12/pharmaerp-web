@@ -14,7 +14,7 @@ import { UISelect, UIButton, UIBadge } from "@/components/ui";
 import { useBranchCash } from "@/features/finance/treasury/cash-management/branch-cash/hooks/useBranchCash";
 import usePaymentQr from "@/features/finance/treasury/payment-qr/hooks/usePaymentQr";
 import useBranch from "@/features/branch/hooks/useBranch";
-import { CashBreakdownModal, decomposeAmount } from "@/features/sales/components/CashBreakdownModal";
+import { CashBreakdownModal } from "@/features/sales/components/CashBreakdownModal";
 import { cn } from "@/lib/utils";
 
 export const INDIAN_DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1];
@@ -175,19 +175,6 @@ export default function CustomerPaymentMethodPanel({
     });
   }, [selectedQrId, utrNumber, selectedQr, onUpiChange]);
 
-  // Exact cash tender action
-  const handleExactCash = () => {
-    if (target <= 0) return;
-    const exactMap = decomposeAmount(target);
-    setCashDetails({
-      received: exactMap,
-      returned: {},
-      receivedTotal: target,
-      returnedTotal: 0,
-      netApplied: target,
-    });
-  };
-
   // Confirm breakdown from CashBreakdownModal
   const handleConfirmCashBreakdown = (data) => {
     setCashDetails(data);
@@ -273,24 +260,11 @@ export default function CustomerPaymentMethodPanel({
             </div>
 
             {/* Col 2: Notes / Denominations Stepper Buttons */}
-            <div className="flex items-center gap-1.5">
-              {!cashDetails && (
-                <UIButton
-                  variant="outline"
-                  size="xs"
-                  type="button"
-                  onClick={handleExactCash}
-                  disabled={target <= 0}
-                  className="h-8 text-[10.5px] font-bold border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 shrink-0"
-                  title="Instantly accept exact cash notes"
-                >
-                  Exact ₹{target}
-                </UIButton>
-              )}
+            <div className="flex items-center gap-1.5 flex-1">
               <UIButton
                 variant={cashDetails ? "soft" : "outline"}
                 size="xs"
-                fullWidth={!!cashDetails}
+                fullWidth
                 onClick={() => setIsCashDrawerOpen(true)}
                 startIcon={<Calculator className="size-3" />}
                 className={cn(
@@ -298,7 +272,7 @@ export default function CustomerPaymentMethodPanel({
                   !cashDetails ? "border-amber-400/60 text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20" : ""
                 )}
               >
-                {cashDetails ? "Edit Notes" : "Drawer Notes *"}
+                {cashDetails ? "Edit Notes" : "Cash Drawer & Notes *"}
               </UIButton>
             </div>
           </div>

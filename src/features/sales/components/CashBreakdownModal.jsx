@@ -4,6 +4,7 @@ import { UIModal, UIButton } from "@/components/ui";
 import {
   Plus,
   Minus,
+  Check,
   CheckCircle2,
   AlertCircle,
   RefreshCw,
@@ -12,7 +13,8 @@ import {
   ArrowRight,
   SlidersHorizontal,
   Wallet,
-  Zap
+  Zap,
+  RotateCcw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +48,74 @@ export const decomposeAmount = (amount) => {
     }
   }
   return res;
+};
+
+/**
+ * Generate clean, intelligent tender amount suggestions without decomposing note counts.
+ * e.g., for bill ₹3,150: Exact ₹3,150, ₹3,200, ₹3,500, ₹4,000.
+ */
+export const generateSuggestedTenders = (targetAmount) => {
+  const target = Math.round(Number(targetAmount) || 0);
+  if (target <= 0) return [];
+
+  const list = [{ label: `Exact ₹${target.toLocaleString("en-IN")}`, amount: target, isExact: true }];
+  const seen = new Set([target]);
+  const candidates = [];
+
+  if (target < 100) {
+    [10, 20, 50, 100].forEach((step) => {
+      const val = Math.ceil(target / step) * step;
+      if (val > target) candidates.push(val);
+    });
+  } else if (target < 500) {
+    [50, 100, 200, 500].forEach((step) => {
+      const val = Math.ceil(target / step) * step;
+      if (val > target) candidates.push(val);
+    });
+  } else {
+    // For amounts >= 500 (e.g. ₹3,150)
+    // Next 50
+    const next50 = Math.ceil(target / 50) * 50;
+    if (next50 > target) candidates.push(next50);
+
+    // Next 100 (e.g. ₹3,200 for ₹3,150)
+    const next100 = Math.ceil(target / 100) * 100;
+    if (next100 > target) candidates.push(next100);
+    else candidates.push(target + 100);
+
+    // Next 500 (e.g. ₹3,500 for ₹3,150)
+    const next500 = Math.ceil(target / 500) * 500;
+    if (next500 > target) candidates.push(next500);
+    else candidates.push(target + 500);
+
+    // Next 1000 (e.g. ₹4,000 for ₹3,150)
+    const next1000 = Math.ceil(target / 1000) * 1000;
+    if (next1000 > target) candidates.push(next1000);
+    else candidates.push(target + 1000);
+
+    candidates.push(Math.ceil((target + 500) / 500) * 500);
+    candidates.push(Math.ceil((target + 1000) / 1000) * 1000);
+  }
+
+  // Common high note milestones
+  [100, 200, 500, 1000, 2000, 5000].forEach((m) => {
+    if (m > target) candidates.push(m);
+  });
+
+  candidates.sort((a, b) => a - b);
+  for (const val of candidates) {
+    if (val > target && !seen.has(val)) {
+      seen.add(val);
+      list.push({
+        label: `₹${val.toLocaleString("en-IN")}`,
+        amount: val,
+        isExact: false,
+      });
+      if (list.length >= 5) break; // Exact + up to 4 smart round suggestions
+    }
+  }
+
+  return list;
 };
 
 /**
@@ -141,9 +211,12 @@ export function CashBreakdownModal({
   availableDenominations = [],
   availableBalance = 0,
   cashAccountName = "Cash Drawer",
+  mode = "sale", // "sale" | "cancel" | "refund"
 }) {
+  const isCancelMode = mode === "cancel" || mode === "refund";
   const [received, setReceived] = useState({});
   const [returned, setReturned] = useState({});
+  const [selectedTenderAmount, setSelectedTenderAmount] = useState(0);
   const [isCustomizingChange, setIsCustomizingChange] = useState(false);
   const [error, setError] = useState(null);
 
@@ -184,15 +257,12 @@ export function CashBreakdownModal({
       if (hasInitReceived) {
         setReceived({ ...initialReceived });
         setReturned(hasInitReturned ? { ...initialReturned } : {});
-      } else if (targetAmount > 0) {
-        // Pre-fill exact tender so cashier is immediately 1 click away from confirming
-        const exact = decomposeAmount(targetAmount);
-        setReceived(exact);
-        setReturned({});
       } else {
+        // Do NOT pre-fill denominations. Keep empty for cashier to count and enter.
         setReceived({});
         setReturned({});
       }
+      setSelectedTenderAmount(Math.round(Number(targetAmount) || 0));
       setIsCustomizingChange(false);
       setError(null);
     }
@@ -212,8 +282,15 @@ export function CashBreakdownModal({
   const expectedChange = Math.max(0, receivedTotal - Number(targetAmount || 0));
   const netApplied = receivedTotal - returnedTotal;
 
-  // Auto-calculate optimal returned change denominations strictly constrained by cash drawer
+  // Auto-calculate optimal change denominations for SALE mode only:
+  // - In sale mode: change is returned from cash drawer, so strictly constrained by drawer stock
+  // - In cancel mode: customer gives change back, so NEVER auto-select or wipe denominations (customer gives whatever they have)
   useEffect(() => {
+    if (isCancelMode) {
+      // In cancel mode: NEVER auto-calculate, auto-select, or auto-wipe denominations.
+      // Staff selects exact denominations customer hands them.
+      return;
+    }
     if (!isCustomizingChange) {
       if (expectedChange > 0) {
         setReturned(decomposeChangeWithDrawer(expectedChange, availableDenomsMap));
@@ -221,7 +298,7 @@ export function CashBreakdownModal({
         setReturned({});
       }
     }
-  }, [expectedChange, isCustomizingChange, availableDenomsMap]);
+  }, [expectedChange, isCustomizingChange, availableDenomsMap, isCancelMode]);
 
   const totalReceivedNotes = useMemo(() =>
     Object.values(received).reduce((sum, q) => sum + (Number(q) || 0), 0),
@@ -233,45 +310,34 @@ export function CashBreakdownModal({
     [returned]
   );
 
-  // Quick tender presets
+  // Quick tender suggestions (intelligent auto suggestions without prefilling note quantities)
   const quickTenders = useMemo(() => {
-    const target = Math.round(targetAmount);
+    const target = Math.round(Number(targetAmount) || 0);
     if (target <= 0) return [];
-    const list = [{ label: `Exact ₹${target}`, amount: target, isExact: true }];
-    const roundMilestones = [50, 100, 200, 500, 1000, 2000];
-    const seen = new Set([target]);
-
-    if (target % 50 !== 0) seen.add(Math.ceil(target / 50) * 50);
-    if (target % 100 !== 0) seen.add(Math.ceil(target / 100) * 100);
-    if (target % 500 !== 0) seen.add(Math.ceil(target / 500) * 500);
-
-    roundMilestones.forEach((m) => {
-      if (m > target && seen.size < 5) seen.add(m);
-    });
-
-    Array.from(seen)
-      .filter((v) => v > target)
-      .sort((a, b) => a - b)
-      .slice(0, 4)
-      .forEach((amt) => {
-        list.push({ label: `₹${amt}`, amount: amt, isExact: false });
-      });
-
-    return list;
+    return generateSuggestedTenders(target);
   }, [targetAmount]);
 
   const handleApplyTenderAmount = (amt) => {
-    const nextRec = decomposeAmount(amt);
-    setReceived(nextRec);
+    setSelectedTenderAmount(amt);
+    // User requirement: ONLY suggest the auto amount, do NOT populate denomination quantities.
     setIsCustomizingChange(false);
     setError(null);
   };
 
   const handleUpdateReceived = (denom, delta) => {
+    const d = Number(denom);
+    const maxAvailable = (isCancelMode && hasDrawerStock)
+      ? (Number(availableDenomsMap[d]) || 0)
+      : Infinity;
+
     setReceived((prev) => {
       const next = { ...prev };
       const current = Number(next[denom]) || 0;
-      const nextVal = Math.max(0, current + delta);
+      let nextVal = current + delta;
+      if (nextVal > maxAvailable) {
+        nextVal = maxAvailable;
+      }
+      nextVal = Math.max(0, nextVal);
       if (nextVal === 0) {
         delete next[denom];
       } else {
@@ -284,7 +350,14 @@ export function CashBreakdownModal({
   };
 
   const handleSetReceivedDirect = (denom, val) => {
-    const num = Math.max(0, parseInt(val, 10) || 0);
+    const d = Number(denom);
+    const maxAvailable = (isCancelMode && hasDrawerStock)
+      ? (Number(availableDenomsMap[d]) || 0)
+      : Infinity;
+    let num = Math.max(0, parseInt(val, 10) || 0);
+    if (num > maxAvailable) {
+      num = maxAvailable;
+    }
     setReceived((prev) => {
       const next = { ...prev };
       if (num === 0) {
@@ -300,7 +373,10 @@ export function CashBreakdownModal({
 
   const handleUpdateReturned = (denom, delta) => {
     const d = Number(denom);
-    const maxAvailable = hasDrawerStock ? (Number(availableDenomsMap[d]) || 0) : Infinity;
+    // In sale mode, change comes from drawer (capped). In cancel mode, change comes from customer (uncapped).
+    const maxAvailable = (!isCancelMode && hasDrawerStock)
+      ? (Number(availableDenomsMap[d]) || 0)
+      : Infinity;
 
     setReturned((prev) => {
       const next = { ...prev };
@@ -329,15 +405,27 @@ export function CashBreakdownModal({
 
   const handleConfirm = () => {
     if (receivedTotal <= 0) {
-      setError("Please select the denominations received from customer.");
+      setError(
+        isCancelMode
+          ? "Please select the refund denominations to dispense from cash drawer."
+          : "Please select the denominations received from customer."
+      );
       return;
     }
     if (receivedTotal < targetAmount) {
-      setError(`Received cash (₹${receivedTotal}) is less than required (₹${targetAmount})`);
+      setError(
+        isCancelMode
+          ? `Cash dispensed from drawer (₹${receivedTotal}) is less than refund target (₹${targetAmount})`
+          : `Received cash (₹${receivedTotal}) is less than required (₹${targetAmount})`
+      );
       return;
     }
     if (returnedTotal !== expectedChange) {
-      setError(`Returned change (₹${returnedTotal}) does not match expected change (₹${expectedChange})`);
+      setError(
+        isCancelMode
+          ? `Customer change (₹${returnedTotal}) does not match expected change (₹${expectedChange})`
+          : `Returned change (₹${returnedTotal}) does not match expected change (₹${expectedChange})`
+      );
       return;
     }
     setError(null);
@@ -347,6 +435,12 @@ export function CashBreakdownModal({
       receivedTotal,
       returnedTotal,
       netApplied: receivedTotal - returnedTotal,
+      // Descriptive aliases for cancel / refund flows
+      dispensed: received,
+      customerChange: returned,
+      dispensedTotal: receivedTotal,
+      customerChangeTotal: returnedTotal,
+      netRefund: receivedTotal - returnedTotal,
     });
   };
 
@@ -369,17 +463,33 @@ export function CashBreakdownModal({
         {/* ── 1. MODAL HEADER (No top-right cross icon) ─────────────── */}
         <div className="flex items-center justify-between pb-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
-              <Banknote className="size-5" />
+            <div className={cn(
+              "p-2 rounded-xl",
+              isCancelMode ? "bg-amber-500/10 text-amber-700 dark:text-amber-400" : "bg-primary/10 text-primary"
+            )}>
+              {isCancelMode ? <RotateCcw className="size-5" /> : <Banknote className="size-5" />}
             </div>
             <div>
-              <h2 className="text-base font-bold text-text leading-tight">Cash Drawer & Tender</h2>
-              <p className="text-xs text-text-muted leading-tight">Select cash denominations received and change to return</p>
+              <h2 className="text-base font-bold text-text leading-tight">
+                {isCancelMode ? "Cash Drawer · Cancel Invoice Refund" : "Cash Drawer & Tender"}
+              </h2>
+              <p className="text-xs text-text-muted leading-tight">
+                {isCancelMode
+                  ? "Dispense refund cash from drawer and record any change received from customer"
+                  : "Select cash denominations received and change to return"}
+              </p>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">Target Bill</span>
-            <span className="text-lg font-black font-mono text-primary leading-tight">₹{Number(targetAmount).toFixed(2)}</span>
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
+              {isCancelMode ? "Refund Due" : "Target Bill"}
+            </span>
+            <span className={cn(
+              "text-lg font-black font-mono leading-tight",
+              isCancelMode ? "text-amber-700 dark:text-amber-400" : "text-primary"
+            )}>
+              ₹{Number(targetAmount).toFixed(2)}
+            </span>
           </div>
         </div>
 
@@ -387,29 +497,56 @@ export function CashBreakdownModal({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 py-3 shrink-0">
           {/* Target Amount */}
           <div className="p-2.5 bg-surface-alt/60 rounded-xl border border-border">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">Target Bill</span>
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
+              {isCancelMode ? "Refund Target" : "Target Bill"}
+            </span>
             <span className="text-lg font-black font-mono text-text block mt-0.5">₹{targetAmount.toFixed(2)}</span>
           </div>
 
-          {/* Received Total */}
-          <div className="p-2.5 bg-primary/10 rounded-xl border border-primary/20">
-            <span className="text-[10px] font-bold text-primary uppercase tracking-wider block truncate">
-              Received ({totalReceivedNotes} pcs)
+          {/* Received / Dispensed Total */}
+          <div className={cn(
+            "p-2.5 rounded-xl border",
+            isCancelMode ? "bg-amber-500/10 border-amber-500/30" : "bg-primary/10 border-primary/20"
+          )}>
+            <span className={cn(
+              "text-[10px] font-bold uppercase tracking-wider block truncate",
+              isCancelMode ? "text-amber-700 dark:text-amber-300" : "text-primary"
+            )}>
+              {isCancelMode ? `Dispensed (${totalReceivedNotes} pcs)` : `Received (${totalReceivedNotes} pcs)`}
             </span>
-            <span className="text-lg font-black font-mono text-primary block mt-0.5">₹{receivedTotal.toFixed(2)}</span>
+            <span className={cn(
+              "text-lg font-black font-mono block mt-0.5",
+              isCancelMode ? "text-amber-700 dark:text-amber-300" : "text-primary"
+            )}>
+              ₹{receivedTotal.toFixed(2)}
+            </span>
           </div>
 
           {/* Expected Change */}
           <div className={cn(
             "p-2.5 rounded-xl border transition-all",
-            expectedChange > 0
-              ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300"
-              : "bg-success-soft/30 border-success/30 text-success"
+            receivedTotal > 0
+              ? (expectedChange > 0
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300"
+                  : "bg-success-soft/30 border-success/30 text-success")
+              : (selectedTenderAmount > targetAmount
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300"
+                  : "bg-surface-alt/60 border-border text-text-muted")
           )}>
             <span className="text-[10px] font-bold uppercase tracking-wider block opacity-80 truncate">
-              {expectedChange > 0 ? "Change to Return" : "Change (Exact)"}
+              {isCancelMode
+                ? (receivedTotal > 0
+                    ? (expectedChange > 0 ? "Change from Customer" : "Exact Refund")
+                    : (selectedTenderAmount > targetAmount ? "Anticipated Customer Change" : "Change from Customer"))
+                : (receivedTotal > 0
+                    ? (expectedChange > 0 ? "Change to Return" : "Change (Exact)")
+                    : (selectedTenderAmount > targetAmount ? "Anticipated Change" : "Change to Return"))}
             </span>
-            <span className="text-lg font-black font-mono block mt-0.5">₹{expectedChange.toFixed(2)}</span>
+            <span className="text-lg font-black font-mono block mt-0.5">
+              ₹{receivedTotal > 0
+                ? expectedChange.toFixed(2)
+                : Math.max(0, selectedTenderAmount - targetAmount).toFixed(2)}
+            </span>
           </div>
 
           {/* Drawer Balance */}
@@ -425,23 +562,36 @@ export function CashBreakdownModal({
         <div className="flex items-center justify-between gap-2 p-2 bg-surface-alt/40 rounded-xl border border-border mb-3 shrink-0 flex-wrap">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[10.5px] font-bold uppercase tracking-wider text-text-muted px-1.5 flex items-center gap-1">
-              <Zap className="size-3 text-amber-500" /> Quick Tender:
+              <Zap className="size-3 text-amber-500" /> {isCancelMode ? "Suggest Refund:" : "Suggest Tender:"}
             </span>
-            {quickTenders.map((btn) => (
-              <button
-                key={btn.label}
-                type="button"
-                onClick={() => handleApplyTenderAmount(btn.amount)}
-                className={cn(
-                  "px-3 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer shadow-2xs",
-                  btn.isExact
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700"
-                    : "bg-surface hover:bg-surface-hover text-text border-border"
-                )}
-              >
-                {btn.label}
-              </button>
-            ))}
+            {quickTenders.map((btn) => {
+              const isSelected = btn.amount === selectedTenderAmount;
+              return (
+                <button
+                  key={btn.label}
+                  type="button"
+                  onClick={() => handleApplyTenderAmount(btn.amount)}
+                  className={cn(
+                    "px-3 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer shadow-2xs flex items-center gap-1.5",
+                    isSelected
+                      ? (isCancelMode
+                          ? "bg-amber-600 text-white border-amber-600 ring-2 ring-amber-500/40 shadow-xs"
+                          : "bg-primary text-primary-foreground border-primary ring-2 ring-primary/40 shadow-xs")
+                      : btn.isExact
+                      ? "bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
+                      : "bg-surface hover:bg-surface-hover text-text border-border"
+                  )}
+                  title={
+                    btn.isExact
+                      ? (isCancelMode ? "Suggest exact refund amount from drawer" : "Suggest exact bill amount")
+                      : `Suggest ₹${btn.amount}`
+                  }
+                >
+                  <span>{btn.label}</span>
+                  {isSelected && <Check className="size-3 stroke-[2.5]" />}
+                </button>
+              );
+            })}
           </div>
 
           <button
@@ -454,7 +604,7 @@ export function CashBreakdownModal({
             }}
             className="text-[11px] font-semibold text-text-muted hover:text-error px-2 py-1 flex items-center gap-1 transition-colors cursor-pointer"
           >
-            <RefreshCw className="size-3" /> Clear All
+            <RefreshCw className="size-3" /> Clear Notes
           </button>
         </div>
 
@@ -469,14 +619,29 @@ export function CashBreakdownModal({
         {/* ── 5. TWO-COLUMN WORKSPACE WITH INDEPENDENT SCROLLBARS ───── */}
         <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-4 overflow-hidden mb-3">
 
-          {/* LEFT: Customer Cash Received Denomination Tiles (7 cols, Fits without scroll) */}
-          <div className="md:col-span-7 flex flex-col h-full min-h-0 bg-surface-alt/30 p-3 rounded-2xl border border-border overflow-hidden">
+          {/* LEFT: Customer Cash Received or Drawer Refund Dispenser (6 cols in cancel, 7 cols in sale) */}
+          <div className={cn(
+            "flex flex-col h-full min-h-0 bg-surface-alt/30 p-3 rounded-2xl border border-border overflow-hidden",
+            isCancelMode ? "md:col-span-6" : "md:col-span-7"
+          )}>
             <div className="flex items-center justify-between pb-1.5 border-b border-border shrink-0">
-              <span className="text-xs font-bold text-text flex items-center gap-1.5">
-                <Banknote className="size-3.5 text-primary" /> Notes Given by Customer (Tap card to add +1)
-              </span>
-              <span className="text-xs font-mono font-bold text-primary">
-                Total: ₹{receivedTotal.toFixed(2)}
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-text flex items-center gap-1.5">
+                  <Banknote className={cn("size-3.5", isCancelMode ? "text-amber-600 dark:text-amber-400" : "text-primary")} />
+                  {isCancelMode ? "Cash Dispensed from Drawer (Refund to Customer)" : "Notes Given by Customer"}
+                </span>
+                <span className="text-[10px] text-text-muted block">
+                  {isCancelMode
+                    ? (receivedTotal === 0
+                        ? `Suggested refund: ₹${selectedTenderAmount.toLocaleString("en-IN")}. Tap cards below to select notes from drawer.`
+                        : "Notes dispensed from cash drawer to customer (drawer-capped).")
+                    : (receivedTotal === 0
+                        ? `Suggested tender: ₹${selectedTenderAmount.toLocaleString("en-IN")}. Tap cards below to add physical notes.`
+                        : "Tap cards to add +1, or type quantity directly.")}
+                </span>
+              </div>
+              <span className={cn("text-xs font-mono font-bold shrink-0", isCancelMode ? "text-amber-700 dark:text-amber-400" : "text-primary")}>
+                {isCancelMode ? "Dispensed" : "Total"}: ₹{receivedTotal.toFixed(2)}
               </span>
             </div>
 
@@ -487,16 +652,22 @@ export function CashBreakdownModal({
                 {DENOM_NOTES.map((d) => {
                   const count = Number(received[d]) || 0;
                   const theme = DENOM_THEMES[d];
+                  const avail = hasDrawerStock ? (Number(availableDenomsMap[d]) || 0) : Infinity;
+                  const isOutOfStock = isCancelMode && hasDrawerStock && avail === 0;
+                  const isMaxed = isCancelMode && hasDrawerStock && count >= avail;
 
                   return (
                     <div
                       key={`rec-${d}`}
-                      onClick={() => handleUpdateReceived(d, 1)}
+                      onClick={() => !isMaxed && !isOutOfStock && handleUpdateReceived(d, 1)}
                       className={cn(
-                        "rounded-lg border px-2 py-1.5 flex flex-col justify-between transition-all select-none cursor-pointer shadow-2xs hover:shadow-xs",
+                        "rounded-lg border px-2 py-1.5 flex flex-col justify-between transition-all select-none shadow-2xs hover:shadow-xs",
+                        isOutOfStock
+                          ? "bg-surface-alt/30 border-border/40 opacity-50 cursor-not-allowed"
+                          : "cursor-pointer",
                         count > 0
                           ? `${theme.bg} ${theme.border} ring-1.5 ring-primary/80 shadow-xs`
-                          : "bg-surface border-border hover:border-primary/50 hover:bg-surface-hover/60"
+                          : (!isOutOfStock ? "bg-surface border-border hover:border-primary/50 hover:bg-surface-hover/60" : "")
                       )}
                     >
                       {/* Top Row: Denomination & Subtotal / Count */}
@@ -512,6 +683,10 @@ export function CashBreakdownModal({
                         {count > 0 ? (
                           <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 py-0.2 rounded">
                             {count} pcs
+                          </span>
+                        ) : isCancelMode && hasDrawerStock ? (
+                          <span className={cn("text-[8.5px] font-medium", isOutOfStock ? "text-error font-bold" : "text-text-muted")}>
+                            {isOutOfStock ? "0 in drawer" : `${avail} left`}
                           </span>
                         ) : (
                           <span className="text-[8.5px] text-text-muted">+1</span>
@@ -538,20 +713,30 @@ export function CashBreakdownModal({
                         <input
                           type="number"
                           min="0"
+                          max={isCancelMode && hasDrawerStock ? avail : undefined}
                           value={count || ""}
                           onChange={(e) => handleSetReceivedDirect(d, e.target.value)}
                           onClick={(e) => e.stopPropagation()}
                           placeholder="0"
-                          className="w-9 h-5 text-center font-mono font-bold text-xs bg-surface border border-border rounded focus:border-primary focus:outline-none"
+                          disabled={isOutOfStock}
+                          className="w-9 h-5 text-center font-mono font-bold text-xs bg-surface border border-border rounded focus:border-primary focus:outline-none disabled:opacity-50"
                         />
 
                         <button
                           type="button"
+                          disabled={isMaxed || isOutOfStock}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleUpdateReceived(d, 1);
                           }}
-                          className="size-5 rounded flex items-center justify-center text-text-muted hover:text-success hover:bg-surface-hover cursor-pointer"
+                          className="size-5 rounded flex items-center justify-center text-text-muted hover:text-success hover:bg-surface-hover disabled:opacity-20 cursor-pointer"
+                          title={
+                            isOutOfStock
+                              ? `No ₹${d} notes in cash drawer`
+                              : isMaxed
+                              ? `Maximum ${avail} available in drawer`
+                              : `Add ₹${d}`
+                          }
                         >
                           <Plus className="size-2.5" />
                         </button>
@@ -569,24 +754,35 @@ export function CashBreakdownModal({
                 <div className="grid grid-cols-3 gap-1.5">
                   {DENOM_COINS.map((d) => {
                     const count = Number(received[d]) || 0;
+                    const avail = hasDrawerStock ? (Number(availableDenomsMap[d]) || 0) : Infinity;
+                    const isOutOfStock = isCancelMode && hasDrawerStock && avail === 0;
+                    const isMaxed = isCancelMode && hasDrawerStock && count >= avail;
+
                     return (
                       <div
                         key={`rec-${d}`}
-                        onClick={() => handleUpdateReceived(d, 1)}
+                        onClick={() => !isMaxed && !isOutOfStock && handleUpdateReceived(d, 1)}
                         className={cn(
-                          "rounded-lg border px-2 py-1 flex items-center justify-between transition-all select-none cursor-pointer",
+                          "rounded-lg border px-2 py-1 flex items-center justify-between transition-all select-none shadow-2xs hover:shadow-xs",
+                          isOutOfStock
+                            ? "bg-surface-alt/30 border-border/40 opacity-50 cursor-not-allowed"
+                            : "cursor-pointer",
                           count > 0
                             ? "bg-slate-500/10 border-slate-500/30 ring-1.5 ring-primary/80 shadow-xs"
-                            : "bg-surface border-border hover:border-primary/50 hover:bg-surface-hover/60"
+                            : (!isOutOfStock ? "bg-surface border-border hover:border-primary/50 hover:bg-surface-hover/60" : "")
                         )}
                       >
                         <div>
                           <span className="text-[11px] font-bold text-text flex items-center gap-0.5">
                             ₹{d}
                           </span>
-                          {count > 0 && (
+                          {count > 0 ? (
                             <span className="text-[8.5px] font-mono text-primary font-bold block">
                               ₹{d * count}
+                            </span>
+                          ) : isCancelMode && hasDrawerStock && (
+                            <span className="text-[8px] text-text-muted block">
+                              {isOutOfStock ? "0 in drawer" : `${avail} left`}
                             </span>
                           )}
                         </div>
@@ -609,11 +805,13 @@ export function CashBreakdownModal({
                           <span className="w-4 text-center font-mono font-bold text-[10.5px]">{count}</span>
                           <button
                             type="button"
+                            disabled={isMaxed || isOutOfStock}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleUpdateReceived(d, 1);
                             }}
-                            className="size-4.5 rounded flex items-center justify-center text-text-muted hover:text-success cursor-pointer"
+                            className="size-4.5 rounded flex items-center justify-center text-text-muted hover:text-success disabled:opacity-20 cursor-pointer"
+                            title={isOutOfStock ? `No ₹${d} coins in drawer` : isMaxed ? `Maximum ${avail} available` : `Add ₹${d}`}
                           >
                             <Plus className="size-2" />
                           </button>
@@ -626,157 +824,419 @@ export function CashBreakdownModal({
             </div>
           </div>
 
-          {/* RIGHT: Cash Drawer Change Dispenser (5 cols, Scrollable) */}
-          <div className="md:col-span-5 flex flex-col justify-between h-full min-h-0 bg-surface-alt/30 p-3.5 rounded-2xl border border-border overflow-hidden">
+          {/* RIGHT: Cash Drawer Change Dispenser / Customer Change Denomination Drawer (6 cols in cancel, 5 cols in sale) */}
+          <div className={cn(
+            "flex flex-col justify-between h-full min-h-0 bg-surface-alt/30 p-3 rounded-2xl border border-border overflow-hidden",
+            isCancelMode ? "md:col-span-6" : "md:col-span-5"
+          )}>
             <div className="flex flex-col min-h-0 flex-1">
+              {/* Compact Header: Title + Inline Status Pill + Compact Due/Selected Amounts */}
               <div className="flex items-center justify-between pb-1.5 border-b border-border shrink-0">
-                <span className="text-xs font-bold text-text flex items-center gap-1.5">
-                  <ArrowRight className="size-3.5 text-amber-600" /> Return to Customer
-                </span>
-                <span className="text-sm font-black font-mono text-amber-700 dark:text-amber-300">
-                  ₹{expectedChange.toFixed(2)}
-                </span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {isCancelMode ? (
+                    <RotateCcw className="size-3.5 text-emerald-600 shrink-0" />
+                  ) : (
+                    <ArrowRight className="size-3.5 text-amber-600 shrink-0" />
+                  )}
+                  <span className="text-xs font-bold text-text truncate">
+                    {isCancelMode ? "Change Received from Customer" : "Return to Customer"}
+                  </span>
+                  {isCancelMode && (
+                    receivedTotal === 0 ? (
+                      <span className="text-[9.5px] text-text-muted bg-surface-alt px-1.5 py-0.2 rounded font-medium shrink-0">
+                        Dispense left first
+                      </span>
+                    ) : expectedChange === 0 && returnedTotal === 0 ? (
+                      <span className="text-[9.5px] text-success bg-success-soft/50 border border-success/30 px-1.5 py-0.2 rounded font-bold shrink-0 inline-flex items-center gap-0.5">
+                        <CheckCircle2 className="size-2.5" /> Exact (₹0)
+                      </span>
+                    ) : returnedTotal === expectedChange ? (
+                      <span className="text-[9.5px] text-success bg-success-soft/50 border border-success/30 px-1.5 py-0.2 rounded font-bold shrink-0 inline-flex items-center gap-0.5">
+                        <CheckCircle2 className="size-2.5" /> Balanced
+                      </span>
+                    ) : returnedTotal < expectedChange ? (
+                      <span className="text-[9.5px] text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.2 rounded font-bold shrink-0">
+                        Short ₹{(expectedChange - returnedTotal).toFixed(0)}
+                      </span>
+                    ) : (
+                      <span className="text-[9.5px] text-error bg-error-soft border border-error/30 px-1.5 py-0.2 rounded font-bold shrink-0">
+                        Over ₹{(returnedTotal - expectedChange).toFixed(0)}
+                      </span>
+                    )
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {isCancelMode ? (
+                    <div className="flex items-center gap-1.5 text-right text-xs">
+                      <span className="text-[10px] text-text-muted">
+                        Due: <strong className="font-mono text-emerald-700 dark:text-emerald-300 font-bold">₹{expectedChange.toFixed(2)}</strong>
+                      </span>
+                      <span className="text-text-muted/40 text-[10px]">|</span>
+                      <span className="text-[10px] text-text-muted">
+                        Selected: <strong className={cn("font-mono font-bold", returnedTotal === expectedChange && expectedChange > 0 ? "text-success" : "text-text")}>₹{returnedTotal.toFixed(2)}</strong>
+                      </span>
+                      {returnedTotal > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setReturned({})}
+                          className="text-[9.5px] font-bold text-text-muted hover:text-error px-1 py-0.2 rounded border border-border hover:border-error/40 bg-surface cursor-pointer ml-1"
+                          title="Clear customer change"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-sm font-black font-mono text-amber-700 dark:text-amber-300">
+                      ₹{receivedTotal > 0
+                        ? expectedChange.toFixed(2)
+                        : Math.max(0, selectedTenderAmount - targetAmount).toFixed(2)}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {/* Scrollable Dispense Plan */}
-              <div className="flex-1 overflow-y-auto min-h-0 space-y-2 my-2 pr-1">
-                {expectedChange === 0 ? (
-                  <div className="p-4 rounded-xl border border-success/30 bg-success-soft/20 text-center space-y-1 my-auto">
-                    <CheckCircle2 className="size-6 text-success mx-auto" />
-                    <p className="text-xs font-bold text-success">Exact Cash Received</p>
-                    <p className="text-[11px] text-text-muted">No change required. Accept cash and bill.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-text-muted font-medium">
-                        Drawer Dispense Plan ({totalReturnedNotes} pcs):
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIsCustomizingChange(!isCustomizingChange)}
-                        className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline cursor-pointer"
-                      >
-                        <SlidersHorizontal className="size-3" />
-                        {isCustomizingChange ? "Auto-Suggest" : "Customize"}
-                      </button>
-                    </div>
+              {/* Right Column Content */}
+              {isCancelMode ? (
+                /* ── CANCEL / REFUND MODE: Full-Space Interactive Customer Change Grid (Parity with Left Drawer) ── */
+                <div className="flex-1 overflow-y-auto min-h-0 p-1.5 space-y-2">
+                  {/* Currency Notes Grid (Compact 3x2, fits without scroll) */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {DENOM_NOTES.map((d) => {
+                      const count = Number(returned[d]) || 0;
+                      const theme = DENOM_THEMES[d];
 
-                    {/* Notes Breakup Badges */}
-                    <div className="space-y-1.5">
-                      {returnedEntries.map(([denom, qty]) => {
-                        const d = Number(denom);
-                        const avail = availableDenomsMap[d];
-                        return (
-                          <div
-                            key={`dispense-${denom}`}
-                            className="flex items-center justify-between p-2 rounded-xl bg-surface border border-border shadow-2xs"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-black text-text px-1.5 py-0.5 rounded bg-surface-alt border border-border">
-                                ₹{d}
-                              </span>
-                              <span className="text-xs font-bold text-amber-700 dark:text-amber-300">
-                                × {qty} note{qty !== 1 ? "s" : ""}
-                              </span>
-                            </div>
-                            <div className="text-right">
-                              <span className="font-mono font-bold text-xs text-text">
-                                ₹{d * qty}
-                              </span>
-                              {avail !== undefined && (
-                                <span className="text-[9px] text-text-muted block">
-                                  In drawer: {avail}
+                      return (
+                        <div
+                          key={`cust-change-note-${d}`}
+                          onClick={() => handleUpdateReturned(d, 1)}
+                          className={cn(
+                            "rounded-lg border px-2 py-1.5 flex flex-col justify-between transition-all select-none cursor-pointer shadow-2xs hover:shadow-xs",
+                            count > 0
+                              ? "bg-emerald-500/10 border-emerald-500/40 ring-1.5 ring-emerald-500/80 shadow-xs"
+                              : "bg-surface border-border hover:border-emerald-500/50 hover:bg-surface-hover/60"
+                          )}
+                          title={`Click to add 1 ₹${d} note from customer`}
+                        >
+                          {/* Top Row: Denomination & Subtotal / Count */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-xs font-black text-text">₹{d}</span>
+                              {count > 0 && (
+                                <span className="text-[9.5px] font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                                  ₹{d * count}
                                 </span>
                               )}
+                            </div>
+                            {count > 0 ? (
+                              <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 px-1 py-0.2 rounded">
+                                {count} pcs
+                              </span>
+                            ) : (
+                              <span className="text-[8.5px] text-text-muted">+1</span>
+                            )}
+                          </div>
+
+                          {/* Stepper Controls */}
+                          <div
+                            className="flex items-center justify-between gap-0.5 mt-1 pt-1 border-t border-border/40"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              disabled={count === 0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUpdateReturned(d, -1);
+                              }}
+                              className="size-5 rounded flex items-center justify-center text-text-muted hover:text-error hover:bg-surface-hover disabled:opacity-20 cursor-pointer"
+                              title={`Subtract 1 ₹${d}`}
+                            >
+                              <Minus className="size-2.5" />
+                            </button>
+
+                            <input
+                              type="number"
+                              min="0"
+                              value={count || ""}
+                              onChange={(e) => {
+                                const num = Math.max(0, parseInt(e.target.value, 10) || 0);
+                                setReturned((prev) => {
+                                  const next = { ...prev };
+                                  if (num === 0) delete next[d];
+                                  else next[d] = num;
+                                  return next;
+                                });
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              placeholder="0"
+                              className="w-9 h-5 text-center font-mono font-bold text-xs bg-surface border border-border rounded focus:border-emerald-500 focus:outline-none"
+                            />
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUpdateReturned(d, 1);
+                              }}
+                              className="size-5 rounded flex items-center justify-center text-text-muted hover:text-emerald-600 hover:bg-surface-hover cursor-pointer"
+                              title={`Add 1 ₹${d}`}
+                            >
+                              <Plus className="size-2.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Coins Row */}
+                  <div className="pt-0.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted block mb-1 flex items-center gap-1">
+                      <Coins className="size-2.5 text-emerald-600" /> Coins (₹5, ₹2, ₹1)
+                    </span>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {DENOM_COINS.map((d) => {
+                        const count = Number(returned[d]) || 0;
+
+                        return (
+                          <div
+                            key={`cust-change-coin-${d}`}
+                            onClick={() => handleUpdateReturned(d, 1)}
+                            className={cn(
+                              "rounded-lg border px-2 py-1 flex items-center justify-between transition-all select-none cursor-pointer shadow-2xs hover:shadow-xs",
+                              count > 0
+                                ? "bg-emerald-500/10 border-emerald-500/40 ring-1.5 ring-emerald-500/80 shadow-xs"
+                                : "bg-surface border-border hover:border-emerald-500/50 hover:bg-surface-hover/60"
+                            )}
+                            title={`Click to add 1 ₹${d} coin from customer`}
+                          >
+                            <div>
+                              <span className="text-[11px] font-bold text-text flex items-center gap-0.5">
+                                ₹{d}
+                              </span>
+                              {count > 0 && (
+                                <span className="text-[8.5px] font-mono text-emerald-700 dark:text-emerald-300 font-bold block">
+                                  ₹{d * count}
+                                </span>
+                              )}
+                            </div>
+
+                            <div
+                              className="flex items-center gap-0.5"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                type="button"
+                                disabled={count === 0}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateReturned(d, -1);
+                                }}
+                                className="size-4.5 rounded flex items-center justify-center text-text-muted hover:text-error disabled:opacity-20 cursor-pointer"
+                              >
+                                <Minus className="size-2" />
+                              </button>
+                              <span className="w-4 text-center font-mono font-bold text-[10.5px]">{count}</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateReturned(d, 1);
+                                }}
+                                className="size-4.5 rounded flex items-center justify-center text-text-muted hover:text-emerald-600 cursor-pointer"
+                              >
+                                <Plus className="size-2" />
+                              </button>
                             </div>
                           </div>
                         );
                       })}
                     </div>
-
-                    {/* Manual adjustment section (if customized) */}
-                    {isCustomizingChange && (
-                      <div className="p-2.5 rounded-xl border border-dashed border-amber-500/40 bg-surface space-y-2 mt-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 block">
-                            Adjust Notes Manually (Drawer Capped)
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setReturned(decomposeChangeWithDrawer(expectedChange, availableDenomsMap));
-                              setIsCustomizingChange(false);
-                            }}
-                            className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
-                          >
-                            Auto-Fix
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-0.5">
-                          {ALL_DENOMS.map((d) => {
-                            const count = Number(returned[d]) || 0;
-                            const avail = Number(availableDenomsMap[d]) || 0;
-                            const isOutOfStock = hasDrawerStock && avail === 0;
-                            const isMaxed = hasDrawerStock && count >= avail;
-
-                            return (
-                              <div
-                                key={`adj-${d}`}
-                                className={cn(
-                                  "flex items-center justify-between p-1.5 border rounded-lg text-xs transition-colors",
-                                  isOutOfStock
-                                    ? "bg-surface-alt/30 border-border/40 opacity-50"
-                                    : "bg-surface-alt/60 border-border"
-                                )}
-                              >
-                                <div>
-                                  <span className="font-bold text-[11px] block">₹{d}</span>
-                                  <span className="text-[9px] text-text-muted block">
-                                    {hasDrawerStock ? `In drawer: ${avail}` : "Uncapped"}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    disabled={count === 0}
-                                    onClick={() => handleUpdateReturned(d, -1)}
-                                    className="size-4.5 rounded flex items-center justify-center text-text-muted hover:text-error disabled:opacity-20 cursor-pointer"
-                                  >
-                                    <Minus className="size-2.5" />
-                                  </button>
-                                  <span className="font-mono font-bold w-4 text-center text-[11px]">{count}</span>
-                                  <button
-                                    type="button"
-                                    disabled={isMaxed || isOutOfStock}
-                                    onClick={() => handleUpdateReturned(d, 1)}
-                                    className="size-4.5 rounded flex items-center justify-center text-text-muted hover:text-success disabled:opacity-20 cursor-pointer"
-                                    title={
-                                      isOutOfStock
-                                        ? `No ₹${d} notes in cash drawer`
-                                        : isMaxed
-                                        ? `Maximum ${avail} available in cash drawer`
-                                        : `Add ₹${d}`
-                                    }
-                                  >
-                                    <Plus className="size-2.5" />
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto min-h-0 space-y-2 my-2 pr-1">
+                  {/* ── SALE MODE: Standard Drawer Dispense Plan with Auto-Suggest ── */}
+                  {receivedTotal === 0 ? (
+                    <div className="p-4 rounded-xl border border-dashed border-border bg-surface-alt/40 text-center space-y-2 my-auto">
+                      <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                        <Banknote className="size-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-text">
+                          {selectedTenderAmount > targetAmount
+                            ? `Anticipated Change: ₹${(selectedTenderAmount - targetAmount).toFixed(2)}`
+                            : "Exact Tender Selected (₹0.00 Change)"}
+                        </p>
+                        <p className="text-[11px] text-text-muted mt-0.5">
+                          {selectedTenderAmount > targetAmount
+                            ? `Customer suggested to pay ₹${selectedTenderAmount.toLocaleString("en-IN")}. Count & enter physical notes on left.`
+                            : "Please count and enter physical notes received from customer on the left."}
+                        </p>
+                      </div>
+                      {selectedTenderAmount > targetAmount && (
+                        <div className="p-2 rounded-lg bg-surface border border-border text-[11px] text-left space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
+                            Anticipated Drawer Return Plan:
+                          </span>
+                          {Object.entries(decomposeChangeWithDrawer(selectedTenderAmount - targetAmount, availableDenomsMap))
+                            .filter(([, q]) => Number(q) > 0)
+                            .map(([d, q]) => (
+                              <div key={`anticipate-${d}`} className="flex justify-between text-xs font-mono font-bold text-amber-700 dark:text-amber-300">
+                                <span>₹{d} note</span>
+                                <span>× {q} note{Number(q) > 1 ? "s" : ""}</span>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : expectedChange === 0 ? (
+                    <div className="p-4 rounded-xl border border-success/30 bg-success-soft/20 text-center space-y-1 my-auto">
+                      <CheckCircle2 className="size-6 text-success mx-auto" />
+                      <p className="text-xs font-bold text-success">Exact Cash Tendered</p>
+                      <p className="text-[11px] text-text-muted">No change required. All notes counted and balanced.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-text-muted font-medium">
+                          Drawer Dispense Plan ({totalReturnedNotes} pcs):
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsCustomizingChange(!isCustomizingChange)}
+                          className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline cursor-pointer"
+                        >
+                          <SlidersHorizontal className="size-3" />
+                          {isCustomizingChange ? "Auto-Suggest" : "Customize"}
+                        </button>
+                      </div>
+
+                      {/* Notes Breakup Badges */}
+                      <div className="space-y-1.5">
+                        {returnedEntries.map(([denom, qty]) => {
+                          const d = Number(denom);
+                          const avail = availableDenomsMap[d];
+                          return (
+                            <div
+                              key={`dispense-${denom}`}
+                              className="flex items-center justify-between p-2 rounded-xl bg-surface border border-border shadow-2xs"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-black text-text px-1.5 py-0.5 rounded bg-surface-alt border border-border">
+                                  ₹{d}
+                                </span>
+                                <span className="text-xs font-bold text-amber-700 dark:text-amber-300">
+                                  × {qty} note{qty !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-mono font-bold text-xs text-text">
+                                  ₹{d * qty}
+                                </span>
+                                {avail !== undefined && (
+                                  <span className="text-[9px] text-text-muted block">
+                                    In drawer: {avail}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Manual adjustment section (if customized) */}
+                      {isCustomizingChange && (
+                        <div className="p-2.5 rounded-xl border border-dashed border-amber-500/40 bg-surface space-y-2 mt-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 block">
+                              Adjust Notes Manually (Drawer Capped)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReturned(decomposeChangeWithDrawer(expectedChange, availableDenomsMap));
+                                setIsCustomizingChange(false);
+                              }}
+                              className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
+                            >
+                              Auto-Fix
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-0.5">
+                            {ALL_DENOMS.map((d) => {
+                              const count = Number(returned[d]) || 0;
+                              const avail = Number(availableDenomsMap[d]) || 0;
+                              const isOutOfStock = hasDrawerStock && avail === 0;
+                              const isMaxed = hasDrawerStock && count >= avail;
+
+                              return (
+                                <div
+                                  key={`adj-${d}`}
+                                  className={cn(
+                                    "flex items-center justify-between p-1.5 border rounded-lg text-xs transition-colors",
+                                    isOutOfStock
+                                      ? "bg-surface-alt/30 border-border/40 opacity-50"
+                                      : "bg-surface-alt/60 border-border"
+                                  )}
+                                >
+                                  <div>
+                                    <span className="font-bold text-[11px] block">₹{d}</span>
+                                    <span className="text-[9px] text-text-muted block">
+                                      {hasDrawerStock ? `In drawer: ${avail}` : "Uncapped"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      disabled={count === 0}
+                                      onClick={() => handleUpdateReturned(d, -1)}
+                                      className="size-4.5 rounded flex items-center justify-center text-text-muted hover:text-error disabled:opacity-20 cursor-pointer"
+                                    >
+                                      <Minus className="size-2.5" />
+                                    </button>
+                                    <span className="font-mono font-bold w-4 text-center text-[11px]">{count}</span>
+                                    <button
+                                      type="button"
+                                      disabled={isMaxed || isOutOfStock}
+                                      onClick={() => handleUpdateReturned(d, 1)}
+                                      className="size-4.5 rounded flex items-center justify-center text-text-muted hover:text-success disabled:opacity-20 cursor-pointer"
+                                      title={
+                                        isOutOfStock
+                                          ? `No ₹${d} notes in cash drawer`
+                                          : isMaxed
+                                          ? `Maximum ${avail} available in cash drawer`
+                                          : `Add ₹${d}`
+                                      }
+                                    >
+                                      <Plus className="size-2.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Net Settlement Strip */}
             <div className="pt-2 border-t border-border flex items-center justify-between text-xs shrink-0">
-              <span className="text-text-muted font-medium">Net Kept in Drawer:</span>
-              <span className="text-sm font-black font-mono text-primary">₹{netApplied.toFixed(2)}</span>
+              <span className="text-text-muted font-medium">
+                {isCancelMode ? "Net Deducted from Drawer:" : "Net Kept in Drawer:"}
+              </span>
+              <span className={cn(
+                "text-sm font-black font-mono",
+                isCancelMode ? "text-amber-700 dark:text-amber-400" : "text-primary"
+              )}>
+                ₹{netApplied.toFixed(2)}
+              </span>
             </div>
           </div>
         </div>
@@ -792,39 +1252,49 @@ export function CashBreakdownModal({
           <div className="flex-1 flex items-center justify-center min-w-0 px-2">
             {receivedTotal <= 0 ? (
               <span className="text-xs text-text-muted italic truncate">
-                Select denominations received from customer
+                {isCancelMode
+                  ? "Select refund denominations to dispense from cash drawer"
+                  : "Select denominations received from customer"}
               </span>
             ) : receivedTotal < targetAmount ? (
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-medium max-w-full truncate">
                 <AlertCircle className="size-3.5 shrink-0 text-amber-600" />
                 <span className="truncate">
-                  Tender ₹{receivedTotal.toFixed(2)} — short by ₹{(Number(targetAmount) - receivedTotal).toFixed(2)}
+                  {isCancelMode
+                    ? `Dispensed ₹${receivedTotal.toFixed(2)} — short by ₹${(Number(targetAmount) - receivedTotal).toFixed(2)}`
+                    : `Tender ₹${receivedTotal.toFixed(2)} — short by ₹${(Number(targetAmount) - receivedTotal).toFixed(2)}`}
                 </span>
               </div>
             ) : returnedTotal !== expectedChange ? (
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-error-soft border border-error/30 text-error text-xs font-medium max-w-full">
                 <AlertCircle className="size-3.5 shrink-0" />
                 <span className="truncate">
-                  {hasDrawerStock && expectedChange > 0 && returnedTotal < expectedChange
-                    ? `Drawer lacks change: selected ₹${returnedTotal.toFixed(2)} of ₹${expectedChange.toFixed(2)}`
-                    : `Change mismatch: ₹${returnedTotal.toFixed(2)} of ₹${expectedChange.toFixed(2)}`}
+                  {isCancelMode
+                    ? `Customer change mismatch: selected ₹${returnedTotal.toFixed(2)} of ₹${expectedChange.toFixed(2)}`
+                    : (hasDrawerStock && expectedChange > 0 && returnedTotal < expectedChange
+                        ? `Drawer lacks change: selected ₹${returnedTotal.toFixed(2)} of ₹${expectedChange.toFixed(2)}`
+                        : `Change mismatch: ₹${returnedTotal.toFixed(2)} of ₹${expectedChange.toFixed(2)}`)}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setReturned(decomposeChangeWithDrawer(expectedChange, availableDenomsMap));
-                    setIsCustomizingChange(false);
-                  }}
-                  className="text-xs font-bold text-primary underline cursor-pointer shrink-0 hover:text-primary-hover ml-1"
-                >
-                  Auto-Fix
-                </button>
+                {!isCancelMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReturned(decomposeChangeWithDrawer(expectedChange, availableDenomsMap));
+                      setIsCustomizingChange(false);
+                    }}
+                    className="text-xs font-bold text-primary underline cursor-pointer shrink-0 hover:text-primary-hover ml-1"
+                  >
+                    Auto-Fix
+                  </button>
+                )}
               </div>
             ) : (
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success-soft/80 border border-success/30 text-success text-xs font-medium max-w-full truncate">
                 <CheckCircle2 className="size-3.5 shrink-0 text-success" />
                 <span className="font-semibold truncate">
-                  Ready to finalize cash tender: Net ₹{netApplied.toFixed(2)}
+                  {isCancelMode
+                    ? `Ready to finalize refund: ₹${netApplied.toFixed(2)} will be deducted from cash drawer`
+                    : `Ready to finalize cash tender: Net ₹${netApplied.toFixed(2)}`}
                 </span>
                 <span className="text-[11px] font-bold opacity-80 shrink-0">✓ Balanced</span>
               </div>
@@ -833,14 +1303,16 @@ export function CashBreakdownModal({
 
           {/* Right: Confirm Cash Action Button */}
           <UIButton
-            variant="success"
+            variant={isCancelMode ? "destructive" : "success"}
             size="sm"
             onClick={handleConfirm}
             className="px-6 font-bold shrink-0"
             disabled={isConfirmDisabled}
             startIcon={<CheckCircle2 className="size-4" />}
           >
-            Confirm Cash (₹{netApplied.toFixed(2)})
+            {isCancelMode
+              ? `Confirm Refund & Deduct (₹${netApplied.toFixed(2)})`
+              : `Confirm Cash (₹${netApplied.toFixed(2)})`}
           </UIButton>
         </div>
 

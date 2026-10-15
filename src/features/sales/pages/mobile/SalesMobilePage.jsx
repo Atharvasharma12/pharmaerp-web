@@ -47,9 +47,18 @@ import { getOpenBusinessDay } from "@/features/operations/business-days/store/bu
 import OpenBusinessDayDialog from "@/features/operations/business-days/components/OpenBusinessDayDialog";
 import { CreateShiftDialog } from "@/features/operations/shifts/components/CreateShiftDialog";
 import { API_STATUS } from "@/constants";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import invoiceService from "@/features/sales/services/invoiceService";
 
 export const SalesMobilePage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { invoiceId: routeInvoiceId } = useParams();
+  const initialInvoice = location.state?.invoice;
+  const [editInvoiceData, setEditInvoiceData] = useState(initialInvoice || null);
+  const isEditMode = Boolean(routeInvoiceId || initialInvoice);
+  const [isLoadingInvoice, setIsLoadingInvoice] = useState(!initialInvoice && Boolean(routeInvoiceId));
+
   const [activeTab, setActiveTab] = useState("catalog"); // "catalog" | "cart"
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -223,23 +232,79 @@ export const SalesMobilePage = () => {
     executeResumeBill(pendingResumeBill);
   };
 
+  useEffect(() => {
+    if (!routeInvoiceId) return;
+    let isMounted = true;
+    const fetchInvoice = async () => {
+      if (!initialInvoice) setIsLoadingInvoice(true);
+      try {
+        const res = await invoiceService.getInvoiceById(routeInvoiceId);
+        const inv = res?.data?.data || res?.data || null;
+        if (!inv || !isMounted) return;
+        setEditInvoiceData(inv);
+        if (inv.customerId) {
+          const cust = typeof inv.customerId === "object" ? inv.customerId : { _id: inv.customerId, name: inv.customerName || inv.customer };
+          setSelectedCustomer({
+            ...cust,
+            id: cust._id || cust.id,
+            name: cust.name || inv.customerName || inv.customer,
+            phone: cust.mobile || cust.phone || inv.customerPhone || inv.phone || "",
+          });
+        }
+        if (Array.isArray(inv.items)) {
+          setCart(inv.items.map((i) => ({
+            ...i,
+            id: i.productId || i._id || i.id,
+            qty: i.qty || 1,
+            price: i.price || 0,
+          })));
+        }
+      } catch (err) {
+        console.warn("Mobile invoice fetch error:", err);
+      } finally {
+        if (isMounted) setIsLoadingInvoice(false);
+      }
+    };
+    fetchInvoice();
+    return () => { isMounted = false; };
+  }, [routeInvoiceId]);
+
   const handleCompleteSale = async (saleData) => {
     setIsCheckoutOpen(false);
     let savedSale = null;
     try {
-      const targetCustomerId = saleData.customer?._id || saleData.customer?.id;
+      const targetCustomerId =
+        saleData.customer?._id ||
+        saleData.customer?.id ||
+        selectedCustomer?._id ||
+        selectedCustomer?.id ||
+        editInvoiceData?.customerId?._id ||
+        editInvoiceData?.customerId;
+
+      const targetInvoiceId =
+        editInvoiceData?._id ||
+        editInvoiceData?.id ||
+        initialInvoice?.id ||
+        initialInvoice?._id ||
+        routeInvoiceId;
+
       if (targetCustomerId) {
-        const res = await invoiceService.recordCustomerSale(targetCustomerId, saleData);
-        savedSale = res?.data?.data || res?.data || null;
+        if (isEditMode && targetInvoiceId) {
+          const res = await invoiceService.updateCustomerSale(targetCustomerId, targetInvoiceId, saleData);
+          savedSale = res?.data?.data || res?.data || null;
+        } else {
+          const res = await invoiceService.recordCustomerSale(targetCustomerId, saleData);
+          savedSale = res?.data?.data || res?.data || null;
+        }
       }
     } catch (err) {
-      console.warn("Mobile sale record error:", err);
+      console.warn("Mobile sale record/update error:", err);
     }
     const finalData = savedSale ? { ...saleData, ...savedSale } : saleData;
     setCompletedSale(finalData);
     setIsReceiptOpen(true);
     setCart([]);
-    setToastMessage(`✅ Sale completed (${finalData.invoiceNo || saleData.invoiceNo})`);
+    setToastMessage(isEditMode ? `✅ Invoice updated (${finalData.invoiceNo || saleData.invoiceNo})` : `✅ Sale completed (${finalData.invoiceNo || saleData.invoiceNo})`);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
@@ -326,8 +391,30 @@ export const SalesMobilePage = () => {
 
       {/* Header & Mode Switcher */}
       <div className="space-y-2">
+        {isEditMode && (
+          <div className="px-3 py-2 bg-amber-500/10 border border-amber-500/25 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-md bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider">
+                Editing
+              </span>
+              <span className="text-xs font-bold text-text font-mono">
+                {editInvoiceData?.invoiceNo || initialInvoice?.invoiceNo || routeInvoiceId}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/billing")}
+              className="text-xs font-semibold text-text-muted hover:text-text"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-extrabold text-text tracking-tight">POS Terminal</h1>
+          <h1 className="text-xl font-extrabold text-text tracking-tight">
+            {isEditMode ? "Edit Invoice" : "POS Terminal"}
+          </h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -527,13 +614,20 @@ export const SalesMobilePage = () => {
         onClose={() => setIsCheckoutOpen(false)}
         customer={selectedCustomer}
         cartSummary={{ items: cart, subtotal: cartSubtotal }}
+        existingInvoiceNo={editInvoiceData?.invoiceNo || initialInvoice?.invoiceNo}
         onCompleteSale={handleCompleteSale}
       />
 
       <OrderInvoiceModal
         isOpen={isReceiptOpen}
-        onClose={() => setIsReceiptOpen(false)}
-        onNewSale={() => setIsReceiptOpen(false)}
+        onClose={() => {
+          setIsReceiptOpen(false);
+          if (isEditMode) navigate("/billing");
+        }}
+        onNewSale={() => {
+          setIsReceiptOpen(false);
+          if (isEditMode) navigate("/billing");
+        }}
         saleData={completedSale}
       />
 

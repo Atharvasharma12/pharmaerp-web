@@ -28,6 +28,8 @@ import {
   ChevronRight,
   PauseCircle,
   Play,
+  AlertCircle,
+  ArrowLeft,
 } from "lucide-react";
 import {
   UICard,
@@ -68,12 +70,13 @@ import {
 import { useHoldBills } from "../../hooks/useHoldBills";
 import OpenBusinessDayDialog from "@/features/operations/business-days/components/OpenBusinessDayDialog";
 import { CreateShiftDialog } from "@/features/operations/shifts/components/CreateShiftDialog";
+import { QuickCreateDoctorModal } from "@/features/doctors/components/QuickCreateDoctorModal";
 
 import customerService from "@/features/parties/customers/services/customerService";
 import invoiceService from "@/features/sales/services/invoiceService";
 import workspaceProductService from "@/features/workspace-products/services/workspaceProductService";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useCompany from "@/features/company/hooks/useCompany";
 import { useActiveShift } from "@/features/operations/shifts/hooks/useActiveShift";
@@ -136,6 +139,7 @@ const computeSchemeDiscount = (qty, schemePercent) => {
 const QuickCreateCustomerModal = ({ open, onClose, defaultName, customerType, billingMode = "B2C", onSuccess }) => {
   const [name, setName] = useState(defaultName || "");
   const [mobile, setMobile] = useState("");
+  const [address, setAddress] = useState("");
   const [gstNumber, setGstNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -153,6 +157,7 @@ const QuickCreateCustomerModal = ({ open, onClose, defaultName, customerType, bi
         setName(trimmed);
         setMobile("");
       }
+      setAddress("");
       setGstNumber("");
       setError(null);
     }
@@ -169,6 +174,12 @@ const QuickCreateCustomerModal = ({ open, onClose, defaultName, customerType, bi
         customerType: customerType,
       };
       if (mobile.trim()) payload.mobile = mobile.trim();
+      if (address.trim()) {
+        payload.billingAddress = {
+          addressLine1: address.trim(),
+        };
+        payload.address = address.trim();
+      }
       if (gstNumber.trim() && billingMode === "B2B") payload.gstNumber = gstNumber.trim().toUpperCase();
 
       const res = await customerService.createCustomer(payload);
@@ -237,6 +248,16 @@ const QuickCreateCustomerModal = ({ open, onClose, defaultName, customerType, bi
               </div>
             )}
           </div>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block">Address</label>
+            <input
+              type="text"
+              value={address}
+              onChange={e => setAddress(e.target.value)}
+              placeholder="e.g. 123 Health Ave, Clinic Road (Optional)"
+              className="w-full h-9 rounded-lg border border-border px-3 text-sm bg-surface text-text focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all"
+            />
+          </div>
         </UIModalBody>
         <UIModalFooter>
           <UIButton type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>Cancel</UIButton>
@@ -251,9 +272,13 @@ const QuickCreateCustomerModal = ({ open, onClose, defaultName, customerType, bi
 
 export const SalesDesktopPage = () => {
   const location = useLocation();
+  const { invoiceId: routeInvoiceId } = useParams();
   const initialInvoice = location.state?.invoice;
   const initialResumeHeldBill = location.state?.resumeHeldBill;
-  const isEditMode = Boolean(initialInvoice);
+  const [editInvoiceData, setEditInvoiceData] = useState(initialInvoice || null);
+  const isEditMode = Boolean(routeInvoiceId || initialInvoice);
+  const [isLoadingInvoice, setIsLoadingInvoice] = useState(!initialInvoice && Boolean(routeInvoiceId));
+  const [loadInvoiceError, setLoadInvoiceError] = useState(null);
 
   const [billingMode, setBillingMode] = useState(
     initialResumeHeldBill?.billingMode || initialInvoice?.billingMode || "B2C"
@@ -267,8 +292,16 @@ export const SalesDesktopPage = () => {
     if (initialResumeHeldBill && initialResumeHeldBill.billingMode !== "B2B") {
       return initialResumeHeldBill.customer || null;
     }
-    if (initialInvoice?.billingMode !== "B2B" && (initialInvoice?.customerId || initialInvoice?.customer)) {
-      return { id: initialInvoice.customerId || "legacy", _id: initialInvoice.customerId || "legacy", name: initialInvoice.customer || "Walk-in Customer", mobile: initialInvoice.phone };
+    const inv = initialInvoice;
+    if (inv?.billingMode !== "B2B" && (inv?.customerId || inv?.customer || inv?.customerObj)) {
+      const cObj = inv.customerObj || (typeof inv.customerId === "object" ? inv.customerId : null);
+      return {
+        id: cObj?._id || inv.customerId || "legacy",
+        _id: cObj?._id || inv.customerId || "legacy",
+        name: inv.customerName || inv.customer || cObj?.name || "Walk-in Customer",
+        mobile: inv.customerPhone || inv.phone || cObj?.mobile || "",
+        ...(cObj || {}),
+      };
     }
     return null;
   });
@@ -277,8 +310,16 @@ export const SalesDesktopPage = () => {
     if (initialResumeHeldBill && initialResumeHeldBill.billingMode === "B2B") {
       return initialResumeHeldBill.customer || null;
     }
-    if (initialInvoice?.billingMode === "B2B" && (initialInvoice?.customerId || initialInvoice?.customer)) {
-      return { id: initialInvoice.customerId || "legacy", _id: initialInvoice.customerId || "legacy", name: initialInvoice.customer, mobile: initialInvoice.phone };
+    const inv = initialInvoice;
+    if (inv?.billingMode === "B2B" && (inv?.customerId || inv?.customer || inv?.customerObj)) {
+      const cObj = inv.customerObj || (typeof inv.customerId === "object" ? inv.customerId : null);
+      return {
+        id: cObj?._id || inv.customerId || "legacy",
+        _id: cObj?._id || inv.customerId || "legacy",
+        name: inv.customerName || inv.customer || cObj?.name,
+        mobile: inv.customerPhone || inv.phone || cObj?.mobile,
+        ...(cObj || {}),
+      };
     }
     return null;
   });
@@ -330,6 +371,17 @@ export const SalesDesktopPage = () => {
   const [doctorName, setDoctorName] = useState(
     initialResumeHeldBill?.doctorName || initialInvoice?.doctorName || ""
   );
+  const [selectedDoctor, setSelectedDoctor] = useState(() => {
+    if (initialResumeHeldBill?.doctorId) {
+      return { id: initialResumeHeldBill.doctorId, _id: initialResumeHeldBill.doctorId, name: initialResumeHeldBill.doctorName };
+    }
+    if (initialInvoice?.doctorId) {
+      return { id: initialInvoice.doctorId, _id: initialInvoice.doctorId, name: initialInvoice.doctor || initialInvoice.doctorName };
+    }
+    return null;
+  });
+  const [isQuickCreateDoctorModalOpen, setIsQuickCreateDoctorModalOpen] = useState(false);
+  const [quickCreateDoctorName, setQuickCreateDoctorName] = useState("");
   const [customerPhone, setCustomerPhone] = useState(() => {
     if (initialResumeHeldBill && initialResumeHeldBill.billingMode !== "B2B") {
       return initialResumeHeldBill.customerPhone || "";
@@ -342,6 +394,118 @@ export const SalesDesktopPage = () => {
   const branchId = currentBranch?._id || currentBranch?.id || null;
   const { activeShift, status: shiftStatus } = useActiveShift(branchId);
   const navigate = useNavigate();
+
+  // ── Route-based Invoice Hydration (Edit Invoice Mode & Refresh Support) ──
+  useEffect(() => {
+    if (!routeInvoiceId) return;
+
+    let isMounted = true;
+    const loadInvoice = async () => {
+      if (!initialInvoice) {
+        setIsLoadingInvoice(true);
+      }
+      try {
+        const res = await invoiceService.getInvoiceById(routeInvoiceId);
+        const inv = res?.data?.data || res?.data || null;
+        if (!inv || !isMounted) return;
+
+        setEditInvoiceData(inv);
+
+        if (inv.status === "Cancelled") {
+          setLoadInvoiceError("This invoice has been cancelled and cannot be edited.");
+          return;
+        }
+
+        const bMode = inv.billingMode || "B2C";
+        setBillingMode(bMode);
+
+        const custObj = inv.customerId && typeof inv.customerId === "object" ? inv.customerId : null;
+        const custName = custObj?.name || inv.customerName || inv.customer || "Walk-in Customer";
+        const custPhone = custObj?.mobile || custObj?.phone || inv.customerPhone || inv.phone || "";
+
+        const fullCust = {
+          ...(custObj || {}),
+          id: custObj?._id || inv.customerId || "walkin",
+          _id: custObj?._id || inv.customerId || "walkin",
+          name: custName,
+          mobile: custPhone,
+        };
+
+        if (bMode === "B2B") {
+          setSelectedB2bParty(fullCust);
+          setSelectedB2cCustomer(null);
+        } else {
+          setSelectedB2cCustomer(fullCust);
+          setSelectedB2bParty(null);
+          setCustomerName(custName);
+          setCustomerPhone(custPhone);
+        }
+
+        const docObj = inv.doctorId && typeof inv.doctorId === "object" ? inv.doctorId : null;
+        const dName = docObj?.name || inv.doctor || inv.doctorName || "";
+        setDoctorName(dName);
+        if (docObj) {
+          setSelectedDoctor({
+            ...docObj,
+            id: docObj._id || docObj.id,
+            name: dName,
+          });
+        } else if (inv.doctorId) {
+          setSelectedDoctor({
+            id: inv.doctorId,
+            _id: inv.doctorId,
+            name: dName,
+          });
+        } else if (dName) {
+          setSelectedDoctor({ name: dName });
+        }
+
+        if (inv.date) {
+          setSaleDate(getLocalDateString(inv.date));
+        }
+
+        if (Array.isArray(inv.items)) {
+          const mappedItems = inv.items.map((item) => ({
+            ...item,
+            id: item.productId || item._id || item.id || `item-${Math.random()}`,
+            name: item.name,
+            brand: item.brand || item.manufacturer,
+            category: item.category,
+            batch: item.batch || item.batchNo,
+            pack: item.pack || item.packSize,
+            rack: item.rack,
+            hsn: item.hsn,
+            gst: item.gst || item.gstRate || 0,
+            ratePct: item.ratePct || (item.rateCPercentage !== undefined ? `${item.rateCPercentage}%` : "-"),
+            rateCPercentage: item.rateCPercentage,
+            expiry: item.expiry || null,
+            stock: item.stock !== undefined ? item.stock : 999999,
+            mrp: item.mrp || item.price || 0,
+            price: item.price || 0,
+            disc: item.disc || item.itemDiscount || 0,
+            qty: item.qty || 1,
+            schemeDiscountPercent: item.schemeDiscountPercent || 0,
+          }));
+          setCart(mappedItems);
+        }
+      } catch (err) {
+        console.error("Failed to load invoice for editing:", err);
+        if (isMounted) {
+          setLoadInvoiceError(err?.response?.data?.message || err?.message || "Failed to load invoice for editing.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingInvoice(false);
+        }
+      }
+    };
+
+    loadInvoice();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [routeInvoiceId]);
 
   // ── Hold Bill System ─────────────────────────────
   const {
@@ -541,6 +705,7 @@ export const SalesDesktopPage = () => {
     setCustomerName("");
     setCustomerPhone("");
     setDoctorName("");
+    setSelectedDoctor(null);
     setShowCustomerHistory(false);
     customerSearchBarRef.current?.clear?.();
     b2bCustomerSearchBarRef.current?.clear?.();
@@ -568,6 +733,17 @@ export const SalesDesktopPage = () => {
     }
 
     setDoctorName(targetBill.doctorName || "");
+    setSelectedDoctor(
+      targetBill.doctorId
+        ? {
+            id: targetBill.doctorId,
+            _id: targetBill.doctorId,
+            name: targetBill.doctorName,
+          }
+        : targetBill.doctorName
+        ? { name: targetBill.doctorName }
+        : null
+    );
     if (targetBill.saleDate) {
       setSaleDate(targetBill.saleDate.split("T")[0]);
     }
@@ -607,6 +783,7 @@ export const SalesDesktopPage = () => {
           ? activeCustomer?.mobile || activeCustomer?.phone || customerPhone
           : activeCustomer?.mobile || "",
       doctorName,
+      doctorId: selectedDoctor?._id || selectedDoctor?.id || null,
       saleDate,
       cart,
       note: `Swapped while resuming ${pendingResumeBill.holdNumber}`,
@@ -940,8 +1117,25 @@ export const SalesDesktopPage = () => {
   const handleCompleteSale = async (saleData) => {
     let targetCustomerId = activeCustomer?.id || activeCustomer?._id;
 
-    // Fallback: If no customer explicitly selected (e.g. walk-in B2C), fetch or use first customer from backend
-    if (!targetCustomerId || targetCustomerId === "legacy") {
+    const targetInvoiceId =
+      editInvoiceData?._id ||
+      editInvoiceData?.id ||
+      initialInvoice?.id ||
+      initialInvoice?._id ||
+      routeInvoiceId;
+
+    if (isEditMode && (!targetCustomerId || targetCustomerId === "legacy" || targetCustomerId === "walkin")) {
+      targetCustomerId =
+        editInvoiceData?.customerId?._id ||
+        editInvoiceData?.customerId?.id ||
+        (typeof editInvoiceData?.customerId === "string" ? editInvoiceData.customerId : null) ||
+        initialInvoice?.customerId ||
+        initialInvoice?.customerObj?._id ||
+        null;
+    }
+
+    // Fallback: ONLY if NOT in edit mode and no customer explicitly selected (e.g. walk-in B2C), fetch or use first customer from backend
+    if (!isEditMode && (!targetCustomerId || targetCustomerId === "legacy")) {
       try {
         const cRes = await customerService.getCustomers({ limit: 1 });
         const cList = cRes.data?.data?.customers || cRes.data?.customers || cRes.data?.data || [];
@@ -957,8 +1151,11 @@ export const SalesDesktopPage = () => {
     let savedSaleResult = null;
     if (targetCustomerId) {
       const activeBranchId = saleData.branchId || branchId || saleData.items?.[0]?.branchId || saleData.items?.[0]?.facilityId || null;
+      const targetInvoiceNo = editInvoiceData?.invoiceNo || initialInvoice?.invoiceNo || saleData.invoiceNo;
+
       const payload = {
-        invoiceNo: saleData.invoiceNo,
+        customerId: targetCustomerId,
+        invoiceNo: targetInvoiceNo,
         billingMode,
         branchId: activeBranchId,
         subtotal: saleData.subtotal || saleData.subTotal,
@@ -971,12 +1168,14 @@ export const SalesDesktopPage = () => {
         creditDueDate: saleData.creditDueDate,
         creditStatus: saleData.creditStatus,
         items: saleData.items,
+        doctor: doctorName || saleData.doctor || null,
+        doctorId: selectedDoctor?._id || selectedDoctor?.id || saleData.doctorId || null,
         date: activeShift?.date ? new Date(activeShift.date).toISOString() : new Date().toISOString(),
         shiftId: activeShift?._id || saleData.shiftId || null,
       };
 
-      if (isEditMode && initialInvoice?.id) {
-        const res = await invoiceService.updateCustomerSale(targetCustomerId, initialInvoice.id, payload);
+      if (isEditMode && targetInvoiceId) {
+        const res = await invoiceService.updateCustomerSale(targetCustomerId, targetInvoiceId, payload);
         savedSaleResult = res?.data?.data || res?.data || null;
       } else {
         const res = await invoiceService.recordCustomerSale(targetCustomerId, payload);
@@ -990,6 +1189,9 @@ export const SalesDesktopPage = () => {
     setIsCheckoutOpen(false);
     setCompletedSale({
       ...saleData,
+      customer: activeCustomer || saleData.customer,
+      customerName: activeCustomer?.name || customerName || saleData.customerName,
+      customerPhone: activeCustomer?.mobile || activeCustomer?.phone || customerPhone || saleData.customerPhone,
       invoiceNo: actualInvoiceNo,
       date: activeShift?.date ? new Date(activeShift.date).toISOString() : new Date().toISOString(),
       createdAt: savedSaleResult?.createdAt || new Date().toISOString(),
@@ -1004,6 +1206,7 @@ export const SalesDesktopPage = () => {
     setCustomerName("");
     setCustomerPhone("");
     setDoctorName("");
+    setSelectedDoctor(null);
     setShowCustomerHistory(false);
     customerSearchBarRef.current?.clear?.();
     b2bCustomerSearchBarRef.current?.clear?.();
@@ -1014,6 +1217,33 @@ export const SalesDesktopPage = () => {
     );
     setTimeout(() => setToastMessage(null), 4000);
   };
+
+  if (isLoadingInvoice) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-sm font-semibold text-text">Loading invoice for editing...</p>
+        <p className="text-xs text-text-muted">Fetching line items, customer, and pricing</p>
+      </div>
+    );
+  }
+
+  if (loadInvoiceError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] space-y-4 p-8">
+        <div className="w-full max-w-md p-6 bg-surface border border-error/30 rounded-2xl text-center space-y-3 shadow-lg">
+          <div className="size-12 rounded-full bg-error-soft text-error flex items-center justify-center mx-auto">
+            <AlertCircle className="size-6" />
+          </div>
+          <h2 className="text-lg font-bold text-text">Cannot Edit Invoice</h2>
+          <p className="text-sm text-text-muted">{loadInvoiceError}</p>
+          <UIButton variant="primary" onClick={() => navigate("/billing")} className="mt-2">
+            Back to Invoices Hub
+          </UIButton>
+        </div>
+      </div>
+    );
+  }
 
   if (shiftStatus === "loading" && !activeShift) {
     return (
@@ -1090,7 +1320,7 @@ export const SalesDesktopPage = () => {
   }
 
   return (
-    <section className="-m-6 h-[calc(100dvh-58px)] max-h-[calc(100dvh-58px)] w-[calc(100%+3rem)] bg-bg flex flex-col font-sans overflow-hidden">
+    <section className="-m-6 pt-2.5 h-[calc(100dvh-58px)] max-h-[calc(100dvh-58px)] w-[calc(100%+3rem)] bg-bg flex flex-col font-sans overflow-hidden">
 
       {/* ── TOAST NOTIFICATION ───────────────────────── */}
       <AnimatePresence>
@@ -1107,99 +1337,36 @@ export const SalesDesktopPage = () => {
         )}
       </AnimatePresence>
 
-      {/* ── TOP BAR ────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center justify-between px-4 pt-6 pb-2.5 gap-4 bg-surface border-b border-border z-20 min-h-[68px]">
-        {/* Left: Brand + Shift indicator */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="size-2 rounded-full bg-success animate-pulse shrink-0" />
-          <h1 className="text-[15px] font-extrabold text-text tracking-tight whitespace-nowrap">
-            POS Billing
-          </h1>
-          <span
-            className={cn(
-              "px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider border whitespace-nowrap shrink-0",
-              billingMode === "B2B"
-                ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
-                : "bg-primary/10 text-primary border-primary/20"
-            )}
-          >
-            {billingMode === "B2B" ? "B2B Commercial" : "B2C Retail"}
-          </span>
-          {activeShift?.date && (
-            <span className="hidden sm:flex items-center gap-1 text-[11px] font-medium text-text-muted bg-surface-alt px-2.5 py-1 rounded-lg border border-border shrink-0">
-              <RefreshCw className="size-3 text-primary" />
-              {new Date(activeShift.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-            </span>
-          )}
-        </div>
-
-        {/* Center: B2C / B2B Mode Toggle */}
-        <div className="flex items-center gap-1 bg-surface-alt p-1 rounded-xl border border-border shrink-0">
-          <button
-            type="button"
-            onClick={() => setBillingMode("B2C")}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              billingMode === "B2C"
-                ? "bg-surface text-primary shadow-xs border border-border"
-                : "text-text-muted hover:text-text"
-            )}
-          >
-            <User className="size-3.5" />
-            <span>B2C Retail</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => { setBillingMode("B2B"); }}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-              billingMode === "B2B"
-                ? "bg-surface text-purple-600 dark:text-purple-400 shadow-xs border border-border"
-                : "text-text-muted hover:text-text"
-            )}
-          >
-            <Building2 className="size-3.5" />
-            <span>B2B Commercial</span>
-          </button>
-        </div>
-
-        {/* Right: Hold Bill icon button + Customer History toggle */}
-        <div className="flex items-center gap-2 shrink-0">
-          <UIIconButton
-            icon={<PauseCircle className={cn("size-4", cart.length > 0 || heldBillsCount > 0 ? "text-amber-500" : "text-text-muted")} />}
-            variant="ghost"
-            size="sm"
-            badge={heldBillsCount > 0 ? heldBillsCount : undefined}
-            badgeColor="warning"
-            title={
-              cart.length > 0
-                ? "Hold Active Bill"
-                : heldBillsCount > 0
-                ? `Held Bills Queue (${heldBillsCount} held)`
-                : "Hold Bill (Cart is empty)"
-            }
-            onClick={() => {
-              if (cart.length > 0) {
-                handleOpenHoldModal();
-              } else if (heldBillsCount > 0) {
-                setIsHeldBillsModalOpen(true);
-              } else {
-                handleOpenHoldModal();
-              }
-            }}
-          />
-          <UIIconButton
-            icon={<History className="size-4" />}
-            variant={showCustomerHistory ? "soft" : "ghost"}
-            size="sm"
-            title="Toggle Customer History"
-            onClick={() => setShowCustomerHistory(!showCustomerHistory)}
-          />
-        </div>
-      </div>
-
       {/* ── MAIN BODY ───────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+
+        {/* ── EDIT INVOICE HEADER BANNER ────────────────────── */}
+        {isEditMode && (
+          <div className="shrink-0 px-4 py-2 bg-amber-500/10 border-b border-amber-500/25 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="px-2 py-0.5 rounded-md bg-amber-500 text-white text-[11px] font-black uppercase tracking-wider shadow-xs">
+                Editing Invoice
+              </span>
+              <span className="text-sm font-bold text-text font-mono">
+                {editInvoiceData?.invoiceNo || initialInvoice?.invoiceNo || routeInvoiceId}
+              </span>
+              <span className="text-xs text-text-muted hidden sm:inline">
+                • In-place bill modification (Inventory and ledger entries will adjust automatically)
+              </span>
+            </div>
+            <UIButton
+              variant="outline"
+              size="xs"
+              onClick={() => navigate("/billing")}
+              className="text-text-muted hover:text-text gap-1.5 border-border/80"
+            >
+              <ArrowLeft className="size-3.5" />
+              Cancel Edit
+            </UIButton>
+          </div>
+        )}
+
+        <div className="flex-1 flex overflow-hidden min-h-0">
 
         {/* ── LEFT PANEL: Customer strip + Search + Cart ── */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -1207,7 +1374,7 @@ export const SalesDesktopPage = () => {
           {/* Customer Strip */}
           <div className="relative z-30 shrink-0 border-b border-border bg-surface">
             {billingMode === "B2C" ? (
-              <div className="px-4 py-2.5">
+              <div className="px-4 pt-3.5 pb-2.5">
                 <SalesCustomerDoctorInfo
                   customerSearchBarRef={customerSearchBarRef}
                   selectedCustomer={selectedB2cCustomer}
@@ -1216,6 +1383,8 @@ export const SalesDesktopPage = () => {
                   onChangeCustomerName={setCustomerName}
                   customerPhone={customerPhone}
                   onChangeCustomerPhone={setCustomerPhone}
+                  selectedDoctor={selectedDoctor}
+                  onSelectDoctor={setSelectedDoctor}
                   doctorName={doctorName}
                   onChangeDoctorName={setDoctorName}
                   saleDate={saleDate}
@@ -1224,6 +1393,10 @@ export const SalesDesktopPage = () => {
                     setQuickCreateCustomerName(name);
                     setQuickCreateCustomerType("other");
                     setIsQuickCreateCustomerModalOpen(true);
+                  }}
+                  onAddNewDoctor={(name) => {
+                    setQuickCreateDoctorName(name);
+                    setIsQuickCreateDoctorModalOpen(true);
                   }}
                 />
               </div>
@@ -1299,18 +1472,85 @@ export const SalesDesktopPage = () => {
             )}
           </div>
 
-          {/* Product Search Bar */}
-          <div className="shrink-0 px-3 py-2.5 border-b border-border bg-surface-alt/30">
-            <WorkspaceProductSearchBar
-              ref={searchBarRef}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onSelectProduct={handleSelectWorkspaceProduct}
-              branchId={branchId}
-              placeholder="Scan barcode or search product / medicine by name, SKU, brand..."
-              size="md"
-              showDetailsPreview
-            />
+          {/* Product Search Bar + Mode Toggle & Hold Bill Controls */}
+          <div className="shrink-0 px-4 py-2 border-b border-border bg-surface-alt/30 flex items-center justify-between gap-4">
+            <div className="w-full max-w-[540px]">
+              <WorkspaceProductSearchBar
+                ref={searchBarRef}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onSelectProduct={handleSelectWorkspaceProduct}
+                branchId={branchId}
+                placeholder="Scan barcode or search product / medicine by name, SKU, brand..."
+                size="md"
+                showDetailsPreview
+              />
+            </div>
+
+            {/* Mode Toggle Tab: B2C Retail / B2B Commercial & Hold Bill Action */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="flex items-center gap-1 bg-surface p-1 rounded-xl border border-border shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setBillingMode("B2C")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    billingMode === "B2C"
+                      ? "bg-primary text-white shadow-xs"
+                      : "text-text-muted hover:text-text hover:bg-surface-hover"
+                  )}
+                >
+                  <User className="size-3.5" />
+                  <span>B2C Retail</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillingMode("B2B")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    billingMode === "B2B"
+                      ? "bg-purple-600 text-white shadow-xs"
+                      : "text-text-muted hover:text-text hover:bg-surface-hover"
+                  )}
+                >
+                  <Building2 className="size-3.5" />
+                  <span>B2B Commercial</span>
+                </button>
+              </div>
+
+              <UIIconButton
+                icon={
+                  <PauseCircle
+                    className={cn(
+                      "size-4",
+                      cart.length > 0 || heldBillsCount > 0
+                        ? "text-amber-500"
+                        : "text-text-muted"
+                    )}
+                  />
+                }
+                variant="outline"
+                size="md"
+                badge={heldBillsCount > 0 ? heldBillsCount : undefined}
+                badgeColor="warning"
+                title={
+                  cart.length > 0
+                    ? "Hold Active Bill"
+                    : heldBillsCount > 0
+                    ? `Held Bills Queue (${heldBillsCount} held)`
+                    : "Hold Bill (Cart is empty)"
+                }
+                onClick={() => {
+                  if (cart.length > 0) {
+                    handleOpenHoldModal();
+                  } else if (heldBillsCount > 0) {
+                    setIsHeldBillsModalOpen(true);
+                  } else {
+                    handleOpenHoldModal();
+                  }
+                }}
+              />
+            </div>
           </div>
 
           {/* ── CART TABLE — only this section scrolls ── */}
@@ -1489,8 +1729,8 @@ export const SalesDesktopPage = () => {
           </div>
         </div>
 
-        {/* ── RIGHT PANEL (Fixed 340px Width, Never Shifts Left Section) ── */}
-        <div className="w-[340px] shrink-0 h-full max-h-full flex flex-col border-l border-border bg-surface overflow-hidden">
+        {/* ── RIGHT PANEL (Fixed 285px Width, Compact & Space-Saving) ── */}
+        <div className="w-[285px] shrink-0 h-full max-h-full flex flex-col border-l border-border bg-surface overflow-hidden">
           {!showCustomerHistory ? (
             /* Order Summary */
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -1498,16 +1738,27 @@ export const SalesDesktopPage = () => {
               <div className="px-4 pt-3.5 pb-2.5 border-b border-border/70 shrink-0">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Billed To</span>
-                  <UIBadge
-                    className={cn(
-                      "text-[10px] font-bold border",
-                      billingMode === "B2B"
-                        ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
-                        : "bg-primary/10 text-primary border-primary/20"
-                    )}
-                  >
-                    {billingMode}
-                  </UIBadge>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomerHistory(true)}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer border bg-surface-alt hover:bg-surface-hover text-primary border-border shadow-2xs"
+                      title="View Customer Purchase History"
+                    >
+                      <History className="size-3" />
+                      <span>History</span>
+                    </button>
+                    <UIBadge
+                      className={cn(
+                        "text-[10px] font-bold border",
+                        billingMode === "B2B"
+                          ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
+                          : "bg-primary/10 text-primary border-primary/20"
+                      )}
+                    >
+                      {billingMode}
+                    </UIBadge>
+                  </div>
                 </div>
                 <div className="space-y-0.5">
                   <p className={cn(
@@ -1524,7 +1775,7 @@ export const SalesDesktopPage = () => {
                     </p>
                   )}
                   {billingMode === "B2C" && doctorName && (
-                    <p className="text-[11px] text-text-muted">Dr. {doctorName}</p>
+                    <p className="text-[11px] text-text-muted">{doctorName}</p>
                   )}
                 </div>
               </div>
@@ -1575,7 +1826,7 @@ export const SalesDesktopPage = () => {
                     <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1.5">Cart Items</p>
                     {cart.map((item) => (
                       <div key={item.id} className="flex items-center justify-between text-[11px] py-0.5">
-                        <span className="text-text-muted truncate max-w-[190px]">
+                        <span className="text-text-muted truncate max-w-[145px]">
                           {item.name} <span className="font-mono text-text-muted">×{item.qty}</span>
                         </span>
                         <span className="font-mono font-bold text-text tabular-nums shrink-0 ml-2">₹{getItemAmount(item).toFixed(0)}</span>
@@ -1633,6 +1884,8 @@ export const SalesDesktopPage = () => {
                 >
                   {cart.length === 0
                     ? "Add items to proceed"
+                    : isEditMode
+                    ? `Update Bill · ₹${cartGrandTotal.toLocaleString("en-IN")}`
                     : `Proceed · ₹${cartGrandTotal.toLocaleString("en-IN")}`}
                 </UIButton>
               </PermissionGate>
@@ -1652,6 +1905,7 @@ export const SalesDesktopPage = () => {
           </div>
         </div>
       </div>
+    </div>
 
       {/* ── MODALS ─────────────────────────────────────── */}
       <SalesInvoicePreviewModal
@@ -1676,15 +1930,13 @@ export const SalesDesktopPage = () => {
         customer={activeCustomer}
         customerPhone={customerPhone}
         doctor={doctorName}
+        doctorId={selectedDoctor?._id || selectedDoctor?.id || null}
         saleDate={saleDate}
         billingMode={billingMode}
         activeShift={activeShift}
         shiftId={activeShift?._id}
-        existingInvoiceNo={initialInvoice?.invoiceNo}
+        existingInvoiceNo={editInvoiceData?.invoiceNo || initialInvoice?.invoiceNo}
         cartSummary={{ items: cart, subtotal: cartSubtotal }}
-        initialPayments={initialInvoice?.payments}
-        initialDenominations={initialInvoice?.denominations}
-        initialReturnedDenominations={initialInvoice?.returnedDenominations}
         onCompleteSale={handleCompleteSale}
       />
 
@@ -1692,23 +1944,31 @@ export const SalesDesktopPage = () => {
         isOpen={isReceiptOpen}
         onClose={() => {
           setIsReceiptOpen(false);
-          setTimeout(() => {
-            if (billingMode === "B2C") {
-              customerSearchBarRef.current?.focus?.();
-            } else {
-              b2bCustomerSearchBarRef.current?.focus?.();
-            }
-          }, 100);
+          if (isEditMode) {
+            navigate("/billing");
+          } else {
+            setTimeout(() => {
+              if (billingMode === "B2C") {
+                customerSearchBarRef.current?.focus?.();
+              } else {
+                b2bCustomerSearchBarRef.current?.focus?.();
+              }
+            }, 100);
+          }
         }}
         onNewSale={() => {
           setIsReceiptOpen(false);
-          setTimeout(() => {
-            if (billingMode === "B2C") {
-              customerSearchBarRef.current?.focus?.();
-            } else {
-              b2bCustomerSearchBarRef.current?.focus?.();
-            }
-          }, 100);
+          if (isEditMode) {
+            navigate("/billing");
+          } else {
+            setTimeout(() => {
+              if (billingMode === "B2C") {
+                customerSearchBarRef.current?.focus?.();
+              } else {
+                b2bCustomerSearchBarRef.current?.focus?.();
+              }
+            }, 100);
+          }
         }}
         saleData={completedSale}
         branch={currentBranch}
@@ -1735,6 +1995,16 @@ export const SalesDesktopPage = () => {
           } else {
             setSelectedB2bParty(newCustomer);
           }
+        }}
+      />
+
+      <QuickCreateDoctorModal
+        open={isQuickCreateDoctorModalOpen}
+        onClose={() => setIsQuickCreateDoctorModalOpen(false)}
+        defaultName={quickCreateDoctorName}
+        onSuccess={(newDoc) => {
+          setSelectedDoctor(newDoc);
+          setDoctorName(newDoc.name);
         }}
       />
 
