@@ -266,7 +266,7 @@ const TreasuryPage = () => {
       {
         id: "createBankDepositSlip",
         title: "Create Deposit Slip",
-        path: ROUTES.CREATE_BANK_DEPOSIT_SLIP,
+        path: `${ROUTES.BANK_DEPOSIT_SLIPS}?action=create`,
         colorVariant: "success",
         permission: "bank-deposit-slip:create",
       },

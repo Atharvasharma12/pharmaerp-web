@@ -129,7 +129,7 @@ export const CloseDayClosingDialog = ({ isOpen, onClose, dayClosing }) => {
     setShowPostClose(false);
     onClose();
     const dcId = closedDayClosingData?._id || dayClosing?._id || "";
-    navigate(`${ROUTES.CREATE_BANK_DEPOSIT_SLIP}${dcId ? `?dayClosingId=${dcId}` : ""}`);
+    navigate(`${ROUTES.BANK_DEPOSIT_SLIPS}?action=create${dcId ? `&dayClosingId=${dcId}` : ""}`);
   };
 
   const handlePostCloseDismiss = () => {

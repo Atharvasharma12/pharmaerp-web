@@ -1,17 +1,21 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+// src/features/finance/treasury/bank-deposit-slips/pages/BankDepositSlipsPage.jsx
 
-import { API_STATUS, ROUTES } from "@/constants";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+
+import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
 import useBranch from "@/features/branch/hooks/useBranch";
 
 import useBankDepositSlip from "../hooks/useBankDepositSlip";
 import BankDepositSlipsDesktopPage from "./desktop/BankDepositSlipsDesktopPage";
 import BankDepositSlipsMobilePage from "./mobile/BankDepositSlipsMobilePage";
+import CreateBankDepositSlipDialog from "../components/CreateBankDepositSlipDialog";
+import ViewBankDepositSlipDialog from "../components/ViewBankDepositSlipDialog";
 
 const BankDepositSlipsPage = () => {
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
+  const [searchParamsUrl, setSearchParamsUrl] = useSearchParams();
   const { currentBranch } = useBranch();
 
   const {
@@ -31,18 +35,31 @@ const BankDepositSlipsPage = () => {
   const [searchParams, setSearchParams] = useState({
     search: "",
     status: "all",
+    date: "",
   });
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
+
+  // Dialog states
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedSlipForView, setSelectedSlipForView] = useState(null);
+
+  // Check URL query parameters for action=create or dayClosingId
+  const urlAction = searchParamsUrl.get("action");
+  const prefillDayClosingId = searchParamsUrl.get("dayClosingId");
+
+  useEffect(() => {
+    if (urlAction === "create") {
+      setIsCreateOpen(true);
+    }
+  }, [urlAction]);
 
   const fetchSlipsData = useCallback(async () => {
     try {
       const query = {
-        page: currentPage,
-        limit: pageSize,
+        page: 1,
+        limit: 100, // Fetch comprehensive dataset for infinite scroll
         search: searchParams.search || undefined,
         status: searchParams.status === "all" ? undefined : searchParams.status,
         branchId: currentBranch?._id || undefined,
@@ -51,7 +68,7 @@ const BankDepositSlipsPage = () => {
     } catch (err) {
       console.error("Failed to load bank deposit slips:", err);
     }
-  }, [currentPage, pageSize, searchParams, currentBranch?._id, getBankDepositSlips]);
+  }, [searchParams, currentBranch?._id, getBankDepositSlips]);
 
   useEffect(() => {
     fetchSlipsData();
@@ -63,25 +80,15 @@ const BankDepositSlipsPage = () => {
 
   const handleSearchChange = useCallback((value) => {
     setSearchParams((prev) => ({ ...prev, search: value }));
-    setCurrentPage(1);
   }, []);
 
   const handleFilterChange = useCallback((name, value) => {
     setSearchParams((prev) => ({ ...prev, [name]: value }));
-    setCurrentPage(1);
-  }, []);
-
-  const handlePageChange = useCallback((page) => {
-    setCurrentPage(page);
-  }, []);
-
-  const handlePageSizeChange = useCallback((size) => {
-    setPageSize(size);
-    setCurrentPage(1);
   }, []);
 
   const handleConfirmDeposit = useCallback(
-    async (slipId, payload = {}) => {
+    async (slipIdOrSlip, payload = {}) => {
+      const slipId = typeof slipIdOrSlip === "object" ? slipIdOrSlip._id : slipIdOrSlip;
       setActionError("");
       setActionMessage("");
       try {
@@ -90,15 +97,17 @@ const BankDepositSlipsPage = () => {
         fetchSlipsData();
       } catch (err) {
         setActionError(
-          typeof err === "string" ? err : "Failed to confirm bank deposit slip."
+          typeof err === "string" ? err : err?.message || "Failed to confirm bank deposit slip."
         );
+        throw err;
       }
     },
     [confirmDeposit, fetchSlipsData]
   );
 
   const handleCancelSlip = useCallback(
-    async (slipId, payload = {}) => {
+    async (slipIdOrSlip, payload = {}) => {
+      const slipId = typeof slipIdOrSlip === "object" ? slipIdOrSlip._id : slipIdOrSlip;
       setActionError("");
       setActionMessage("");
       try {
@@ -107,39 +116,42 @@ const BankDepositSlipsPage = () => {
         fetchSlipsData();
       } catch (err) {
         setActionError(
-          typeof err === "string" ? err : "Failed to cancel bank deposit slip."
+          typeof err === "string" ? err : err?.message || "Failed to cancel bank deposit slip."
         );
+        throw err;
       }
     },
     [cancelBankDepositSlip, fetchSlipsData]
   );
 
-  const handleViewDetails = useCallback(
-    (slipId) => {
-      navigate(ROUTES.BANK_DEPOSIT_SLIP_DETAILS(slipId));
-    },
-    [navigate]
-  );
+  const handleViewDetails = useCallback((slip) => {
+    setSelectedSlipForView(slip);
+  }, []);
 
   const handleCreateNew = useCallback(() => {
-    navigate(ROUTES.CREATE_BANK_DEPOSIT_SLIP);
-  }, [navigate]);
+    setIsCreateOpen(true);
+  }, []);
+
+  const handleCloseCreate = useCallback(() => {
+    setIsCreateOpen(false);
+    // Clean up url parameters if present
+    if (searchParamsUrl.get("action")) {
+      const nextParams = new URLSearchParams(searchParamsUrl);
+      nextParams.delete("action");
+      nextParams.delete("dayClosingId");
+      setSearchParamsUrl(nextParams, { replace: true });
+    }
+  }, [searchParamsUrl, setSearchParamsUrl]);
 
   const isLoading = getBankDepositSlipsStatus === API_STATUS.LOADING;
   const isTransitioning =
     confirmDepositStatus === API_STATUS.LOADING ||
     cancelBankDepositSlipStatus === API_STATUS.LOADING;
 
-  const totalSlips = useMemo(() => {
-    return bankDepositSlips?.length || 0;
-  }, [bankDepositSlips]);
-
   const pageProps = {
     bankDepositSlips: bankDepositSlips || [],
     searchParams,
-    currentPage,
-    pageSize,
-    totalSlips,
+    totalSlips: bankDepositSlips?.length || 0,
     isLoading,
     isTransitioning,
     error: error || actionError,
@@ -152,8 +164,6 @@ const BankDepositSlipsPage = () => {
     },
     handleSearchChange,
     handleFilterChange,
-    handlePageChange,
-    handlePageSizeChange,
     handleConfirmDeposit,
     handleCancelSlip,
     handleViewDetails,
@@ -161,10 +171,34 @@ const BankDepositSlipsPage = () => {
     handleRefresh,
   };
 
-  return isMobile ? (
-    <BankDepositSlipsMobilePage {...pageProps} />
-  ) : (
-    <BankDepositSlipsDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <BankDepositSlipsMobilePage {...pageProps} />
+      ) : (
+        <BankDepositSlipsDesktopPage {...pageProps} />
+      )}
+
+      {/* Cash Counter Styled Create Bank Deposit Slip Dialog */}
+      <CreateBankDepositSlipDialog
+        isOpen={isCreateOpen}
+        onClose={handleCloseCreate}
+        onSuccess={() => {
+          fetchSlipsData();
+          setActionMessage("Bank deposit slip created successfully.");
+        }}
+        prefillDayClosingId={prefillDayClosingId}
+      />
+
+      {/* In-Dialog View Slip Details */}
+      <ViewBankDepositSlipDialog
+        isOpen={Boolean(selectedSlipForView)}
+        onClose={() => setSelectedSlipForView(null)}
+        slip={selectedSlipForView}
+        onConfirmDeposit={handleConfirmDeposit}
+        onCancelSlip={handleCancelSlip}
+      />
+    </>
   );
 };
 
