@@ -11,11 +11,21 @@ import {
   UIAlert
 } from "@/components/ui";
 
-const SupplierImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploading }) => {
+const SupplierImportConfigModal = ({
+  isOpen,
+  onClose,
+  onImportSubmit,
+  onSubmit,
+  isUploading = false,
+  isLoading = false,
+}) => {
   const [importType, setImportType] = useState("standard");
   const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
   const [error, setError] = useState("");
+
+  const submitHandler = onImportSubmit || onSubmit;
+  const isBusy = isUploading || isLoading;
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0];
@@ -45,11 +55,16 @@ const SupplierImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploadin
       setError("Please select a file to import.");
       return;
     }
-    onImportSubmit(file, importType);
+    if (typeof submitHandler === "function") {
+      submitHandler(file, importType);
+    } else {
+      console.error("No import submit handler provided to SupplierImportConfigModal");
+      setError("Import submit handler is not configured.");
+    }
   };
 
   const handleClose = () => {
-    if (isUploading) return;
+    if (isBusy) return;
     setFile(null);
     setImportType("standard");
     setError("");
@@ -117,11 +132,11 @@ const SupplierImportConfigModal = ({ isOpen, onClose, onImportSubmit, isUploadin
       </UIModalBody>
 
       <UIModalFooter>
-        <UIButton variant="ghost" onClick={handleClose} disabled={isUploading}>
+        <UIButton variant="ghost" onClick={handleClose} disabled={isBusy}>
           Cancel
         </UIButton>
-        <UIButton variant="primary" onClick={handleSubmit} disabled={isUploading || !file}>
-          {isUploading ? "Uploading..." : "Continue"}
+        <UIButton variant="primary" onClick={handleSubmit} disabled={isBusy || !file}>
+          {isBusy ? "Uploading..." : "Continue"}
         </UIButton>
       </UIModalFooter>
     </UIModal>
