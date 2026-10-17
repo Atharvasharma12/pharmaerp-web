@@ -90,6 +90,12 @@ const getPageTitle = (pathname) => {
 
   if (pathname.startsWith("/parties")) return "All Parties";
 
+  // Doctors
+  if (pathname.startsWith("/doctors/create")) return "Add Doctor";
+  if (pathname.startsWith("/doctors/") && pathname.includes("/edit")) return "Edit Doctor";
+  if (pathname.startsWith("/doctors/") && pathname.split("/").length > 2) return "Doctor Details";
+  if (pathname.startsWith("/doctors")) return "Doctors";
+
   // Inventory & Catalog
   if (pathname.startsWith("/workspace-products/create")) return "Add Medicine";
   if (pathname.startsWith("/workspace-products/") && pathname.includes("/edit")) return "Edit Medicine";
@@ -106,7 +112,8 @@ const getPageTitle = (pathname) => {
   if (pathname.startsWith("/catalog")) return "Global Catalog";
 
   // Sales & POS, Billing, Purchases
-  if (pathname.startsWith("/sales")) return "POS Billing Terminal";
+  if (pathname.startsWith("/sales/edit") || pathname.startsWith("/sale/edit")) return "Edit Invoice";
+  if (pathname.startsWith("/sales") || pathname.startsWith("/sale")) return "POS Billing Terminal";
   if (pathname.startsWith("/billing")) return "Invoices & Billing Hub";
   if (pathname.startsWith("/purchases")) return "Purchases & Procurement";
 
@@ -365,6 +372,32 @@ const getBreadcrumbs = (pathname, isSetupComplete = false) => {
     ];
   }
 
+  // Doctors
+  if (pathname === "/doctors" || pathname === ROUTES.DOCTORS) {
+    return [root, { label: "Doctors", to: null }];
+  }
+  if (pathname === "/doctors/create") {
+    return [
+      root,
+      { label: "Doctors", to: ROUTES.DOCTORS },
+      { label: "Add Doctor", to: null },
+    ];
+  }
+  if (pathname.startsWith("/doctors/") && pathname.includes("/edit")) {
+    return [
+      root,
+      { label: "Doctors", to: ROUTES.DOCTORS },
+      { label: "Edit Doctor", to: null },
+    ];
+  }
+  if (pathname.startsWith("/doctors/")) {
+    return [
+      root,
+      { label: "Doctors", to: ROUTES.DOCTORS },
+      { label: "Doctor Details", to: null },
+    ];
+  }
+
   // Inventory & Stock
   if (pathname === "/workspace-products" || pathname === ROUTES.WORKSPACE_PRODUCTS) {
     return [root, { label: "Pharmacy Stock", to: null }];
@@ -446,7 +479,14 @@ const getBreadcrumbs = (pathname, isSetupComplete = false) => {
   }
 
   // Sales & POS, Billing, Purchases
-  if (pathname === "/sales" || pathname === ROUTES.SALES) {
+  if (pathname.startsWith("/sales/edit") || pathname.startsWith("/sale/edit")) {
+    return [
+      root,
+      { label: "Invoices & Billing", to: ROUTES.BILLING || "/billing" },
+      { label: "Edit Invoice", to: null },
+    ];
+  }
+  if (pathname === "/sales" || pathname === ROUTES.SALES || pathname === "/sale") {
     return [root, { label: "POS Billing", to: null }];
   }
   if (pathname === "/billing" || pathname === ROUTES.BILLING) {
@@ -638,6 +678,9 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
     [location.pathname, isSetupComplete]
   );
 
+  const isEditPage = location.pathname.startsWith("/sales/edit") || location.pathname.startsWith("/sale/edit");
+  const isSalesPage = (location.pathname.startsWith("/sales") || location.pathname.startsWith("/sale")) && !isEditPage;
+
   // Global Keyboard Shortcut: Shift + I -> Open Existing Inventory Upload
   React.useEffect(() => {
     const handleKeyDown = (e) => {
@@ -710,6 +753,7 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
 
         {/* ── RIGHT: Search Bar, Import Button, Notifications, & POS Button ── */}
         <div className="flex shrink-0 items-center justify-end gap-3 w-auto">
+          {/* Search Bar (kept visible on all pages including POS sales) */}
           {isSetupComplete ? (
             <div className="w-[280px] lg:w-[400px]">
               <HeaderSearchBar />
@@ -724,17 +768,21 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
             </Link>
           )}
 
-          {/* Product Facility Stock Matrix Button */}
-          <button
-            type="button"
-            id="header-facility-matrix-btn"
-            onClick={() => setIsStockMatrixOpen(true)}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 shadow-2xs transition-all"
-            title="Stock Matrix (Shift + I)"
-          >
-            <Layers className="size-3.5 text-primary-600" />
-            <span>Stock Matrix</span>
-          </button>
+          {!isSalesPage && (
+            <>
+              {/* Product Facility Stock Matrix Button */}
+              <button
+                type="button"
+                id="header-facility-matrix-btn"
+                onClick={() => setIsStockMatrixOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 shadow-2xs transition-all"
+                title="Stock Matrix (Shift + I)"
+              >
+                <Layers className="size-3.5 text-primary-600" />
+                <span>Stock Matrix</span>
+              </button>
+            </>
+          )}
 
           {/* Dotted Grid Quick App & Dashboard Menu */}
           <HeaderAppMenu />
@@ -747,16 +795,16 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
             onClose={() => setIsStockMatrixOpen(false)}
           />
 
-
-
-          {/* POS Billing Plus Button */}
-          <Link
-            to="/sales"
-            className="flex items-center justify-center size-9 rounded-full bg-primary hover:bg-primary/90 transition-all hover:scale-105 active:scale-95 shadow-sm ring-2 ring-primary/20"
-            title="POS Billing"
-          >
-            <Plus className="size-5 text-white dark:text-white" color="white" />
-          </Link>
+          {/* POS Billing Plus Button (hide on sales page) */}
+          {!isSalesPage && (
+            <Link
+              to="/sales"
+              className="flex items-center justify-center size-9 rounded-full bg-primary hover:bg-primary/90 transition-all hover:scale-105 active:scale-95 shadow-sm ring-2 ring-primary/20"
+              title="POS Billing"
+            >
+              <Plus className="size-5 text-white dark:text-white" color="white" />
+            </Link>
+          )}
         </div>
       </div>
     </header>

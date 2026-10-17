@@ -122,7 +122,11 @@ export const OrderInvoiceDocument = ({
   }, [customerObj, customerPhone]);
 
   const customerGstin = customerObj.gstin || customerObj.gstNumber || saleData.customerGstin || null;
-  const doctorName = saleData.doctor || customerObj.doctor || "Dr. Satya Narayan";
+  const doctorObj = typeof saleData.doctorId === "object" && saleData.doctorId !== null ? saleData.doctorId : null;
+  const rawDocName = doctorObj?.name || saleData.doctor || customerObj.doctor;
+  const doctorName = rawDocName
+    ? (/^Dr\.?\s*/i.test(rawDocName) ? rawDocName : `Dr. ${rawDocName}`)
+    : "Dr. Satya Narayan";
 
   // ── Invoice Metadata ─────────────────────────────────────────────────────
   const invoiceNo = saleData.invoiceNo || "INV1925-01007034";

@@ -8,6 +8,7 @@ import {
   Boxes,
   Layers,
   Sparkles,
+  Stethoscope,
   Receipt,
   Truck,
   Landmark,
@@ -99,6 +100,14 @@ export const SIDEBAR_NAV_GROUPS = [
         icon: Truck,
         permission: "supplier:view",
         keywords: ["suppliers", "vendors", "creditors"],
+      },
+      {
+        id: "doctors",
+        label: "Doctors",
+        path: ROUTES.DOCTORS,
+        icon: Stethoscope,
+        permission: "doctor:view",
+        keywords: ["doctors", "prescribers", "physicians", "specialists", "clinics"],
       },
       {
         id: "business-days",
