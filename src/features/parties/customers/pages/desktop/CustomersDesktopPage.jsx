@@ -1,4 +1,4 @@
-// src/features/parties/customers/pages/desktop/CustomersDesktopPage.jsx
+  // src/features/parties/customers/pages/desktop/CustomersDesktopPage.jsx
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -62,6 +62,8 @@ import customerService from "../../services/customerService";
 import CustomerImportPreviewModal from "../../components/CustomerImportPreviewModal";
 import ImportConfigModal from "../../components/ImportConfigModal";
 import OutstandingImportPreviewModal from "../../components/OutstandingImportPreviewModal";
+import B2cCustomerImportModal from "../../components/B2cCustomerImportModal";
+import B2cLegacyHistoryImportModal from "@/features/sales/components/B2cLegacyHistoryImportModal";
 import * as XLSX from "xlsx";
 
 const formatCurrency = (val) => {
@@ -123,7 +125,7 @@ const SCOPE_MODAL_OPTIONS = [
   { value: "b2c", label: "B2C Walk-ins", icon: Contact },
 ];
 
-const PAGE_LIMIT = 20;
+const PAGE_LIMIT = 10;
 
 export const CustomersDesktopPage = ({
   handleCreateCustomer,
@@ -191,6 +193,8 @@ export const CustomersDesktopPage = ({
   const [isImportConfigOpen, setIsImportConfigOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] = useState(false);
+  const [isB2cImportModalOpen, setIsB2cImportModalOpen] = useState(false);
+  const [isLegacyHistoryImportModalOpen, setIsLegacyHistoryImportModalOpen] = useState(false);
   const [activeImportType, setActiveImportType] = useState("b2b");
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -426,6 +430,38 @@ export const CustomersDesktopPage = ({
     formatCustomerRow,
   ]);
 
+  // Observer on the 8th row (index 7 of each 10-item batch) to trigger loading next 10 items
+  const eighthRowObserverRef = useRef(null);
+  const eighthRowCallbackRef = useCallback(
+    (node) => {
+      if (isLoading || isLoadingMore || !hasMore) return;
+      if (eighthRowObserverRef.current) eighthRowObserverRef.current.disconnect();
+
+      eighthRowObserverRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+            handleLoadMore();
+          }
+        },
+        {
+          root: tableContainerRef.current,
+          threshold: 0.1,
+        }
+      );
+
+      if (node) eighthRowObserverRef.current.observe(node);
+    },
+    [hasMore, isLoading, isLoadingMore, handleLoadMore]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (eighthRowObserverRef.current) {
+        eighthRowObserverRef.current.disconnect();
+      }
+    };
+  }, []);
+
   // Initial load and auto re-fetch on filter / refreshKey changes
   useEffect(() => {
     fetchInitialCustomers();
@@ -558,187 +594,8 @@ export const CustomersDesktopPage = ({
     setActiveImportType(importType);
 
     if (importType === "b2c") {
-      try {
-        setIsUploading(true);
-        setIsImportConfigOpen(false);
-        const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-
-        const rawRows = XLSX.utils.sheet_to_json(worksheet, {
-          header: 1,
-          defval: "",
-        });
-
-        if (rawRows.length === 0) {
-          alert("File is empty or invalid.");
-          setIsUploading(false);
-          return;
-        }
-
-        let headerRowIndex = 0;
-        for (let i = 0; i < Math.min(20, rawRows.length); i++) {
-          const validCells = rawRows[i].filter((c) => String(c).trim() !== "");
-          const rowStr = rawRows[i].map((c) => String(c).toLowerCase()).join(" ");
-
-          if (
-            validCells.length >= 2 &&
-            (rowStr.includes("name") ||
-              rowStr.includes("customer") ||
-              rowStr.includes("patient") ||
-              rowStr.includes("client") ||
-              rowStr.includes("ledger") ||
-              rowStr.includes("party")) &&
-            (rowStr.includes("mobile") ||
-              rowStr.includes("phone") ||
-              rowStr.includes("contact") ||
-              rowStr.includes("sno") ||
-              rowStr.includes("balance") ||
-              rowStr.includes("email") ||
-              rowStr.includes("city") ||
-              rowStr.includes("address"))
-          ) {
-            headerRowIndex = i;
-            break;
-          }
-        }
-
-        let headers = rawRows[headerRowIndex].map((h) =>
-          String(h).toLowerCase().trim()
-        );
-
-        if (
-          !headers.some(
-            (h) =>
-              h.includes("name") ||
-              h.includes("customer") ||
-              h.includes("patient") ||
-              h.includes("client") ||
-              h.includes("ledger") ||
-              h.includes("party")
-          )
-        ) {
-          headers = headers.map((h, i) =>
-            i === 0 ? "name" : i === 1 ? "mobile" : h
-          );
-        }
-
-        const dataRows = rawRows.slice(headerRowIndex + 1);
-
-        const dataObjects = dataRows
-          .map((rowArr) => {
-            const obj = {};
-            let lastHeader = "";
-            headers.forEach((h, idx) => {
-              let currentHeader = h;
-              if (currentHeader) {
-                lastHeader = currentHeader;
-              } else if (
-                lastHeader.includes("mobile") ||
-                lastHeader.includes("phone")
-              ) {
-                currentHeader = `${lastHeader}_${idx}`;
-              }
-
-              if (
-                currentHeader &&
-                rowArr[idx] !== undefined &&
-                rowArr[idx] !== ""
-              ) {
-                obj[currentHeader] = rowArr[idx];
-              }
-            });
-            return obj;
-          })
-          .filter((row) => Object.keys(row).length > 0);
-
-        const validCustomersData = [];
-        for (const lowerRow of dataObjects) {
-          const businessName = String(
-            lowerRow["name"] ||
-              lowerRow["customer name"] ||
-              lowerRow["customer"] ||
-              lowerRow["party name"] ||
-              lowerRow["ledger name"] ||
-              lowerRow["patient name"] ||
-              lowerRow["client name"] ||
-              ""
-          ).trim();
-
-          let mobile = "";
-          const mobileKeys = Object.keys(lowerRow).filter(
-            (k) =>
-              k.includes("mobile") || k.includes("phone") || k.includes("contact")
-          );
-          for (const mk of mobileKeys) {
-            const val = String(lowerRow[mk]).replace(/\D/g, "");
-            if (val.length >= 10) {
-              const potentialMobile = val.substring(val.length - 10);
-              if (/^[6-9][0-9]{9}$/.test(potentialMobile)) {
-                if (!mobile) {
-                  mobile = potentialMobile;
-                }
-              }
-            }
-          }
-
-          let city = String(
-            lowerRow["city"] ||
-              lowerRow["location"] ||
-              lowerRow["district"] ||
-              lowerRow["town"] ||
-              lowerRow["address"] ||
-              ""
-          ).trim();
-
-          const normalizedName = businessName
-            .toLowerCase()
-            .replace(/\s+/g, " ")
-            .trim();
-          if (
-            businessName &&
-            normalizedName !== "ledger name" &&
-            normalizedName !== "name" &&
-            normalizedName !== "customer name"
-          ) {
-            validCustomersData.push({
-              name: businessName,
-              mobile: mobile || undefined,
-              billingAddress: {
-                city: city || undefined,
-              },
-              customerType: "other",
-            });
-          }
-        }
-
-        if (validCustomersData.length === 0) {
-          alert("No valid customers found in the file.");
-          setIsUploading(false);
-          return;
-        }
-
-        const CHUNK_SIZE = 250;
-        const chunks = [];
-        for (let i = 0; i < validCustomersData.length; i += CHUNK_SIZE) {
-          chunks.push(validCustomersData.slice(i, i + CHUNK_SIZE));
-        }
-
-        setChunkState({
-          chunks,
-          currentIndex: 0,
-          isImporting: false,
-          isModalOpen: true,
-          error: null,
-          stats: { successful: 0, failed: 0, errors: [] },
-          totalRecords: validCustomersData.length,
-        });
-      } catch (error) {
-        alert("Failed to parse Excel file locally: " + error.message);
-      } finally {
-        setIsUploading(false);
-      }
+      setIsImportConfigOpen(false);
+      setIsB2cImportModalOpen(true);
       return;
     }
 
@@ -998,18 +855,47 @@ export const CustomersDesktopPage = ({
           </UIButton>
 
           <PermissionGate permission="customer:create">
-            <UIButton
-              type="button"
-              variant="outline"
-              size="md"
-              startIcon={<Download className="size-3.5 text-text-muted" />}
-              onClick={handleImportClick}
-              disabled={isUploading}
-              className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex"
-              title="Import Customer Records from Excel"
-            >
-              {isUploading ? "Uploading..." : "Import"}
-            </UIButton>
+            {customerScope === "b2c" ? (
+              <div className="flex items-center gap-2">
+                <UIButton
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  startIcon={<Users className="size-3.5 text-purple-600 dark:text-purple-400" />}
+                  onClick={() => setIsB2cImportModalOpen(true)}
+                  disabled={isUploading}
+                  className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+                  title="Import B2C Customer Records from Excel"
+                >
+                  Import B2C Customers
+                </UIButton>
+                <UIButton
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  startIcon={<BookOpen className="size-3.5 text-blue-600 dark:text-blue-400" />}
+                  onClick={() => setIsLegacyHistoryImportModalOpen(true)}
+                  disabled={isUploading}
+                  className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
+                  title="Import Customer Purchase History from Legacy Excel"
+                >
+                  Legacy History Import
+                </UIButton>
+              </div>
+            ) : (
+              <UIButton
+                type="button"
+                variant="outline"
+                size="md"
+                startIcon={<Download className="size-3.5 text-text-muted" />}
+                onClick={handleImportClick}
+                disabled={isUploading}
+                className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex"
+                title="Import Customer Records from Excel"
+              >
+                {isUploading ? "Uploading..." : "Import"}
+              </UIButton>
+            )}
           </PermissionGate>
 
           <PermissionGate permission="customer:create">
@@ -1029,10 +915,10 @@ export const CustomersDesktopPage = ({
 
       {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ────── */}
       <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
-        {/* Internal Scroll Container: Definitive scroll parent */}
+        {/* Internal Scroll Container: Definitive scroll parent (Constrained to ~5 rows visible) */}
         <div
           ref={tableContainerRef}
-          className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-175px)] min-h-[500px] flex-1 divide-y divide-border/60"
+          className="relative overflow-y-auto overflow-x-auto max-h-[320px] min-h-[320px] flex-1 divide-y divide-border/60"
         >
           <UITable
             stickyHeader
@@ -1056,7 +942,7 @@ export const CustomersDesktopPage = ({
 
             <UITableBody>
               {isLoading ? (
-                <UITableLoading colSpan={6} rows={8} />
+                <UITableLoading colSpan={6} rows={5} />
               ) : filteredAndSortedCustomers.length === 0 ? (
                 <UITableEmpty
                   colSpan={6}
@@ -1088,13 +974,16 @@ export const CustomersDesktopPage = ({
                   }
                 />
               ) : (
-                filteredAndSortedCustomers.map((c) => {
+                filteredAndSortedCustomers.map((c, index) => {
                   const isOverLimit =
                     c.creditLimit > 0 && c.creditOutstanding > c.creditLimit;
+                  // Trigger loading next 10 items when reaching the 8th row of any 10-row batch
+                  const isTriggerRow = (index % 10 === 7) || (index === filteredAndSortedCustomers.length - 3);
 
                   return (
                     <UITableRow
                       key={c._id}
+                      ref={isTriggerRow ? eighthRowCallbackRef : null}
                       onClick={() => handleViewCustomer(c.rawCustomer || c)}
                       className="group cursor-pointer transition-colors hover:bg-surface-hover/70 h-13"
                     >
@@ -1281,6 +1170,7 @@ export const CustomersDesktopPage = ({
               onLoadMore={handleLoadMore}
               hasMore={hasMore}
               isLoading={isLoadingMore}
+              scrollContainerRef={tableContainerRef}
             />
           )}
         </div>
@@ -1563,6 +1453,20 @@ export const CustomersDesktopPage = ({
         previewData={importPreviewData}
         onImportSuccess={handleImportSuccess}
         importType={activeImportType}
+      />
+      <B2cCustomerImportModal
+        isOpen={isB2cImportModalOpen}
+        onClose={() => setIsB2cImportModalOpen(false)}
+        onSuccess={() => {
+          handleRefresh();
+        }}
+      />
+      <B2cLegacyHistoryImportModal
+        isOpen={isLegacyHistoryImportModalOpen}
+        onClose={() => setIsLegacyHistoryImportModalOpen(false)}
+        onSuccess={() => {
+          handleRefresh();
+        }}
       />
     </div>
   );

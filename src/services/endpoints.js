@@ -120,6 +120,8 @@ export const ENDPOINTS = {
     IMPORT_PREVIEW: "/parties/customers/import/preview",
     IMPORT_CONFIRM: "/parties/customers/import/confirm",
     IMPORT_CHUNK: "/parties/customers/import/chunk",
+    IMPORT_B2C_PREVIEW: "/parties/customers/import/b2c-preview",
+    IMPORT_B2C_CONFIRM: "/parties/customers/import/b2c-confirm",
     ADVANCE_RECEIVE: (customerId) => `/parties/customers/${customerId}/advance/receive`,
     ADVANCE_BALANCE: (customerId) => `/parties/customers/${customerId}/advance/balance`,
     CREDIT_SETTLE: (customerId) => `/parties/customers/${customerId}/credit/settle`,
@@ -127,6 +129,9 @@ export const ENDPOINTS = {
     TRANSACTIONS: (customerId) => `/parties/customers/${customerId}/transactions`,
     STATEMENT: (customerId) => `/parties/customers/${customerId}/statement`,
     CREDITS_PENDING_ALL: "/parties/customers/credits/pending",
+    RELATIONSHIPS: (customerId) => `/parties/customers/${customerId}/relationships`,
+    RELATIONSHIP_BY_TARGET: (customerId, targetCustomerId) =>
+      `/parties/customers/${customerId}/relationships/${targetCustomerId}`,
   },
 
   DOCTOR: {
@@ -144,7 +149,15 @@ export const ENDPOINTS = {
     INVOICES: {
       ALL: "/sales/invoices",
       BY_CUSTOMER: (customerId) => customerId ? `/sales/invoices/customer/${customerId}` : `/sales/invoices/customer`,
-    }
+    },
+    LEGACY_IMPORT: {
+      UPLOAD: "/sales/legacy-b2c-import/upload",
+      START: (migrationId) => `/sales/legacy-b2c-import/${migrationId}/start`,
+      PAUSE: (migrationId) => `/sales/legacy-b2c-import/${migrationId}/pause`,
+      RESUME: (migrationId) => `/sales/legacy-b2c-import/${migrationId}/resume`,
+      STATUS: (migrationId) => `/sales/legacy-b2c-import/${migrationId}/status`,
+      REPORT: (migrationId) => `/sales/legacy-b2c-import/${migrationId}/report`,
+    },
   },
 
   SUPPLIER: {

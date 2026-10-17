@@ -58,7 +58,7 @@ import SupplierImportPreviewModal from "../../components/SupplierImportPreviewMo
 import SupplierImportConfigModal from "../../components/SupplierImportConfigModal";
 import SupplierOutstandingImportPreviewModal from "../../components/SupplierOutstandingImportPreviewModal";
 
-const PAGE_LIMIT = 20;
+const PAGE_LIMIT = 10;
 
 const formatCurrency = (val) => {
   if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
@@ -266,6 +266,38 @@ export const SuppliersDesktopPage = ({
       setIsLoadingMore(false);
     }
   }, [currentPage, hasMore, isLoading, isLoadingMore, buildQueryParams, totalCount, formatSupplierRow]);
+
+  // Observer on the 8th row (index 7 of each 10-item batch) to trigger loading next 10 items
+  const eighthRowObserverRef = useRef(null);
+  const eighthRowCallbackRef = useCallback(
+    (node) => {
+      if (isLoading || isLoadingMore || !hasMore) return;
+      if (eighthRowObserverRef.current) eighthRowObserverRef.current.disconnect();
+
+      eighthRowObserverRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+            handleLoadMore();
+          }
+        },
+        {
+          root: tableContainerRef.current,
+          threshold: 0.1,
+        }
+      );
+
+      if (node) eighthRowObserverRef.current.observe(node);
+    },
+    [hasMore, isLoading, isLoadingMore, handleLoadMore]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (eighthRowObserverRef.current) {
+        eighthRowObserverRef.current.disconnect();
+      }
+    };
+  }, []);
 
   // Refresh
   const handleRefresh = useCallback(() => {
@@ -609,7 +641,7 @@ export const SuppliersDesktopPage = ({
         <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
           <div
             ref={tableContainerRef}
-            className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 divide-y divide-border/60"
+            className="relative overflow-y-auto overflow-x-auto max-h-[320px] min-h-[320px] flex-1 divide-y divide-border/60"
           >
             <UITable
               stickyHeader
@@ -631,7 +663,7 @@ export const SuppliersDesktopPage = ({
 
               <UITableBody>
                 {isLoading ? (
-                  <UITableLoading colSpan={7} rows={6} />
+                  <UITableLoading colSpan={7} rows={5} />
                 ) : suppliers.length === 0 ? (
                   <UITableEmpty
                     colSpan={7}
@@ -654,12 +686,14 @@ export const SuppliersDesktopPage = ({
                     }
                   />
                 ) : (
-                  suppliers.map((sup) => {
+                  suppliers.map((sup, index) => {
                     const isCredit = sup.balanceType?.toLowerCase() === "cr";
+                    const isTriggerRow = (index % 10 === 7) || (index === suppliers.length - 3);
 
                     return (
                       <UITableRow
                         key={sup._id || sup.id}
+                        ref={isTriggerRow ? eighthRowCallbackRef : null}
                         onClick={() => handleViewSupplier(sup)}
                         className="cursor-pointer hover:bg-surface-hover/70 transition-colors"
                       >
