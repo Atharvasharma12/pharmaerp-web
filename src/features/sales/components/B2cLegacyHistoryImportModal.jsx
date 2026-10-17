@@ -40,6 +40,7 @@ export const B2cLegacyHistoryImportModal = ({ isOpen, onClose, onSuccess }) => {
 
   // Upload response info
   const [migrationId, setMigrationId] = useState("");
+  const [fileFormat, setFileFormat] = useState("FLAT_TABULAR");
   const [sheetNames, setSheetNames] = useState([]);
   const [selectedSheet, setSelectedSheet] = useState("");
   const [headers, setHeaders] = useState([]);
@@ -128,6 +129,7 @@ export const B2cLegacyHistoryImportModal = ({ isOpen, onClose, onSuccess }) => {
 
       const data = res.data?.data || res.data;
       setMigrationId(data.migrationId);
+      setFileFormat(data.fileFormat || "FLAT_TABULAR");
       setSheetNames(data.sheetNames || []);
       setSelectedSheet(data.selectedSheet || data.sheetNames?.[0] || "");
       setHeaders(data.headers || []);
@@ -188,13 +190,15 @@ export const B2cLegacyHistoryImportModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   const handleStartImport = async () => {
-    if (!columnMapping.mobileNumberField) {
-      setError("Mobile Number column mapping is strictly required");
-      return;
-    }
-    if (!columnMapping.medicineField) {
-      setError("Medicine / Product column mapping is strictly required");
-      return;
+    if (fileFormat !== "MARG_ERP_STATEMENT") {
+      if (!columnMapping.mobileNumberField) {
+        setError("Mobile Number column mapping is strictly required");
+        return;
+      }
+      if (!columnMapping.medicineField) {
+        setError("Medicine / Product column mapping is strictly required");
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -352,7 +356,11 @@ export const B2cLegacyHistoryImportModal = ({ isOpen, onClose, onSuccess }) => {
           <div className="space-y-4">
             <div className="rounded-xl border border-border/80 bg-surface p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-text">Confirm Column Mappings</p>
+                <p className="text-xs font-bold text-text">
+                  {fileFormat === "MARG_ERP_STATEMENT"
+                    ? "Marg ERP Statement Layout"
+                    : "Confirm Column Mappings"}
+                </p>
                 <span className="text-[11px] text-text-muted font-mono">{file?.name}</span>
               </div>
 
@@ -367,50 +375,76 @@ export const B2cLegacyHistoryImportModal = ({ isOpen, onClose, onSuccess }) => {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text flex items-center gap-1">
-                    Mobile Number <span className="text-rose-500">*</span>
-                  </label>
-                  <UISelect
-                    value={columnMapping.mobileNumberField}
-                    onChange={(val) =>
-                      setColumnMapping((prev) => ({ ...prev, mobileNumberField: val }))
-                    }
-                    options={headerOptions}
-                    placeholder="Select Mobile Column"
-                  />
-                  <p className="text-[10px] text-text-muted">Must be valid 10-digit Indian mobile</p>
+              {fileFormat === "MARG_ERP_STATEMENT" ? (
+                <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
+                  <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span>Marg ERP Statement Layout Auto-Detected</span>
+                  </div>
+                  <p className="text-xs text-text-muted leading-relaxed">
+                    This file is structured in Marg ERP's hierarchical format (bill header followed by indented medicine rows). Customer names, 10-digit mobile numbers, and medicines will be automatically parsed from the statement hierarchy.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 text-xs">
+                    <div className="p-2.5 rounded-lg bg-surface border border-border">
+                      <span className="text-text-muted text-[10px] block uppercase font-medium">Customer Mobile</span>
+                      <span className="text-text font-semibold">Column 2 (10-Digit Mobile)</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-surface border border-border">
+                      <span className="text-text-muted text-[10px] block uppercase font-medium">Customer Name</span>
+                      <span className="text-text font-semibold">Column 2 (Patient / Buyer)</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-surface border border-border">
+                      <span className="text-text-muted text-[10px] block uppercase font-medium">Medicine Name</span>
+                      <span className="text-text font-semibold">Column 2 (Indented Items)</span>
+                    </div>
+                  </div>
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-text flex items-center gap-1">
+                      Mobile Number <span className="text-rose-500">*</span>
+                    </label>
+                    <UISelect
+                      value={columnMapping.mobileNumberField}
+                      onChange={(val) =>
+                        setColumnMapping((prev) => ({ ...prev, mobileNumberField: val }))
+                      }
+                      options={headerOptions}
+                      placeholder="Select Mobile Column"
+                    />
+                    <p className="text-[10px] text-text-muted">Must be valid 10-digit Indian mobile</p>
+                  </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text flex items-center gap-1">
-                    Medicine / Item <span className="text-rose-500">*</span>
-                  </label>
-                  <UISelect
-                    value={columnMapping.medicineField}
-                    onChange={(val) =>
-                      setColumnMapping((prev) => ({ ...prev, medicineField: val }))
-                    }
-                    options={headerOptions}
-                    placeholder="Select Medicine Column"
-                  />
-                  <p className="text-[10px] text-text-muted">Product / Drug / Item Name</p>
-                </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-text flex items-center gap-1">
+                      Medicine / Item <span className="text-rose-500">*</span>
+                    </label>
+                    <UISelect
+                      value={columnMapping.medicineField}
+                      onChange={(val) =>
+                        setColumnMapping((prev) => ({ ...prev, medicineField: val }))
+                      }
+                      options={headerOptions}
+                      placeholder="Select Medicine Column"
+                    />
+                    <p className="text-[10px] text-text-muted">Product / Drug / Item Name</p>
+                  </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text">Customer Name (Optional)</label>
-                  <UISelect
-                    value={columnMapping.customerNameField}
-                    onChange={(val) =>
-                      setColumnMapping((prev) => ({ ...prev, customerNameField: val }))
-                    }
-                    options={headerOptions}
-                    placeholder="Select Name Column"
-                  />
-                  <p className="text-[10px] text-text-muted">Fallback: Customer Name</p>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-text">Customer Name (Optional)</label>
+                    <UISelect
+                      value={columnMapping.customerNameField}
+                      onChange={(val) =>
+                        setColumnMapping((prev) => ({ ...prev, customerNameField: val }))
+                      }
+                      options={headerOptions}
+                      placeholder="Select Name Column"
+                    />
+                    <p className="text-[10px] text-text-muted">Fallback: Customer Name</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 text-xs text-text space-y-1">
@@ -769,12 +803,17 @@ export const B2cLegacyHistoryImportModal = ({ isOpen, onClose, onSuccess }) => {
             </UIButton>
             <UIButton
               variant="default"
-              disabled={isLoading || !columnMapping.mobileNumberField || !columnMapping.medicineField}
+              disabled={
+                isLoading ||
+                (fileFormat !== "MARG_ERP_STATEMENT" &&
+                  (!columnMapping.mobileNumberField || !columnMapping.medicineField))
+              }
               onClick={handleStartImport}
               className="gap-1.5"
             >
               {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Start Import <ChevronRight className="h-4 w-4" />
+              {fileFormat === "MARG_ERP_STATEMENT" ? "Start Marg ERP Import" : "Start Import"}{" "}
+              <ChevronRight className="h-4 w-4" />
             </UIButton>
           </>
         )}
