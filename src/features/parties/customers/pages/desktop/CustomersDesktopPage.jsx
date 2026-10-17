@@ -63,6 +63,7 @@ import CustomerImportPreviewModal from "../../components/CustomerImportPreviewMo
 import ImportConfigModal from "../../components/ImportConfigModal";
 import OutstandingImportPreviewModal from "../../components/OutstandingImportPreviewModal";
 import B2cCustomerImportModal from "../../components/B2cCustomerImportModal";
+import B2cLegacyHistoryImportModal from "@/features/sales/components/B2cLegacyHistoryImportModal";
 import * as XLSX from "xlsx";
 
 const formatCurrency = (val) => {
@@ -193,6 +194,7 @@ export const CustomersDesktopPage = ({
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] = useState(false);
   const [isB2cImportModalOpen, setIsB2cImportModalOpen] = useState(false);
+  const [isLegacyHistoryImportModalOpen, setIsLegacyHistoryImportModalOpen] = useState(false);
   const [activeImportType, setActiveImportType] = useState("b2b");
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -854,18 +856,32 @@ export const CustomersDesktopPage = ({
 
           <PermissionGate permission="customer:create">
             {customerScope === "b2c" ? (
-              <UIButton
-                type="button"
-                variant="outline"
-                size="md"
-                startIcon={<Users className="size-3.5 text-purple-600 dark:text-purple-400" />}
-                onClick={() => setIsB2cImportModalOpen(true)}
-                disabled={isUploading}
-                className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
-                title="Import B2C Customer Records from Excel"
-              >
-                Import B2C Customers
-              </UIButton>
+              <div className="flex items-center gap-2">
+                <UIButton
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  startIcon={<Users className="size-3.5 text-purple-600 dark:text-purple-400" />}
+                  onClick={() => setIsB2cImportModalOpen(true)}
+                  disabled={isUploading}
+                  className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+                  title="Import B2C Customer Records from Excel"
+                >
+                  Import B2C Customers
+                </UIButton>
+                <UIButton
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  startIcon={<BookOpen className="size-3.5 text-blue-600 dark:text-blue-400" />}
+                  onClick={() => setIsLegacyHistoryImportModalOpen(true)}
+                  disabled={isUploading}
+                  className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
+                  title="Import Customer Purchase History from Legacy Excel"
+                >
+                  Legacy History Import
+                </UIButton>
+              </div>
             ) : (
               <UIButton
                 type="button"
@@ -1441,6 +1457,13 @@ export const CustomersDesktopPage = ({
       <B2cCustomerImportModal
         isOpen={isB2cImportModalOpen}
         onClose={() => setIsB2cImportModalOpen(false)}
+        onSuccess={() => {
+          handleRefresh();
+        }}
+      />
+      <B2cLegacyHistoryImportModal
+        isOpen={isLegacyHistoryImportModalOpen}
+        onClose={() => setIsLegacyHistoryImportModalOpen(false)}
         onSuccess={() => {
           handleRefresh();
         }}

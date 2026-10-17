@@ -149,7 +149,15 @@ export const ENDPOINTS = {
     INVOICES: {
       ALL: "/sales/invoices",
       BY_CUSTOMER: (customerId) => customerId ? `/sales/invoices/customer/${customerId}` : `/sales/invoices/customer`,
-    }
+    },
+    LEGACY_IMPORT: {
+      UPLOAD: "/sales/legacy-b2c-import/upload",
+      START: (migrationId) => `/sales/legacy-b2c-import/${migrationId}/start`,
+      PAUSE: (migrationId) => `/sales/legacy-b2c-import/${migrationId}/pause`,
+      RESUME: (migrationId) => `/sales/legacy-b2c-import/${migrationId}/resume`,
+      STATUS: (migrationId) => `/sales/legacy-b2c-import/${migrationId}/status`,
+      REPORT: (migrationId) => `/sales/legacy-b2c-import/${migrationId}/report`,
+    },
   },
 
   SUPPLIER: {
