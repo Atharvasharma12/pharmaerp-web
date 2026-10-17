@@ -92,6 +92,26 @@ const customerService = {
     return apiClient.post(ENDPOINTS.CUSTOMER.IMPORT_CHUNK, payload, { timeout: 120000 });
   },
 
+  previewB2CImport(formData) {
+    return apiClient.post(ENDPOINTS.CUSTOMER.IMPORT_B2C_PREVIEW, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
+  confirmB2CImport(payload) {
+    // If formData is passed, send with multipart, otherwise send JSON payload
+    if (payload instanceof FormData) {
+      return apiClient.post(ENDPOINTS.CUSTOMER.IMPORT_B2C_CONFIRM, payload, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    }
+    return apiClient.post(ENDPOINTS.CUSTOMER.IMPORT_B2C_CONFIRM, payload);
+  },
+
   /*
   |--------------------------------------------------------------------------
   | Advance & Credit
@@ -124,6 +144,23 @@ const customerService = {
 
   getAllPendingCredits(params = {}) {
     return apiClient.get(ENDPOINTS.CUSTOMER.CREDITS_PENDING_ALL, { params });
+  },
+
+  addRelationship(customerId, payload) {
+    return apiClient.post(ENDPOINTS.CUSTOMER.RELATIONSHIPS(customerId), payload);
+  },
+
+  updateRelationship(customerId, targetCustomerId, payload) {
+    return apiClient.patch(
+      ENDPOINTS.CUSTOMER.RELATIONSHIP_BY_TARGET(customerId, targetCustomerId),
+      payload
+    );
+  },
+
+  deleteRelationship(customerId, targetCustomerId) {
+    return apiClient.delete(
+      ENDPOINTS.CUSTOMER.RELATIONSHIP_BY_TARGET(customerId, targetCustomerId)
+    );
   },
 };
 

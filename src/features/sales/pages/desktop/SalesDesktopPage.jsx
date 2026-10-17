@@ -963,6 +963,25 @@ export const SalesDesktopPage = () => {
     }
   };
 
+  const handleSwitchCustomerFromHistory = (targetMember) => {
+    if (!targetMember) return;
+    const mapped = {
+      id: targetMember._id || targetMember.customerId || targetMember.id,
+      _id: targetMember._id || targetMember.customerId || targetMember.id,
+      name: targetMember.name,
+      phone: targetMember.mobile || targetMember.phone || "",
+      mobile: targetMember.mobile || targetMember.phone || "",
+      gender: targetMember.gender || null,
+      billingType: "B2C",
+      ...targetMember,
+    };
+    setSelectedB2cCustomer(mapped);
+    if (mapped.name) setCustomerName(mapped.name);
+    if (mapped.phone) setCustomerPhone(mapped.phone);
+    setToastMessage(`Switched billing to ${mapped.name}`);
+    setTimeout(() => setToastMessage(null), 2500);
+  };
+
   const handleSelectWorkspaceProduct = (prod, details) => {
     const p = details || prod;
     setSelectedProductForBatches(p);
@@ -1858,6 +1877,7 @@ export const SalesDesktopPage = () => {
                 <SalesCustomerSidebar
                   customer={billingMode === 'B2C' ? (activeCustomer || { name: customerName, phone: customerPhone }) : activeCustomer}
                   onAddProduct={handleAddFromHistory}
+                  onSwitchCustomer={billingMode === 'B2C' ? handleSwitchCustomerFromHistory : undefined}
                 />
               </div>
             </div>

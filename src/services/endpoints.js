@@ -120,6 +120,8 @@ export const ENDPOINTS = {
     IMPORT_PREVIEW: "/parties/customers/import/preview",
     IMPORT_CONFIRM: "/parties/customers/import/confirm",
     IMPORT_CHUNK: "/parties/customers/import/chunk",
+    IMPORT_B2C_PREVIEW: "/parties/customers/import/b2c-preview",
+    IMPORT_B2C_CONFIRM: "/parties/customers/import/b2c-confirm",
     ADVANCE_RECEIVE: (customerId) => `/parties/customers/${customerId}/advance/receive`,
     ADVANCE_BALANCE: (customerId) => `/parties/customers/${customerId}/advance/balance`,
     CREDIT_SETTLE: (customerId) => `/parties/customers/${customerId}/credit/settle`,
@@ -127,6 +129,9 @@ export const ENDPOINTS = {
     TRANSACTIONS: (customerId) => `/parties/customers/${customerId}/transactions`,
     STATEMENT: (customerId) => `/parties/customers/${customerId}/statement`,
     CREDITS_PENDING_ALL: "/parties/customers/credits/pending",
+    RELATIONSHIPS: (customerId) => `/parties/customers/${customerId}/relationships`,
+    RELATIONSHIP_BY_TARGET: (customerId, targetCustomerId) =>
+      `/parties/customers/${customerId}/relationships/${targetCustomerId}`,
   },
 
   DOCTOR: {
