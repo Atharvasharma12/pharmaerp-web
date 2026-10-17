@@ -273,13 +273,23 @@ export const SalesCustomerSidebar = ({ customer, onAddProduct, onSwitchCustomer 
                   {/* Invoice Header */}
                   <div className="bg-surface-alt/60 px-3 py-2 border-b border-border">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-semibold text-text-muted">
-                        {new Date(inv.date).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[10px] font-semibold text-text-muted">
+                          {new Date(inv.date).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                        {inv.branchName && (
+                          <span
+                            className="px-1.5 py-0.2 rounded text-[9px] font-medium bg-secondary/15 text-text-muted border border-border truncate max-w-[110px]"
+                            title={`Branch: ${inv.branchName}`}
+                          >
+                            {inv.branchName}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-xs font-bold text-text font-mono">
                         {formatCurrency(inv.grandTotal)}
                       </span>
