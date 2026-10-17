@@ -347,6 +347,19 @@ export const SuppliersDesktopPage = ({
     }
   };
 
+  const handleImportSuccess = (successful, failed, errors) => {
+    setIsImportModalOpen(false);
+    setIsOutstandingImportModalOpen(false);
+    if (failed > 0) {
+      alert(
+        `Imported ${successful} successfully. ${failed} failed.\nErrors: ${errors?.join(", ") || ""}`
+      );
+    } else if (successful > 0) {
+      alert(`Imported ${successful} successfully.`);
+    }
+    handleRefresh();
+  };
+
   const activeFilterCount =
     (selectedType !== "all" ? 1 : 0) +
     (selectedStatus !== "all" ? 1 : 0) +
@@ -901,7 +914,9 @@ export const SuppliersDesktopPage = ({
       <SupplierImportConfigModal
         isOpen={isImportConfigOpen}
         onClose={() => setIsImportConfigOpen(false)}
+        onImportSubmit={handleImportSubmit}
         onSubmit={handleImportSubmit}
+        isUploading={isUploading}
         isLoading={isUploading}
       />
 
@@ -909,20 +924,16 @@ export const SuppliersDesktopPage = ({
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         previewData={importPreviewData}
-        onSuccess={() => {
-          setIsImportModalOpen(false);
-          handleRefresh();
-        }}
+        onImportSuccess={handleImportSuccess}
+        onSuccess={handleImportSuccess}
       />
 
       <SupplierOutstandingImportPreviewModal
         isOpen={isOutstandingImportModalOpen}
         onClose={() => setIsOutstandingImportModalOpen(false)}
         previewData={importPreviewData}
-        onSuccess={() => {
-          setIsOutstandingImportModalOpen(false);
-          handleRefresh();
-        }}
+        onImportSuccess={handleImportSuccess}
+        onSuccess={handleImportSuccess}
       />
     </div>
   );

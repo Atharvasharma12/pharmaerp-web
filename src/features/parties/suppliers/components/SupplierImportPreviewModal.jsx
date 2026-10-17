@@ -19,6 +19,7 @@ const SupplierImportPreviewModal = ({
   onClose,
   previewData,
   onImportSuccess,
+  onSuccess,
 }) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState("");
@@ -45,7 +46,10 @@ const SupplierImportPreviewModal = ({
       const res = await supplierService.confirmImport(suppliersToImport);
       
       const { successful, failed, errors } = res.data?.data || {};
-      onImportSuccess(successful, failed, errors);
+      const successHandler = onImportSuccess || onSuccess;
+      if (typeof successHandler === "function") {
+        successHandler(successful, failed, errors);
+      }
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to import suppliers. Please try again.");
     } finally {

@@ -18,7 +18,8 @@ const SupplierOutstandingImportPreviewModal = ({
   isOpen,
   onClose,
   previewData,
-  onImportSuccess
+  onImportSuccess,
+  onSuccess,
 }) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState("");
@@ -97,7 +98,10 @@ const SupplierOutstandingImportPreviewModal = ({
       const res = await supplierService.confirmImport(transactionsToImport, "outstanding");
       
       const { successful, failed, errors } = res.data?.data || {};
-      onImportSuccess(successful, failed, errors);
+      const successHandler = onImportSuccess || onSuccess;
+      if (typeof successHandler === "function") {
+        successHandler(successful, failed, errors);
+      }
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to import outstanding invoices. Please try again.");
     } finally {
