@@ -48,17 +48,85 @@ export const CreatePurchaseBillMobilePage = () => {
     return val ? String(val) : "3004";
   };
 
-  const formatExpiryInput = (val) => {
+  const formatExpiryInput = (val, prevVal = "") => {
     if (!val) return "";
+
+    // Handle single-character backspace from end
+    if (prevVal && prevVal.startsWith(val) && val.length === prevVal.length - 1) {
+      if (prevVal.endsWith("/")) {
+        const prefix = val.slice(0, -1);
+        return prefix === "0" ? "" : prefix;
+      }
+      return val;
+    }
+
+    // If user typed slash or has slash
+    if (val.includes("/")) {
+      const parts = val.split("/");
+      const rawMonth = parts[0].replace(/\D/g, "");
+      const rawYear = parts.slice(1).join("").replace(/\D/g, "").slice(0, 2);
+
+      if (rawMonth.length === 0) return "";
+      if (rawMonth.length === 1) {
+        if (rawMonth === "0") return "0";
+        const m = `0${rawMonth}`;
+        return rawYear ? `${m}/${rawYear}` : `${m}/`;
+      }
+      const monthNum = parseInt(rawMonth.slice(0, 2), 10);
+      if (monthNum >= 1 && monthNum <= 12) {
+        const m = String(monthNum).padStart(2, "0");
+        return rawYear ? `${m}/${rawYear}` : `${m}/`;
+      }
+      return `12/${rawYear}`;
+    }
+
+    // Only digits entered without slash
     const digits = val.replace(/\D/g, "").slice(0, 4);
     if (digits.length === 0) return "";
-    if (digits.length <= 2) {
-      if (val.endsWith("/") && digits.length === 2) {
-        return `${digits}/`;
+
+    if (digits.length === 1) {
+      if (digits >= "2") {
+        return `0${digits}/`;
       }
       return digits;
     }
-    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+
+    if (digits.length === 2) {
+      if (digits[0] === "0") {
+        if (digits[1] >= "1") return `${digits}/`;
+        return "0";
+      }
+      if (digits[0] === "1") {
+        if (digits[1] <= "2") return `${digits}/`;
+        return `01/${digits[1]}`;
+      }
+      return `0${digits[0]}/${digits[1]}`;
+    }
+
+    if (digits.length === 3) {
+      if (digits[0] === "0") {
+        return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+      }
+      if (digits[0] === "1") {
+        if (Number(digits.slice(0, 2)) <= 12) {
+          return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+        }
+        return `01/${digits.slice(1, 3)}`;
+      }
+      return `0${digits[0]}/${digits.slice(1, 3)}`;
+    }
+
+    // 4 digits
+    if (digits[0] === "0") {
+      return `${digits.slice(0, 2)}/${digits.slice(2, 4)}`;
+    }
+    if (digits[0] === "1") {
+      if (Number(digits.slice(0, 2)) <= 12) {
+        return `${digits.slice(0, 2)}/${digits.slice(2, 4)}`;
+      }
+      return `01/${digits.slice(1, 3)}`;
+    }
+    return `0${digits[0]}/${digits.slice(1, 3)}`;
   };
 
   const handleSelectWorkspaceProduct = (prod, details) => {
