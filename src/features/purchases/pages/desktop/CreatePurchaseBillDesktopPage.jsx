@@ -358,6 +358,7 @@ export const CreatePurchaseBillDesktopPage = () => {
 
   const searchBarRef = useRef(null);
   const supplierSearchBarRef = useRef(null);
+  const previewButtonRef = useRef(null);
 
   // Load existing bill if billId is present (Edit Mode)
   useEffect(() => {
@@ -526,7 +527,7 @@ export const CreatePurchaseBillDesktopPage = () => {
       pack: p.pack || p.packaging || "Pack",
       batch: p.batchNo || p.batch || "",
       expiry: p.expiryDate || p.expiry || "",
-      qty: 1,
+      qty: 0,
       freeQty: 0,
       schPct: 0,
       disc: 0,
@@ -1062,7 +1063,18 @@ export const CreatePurchaseBillDesktopPage = () => {
               )}
             </div>
 
-            <div>
+            <div
+              onKeyDown={(event) => {
+                if (
+                  event.key === "Enter" &&
+                  !event.defaultPrevented &&
+                  event.target === searchBarRef.current?.input
+                ) {
+                  event.preventDefault();
+                  previewButtonRef.current?.focus();
+                }
+              }}
+            >
               <WorkspaceProductSearchBar
                 ref={searchBarRef}
                 value={searchQuery}
@@ -1079,7 +1091,28 @@ export const CreatePurchaseBillDesktopPage = () => {
               />
             </div>
 
-            <div className="overflow-x-auto overflow-y-auto rounded-xl border border-border bg-surface-alt/30 max-h-[320px]">
+            <div
+              className="overflow-x-auto overflow-y-auto rounded-xl border border-border bg-surface-alt/30 max-h-[320px]"
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== "ArrowLeft") return;
+
+                const fields = Array.from(
+                  event.currentTarget.querySelectorAll("input, select, textarea")
+                ).filter((field) => !field.disabled && field.tabIndex !== -1);
+                const currentIndex = fields.indexOf(event.target);
+                if (currentIndex === -1) return;
+
+                const nextIndex = currentIndex + (event.key === "Enter" ? 1 : -1);
+                const nextField = fields[nextIndex];
+                if (nextField) {
+                  event.preventDefault();
+                  nextField.focus();
+                } else if (event.key === "Enter" && currentIndex === fields.length - 1) {
+                  event.preventDefault();
+                  searchBarRef.current?.focus();
+                }
+              }}
+            >
               {cart.length > 0 ? (
                 <table className="w-full text-left border-collapse text-xs">
                   <thead className="sticky top-0 z-10 bg-surface-alt/95 backdrop-blur-sm shadow-sm">
@@ -1315,6 +1348,7 @@ export const CreatePurchaseBillDesktopPage = () => {
             </div>
 
             <UIButton
+              ref={previewButtonRef}
               variant="primary"
               size="md"
               className="w-full justify-center text-sm font-bold shadow-sm"
