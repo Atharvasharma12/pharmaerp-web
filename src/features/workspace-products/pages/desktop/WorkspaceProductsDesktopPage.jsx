@@ -1,87 +1,84 @@
 // src/features/workspace-products/pages/desktop/WorkspaceProductsDesktopPage.jsx
 
-import { useMemo } from "react";
+import React, { useState, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  FiArrowLeft,
-  FiChevronLeft,
-  FiChevronRight,
-  FiDownload,
-  FiFilter,
-  FiMoreHorizontal,
-  FiPlus,
-  FiRefreshCw,
-  FiSearch,
-  FiUpload,
-} from "react-icons/fi";
-import { HiOutlineCube } from "react-icons/hi2";
-import { BiCategory, BiCheckShield, BiXCircle } from "react-icons/bi";
+  Boxes,
+  CheckCircle2,
+  AlertTriangle,
+  Layers,
+  Search,
+  Filter,
+  RefreshCw,
+  RotateCcw,
+  Plus,
+  Download,
+  Upload,
+  Eye,
+  Edit3,
+  Trash2,
+  MoreVertical,
+  XCircle,
+} from "lucide-react";
 
 import {
-  AppAlert,
-  AppBox,
-  AppBreadcrumb,
-  AppButton,
-  AppCard,
-  AppEmptyState,
-  AppErrorState,
-  AppHeading,
-  AppIconButton,
-  AppMenu,
-  AppSearchInput,
-  AppSelect,
-  AppStack,
-  AppStatCard,
-  AppStatusBadge,
-  AppTable,
-  AppTableSkeleton,
-  AppTag,
-  AppText,
-  HELP_SUPPORT_CARD,
-  PageRightSidebar,
+  UIButton,
+  UIInput,
+  UISelect,
+  UIBadge,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UITableEmpty,
+  UITableLoading,
+  UIInfiniteScroll,
+  UIDropdown,
+  UIDropdownTrigger,
+  UIDropdownMenu,
+  UIDropdownItem,
+  UIDropdownDivider,
+  UIModal,
+  UIModalHeader,
+  UIModalTitle,
+  UIModalDescription,
+  UIModalBody,
+  UIModalFooter,
   PermissionGate,
-  UploadExistingInventoryBtn,
-} from "@/components";
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
 import { usePermission } from "@/hooks";
 
-const statIcons = {
-  total_products: <HiOutlineCube />,
-  active_products: <BiCheckShield />,
-  inactive_products: <BiXCircle />,
-};
+const STATUS_SELECT_OPTIONS = [
+  { label: "All Status", value: "all" },
+  { label: "Active", value: "active" },
+  { label: "Inactive", value: "inactive" },
+];
 
-const statusColorMap = {
-  active: "success",
-  inactive: "neutral",
-};
-
-const WorkspaceProductsDesktopPage = ({
+export const WorkspaceProductsDesktopPage = ({
   products = [],
   dashboardStats = [],
-  filters,
+  filters = { search: "", productType: "all", status: "all" },
   activeFilterChips = [],
   productTypeOptions = [],
 
-  isLoading,
-  hasError,
-  error,
-  message,
+  isLoading = false,
+  isLoadingMore = false,
+  hasMore = false,
+  handleLoadMore,
+  hasError = false,
+  error = null,
+  message = null,
 
   totalProducts = 0,
-  currentPage = 1,
-  totalPages = 1,
-  pageSize = 10,
-
-  hasProducts,
-  hasFilteredProducts,
 
   handleFilterChange,
   handleSearchChange,
   handleRemoveFilter,
   handleClearFilters,
   handleRefresh,
-  handleBackToCatalog,
-  handlePageChange,
-  handlePageSizeChange,
   handleCreateProduct,
   handleViewProductDetails,
   handleEditProduct,
@@ -90,746 +87,493 @@ const WorkspaceProductsDesktopPage = ({
   handleOpenImportGst,
   clearMessage,
 }) => {
-  const showInitialSkeleton = isLoading && !hasProducts;
+  const tableContainerRef = useRef(null);
+  const { can } = usePermission();
 
-  const columns = [
-    {
-      id: "productName",
-      key: "displayName",
-      label: "Product Name",
-      minWidth: 250,
-      render: (_, product) => (
-        <div className="flex items-center gap-3 min-w-0 h-full">
-          <div className="flex items-center justify-center shrink-0">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-alt border border-border">
-              <HiOutlineCube className="text-[16px] text-text-muted" />
-            </span>
-          </div>
-          <div className="flex flex-col min-w-0 justify-center">
-            <AppHeading level={3} weight={700} sx={productNameSx}>
-              {product?.displayName || "-"}
-            </AppHeading>
-            {product?.notes && (
-              <AppText variant="body2" sx={productSubtitleSx}>
-                {product.notes}
-              </AppText>
-            )}
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "sku",
-      key: "displaySku",
-      label: "SKU",
-      minWidth: 100,
-      render: (_, product) => (
-        <AppText variant="body2" sx={tableValueSx}>
-          {product?.displaySku || "-"}
-        </AppText>
-      ),
-    },
-    {
-      id: "category",
-      key: "displayCategory",
-      label: "Category",
-      minWidth: 120,
-      render: (_, product) => (
-        <AppTag
-          label={product?.displayCategory || "-"}
-          variant="soft"
-          colorVariant="purple"
-          rounded="md"
-          sx={tagSx}
-        />
-      ),
-    },
-    {
-      id: "manufacturer",
-      key: "displayManufacturer",
-      label: "Manufacturer / Marketer",
-      minWidth: 190,
-      render: (_, product) => (
-        <AppText variant="body2" sx={descriptionSx}>
-          {product?.displayManufacturer || "-"}
-        </AppText>
-      ),
-    },
-    {
-      id: "dosageForm",
-      key: "displayDosageForm",
-      label: "Dosage Form",
-      minWidth: 120,
-      render: (_, product) => (
-        <AppText variant="body2" sx={tableValueMutedSx}>
-          {product?.displayDosageForm || "-"}
-        </AppText>
-      ),
-    },
-    {
-      id: "strength",
-      key: "displayStrength",
-      label: "Strength",
-      minWidth: 100,
-      render: (_, product) => (
-        <AppText variant="body2" sx={tableValueMutedSx}>
-          {product?.displayStrength || "-"}
-        </AppText>
-      ),
-    },
-    {
-      id: "status",
-      key: "displayStatus",
-      label: "Status",
-      width: 100,
-      render: (_, product) => (
-        <AppStatusBadge
-          status={product?.displayStatus || "inactive"}
-          label={product?.displayStatus || "inactive"}
-          variant="soft"
-          size="small"
-          rounded="md"
-          colorVariant={statusColorMap[product?.displayStatus] || "neutral"}
-          sx={statusBadgeSx}
-        />
-      ),
-    },
-    {
-      id: "source",
-      key: "displayAvailability",
-      label: "Source",
-      width: 110,
-      render: (_, product) => (
-        <AppText variant="body2" sx={tableValueMutedSx}>
-          {product?.displayAvailability || "Workspace"}
-        </AppText>
-      ),
-    },
-    {
-      id: "actions",
-      key: "actions",
-      label: "Actions",
-      align: "right",
-      width: 70,
-      render: (_, product) => (
-        <RowActions
-          product={product}
-          onView={handleViewProductDetails}
-          onEdit={handleEditProduct}
-          onDelete={handleDeleteProduct}
-        />
-      ),
-    },
-  ];
+  // Delete Confirmation Modal state
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!productToDelete) return;
+    setIsDeleting(true);
+    try {
+      await handleDeleteProduct(productToDelete);
+      setProductToDelete(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const hasActiveFilters =
+    Boolean(filters.search) ||
+    filters.productType !== "all" ||
+    filters.status !== "all";
+
+  // Stat card icon resolution
+  const statIcons = {
+    total_products: <Boxes className="size-4.5 stroke-[1.8]" />,
+    active_products: <CheckCircle2 className="size-4.5 stroke-[1.8]" />,
+    inactive_products: <AlertTriangle className="size-4.5 stroke-[1.8]" />,
+    categories_count: <Layers className="size-4.5 stroke-[1.8]" />,
+  };
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
-      {message ? <TopToast message={message} onClose={clearMessage} /> : null}
-
-      <div className="mx-auto w-full max-w-[1500px]">
-        <AppBox
-          display="flex"
-          alignItems="flex-start"
-          justifyContent="space-between"
-          sx={pageHeaderSx}
-        >
-          <AppBox sx={pageHeaderContentSx}>
-            <AppHeading level={1} weight={650}>
-              Custom Products
-            </AppHeading>
-            <AppText variant="body2" sx={pageHeaderSubtitleSx}>
-              Manage workspace custom products created locally when a global
-              catalog match is unavailable.
-            </AppText>
-            <AppBreadcrumb
-              size="small"
-              variant="text"
-              items={[
-                { label: "Dashboard", href: "/" },
-                { label: "Catalog", href: "/catalog" },
-                { label: "Custom Products", current: true },
-              ]}
-              sx={breadcrumbSx}
-              itemSx={breadcrumbItemSx}
-              currentItemSx={breadcrumbCurrentSx}
-            />
-          </AppBox>
-
-          <AppStack
-            direction="row"
-            align="center"
-            justify="flex-end"
-            gap={1.1}
-            sx={{ flexShrink: 0 }}
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
+      {/* Toast Notification Banner */}
+      <AnimatePresence>
+        {message && (
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.18 }}
+            className="fixed top-4 right-4 z-50 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-alt border border-primary/30 shadow-lg text-text text-xs sm:text-sm font-medium"
           >
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiArrowLeft />}
-              onClick={handleBackToCatalog}
-              sx={secondaryButtonSx}
+            <CheckCircle2 className="size-4.5 text-primary shrink-0" />
+            <span>{message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── 1. Compact 4-Card Statistics Grid ────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
+        {dashboardStats.map((stat) => {
+          const isWarning = stat.colorVariant === "warning";
+          const isSuccess = stat.colorVariant === "success";
+          const isInfo = stat.colorVariant === "info";
+
+          const iconContainerClass = isSuccess
+            ? "bg-success-soft text-success"
+            : isWarning
+            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+            : isInfo
+            ? "bg-primary/10 text-primary"
+            : "bg-info-soft text-info";
+
+          return (
+            <div
+              key={stat.id}
+              className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors"
             >
-              Back
-            </AppButton>
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiRefreshCw />}
-              onClick={handleRefresh}
-              loading={isLoading}
-              disabled={isLoading}
-              sx={secondaryButtonSx}
-            >
-              Refresh
-            </AppButton>
-            <PermissionGate permission="product:create">
-              <UploadExistingInventoryBtn
-                onClick={handleImportWorkspaceProducts}
-                sx={secondaryButtonSx}
+              <div
+                className={cn(
+                  "size-9 rounded-lg flex items-center justify-center shrink-0",
+                  iconContainerClass
+                )}
               >
-                Import Stock
-              </UploadExistingInventoryBtn>
-            </PermissionGate>
-            <PermissionGate permission="product:create">
-              <AppButton
-                type="button"
-                variant="outlined"
-                colorVariant="neutral"
-                rounded="md"
-                size="small"
-                startIcon={<FiUpload />}
-                onClick={handleOpenImportGst}
-                sx={secondaryButtonSx}
-              >
-                Import GST
-              </AppButton>
-            </PermissionGate>
-            <PermissionGate permission="product:create">
-              <AppButton
-                type="button"
-                variant="contained"
-                colorVariant="primary"
-                rounded="md"
-                size="small"
-                startIcon={<FiPlus />}
-                onClick={handleCreateProduct}
-                sx={primaryButtonSx}
-              >
-                Create Custom Product
-              </AppButton>
-            </PermissionGate>
-          </AppStack>
-        </AppBox>
+                {statIcons[stat.id] || <Boxes className="size-4.5 stroke-[1.8]" />}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11.5px] font-medium text-text-muted truncate">
+                  {stat.title}
+                </div>
+                <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+                  {typeof stat.value === "number" ? stat.value.toLocaleString("en-IN") : stat.value || 0}
+                </div>
+                <div className="text-[10px] text-text-muted truncate mt-0.5">
+                  {stat.description}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-        <StatsGrid stats={dashboardStats} />
-
-        {error && !hasError ? (
-          <AppAlert
-            severity="error"
-            variant="soft"
-            title="Something went wrong"
-            closable
-            onClose={handleRefresh}
-            sx={alertSx}
-          >
-            {error}
-          </AppAlert>
-        ) : null}
-
-        <AppCard
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="sm"
-          padding="none"
-          sx={tableCardSx}
-        >
-          <TableToolbar
-            filters={filters}
-            activeFilterChips={activeFilterChips}
-            productTypeOptions={productTypeOptions}
-            handleFilterChange={handleFilterChange}
-            handleSearchChange={handleSearchChange}
-            handleRemoveFilter={handleRemoveFilter}
-            handleClearFilters={handleClearFilters}
+      {/* ── 2. Streamlined Single-Row Toolbar ────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
+        {/* Compact Search Input */}
+        <div className="w-[240px] sm:w-[280px] lg:w-[320px]">
+          <UIInput
+            type="text"
+            value={filters.search || ""}
+            onChange={handleSearchChange}
+            placeholder="Search custom products by name, SKU..."
+            startIcon={<Search className="size-4 text-text-muted" />}
+            size="md"
+            variant="outline"
+            isClearable
+            onClear={() => handleSearchChange("")}
+            className="w-full"
           />
+        </div>
 
-          {hasError ? (
-            <AppErrorState
-              title="Unable to load local catalog"
-              description={error || "Please refresh and try again."}
-              actionText="Refresh"
-              onRetry={handleRefresh}
-              size="page"
-              sx={stateSx}
+        {/* Product Type / Category Select */}
+        <div className="w-[170px] sm:w-[195px]">
+          <UISelect
+            name="productType"
+            value={filters.productType}
+            onChange={(val) => handleFilterChange({ productType: val })}
+            options={productTypeOptions}
+            placeholder="All Categories"
+            size="md"
+          />
+        </div>
+
+        {/* Status Select */}
+        <div className="w-[130px] sm:w-[150px]">
+          <UISelect
+            name="status"
+            value={filters.status}
+            onChange={(val) => handleFilterChange({ status: val })}
+            options={STATUS_SELECT_OPTIONS}
+            placeholder="All Status"
+            size="md"
+          />
+        </div>
+
+        {/* Quick Reset */}
+        {hasActiveFilters && (
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            onClick={handleClearFilters}
+            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
+            className="h-10 px-2 text-xs text-text-muted hover:text-text"
+            title="Reset all filters"
+          >
+            Reset
+          </UIButton>
+        )}
+
+        {/* Toolbar Action Cluster (Right) */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          {/* Refresh Button */}
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={handleRefresh}
+            className="h-10 w-10 p-0 text-text-muted hover:text-text"
+            title="Refresh custom products"
+          >
+            <RefreshCw
+              className={cn(
+                "size-4 text-text-muted hover:text-primary",
+                isLoading && "animate-spin text-primary"
+              )}
             />
-          ) : showInitialSkeleton ? (
-            <AppTableSkeleton rows={8} columns={9} showHeader={false} />
-          ) : !hasProducts ? (
-            <AppEmptyState
-              title="No custom products yet"
-              description="Local workspace products exist only as custom additions when no match exists in the master list."
-              icon={<HiOutlineCube />}
-              action={
-                <AppButton
-                  variant="contained"
-                  colorVariant="primary"
-                  rounded="md"
-                  startIcon={<FiPlus />}
-                  onClick={handleCreateProduct}
-                  sx={primaryButtonSx}
-                >
-                  Create Custom Product
-                </AppButton>
-              }
-              size="page"
-              sx={stateSx}
-            />
-          ) : !hasFilteredProducts ? (
-            <AppEmptyState
-              title="No local products found"
-              description="Try changing your search parameters or filter tokens."
-              icon={<FiSearch />}
-              action={
-                <AppButton
-                  variant="outlined"
-                  colorVariant="neutral"
-                  rounded="md"
-                  onClick={handleClearFilters}
-                >
-                  Clear Filters
-                </AppButton>
-              }
-              size="page"
-              sx={stateSx}
-            />
-          ) : (
-            <AppTable
-              columns={columns}
-              rows={products}
-              getRowId={(row) => row._id}
-              dense
-              bordered={false}
-              rounded={false}
-              hover
-              stickyHeader
-              minWidth={1150}
-              maxHeight="calc(100vh - 340px)"
-              sx={tableSx}
-              headSx={tableHeadSx}
-              cellSx={tableCellSx}
-            />
-          )}
+          </UIButton>
 
-          {hasProducts && totalProducts > 10 ? (
-            <TableFooter
-              totalProducts={totalProducts}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              pageSize={pageSize}
-              handlePageChange={handlePageChange}
-              handlePageSizeChange={handlePageSizeChange}
-            />
-          ) : null}
-        </AppCard>
-      </div>
-    </section>
-  );
-};
+          {/* Import Stock Button */}
+          <PermissionGate permission="product:create">
+            <UIButton
+              type="button"
+              variant="outline"
+              size="md"
+              startIcon={<Download className="size-3.5 text-text-muted" />}
+              onClick={handleImportWorkspaceProducts}
+              className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex"
+              title="Import Inventory from Excel"
+            >
+              Import Stock
+            </UIButton>
+          </PermissionGate>
 
-const TopToast = ({ message, onClose }) => (
-  <div className="fixed left-1/2 top-4 z-[1400] w-[calc(100%-32px)] max-w-md -translate-x-1/2">
-    <AppAlert
-      severity="success"
-      variant="filled"
-      title={message}
-      closable
-      onClose={onClose}
-      sx={toastSx}
-    />
-  </div>
-);
+          {/* Import GST Button */}
+          <PermissionGate permission="product:create">
+            <UIButton
+              type="button"
+              variant="outline"
+              size="md"
+              startIcon={<Upload className="size-3.5 text-text-muted" />}
+              onClick={handleOpenImportGst}
+              className="h-10 px-3 text-xs font-semibold hidden md:inline-flex"
+              title="Import GST Masters"
+            >
+              Import GST
+            </UIButton>
+          </PermissionGate>
 
-const StatsGrid = ({ stats }) => (
-  <div className="mt-4 grid grid-cols-3 gap-3">
-    {stats.map((stat) => (
-      <AppStatCard
-        key={stat.id}
-        title={stat.title}
-        value={stat.value}
-        subtitle={stat.description}
-        icon={statIcons[stat.id] || <HiOutlineCube />}
-        colorVariant={stat.colorVariant}
-        variant="default"
-        sx={statCardSx}
-        iconSx={statIconSx}
-      />
-    ))}
-  </div>
-);
-
-const TableToolbar = ({
-  filters,
-  activeFilterChips,
-  productTypeOptions,
-  handleFilterChange,
-  handleSearchChange,
-  handleRemoveFilter,
-  handleClearFilters,
-}) => {
-  const statusOptions = [
-    { label: "All Status", value: "all" },
-    { label: "Active", value: "active" },
-    { label: "Inactive", value: "inactive" },
-  ];
-
-  return (
-    <div className="border-b border-border px-3.5 py-3">
-      <div className="grid grid-cols-[minmax(0,1fr)_128px_128px_104px] items-center gap-3">
-        <AppSearchInput
-          name="search"
-          value={filters.search}
-          onChange={handleSearchChange}
-          placeholder="Search custom catalog by name..."
-          clearable
-          onClear={() => handleSearchChange("")}
-          size="small"
-          variant="bordered"
-          rounded="md"
-          sx={searchSx}
-          inputSx={filterInputSx}
-        />
-
-        <AppSelect
-          name="productType"
-          value={filters.productType}
-          onChange={handleFilterChange}
-          options={productTypeOptions}
-          size="small"
-          variant="bordered"
-          rounded="md"
-          sx={selectSx}
-          inputSx={filterInputSx}
-        />
-
-        <AppSelect
-          name="status"
-          value={filters.status}
-          onChange={handleFilterChange}
-          options={statusOptions}
-          size="small"
-          variant="bordered"
-          rounded="md"
-          sx={selectSx}
-          inputSx={filterInputSx}
-        />
-
-        <AppButton
-          type="button"
-          variant="outlined"
-          colorVariant="neutral"
-          rounded="md"
-          size="small"
-          startIcon={<FiFilter />}
-          sx={filterButtonSx}
-        >
-          Filters
-        </AppButton>
+          {/* Create Custom Product Button */}
+          <PermissionGate permission="product:create">
+            <UIButton
+              type="button"
+              variant="primary"
+              size="md"
+              startIcon={<Plus className="size-3.5" />}
+              onClick={handleCreateProduct}
+              className="h-10 px-3.5 text-xs font-semibold shadow-xs"
+            >
+              Create Product
+            </UIButton>
+          </PermissionGate>
+        </div>
       </div>
 
-      {activeFilterChips.length ? (
-        <AppStack direction="row" align="center" gap={0.7} sx={chipsRowSx}>
+      {/* ── Active Filter Chips (if any) ────────────────────── */}
+      {activeFilterChips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
           {activeFilterChips.map((chip) => (
             <button
               key={chip.key}
               type="button"
               onClick={() => handleRemoveFilter(chip.key)}
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-alt px-2 py-1 text-[11px] font-semibold text-text-muted transition hover:bg-surface-hover"
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-alt px-2.5 py-0.5 text-[11px] font-medium text-text-muted hover:text-text hover:bg-surface-hover transition-colors"
             >
-              {chip.label}
+              <span>{chip.label}</span>
+              <XCircle className="size-3 text-text-muted/70 hover:text-rose-500" />
             </button>
           ))}
-
           <button
             type="button"
             onClick={handleClearFilters}
-            className="text-[11px] font-semibold text-primary"
+            className="text-[11px] font-semibold text-primary hover:underline ml-1"
           >
             Clear all
           </button>
-        </AppStack>
-      ) : null}
+        </div>
+      )}
+
+      {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ────── */}
+      <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        <div
+          ref={tableContainerRef}
+          className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0"
+        >
+          <UITable
+            stickyHeader
+            containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+            className="w-full"
+          >
+            {/* Sticky Table Header */}
+            <UITableHeader
+              sticky
+              className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs border-b border-border"
+            >
+              <UITableRow className="border-b border-border text-[11px] font-semibold text-text-muted uppercase tracking-wider bg-surface-alt/70 h-10">
+                <UITableHead sticky className="min-w-[240px]">Product Name & SKU</UITableHead>
+                <UITableHead sticky className="min-w-[130px]">Category</UITableHead>
+                <UITableHead sticky className="min-w-[170px]">Manufacturer / Marketer</UITableHead>
+                <UITableHead sticky className="min-w-[120px]">Dosage Form</UITableHead>
+                <UITableHead sticky className="min-w-[120px]">Strength</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[100px]">Status</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[70px]">Actions</UITableHead>
+              </UITableRow>
+            </UITableHeader>
+
+            <UITableBody>
+              {isLoading && products.length === 0 ? (
+                <UITableLoading rows={8} columns={7} />
+              ) : products.length === 0 ? (
+                <UITableEmpty
+                  colSpan={7}
+                  title="No custom products found"
+                  description={
+                    hasActiveFilters
+                      ? "No custom products match your active search or filters. Try clearing your search parameters."
+                      : "No local workspace products created yet."
+                  }
+                  action={
+                    hasActiveFilters ? (
+                      <UIButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleClearFilters}
+                      >
+                        Clear Filters
+                      </UIButton>
+                    ) : (
+                      <PermissionGate permission="product:create">
+                        <UIButton
+                          variant="primary"
+                          size="sm"
+                          startIcon={<Plus className="size-3.5" />}
+                          onClick={handleCreateProduct}
+                        >
+                          Create Custom Product
+                        </UIButton>
+                      </PermissionGate>
+                    )
+                  }
+                />
+              ) : (
+                products.map((product) => {
+                  const isActive = product.displayStatus === "active";
+
+                  return (
+                    <UITableRow
+                      key={product._id}
+                      onClick={() => handleViewProductDetails(product)}
+                      className="last:border-b-0 group cursor-pointer transition-colors hover:bg-surface-hover/70 h-13"
+                    >
+                      {/* Product Name & SKU / Notes */}
+                      <UITableCell className="py-2.5">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-text truncate hover:text-primary transition-colors text-xs sm:text-sm leading-tight">
+                            {product.displayName || "—"}
+                          </span>
+                          <div className="flex items-center gap-1.5 text-xs text-text-muted truncate mt-0.5">
+                            <span className="text-[11px] font-mono font-bold text-text/80">
+                              {product.displaySku || "—"}
+                            </span>
+                            {product.notes ? (
+                              <>
+                                <span className="text-text-muted/40 font-sans">•</span>
+                                <span className="text-[11px] text-text-muted truncate max-w-[180px]">
+                                  {product.notes}
+                                </span>
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
+                      </UITableCell>
+
+                      {/* Category */}
+                      <UITableCell className="py-2.5">
+                        <UIBadge
+                          variant="secondary"
+                          className="text-[11px] font-medium"
+                        >
+                          {product.displayCategory || "Custom"}
+                        </UIBadge>
+                      </UITableCell>
+
+                      {/* Manufacturer / Marketer */}
+                      <UITableCell className="py-2.5">
+                        <span className="text-xs text-text-muted truncate block max-w-[170px]">
+                          {product.displayManufacturer || "—"}
+                        </span>
+                      </UITableCell>
+
+                      {/* Dosage Form */}
+                      <UITableCell className="py-2.5">
+                        <span className="text-xs text-text-muted truncate block">
+                          {product.displayDosageForm || "—"}
+                        </span>
+                      </UITableCell>
+
+                      {/* Strength */}
+                      <UITableCell className="py-2.5">
+                        <span className="text-xs text-text-muted font-mono truncate block max-w-[130px]">
+                          {product.displayStrength || "—"}
+                        </span>
+                      </UITableCell>
+
+                      {/* Status */}
+                      <UITableCell align="center" className="py-2.5">
+                        {isActive ? (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-zinc-500/10 border border-border px-2 py-0.5 text-[11px] font-semibold text-text-muted">
+                            Inactive
+                          </span>
+                        )}
+                      </UITableCell>
+
+                      {/* Actions */}
+                      <UITableCell
+                        align="right"
+                        className="py-2.5 text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <UIDropdown>
+                          <UIDropdownTrigger asChild>
+                            <button
+                              type="button"
+                              className="size-8 rounded-lg hover:bg-surface-alt border border-transparent hover:border-border text-text-muted hover:text-text flex items-center justify-center transition-colors cursor-pointer"
+                              title="Product actions"
+                            >
+                              <MoreVertical className="size-4" />
+                            </button>
+                          </UIDropdownTrigger>
+                          <UIDropdownMenu align="end" className="w-44">
+                            <UIDropdownItem
+                              icon={<Eye className="size-4 text-text-muted shrink-0" />}
+                              onClick={() => handleViewProductDetails(product)}
+                            >
+                              View Details
+                            </UIDropdownItem>
+                            {can("product:update") && (
+                              <UIDropdownItem
+                                icon={<Edit3 className="size-4 text-text-muted shrink-0" />}
+                                onClick={() => handleEditProduct(product)}
+                              >
+                                Edit Product
+                              </UIDropdownItem>
+                            )}
+                            {can("product:delete") && (
+                              <>
+                                <UIDropdownDivider />
+                                <UIDropdownItem
+                                  destructive
+                                  icon={<Trash2 className="size-4 text-error shrink-0" />}
+                                  onClick={() => setProductToDelete(product)}
+                                >
+                                  Delete Product
+                                </UIDropdownItem>
+                              </>
+                            )}
+                          </UIDropdownMenu>
+                        </UIDropdown>
+                      </UITableCell>
+                    </UITableRow>
+                  );
+                })
+              )}
+            </UITableBody>
+          </UITable>
+
+          {/* Infinite Scroll Trigger */}
+          {!isLoading && (
+            <UIInfiniteScroll
+              onLoadMore={handleLoadMore}
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Delete Product Confirmation Dialog */}
+      <UIModal
+        open={Boolean(productToDelete)}
+        onOpenChange={(open) => !open && setProductToDelete(null)}
+      >
+        <UIModalHeader>
+          <UIModalTitle className="flex items-center gap-2 text-error">
+            <Trash2 className="size-5" />
+            Delete Custom Product
+          </UIModalTitle>
+          <UIModalDescription>
+            Are you sure you want to delete{" "}
+            <span className="font-semibold text-text">
+              {productToDelete?.displayName || "this custom product"}
+            </span>
+            ? This action cannot be undone.
+          </UIModalDescription>
+        </UIModalHeader>
+        <UIModalBody>
+          <p className="text-xs text-text-muted leading-relaxed">
+            Deleting this product will remove its workspace record. Existing completed
+            bills and batches will maintain historical audit records, but new orders will
+            no longer be able to select this product.
+          </p>
+        </UIModalBody>
+        <UIModalFooter>
+          <UIButton
+            variant="outline"
+            onClick={() => setProductToDelete(null)}
+            disabled={isDeleting}
+          >
+            Cancel
+          </UIButton>
+          <UIButton
+            variant="destructive"
+            onClick={confirmDelete}
+            loading={isDeleting}
+            disabled={isDeleting}
+          >
+            Delete Product
+          </UIButton>
+        </UIModalFooter>
+      </UIModal>
     </div>
   );
 };
-
-const RowActions = ({ product, onView, onEdit, onDelete }) => {
-  const { can } = usePermission();
-
-  const items = [
-    { id: "view", label: "View Details", onClick: () => onView(product) },
-    can("product:update") && { id: "edit", label: "Edit Product", onClick: () => onEdit(product) },
-    can("product:delete") && { id: "divider", type: "divider" },
-    can("product:delete") && {
-      id: "delete",
-      label: "Delete Product",
-      danger: true,
-      onClick: () => onDelete(product),
-    },
-  ].filter(Boolean);
-
-  return (
-    <AppMenu
-      trigger={
-        <button
-          type="button"
-          aria-label="Product actions"
-          className="inline-flex h-auto w-auto items-center justify-center border-0 bg-transparent p-0 text-text-muted shadow-none outline-none transition hover:bg-transparent hover:text-text focus:bg-transparent active:bg-transparent"
-        >
-          <FiMoreHorizontal className="text-[18px]" />
-        </button>
-      }
-      items={items}
-      dense
-      minWidth={160}
-    />
-  );
-};
-
-const TableFooter = ({
-  totalProducts,
-  currentPage,
-  totalPages,
-  pageSize,
-  handlePageChange,
-  handlePageSizeChange,
-}) => {
-  const startEntry = (currentPage - 1) * pageSize + 1;
-  const endEntry = Math.min(currentPage * pageSize, totalProducts);
-
-  return (
-    <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
-      <AppText variant="body2" sx={footerTextSx}>
-        Showing {startEntry} to {endEntry} of {totalProducts} products
-      </AppText>
-
-      <AppStack direction="row" align="center" gap={1}>
-        <AppButton
-          type="button"
-          variant="outlined"
-          colorVariant="neutral"
-          rounded="md"
-          size="small"
-          endIcon={<FiChevronRight className="rotate-90" />}
-          sx={pageSizeButtonSx}
-        >
-          {pageSize} per page
-        </AppButton>
-
-        <AppIconButton
-          icon={<FiChevronLeft />}
-          variant="outlined"
-          colorVariant="neutral"
-          size="small"
-          rounded="md"
-          disabled={currentPage === 1}
-          onClick={() => handlePageChange(currentPage - 1)}
-        />
-
-        <span className="flex h-[31px] min-w-[31px] items-center justify-center rounded-md bg-primary px-2 text-[12px] font-bold text-text-inverse">
-          {currentPage}
-        </span>
-
-        <AppIconButton
-          icon={<FiChevronRight />}
-          variant="outlined"
-          colorVariant="neutral"
-          size="small"
-          rounded="md"
-          disabled={currentPage === totalPages}
-          onClick={() => handlePageChange(currentPage + 1)}
-        />
-      </AppStack>
-    </div>
-  );
-};
-
-const pageHeaderSx = { width: "100%" };
-const pageHeaderSubtitleSx = {
-  mt: 0.55,
-  fontSize: "13px",
-  lineHeight: "20px",
-  color: "var(--app-color-text-muted)",
-};
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "25px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.45px",
-    color: "var(--app-color-text)",
-  },
-};
-
-const breadcrumbSx = { mt: 1 };
-const breadcrumbItemSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-const breadcrumbCurrentSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const primaryButtonSx = {
-  height: 36,
-  px: 1.6,
-  fontSize: "12px",
-  fontWeight: 700,
-};
-const secondaryButtonSx = {
-  height: 36,
-  minWidth: 92,
-  px: 1.4,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-
-const alertSx = { mt: 3 };
-const statCardSx = {
-  minHeight: 88,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  p: 1.5,
-  "& p:first-of-type": { fontSize: "11px" },
-  "& h1, & h2, & h3, & h4": { fontSize: "18px" },
-  "& p:last-of-type": { fontSize: "11px" },
-};
-const statIconSx = {
-  width: 38,
-  height: 38,
-  minWidth: 38,
-  borderRadius: "11px",
-  "& svg": { fontSize: 19 },
-};
-
-const tableCardSx = {
-  mt: 3,
-  overflow: "hidden",
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  "& > div": { minWidth: 0 },
-};
-
-const searchSx = { width: "100%" };
-const selectSx = { width: "100%" };
-const filterInputSx = {
-  height: 36,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-};
-const filterButtonSx = {
-  height: 36,
-  px: 1.25,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-const chipsRowSx = { mt: 1.2, flexWrap: "wrap" };
-
-const tableSx = {
-  "& .MuiTableContainer-root": {
-    borderRadius: 0,
-    scrollbarWidth: "none",
-    msOverflowStyle: "none",
-    "&::-webkit-scrollbar": { display: "none" },
-  },
-};
-const tableHeadSx = {
-  bgcolor: "var(--app-color-surface-alt)",
-  "& .MuiTableCell-root": {
-    fontSize: "11.2px",
-    fontWeight: 750,
-    color: "var(--app-color-text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-  },
-};
-const tableCellSx = {
-  py: 1.2,
-  fontSize: "12px",
-  borderColor: "var(--app-color-border)",
-};
-const tableValueSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-const tableValueMutedSx = {
-  fontSize: "12px",
-  fontWeight: 550,
-  color: "var(--app-color-text-muted)",
-};
-
-const productNameSx = {
-  m: 0,
-  maxWidth: 210,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "12.5px",
-  lineHeight: 1.25,
-  color: "var(--app-color-text)",
-};
-const productSubtitleSx = {
-  mt: 0.3,
-  maxWidth: 250,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "11px",
-  lineHeight: "18px",
-  color: "var(--app-color-text-muted)",
-};
-
-const tagSx = {
-  width: "fit-content",
-  height: 22,
-  px: 0.8,
-  fontSize: "10.5px",
-  fontWeight: 700,
-};
-const descriptionSx = {
-  maxWidth: 230,
-  fontSize: "11.5px",
-  lineHeight: "18px",
-  color: "var(--app-color-text)",
-};
-const statusBadgeSx = {
-  width: "fit-content",
-  height: 22,
-  px: 1.5,
-  fontSize: "10.5px",
-  fontWeight: 700,
-  textTransform: "capitalize",
-};
-
-const footerTextSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
-const pageSizeButtonSx = {
-  height: 34,
-  minWidth: 122,
-  px: 1.2,
-  fontSize: "12px",
-  fontWeight: 600,
-};
-const stateSx = { minHeight: 430 };
-const toastSx = { boxShadow: "var(--app-shadow-lg)" };
 
 export default WorkspaceProductsDesktopPage;

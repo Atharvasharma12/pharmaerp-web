@@ -307,9 +307,11 @@ const ProductFacilityTable = ({ data }) => {
         });
       }
     });
-    // Backend already handles lowStock and selectedBranch filters via API
+    if (lowStockFilter) {
+      list = list.filter((item) => Number(item.batchQty || 0) < 10);
+    }
     return list;
-  }, [products]);
+  }, [products, lowStockFilter]);
 
   return (
     <div className="w-full flex flex-col gap-4">

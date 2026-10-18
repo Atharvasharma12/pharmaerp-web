@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { FiArrowLeft, FiSlash, FiCheckCircle } from "react-icons/fi";
+import React from "react";
+import { FiArrowLeft, FiCheckCircle } from "react-icons/fi";
 
 import {
   AppBreadcrumb,
@@ -10,24 +10,17 @@ import {
   AppTag,
   AppText,
   PageHeader,
-  PermissionGate,
-  AppInput,
 } from "@/components";
 import { formatDate, formatDateTime } from "@/utils";
 
 const CashExchangeDetailsDesktopPage = ({
   exchangeDetails,
   isLoading = false,
-  isCancelling = false,
   error,
   message,
   clearFeedback,
-  handleCancelExchange,
   handleBack,
 }) => {
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
-
   if (isLoading || !exchangeDetails) {
     return (
       <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5 flex items-center justify-center">
@@ -48,18 +41,7 @@ const CashExchangeDetailsDesktopPage = ({
     narration,
     createdBy,
     createdAt,
-    cancelledBy,
-    cancelledAt,
-    cancellationReason,
   } = exchangeDetails;
-
-  const isCancelled = status === "CANCELLED";
-
-  const handleConfirmCancel = async () => {
-    setShowCancelModal(false);
-    await handleCancelExchange(cancelReason);
-    setCancelReason("");
-  };
 
   const getStatusTag = (s) => {
     switch (s) {
@@ -67,12 +49,6 @@ const CashExchangeDetailsDesktopPage = ({
         return (
           <AppTag color="success" size="sm">
             <FiCheckCircle className="mr-1 inline" /> Completed
-          </AppTag>
-        );
-      case "CANCELLED":
-        return (
-          <AppTag color="danger" size="sm">
-            <FiSlash className="mr-1 inline" /> Cancelled
           </AppTag>
         );
       default:
@@ -133,22 +109,6 @@ const CashExchangeDetailsDesktopPage = ({
           >
             Back to List
           </AppButton>
-
-          <div className="flex gap-2">
-            {!isCancelled && (
-              <PermissionGate permission="cash-exchange:delete">
-                <AppButton
-                  variant="danger"
-                  size="sm"
-                  icon={<FiSlash />}
-                  onClick={() => setShowCancelModal(true)}
-                  disabled={isCancelling}
-                >
-                  Cancel Exchange
-                </AppButton>
-              </PermissionGate>
-            )}
-          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-5">
@@ -277,27 +237,6 @@ const CashExchangeDetailsDesktopPage = ({
                   </AppText>
                 </div>
 
-                {isCancelled && (
-                  <div className="p-3 bg-danger-soft/50 rounded-md border border-danger/20">
-                    <AppText size="xs" sx={{ color: "var(--color-danger)", marginBottom: 4, fontWeight: 600 }}>
-                      Cancelled By
-                    </AppText>
-                    <AppText size="sm">{cancelledBy?.name || "—"}</AppText>
-                    <AppText size="xs" sx={{ color: "var(--color-text-muted)", marginBottom: 8 }}>
-                      {formatDateTime(cancelledAt)}
-                    </AppText>
-                    
-                    {cancellationReason && (
-                      <>
-                        <AppText size="xs" sx={{ color: "var(--color-danger)", marginBottom: 2, fontWeight: 600 }}>
-                          Reason
-                        </AppText>
-                        <AppText size="sm">{cancellationReason}</AppText>
-                      </>
-                    )}
-                  </div>
-                )}
-
                 {notes && (
                   <div className="pt-4 border-t border-border">
                     <AppText size="xs" sx={{ color: "var(--color-text-muted)", marginBottom: 4 }}>
@@ -310,54 +249,6 @@ const CashExchangeDetailsDesktopPage = ({
             </AppCard>
           </div>
         </div>
-
-        {/* Cancel Modal */}
-        {showCancelModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <AppCard
-              variant="default"
-              rounded="lg"
-              bordered
-              shadow="xl"
-              padding="lg"
-              sx={{ width: 420 }}
-            >
-              <AppHeading level={4} weight={700} sx={{ marginBottom: 8 }}>
-                Cancel Cash Exchange
-              </AppHeading>
-              <AppText size="sm" sx={{ color: "var(--color-text-muted)", marginBottom: 16 }}>
-                Are you sure you want to cancel this exchange? The denominations will be reversed in the cash account.
-              </AppText>
-              
-              <AppInput
-                label="Reason (Optional)"
-                placeholder="Why is this being cancelled?"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                size="sm"
-                sx={{ marginBottom: 20 }}
-              />
-
-              <AppStack direction="row" gap={8} justify="flex-end">
-                <AppButton
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowCancelModal(false)}
-                >
-                  Close
-                </AppButton>
-                <AppButton
-                  size="sm"
-                  variant="danger"
-                  onClick={handleConfirmCancel}
-                  loading={isCancelling}
-                >
-                  Confirm Cancel
-                </AppButton>
-              </AppStack>
-            </AppCard>
-          </div>
-        )}
       </div>
     </section>
   );

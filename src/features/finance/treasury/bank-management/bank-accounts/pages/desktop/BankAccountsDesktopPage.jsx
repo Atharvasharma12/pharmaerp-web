@@ -1,146 +1,161 @@
-import { useMemo, useState } from "react";
-import {
-  FiCopy,
-  FiEdit2,
-  FiEye,
-  FiPlus,
-  FiRefreshCw,
-  FiSearch,
-  FiStar,
-  FiTrash2,
-  FiChevronLeft,
-  FiChevronRight,
-  FiCheck,
-  FiMoreVertical,
-  FiUpload,
-} from "react-icons/fi";
-import { LuBuilding2 } from "react-icons/lu";
-import { FaWallet, FaRegDotCircle } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
-import { ROUTES } from "@/constants";
+// src/features/finance/treasury/bank-management/bank-accounts/pages/desktop/BankAccountsDesktopPage.jsx
 
+import React, { useMemo, useState, useRef, useCallback } from "react";
 import {
-  AppAlert,
-  AppBox,
-  AppBreadcrumb,
-  AppButton,
-  AppCard,
-  AppHeading,
-  AppIconButton,
-  AppSearchInput,
-  AppSelect,
-  AppStack,
-  AppStatCard,
-  AppStatusBadge,
-  AppTable,
-  AppTag,
-  AppText,
-  AppMenu,
+  Building2,
+  Wallet,
+  CheckCircle2,
+  Star,
+  Search,
+  Filter,
+  RefreshCw,
+  RotateCcw,
+  Plus,
+  Copy,
+  Check,
+  MoreVertical,
+  Eye,
+  Edit3,
+  Trash2,
+  CheckCircle,
+  ExternalLink,
+  ShieldCheck,
+  CreditCard,
+} from "lucide-react";
+import {
+  UIButton,
+  UIInput,
+  UISelect,
+  UIBadge,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UITableEmpty,
+  UITableLoading,
+  UIInfiniteScroll,
+  UIDropdown,
+  UIDropdownTrigger,
+  UIDropdownMenu,
+  UIDropdownItem,
+  UIDropdownDivider,
   PermissionGate,
-} from "@/components";
+  uiToast,
+} from "@/components/ui";
 import { usePermission } from "@/hooks";
+import { cn } from "@/lib/utils";
 
-import { BANK_ACCOUNT_TYPE } from "../../constants/bankAccount.constant";
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
+  return Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
 
-// Dynamic CSS-based Bank Brand Logos
+// Sleek CSS-based Bank Brand Logos
 const BankLogo = ({ bankName }) => {
   const name = String(bankName || "").toLowerCase();
-  
+
   if (name.includes("hdfc")) {
     return (
-      <div className="w-8 h-8 rounded-md bg-[#1d4f91] border border-border flex items-center justify-center text-white font-extrabold text-[9px] shrink-0 select-none shadow-sm">
+      <div className="size-8 rounded-lg bg-[#1d4f91] border border-white/20 flex items-center justify-center text-white font-black text-[9px] shrink-0 select-none shadow-2xs">
         <span className="tracking-tighter">HDFC</span>
       </div>
     );
   }
   if (name.includes("icici")) {
     return (
-      <div className="w-8 h-8 rounded-full bg-[#ff7a00] border border-[#d65f00] flex items-center justify-center text-white font-extrabold text-[12px] shrink-0 select-none shadow-sm relative">
-        <span className="italic font-serif leading-none mt-[-1px]">i</span>
+      <div className="size-8 rounded-lg bg-[#ff7a00] border border-[#d65f00] flex items-center justify-center text-white font-black text-[11px] shrink-0 select-none shadow-2xs">
+        <span className="italic font-serif leading-none">i</span>
       </div>
     );
   }
   if (name.includes("axis")) {
     return (
-      <div className="w-8 h-8 rounded-md bg-[#971a43] border border-border flex items-center justify-center text-white font-bold text-[9px] shrink-0 select-none shadow-sm">
+      <div className="size-8 rounded-lg bg-[#971a43] border border-white/20 flex items-center justify-center text-white font-bold text-[8.5px] shrink-0 select-none shadow-2xs">
         <span>AXIS</span>
       </div>
     );
   }
   if (name.includes("state") || name.includes("sbi")) {
     return (
-      <div className="w-8 h-8 rounded-full bg-[#00a3e0] border border-border flex items-center justify-center shrink-0 select-none shadow-sm relative">
-        <div className="w-3.5 h-3.5 rounded-full bg-[#00a3e0] border-[2.5px] border-white flex items-center justify-center relative">
-          <div className="absolute w-[2.5px] h-[7px] bg-white bottom-[-5px] left-[3px]"></div>
+      <div className="size-8 rounded-lg bg-[#00a3e0] border border-white/20 flex items-center justify-center shrink-0 select-none shadow-2xs relative">
+        <div className="size-3.5 rounded-full bg-[#00a3e0] border-[2px] border-white flex items-center justify-center relative">
+          <div className="absolute w-[2px] h-[5px] bg-white bottom-[-4px] left-[2.5px]" />
         </div>
       </div>
     );
   }
   if (name.includes("yes")) {
     return (
-      <div className="w-8 h-8 rounded-md bg-[#004b93] border border-border flex items-center justify-center text-white font-extrabold text-[9px] shrink-0 select-none shadow-sm">
+      <div className="size-8 rounded-lg bg-[#004b93] border border-white/20 flex items-center justify-center text-white font-black text-[9px] shrink-0 select-none shadow-2xs">
         <span>YES</span>
       </div>
     );
   }
   if (name.includes("kotak")) {
     return (
-      <div className="w-8 h-8 rounded-full bg-[#0039a6] border border-[#ea1c24] flex items-center justify-center text-white font-extrabold text-[12px] shrink-0 select-none shadow-sm">
-        <span className="text-[#ea1c24] font-sans">k</span>
+      <div className="size-8 rounded-lg bg-[#0039a6] border border-[#ea1c24] flex items-center justify-center text-white font-black text-[11px] shrink-0 select-none shadow-2xs">
+        <span className="text-[#ea1c24]">k</span>
       </div>
     );
   }
   if (name.includes("canara")) {
     return (
-      <div className="w-8 h-8 rounded-md bg-[#00a3e0] border border-border flex items-center justify-center text-[#ffd100] font-extrabold text-[8px] shrink-0 select-none shadow-sm">
-        <span className="tracking-tighter">CNB</span>
+      <div className="size-8 rounded-lg bg-[#00a3e0] border border-white/20 flex items-center justify-center text-[#ffd100] font-black text-[8px] shrink-0 select-none shadow-2xs">
+        <span>CNB</span>
       </div>
     );
   }
   if (name.includes("baroda") || name.includes("bob")) {
     return (
-      <div className="w-8 h-8 rounded-full bg-[#f05a28] border border-border flex items-center justify-center text-white font-extrabold text-[10px] shrink-0 select-none shadow-sm">
+      <div className="size-8 rounded-lg bg-[#f05a28] border border-white/20 flex items-center justify-center text-white font-black text-[9px] shrink-0 select-none shadow-2xs">
         <span>BOB</span>
       </div>
     );
   }
   return (
-    <div className="w-8 h-8 rounded-md bg-surface-alt border border-border flex items-center justify-center text-text-muted font-bold text-[10px] shrink-0 shadow-sm">
-      <LuBuilding2 className="text-[16px]" />
+    <div className="size-8 rounded-lg bg-surface-alt border border-border flex items-center justify-center text-text-muted font-bold text-[10px] shrink-0 shadow-2xs">
+      <Building2 className="size-4 text-text-muted" />
     </div>
   );
 };
 
-const statIcons = {
-  total_accounts: <LuBuilding2 />,
-  total_balance: <FaWallet />,
-  active_accounts: <LuBuilding2 />,
-  inactive_accounts: <LuBuilding2 />,
-};
+const ACCOUNT_TYPE_OPTIONS = [
+  { label: "All Account Types", value: "all" },
+  { label: "Current Account", value: "current" },
+  { label: "Savings Account", value: "savings" },
+  { label: "Overdraft Account", value: "overdraft" },
+  { label: "Cash Credit Account", value: "cash_credit" },
+];
 
-const BankAccountsDesktopPage = ({
+const STATUS_OPTIONS = [
+  { label: "All Statuses", value: "all" },
+  { label: "Active", value: "active" },
+  { label: "Inactive", value: "inactive" },
+];
+
+const INITIAL_BATCH = 20;
+
+export const BankAccountsDesktopPage = ({
   accounts = [],
   dashboardStats = [],
-  filters,
-  activeFilterChips = [],
+  filters = {},
   uniqueBanks = [],
-  isLoading,
-  hasError,
-  error,
-  message,
+  isLoading = false,
+  hasError = false,
+  error = "",
+  message = "",
   totalAccounts = 0,
-  currentPage = 1,
-  totalPages = 1,
-  pageSize = 10,
-  hasAccounts,
-  hasFilteredAccounts,
+  hasAccounts = false,
+  hasFilteredAccounts = false,
   handleFilterChange,
   handleSearchChange,
-  handleRemoveFilter,
   handleClearFilters,
   handleRefresh,
-  handlePageChange,
-  handlePageSizeChange,
   handleAddAccount,
   handleEditAccount,
   handleViewDetails,
@@ -148,790 +163,493 @@ const BankAccountsDesktopPage = ({
   handleDeleteAccount,
   clearMessage,
 }) => {
-  const navigate = useNavigate();
   const { can } = usePermission();
+  const tableContainerRef = useRef(null);
   const [copiedId, setCopiedId] = useState(null);
 
-  const handleCopyNumber = (accountNumber, id) => {
-    navigator.clipboard.writeText(accountNumber);
-    setCopiedId(id);
+  // Client-side Infinite Scroll state
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const handleCopyAccountNumber = (e, account) => {
+    e.stopPropagation();
+    if (!account?.displayAccountNumber) return;
+    navigator.clipboard.writeText(String(account.displayAccountNumber));
+    setCopiedId(account._id);
+    uiToast.success(
+      "Copied to Clipboard",
+      `Account number for ${account.displayName || "bank account"} copied.`
+    );
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const accountTypeOptions = useMemo(() => {
-    return [
-      { label: "All Account Types", value: "all" },
-      ...Object.values(BANK_ACCOUNT_TYPE).map((type) => ({
-        label: type === "CURRENT" ? "Current Account" : type === "SAVINGS" ? "Savings Account" : type.replace(/_/g, " "),
-        value: type,
-      })),
-    ];
-  }, []);
+  const isFiltered = Boolean(
+    filters.search ||
+    (filters.accountType && filters.accountType !== "all") ||
+    (filters.status && filters.status !== "all") ||
+    (filters.bank && filters.bank !== "all")
+  );
 
-  const statusOptions = [
-    { label: "All Status", value: "all" },
-    { label: "Active", value: "active" },
-    { label: "Inactive", value: "inactive" },
-  ];
-
-  const bankOptions = useMemo(() => {
-    return uniqueBanks.map((b) => ({
+  const bankSelectOptions = useMemo(() => {
+    return (uniqueBanks || []).map((b) => ({
       label: b === "all" ? "All Banks" : b,
       value: b,
     }));
   }, [uniqueBanks]);
 
-  // Paged accounts calculations
-  const pagedAccounts = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return accounts.slice(start, start + pageSize);
-  }, [accounts, currentPage, pageSize]);
+  // Sliced accounts for infinite scroll
+  const displayedAccounts = useMemo(() => {
+    return accounts.slice(0, visibleCount);
+  }, [accounts, visibleCount]);
 
-  const columns = useMemo(
-    () => [
-    {
-      id: "accountDetails",
-      key: "displayName",
-      label: "Account Name",
-      minWidth: 220,
-      render: (_, account) => (
-        <div className="flex items-center gap-3 min-w-0 h-full">
-          <BankLogo bankName={account.displayBank} />
-          <div className="flex flex-col min-w-0 justify-center">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <AppHeading level={3} weight={700} sx={accountNameSx}>
-                {account?.displayName || "-"}
-              </AppHeading>
-              {account?.isPrimary && (
-                <span className="inline-flex items-center rounded bg-[#e6fcf5] px-1.5 py-0.5 text-[9px] font-bold text-[#0ca678] uppercase tracking-wide">
-                  Primary
-                </span>
-              )}
+  const hasMore = visibleCount < accounts.length;
+
+  const handleLoadMore = useCallback(() => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount((prev) => Math.min(prev + 15, accounts.length));
+      setIsLoadingMore(false);
+    }, 250);
+  }, [accounts.length, hasMore, isLoadingMore]);
+
+  // Dynamic stats calculation
+  const stats = useMemo(() => {
+    const totalCount = accounts.length;
+    const activeCount = accounts.filter((a) => a.displayStatus === "active").length;
+    const totalBalance = accounts.reduce((acc, a) => acc + (Number(a.balance) || 0), 0);
+    const primaryAcc = accounts.find((a) => a.isPrimary);
+
+    return {
+      totalCount,
+      activeCount,
+      totalBalance,
+      primaryAcc,
+    };
+  }, [accounts]);
+
+  return (
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
+      {/* ── 1. Compact 4-Card Statistics Grid (Top of Page) ────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
+        {/* Card 1: Total Accounts */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
+            <Building2 className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">
+              Total Accounts
             </div>
-            <AppText variant="body2" sx={branchSubtitleSx}>
-              {account?.displayBranch || "-"}
-            </AppText>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.totalCount}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Registered bank accounts
+            </div>
           </div>
         </div>
-      ),
-    },
-    {
-      id: "bankDetails",
-      key: "displayIfsc",
-      label: "Bank Details",
-      minWidth: 150,
-      render: (_, account) => (
-        <div className="flex flex-col justify-center">
-          <AppText variant="body2" sx={bankCodeSx}>
-            {account?.displayIfsc || "-"}
-          </AppText>
-          <AppText variant="body2" sx={bankNameSubSx}>
-            {account?.displayBank || "-"}
-          </AppText>
-        </div>
-      ),
-    },
-    {
-      id: "accountNumber",
-      key: "displayAccountNumber",
-      label: "Account No.",
-      minWidth: 150,
-      render: (_, account) => (
-        <div className="flex items-center gap-1.5">
-          <AppText variant="body2" sx={accountNumSx}>
-            {account?.displayAccountNumber || "-"}
-          </AppText>
-          {account?.displayAccountNumber && (
-            <button
-              onClick={() => handleCopyNumber(account.displayAccountNumber, account._id)}
-              className="text-text-muted hover:text-primary transition p-1 hover:bg-surface-hover rounded cursor-pointer"
-              title="Copy Account Number"
-            >
-              {copiedId === account._id ? (
-                <FiCheck className="text-[12px] text-success" />
-              ) : (
-                <FiCopy className="text-[12px]" />
-              )}
-            </button>
-          )}
-        </div>
-      ),
-    },
-    {
-      id: "registeredMobile",
-      key: "registeredMobile",
-      label: "Registered Mobile",
-      minWidth: 140,
-      render: (_, account) => (
-        <AppText variant="body2" sx={mobileSx}>
-          {account?.registeredMobile || "-"}
-        </AppText>
-      ),
-    },
-    {
-      id: "accountType",
-      key: "displayType",
-      label: "Account Type",
-      minWidth: 120,
-      render: (_, account) => {
-        const isSavings = String(account?.accountType).toUpperCase() === "SAVINGS";
-        return (
-          <span
-            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase border ${
-              isSavings
-                ? "bg-[#ebfbee] text-[#2b8a3e] border-[#c3fae8]"
-                : "bg-[#e7f5ff] text-[#1c7ed6] border-[#d0ebff]"
-            }`}
-          >
-            {account?.displayType || "-"}
-          </span>
-        );
-      },
-    },
-    {
-      id: "currentBalance",
-      key: "balance",
-      label: "Current Balance",
-      minWidth: 140,
-      render: (_, account) => (
-        <AppText variant="body2" sx={balanceSx}>
-          ₹ {account?.balance?.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0.00"}
-        </AppText>
-      ),
-    },
-    {
-      id: "status",
-      key: "displayStatus",
-      label: "Status",
-      minWidth: 100,
-      render: (_, account) => {
-        const isActive = account?.displayStatus === "active";
-        return (
-          <div className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${isActive ? "bg-success" : "bg-danger"}`}></span>
-            <span
-              className={`text-[12px] font-semibold capitalize ${
-                isActive ? "text-[#2b8a3e]" : "text-[#c92a2a]"
-              }`}
-            >
-              {account?.displayStatus}
-            </span>
+
+        {/* Card 2: Total Bank Balance */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
+            <Wallet className="size-4.5 stroke-[1.8]" />
           </div>
-        );
-      },
-    },
-    {
-      id: "actions",
-      key: "actions",
-      label: "Actions",
-      align: "right",
-      width: 80,
-      render: (_, account) => {
-        const menuItems = [
-          {
-            id: "view",
-            label: "View Details",
-            icon: <FiEye />,
-            onClick: () => handleViewDetails(account),
-          },
-          can("bank-account:update") && {
-            id: "edit",
-            label: "Edit Account",
-            icon: <FiEdit2 />,
-            onClick: () => handleEditAccount(account),
-          },
-          can("bank-account:delete") && {
-            id: "delete",
-            label: "Delete Account",
-            icon: <FiTrash2 />,
-            danger: true,
-            onClick: () => handleDeleteAccount(account),
-          },
-        ].filter(Boolean);
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-success truncate">
+              Total Bank Balance
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+              ₹{formatCurrency(stats.totalBalance)}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Across all liquid balances
+            </div>
+          </div>
+        </div>
 
-        if (!account.isPrimary && can("bank-account:update")) {
-          menuItems.unshift({
-            id: "set-primary",
-            label: "Set as Primary",
-            icon: <FiStar className="text-warning" />,
-            onClick: () => handleSetPrimary(account),
-          });
-        }
+        {/* Card 3: Active Accounts */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <CheckCircle2 className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-primary truncate">
+              Active Accounts
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.activeCount}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Ready for receipts & payouts
+            </div>
+          </div>
+        </div>
 
-        return (
-          <AppStack direction="row" align="center" justify="flex-end" gap={0.5}>
-            <AppMenu
-              trigger={
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text hover:bg-surface-hover focus:outline-none cursor-pointer"
-                >
-                  <FiMoreVertical className="text-[16px]" />
-                </button>
-              }
-              items={menuItems}
-              dense
-              minWidth={150}
-            />
-          </AppStack>
-        );
-      },
-    },
-  ], [
-    can,
-    copiedId,
-    handleViewDetails,
-    handleEditAccount,
-    handleDeleteAccount,
-    handleSetPrimary,
-  ]);
-
-  return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
-      {message && <TopToast message={message} onClose={clearMessage} />}
-
-      <div className="mx-auto w-full max-w-[1500px]">
-        {/* Page Header */}
-        <AppBox
-          display="flex"
-          alignItems="flex-start"
-          justifyContent="space-between"
-          sx={pageHeaderSx}
-        >
-          <AppBox sx={pageHeaderContentSx}>
-            <AppHeading level={1} weight={700}>
-              Bank Accounts
-            </AppHeading>
-            <AppText variant="body2" sx={pageHeaderSubtitleSx}>
-              Manage all your bank accounts in one place.
-            </AppText>
-            <AppBreadcrumb
-              size="small"
-              variant="text"
-              items={[
-                { label: "Dashboard", onClick: () => navigate(ROUTES.DASHBOARD) },
-                { label: "Finance & Accounting", onClick: () => navigate(ROUTES.FINANCE) },
-                { label: "Treasury", onClick: () => navigate(ROUTES.TREASURY) },
-                { label: "Bank Accounts", current: true },
-              ]}
-              sx={breadcrumbSx}
-              itemSx={breadcrumbItemSx}
-              currentItemSx={breadcrumbCurrentSx}
-            />
-          </AppBox>
-
-          <AppStack direction="row" gap={1.5} align="center">
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiRefreshCw />}
-              onClick={handleRefresh}
-              loading={isLoading}
-              sx={importButtonSx}
-            >
-              Refresh
-            </AppButton>
-            <PermissionGate permission="bank-account:create">
-              <AppButton
-                type="button"
-                variant="filled"
-                colorVariant="success"
-                rounded="md"
-                size="small"
-                startIcon={<FiPlus />}
-                onClick={handleAddAccount}
-                sx={primaryButtonSx}
-              >
-                Add Bank Account
-              </AppButton>
-            </PermissionGate>
-          </AppStack>
-        </AppBox>
-
-        {/* Dashboard Stats */}
-        <StatsGrid stats={dashboardStats} />
-
-        {/* Bank Accounts Card and Table */}
-        <AppCard variant="default" rounded="lg" bordered sx={tableCardSx}>
-          <TableToolbar
-            filters={filters}
-            activeFilterChips={activeFilterChips}
-            accountTypeOptions={accountTypeOptions}
-            statusOptions={statusOptions}
-            bankOptions={bankOptions}
-            handleFilterChange={handleFilterChange}
-            handleSearchChange={handleSearchChange}
-            handleRemoveFilter={handleRemoveFilter}
-            handleClearFilters={handleClearFilters}
-          />
-
-          {showInitialSkeleton(isLoading, hasAccounts) ? (
-            <AppBox sx={{ p: 5 }}>
-              <AppText variant="body2" sx={{ textAlign: "center", color: "var(--app-color-text-muted)" }}>
-                Loading bank accounts...
-              </AppText>
-            </AppBox>
-          ) : !hasFilteredAccounts ? (
-            <AppBox sx={{ p: 5, textAlign: "center" }}>
-              <AppText variant="body1" sx={{ fontWeight: 600, color: "var(--app-color-text)" }}>
-                No bank accounts found
-              </AppText>
-              <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 1 }}>
-                Try modifying your filters or search keywords.
-              </AppText>
-              {(filters.search || filters.accountType !== "all" || filters.status !== "all" || filters.bank !== "all") && (
-                <AppButton variant="text" colorVariant="primary" onClick={handleClearFilters} sx={{ mt: 2 }}>
-                  Clear Filters
-                </AppButton>
-              )}
-            </AppBox>
-          ) : (
-            <AppTable
-              columns={columns}
-              rows={pagedAccounts}
-              getRowId={(row) => row._id}
-              sx={tableSx}
-              headSx={tableHeadSx}
-              cellSx={tableCellSx}
-            />
-          )}
-
-          {hasFilteredAccounts && totalAccounts > pageSize ? (
-            <TableFooter
-              totalAccounts={totalAccounts}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              pageSize={pageSize}
-              handlePageChange={handlePageChange}
-              handlePageSizeChange={handlePageSizeChange}
-            />
-          ) : null}
-        </AppCard>
+        {/* Card 4: Primary Account */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <Star className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-amber-600 dark:text-amber-400 truncate">
+              Primary Account
+            </div>
+            <div className="text-sm sm:text-base font-bold text-text leading-tight truncate">
+              {stats.primaryAcc?.displayName || "None"}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5 font-mono">
+              {stats.primaryAcc
+                ? `${stats.primaryAcc.displayBank} • ${String(stats.primaryAcc.displayAccountNumber).slice(-4)}`
+                : "No default selected"}
+            </div>
+          </div>
+        </div>
       </div>
-    </section>
-  );
-};
 
-const showInitialSkeleton = (isLoading, hasAccounts) => isLoading && !hasAccounts;
+      {/* ── 2. Streamlined Single-Row Filter Toolbar ─────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
+        {/* Search Input */}
+        <div className="w-[220px] sm:w-[260px] lg:w-[300px]">
+          <UIInput
+            type="text"
+            value={filters.search || ""}
+            onChange={(e) => handleSearchChange?.(e.target.value)}
+            placeholder="Search account, number, IFSC, branch..."
+            startIcon={<Search className="size-4 text-text-muted" />}
+            size="md"
+            variant="outline"
+            isClearable
+            onClear={() => handleSearchChange?.("")}
+            className="w-full"
+          />
+        </div>
 
-const TopToast = ({ message, onClose }) => (
-  <div className="fixed left-1/2 top-4 z-[1400] w-[calc(100%-32px)] max-w-md -translate-x-1/2">
-    <AppAlert
-      severity="success"
-      variant="filled"
-      title={message}
-      closable
-      onClose={onClose}
-      sx={toastSx}
-    />
-  </div>
-);
+        {/* Account Type Select */}
+        <div className="w-[160px] sm:w-[180px]">
+          <UISelect
+            value={filters.accountType || "all"}
+            onChange={(val) => handleFilterChange?.({ accountType: val })}
+            options={ACCOUNT_TYPE_OPTIONS}
+            placeholder="All Types"
+            size="md"
+          />
+        </div>
 
-const StatsGrid = ({ stats }) => (
-  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    {stats.map((stat) => {
-      let iconColor = "bg-success/10 text-success";
-      if (stat.id === "total_balance") iconColor = "bg-info/10 text-info";
-      if (stat.id === "active_accounts") iconColor = "bg-purple-100 text-[#7048e8]";
-      if (stat.id === "inactive_accounts") iconColor = "bg-[#fff3bf] text-[#f08c00]";
+        {/* Status Select */}
+        <div className="w-[130px] sm:w-[145px]">
+          <UISelect
+            value={filters.status || "all"}
+            onChange={(val) => handleFilterChange?.({ status: val })}
+            options={STATUS_OPTIONS}
+            placeholder="Status"
+            size="md"
+          />
+        </div>
 
-      return (
-        <AppStatCard
-          key={stat.id}
-          title={stat.title}
-          value={stat.value}
-          subtitle={stat.description}
-          icon={statIcons[stat.id] || <LuBuilding2 />}
-          colorVariant={stat.colorVariant}
-          variant="default"
-          sx={statCardSx}
-          iconSx={{
-            ...statIconSx,
-            className: `${iconColor} ${statIconSx.className || ""}`,
-          }}
-        />
-      );
-    })}
-  </div>
-);
+        {/* Bank Select */}
+        {bankSelectOptions.length > 2 && (
+          <div className="w-[150px] sm:w-[170px]">
+            <UISelect
+              value={filters.bank || "all"}
+              onChange={(val) => handleFilterChange?.({ bank: val })}
+              options={bankSelectOptions}
+              placeholder="All Banks"
+              size="md"
+            />
+          </div>
+        )}
 
-const TableToolbar = ({
-  filters,
-  activeFilterChips,
-  accountTypeOptions,
-  statusOptions,
-  bankOptions,
-  handleFilterChange,
-  handleSearchChange,
-  handleRemoveFilter,
-  handleClearFilters,
-}) => (
-  <div className="border-b border-border px-4 py-3 bg-[#fdfdfd]">
-    <div className="grid grid-cols-[minmax(0,1fr)_140px_140px_160px_104px] items-center gap-3">
-      <AppSearchInput
-        name="search"
-        value={filters.search}
-        onChange={handleSearchChange}
-        placeholder="Search bank accounts by name, code, IFSC..."
-        clearable
-        onClear={() => handleSearchChange("")}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={searchSx}
-        inputSx={filterInputSx}
-      />
-
-      <AppSelect
-        name="status"
-        value={filters.status}
-        onChange={handleFilterChange}
-        options={statusOptions}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={selectSx}
-        inputSx={filterInputSx}
-      />
-
-      <AppSelect
-        name="bank"
-        value={filters.bank}
-        onChange={handleFilterChange}
-        options={bankOptions}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={selectSx}
-        inputSx={filterInputSx}
-      />
-
-      <AppSelect
-        name="accountType"
-        value={filters.accountType}
-        onChange={handleFilterChange}
-        options={accountTypeOptions}
-        size="small"
-        variant="bordered"
-        rounded="md"
-        sx={selectSx}
-        inputSx={filterInputSx}
-      />
-
-      <AppButton
-        type="button"
-        variant="outlined"
-        colorVariant="neutral"
-        rounded="md"
-        size="small"
-        startIcon={<FiSearch />}
-        sx={filterButtonSx}
-        disabled
-      >
-        Filters
-      </AppButton>
-    </div>
-
-    {activeFilterChips.length ? (
-      <AppStack direction="row" align="center" gap={0.7} sx={chipsRowSx}>
-        {activeFilterChips.map((chip) => (
-          <button
-            key={chip.key}
+        {/* Reset Filter Button */}
+        {isFiltered && (
+          <UIButton
             type="button"
-            onClick={() => handleRemoveFilter(chip.key)}
-            className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-alt px-2.5 py-1 text-[11px] font-semibold text-text-muted transition hover:bg-surface-hover cursor-pointer"
+            variant="ghost"
+            size="md"
+            onClick={handleClearFilters}
+            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
+            className="h-10 px-2 text-xs text-text-muted hover:text-text"
+            title="Reset all filters"
           >
-            {chip.label}
-          </button>
-        ))}
+            Reset
+          </UIButton>
+        )}
 
-        <button
-          type="button"
-          onClick={handleClearFilters}
-          className="text-[11px] font-semibold text-primary cursor-pointer hover:underline"
+        {/* Action Cluster (Right Aligned) */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={handleRefresh}
+            className="h-10 w-10 p-0 text-text-muted hover:text-text"
+            title="Refresh bank accounts"
+          >
+            <RefreshCw
+              className={cn("size-4 text-text-muted hover:text-primary", isLoading && "animate-spin text-primary")}
+            />
+          </UIButton>
+
+          <PermissionGate permission="bank-account:create">
+            <UIButton
+              type="button"
+              variant="primary"
+              size="md"
+              startIcon={<Plus className="size-3.5" />}
+              onClick={handleAddAccount}
+              className="h-10 px-3.5 text-xs font-semibold shadow-xs"
+            >
+              Add Bank Account
+            </UIButton>
+          </PermissionGate>
+        </div>
+      </div>
+
+      {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ── */}
+      <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        <div
+          ref={tableContainerRef}
+          className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0"
         >
-          Clear all
-        </button>
-      </AppStack>
-    ) : null}
-  </div>
-);
+          <UITable
+            stickyHeader
+            containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+            className="w-full"
+          >
+            <UITableHeader
+              sticky
+              className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs border-b border-border"
+            >
+              <UITableRow className="border-b border-border text-[11px] font-semibold text-text-muted uppercase tracking-wider bg-surface-alt/70 h-10">
+                <UITableHead sticky className="min-w-[220px]">Bank & Account</UITableHead>
+                <UITableHead sticky className="min-w-[190px]">Account No & IFSC</UITableHead>
+                <UITableHead sticky className="min-w-[160px]">Branch & Mobile</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[130px]">Type</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[140px]">Current Balance</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[100px]">Status</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[80px]">Actions</UITableHead>
+              </UITableRow>
+            </UITableHeader>
 
-const TableFooter = ({
-  totalAccounts,
-  currentPage,
-  totalPages,
-  pageSize,
-  handlePageChange,
-  handlePageSizeChange,
-}) => {
-  const startEntry = (currentPage - 1) * pageSize + 1;
-  const endEntry = Math.min(currentPage * pageSize, totalAccounts);
+            <UITableBody>
+              {isLoading ? (
+                <UITableLoading colSpan={7} rows={8} />
+              ) : displayedAccounts.length === 0 ? (
+                <UITableEmpty
+                  colSpan={7}
+                  title="No bank accounts found"
+                  description={
+                    isFiltered
+                      ? "No accounts match your active filter criteria. Try clearing search or resetting filters."
+                      : "No bank accounts registered in treasury yet."
+                  }
+                  action={
+                    isFiltered ? (
+                      <UIButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleClearFilters}
+                      >
+                        Clear Filters
+                      </UIButton>
+                    ) : (
+                      <PermissionGate permission="bank-account:create">
+                        <UIButton
+                          variant="primary"
+                          size="sm"
+                          startIcon={<Plus className="size-4" />}
+                          onClick={handleAddAccount}
+                        >
+                          Add First Bank Account
+                        </UIButton>
+                      </PermissionGate>
+                    )
+                  }
+                />
+              ) : (
+                displayedAccounts.map((account) => {
+                  const isActive = account.displayStatus === "active";
+                  const isPrimary = Boolean(account.isPrimary);
 
-  return (
-    <div className="flex items-center justify-between border-t border-border px-4 py-3.5 bg-white">
-      <AppText variant="body2" sx={footerTextSx}>
-        Showing {startEntry} to {endEntry} of {totalAccounts} accounts
-      </AppText>
+                  return (
+                    <UITableRow
+                      key={account._id}
+                      onClick={() => handleViewDetails(account)}
+                      className="group cursor-pointer transition-colors hover:bg-surface-hover/70 h-13 border-b border-border/60 last:border-b-0"
+                    >
+                      {/* 1. Bank & Account */}
+                      <UITableCell className="py-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <BankLogo bankName={account.displayBank || account.displayName} />
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-text truncate hover:text-primary transition-colors text-xs sm:text-sm leading-tight">
+                                {account.displayName}
+                              </span>
+                              {isPrimary && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9.5px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                  <Star className="size-2.5 fill-current" />
+                                  Primary
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-text-muted truncate mt-0.5">
+                              {account.displayBank}
+                            </span>
+                          </div>
+                        </div>
+                      </UITableCell>
 
-      <AppStack direction="row" align="center" gap={1}>
-        <AppButton
-          type="button"
-          variant="outlined"
-          colorVariant="neutral"
-          rounded="md"
-          size="small"
-          endIcon={<FiChevronRight className="rotate-90" />}
-          sx={pageSizeButtonSx}
-        >
-          {pageSize} / page
-        </AppButton>
+                      {/* 2. Account No & IFSC */}
+                      <UITableCell className="py-2">
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-xs text-text tabular-nums tracking-wide">
+                              {account.displayAccountNumber || "—"}
+                            </span>
+                            {account.displayAccountNumber && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleCopyAccountNumber(e, account)}
+                                className="p-1 rounded text-text-muted hover:text-text hover:bg-surface-alt transition-colors cursor-pointer"
+                                title="Copy account number"
+                              >
+                                {copiedId === account._id ? (
+                                  <Check className="size-3 text-emerald-600" />
+                                ) : (
+                                  <Copy className="size-3" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                          <span className="text-[11px] font-mono text-text-muted">
+                            IFSC: {account.displayIfsc || "—"}
+                          </span>
+                        </div>
+                      </UITableCell>
 
-        <AppIconButton
-          icon={<FiChevronLeft />}
-          variant="outlined"
-          colorVariant="neutral"
-          size="small"
-          rounded="md"
-          disabled={currentPage === 1}
-          onClick={() => handlePageChange(currentPage - 1)}
-        />
+                      {/* 3. Branch & Mobile */}
+                      <UITableCell className="py-2">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-medium text-text truncate">
+                            {account.displayBranch || "—"}
+                          </span>
+                          <span className="text-[11px] font-mono text-text-muted truncate">
+                            {account.registeredMobile || "—"}
+                          </span>
+                        </div>
+                      </UITableCell>
 
-        <span className="flex h-[31px] min-w-[31px] items-center justify-center rounded-md border border-[#00b85c] bg-[#e6fcf5] px-2 text-[12px] font-bold text-[#00b85c]">
-          {currentPage}
-        </span>
+                      {/* 4. Type */}
+                      <UITableCell align="center" className="whitespace-nowrap py-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface-alt border border-border/70 text-text capitalize">
+                          {account.displayType || "Current"}
+                        </span>
+                      </UITableCell>
 
-        <AppIconButton
-          icon={<FiChevronRight />}
-          variant="outlined"
-          colorVariant="neutral"
-          size="small"
-          rounded="md"
-          disabled={currentPage === totalPages}
-          onClick={() => handlePageChange(currentPage + 1)}
-        />
-      </AppStack>
+                      {/* 5. Balance */}
+                      <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-xs py-2">
+                        <span className="font-bold text-text text-xs sm:text-sm">
+                          ₹{formatCurrency(account.balance)}
+                        </span>
+                      </UITableCell>
+
+                      {/* 6. Status */}
+                      <UITableCell align="center" className="whitespace-nowrap py-2">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span
+                            className={cn(
+                              "size-2 rounded-full",
+                              isActive ? "bg-emerald-500" : "bg-rose-500"
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "text-xs font-semibold capitalize",
+                              isActive
+                                ? "text-emerald-700 dark:text-emerald-400"
+                                : "text-rose-700 dark:text-rose-400"
+                            )}
+                          >
+                            {account.displayStatus}
+                          </span>
+                        </div>
+                      </UITableCell>
+
+                      {/* 7. Actions */}
+                      <UITableCell align="right" className="py-2" onClick={(e) => e.stopPropagation()}>
+                        <UIDropdown>
+                          <UIDropdownTrigger asChild>
+                            <UIButton
+                              variant="ghost"
+                              size="sm"
+                              className="size-8 p-0 text-text-muted hover:text-text cursor-pointer"
+                              title="Actions"
+                            >
+                              <MoreVertical className="size-4" />
+                            </UIButton>
+                          </UIDropdownTrigger>
+                          <UIDropdownMenu align="end" className="w-48">
+                            <UIDropdownItem
+                              icon={<Eye className="size-4 text-text-muted shrink-0" />}
+                              onClick={() => handleViewDetails(account)}
+                            >
+                              View Details
+                            </UIDropdownItem>
+
+                            {can("bank-account:update") && (
+                              <UIDropdownItem
+                                icon={<Edit3 className="size-4 text-text-muted shrink-0" />}
+                                onClick={() => handleEditAccount(account)}
+                              >
+                                Edit Account
+                              </UIDropdownItem>
+                            )}
+
+                            {!isPrimary && can("bank-account:update") && (
+                              <UIDropdownItem
+                                icon={<Star className="size-4 text-amber-500 shrink-0" />}
+                                onClick={() => handleSetPrimary(account)}
+                              >
+                                Set as Primary
+                              </UIDropdownItem>
+                            )}
+
+                            {can("bank-account:delete") && (
+                              <>
+                                <UIDropdownDivider />
+                                <UIDropdownItem
+                                  destructive
+                                  icon={<Trash2 className="size-4 text-error shrink-0" />}
+                                  onClick={() => handleDeleteAccount(account)}
+                                >
+                                  Delete Account
+                                </UIDropdownItem>
+                              </>
+                            )}
+                          </UIDropdownMenu>
+                        </UIDropdown>
+                      </UITableCell>
+                    </UITableRow>
+                  );
+                })
+              )}
+            </UITableBody>
+          </UITable>
+
+          {/* Infinite Scroll Sentinel */}
+          {!isLoading && (
+            <UIInfiniteScroll
+              onLoadMore={handleLoadMore}
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
-};
-
-const pageHeaderSx = { width: "100%", mb: 3 };
-const pageHeaderSubtitleSx = {
-  mt: 0.55,
-  fontSize: "13px",
-  lineHeight: "20px",
-  color: "var(--app-color-text-muted)",
-};
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "26px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.5px",
-    color: "var(--app-color-text)",
-  },
-};
-
-const breadcrumbSx = { mt: 1 };
-const breadcrumbItemSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-  cursor: "pointer",
-  "&:hover": { color: "var(--app-color-primary)" },
-};
-const breadcrumbCurrentSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const primaryButtonSx = {
-  height: 38,
-  px: 1.8,
-  fontSize: "12.5px",
-  fontWeight: 700,
-  bgcolor: "#00b85c",
-  color: "white",
-  "&:hover": { bgcolor: "#009e4f" },
-};
-const importButtonSx = {
-  height: 38,
-  px: 1.8,
-  fontSize: "12.5px",
-  fontWeight: 650,
-  borderColor: "var(--app-color-border)",
-  color: "var(--app-color-text)",
-  bgcolor: "white",
-};
-
-const secondaryButtonSx = {
-  height: 36,
-  minWidth: 92,
-  px: 1.4,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-
-const statCardSx = {
-  minHeight: 90,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  p: 2,
-  "& p:first-of-type": { fontSize: "11.5px", fontWeight: 650, color: "var(--app-color-text-muted)" },
-  "& h1, & h2, & h3, & h4": { fontSize: "19px", fontWeight: 750, mt: 0.5 },
-  "& p:last-of-type": { fontSize: "11px", color: "var(--app-color-text-muted)" },
-};
-const statIconSx = {
-  width: 40,
-  height: 40,
-  minWidth: 40,
-  borderRadius: "50%",
-  "& svg": { fontSize: 18 },
-};
-
-const tableCardSx = {
-  mt: 4,
-  overflow: "hidden",
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  "& > div": { minWidth: 0 },
-};
-
-const searchSx = { width: "100%" };
-const selectSx = { width: "100%" };
-const filterInputSx = {
-  height: 36,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-};
-const filterButtonSx = {
-  height: 36,
-  px: 1.25,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-const chipsRowSx = { mt: 1.2, flexWrap: "wrap" };
-
-const tableSx = {
-  "& .MuiTableContainer-root": {
-    borderRadius: 0,
-    scrollbarWidth: "none",
-    msOverflowStyle: "none",
-    "&::-webkit-scrollbar": { display: "none" },
-  },
-};
-const tableHeadSx = {
-  bgcolor: "var(--app-color-surface-alt)",
-  "& .MuiTableCell-root": {
-    fontSize: "11.5px",
-    fontWeight: 750,
-    color: "var(--app-color-text-muted)",
-    textTransform: "capitalize",
-    py: 1.5,
-  },
-};
-const tableCellSx = {
-  py: 1.5,
-  fontSize: "12.5px",
-  borderColor: "var(--app-color-border)",
-};
-const tableValueSx = {
-  fontSize: "12.5px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-const tableValueMutedSx = {
-  fontSize: "12px",
-  fontWeight: 550,
-  color: "var(--app-color-text-muted)",
-};
-
-const accountNameSx = {
-  m: 0,
-  maxWidth: 240,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "13px",
-  lineHeight: 1.25,
-  color: "var(--app-color-text)",
-};
-const branchSubtitleSx = {
-  mt: 0.3,
-  maxWidth: 250,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "11px",
-  lineHeight: "18px",
-  color: "var(--app-color-text-muted)",
-};
-
-const bankCodeSx = {
-  fontSize: "12.5px",
-  fontWeight: 650,
-  fontFamily: "monospace",
-  color: "var(--app-color-text)",
-};
-const bankNameSubSx = {
-  mt: 0.3,
-  fontSize: "11px",
-  color: "var(--app-color-text-muted)",
-};
-
-const accountNumSx = {
-  fontSize: "12.5px",
-  fontWeight: 600,
-  fontFamily: "monospace",
-  color: "var(--app-color-text)",
-};
-
-const ifscSx = {
-  fontSize: "12.5px",
-  fontWeight: 600,
-  fontFamily: "monospace",
-  color: "var(--app-color-text)",
-};
-
-const mobileSx = {
-  fontSize: "12.5px",
-  fontWeight: 600,
-  color: "var(--app-color-text)",
-};
-
-const balanceSx = {
-  fontSize: "12.5px",
-  fontWeight: 700,
-  color: "var(--app-color-text)",
-};
-
-const tagSx = {
-  width: "fit-content",
-  height: 22,
-  px: 0.8,
-  fontSize: "10.5px",
-  fontWeight: 700,
-};
-const statusBadgeSx = {
-  width: "fit-content",
-  height: 22,
-  px: 1.5,
-  fontSize: "10.5px",
-  fontWeight: 700,
-  textTransform: "capitalize",
-};
-const toastSx = { boxShadow: "var(--app-shadow-lg)" };
-const footerTextSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
-const pageSizeButtonSx = {
-  height: 34,
-  minWidth: 122,
-  px: 1.2,
-  fontSize: "12px",
-  fontWeight: 600,
 };
 
 export default BankAccountsDesktopPage;

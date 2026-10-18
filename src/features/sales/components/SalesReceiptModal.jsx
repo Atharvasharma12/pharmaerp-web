@@ -204,15 +204,16 @@ export const SalesReceiptModal = ({ isOpen, onClose, saleData }) => {
                   {items.map((item, idx) => (
                     <tr key={idx}>
                       <td className="px-5 py-2.5">
-                        <span className="font-bold text-text block">{item.name}</span>
+                        <span className="font-bold text-text block text-xs">{item.name}</span>
                         <span className="text-[10px] text-text-muted">{item.brand}</span>
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-text-muted text-[10.5px]">
-                        {item.hsn || "300490"} · {item.batch}
+                      <td className="px-3 py-2.5 font-mono text-xs">
+                        <span className="text-text-muted text-[10.5px]">{item.hsn || "300490"} · </span>
+                        <span className="font-bold text-text tracking-wide">{item.batch || "—"}</span>
                       </td>
                       <td className="px-3 py-2.5 font-mono text-right text-text tabular-nums">{item.qty}</td>
-                      <td className="px-3 py-2.5 font-mono text-right text-text tabular-nums">₹{item.price?.toFixed(2)}</td>
-                      <td className="px-5 py-2.5 font-mono font-bold text-right text-text tabular-nums">
+                      <td className="px-3 py-2.5 font-mono text-right text-text font-bold text-xs tabular-nums">₹{item.price?.toFixed(2)}</td>
+                      <td className="px-5 py-2.5 font-mono font-black text-right text-primary text-[13px] tabular-nums">
                         ₹{(item.qty * item.price)?.toFixed(2)}
                       </td>
                     </tr>

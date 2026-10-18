@@ -1,6 +1,12 @@
-  // src/features/parties/customers/pages/desktop/CustomersDesktopPage.jsx
+// src/features/parties/customers/pages/desktop/CustomersDesktopPage.jsx
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -167,7 +173,11 @@ export const CustomersDesktopPage = ({
 
   // Filter & Search States
   const [customerScope, setCustomerScope] = useState(
-    propActiveSegment === "b2b" ? "b2b" : propActiveSegment === "b2c" ? "b2c" : "all"
+    propActiveSegment === "b2b"
+      ? "b2b"
+      : propActiveSegment === "b2c"
+        ? "b2c"
+        : "all",
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -192,9 +202,11 @@ export const CustomersDesktopPage = ({
   // Excel Import States
   const [isImportConfigOpen, setIsImportConfigOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] = useState(false);
+  const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] =
+    useState(false);
   const [isB2cImportModalOpen, setIsB2cImportModalOpen] = useState(false);
-  const [isLegacyHistoryImportModalOpen, setIsLegacyHistoryImportModalOpen] = useState(false);
+  const [isLegacyHistoryImportModalOpen, setIsLegacyHistoryImportModalOpen] =
+    useState(false);
   const [activeImportType, setActiveImportType] = useState("b2b");
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -240,11 +252,21 @@ export const CustomersDesktopPage = ({
     const creditLimit = Math.max(0, Number(c.creditLimit || 0));
     const creditDays = Math.max(0, Number(c.creditDays || 0));
 
-    const advanceBalance = Math.max(0, Number(c.advanceBalance ?? c.advance ?? 0));
-    const creditOutstanding = Math.max(0, Number(c.creditOutstanding ?? c.credit ?? c.creditDue ?? 0));
-    const outstandingAmount = Math.max(0, Number(c.outstandingAmount ?? creditOutstanding ?? 0));
+    const advanceBalance = Math.max(
+      0,
+      Number(c.advanceBalance ?? c.advance ?? 0),
+    );
+    const creditOutstanding = Math.max(
+      0,
+      Number(c.creditOutstanding ?? c.credit ?? c.creditDue ?? 0),
+    );
+    const outstandingAmount = Math.max(
+      0,
+      Number(c.outstandingAmount ?? creditOutstanding ?? 0),
+    );
     const balanceType = String(
-      c.balanceType || (creditOutstanding > 0 ? "dr" : advanceBalance > 0 ? "cr" : "zero")
+      c.balanceType ||
+        (creditOutstanding > 0 ? "dr" : advanceBalance > 0 ? "cr" : "zero"),
     ).toLowerCase();
 
     const billingAddress = c.billingAddress || c.address || {};
@@ -305,7 +327,7 @@ export const CustomersDesktopPage = ({
 
       return params;
     },
-    [debouncedSearch, selectedStatus, selectedType, customerScope]
+    [debouncedSearch, selectedStatus, selectedType, customerScope],
   );
 
   // Fetch initial batch (Page 1) or full refresh
@@ -318,8 +340,8 @@ export const CustomersDesktopPage = ({
       const rawList = Array.isArray(resData.customers)
         ? resData.customers
         : Array.isArray(resData)
-        ? resData
-        : [];
+          ? resData
+          : [];
       const total = Number(resData.total ?? rawList.length);
 
       // Extract backend aggregated stats
@@ -327,15 +349,19 @@ export const CustomersDesktopPage = ({
         setStats({
           totalCustomers: total,
           totalDr: Number(resData.stats.totalDr || 0),
-          totalAdvance: Number(resData.stats.totalAdvance || resData.stats.totalCr || 0),
+          totalAdvance: Number(
+            resData.stats.totalAdvance || resData.stats.totalCr || 0,
+          ),
           totalCr: Number(resData.stats.totalCr || 0),
           netRunning: Number(resData.stats.netRunning || 0),
           runningType: resData.stats.runningType || "Dr",
           active: Number(resData.stats.active || 0),
           inactive: Number(resData.stats.inactive || 0),
           blocked: Number(resData.stats.blocked || 0),
-          drCount: rawList.filter((c) => Number(c.creditOutstanding || 0) > 0).length,
-          crCount: rawList.filter((c) => Number(c.advanceBalance || 0) > 0).length,
+          drCount: rawList.filter((c) => Number(c.creditOutstanding || 0) > 0)
+            .length,
+          crCount: rawList.filter((c) => Number(c.advanceBalance || 0) > 0)
+            .length,
         });
       } else {
         let drSum = 0;
@@ -362,8 +388,10 @@ export const CustomersDesktopPage = ({
           active: act,
           inactive: inact,
           blocked: blk,
-          drCount: rawList.filter((c) => Number(c.creditOutstanding || 0) > 0).length,
-          crCount: rawList.filter((c) => Number(c.advanceBalance || 0) > 0).length,
+          drCount: rawList.filter((c) => Number(c.creditOutstanding || 0) > 0)
+            .length,
+          crCount: rawList.filter((c) => Number(c.advanceBalance || 0) > 0)
+            .length,
         });
       }
 
@@ -435,23 +463,29 @@ export const CustomersDesktopPage = ({
   const eighthRowCallbackRef = useCallback(
     (node) => {
       if (isLoading || isLoadingMore || !hasMore) return;
-      if (eighthRowObserverRef.current) eighthRowObserverRef.current.disconnect();
+      if (eighthRowObserverRef.current)
+        eighthRowObserverRef.current.disconnect();
 
       eighthRowObserverRef.current = new IntersectionObserver(
         (entries) => {
-          if (entries[0]?.isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+          if (
+            entries[0]?.isIntersecting &&
+            hasMore &&
+            !isLoadingMore &&
+            !isLoading
+          ) {
             handleLoadMore();
           }
         },
         {
           root: tableContainerRef.current,
           threshold: 0.1,
-        }
+        },
       );
 
       if (node) eighthRowObserverRef.current.observe(node);
     },
-    [hasMore, isLoading, isLoadingMore, handleLoadMore]
+    [hasMore, isLoading, isLoadingMore, handleLoadMore],
   );
 
   useEffect(() => {
@@ -496,19 +530,24 @@ export const CustomersDesktopPage = ({
     // Filter by balance dropdown
     if (selectedBalanceType === "dr") {
       result = result.filter(
-        (c) => c.creditOutstanding > 0 || (c.balanceType === "dr" && c.outstandingAmount > 0)
+        (c) =>
+          c.creditOutstanding > 0 ||
+          (c.balanceType === "dr" && c.outstandingAmount > 0),
       );
     } else if (selectedBalanceType === "cr") {
       result = result.filter(
-        (c) => c.advanceBalance > 0 || (c.balanceType === "cr" && c.outstandingAmount > 0)
+        (c) =>
+          c.advanceBalance > 0 ||
+          (c.balanceType === "cr" && c.outstandingAmount > 0),
       );
     } else if (selectedBalanceType === "overlimit") {
       result = result.filter(
-        (c) => c.creditLimit > 0 && c.creditOutstanding > c.creditLimit
+        (c) => c.creditLimit > 0 && c.creditOutstanding > c.creditLimit,
       );
     } else if (selectedBalanceType === "zero") {
       result = result.filter(
-        (c) => (c.creditOutstanding || 0) === 0 && (c.advanceBalance || 0) === 0
+        (c) =>
+          (c.creditOutstanding || 0) === 0 && (c.advanceBalance || 0) === 0,
       );
     }
 
@@ -548,14 +587,18 @@ export const CustomersDesktopPage = ({
         currentIndex: chunkIndex,
       }));
       setToastMessage(
-        `Import complete! Successful: ${currentStats.successful}, Failed: ${currentStats.failed}`
+        `Import complete! Successful: ${currentStats.successful}, Failed: ${currentStats.failed}`,
       );
       setTimeout(() => setToastMessage(null), 4000);
       handleRefresh();
       return;
     }
 
-    setChunkState((prev) => ({ ...prev, currentIndex: chunkIndex, error: null }));
+    setChunkState((prev) => ({
+      ...prev,
+      currentIndex: chunkIndex,
+      error: null,
+    }));
 
     try {
       const chunk = chunks[chunkIndex];
@@ -577,7 +620,10 @@ export const CustomersDesktopPage = ({
 
       setChunkState((prev) => ({ ...prev, stats: newStats }));
 
-      if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+      if (
+        abortControllerRef.current &&
+        !abortControllerRef.current.signal.aborted
+      ) {
         processChunk(chunkIndex + 1, chunks, newStats);
       }
     } catch (err) {
@@ -585,7 +631,9 @@ export const CustomersDesktopPage = ({
         ...prev,
         isImporting: false,
         error:
-          err?.response?.data?.message || err.message || "Failed to import chunk",
+          err?.response?.data?.message ||
+          err.message ||
+          "Failed to import chunk",
       }));
     }
   };
@@ -613,11 +661,11 @@ export const CustomersDesktopPage = ({
         const result = res.data.data.importResult;
         if (result?.failed > 0) {
           alert(
-            `Imported ${result.successful} successfully. ${result.failed} failed.\nErrors: ${result.errors?.join(", ")}`
+            `Imported ${result.successful} successfully. ${result.failed} failed.\nErrors: ${result.errors?.join(", ")}`,
           );
         } else {
           alert(
-            `Directly imported ${result?.successful || 0} customers successfully.`
+            `Directly imported ${result?.successful || 0} customers successfully.`,
           );
         }
         handleRefresh();
@@ -643,7 +691,7 @@ export const CustomersDesktopPage = ({
     setIsOutstandingImportModalOpen(false);
     if (failed > 0) {
       alert(
-        `Imported ${successful} successfully. ${failed} failed.\nErrors: ${errors.join(", ")}`
+        `Imported ${successful} successfully. ${failed} failed.\nErrors: ${errors.join(", ")}`,
       );
     } else {
       setToastMessage(`Imported ${successful} customers successfully.`);
@@ -655,7 +703,7 @@ export const CustomersDesktopPage = ({
   };
 
   return (
-    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-3 space-y-2.5 text-text font-sans transition-colors">
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
       {/* Toast Notification Banner */}
       <AnimatePresence>
         {toastMessage && (
@@ -673,7 +721,7 @@ export const CustomersDesktopPage = ({
       </AnimatePresence>
 
       {/* ── 1. Compact 4-Card Statistics Grid (Top of Page) ────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
         {/* Card 1: Total Customers */}
         <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
           <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
@@ -684,8 +732,8 @@ export const CustomersDesktopPage = ({
               {customerScope === "b2b"
                 ? "B2B Accounts"
                 : customerScope === "b2c"
-                ? "B2C Walk-ins"
-                : "Total Customers"}
+                  ? "B2C Walk-ins"
+                  : "Total Customers"}
             </div>
             <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               {stats.totalCustomers || totalCount || 0}
@@ -694,8 +742,8 @@ export const CustomersDesktopPage = ({
               {customerScope === "b2b"
                 ? "B2B wholesale & commercial"
                 : customerScope === "b2c"
-                ? "B2C retail walk-in accounts"
-                : "Registered customer base"}
+                  ? "B2C retail walk-in accounts"
+                  : "Registered customer base"}
             </div>
           </div>
         </div>
@@ -746,10 +794,18 @@ export const CustomersDesktopPage = ({
               Net Position
             </div>
             <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
-              ₹{formatCurrency(stats.netRunning || Math.abs((stats.totalDr || 0) - (stats.totalAdvance || stats.totalCr || 0)))}
+              ₹
+              {formatCurrency(
+                stats.netRunning ||
+                  Math.abs(
+                    (stats.totalDr || 0) -
+                      (stats.totalAdvance || stats.totalCr || 0),
+                  ),
+              )}
             </div>
             <div className="text-[10px] text-text-muted truncate mt-0.5">
-              {(stats.totalDr || 0) >= (stats.totalAdvance || stats.totalCr || 0)
+              {(stats.totalDr || 0) >=
+              (stats.totalAdvance || stats.totalCr || 0)
                 ? "Net Debit Position (Receivable)"
                 : "Net Credit Position (Advance Held)"}
             </div>
@@ -758,7 +814,7 @@ export const CustomersDesktopPage = ({
       </div>
 
       {/* ── 2. Streamlined Single-Row Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
         {/* Compact Search Input (Decreased Width, Not Stretching Full Width) */}
         <div className="w-[240px] sm:w-[280px] lg:w-[320px]">
           <UIInput
@@ -794,12 +850,16 @@ export const CustomersDesktopPage = ({
           onClick={() => setIsFilterModalOpen(true)}
           startIcon={
             <Filter
-              className={cn("size-3.5", activeFilterCount > 0 ? "text-primary" : "text-text-muted")}
+              className={cn(
+                "size-3.5",
+                activeFilterCount > 0 ? "text-primary" : "text-text-muted",
+              )}
             />
           }
           className={cn(
             "h-10 px-3 text-xs sm:text-sm font-semibold gap-1.5 transition-all select-none",
-            activeFilterCount > 0 && "border-primary/40 bg-primary/10 text-primary font-bold shadow-2xs"
+            activeFilterCount > 0 &&
+              "border-primary/40 bg-primary/10 text-primary font-bold shadow-2xs",
           )}
           title="Open filters dialog"
         >
@@ -838,7 +898,10 @@ export const CustomersDesktopPage = ({
             title="Refresh customer table"
           >
             <RefreshCw
-              className={cn("size-4 text-text-muted hover:text-primary", isLoading && "animate-spin text-primary")}
+              className={cn(
+                "size-4 text-text-muted hover:text-primary",
+                isLoading && "animate-spin text-primary",
+              )}
             />
           </UIButton>
 
@@ -846,7 +909,9 @@ export const CustomersDesktopPage = ({
             type="button"
             variant="outline"
             size="md"
-            startIcon={<Receipt className="size-3.5 text-emerald-600 dark:text-emerald-400" />}
+            startIcon={
+              <Receipt className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+            }
             onClick={() => navigate(ROUTES.CUSTOMER_SETTLEMENTS)}
             className="h-10 px-3 text-xs font-semibold hidden md:inline-flex"
             title="Outstanding Collections & Credit Settlements"
@@ -861,7 +926,9 @@ export const CustomersDesktopPage = ({
                   type="button"
                   variant="outline"
                   size="md"
-                  startIcon={<Users className="size-3.5 text-purple-600 dark:text-purple-400" />}
+                  startIcon={
+                    <Users className="size-3.5 text-purple-600 dark:text-purple-400" />
+                  }
                   onClick={() => setIsB2cImportModalOpen(true)}
                   disabled={isUploading}
                   className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
@@ -873,7 +940,9 @@ export const CustomersDesktopPage = ({
                   type="button"
                   variant="outline"
                   size="md"
-                  startIcon={<BookOpen className="size-3.5 text-blue-600 dark:text-blue-400" />}
+                  startIcon={
+                    <BookOpen className="size-3.5 text-blue-600 dark:text-blue-400" />
+                  }
                   onClick={() => setIsLegacyHistoryImportModalOpen(true)}
                   disabled={isUploading}
                   className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
@@ -914,11 +983,11 @@ export const CustomersDesktopPage = ({
       </div>
 
       {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ────── */}
-      <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
-        {/* Internal Scroll Container: Definitive scroll parent (Constrained to ~5 rows visible) */}
+      <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        {/* Internal Scroll Container: Definitive scroll parent */}
         <div
           ref={tableContainerRef}
-          className="relative overflow-y-auto overflow-x-auto max-h-[320px] min-h-[320px] flex-1 divide-y divide-border/60"
+          className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0"
         >
           <UITable
             stickyHeader
@@ -931,12 +1000,24 @@ export const CustomersDesktopPage = ({
               className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs border-b border-border"
             >
               <UITableRow className="border-b border-border text-[11px] font-semibold text-text-muted uppercase tracking-wider bg-surface-alt/70 h-10">
-                <UITableHead sticky className="min-w-[240px]">Customer</UITableHead>
-                <UITableHead sticky align="center" className="min-w-[100px]">Segment</UITableHead>
-                <UITableHead sticky align="right" className="min-w-[110px]">Credit Limit</UITableHead>
-                <UITableHead sticky align="right" className="min-w-[125px]">Advance (CR)</UITableHead>
-                <UITableHead sticky align="right" className="min-w-[130px]">Credit Due (DR)</UITableHead>
-                <UITableHead sticky align="right" className="min-w-[80px]">Actions</UITableHead>
+                <UITableHead sticky className="min-w-[240px]">
+                  Customer
+                </UITableHead>
+                <UITableHead sticky align="center" className="min-w-[100px]">
+                  Segment
+                </UITableHead>
+                <UITableHead sticky align="right" className="min-w-[110px]">
+                  Credit Limit
+                </UITableHead>
+                <UITableHead sticky align="right" className="min-w-[125px]">
+                  Advance (CR)
+                </UITableHead>
+                <UITableHead sticky align="right" className="min-w-[130px]">
+                  Credit Due (DR)
+                </UITableHead>
+                <UITableHead sticky align="right" className="min-w-[80px]">
+                  Actions
+                </UITableHead>
               </UITableRow>
             </UITableHeader>
 
@@ -978,7 +1059,9 @@ export const CustomersDesktopPage = ({
                   const isOverLimit =
                     c.creditLimit > 0 && c.creditOutstanding > c.creditLimit;
                   // Trigger loading next 10 items when reaching the 8th row of any 10-row batch
-                  const isTriggerRow = (index % 10 === 7) || (index === filteredAndSortedCustomers.length - 3);
+                  const isTriggerRow =
+                    index % 10 === 7 ||
+                    index === filteredAndSortedCustomers.length - 3;
 
                   return (
                     <UITableRow
@@ -997,12 +1080,18 @@ export const CustomersDesktopPage = ({
                             <span className="font-semibold text-text truncate hover:text-primary transition-colors text-xs sm:text-sm leading-tight">
                               {c.name}
                             </span>
-                            <div className="flex items-center gap-1.5 text-[11.5px] text-text-muted font-mono truncate mt-0.5">
-                              <span>{c.mobile && c.mobile !== "—" ? c.mobile : "—"}</span>
+                            <div className="flex items-center gap-1.5 text-xs text-text-muted truncate mt-0.5">
+                              <span className="text-[13px] font-bold text-text/90 font-mono tracking-tight">
+                                {c.mobile && c.mobile !== "—" ? c.mobile : "—"}
+                              </span>
                               {c.city ? (
                                 <>
-                                  <span className="text-text-muted/40 font-sans">•</span>
-                                  <span className="font-sans text-text-muted/80">{c.city}</span>
+                                  <span className="text-text-muted/40 font-sans">
+                                    •
+                                  </span>
+                                  <span className="font-sans text-text-muted/80 text-xs">
+                                    {c.city}
+                                  </span>
                                 </>
                               ) : null}
                             </div>
@@ -1011,14 +1100,20 @@ export const CustomersDesktopPage = ({
                       </UITableCell>
 
                       {/* 2. Segment / Type */}
-                      <UITableCell align="center" className="whitespace-nowrap py-2">
+                      <UITableCell
+                        align="center"
+                        className="whitespace-nowrap py-2"
+                      >
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface-alt border border-border/60 text-text-muted capitalize">
                           {c.customerType}
                         </span>
                       </UITableCell>
 
                       {/* 3. Credit Limit */}
-                      <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-xs py-2">
+                      <UITableCell
+                        align="right"
+                        className="whitespace-nowrap font-mono tabular-nums text-xs py-2"
+                      >
                         {c.creditLimit > 0 ? (
                           <div className="flex flex-col items-end leading-tight">
                             <span className="font-medium text-text">
@@ -1031,12 +1126,17 @@ export const CustomersDesktopPage = ({
                             )}
                           </div>
                         ) : (
-                          <span className="text-text-muted/40 font-mono text-xs">—</span>
+                          <span className="text-text-muted/40 font-mono text-xs">
+                            —
+                          </span>
                         )}
                       </UITableCell>
 
                       {/* 5. Advance Balance (CR) */}
-                      <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-xs py-2">
+                      <UITableCell
+                        align="right"
+                        className="whitespace-nowrap font-mono tabular-nums text-xs py-2"
+                      >
                         {c.advanceBalance > 0 ? (
                           <div className="inline-flex items-baseline gap-1">
                             <span className="font-semibold text-emerald-600 dark:text-emerald-400">
@@ -1047,12 +1147,17 @@ export const CustomersDesktopPage = ({
                             </span>
                           </div>
                         ) : (
-                          <span className="text-text-muted/30 font-mono text-xs">0.00</span>
+                          <span className="text-text-muted/30 font-mono text-xs">
+                            0.00
+                          </span>
                         )}
                       </UITableCell>
 
                       {/* 6. Credit Due (DR) */}
-                      <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-xs py-2">
+                      <UITableCell
+                        align="right"
+                        className="whitespace-nowrap font-mono tabular-nums text-xs py-2"
+                      >
                         {c.creditOutstanding > 0 ? (
                           <div className="flex flex-col items-end leading-tight">
                             <div className="inline-flex items-baseline gap-1">
@@ -1070,11 +1175,11 @@ export const CustomersDesktopPage = ({
                             )}
                           </div>
                         ) : (
-                          <span className="text-text-muted/30 font-mono text-xs">0.00</span>
+                          <span className="text-text-muted/30 font-mono text-xs">
+                            0.00
+                          </span>
                         )}
                       </UITableCell>
-
-
 
                       {/* 8. Refined Row Actions */}
                       <UITableCell align="right" className="py-2">
@@ -1096,9 +1201,14 @@ export const CustomersDesktopPage = ({
                                 <MoreVertical className="size-3.5" />
                               </button>
                             </UIDropdownTrigger>
-                            <UIDropdownMenu align="right" className="w-52 shadow-lg">
+                            <UIDropdownMenu
+                              align="right"
+                              className="w-52 shadow-lg"
+                            >
                               <UIDropdownItem
-                                icon={<Wallet className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                                icon={
+                                  <Wallet className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                }
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleReceiveAdvance(c.rawCustomer || c);
@@ -1107,7 +1217,9 @@ export const CustomersDesktopPage = ({
                                 Receive Advance
                               </UIDropdownItem>
                               <UIDropdownItem
-                                icon={<Receipt className="size-4 text-rose-600 dark:text-rose-400 shrink-0" />}
+                                icon={
+                                  <Receipt className="size-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                                }
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleSettleCredit(c.rawCustomer || c);
@@ -1116,7 +1228,9 @@ export const CustomersDesktopPage = ({
                                 Settle Credit
                               </UIDropdownItem>
                               <UIDropdownItem
-                                icon={<BookOpen className="size-4 text-primary shrink-0" />}
+                                icon={
+                                  <BookOpen className="size-4 text-primary shrink-0" />
+                                }
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleViewTransactions(c.rawCustomer || c);
@@ -1125,7 +1239,9 @@ export const CustomersDesktopPage = ({
                                 Statement & Ledger
                               </UIDropdownItem>
                               <UIDropdownItem
-                                icon={<Eye className="size-4 text-text-muted shrink-0" />}
+                                icon={
+                                  <Eye className="size-4 text-text-muted shrink-0" />
+                                }
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleViewCustomer(c.rawCustomer || c);
@@ -1134,7 +1250,9 @@ export const CustomersDesktopPage = ({
                                 View Details
                               </UIDropdownItem>
                               <UIDropdownItem
-                                icon={<Edit3 className="size-4 text-text-muted shrink-0" />}
+                                icon={
+                                  <Edit3 className="size-4 text-text-muted shrink-0" />
+                                }
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleEditCustomer(c.rawCustomer || c);
@@ -1145,7 +1263,9 @@ export const CustomersDesktopPage = ({
                               <UIDropdownDivider />
                               <UIDropdownItem
                                 destructive
-                                icon={<Trash2 className="size-4 text-error shrink-0" />}
+                                icon={
+                                  <Trash2 className="size-4 text-error shrink-0" />
+                                }
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleDeleteCustomer(c.rawCustomer || c);
@@ -1188,7 +1308,8 @@ export const CustomersDesktopPage = ({
             Filter & Sort Customers
           </UIModalTitle>
           <UIModalDescription>
-            Configure customer segment scope, balance standing, status, and sort sequence.
+            Configure customer segment scope, balance standing, status, and sort
+            sequence.
           </UIModalDescription>
         </UIModalHeader>
         <UIModalBody>
@@ -1198,7 +1319,9 @@ export const CustomersDesktopPage = ({
               <label className="text-xs font-semibold text-text flex items-center justify-between">
                 <span>Account Segment</span>
                 {customerScope !== "all" && (
-                  <span className="text-[11px] text-primary font-bold">Active Scope</span>
+                  <span className="text-[11px] text-primary font-bold">
+                    Active Scope
+                  </span>
                 )}
               </label>
               <div className="grid grid-cols-3 gap-1.5 p-1 bg-surface-alt border border-border rounded-xl">
@@ -1214,10 +1337,15 @@ export const CustomersDesktopPage = ({
                         "flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                         isSelected
                           ? "bg-surface text-primary border border-primary/20 shadow-xs font-bold"
-                          : "text-text-muted hover:text-text hover:bg-surface/50 border border-transparent"
+                          : "text-text-muted hover:text-text hover:bg-surface/50 border border-transparent",
                       )}
                     >
-                      <Icon className={cn("size-3.5 shrink-0", isSelected ? "text-primary" : "text-text-muted")} />
+                      <Icon
+                        className={cn(
+                          "size-3.5 shrink-0",
+                          isSelected ? "text-primary" : "text-text-muted",
+                        )}
+                      />
                       <span className="truncate">{opt.label}</span>
                     </button>
                   );
@@ -1230,7 +1358,9 @@ export const CustomersDesktopPage = ({
               <label className="text-xs font-semibold text-text flex items-center justify-between">
                 <span>Customer Type</span>
                 {selectedType !== "all" && (
-                  <span className="text-[11px] text-primary font-bold">Active Filter</span>
+                  <span className="text-[11px] text-primary font-bold">
+                    Active Filter
+                  </span>
                 )}
               </label>
               <UISelect
@@ -1247,7 +1377,9 @@ export const CustomersDesktopPage = ({
               <label className="text-xs font-semibold text-text flex items-center justify-between">
                 <span>Balance Standing</span>
                 {selectedBalanceType !== "all" && (
-                  <span className="text-[11px] text-primary font-bold">Active Filter</span>
+                  <span className="text-[11px] text-primary font-bold">
+                    Active Filter
+                  </span>
                 )}
               </label>
               <UISelect
@@ -1267,7 +1399,9 @@ export const CustomersDesktopPage = ({
               <label className="text-xs font-semibold text-text flex items-center justify-between">
                 <span>Customer Status</span>
                 {selectedStatus !== "all" && (
-                  <span className="text-[11px] text-primary font-bold">Active Filter</span>
+                  <span className="text-[11px] text-primary font-bold">
+                    Active Filter
+                  </span>
                 )}
               </label>
               <UISelect
@@ -1284,7 +1418,9 @@ export const CustomersDesktopPage = ({
               <label className="text-xs font-semibold text-text flex items-center justify-between">
                 <span>Sort Sequence</span>
                 {sortOption !== "name-asc" && (
-                  <span className="text-[11px] text-primary font-bold">Custom Sort</span>
+                  <span className="text-[11px] text-primary font-bold">
+                    Custom Sort
+                  </span>
                 )}
               </label>
               <UISelect
@@ -1337,7 +1473,8 @@ export const CustomersDesktopPage = ({
         <UIModalHeader>
           <UIModalTitle>Importing Customers</UIModalTitle>
           <UIModalDescription>
-            Processing customer records in batches. Please do not close your browser.
+            Processing customer records in batches. Please do not close your
+            browser.
           </UIModalDescription>
         </UIModalHeader>
         <UIModalBody>
@@ -1347,7 +1484,9 @@ export const CustomersDesktopPage = ({
                 <span>Progress</span>
                 <span>
                   {Math.round(
-                    (chunkState.currentIndex / (chunkState.chunks.length || 1)) * 100
+                    (chunkState.currentIndex /
+                      (chunkState.chunks.length || 1)) *
+                      100,
                   )}
                   %
                 </span>
@@ -1357,7 +1496,9 @@ export const CustomersDesktopPage = ({
                   className="bg-primary h-2.5 rounded-full transition-all duration-300"
                   style={{
                     width: `${
-                      (chunkState.currentIndex / (chunkState.chunks.length || 1)) * 100
+                      (chunkState.currentIndex /
+                        (chunkState.chunks.length || 1)) *
+                      100
                     }%`,
                   }}
                 />
@@ -1370,13 +1511,15 @@ export const CustomersDesktopPage = ({
                 <span className="font-bold text-text font-mono text-sm">
                   {Math.min(
                     chunkState.currentIndex * 250,
-                    chunkState.totalRecords
+                    chunkState.totalRecords,
                   )}{" "}
                   / {chunkState.totalRecords}
                 </span>
               </div>
               <div className="p-2.5 bg-surface-alt rounded-lg border border-border">
-                <span className="text-text-muted block">Successful / Failed</span>
+                <span className="text-text-muted block">
+                  Successful / Failed
+                </span>
                 <span className="font-bold font-mono text-sm">
                   <span className="text-emerald-600 dark:text-emerald-400">
                     {chunkState.stats.successful}
@@ -1424,11 +1567,13 @@ export const CustomersDesktopPage = ({
                   processChunk(
                     chunkState.currentIndex,
                     chunkState.chunks,
-                    chunkState.stats
+                    chunkState.stats,
                   );
                 }}
               >
-                {chunkState.currentIndex === 0 ? "Start Import" : "Resume Import"}
+                {chunkState.currentIndex === 0
+                  ? "Start Import"
+                  : "Resume Import"}
               </UIButton>
             )}
         </UIModalFooter>

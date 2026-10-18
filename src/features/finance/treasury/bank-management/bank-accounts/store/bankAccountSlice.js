@@ -116,8 +116,6 @@ const bankAccountSlice = createSlice({
         state.getBankAccountStatus = API_STATUS.SUCCESS;
 
         state.managedBankAccount = action.payload || null;
-
-        state.message = "Bank account fetched successfully";
       })
       .addCase(getBankAccountById.rejected, (state, action) => {
         setRejected(state, action);

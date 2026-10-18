@@ -1,10 +1,6 @@
 import { apiClient, ENDPOINTS } from "@/services";
 
 const bankTransactionService = {
-  createBankTransaction(payload) {
-    return apiClient.post(ENDPOINTS.BANK_TRANSACTION.CREATE, payload);
-  },
-
   getBankTransactions(params = {}) {
     return apiClient.get(ENDPOINTS.BANK_TRANSACTION.LIST, {
       params,

@@ -1,751 +1,545 @@
-import React, { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+// src/features/finance/journal-vouchers/pages/desktop/JournalVouchersDesktopPage.jsx
+
+import React, { useState, useRef, useMemo } from "react";
 import {
-  FiPlus,
-  FiEye,
-  FiFileText,
-  FiCheckCircle,
-  FiClock,
-  FiMoreHorizontal,
-  FiEdit2,
-  FiRefreshCw,
-} from "react-icons/fi";
+  BookOpen,
+  Receipt,
+  ArrowLeftRight,
+  Scale,
+  Search,
+  RefreshCw,
+  RotateCcw,
+  Plus,
+  Eye,
+  Edit3,
+  MoreVertical,
+  CheckCircle2,
+  Calendar,
+  FileText,
+  Copy,
+  Check,
+} from "lucide-react";
 
 import {
-  AppBox,
-  AppBreadcrumb,
-  AppButton,
-  AppCard,
-  AppHeading,
-  AppSelect,
-  AppStack,
-  AppText,
-  AppTable,
-  AppTableSkeleton,
-  AppTag,
-  AppStatCard,
-  AppSearchInput,
-  AppIconButton,
-  AppMenu,
-  AppEmptyState,
-  AppAlert,
+  UIButton,
+  UIInput,
+  UISelect,
+  UIBadge,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UITableEmpty,
+  UITableLoading,
+  UIInfiniteScroll,
+  UIDropdown,
+  UIDropdownTrigger,
+  UIDropdownMenu,
+  UIDropdownItem,
   PermissionGate,
-} from "@/components";
+  uiToast,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
 import { usePermission } from "@/hooks";
-import { ROUTES } from "@/constants";
-import { formatCurrency, formatDate } from "@/utils";
+
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
+  return Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
 
 const typeOptions = [
   { label: "All Voucher Types", value: "all" },
-  { label: "Journal Voucher", value: "JOURNAL" },
-  { label: "Payment Voucher", value: "PAYMENT" },
-  { label: "Receipt Voucher", value: "RECEIPT" },
-  { label: "Contra Voucher", value: "CONTRA" },
-  { label: "Purchase Voucher", value: "PURCHASE" },
-  { label: "Sale Voucher", value: "SALE" },
+  { label: "Adjustment (JOURNAL)", value: "JOURNAL" },
+  { label: "Cash Transfer (CONTRA)", value: "CONTRA" },
+  { label: "Payment Made (PAYMENT)", value: "PAYMENT" },
+  { label: "Payment Received (RECEIPT)", value: "RECEIPT" },
   { label: "Opening Balance", value: "OPENING_BALANCE" },
 ];
 
 const statusOptions = [
-  { label: "All Statuses", value: "all" },
-  { label: "Draft", value: "DRAFT" },
-  { label: "Pending Approval", value: "PENDING_APPROVAL" },
-  { label: "Approved", value: "APPROVED" },
+  { label: "All Status", value: "all" },
   { label: "Posted", value: "POSTED" },
+  { label: "Draft", value: "DRAFT" },
   { label: "Cancelled", value: "CANCELLED" },
-  { label: "Reversed", value: "REVERSED" },
 ];
 
-const statusColorMap = {
-  DRAFT: "neutral",
-  PENDING_APPROVAL: "warning",
-  PENDING: "warning",
-  APPROVED: "info",
-  POSTED: "success",
-  CANCELLED: "error",
-  REVERSED: "pink",
+const TYPE_BADGE_MAP = {
+  JOURNAL: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20",
+  CONTRA: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20",
+  PAYMENT: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+  RECEIPT: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  OPENING_BALANCE: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
 };
 
-const typeColorMap = {
-  JOURNAL: "purple",
-  PAYMENT: "error",
-  RECEIPT: "success",
-  CONTRA: "info",
-  PURCHASE: "warning",
-  SALE: "teal",
-  OPENING_BALANCE: "indigo",
-};
-
-const JournalVouchersDesktopPage = ({
+export const JournalVouchersDesktopPage = ({
   journalVouchers = [],
-  searchParams,
-  currentPage,
-  pageSize,
-  totalVouchers,
+  searchParams = { search: "", voucherType: "all", status: "all" },
+  currentPage = 1,
+  pageSize = 100,
+  totalVouchers = 0,
   isLoading = false,
-  error,
-  clearError,
   handleSearchChange,
   handleFilterChange,
   handlePageChange,
-  handlePageSizeChange,
   handleRefresh,
-  handleCreateVoucher,
+  handleCreate,
   handleViewVoucher,
   handleEditVoucher,
 }) => {
-  const navigate = useNavigate();
+  const tableContainerRef = useRef(null);
+  const { can } = usePermission();
+  const [copiedKey, setCopiedKey] = useState(null);
 
-  const handleCreateButtonClick = () => {
-    if (handleCreateVoucher) handleCreateVoucher();
-    else navigate(ROUTES.CREATE_JOURNAL_VOUCHER);
+  const handleCopy = (text, key) => {
+    if (!text) return;
+    navigator.clipboard?.writeText(String(text));
+    setCopiedKey(key);
+    uiToast.success("Copied to Clipboard", `${text} copied.`);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const handleRowClick = (voucherId) => {
-    if (handleViewVoucher) handleViewVoucher(voucherId);
-    else navigate(ROUTES.JOURNAL_VOUCHER_DETAILS(voucherId));
-  };
+  // Stat cards calculation
+  const statCards = useMemo(() => {
+    const list = Array.isArray(journalVouchers) ? journalVouchers : [];
+    let journalCount = 0;
+    let paymentReceiptCount = 0;
+    let contraCount = 0;
 
-
-  const stats = useMemo(() => {
-    const counts = { total: totalVouchers, draft: 0, pending: 0, posted: 0 };
-    journalVouchers.forEach((v) => {
-      const raw = String(v.status || "").toUpperCase();
-      if (raw === "DRAFT") counts.draft += 1;
-      else if (raw === "PENDING_APPROVAL") counts.pending += 1;
-      else if (raw === "POSTED") counts.posted += 1;
+    list.forEach((v) => {
+      const type = String(v.voucherType || "").toUpperCase();
+      if (type === "JOURNAL") journalCount++;
+      else if (type === "PAYMENT" || type === "RECEIPT") paymentReceiptCount++;
+      else if (type === "CONTRA") contraCount++;
     });
-    return counts;
+
+    return [
+      {
+        id: "total",
+        title: "Total Vouchers",
+        value: totalVouchers || list.length,
+        subtitle: "Recorded Double-Entries",
+        icon: BookOpen,
+        color: "text-indigo-600 dark:text-indigo-400",
+        bg: "bg-indigo-500/10",
+        border: "border-indigo-500/20",
+      },
+      {
+        id: "journals",
+        title: "Adjustment Vouchers",
+        value: journalCount,
+        subtitle: "General Ledger Adjustments",
+        icon: Receipt,
+        color: "text-emerald-600 dark:text-emerald-400",
+        bg: "bg-emerald-500/10",
+        border: "border-emerald-500/20",
+      },
+      {
+        id: "payments-receipts",
+        title: "Payments & Receipts",
+        value: paymentReceiptCount,
+        subtitle: "Cash/Bank Settlements",
+        icon: ArrowLeftRight,
+        color: "text-sky-600 dark:text-sky-400",
+        bg: "bg-sky-500/10",
+        border: "border-sky-500/20",
+      },
+      {
+        id: "contra",
+        title: "Contra Transfers",
+        value: contraCount,
+        subtitle: "Internal Bank Transfers",
+        icon: Scale,
+        color: "text-purple-600 dark:text-purple-400",
+        bg: "bg-purple-500/10",
+        border: "border-purple-500/20",
+      },
+    ];
   }, [journalVouchers, totalVouchers]);
 
-  const statsList = useMemo(() => [
-    {
-      id: "total_postings",
-      title: "Total Postings",
-      value: stats.total,
-      description: "Total vouchers registered",
-      colorVariant: "primary",
-      icon: <FiFileText />,
-    },
-    {
-      id: "posted_ledger",
-      title: "Posted Ledger Entries",
-      value: stats.posted,
-      description: "Successfully posted entries",
-      colorVariant: "success",
-      icon: <FiCheckCircle />,
-    },
-    {
-      id: "pending_approvals",
-      title: "Pending Approvals",
-      value: stats.pending,
-      description: "Awaiting approval stage",
-      colorVariant: "warning",
-      icon: <FiClock />,
-    },
-    {
-      id: "draft_vouchers",
-      title: "Draft Vouchers",
-      value: stats.draft,
-      description: "In-progress drafts",
-      colorVariant: "neutral",
-      icon: <FiFileText />,
-    },
-  ], [stats]);
+  const hasActiveFilters = Boolean(
+    searchParams.search ||
+    (searchParams.voucherType && searchParams.voucherType !== "all") ||
+    (searchParams.status && searchParams.status !== "all")
+  );
 
-  const getTypeBadge = (type) => {
-    const raw = String(type || "").toUpperCase();
-    return (
-      <AppTag
-        label={raw}
-        variant="soft"
-        colorVariant={typeColorMap[raw] || "neutral"}
-        rounded="md"
-        sx={tagSx}
-      />
-    );
+  const handleClearFilters = () => {
+    handleSearchChange("");
+    handleFilterChange("voucherType", "all");
+    handleFilterChange("status", "all");
   };
 
-  const getStatusBadge = (status) => {
-    const raw = String(status || "").toUpperCase();
-    return (
-      <AppTag
-        label={raw}
-        variant="soft"
-        colorVariant={statusColorMap[raw] || "neutral"}
-        rounded="md"
-        sx={statusBadgeSx}
-      />
-    );
+  const getVoucherAmount = (voucher) => {
+    if (voucher.amount !== undefined && voucher.amount !== null) return voucher.amount;
+    if (Array.isArray(voucher.lines)) {
+      return voucher.lines.reduce((sum, l) => sum + (parseFloat(l.debit) || 0), 0);
+    }
+    return 0;
   };
-
-  const columns = useMemo(() => [
-    {
-      id: "voucherNumber",
-      key: "voucherNumber",
-      label: "Voucher Number",
-      minWidth: 160,
-      render: (_, voucher) => (
-        <AppText
-          variant="body2"
-          onClick={() => handleRowClick(voucher._id)}
-          sx={voucherNumberSx}
-        >
-          {voucher.voucherNumber}
-        </AppText>
-      ),
-    },
-    {
-      id: "voucherType",
-      key: "voucherType",
-      label: "Type",
-      minWidth: 140,
-      render: (_, voucher) => getTypeBadge(voucher.voucherType),
-    },
-    {
-      id: "voucherDate",
-      key: "voucherDate",
-      label: "Date",
-      minWidth: 120,
-      render: (_, voucher) => (
-        <AppText variant="body2" sx={tableValueSx}>
-          {formatDate(voucher.voucherDate)}
-        </AppText>
-      ),
-    },
-    {
-      id: "totalDebit",
-      key: "totalDebit",
-      label: "Debit Amount",
-      minWidth: 140,
-      render: (_, voucher) => (
-        <AppText variant="body2" sx={debitAmountSx}>
-          {formatCurrency(voucher.totalDebit || 0)}
-        </AppText>
-      ),
-    },
-    {
-      id: "totalCredit",
-      key: "totalCredit",
-      label: "Credit Amount",
-      minWidth: 140,
-      render: (_, voucher) => (
-        <AppText variant="body2" sx={creditAmountSx}>
-          {formatCurrency(voucher.totalCredit || 0)}
-        </AppText>
-      ),
-    },
-    {
-      id: "referenceNumber",
-      key: "referenceNumber",
-      label: "Reference No.",
-      minWidth: 130,
-      render: (_, voucher) => (
-        <AppText variant="body2" sx={tableValueMonoSx}>
-          {voucher.referenceNumber || "-"}
-        </AppText>
-      ),
-    },
-    {
-      id: "status",
-      key: "status",
-      label: "Status",
-      minWidth: 140,
-      render: (_, voucher) => getStatusBadge(voucher.status),
-    },
-    {
-      id: "actions",
-      key: "actions",
-      label: "Action",
-      align: "right",
-      width: 70,
-      render: (_, voucher) => (
-        <RowActions
-          voucher={voucher}
-          onView={handleRowClick}
-          onEdit={(v) =>
-            handleEditVoucher
-              ? handleEditVoucher(v._id)
-              : navigate(ROUTES.EDIT_JOURNAL_VOUCHER(v._id))
-          }
-        />
-
-      ),
-    },
-  ], []);
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-5 py-4">
-      <div className="mx-auto w-full max-w-[1500px]">
-        {/* Page Header */}
-        <AppBox
-          display="flex"
-          alignItems="flex-start"
-          justifyContent="space-between"
-          sx={pageHeaderSx}
-        >
-          <AppBox sx={pageHeaderContentSx}>
-            <AppHeading level={1} weight={650}>
-              Journal Vouchers
-            </AppHeading>
-            <AppText variant="body2" sx={pageHeaderSubtitleSx}>
-              Record ledger adjustments, contra transfers, and accounting double-entry allocations.
-            </AppText>
-            <AppBreadcrumb
-              size="small"
-              variant="text"
-              items={[
-                { label: "Dashboard", href: "/" },
-                { label: "Finance & Accounting", href: "/finance" },
-                { label: "Journal Vouchers", current: true },
-              ]}
-              sx={breadcrumbSx}
-              itemSx={breadcrumbItemSx}
-              currentItemSx={breadcrumbCurrentSx}
-            />
-          </AppBox>
-
-          <AppStack
-            direction="row"
-            align="center"
-            justify="flex-end"
-            gap={1.1}
-            sx={{ flexShrink: 0 }}
-          >
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              startIcon={<FiRefreshCw />}
-              onClick={handleRefresh}
-              loading={isLoading}
-              disabled={isLoading}
-              sx={secondaryButtonSx}
-            >
-              Refresh
-            </AppButton>
-            <PermissionGate permission="journal-voucher:create">
-              <AppButton
-                type="button"
-                variant="contained"
-                colorVariant="primary"
-                rounded="md"
-                size="small"
-                startIcon={<FiPlus />}
-                onClick={handleCreate}
-                disabled={isLoading}
-                sx={primaryButtonSx}
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden select-none">
+      {/* ── 1. Compact 4-Card Statistics Grid ───────────────────────────── */}
+      <div className="shrink-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {statCards.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={stat.id}
+                className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors"
               >
-                Create Voucher
-              </AppButton>
-            </PermissionGate>
-          </AppStack>
-        </AppBox>
+                <div
+                  className={cn(
+                    "size-9 rounded-lg flex items-center justify-center shrink-0 border",
+                    stat.bg,
+                    stat.border,
+                    stat.color
+                  )}
+                >
+                  <Icon className="size-4.5 stroke-[1.8]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11.5px] font-medium text-text-muted truncate">
+                    {stat.title}
+                  </div>
+                  <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+                    {stat.value}
+                  </div>
+                  <div className="text-[10px] text-text-muted truncate mt-0.5">
+                    {stat.subtitle}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-        {/* Stats Grid */}
-        <div className="mt-4 grid grid-cols-4 gap-3">
-          {statsList.map((stat) => (
-            <AppStatCard
-              key={stat.id}
-              title={stat.title}
-              value={stat.value}
-              subtitle={stat.description}
-              icon={stat.icon}
-              colorVariant={stat.colorVariant}
-              variant="default"
-              sx={statCardSx}
-              iconSx={statIconSx}
-            />
-          ))}
+      {/* ── 2. Streamlined Single-Row Toolbar ────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+        {/* Search Input */}
+        <div className="flex-1 min-w-[240px] sm:min-w-[280px]">
+          <UIInput
+            type="text"
+            value={searchParams.search || ""}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search voucher number, ref, narration..."
+            startIcon={<Search className="size-4 text-text-muted" />}
+            size="md"
+            variant="outline"
+            isClearable
+            onClear={() => handleSearchChange("")}
+            className="w-full"
+          />
         </div>
 
-        {/* Error Alert */}
-        {error && (
-          <AppAlert
-            severity="error"
-            variant="soft"
-            title="Something went wrong"
-            closable
-            onClose={clearError}
-            sx={alertSx}
+        {/* Voucher Type Select */}
+        <div className="w-[180px] sm:w-[210px]">
+          <UISelect
+            name="voucherType"
+            value={searchParams.voucherType || "all"}
+            onChange={(val) => handleFilterChange("voucherType", val)}
+            options={typeOptions}
+            placeholder="All Voucher Types"
+            size="md"
+          />
+        </div>
+
+        {/* Status Select */}
+        <div className="w-[125px] sm:w-[140px]">
+          <UISelect
+            name="status"
+            value={searchParams.status || "all"}
+            onChange={(val) => handleFilterChange("status", val)}
+            options={statusOptions}
+            placeholder="All Status"
+            size="md"
+          />
+        </div>
+
+        {/* Quick Reset */}
+        {hasActiveFilters && (
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            onClick={handleClearFilters}
+            startIcon={<RotateCcw className="size-3.5 text-text-muted" />}
+            className="h-10 px-2.5 text-xs text-text-muted hover:text-text"
+            title="Reset all filters"
           >
-            {error}
-          </AppAlert>
+            Reset
+          </UIButton>
         )}
 
-        {/* Table & Filters Card */}
-        <AppCard
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="sm"
-          padding="none"
-          sx={tableCardSx}
-        >
-          {/* Filters Toolbar */}
-          <div className="border-b border-border px-3.5 py-3">
-            <div className="grid grid-cols-[minmax(0,1fr)_180px_160px] items-center gap-3">
-              <AppSearchInput
-                name="search"
-                value={searchParams.search}
-                onChange={handleSearchChange}
-                placeholder="Search voucher number or narration..."
-                clearable
-                onClear={() => handleSearchChange("")}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={searchSx}
-                inputSx={filterInputSx}
-              />
-
-              <AppSelect
-                name="voucherType"
-                value={searchParams.voucherType}
-                onChange={(e) => handleFilterChange("voucherType", e.target.value)}
-                options={typeOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={selectSx}
-                inputSx={filterInputSx}
-              />
-
-              <AppSelect
-                name="status"
-                value={searchParams.status}
-                onChange={(e) => handleFilterChange("status", e.target.value)}
-                options={statusOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={selectSx}
-                inputSx={filterInputSx}
-              />
-            </div>
-          </div>
-
-          {/* Table Container */}
-          {isLoading ? (
-            <AppTableSkeleton rows={8} columns={8} showHeader={false} />
-          ) : journalVouchers.length === 0 ? (
-            <AppEmptyState
-              title="No Vouchers Found"
-              description="Try adjusting your filter options or register a new journal voucher."
-              icon={<FiFileText />}
-              action={
-                <AppButton
-                  variant="contained"
-                  colorVariant="primary"
-                  rounded="md"
-                  startIcon={<FiPlus />}
-                  onClick={handleCreate}
-                  sx={primaryButtonSx}
-                >
-                  Create Voucher
-                </AppButton>
-              }
-              size="page"
-              sx={stateSx}
+        {/* Action Cluster (Right) */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <UIButton
+            type="button"
+            variant="ghost"
+            size="md"
+            disabled={isLoading}
+            onClick={handleRefresh}
+            className="h-10 w-10 p-0 text-text-muted hover:text-text cursor-pointer"
+            title="Refresh vouchers"
+          >
+            <RefreshCw
+              className={cn(
+                "size-4 text-text-muted hover:text-primary",
+                isLoading && "animate-spin text-primary"
+              )}
             />
-          ) : (
-            <AppTable
-              columns={columns}
-              rows={journalVouchers}
-              getRowId={(row) => row._id}
-              dense
-              bordered={false}
-              rounded={false}
-              hover
-              stickyHeader
-              minWidth={1150}
-              maxHeight="calc(100vh - 340px)"
-              sx={tableSx}
-              headSx={tableHeadSx}
-              cellSx={tableCellSx}
+          </UIButton>
+
+          <PermissionGate permission="journal-voucher:create">
+            <UIButton
+              type="button"
+              variant="primary"
+              size="md"
+              startIcon={<Plus className="size-4" />}
+              onClick={handleCreate}
+              className="h-10 px-3.5 text-xs font-semibold shadow-xs"
+            >
+              Create Voucher
+            </UIButton>
+          </PermissionGate>
+        </div>
+      </div>
+
+      {/* ── 3. Fixed Table Container with Internal Scroll ────────────────── */}
+      <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        <div
+          ref={tableContainerRef}
+          className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0 divide-y divide-border/60"
+        >
+          <UITable
+            stickyHeader
+            containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+            className="w-full"
+          >
+            {/* Sticky Table Header */}
+            <UITableHeader
+              sticky
+              className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs"
+            >
+              <UITableRow className="border-b border-border text-[11px] font-semibold text-text uppercase tracking-wider bg-surface-alt">
+                <UITableHead sticky className="min-w-[170px]">Voucher No / Ref</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[130px]">Type</UITableHead>
+                <UITableHead sticky className="min-w-[120px]">Date</UITableHead>
+                <UITableHead sticky className="min-w-[240px]">Narration / Remarks</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[130px]">Amount (₹)</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[80px]">Lines</UITableHead>
+                <UITableHead sticky align="center" className="min-w-[100px]">Status</UITableHead>
+                <UITableHead sticky align="right" className="min-w-[70px]">Actions</UITableHead>
+              </UITableRow>
+            </UITableHeader>
+
+            <UITableBody>
+              {isLoading ? (
+                <UITableLoading colSpan={8} rows={8} />
+              ) : journalVouchers.length === 0 ? (
+                <UITableEmpty
+                  colSpan={8}
+                  title="No vouchers found"
+                  description={
+                    hasActiveFilters
+                      ? "No journal vouchers match your search or filter options. Try resetting filters."
+                      : "No double-entry journal vouchers recorded yet."
+                  }
+                  action={
+                    hasActiveFilters ? (
+                      <UIButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleClearFilters}
+                      >
+                        Clear Filters
+                      </UIButton>
+                    ) : (
+                      <UIButton
+                        variant="primary"
+                        size="sm"
+                        startIcon={<Plus className="size-4" />}
+                        onClick={handleCreate}
+                      >
+                        Create First Voucher
+                      </UIButton>
+                    )
+                  }
+                />
+              ) : (
+                journalVouchers.map((v) => {
+                  const voucherId = v._id || v.id;
+                  const voucherNum = v.voucherNumber || v.referenceNumber || "—";
+                  const voucherType = String(v.voucherType || "JOURNAL").toUpperCase();
+                  const typeClass =
+                    TYPE_BADGE_MAP[voucherType] || "bg-surface-alt text-text-muted border-border";
+                  const amt = getVoucherAmount(v);
+                  const lineCount = (v.lines || []).length;
+
+                  return (
+                    <UITableRow
+                      key={voucherId}
+                      onClick={() => handleViewVoucher(voucherId)}
+                      className="group cursor-pointer transition-colors hover:bg-surface-hover/70 h-12.5"
+                    >
+                      {/* Voucher / Ref No */}
+                      <UITableCell className="py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-xs font-bold text-text group-hover:text-primary transition-colors">
+                            {voucherNum}
+                          </span>
+                          {voucherNum !== "—" && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(voucherNum, `ref-${voucherId}`);
+                              }}
+                              className="text-text-muted hover:text-text transition-colors p-0.5 cursor-pointer"
+                              title="Copy voucher number"
+                            >
+                              {copiedKey === `ref-${voucherId}` ? (
+                                <Check className="size-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="size-3" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </UITableCell>
+
+                      {/* Voucher Type */}
+                      <UITableCell align="center" className="py-2">
+                        <span
+                          className={cn(
+                            "inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-bold border uppercase",
+                            typeClass
+                          )}
+                        >
+                          {voucherType}
+                        </span>
+                      </UITableCell>
+
+                      {/* Date */}
+                      <UITableCell className="py-2 text-xs font-medium text-text">
+                        {v.voucherDate
+                          ? new Date(v.voucherDate).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </UITableCell>
+
+                      {/* Narration */}
+                      <UITableCell className="py-2">
+                        <p className="text-xs text-text-muted truncate max-w-[320px]">
+                          {v.narration || "No custom narration"}
+                        </p>
+                      </UITableCell>
+
+                      {/* Total Amount */}
+                      <UITableCell align="right" className="font-mono tabular-nums text-xs py-2 font-black text-emerald-600 dark:text-emerald-400">
+                        ₹{formatCurrency(amt)}
+                      </UITableCell>
+
+                      {/* Lines Count */}
+                      <UITableCell align="center" className="py-2 font-mono text-xs">
+                        <span className="px-2 py-0.5 rounded-full bg-surface-alt border border-border text-text-muted text-[11px] font-semibold">
+                          {lineCount} Lines
+                        </span>
+                      </UITableCell>
+
+                      {/* Status */}
+                      <UITableCell align="center" className="py-2">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold border",
+                            v.status === "POSTED"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                              : "bg-surface-alt text-text-muted border-border"
+                          )}
+                        >
+                          <CheckCircle2 className="size-2.5" />
+                          <span>{v.status || "POSTED"}</span>
+                        </span>
+                      </UITableCell>
+
+                      {/* Actions */}
+                      <UITableCell align="right" className="py-2">
+                        <div
+                          className="flex items-center justify-end"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <UIDropdown>
+                            <UIDropdownTrigger asChild>
+                              <button
+                                type="button"
+                                className="size-7 rounded-md flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-alt transition-colors cursor-pointer"
+                                title="Actions"
+                              >
+                                <MoreVertical className="size-3.5" />
+                              </button>
+                            </UIDropdownTrigger>
+                            <UIDropdownMenu align="right" className="w-40 shadow-lg">
+                              <UIDropdownItem
+                                icon={<Eye className="size-4 text-text-muted shrink-0" />}
+                                onClick={(e) => {
+                                  e?.stopPropagation?.();
+                                  handleViewVoucher(voucherId);
+                                }}
+                              >
+                                View Details
+                              </UIDropdownItem>
+                              {can("journal-voucher:update") && (
+                                <UIDropdownItem
+                                  icon={<Edit3 className="size-4 text-text-muted shrink-0" />}
+                                  onClick={(e) => {
+                                    e?.stopPropagation?.();
+                                    handleEditVoucher(voucherId);
+                                  }}
+                                >
+                                  Edit Voucher
+                                </UIDropdownItem>
+                              )}
+                            </UIDropdownMenu>
+                          </UIDropdown>
+                        </div>
+                      </UITableCell>
+                    </UITableRow>
+                  );
+                })
+              )}
+            </UITableBody>
+          </UITable>
+
+          {/* Infinite Scroll trigger */}
+          {!isLoading && (
+            <UIInfiniteScroll
+              onLoadMore={() => handlePageChange?.(currentPage + 1)}
+              hasMore={journalVouchers.length < totalVouchers}
+              isLoading={isLoading}
+              rootRef={tableContainerRef}
+              rootMargin="160px"
+              endMessage={
+                journalVouchers.length >= totalVouchers && journalVouchers.length > 0 ? (
+                  <span className="font-mono text-[11px] text-text-muted select-none">
+                    ✓ All {totalVouchers} matching journal vouchers loaded
+                  </span>
+                ) : null
+              }
             />
           )}
-
-          {/* Table Footer */}
-          {totalVouchers > pageSize ? (
-            <TableFooter
-              totalVouchers={totalVouchers}
-              currentPage={currentPage}
-              pageSize={pageSize}
-              handlePageChange={handlePageChange}
-              handlePageSizeChange={handlePageSizeChange}
-            />
-          ) : null}
-        </AppCard>
+        </div>
       </div>
-    </section>
-  );
-};
-
-const RowActions = ({ voucher, onView, onEdit }) => {
-  const { can } = usePermission();
-
-  const items = [
-    { id: "view", label: "View Details", icon: <FiEye />, onClick: () => onView(voucher._id) },
-    can("journal-voucher:update") && { id: "edit", label: "Edit Voucher", icon: <FiEdit2 />, onClick: () => onEdit(voucher) },
-  ].filter(Boolean);
-
-  return (
-    <AppMenu
-      trigger={
-        <button
-          type="button"
-          aria-label="Voucher actions"
-          className="inline-flex h-auto w-auto items-center justify-center border-0 bg-transparent p-1.5 text-text-muted hover:text-primary rounded transition hover:bg-surface-hover/40 shadow-none outline-none focus:bg-transparent active:bg-transparent"
-        >
-          <FiMoreHorizontal className="text-[18px]" />
-        </button>
-      }
-      items={items}
-      dense
-      minWidth={140}
-    />
-  );
-};
-
-const TableFooter = ({
-  totalVouchers,
-  currentPage,
-  pageSize,
-  handlePageChange,
-  handlePageSizeChange,
-}) => {
-  const startEntry = (currentPage - 1) * pageSize + 1;
-  const endEntry = Math.min(currentPage * pageSize, totalVouchers);
-  const totalPages = Math.ceil(totalVouchers / pageSize) || 1;
-
-  return (
-    <div className="flex items-center justify-between border-t border-border px-3.5 py-3">
-      <AppText variant="body2" sx={footerTextSx}>
-        Showing {startEntry} to {endEntry} of {totalVouchers} vouchers
-      </AppText>
-
-      <AppStack direction="row" align="center" gap={1}>
-        <AppMenu
-          trigger={
-            <AppButton
-              type="button"
-              variant="outlined"
-              colorVariant="neutral"
-              rounded="md"
-              size="small"
-              endIcon={<FiChevronRight className="rotate-90" />}
-              sx={pageSizeButtonSx}
-            >
-              {pageSize} per page
-            </AppButton>
-          }
-          items={[
-            { id: "10", label: "10 per page", onClick: () => handlePageSizeChange(10) },
-            { id: "20", label: "20 per page", onClick: () => handlePageSizeChange(20) },
-            { id: "50", label: "50 per page", onClick: () => handlePageSizeChange(50) },
-            { id: "100", label: "100 per page", onClick: () => handlePageSizeChange(100) },
-          ]}
-          dense
-          minWidth={120}
-        />
-
-        <AppIconButton
-          icon={<FiChevronLeft />}
-          variant="outlined"
-          colorVariant="neutral"
-          size="small"
-          rounded="md"
-          disabled={currentPage === 1}
-          onClick={() => handlePageChange(currentPage - 1)}
-        />
-
-        <span className="flex h-[31px] min-w-[31px] items-center justify-center rounded-md bg-primary px-2 text-[12px] font-bold text-text-inverse">
-          {currentPage}
-        </span>
-
-        <AppIconButton
-          icon={<FiChevronRight />}
-          variant="outlined"
-          colorVariant="neutral"
-          size="small"
-          rounded="md"
-          disabled={currentPage === totalPages}
-          onClick={() => handlePageChange(currentPage + 1)}
-        />
-      </AppStack>
     </div>
   );
 };
-
-// Styling variables
-const pageHeaderSx = { width: "100%" };
-const pageHeaderSubtitleSx = {
-  mt: 0.55,
-  fontSize: "13px",
-  lineHeight: "20px",
-  color: "var(--app-color-text-muted)",
-};
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "25px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.45px",
-    color: "var(--app-color-text)",
-  },
-};
-
-const breadcrumbSx = { mt: 1 };
-const breadcrumbItemSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-};
-const breadcrumbCurrentSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const primaryButtonSx = {
-  height: 36,
-  px: 1.6,
-  fontSize: "12px",
-  fontWeight: 700,
-};
-const secondaryButtonSx = {
-  height: 36,
-  minWidth: 92,
-  px: 1.4,
-  fontSize: "12px",
-  fontWeight: 650,
-};
-
-const alertSx = { mt: 3 };
-
-const statCardSx = {
-  minHeight: 88,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  p: 1.5,
-  "& p:first-of-type": { fontSize: "11px" },
-  "& h1, & h2, & h3, & h4": { fontSize: "18px" },
-  "& p:last-of-type": { fontSize: "11px" },
-};
-const statIconSx = {
-  width: 38,
-  height: 38,
-  minWidth: 38,
-  borderRadius: "11px",
-};
-
-const tableCardSx = {
-  mt: 3,
-  overflow: "hidden",
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-  "& > div": { minWidth: 0 },
-};
-
-const searchSx = { width: "100%" };
-const selectSx = { width: "100%" };
-const filterInputSx = {
-  height: 36,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const tableSx = {
-  "& .MuiTableContainer-root": {
-    borderRadius: 0,
-    scrollbarWidth: "none",
-    msOverflowStyle: "none",
-    "&::-webkit-scrollbar": { display: "none" },
-  },
-};
-const tableHeadSx = {
-  bgcolor: "var(--app-color-surface-alt)",
-  "& .MuiTableCell-root": {
-    fontSize: "11.2px",
-    fontWeight: 750,
-    color: "var(--app-color-text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-  },
-};
-const tableCellSx = {
-  py: 1.2,
-  fontSize: "12px",
-  borderColor: "var(--app-color-border)",
-};
-
-const voucherNumberSx = {
-  fontSize: "12px",
-  fontWeight: 750,
-  color: "var(--app-color-primary)",
-  cursor: "pointer",
-  "&:hover": {
-    textDecoration: "underline",
-  },
-};
-
-const tableValueSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-const tableValueMonoSx = {
-  fontSize: "12px",
-  fontWeight: 700,
-  fontFamily: "var(--font-mono, monospace)",
-  color: "var(--app-color-text)",
-};
-const debitAmountSx = {
-  fontSize: "12px",
-  fontWeight: 750,
-  color: "var(--app-color-success)",
-};
-const creditAmountSx = {
-  fontSize: "12px",
-  fontWeight: 750,
-  color: "var(--app-color-error)",
-};
-
-const tagSx = {
-  width: "fit-content",
-  height: 22,
-  px: 0.8,
-  fontSize: "10.5px",
-  fontWeight: 700,
-};
-
-const statusBadgeSx = {
-  width: "fit-content",
-  height: 22,
-  px: 1.5,
-  fontSize: "10.5px",
-  fontWeight: 700,
-  textTransform: "uppercase",
-};
-
-const footerTextSx = { fontSize: "12px", color: "var(--app-color-text-muted)" };
-const pageSizeButtonSx = {
-  height: 34,
-  minWidth: 122,
-  px: 1.2,
-  fontSize: "12px",
-  fontWeight: 600,
-};
-const stateSx = { minHeight: 430 };
-
-const FiChevronRight = (props) => (
-  <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg" {...props}><polyline points="9 18 15 12 9 6"></polyline></svg>
-);
-const FiChevronLeft = (props) => (
-  <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg" {...props}><polyline points="15 18 9 12 15 6"></polyline></svg>
-);
 
 export default JournalVouchersDesktopPage;

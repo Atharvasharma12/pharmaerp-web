@@ -100,8 +100,6 @@ const accountGroupSlice = createSlice({
 
         state.accountGroups =
           action.payload?.groups || action.payload?.accountGroups || [];
-
-        state.message = "Account groups fetched successfully";
       })
       .addCase(getAccountGroups.rejected, (state, action) => {
         state.getAccountGroupsStatus = API_STATUS.ERROR;
@@ -115,8 +113,6 @@ const accountGroupSlice = createSlice({
         state.getAccountGroupStatus = API_STATUS.SUCCESS;
 
         state.managedAccountGroup = action.payload || null;
-
-        state.message = "Account group fetched successfully";
       })
       .addCase(getAccountGroupById.rejected, (state, action) => {
         setRejected(state, action);

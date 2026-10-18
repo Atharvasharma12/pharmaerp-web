@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import {
   Search,
   RefreshCw,
-  Eye,
   CheckCircle2,
   Receipt,
   Banknote,
@@ -1110,7 +1109,7 @@ export const BillingDesktopPage = () => {
   };
 
   return (
-    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-1 pb-4 space-y-3 text-text font-sans transition-colors">
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
       {/* Toast Notification */}
       {toastMessage && (
         <motion.div
@@ -1125,10 +1124,12 @@ export const BillingDesktopPage = () => {
       )}
 
       {/* ── 1. Compact 4-Card Statistics Grid (Independent of pagination) ───────── */}
-      {renderDynamicStatsCards()}
+      <div className="shrink-0">
+        {renderDynamicStatsCards()}
+      </div>
 
       {/* ── 2. Table Filter Toolbar (Using Reusable UI Components) ───────────────── */}
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-2.5 shrink-0">
         {/* Search Input */}
         <div className="flex-1 min-w-[240px] sm:min-w-[280px]">
           <UIInput
@@ -1259,11 +1260,11 @@ export const BillingDesktopPage = () => {
       </div>
 
       {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ────── */}
-      <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
         {/* Internal Vertical Scroll Container: The definitive scroll parent */}
         <div
           ref={tableContainerRef}
-          className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 divide-y divide-border/60"
+          className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0 divide-y divide-border/60"
         >
           <UITable
             stickyHeader
@@ -1304,16 +1305,15 @@ export const BillingDesktopPage = () => {
                   Amount
                 </UITableHead>
                 <UITableHead sticky align="center" className="min-w-[100px]">Status</UITableHead>
-                <UITableHead sticky align="right" className="w-24">Actions</UITableHead>
               </UITableRow>
             </UITableHeader>
 
             <UITableBody>
               {isLoading ? (
-                <UITableLoading colSpan={7} rows={6} />
+                <UITableLoading columns={6} rows={6} />
               ) : invoices.length === 0 ? (
                 <UITableEmpty
-                  colSpan={7}
+                  colSpan={6}
                   title="No invoices found"
                   description={
                     debouncedSearch || selectedPaymentType !== "all" || selectedStatus !== "all"
@@ -1373,8 +1373,8 @@ export const BillingDesktopPage = () => {
                           <span className="font-semibold text-text truncate">
                             {inv.customer}
                           </span>
-                          <span className="text-[11.5px] text-text-muted font-mono truncate">
-                            {inv.phone}
+                          <span className="text-[13px] font-bold text-text/90 font-mono tracking-tight truncate">
+                            {inv.phone || "—"}
                           </span>
                         </div>
                       </UITableCell>
@@ -1487,19 +1487,6 @@ export const BillingDesktopPage = () => {
                       {/* Status */}
                       <UITableCell align="center" className="whitespace-nowrap">
                         {renderStatusBadge(inv.status)}
-                      </UITableCell>
-
-                      {/* Actions */}
-                      <UITableCell align="right" onClick={(e) => e.stopPropagation()}>
-                        <UIButton
-                          variant="ghost"
-                          size="xs"
-                          onClick={() => setSelectedInvoice(inv)}
-                          startIcon={<Eye className="size-3.5" />}
-                          className="text-text-muted hover:text-primary"
-                        >
-                          View
-                        </UIButton>
                       </UITableCell>
                     </UITableRow>
                   );

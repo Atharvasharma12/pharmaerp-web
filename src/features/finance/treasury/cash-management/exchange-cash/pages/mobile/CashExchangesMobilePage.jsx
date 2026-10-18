@@ -1,12 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   FiSearch,
-  FiFilter,
-  FiChevronDown,
-  FiChevronUp,
   FiPlus,
   FiEye,
-  FiSlash,
   FiMoreVertical,
   FiRefreshCw,
 } from "react-icons/fi";
@@ -16,7 +12,6 @@ import {
   AppCard,
   AppHeading,
   AppInput,
-  AppSelect,
   AppText,
   AppTablePagination,
   AppButton,
@@ -25,12 +20,6 @@ import {
 } from "@/components";
 import { formatDate } from "@/utils";
 
-const statusOptions = [
-  { label: "All Statuses", value: "all" },
-  { label: "Completed", value: "COMPLETED" },
-  { label: "Cancelled", value: "CANCELLED" },
-];
-
 const CashExchangesMobilePage = ({
   cashExchanges = [],
   searchParams,
@@ -38,51 +27,18 @@ const CashExchangesMobilePage = ({
   pageSize,
   totalExchanges,
   isLoading = false,
-  isCancelling = false,
   error,
   message,
   clearFeedback,
   handleSearchChange,
-  handleFilterChange,
   handlePageChange,
   handlePageSizeChange,
-  handleCancelExchange,
   handleViewDetails,
   handleCreateNew,
   handleRefresh,
 }) => {
-  const [showFilters, setShowFilters] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [pendingCancelId, setPendingCancelId] = useState(null);
-  const [cancelReason, setCancelReason] = useState("");
-
   const hasFilteredExchanges = cashExchanges.length > 0;
   const shouldRenderPagination = hasFilteredExchanges && totalExchanges > pageSize;
-
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case "COMPLETED":
-        return "bg-success-soft text-success border border-success/20";
-      case "CANCELLED":
-        return "bg-danger-soft text-danger border border-danger/20";
-      default:
-        return "bg-warning-soft text-warning border border-warning/20";
-    }
-  };
-
-  const handleConfirmCancel = async () => {
-    if (!pendingCancelId) return;
-    setShowCancelModal(false);
-    await handleCancelExchange(pendingCancelId, cancelReason);
-    setPendingCancelId(null);
-    setCancelReason("");
-  };
-
-  const openCancelModal = (id) => {
-    setPendingCancelId(id);
-    setCancelReason("");
-    setShowCancelModal(true);
-  };
 
   return (
     <section className="min-h-screen bg-bg pb-24 relative">
@@ -123,38 +79,15 @@ const CashExchangesMobilePage = ({
           </div>
         )}
 
-        {/* Mobile Search & Filters */}
-        <div className="px-4 py-3 space-y-3 bg-bg">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <AppInput
-                placeholder="Search..."
-                value={searchParams.search}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                prefix={<FiSearch className="text-text-muted" />}
-                size="sm"
-              />
-            </div>
-            <AppButton
-              variant="outline"
-              size="sm"
-              icon={<FiFilter />}
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              {showFilters ? <FiChevronUp /> : <FiChevronDown />}
-            </AppButton>
-          </div>
-          {showFilters && (
-            <div className="pt-1">
-              <AppSelect
-                label="Status"
-                options={statusOptions}
-                value={searchParams.status}
-                onChange={(val) => handleFilterChange("status", val)}
-                size="sm"
-              />
-            </div>
-          )}
+        {/* Mobile Search */}
+        <div className="px-4 py-3 bg-bg">
+          <AppInput
+            placeholder="Search exchanges..."
+            value={searchParams.search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            prefix={<FiSearch className="text-text-muted" />}
+            size="sm"
+          />
         </div>
       </div>
 
@@ -176,20 +109,17 @@ const CashExchangesMobilePage = ({
               No Exchanges Found
             </AppHeading>
             <AppText size="sm" sx={{ color: "var(--color-text-muted)", marginBottom: 16 }}>
-              {searchParams.search || searchParams.status !== "all"
-                ? "Try adjusting your filters"
+              {searchParams.search
+                ? "Try adjusting your search"
                 : "Record your first denomination exchange"}
             </AppText>
-            {(searchParams.search || searchParams.status !== "all") && (
+            {searchParams.search && (
               <AppButton
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  handleSearchChange("");
-                  handleFilterChange("status", "all");
-                }}
+                onClick={() => handleSearchChange("")}
               >
-                Clear Filters
+                Clear Search
               </AppButton>
             )}
           </div>
@@ -215,12 +145,8 @@ const CashExchangesMobilePage = ({
                     </AppText>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(
-                        row.status
-                      )}`}
-                    >
-                      {row.status}
+                    <div className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-success-soft text-success border border-success/20">
+                      COMPLETED
                     </div>
                     <AppMenu
                       trigger={
@@ -234,16 +160,6 @@ const CashExchangesMobilePage = ({
                           icon: <FiEye />,
                           onClick: () => handleViewDetails(row._id),
                         },
-                        ...(row.status === "COMPLETED"
-                          ? [
-                              {
-                                label: "Cancel",
-                                icon: <FiSlash />,
-                                danger: true,
-                                onClick: () => openCancelModal(row._id),
-                              },
-                            ]
-                          : []),
                       ]}
                       align="end"
                     />
@@ -306,46 +222,6 @@ const CashExchangesMobilePage = ({
           <FiPlus size={24} />
         </button>
       </div>
-
-      {/* Cancel Modal */}
-      {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center p-4">
-          <div className="w-full max-w-sm bg-surface rounded-2xl p-5 shadow-2xl animate-in slide-in-from-bottom-4">
-            <AppHeading level={4} weight={700} sx={{ marginBottom: 8 }}>
-              Cancel Exchange
-            </AppHeading>
-            <AppText size="sm" sx={{ color: "var(--color-text-muted)", marginBottom: 16 }}>
-              This will reverse the denomination changes in the cash drawer.
-            </AppText>
-            
-            <AppInput
-              placeholder="Cancellation reason (optional)"
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              size="sm"
-              sx={{ marginBottom: 20 }}
-            />
-
-            <div className="flex gap-3">
-              <AppButton
-                className="flex-1"
-                variant="outline"
-                onClick={() => setShowCancelModal(false)}
-              >
-                Keep
-              </AppButton>
-              <AppButton
-                className="flex-1"
-                variant="danger"
-                onClick={handleConfirmCancel}
-                loading={isCancelling}
-              >
-                Cancel It
-              </AppButton>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 };

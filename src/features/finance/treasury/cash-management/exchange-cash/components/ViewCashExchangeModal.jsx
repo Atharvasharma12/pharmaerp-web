@@ -9,7 +9,7 @@ import {
   UIModalFooter,
   UIButton,
   UISkeleton,
-  UIAlert,
+  uiToast,
 } from "@/components/ui";
 import {
   Repeat,
@@ -21,10 +21,10 @@ import {
   User,
   FileText,
   CheckCircle2,
-  XCircle,
   Wallet,
   Shield,
   X,
+  Printer,
 } from "lucide-react";
 import useCashExchange from "../hooks/useCashExchange";
 
@@ -87,7 +87,6 @@ export const ViewCashExchangeModal = ({
   const { getCashExchangeById } = useCashExchange();
   const [exchange, setExchange] = useState(initialData || null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -96,13 +95,15 @@ export const ViewCashExchangeModal = ({
       }
       if (exchangeId) {
         setIsLoading(true);
-        setError("");
         getCashExchangeById(exchangeId)
           .then((res) => {
             setExchange(res);
           })
           .catch((err) => {
-            setError(typeof err === "string" ? err : "Failed to load exchange details.");
+            uiToast.error(
+              "Error Loading Details",
+              typeof err === "string" ? err : err?.message || "Failed to load exchange details."
+            );
           })
           .finally(() => {
             setIsLoading(false);
@@ -110,12 +111,12 @@ export const ViewCashExchangeModal = ({
       }
     } else {
       setExchange(null);
-      setError("");
     }
   }, [isOpen, exchangeId, initialData, getCashExchangeById]);
 
-  const isCompleted = exchange?.status === "COMPLETED";
-  const isCancelled = exchange?.status === "CANCELLED";
+  const handlePrint = () => {
+    window.print();
+  };
 
   const totalReceived = exchange?.totalReceived || 0;
   const totalGiven = exchange?.totalGiven || 0;
@@ -141,16 +142,9 @@ export const ViewCashExchangeModal = ({
               <UIModalTitle className="text-base font-bold text-text">
                 Cash Exchange {exchange?.exchangeNumber ? `#${exchange.exchangeNumber}` : ""}
               </UIModalTitle>
-              {isCompleted && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
-                  <CheckCircle2 className="size-3" /> COMPLETED
-                </span>
-              )}
-              {isCancelled && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 flex items-center gap-1">
-                  <XCircle className="size-3" /> CANCELLED
-                </span>
-              )}
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                <CheckCircle2 className="size-3" /> COMPLETED
+              </span>
             </div>
             <p className="text-xs text-text-muted mt-0.5">
               {exchange?.exchangeDate
@@ -171,9 +165,6 @@ export const ViewCashExchangeModal = ({
 
       {/* ── Modal Body (Scrollable) ── */}
       <UIModalBody className="p-6 overflow-y-auto space-y-5 flex-1 min-h-0 bg-[#f8fafc] dark:bg-bg">
-        {error && (
-          <UIAlert intent="danger" title="Error loading details" description={error} />
-        )}
 
         {isLoading && !exchange ? (
           <div className="space-y-4">
@@ -203,15 +194,15 @@ export const ViewCashExchangeModal = ({
 
               <div className="bg-surface border border-border rounded-xl p-3 shadow-2xs">
                 <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
-                  Cash Partition
+                  Drawer Source
                 </span>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <Wallet className="size-3.5 text-text-muted" />
-                  <span className="text-xs font-bold text-text capitalize">
-                    {exchange?.cashPartition === "frozen" ? "Frozen Reserve" : "Running Drawer"}
+                  <Wallet className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-xs font-bold text-text">
+                    {exchange?.cashPartition === "frozen" ? "Frozen Reserve" : "Running Cash Drawer"}
                   </span>
                 </div>
-                <span className="text-[10px] text-text-muted">Drawer Source</span>
+                <span className="text-[10px] text-text-muted">Operational Cash Drawer</span>
               </div>
 
               <div className="bg-surface border border-border rounded-xl p-3 shadow-2xs">
@@ -351,23 +342,23 @@ export const ViewCashExchangeModal = ({
               </p>
             </div>
 
-            {/* Cancellation info (if cancelled) */}
-            {isCancelled && (
-              <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3.5 space-y-1 text-xs">
-                <span className="font-bold text-rose-700 dark:text-rose-300">
-                  Cancelled by {exchange?.cancelledBy?.name || "Staff"}
-                </span>
-                <p className="text-rose-600/90 dark:text-rose-400">
-                  Reason: {exchange?.cancellationReason || "No cancellation reason provided."}
-                </p>
-              </div>
-            )}
           </>
         )}
       </UIModalBody>
 
       {/* ── Modal Footer ── */}
-      <UIModalFooter className="px-6 py-3 border-t border-border bg-surface shrink-0 flex items-center justify-end">
+      <UIModalFooter className="px-6 py-3 border-t border-border bg-surface shrink-0 flex items-center justify-between">
+        <UIButton
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handlePrint}
+          startIcon={<Printer className="size-3.5" />}
+          className="rounded-xl text-xs font-medium"
+        >
+          Print Receipt
+        </UIButton>
+
         <UIButton
           type="button"
           size="sm"

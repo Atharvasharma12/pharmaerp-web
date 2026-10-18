@@ -37,7 +37,9 @@ export * from "./UITooltip";
 export * from "./UIDrawer";
 export * from "./UIFileUpload";
 export * from "./UIInfiniteScroll";
+export * from "./KeyboardShortcutsModal";
 export { default as ContextSwitchLoader } from "./ContextSwitchLoader";
+
 
 // Legacy Module Re-exports
 export * from "./buttons";

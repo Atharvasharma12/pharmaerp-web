@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FiPlus,
   FiSearch,
   FiFilter,
   FiChevronDown,
@@ -81,9 +80,6 @@ const CashTransactionsMobilePage = ({
     ];
   }, []);
 
-  const handleCreate = () => {
-    navigate(ROUTES.CREATE_CASH_TRANSACTION);
-  };
 
   const handleCardClick = (transaction) => {
     setSelectedTransaction(transaction);
@@ -161,15 +157,6 @@ const CashTransactionsMobilePage = ({
                 onClick={handleRefresh}
                 disabled={isLoading}
                 sx={refreshMobileBtnSx}
-              />
-              <AppIconButton
-                icon={<FiPlus />}
-                variant="filled"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                onClick={handleCreate}
-                sx={createNewBtnSx}
               />
             </AppStack>
           </AppStack>
@@ -496,12 +483,6 @@ const pageSubtitleSx = {
   color: "var(--app-color-text-muted)",
 };
 
-const createNewBtnSx = {
-  height: 36,
-  width: 36,
-  minWidth: 36,
-  p: 0,
-};
 
 const refreshMobileBtnSx = {
   height: 36,

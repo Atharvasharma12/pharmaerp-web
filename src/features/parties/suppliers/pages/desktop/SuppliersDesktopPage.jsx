@@ -1,6 +1,12 @@
 // src/features/parties/suppliers/pages/desktop/SuppliersDesktopPage.jsx
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   Users,
   Search,
@@ -134,7 +140,8 @@ export const SuppliersDesktopPage = ({
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isImportConfigOpen, setIsImportConfigOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] = useState(false);
+  const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] =
+    useState(false);
   const [activeImportType, setActiveImportType] = useState("standard");
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -193,7 +200,7 @@ export const SuppliersDesktopPage = ({
 
       return params;
     },
-    [searchQuery, selectedType, selectedStatus, sortBy]
+    [searchQuery, selectedType, selectedStatus, sortBy],
   );
 
   // Initial Fetch
@@ -265,30 +272,44 @@ export const SuppliersDesktopPage = ({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [currentPage, hasMore, isLoading, isLoadingMore, buildQueryParams, totalCount, formatSupplierRow]);
+  }, [
+    currentPage,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    buildQueryParams,
+    totalCount,
+    formatSupplierRow,
+  ]);
 
   // Observer on the 8th row (index 7 of each 10-item batch) to trigger loading next 10 items
   const eighthRowObserverRef = useRef(null);
   const eighthRowCallbackRef = useCallback(
     (node) => {
       if (isLoading || isLoadingMore || !hasMore) return;
-      if (eighthRowObserverRef.current) eighthRowObserverRef.current.disconnect();
+      if (eighthRowObserverRef.current)
+        eighthRowObserverRef.current.disconnect();
 
       eighthRowObserverRef.current = new IntersectionObserver(
         (entries) => {
-          if (entries[0]?.isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+          if (
+            entries[0]?.isIntersecting &&
+            hasMore &&
+            !isLoadingMore &&
+            !isLoading
+          ) {
             handleLoadMore();
           }
         },
         {
           root: tableContainerRef.current,
           threshold: 0.1,
-        }
+        },
       );
 
       if (node) eighthRowObserverRef.current.observe(node);
     },
-    [hasMore, isLoading, isLoadingMore, handleLoadMore]
+    [hasMore, isLoading, isLoadingMore, handleLoadMore],
   );
 
   useEffect(() => {
@@ -384,7 +405,7 @@ export const SuppliersDesktopPage = ({
     setIsOutstandingImportModalOpen(false);
     if (failed > 0) {
       alert(
-        `Imported ${successful} successfully. ${failed} failed.\nErrors: ${errors?.join(", ") || ""}`
+        `Imported ${successful} successfully. ${failed} failed.\nErrors: ${errors?.join(", ") || ""}`,
       );
     } else if (successful > 0) {
       alert(`Imported ${successful} successfully.`);
@@ -399,14 +420,33 @@ export const SuppliersDesktopPage = ({
 
   const getStatusBadge = (status) => {
     const s = String(status).toLowerCase();
-    if (s === "active") return <UIBadge variant="soft" color="success">Active</UIBadge>;
-    if (s === "inactive") return <UIBadge variant="soft" color="error">Inactive</UIBadge>;
-    if (s === "blocked") return <UIBadge variant="soft" color="warning">Blocked</UIBadge>;
-    return <UIBadge variant="soft" color="neutral">{status}</UIBadge>;
+    if (s === "active")
+      return (
+        <UIBadge variant="soft" color="success">
+          Active
+        </UIBadge>
+      );
+    if (s === "inactive")
+      return (
+        <UIBadge variant="soft" color="error">
+          Inactive
+        </UIBadge>
+      );
+    if (s === "blocked")
+      return (
+        <UIBadge variant="soft" color="warning">
+          Blocked
+        </UIBadge>
+      );
+    return (
+      <UIBadge variant="soft" color="neutral">
+        {status}
+      </UIBadge>
+    );
   };
 
   return (
-    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-4 space-y-2.5 text-text font-sans transition-colors">
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
       {/* Global Error Banner */}
       {propError && (
         <UIAlert
@@ -418,7 +458,7 @@ export const SuppliersDesktopPage = ({
       )}
 
       {/* ── 1. Compact 4-Card Statistics Grid (Top of Page) ────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
         {/* Card 1: Total Suppliers */}
         <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
           <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
@@ -486,14 +526,16 @@ export const SuppliersDesktopPage = ({
               ₹{formatCurrency(stats.netRunning)}
             </div>
             <div className="text-[10px] text-text-muted truncate mt-0.5">
-              {stats.runningType === "Cr" ? "Net Payable (Credit)" : "Net Advance (Debit)"}
+              {stats.runningType === "Cr"
+                ? "Net Payable (Credit)"
+                : "Net Advance (Debit)"}
             </div>
           </div>
         </div>
       </div>
 
       {/* ── 2. Streamlined Single-Row Filter Toolbar ─────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
         {/* Search Input */}
         <div className="w-[240px] sm:w-[280px] lg:w-[320px]">
           <UIInput
@@ -529,12 +571,16 @@ export const SuppliersDesktopPage = ({
           onClick={() => setIsFilterModalOpen(true)}
           startIcon={
             <Filter
-              className={cn("size-3.5", activeFilterCount > 0 ? "text-primary" : "text-text-muted")}
+              className={cn(
+                "size-3.5",
+                activeFilterCount > 0 ? "text-primary" : "text-text-muted",
+              )}
             />
           }
           className={cn(
             "h-10 px-3 text-xs sm:text-sm font-semibold gap-1.5 transition-all select-none",
-            activeFilterCount > 0 && "border-primary/40 bg-primary/10 text-primary font-bold shadow-2xs"
+            activeFilterCount > 0 &&
+              "border-primary/40 bg-primary/10 text-primary font-bold shadow-2xs",
           )}
           title="Open filters dialog"
         >
@@ -570,7 +616,9 @@ export const SuppliersDesktopPage = ({
               onClick={() => setViewMode("table")}
               className={cn(
                 "p-1.5 rounded-lg transition-colors cursor-pointer",
-                viewMode === "table" ? "bg-surface text-primary shadow-2xs" : "text-text-muted hover:text-text"
+                viewMode === "table"
+                  ? "bg-surface text-primary shadow-2xs"
+                  : "text-text-muted hover:text-text",
               )}
               title="Table view"
             >
@@ -581,7 +629,9 @@ export const SuppliersDesktopPage = ({
               onClick={() => setViewMode("grid")}
               className={cn(
                 "p-1.5 rounded-lg transition-colors cursor-pointer",
-                viewMode === "grid" ? "bg-surface text-primary shadow-2xs" : "text-text-muted hover:text-text"
+                viewMode === "grid"
+                  ? "bg-surface text-primary shadow-2xs"
+                  : "text-text-muted hover:text-text",
               )}
               title="Card view"
             >
@@ -600,7 +650,10 @@ export const SuppliersDesktopPage = ({
             title="Refresh suppliers"
           >
             <RefreshCw
-              className={cn("size-4 text-text-muted hover:text-primary", isLoading && "animate-spin text-primary")}
+              className={cn(
+                "size-4 text-text-muted hover:text-primary",
+                isLoading && "animate-spin text-primary",
+              )}
             />
           </UIButton>
 
@@ -638,10 +691,10 @@ export const SuppliersDesktopPage = ({
 
       {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ──── */}
       {viewMode === "table" ? (
-        <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
           <div
             ref={tableContainerRef}
-            className="relative overflow-y-auto overflow-x-auto max-h-[320px] min-h-[320px] flex-1 divide-y divide-border/60"
+            className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0"
           >
             <UITable
               stickyHeader
@@ -649,15 +702,32 @@ export const SuppliersDesktopPage = ({
               className="w-full text-xs font-sans"
             >
               {/* Sticky Table Header */}
-              <UITableHeader sticky className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs">
+              <UITableHeader
+                sticky
+                className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs"
+              >
                 <UITableRow className="border-b border-border text-[11px] font-semibold text-text uppercase tracking-wider bg-surface-alt">
-                  <UITableHead sticky className="min-w-[220px]">Supplier Name</UITableHead>
-                  <UITableHead sticky className="min-w-[110px]">Code</UITableHead>
-                  <UITableHead sticky className="min-w-[130px]">Type</UITableHead>
-                  <UITableHead sticky className="min-w-[140px]">Mobile</UITableHead>
-                  <UITableHead sticky align="right" className="min-w-[150px]">Balance</UITableHead>
-                  <UITableHead sticky align="center" className="min-w-[100px]">Status</UITableHead>
-                  <UITableHead sticky align="right" className="w-20">Actions</UITableHead>
+                  <UITableHead sticky className="min-w-[220px]">
+                    Supplier Name
+                  </UITableHead>
+                  <UITableHead sticky className="min-w-[110px]">
+                    Code
+                  </UITableHead>
+                  <UITableHead sticky className="min-w-[130px]">
+                    Type
+                  </UITableHead>
+                  <UITableHead sticky className="min-w-[140px]">
+                    Mobile
+                  </UITableHead>
+                  <UITableHead sticky align="right" className="min-w-[150px]">
+                    Balance
+                  </UITableHead>
+                  <UITableHead sticky align="center" className="min-w-[100px]">
+                    Status
+                  </UITableHead>
+                  <UITableHead sticky align="right" className="w-20">
+                    Actions
+                  </UITableHead>
                 </UITableRow>
               </UITableHeader>
 
@@ -669,12 +739,16 @@ export const SuppliersDesktopPage = ({
                     colSpan={7}
                     title="No suppliers found"
                     description={
-                      searchQuery || selectedType !== "all" || selectedStatus !== "all"
+                      searchQuery ||
+                      selectedType !== "all" ||
+                      selectedStatus !== "all"
                         ? "No suppliers match your active filter criteria. Try clearing filters."
                         : "No supplier accounts recorded yet."
                     }
                     action={
-                      (searchQuery || selectedType !== "all" || selectedStatus !== "all") ? (
+                      searchQuery ||
+                      selectedType !== "all" ||
+                      selectedStatus !== "all" ? (
                         <UIButton
                           variant="secondary"
                           size="sm"
@@ -688,7 +762,8 @@ export const SuppliersDesktopPage = ({
                 ) : (
                   suppliers.map((sup, index) => {
                     const isCredit = sup.balanceType?.toLowerCase() === "cr";
-                    const isTriggerRow = (index % 10 === 7) || (index === suppliers.length - 3);
+                    const isTriggerRow =
+                      index % 10 === 7 || index === suppliers.length - 3;
 
                     return (
                       <UITableRow
@@ -727,17 +802,22 @@ export const SuppliersDesktopPage = ({
                         </UITableCell>
 
                         {/* Mobile */}
-                        <UITableCell className="font-mono text-xs text-text whitespace-nowrap">
+                        <UITableCell className="font-mono text-[13px] font-bold text-text/90 tracking-tight whitespace-nowrap">
                           {sup.displayMobile}
                         </UITableCell>
 
                         {/* Outstanding Balance */}
-                        <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums">
+                        <UITableCell
+                          align="right"
+                          className="whitespace-nowrap font-mono tabular-nums"
+                        >
                           <div className="flex flex-col items-end">
                             <span
                               className={cn(
                                 "font-bold text-sm",
-                                isCredit ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
+                                isCredit
+                                  ? "text-rose-600 dark:text-rose-400"
+                                  : "text-emerald-600 dark:text-emerald-400",
                               )}
                             >
                               ₹{formatCurrency(sup.outstandingAmount)}
@@ -749,12 +829,18 @@ export const SuppliersDesktopPage = ({
                         </UITableCell>
 
                         {/* Status */}
-                        <UITableCell align="center" className="whitespace-nowrap">
+                        <UITableCell
+                          align="center"
+                          className="whitespace-nowrap"
+                        >
                           {getStatusBadge(sup.displayStatus)}
                         </UITableCell>
 
                         {/* Actions */}
-                        <UITableCell align="right" onClick={(e) => e.stopPropagation()}>
+                        <UITableCell
+                          align="right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <UIDropdown align="right">
                             <UIDropdownTrigger asChild>
                               <UIIconButton
@@ -820,7 +906,7 @@ export const SuppliersDesktopPage = ({
         /* Grid View */
         <div
           ref={cardContainerRef}
-          className="relative overflow-y-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 space-y-4"
+          className="relative overflow-y-auto flex-1 min-h-0 space-y-4"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {suppliers.map((sup) => (
@@ -836,8 +922,12 @@ export const SuppliersDesktopPage = ({
                         {getInitials(sup.displayName)}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="font-bold text-sm text-text truncate">{sup.displayName}</h4>
-                        <p className="text-xs text-text-muted font-mono">{sup.displayCode}</p>
+                        <h4 className="font-bold text-sm text-text truncate">
+                          {sup.displayName}
+                        </h4>
+                        <p className="text-xs text-text-muted font-mono">
+                          {sup.displayCode}
+                        </p>
                       </div>
                     </div>
                     {getStatusBadge(sup.displayStatus)}
@@ -859,9 +949,19 @@ export const SuppliersDesktopPage = ({
 
                 <div className="pt-3 border-t border-border/60 flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] text-text-muted font-semibold uppercase">Balance</p>
-                    <p className={cn("text-xs font-bold font-mono", sup.balanceType === "dr" ? "text-emerald-600" : "text-rose-600")}>
-                      ₹{formatCurrency(sup.outstandingAmount)} {sup.balanceType?.toUpperCase()}
+                    <p className="text-[10px] text-text-muted font-semibold uppercase">
+                      Balance
+                    </p>
+                    <p
+                      className={cn(
+                        "text-xs font-bold font-mono",
+                        sup.balanceType === "dr"
+                          ? "text-emerald-600"
+                          : "text-rose-600",
+                      )}
+                    >
+                      ₹{formatCurrency(sup.outstandingAmount)}{" "}
+                      {sup.balanceType?.toUpperCase()}
                     </p>
                   </div>
                   <span className="text-[10px] font-bold text-text-muted bg-surface-alt px-2 py-0.5 rounded border border-border">
@@ -898,11 +998,15 @@ export const SuppliersDesktopPage = ({
       >
         <UIModalHeader>
           <UIModalTitle>Filter Suppliers</UIModalTitle>
-          <UIModalDescription>Refine supplier list by type, status, or sorting.</UIModalDescription>
+          <UIModalDescription>
+            Refine supplier list by type, status, or sorting.
+          </UIModalDescription>
         </UIModalHeader>
         <UIModalBody className="overflow-visible space-y-4 py-2">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-text-muted">Supplier Type</label>
+            <label className="text-xs font-semibold text-text-muted">
+              Supplier Type
+            </label>
             <UISelect
               value={selectedType}
               onChange={(val) => setSelectedType(val)}
@@ -913,7 +1017,9 @@ export const SuppliersDesktopPage = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-text-muted">Status</label>
+            <label className="text-xs font-semibold text-text-muted">
+              Status
+            </label>
             <UISelect
               value={selectedStatus}
               onChange={(val) => setSelectedStatus(val)}
@@ -924,7 +1030,9 @@ export const SuppliersDesktopPage = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-text-muted">Sort By</label>
+            <label className="text-xs font-semibold text-text-muted">
+              Sort By
+            </label>
             <UISelect
               value={sortBy}
               onChange={(val) => setSortBy(val)}
@@ -938,7 +1046,10 @@ export const SuppliersDesktopPage = ({
           <UIButton variant="ghost" onClick={handleResetFilters}>
             Clear Filters
           </UIButton>
-          <UIButton variant="primary" onClick={() => setIsFilterModalOpen(false)}>
+          <UIButton
+            variant="primary"
+            onClick={() => setIsFilterModalOpen(false)}
+          >
             Apply Filters
           </UIButton>
         </UIModalFooter>

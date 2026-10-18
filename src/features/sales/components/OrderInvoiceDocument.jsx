@@ -383,7 +383,7 @@ export const OrderInvoiceDocument = ({
                 <th className="py-1.5 px-2 text-center border-r border-slate-200 w-8">Sr.</th>
                 <th className="py-1.5 px-3 border-r border-slate-200">Item Name</th>
                 <th className="py-1.5 px-2 border-r border-slate-200 text-center">HSN</th>
-                <th className="py-1.5 px-2 border-r border-slate-200 text-center">Batch No.</th>
+                <th className="py-1.5 px-2 border-r border-slate-200 text-center font-bold">Batch No.</th>
                 <th className="py-1.5 px-2 border-r border-slate-200 text-center">Exp. Date</th>
                 <th className="py-1.5 px-2 border-r border-slate-200 text-right">MRP</th>
                 <th className="py-1.5 px-2 border-r border-slate-200 text-center">Qty</th>
@@ -392,7 +392,7 @@ export const OrderInvoiceDocument = ({
                 <th className="py-1.5 px-2 border-r border-slate-200 text-right">Taxable Amt.</th>
                 <th className="py-1.5 px-1.5 border-r border-slate-200 text-center">GST%</th>
                 <th className="py-1.5 px-2 border-r border-slate-200 text-right">GST Amt.</th>
-                <th className="py-1.5 px-3 text-right">Final Amt.</th>
+                <th className="py-1.5 px-3 text-right font-bold">Final Amt.</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-slate-800">
@@ -407,7 +407,7 @@ export const OrderInvoiceDocument = ({
                   <td className="py-1.5 px-2 border-r border-slate-200 text-center font-mono text-slate-600">
                     {it.hsn}
                   </td>
-                  <td className="py-1.5 px-2 border-r border-slate-200 text-center font-mono font-medium text-slate-700">
+                  <td className="py-1.5 px-2 border-r border-slate-200 text-center font-mono font-bold text-slate-900 text-[10px]">
                     {it.batch}
                   </td>
                   <td className="py-1.5 px-2 border-r border-slate-200 text-center font-mono text-slate-600">
@@ -434,7 +434,7 @@ export const OrderInvoiceDocument = ({
                   <td className="py-1.5 px-2 border-r border-slate-200 text-right font-mono tabular-nums text-slate-600">
                     {it.gstAmt.toFixed(2)}
                   </td>
-                  <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-900 tabular-nums">
+                  <td className="py-1.5 px-3 text-right font-mono font-black text-slate-900 tabular-nums text-[10.5px]">
                     ₹{it.finalAmt.toFixed(2)}
                   </td>
                 </tr>

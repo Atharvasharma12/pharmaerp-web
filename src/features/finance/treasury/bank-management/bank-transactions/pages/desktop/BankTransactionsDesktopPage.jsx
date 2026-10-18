@@ -1,611 +1,1081 @@
-import React, { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  FiPlus,
-  FiSearch,
-  FiEye,
-  FiTrendingUp,
-  FiTrendingDown,
-  FiActivity,
-  FiInbox,
-  FiMoreVertical,
-  FiRefreshCw,
-} from "react-icons/fi";
+// src/features/finance/treasury/bank-management/bank-transactions/pages/desktop/BankTransactionsDesktopPage.jsx
 
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { motion } from "framer-motion";
 import {
-  AppBox,
-  AppBreadcrumb,
-  AppButton,
-  AppCard,
-  AppHeading,
-  AppInput,
-  AppSelect,
-  AppStack,
-  AppTablePagination,
-  AppText,
-  AppTable,
-  AppMenu,
-  PageHeader,
-} from "@/components";
-import { ROUTES } from "@/constants";
-import { formatCurrency, formatDate } from "@/utils";
+  Search,
+  RefreshCw,
+  Landmark,
+  Building2,
+  Wallet,
+  ArrowDownLeft,
+  ArrowUpRight,
+  RotateCcw,
+  SlidersHorizontal,
+  CheckCircle2,
+  Copy,
+  Check,
+  Receipt,
+  CreditCard,
+  ExternalLink,
+  Sparkles,
+  TrendingUp,
+  TrendingDown,
+  Layers,
+  Eye,
+  ArrowUpDown,
+  ShieldCheck,
+  Ban,
+} from "lucide-react";
+import {
+  UIButton,
+  UIInput,
+  UISelect,
+  UIDatePicker,
+  UIBadge,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UITableEmpty,
+  UITableLoading,
+  UIInfiniteScroll,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
+import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import useBankTransaction from "../../hooks/useBankTransaction";
+import useBankAccount from "@/features/finance/treasury/bank-management/bank-accounts/hooks/useBankAccount";
+import {
+  BankTransactionDetailsDialog,
+  BankTransactionsFilterModal,
+} from "../../components";
 
-const typeOptions = [
-  { label: "All Types", value: "all" },
-  { label: "Deposit", value: "DEPOSIT" },
-  { label: "Withdrawal", value: "WITHDRAWAL" },
-  { label: "NEFT Transfer", value: "NEFT" },
-  { label: "RTGS Transfer", value: "RTGS" },
-  { label: "IMPS Transfer", value: "IMPS" },
-  { label: "UPI Pay", value: "UPI" },
-  { label: "Cheque", value: "CHEQUE" },
-  { label: "Bank Charges", value: "BANK_CHARGES" },
-  { label: "Interest Credited", value: "INTEREST" },
-  { label: "Other", value: "OTHER" },
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
+  return Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const formatDate = (val) => {
+  if (!val) return "Today";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "Today";
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const formatTime = (val) => {
+  if (!val) return "";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const DATE_RANGE_OPTIONS = [
+  { label: "Today", value: "today" },
+  { label: "Yesterday", value: "yesterday" },
+  { label: "Last 7 Days", value: "last7days" },
+  { label: "This Week", value: "thisWeek" },
+  { label: "This Month", value: "thisMonth" },
+  { label: "Custom Range", value: "custom" },
 ];
 
-const directionOptions = [
+const DIRECTION_OPTIONS = [
   { label: "All Directions", value: "all" },
   { label: "Inward (Credit)", value: "CREDIT" },
   { label: "Outward (Debit)", value: "DEBIT" },
 ];
 
-const statusOptions = [
-  { label: "All Statuses", value: "all" },
-  { label: "Draft", value: "DRAFT" },
-  { label: "Posted to Ledger", value: "POSTED" },
-  { label: "Cancelled", value: "CANCELLED" },
-];
+const PAGE_LIMIT = 10;
 
-const BankTransactionsDesktopPage = ({
-  bankTransactions = [],
-  bankAccounts = [],
-  searchParams,
-  currentPage,
-  pageSize,
-  totalTransactions,
-  isLoading = false,
-  error,
-  clearError,
-  handleSearchChange,
-  handleFilterChange,
-  handlePageChange,
-  handlePageSizeChange,
-  handleRefresh,
-}) => {
-  const navigate = useNavigate();
+export const BankTransactionsDesktopPage = () => {
+  const { currentWorkspace } = useWorkspace();
+  const { getBankTransactions } = useBankTransaction();
+  const { bankAccounts, getBankAccounts } = useBankAccount();
 
-  const bankAccountOptions = useMemo(() => {
+  const tableContainerRef = useRef(null);
+  const hasFetchedBanksRef = useRef(false);
+
+  // ── Transactions & Infinite Scroll state ──
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+
+  // ── Summary Statistics ──
+  const [stats, setStats] = useState({
+    totalTransactions: 0,
+    totalCredits: 0,
+    totalDebits: 0,
+    netFlow: 0,
+    inwardCount: 0,
+    outwardCount: 0,
+    draftCount: 0,
+    postedCount: 0,
+  });
+
+  // ── Filter States ──
+  const [selectedBankAccount, setSelectedBankAccount] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedDateRange, setSelectedDateRange] = useState("today");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [selectedDirection, setSelectedDirection] = useState("all");
+  const [selectedTransactionType, setSelectedTransactionType] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [sortOption, setSortOption] = useState("date-desc");
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
+  // ── Inspection dialog & notification state ──
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // Load bank accounts catalog for the account selector
+  useEffect(() => {
+    if (hasFetchedBanksRef.current) return;
+    hasFetchedBanksRef.current = true;
+    getBankAccounts({ all: true }).catch((err) =>
+      console.warn("Failed to load bank accounts for filter:", err)
+    );
+  }, [getBankAccounts]);
+
+  const bankAccountSelectOptions = useMemo(() => {
+    const list = Array.isArray(bankAccounts) ? bankAccounts : [];
     return [
       { label: "All Bank Accounts", value: "all" },
-      ...bankAccounts.map((b) => ({
-        label: `${b.bankMasterId?.name || b.accountName || "Bank"} - *${String(b.accountNumber || "").slice(-4)}`,
-        value: b._id,
-      })),
+      ...list.map((b) => {
+        const bankTitle = b.bankMasterId?.name || b.accountName || "Bank";
+        const last4 = b.accountNumber ? `•••• ${String(b.accountNumber).slice(-4)}` : "";
+        return {
+          label: `${bankTitle} ${last4}`.trim(),
+          value: b._id,
+        };
+      }),
     ];
   }, [bankAccounts]);
 
-  const handleCreate = () => {
-    navigate(ROUTES.CREATE_BANK_TRANSACTION);
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Construct start and end dates from selected date range
+  const buildDateParams = useCallback(() => {
+    const now = new Date();
+    let startDate = null;
+    let endDate = null;
+
+    if (selectedDateRange === "today") {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      startDate = start.toISOString();
+      endDate = end.toISOString();
+    } else if (selectedDateRange === "yesterday") {
+      const yest = new Date(now);
+      yest.setDate(yest.getDate() - 1);
+      const start = new Date(yest.getFullYear(), yest.getMonth(), yest.getDate(), 0, 0, 0, 0);
+      const end = new Date(yest.getFullYear(), yest.getMonth(), yest.getDate(), 23, 59, 59, 999);
+      startDate = start.toISOString();
+      endDate = end.toISOString();
+    } else if (selectedDateRange === "last7days") {
+      const start = new Date(now);
+      start.setDate(start.getDate() - 7);
+      start.setHours(0, 0, 0, 0);
+      startDate = start.toISOString();
+      endDate = now.toISOString();
+    } else if (selectedDateRange === "thisWeek") {
+      const start = new Date(now);
+      const day = start.getDay();
+      const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+      start.setDate(diff);
+      start.setHours(0, 0, 0, 0);
+      startDate = start.toISOString();
+      endDate = now.toISOString();
+    } else if (selectedDateRange === "thisMonth") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      startDate = start.toISOString();
+      endDate = now.toISOString();
+    } else if (selectedDateRange === "custom") {
+      if (customStartDate) {
+        const s = new Date(customStartDate);
+        s.setHours(0, 0, 0, 0);
+        startDate = s.toISOString();
+      }
+      if (customEndDate) {
+        const e = new Date(customEndDate);
+        e.setHours(23, 59, 59, 999);
+        endDate = e.toISOString();
+      }
+    }
+
+    return {
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+    };
+  }, [selectedDateRange, customStartDate, customEndDate]);
+
+  // Fetch initial batch of bank transactions & stats
+  const fetchTransactions = useCallback(async () => {
+    if (!currentWorkspace) return;
+
+    setIsLoading(true);
+    try {
+      const dateParams = buildDateParams();
+      const [sBy, sOrder] = sortOption.split("-");
+      const params = {
+        page: 1,
+        limit: PAGE_LIMIT,
+        bankAccountId: selectedBankAccount !== "all" ? selectedBankAccount : undefined,
+        direction: selectedDirection !== "all" ? selectedDirection : undefined,
+        transactionType: selectedTransactionType !== "all" ? selectedTransactionType : undefined,
+        status: selectedStatus !== "all" ? selectedStatus : undefined,
+        search: debouncedSearch || undefined,
+        sortBy: sBy,
+        sortOrder: sOrder,
+        ...dateParams,
+      };
+
+      const res = await getBankTransactions(params);
+      const resData = res?.data || res || {};
+      const list = Array.isArray(resData.bankTransactions)
+        ? resData.bankTransactions
+        : Array.isArray(resData.data)
+        ? resData.data
+        : [];
+
+      const total = resData.total ?? list.length;
+      const rawSummary = resData.summary;
+
+      const isCreditRow = (r) => r.direction === "CREDIT";
+      const isDebitRow = (r) => r.direction === "DEBIT";
+
+      const listCredits = list.filter(isCreditRow).reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+      const listDebits = list.filter(isDebitRow).reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+      const listInwardCount = list.filter(isCreditRow).length;
+      const listOutwardCount = list.filter(isDebitRow).length;
+
+      const summaryHasValues =
+        rawSummary && (rawSummary.totalCredits > 0 || rawSummary.totalDebits > 0 || list.length === 0);
+
+      const finalCredits = summaryHasValues ? (rawSummary.totalCredits ?? 0) : listCredits;
+      const finalDebits = summaryHasValues ? (rawSummary.totalDebits ?? 0) : listDebits;
+      const finalInward = summaryHasValues ? (rawSummary.inwardCount ?? 0) : listInwardCount;
+      const finalOutward = summaryHasValues ? (rawSummary.outwardCount ?? 0) : listOutwardCount;
+      const finalTotal = summaryHasValues ? (rawSummary.totalTransactions ?? total) : total;
+
+      setStats({
+        totalTransactions: finalTotal,
+        totalCredits: finalCredits,
+        totalDebits: finalDebits,
+        netFlow: finalCredits - finalDebits,
+        inwardCount: finalInward,
+        outwardCount: finalOutward,
+        draftCount: rawSummary?.draftCount ?? list.filter((r) => r.status === "DRAFT").length,
+        postedCount: rawSummary?.postedCount ?? list.filter((r) => r.status === "POSTED").length,
+      });
+
+      setTransactions(list);
+      setTotalCount(total);
+      setCurrentPage(1);
+      setHasMore(list.length < total);
+
+      if (tableContainerRef.current) {
+        tableContainerRef.current.scrollTop = 0;
+      }
+    } catch (err) {
+      console.warn("Failed to fetch bank transactions:", err);
+      setTransactions([]);
+      setTotalCount(0);
+      setHasMore(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    currentWorkspace,
+    selectedBankAccount,
+    selectedDirection,
+    selectedTransactionType,
+    selectedStatus,
+    debouncedSearch,
+    sortOption,
+    buildDateParams,
+    getBankTransactions,
+  ]);
+
+  // Load next batch via Infinite Scroll
+  const handleLoadMore = useCallback(async () => {
+    if (isLoading || isLoadingMore || !hasMore || !currentWorkspace) return;
+
+    setIsLoadingMore(true);
+    const nextPage = currentPage + 1;
+
+    try {
+      const dateParams = buildDateParams();
+      const [sBy, sOrder] = sortOption.split("-");
+      const params = {
+        page: nextPage,
+        limit: PAGE_LIMIT,
+        bankAccountId: selectedBankAccount !== "all" ? selectedBankAccount : undefined,
+        direction: selectedDirection !== "all" ? selectedDirection : undefined,
+        transactionType: selectedTransactionType !== "all" ? selectedTransactionType : undefined,
+        status: selectedStatus !== "all" ? selectedStatus : undefined,
+        search: debouncedSearch || undefined,
+        sortBy: sBy,
+        sortOrder: sOrder,
+        ...dateParams,
+      };
+
+      const res = await getBankTransactions(params);
+      const resData = res?.data || res || {};
+      const nextList = Array.isArray(resData.bankTransactions)
+        ? resData.bankTransactions
+        : Array.isArray(resData.data)
+        ? resData.data
+        : [];
+
+      setTransactions((prev) => [...prev, ...nextList]);
+      setCurrentPage(nextPage);
+      const newTotal = resData.total ?? totalCount;
+      setTotalCount(newTotal);
+      setHasMore(transactions.length + nextList.length < newTotal);
+    } catch (err) {
+      console.warn("Failed to load more bank transactions:", err);
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    currentWorkspace,
+    currentPage,
+    selectedBankAccount,
+    selectedDirection,
+    selectedTransactionType,
+    selectedStatus,
+    debouncedSearch,
+    sortOption,
+    buildDateParams,
+    getBankTransactions,
+    totalCount,
+    transactions.length,
+  ]);
+
+  // Trigger initial fetch when filters change
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  // Reset all filters to default
+  const handleResetFilters = () => {
+    setSelectedBankAccount("all");
+    setSearchQuery("");
+    setDebouncedSearch("");
+    setSelectedDateRange("today");
+    setCustomStartDate("");
+    setCustomEndDate("");
+    setSelectedDirection("all");
+    setSelectedTransactionType("all");
+    setSelectedStatus("all");
+    setSortOption("date-desc");
   };
 
-  const handleRowClick = (transactionId) => {
-    navigate(ROUTES.BANK_TRANSACTION_DETAILS(transactionId));
-  };
-
-  // Get statistics metrics
-  const stats = useMemo(() => {
-    const counts = { total: totalTransactions, credits: 0, debits: 0, drafts: 0 };
-    bankTransactions.forEach((t) => {
-      const amt = t.amount || 0;
-      if (t.direction === "CREDIT") counts.credits += amt;
-      if (t.direction === "DEBIT") counts.debits += amt;
-      if (t.status === "DRAFT") counts.drafts += 1;
-    });
-    return counts;
-  }, [bankTransactions, totalTransactions]);
-
-  const getDirectionBadge = (direction) => {
-    const isCredit = String(direction).toUpperCase() === "CREDIT";
-    const bg = isCredit ? "bg-[#ebfbee] text-[#2b8a3e] border-[#c3fae8]" : "bg-[#fff5f5] text-[#fa5252] border-[#ffc9c9]";
-    const label = isCredit ? "INWARD" : "OUTWARD";
-
+  const isAnyFilterActive = useMemo(() => {
     return (
-      <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[9.5px] font-bold border ${bg}`}>
-        {label}
-      </span>
+      selectedBankAccount !== "all" ||
+      Boolean(searchQuery) ||
+      selectedDateRange !== "today" ||
+      selectedDirection !== "all" ||
+      selectedTransactionType !== "all" ||
+      selectedStatus !== "all" ||
+      sortOption !== "date-desc"
     );
+  }, [
+    selectedBankAccount,
+    searchQuery,
+    selectedDateRange,
+    selectedDirection,
+    selectedTransactionType,
+    selectedStatus,
+    sortOption,
+  ]);
+
+  const activeAdvancedFilterCount = useMemo(() => {
+    return [
+      selectedTransactionType !== "all" ? 1 : 0,
+      selectedStatus !== "all" ? 1 : 0,
+      sortOption !== "date-desc" ? 1 : 0,
+    ].reduce((a, b) => a + b, 0);
+  }, [selectedTransactionType, selectedStatus, sortOption]);
+
+  const handleCopyText = (e, text, label) => {
+    e.stopPropagation();
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedId(text);
+    setToastMessage(`${label} copied to clipboard`);
+    setTimeout(() => {
+      setCopiedId(null);
+      setToastMessage(null);
+    }, 2000);
   };
 
-  const getStatusBadge = (status) => {
-    const raw = String(status || "").toUpperCase();
-    let bg = "bg-[#f8f9fa] text-[#495057] border-[#dee2e6]";
-
-    if (raw === "DRAFT") bg = "bg-[#fff9db] text-[#f08c00] border-[#ffe066]";
-    else if (raw === "POSTED") bg = "bg-[#ebfbee] text-[#2b8a3e] border-[#c3fae8]";
-    else if (raw === "CANCELLED") bg = "bg-[#f1f3f5] text-[#868e96] border-[#e9ecef]";
-
-    return (
-      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[9.5px] font-bold uppercase border ${bg}`}>
-        {raw}
-      </span>
-    );
+  // Header Sort Handler
+  const handleHeaderSort = (field) => {
+    const [currentField, currentOrder] = sortOption.split("-");
+    let nextOrder = "desc";
+    if (currentField === field) {
+      nextOrder = currentOrder === "desc" ? "asc" : "desc";
+    }
+    setSortOption(`${field}-${nextOrder}`);
   };
 
-  const columns = useMemo(() => [
-    {
-      id: "transactionNumber",
-      label: "Transaction Number",
-      minWidth: 150,
-      render: (_, tx) => (
-        <AppText variant="body2" sx={tableValueMonoSx}>
-          {tx.transactionNumber}
-        </AppText>
-      ),
-    },
-    {
-      id: "transactionType",
-      label: "Type",
-      minWidth: 120,
-      render: (_, tx) => (
-        <AppText variant="body2" sx={tableValueSx}>
-          {tx.transactionType}
-        </AppText>
-      ),
-    },
-    {
-      id: "direction",
-      label: "Direction",
-      minWidth: 110,
-      render: (_, tx) => getDirectionBadge(tx.direction),
-    },
-    {
-      id: "linkedAccount",
-      label: "Linked Account",
-      minWidth: 180,
-      render: (_, tx) => {
-        const linkedBank = tx.bankAccountId;
+  const [sortBy, sortOrder] = useMemo(() => {
+    const parts = sortOption.split("-");
+    return [parts[0] || "date", parts[1] || "desc"];
+  }, [sortOption]);
+
+  const renderTransactionTypeBadge = (type) => {
+    switch (type) {
+      case "DEPOSIT":
         return (
-          <AppText variant="body2" sx={tableValueMutedSx}>
-            {linkedBank
-              ? `${linkedBank.bankName || "Bank"} - *${String(linkedBank.accountNumber || "").slice(-4)}`
-              : "-"}
-          </AppText>
-        );
-      },
-    },
-    {
-      id: "transactionDate",
-      label: "Transaction Date",
-      minWidth: 130,
-      render: (_, tx) => (
-        <AppText variant="body2" sx={tableValueMutedSx}>
-          {formatDate(tx.transactionDate)}
-        </AppText>
-      ),
-    },
-    {
-      id: "amount",
-      label: "Amount",
-      minWidth: 130,
-      align: "right",
-      render: (_, tx) => {
-        const isCredit = tx.direction === "CREDIT";
-        return (
-          <span className={`text-[12.5px] font-black ${isCredit ? "text-[#2b8a3e]" : "text-[#fa5252]"}`}>
-            {isCredit ? "+" : "-"} {formatCurrency(tx.amount)}
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            Deposit
           </span>
         );
-      },
-    },
-    {
-      id: "referenceNumber",
-      label: "Reference / UTR",
-      minWidth: 140,
-      render: (_, tx) => (
-        <AppText variant="body2" sx={tableValueMonoSx}>
-          {tx.referenceNumber || "-"}
-        </AppText>
-      ),
-    },
-    {
-      id: "status",
-      label: "Status",
-      align: "center",
-      minWidth: 110,
-      render: (_, tx) => getStatusBadge(tx.status),
-    },
-    {
-      id: "actions",
-      label: "Actions",
-      align: "right",
-      width: 80,
-      render: (_, tx) => (
-        <AppStack direction="row" gap={0.5} justify="flex-end" align="center">
-          <AppMenu
-            trigger={
-              <button
-                type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text hover:bg-surface-hover focus:outline-none cursor-pointer"
-              >
-                <FiMoreVertical className="text-[16px]" />
-              </button>
-            }
-            items={[
-              {
-                id: "view",
-                label: "View Details",
-                icon: <FiEye />,
-                onClick: () => handleRowClick(tx._id),
-              },
-            ]}
-            dense
-            minWidth={140}
-          />
-        </AppStack>
-      ),
-    },
-  ], []);
+      case "WITHDRAWAL":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+            Withdrawal
+          </span>
+        );
+      case "NEFT":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+            NEFT
+          </span>
+        );
+      case "RTGS":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+            RTGS
+          </span>
+        );
+      case "IMPS":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+            IMPS
+          </span>
+        );
+      case "UPI":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+            UPI Pay
+          </span>
+        );
+      case "CHEQUE":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            Cheque
+          </span>
+        );
+      case "BANK_CHARGES":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-neutral-500/10 text-neutral-600 dark:text-neutral-400 border border-neutral-500/20">
+            Charges
+          </span>
+        );
+      case "INTEREST":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+            Interest
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-surface-alt border border-border/70 text-text">
+            {type || "OTHER"}
+          </span>
+        );
+    }
+  };
 
-  const showPagination = totalTransactions > pageSize;
+  const renderStatusBadge = (status) => {
+    switch (status) {
+      case "POSTED":
+        return (
+          <UIBadge
+            variant="soft"
+            color="success"
+            icon={<ShieldCheck className="size-3 shrink-0" />}
+            className="inline-flex items-center whitespace-nowrap font-bold text-xs"
+          >
+            Posted
+          </UIBadge>
+        );
+      case "CANCELLED":
+        return (
+          <UIBadge
+            variant="soft"
+            color="error"
+            icon={<Ban className="size-3 shrink-0" />}
+            className="inline-flex items-center whitespace-nowrap font-bold text-xs"
+          >
+            Cancelled
+          </UIBadge>
+        );
+      case "DRAFT":
+      default:
+        return (
+          <UIBadge
+            variant="soft"
+            color="warning"
+            className="inline-flex items-center whitespace-nowrap font-bold text-xs"
+          >
+            Draft
+          </UIBadge>
+        );
+    }
+  };
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
-      <div className="mx-auto w-full max-w-[1400px]">
-        {/* Page Header */}
-        <PageHeader
-          title="Bank Transactions"
-          subtitle="Audit ledger transactions, credit/debit bank statements, and account postings."
-          extra={
-            <AppStack direction="row" gap={2} align="center">
-              <AppBreadcrumb
-                size="small"
-                variant="text"
-                items={[
-                  { label: "Dashboard", onClick: () => navigate(ROUTES.DASHBOARD) },
-                  { label: "Finance & Accounting", onClick: () => navigate(ROUTES.FINANCE) },
-                  { label: "Treasury", onClick: () => navigate(ROUTES.TREASURY) },
-                  { label: "Bank Transactions", current: true },
-                ]}
-                sx={breadcrumbSx}
-                itemSx={breadcrumbItemSx}
-                currentItemSx={breadcrumbCurrentSx}
-              />
-              <AppButton
-                variant="outlined"
-                colorVariant="neutral"
-                size="small"
-                rounded="md"
-                startIcon={<FiRefreshCw />}
-                onClick={handleRefresh}
-                loading={isLoading}
-                sx={importButtonSx}
-              >
-                Refresh
-              </AppButton>
-              <AppButton
-                variant="filled"
-                colorVariant="success"
-                size="small"
-                rounded="md"
-                startIcon={<FiPlus />}
-                onClick={handleCreate}
-                sx={primaryButtonSx}
-              >
-                Create Transaction
-              </AppButton>
-            </AppStack>
-          }
-          align="flex-start"
-          justify="space-between"
-          sx={pageHeaderSx}
-          contentSx={pageHeaderContentSx}
-        />
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: -20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="fixed top-6 right-8 z-[9999] flex items-center gap-2.5 rounded-2xl border border-primary/30 bg-surface/95 px-4 py-3 text-sm font-semibold text-text shadow-xl backdrop-blur-md"
+        >
+          <CheckCircle2 className="size-5 text-primary shrink-0" />
+          <span>{toastMessage}</span>
+        </motion.div>
+      )}
 
-        {/* Stats Grid */}
-        <div className="mt-5 grid grid-cols-4 gap-4">
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Total Postings</span>
-                <span className="text-[20px] font-extrabold text-text mt-1 block">{stats.total}</span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-surface-alt text-text flex items-center justify-center border border-border">
-                <FiActivity className="text-[18px]" />
-              </div>
+      {/* ── 1. Compact 4-Card Statistics Grid (Bank Register Tally) ─────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
+        {/* Card 1: Bank Register Tally */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <Landmark className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-indigo-600 dark:text-indigo-400 truncate flex items-center gap-1">
+              <Sparkles className="size-3" />
+              Bank Register Tally
             </div>
-          </AppCard>
-
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Credits (Inward)</span>
-                <span className="text-[20px] font-extrabold text-[#2b8a3e] mt-1 block">{formatCurrency(stats.credits)}</span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-[#ebfbee] text-[#2b8a3e] flex items-center justify-center border border-[#c3fae8]">
-                <FiTrendingUp className="text-[18px]" />
-              </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.totalTransactions} Txns
             </div>
-          </AppCard>
-
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Debits (Outward)</span>
-                <span className="text-[20px] font-extrabold text-[#fa5252] mt-1 block">{formatCurrency(stats.debits)}</span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-[#fff5f5] text-[#fa5252] flex items-center justify-center border border-[#ffc9c9]">
-                <FiTrendingDown className="text-[18px]" />
-              </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              {stats.inwardCount} Inward · {stats.outwardCount} Outward · {stats.draftCount} Drafts
             </div>
-          </AppCard>
-
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Draft Transactions</span>
-                <span className="text-[20px] font-extrabold text-[#f08c00] mt-1 block">{stats.drafts}</span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-[#fff9db] text-[#f08c00] flex items-center justify-center border border-[#ffe066]">
-                <FiActivity className="text-[18px]" />
-              </div>
-            </div>
-          </AppCard>
+          </div>
         </div>
 
-        {/* Main Content Card */}
-        <AppCard
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="sm"
-          padding="none"
-          sx={mainCardSx}
-        >
-          {/* Filters Toolbar */}
-          <div className="p-4 border-b border-border bg-surface-hover/20 flex items-center justify-between gap-4">
-            {/* Left side: Search input */}
-            <AppInput
-              name="search"
-              value={searchParams.search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Search tx number or narration..."
-              startIcon={<FiSearch />}
-              size="small"
-              sx={searchFieldSx}
-              inputSx={searchFieldInputSx}
-            />
+        {/* Card 2: Total Credits (Inward Volume) */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
+            <TrendingUp className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-success truncate">
+              Bank Inward (Credits)
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+              ₹{formatCurrency(stats.totalCredits)}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Total credited to accounts
+            </div>
+          </div>
+        </div>
 
-            {/* Right side: Dropdown filters */}
-            <div className="flex items-center gap-2">
-              <AppSelect
-                name="transactionType"
-                value={searchParams.transactionType}
-                onChange={(e) => handleFilterChange("transactionType", e.target.value)}
-                options={typeOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={{ width: 145, minWidth: 145 }}
-                inputSx={compactFilterInputSx}
+        {/* Card 3: Total Debits (Outward Volume) */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <TrendingDown className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-rose-600 dark:text-rose-400 truncate">
+              Bank Outward (Debits)
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums text-rose-600 dark:text-rose-400">
+              ₹{formatCurrency(stats.totalDebits)}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Withdrawals, transfers & charges
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Net Bank Impact */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Wallet className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-primary truncate">
+              Net Bank Flow
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.netFlow >= 0 ? "+" : "-"} ₹{formatCurrency(Math.abs(stats.netFlow))}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              Net ledger balance movement
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 2. Table Filter Toolbar (Using Reusable UI Components) ───────────────── */}
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
+        {/* Bank Account Selector Dropdown */}
+        <div className="w-[200px] sm:w-[240px]">
+          <UISelect
+            value={selectedBankAccount}
+            onChange={(val) => setSelectedBankAccount(val)}
+            options={bankAccountSelectOptions}
+            placeholder="Select Bank Account"
+            size="md"
+          />
+        </div>
+
+        {/* Search Input */}
+        <div className="flex-1 min-w-[220px] sm:min-w-[260px]">
+          <UIInput
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search transaction #, reference, or narration..."
+            startIcon={<Search className="size-4 text-text-muted" />}
+            size="md"
+            variant="outline"
+            isClearable
+            onClear={() => setSearchQuery("")}
+            className="w-full"
+          />
+        </div>
+
+        {/* Date Range Selector Dropdown */}
+        <div className="w-[140px] sm:w-[160px]">
+          <UISelect
+            value={selectedDateRange}
+            onChange={(val) => setSelectedDateRange(val)}
+            options={DATE_RANGE_OPTIONS}
+            placeholder="Date Range"
+            size="md"
+          />
+        </div>
+
+        {/* Custom Date Pickers (Shown if Custom Range selected) */}
+        {selectedDateRange === "custom" && (
+          <div className="flex items-center gap-2 animate-in fade-in-50 duration-200">
+            <div className="w-[140px]">
+              <UIDatePicker
+                value={customStartDate}
+                onChange={(val) => setCustomStartDate(val || "")}
+                placeholder="From date"
+                size="md"
+                isClearable
               />
-
-              <AppSelect
-                name="direction"
-                value={searchParams.direction}
-                onChange={(e) => handleFilterChange("direction", e.target.value)}
-                options={directionOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={{ width: 145, minWidth: 145 }}
-                inputSx={compactFilterInputSx}
-              />
-
-              <AppSelect
-                name="status"
-                value={searchParams.status}
-                onChange={(e) => handleFilterChange("status", e.target.value)}
-                options={statusOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={{ width: 125, minWidth: 125 }}
-                inputSx={compactFilterInputSx}
-              />
-
-              <AppSelect
-                name="bankAccountId"
-                value={searchParams.bankAccountId}
-                onChange={(e) => handleFilterChange("bankAccountId", e.target.value)}
-                options={bankAccountOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                sx={{ width: 220, minWidth: 220 }}
-                inputSx={compactFilterInputSx}
+            </div>
+            <span className="text-xs text-text-muted">to</span>
+            <div className="w-[140px]">
+              <UIDatePicker
+                value={customEndDate}
+                onChange={(val) => setCustomEndDate(val || "")}
+                placeholder="To date"
+                size="md"
+                isClearable
               />
             </div>
           </div>
+        )}
 
-          {/* Table Container */}
-          <div className="w-full relative">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <AppText variant="body1" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
-                  Querying bank transactions...
-                </AppText>
-              </div>
-            ) : bankTransactions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <FiInbox className="text-[40px] text-text-muted/40 mb-3" />
-                <AppHeading level={3} weight={600} sx={{ m: 0, fontSize: "14px", color: "var(--app-color-text)" }}>
-                  No Transactions Found
-                </AppHeading>
-                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>
-                  Adjust search keyword or create a new bank transaction entry.
-                </AppText>
-              </div>
-            ) : (
-              <AppTable
-                columns={columns}
-                rows={bankTransactions}
-                getRowId={(row) => row._id}
-                sx={tableSx}
-                headSx={tableHeadSx}
-                cellSx={tableCellSx}
+        {/* Direction Selector */}
+        <div className="w-[150px]">
+          <UISelect
+            value={selectedDirection}
+            onChange={(val) => setSelectedDirection(val)}
+            options={DIRECTION_OPTIONS}
+            placeholder="Direction"
+            size="md"
+          />
+        </div>
+
+        {/* Advanced Filters Button */}
+        <UIButton
+          variant="outline"
+          size="md"
+          onClick={() => setIsFilterModalOpen(true)}
+          className={cn(
+            "gap-1.5 transition-colors",
+            activeAdvancedFilterCount > 0 && "border-primary text-primary bg-primary/5"
+          )}
+        >
+          <SlidersHorizontal className="size-4" />
+          <span>Filters</span>
+          {activeAdvancedFilterCount > 0 && (
+            <span className="size-5 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center">
+              {activeAdvancedFilterCount}
+            </span>
+          )}
+        </UIButton>
+
+        {/* Reset Filters Button */}
+        {isAnyFilterActive && (
+          <UIButton
+            variant="ghost"
+            size="md"
+            onClick={handleResetFilters}
+            className="text-text-muted hover:text-text gap-1.5"
+            title="Reset all filters"
+          >
+            <RotateCcw className="size-4" />
+            <span className="hidden sm:inline">Reset</span>
+          </UIButton>
+        )}
+
+        {/* Refresh Button */}
+        <UIButton
+          variant="outline"
+          size="md"
+          onClick={fetchTransactions}
+          disabled={isLoading}
+          className="p-2.5"
+          title="Refresh bank transactions"
+        >
+          <RefreshCw className={cn("size-4 text-text", isLoading && "animate-spin text-primary")} />
+        </UIButton>
+      </div>
+
+      {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ────── */}
+      <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        <div
+          ref={tableContainerRef}
+          className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0"
+        >
+          <UITable
+            stickyHeader
+            containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+            className="w-full"
+          >
+            <UITableHeader sticky className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs border-b border-border">
+              <UITableRow className="border-b border-border text-[11px] font-semibold text-text uppercase tracking-wider bg-surface-alt h-10">
+                <UITableHead
+                  sticky
+                  className="min-w-[170px]"
+                >
+                  Txn # & Reference
+                </UITableHead>
+
+                <UITableHead sticky className="min-w-[130px]">
+                  Type & Flow
+                </UITableHead>
+
+                <UITableHead
+                  sticky
+                  sortable
+                  sortDirection={sortBy === "date" ? (sortOption.endsWith("-asc") ? "asc" : "desc") : null}
+                  onSort={() => handleHeaderSort("date")}
+                  className="min-w-[140px]"
+                >
+                  Date & Time
+                </UITableHead>
+
+                <UITableHead sticky className="min-w-[190px]">
+                  Bank Account
+                </UITableHead>
+
+                <UITableHead sticky className="min-w-[200px]">
+                  Counterparty & Narration
+                </UITableHead>
+
+                <UITableHead
+                  sticky
+                  sortable
+                  align="right"
+                  sortDirection={sortBy === "amount" ? (sortOption.endsWith("-asc") ? "asc" : "desc") : null}
+                  onSort={() => handleHeaderSort("amount")}
+                  className="min-w-[140px]"
+                >
+                  Amount (₹)
+                </UITableHead>
+
+                <UITableHead sticky align="center" className="min-w-[100px]">
+                  Status
+                </UITableHead>
+
+                <UITableHead sticky align="right" className="min-w-[70px]">
+                  Actions
+                </UITableHead>
+              </UITableRow>
+            </UITableHeader>
+
+            <UITableBody>
+                {isLoading ? (
+                  <UITableLoading rows={7} columns={8} />
+                ) : transactions.length === 0 ? (
+                  <UITableEmpty
+                    colSpan={8}
+                    title="No Bank Transactions Found"
+                    description={
+                      isAnyFilterActive
+                        ? "No transactions match your search and filter criteria. Try clearing filters."
+                        : "No bank transactions recorded yet. Bank transactions are automatically logged when confirming deposit slips, processing UPI/Cheque clearance, or fund transfers."
+                    }
+                    action={
+                      isAnyFilterActive ? (
+                        <UIButton
+                          variant="outline"
+                          size="sm"
+                          onClick={handleResetFilters}
+                          className="mt-2 gap-1.5"
+                        >
+                          <RotateCcw className="size-3.5" />
+                          Reset Filters
+                        </UIButton>
+                      ) : null
+                    }
+                  />
+                ) : (
+                  transactions.map((txn, index) => {
+                    const isCredit = txn.direction === "CREDIT";
+                    const isCopiedTxn = copiedId === txn.transactionNumber;
+                    const isCopiedRef = copiedId === txn.referenceNumber;
+
+                    const bankAcc = txn.bankAccountId && typeof txn.bankAccountId === "object"
+                      ? txn.bankAccountId
+                      : null;
+                    const bankMaster = bankAcc?.bankMasterId && typeof bankAcc.bankMasterId === "object"
+                      ? bankAcc.bankMasterId
+                      : null;
+                    const bankDisplayName = bankMaster?.name || bankAcc?.accountName || "Corporate Bank";
+                    const maskedNumber = bankAcc?.accountNumber
+                      ? `•••• ${String(bankAcc.accountNumber).slice(-4)}`
+                      : "";
+
+                    const counterparty = txn.counterpartyAccountId?.accountName;
+
+                    return (
+                      <UITableRow
+                        key={txn._id || `txn-${index}`}
+                        onClick={() => setSelectedTransaction(txn)}
+                        className="cursor-pointer hover:bg-surface-hover/80 transition-colors group text-xs border-b border-border/50 last:border-b-0 h-13"
+                      >
+                        {/* 1. Txn # & Reference */}
+                        <UITableCell className="py-2.5 font-mono">
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-text group-hover:text-primary transition-colors">
+                                {txn.transactionNumber}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => handleCopyText(e, txn.transactionNumber, "Transaction #")}
+                                className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-text-muted hover:text-text transition-opacity cursor-pointer"
+                                title="Copy transaction number"
+                              >
+                                {isCopiedTxn ? (
+                                  <Check className="size-3 text-success" />
+                                ) : (
+                                  <Copy className="size-3" />
+                                )}
+                              </button>
+                            </div>
+                            {txn.referenceNumber ? (
+                              <div className="flex items-center gap-1 text-[10.5px] text-text-muted mt-0.5">
+                                <span className="font-semibold text-text-muted/80">Ref:</span>
+                                <span className="truncate max-w-[110px]" title={txn.referenceNumber}>
+                                  {txn.referenceNumber}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleCopyText(e, txn.referenceNumber, "Reference #")}
+                                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-text-muted hover:text-text transition-opacity cursor-pointer"
+                                  title="Copy reference / UTR"
+                                >
+                                  {isCopiedRef ? (
+                                    <Check className="size-2.5 text-success" />
+                                  ) : (
+                                    <Copy className="size-2.5" />
+                                  )}
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+                        </UITableCell>
+
+                        {/* 2. Type & Flow */}
+                        <UITableCell className="py-2.5">
+                          <div className="flex items-center gap-2">
+                            <div className={cn(
+                              "size-7 rounded-lg flex items-center justify-center shrink-0 border",
+                              isCredit
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                                : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                            )}>
+                              {isCredit ? (
+                                <ArrowDownLeft className="size-3.5 stroke-[2.2]" />
+                              ) : (
+                                <ArrowUpRight className="size-3.5 stroke-[2.2]" />
+                              )}
+                            </div>
+                            <div className="flex flex-col">
+                              {renderTransactionTypeBadge(txn.transactionType)}
+                              <span className="text-[10px] text-text-muted font-medium mt-0.5">
+                                {isCredit ? "Inward (+ CR)" : "Outward (- DR)"}
+                              </span>
+                            </div>
+                          </div>
+                        </UITableCell>
+
+                        {/* 3. Date & Time */}
+                        <UITableCell className="py-2.5">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-text">{formatDate(txn.transactionDate)}</span>
+                            <span className="text-[10.5px] text-text-muted font-mono">{formatTime(txn.transactionDate)}</span>
+                          </div>
+                        </UITableCell>
+
+                        {/* 4. Bank Account */}
+                        <UITableCell className="py-2.5">
+                          <div className="flex items-center gap-2">
+                            <div className="size-7 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                              <Landmark className="size-3.5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-text truncate max-w-[150px]">
+                                {bankDisplayName}
+                              </div>
+                              <div className="text-[11px] font-mono text-text-muted truncate">
+                                {maskedNumber || "Primary Account"}
+                              </div>
+                            </div>
+                          </div>
+                        </UITableCell>
+
+                        {/* 5. Counterparty & Narration */}
+                        <UITableCell className="py-2.5">
+                          <div className="min-w-0 max-w-[220px]">
+                            {counterparty ? (
+                              <div className="text-xs font-bold text-text truncate">
+                                {counterparty}
+                              </div>
+                            ) : null}
+                            <div className="text-[11px] text-text-muted truncate leading-relaxed">
+                              {txn.narration || "General bank settlement"}
+                            </div>
+                          </div>
+                        </UITableCell>
+
+                        {/* 6. Amount */}
+                        <UITableCell className="py-2.5 text-right">
+                          <div className={cn(
+                            "text-sm font-extrabold font-mono tabular-nums leading-tight",
+                            isCredit
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-rose-600 dark:text-rose-400"
+                          )}>
+                            {isCredit ? "+" : "-"} ₹{formatCurrency(txn.amount)}
+                          </div>
+                          <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold mt-0.5">
+                            {isCredit ? "CR" : "DR"}
+                          </div>
+                        </UITableCell>
+
+                        {/* 7. Status */}
+                        <UITableCell className="py-2.5 text-center">
+                          {renderStatusBadge(txn.status)}
+                        </UITableCell>
+
+                        {/* 8. Action button */}
+                        <UITableCell className="py-2.5 text-right pr-4" onClick={(e) => e.stopPropagation()}>
+                          <UIButton
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedTransaction(txn)}
+                            className="p-1.5 size-7 rounded-lg text-text-muted hover:text-text hover:bg-surface-alt cursor-pointer"
+                            title="Inspect transaction"
+                          >
+                            <Eye className="size-4" />
+                          </UIButton>
+                        </UITableCell>
+                      </UITableRow>
+                    );
+                  })
+                )}
+              </UITableBody>
+            </UITable>
+
+            {/* Reusable UIInfiniteScroll Component */}
+            {!isLoading && transactions.length > 0 && (
+              <UIInfiniteScroll
+                onLoadMore={handleLoadMore}
+                hasMore={hasMore}
+                isLoading={isLoadingMore}
+                rootRef={tableContainerRef}
+                rootMargin="160px"
+                endMessage={
+                  !hasMore && transactions.length > 0 ? (
+                    <span className="font-mono text-[11px] text-text-muted select-none">
+                      ✓ All {totalCount} matching bank transactions loaded
+                    </span>
+                  ) : null
+                }
               />
             )}
           </div>
+        </div>
 
-          {/* Table Footer */}
-          {showPagination && (
-            <AppBox sx={paginationFooterWrapperSx}>
-              <AppTablePagination
-                page={currentPage}
-                pageSize={pageSize}
-                totalItems={totalTransactions}
-                onPageChange={handlePageChange}
-                onPageSizeChange={handlePageSizeChange}
-              />
-            </AppBox>
-          )}
-        </AppCard>
-      </div>
-    </section>
+      {/* ── 4. Dialogs & Modals ─────────────────────────────────────────────────── */}
+      <BankTransactionsFilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        initialFilters={{
+          transactionType: selectedTransactionType,
+          status: selectedStatus,
+          sortBy: sortOption,
+        }}
+        onApply={({ transactionType, status, sortBy }) => {
+          setSelectedTransactionType(transactionType);
+          setSelectedStatus(status);
+          setSortOption(sortBy);
+        }}
+        onReset={() => {
+          setSelectedTransactionType("all");
+          setSelectedStatus("all");
+          setSortOption("date-desc");
+        }}
+      />
+
+      <BankTransactionDetailsDialog
+        isOpen={Boolean(selectedTransaction)}
+        onClose={() => setSelectedTransaction(null)}
+        transaction={selectedTransaction}
+      />
+    </div>
   );
-};
-
-// Styling variables
-const breadcrumbSx = { mt: 0 };
-const breadcrumbItemSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-  cursor: "pointer",
-  "&:hover": { color: "var(--app-color-primary)" },
-};
-const breadcrumbCurrentSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const pageHeaderSx = { width: "100%" };
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "23px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.4px",
-    color: "var(--app-color-text)",
-  },
-};
-
-const primaryButtonSx = {
-  height: 38,
-  px: 2.5,
-  fontSize: "12.5px",
-  fontWeight: 700,
-  bgcolor: "#00b85c",
-  color: "white",
-  whiteSpace: "nowrap",
-  "&:hover": { bgcolor: "#009e4f" },
-};
-
-const importButtonSx = {
-  height: 38,
-  px: 2.5,
-  fontSize: "12.5px",
-  fontWeight: 650,
-  borderColor: "var(--app-color-border)",
-  color: "var(--app-color-text)",
-  bgcolor: "white",
-  whiteSpace: "nowrap",
-};
-
-const statCardSx = {
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const mainCardSx = {
-  mt: 5,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const searchFieldSx = {
-  width: 250,
-};
-
-const searchFieldInputSx = {
-  height: 32,
-  fontSize: "12px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const compactFilterInputSx = {
-  height: 32,
-  fontSize: "11.5px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const tableSx = {
-  width: "100%",
-  "& .MuiTable-root": {
-    width: "100%",
-  },
-};
-
-const tableHeadSx = {
-  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, var(--app-color-surface))",
-  "& th": {
-    fontSize: "11px",
-    fontWeight: 750,
-    textTransform: "uppercase",
-    color: "var(--app-color-text-muted)",
-    py: 1.5,
-    borderBottom: "1px solid var(--app-color-divider)",
-  },
-};
-
-const tableCellSx = {
-  py: 1.5,
-  fontSize: "12.5px",
-  borderBottom: "1px solid var(--app-color-divider)",
-};
-
-const tableValueSx = {
-  fontSize: "12.5px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const tableValueMutedSx = {
-  fontSize: "12.5px",
-  fontWeight: 650,
-  color: "var(--app-color-text-muted)",
-};
-
-const tableValueMonoSx = {
-  fontSize: "12px",
-  fontFamily: "var(--font-mono, monospace)",
-  fontWeight: 750,
-  color: "var(--app-color-text)",
-};
-
-const paginationFooterWrapperSx = {
-  px: 2,
-  py: 2,
-  borderTop: "1px solid var(--app-color-divider)",
-  display: "flex",
-  justifyContent: "flex-end",
-  alignItems: "center",
-  width: "100%",
-  "& > div": {
-    width: "auto",
-  },
 };
 
 export default BankTransactionsDesktopPage;

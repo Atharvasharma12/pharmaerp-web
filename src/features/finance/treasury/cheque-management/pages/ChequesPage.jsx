@@ -1,18 +1,20 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+// src/features/finance/treasury/cheque-management/pages/ChequesPage.jsx
 
-import { API_STATUS, ROUTES } from "@/constants";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+
+import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
+import { uiToast } from "@/components/ui";
 
 import useCheque from "../hooks/useCheque";
 import ChequesDesktopPage from "./desktop/ChequesDesktopPage";
 import ChequesMobilePage from "./mobile/ChequesMobilePage";
-
 import ChequeDialog from "../components/ChequeDialog";
 
 const ChequesPage = () => {
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
+  const [searchParamsUrl, setSearchParamsUrl] = useSearchParams();
 
   const [dialogState, setDialogState] = useState({
     isOpen: false,
@@ -27,16 +29,49 @@ const ChequesPage = () => {
     getChequesStatus,
     getChequeById,
     createCheque,
+    updateCheque,
     depositCheque,
     clearCheque,
     bounceCheque,
     cancelCheque,
-    status: apiStatus,
     error,
     clearError,
     message,
     clearMessage,
   } = useCheque();
+
+  // Check URL query ?action=create
+  useEffect(() => {
+    if (searchParamsUrl.get("action") === "create") {
+      setDialogState({
+        isOpen: true,
+        mode: "create",
+        entityId: null,
+        chequeData: null,
+      });
+      const newParams = new URLSearchParams(searchParamsUrl);
+      newParams.delete("action");
+      setSearchParamsUrl(newParams, { replace: true });
+    }
+  }, [searchParamsUrl, setSearchParamsUrl]);
+
+  // Reactive feedback via uiToast - strictly for CRUD mutations (create, edit, delete, status transitions)
+  useEffect(() => {
+    if (message) {
+      const isReadOp = /fetch|load|view|retriev|read/i.test(message);
+      if (!isReadOp) {
+        uiToast.success("Cheque Management", message);
+      }
+      clearMessage();
+    }
+  }, [message, clearMessage]);
+
+  useEffect(() => {
+    if (error) {
+      uiToast.error("Cheque Error", error);
+      clearError();
+    }
+  }, [error, clearError]);
 
   const [searchParams, setSearchParams] = useState({
     search: "",
@@ -45,9 +80,7 @@ const ChequesPage = () => {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [actionError, setActionError] = useState("");
-  const [actionMessage, setActionMessage] = useState("");
+  const [pageSize, setPageSize] = useState(100);
 
   const fetchChequesData = useCallback(async () => {
     try {
@@ -72,13 +105,6 @@ const ChequesPage = () => {
     fetchChequesData();
   }, [fetchChequesData]);
 
-  useEffect(() => {
-    return () => {
-      clearError();
-      clearMessage();
-    };
-  }, [clearError, clearMessage]);
-
   const handleSearchChange = useCallback((value) => {
     setSearchParams((prev) => ({ ...prev, search: value }));
     setCurrentPage(1);
@@ -100,73 +126,95 @@ const ChequesPage = () => {
 
   const handleDeposit = useCallback(
     async (chequeId) => {
-      setActionError("");
-      setActionMessage("");
       try {
-        await depositCheque(chequeId);
-        setActionMessage("Cheque deposited to bank successfully.");
+        const res = await depositCheque(chequeId);
         fetchChequesData();
+        return res;
       } catch (err) {
-        setActionError(typeof err === "string" ? err : "Failed to deposit cheque.");
+        throw err;
       }
     },
     [depositCheque, fetchChequesData]
   );
 
   const handleClear = useCallback(
-    async (chequeId, clearDate = "") => {
-      setActionError("");
-      setActionMessage("");
+    async (chequeId, clearData = "") => {
       try {
-        await clearCheque(chequeId, { clearDate: clearDate || undefined });
-        setActionMessage("Cheque cleared by the bank successfully.");
+        let payload = {};
+        if (typeof clearData === "object" && clearData !== null) {
+          const rawDate = clearData.clearDate;
+          payload = {
+            clearDate: rawDate && typeof rawDate === "string" && rawDate.trim()
+              ? new Date(rawDate).toISOString()
+              : undefined,
+            narration: clearData.narration ? String(clearData.narration).trim() : undefined,
+          };
+        } else if (typeof clearData === "string" && clearData.trim()) {
+          payload = { clearDate: new Date(clearData).toISOString() };
+        }
+        const res = await clearCheque(chequeId, payload);
         fetchChequesData();
+        return res;
       } catch (err) {
-        setActionError(typeof err === "string" ? err : "Failed to clear cheque.");
+        throw err;
       }
     },
     [clearCheque, fetchChequesData]
   );
 
   const handleBounce = useCallback(
-    async (chequeId, reason = "", bounceCharges = 0) => {
-      setActionError("");
-      setActionMessage("");
+    async (chequeId, reasonOrPayload = "", bounceCharges = 0) => {
       try {
-        await bounceCheque(chequeId, { reason, bounceCharges: Number(bounceCharges) || 0 });
-        setActionMessage("Cheque marked as bounced successfully.");
+        let payload = {};
+        if (typeof reasonOrPayload === "object" && reasonOrPayload !== null) {
+          payload = {
+            reason: reasonOrPayload.reason || "",
+            bounceCharges: Number(reasonOrPayload.bounceCharges) || 0,
+          };
+        } else {
+          payload = {
+            reason: String(reasonOrPayload || ""),
+            bounceCharges: Number(bounceCharges) || 0,
+          };
+        }
+        const res = await bounceCheque(chequeId, payload);
         fetchChequesData();
+        return res;
       } catch (err) {
-        setActionError(typeof err === "string" ? err : "Failed to bounce cheque.");
+        throw err;
       }
     },
     [bounceCheque, fetchChequesData]
   );
 
   const handleCancel = useCallback(
-    async (chequeId, reason = "") => {
-      setActionError("");
-      setActionMessage("");
+    async (chequeId, reasonOrPayload = "") => {
       try {
-        await cancelCheque(chequeId, { reason });
-        setActionMessage("Cheque cancelled successfully.");
+        let payload = {};
+        if (typeof reasonOrPayload === "object" && reasonOrPayload !== null) {
+          payload = { reason: reasonOrPayload.reason || "" };
+        } else {
+          payload = { reason: String(reasonOrPayload || "") };
+        }
+        const res = await cancelCheque(chequeId, payload);
         fetchChequesData();
+        return res;
       } catch (err) {
-        setActionError(typeof err === "string" ? err : "Failed to cancel cheque.");
+        throw err;
       }
     },
     [cancelCheque, fetchChequesData]
   );
 
+
   const handleViewDetails = useCallback(
-    (chequeId) => {
-      const target = cheques?.find(
-        (c) => c._id === chequeId || c.id === chequeId
-      );
+    (chequeOrId) => {
+      const id = typeof chequeOrId === "object" ? (chequeOrId._id || chequeOrId.id) : chequeOrId;
+      const target = typeof chequeOrId === "object" ? chequeOrId : cheques?.find((c) => (c._id || c.id) === id);
       setDialogState({
         isOpen: true,
         mode: "view",
-        entityId: chequeId,
+        entityId: id,
         chequeData: target || null,
       });
     },
@@ -183,21 +231,22 @@ const ChequesPage = () => {
   }, []);
 
   const handleEditCheque = useCallback(
-    (chequeId) => {
-      const target = cheques?.find(
-        (c) => c._id === chequeId || c.id === chequeId
-      );
+    (chequeOrId) => {
+      const id = typeof chequeOrId === "object" ? (chequeOrId._id || chequeOrId.id) : chequeOrId;
+      const target = typeof chequeOrId === "object" ? chequeOrId : cheques?.find((c) => (c._id || c.id) === id);
       setDialogState({
         isOpen: true,
         mode: "edit",
-        entityId: chequeId,
+        entityId: id,
         chequeData: target || null,
       });
     },
     [cheques]
   );
 
-  const isLoading = getChequesStatus === API_STATUS.LOADING;
+  const isLoading =
+    getChequesStatus === API_STATUS.LOADING ||
+    getChequesStatus === API_STATUS.IDLE;
 
   const totalCheques = useMemo(() => {
     return cheques?.length || 0;
@@ -210,13 +259,11 @@ const ChequesPage = () => {
     pageSize,
     totalCheques,
     isLoading,
-    error: error || actionError,
-    message: message || actionMessage,
+    error,
+    message,
     clearFeedback: () => {
       clearError();
       clearMessage();
-      setActionError("");
-      setActionMessage("");
     },
     handleSearchChange,
     handleFilterChange,
@@ -240,6 +287,7 @@ const ChequesPage = () => {
         <ChequesDesktopPage {...pageProps} />
       )}
 
+      {/* ── Cheque Form / Details Dialog ── */}
       <ChequeDialog
         isOpen={dialogState.isOpen}
         onClose={() => setDialogState((prev) => ({ ...prev, isOpen: false }))}
@@ -247,10 +295,44 @@ const ChequesPage = () => {
         entityId={dialogState.entityId}
         chequeData={dialogState.chequeData}
         onSubmitCreate={createCheque}
-        onDepositCheque={handleDeposit}
-        onClearCheque={handleClear}
-        onBounceCheque={handleBounce}
-        onCancelCheque={handleCancel}
+        onSubmitUpdate={(id, payload) => updateCheque ? updateCheque(id, payload) : Promise.resolve()}
+        onDepositCheque={async (id) => {
+          try {
+            await handleDeposit(id);
+            uiToast.success("Cheque Deposited", "Cheque marked as deposited to bank.");
+            setDialogState((prev) => ({ ...prev, isOpen: false }));
+          } catch (err) {
+            uiToast.error("Deposit Failed", typeof err === "string" ? err : err?.message || "Failed to deposit cheque.");
+          }
+        }}
+        onClearCheque={async (id, date) => {
+          try {
+            await handleClear(id, date);
+            uiToast.success("Cheque Cleared", "Cheque cleared and funds updated.");
+            setDialogState((prev) => ({ ...prev, isOpen: false }));
+          } catch (err) {
+            uiToast.error("Clearance Failed", typeof err === "string" ? err : err?.message || "Failed to clear cheque.");
+          }
+        }}
+        onBounceCheque={async (id, reason, charges) => {
+          try {
+            await handleBounce(id, reason, charges);
+            uiToast.error("Cheque Bounced", "Cheque marked as bounced.");
+            setDialogState((prev) => ({ ...prev, isOpen: false }));
+          } catch (err) {
+            uiToast.error("Bounce Failed", typeof err === "string" ? err : err?.message || "Failed to bounce cheque.");
+          }
+        }}
+        onCancelCheque={async (id, reason) => {
+          try {
+            await handleCancel(id, reason);
+            uiToast.warning("Cheque Cancelled", "Cheque has been cancelled.");
+            setDialogState((prev) => ({ ...prev, isOpen: false }));
+          } catch (err) {
+            uiToast.error("Cancellation Failed", typeof err === "string" ? err : err?.message || "Failed to cancel cheque.");
+          }
+        }}
+
         onSuccess={() => {
           fetchChequesData();
           setDialogState((prev) => ({ ...prev, isOpen: false }));

@@ -30,6 +30,8 @@ import {
   UIIconButton,
 } from "@/components/ui";
 
+import { cn } from "@/lib/utils";
+
 const STATUS_COLOR_MAP = {
   active: "success",
   inactive: "neutral",
@@ -59,20 +61,23 @@ export const BranchTableView = ({
   onSettings,
   onViewEmployees,
   onDelete,
+  stickyHeader = true,
+  seamless = true,
+  className = "",
 }) => {
   return (
-    <div className="rounded-2xl border border-border bg-surface shadow-sm">
-      <div className="overflow-x-auto rounded-2xl">
-        <UITable>
-          <UITableHeader>
-            <UITableRow className="bg-surface-alt/60">
-              <UITableHead className="min-w-[240px]">Branch</UITableHead>
-              <UITableHead className="min-w-[130px]">Type / Business</UITableHead>
-              <UITableHead className="min-w-[160px]">Manager / Pharmacist</UITableHead>
-              <UITableHead className="min-w-[150px]">Location</UITableHead>
-              <UITableHead className="min-w-[120px] text-center">Members Access</UITableHead>
-              <UITableHead className="min-w-[100px]">Status</UITableHead>
-              <UITableHead className="w-16 text-right">Actions</UITableHead>
+    <div className={cn(seamless ? "w-full overflow-visible" : "rounded-2xl border border-border bg-surface shadow-sm overflow-hidden", className)}>
+      <div className={seamless ? "w-full overflow-visible" : "overflow-x-auto rounded-2xl"}>
+        <UITable stickyHeader={stickyHeader} containerClassName={seamless ? "static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto" : undefined} className="w-full">
+          <UITableHeader sticky={stickyHeader} className={cn("select-none", stickyHeader && "sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs shadow-xs")}>
+            <UITableRow className="border-b border-border text-[11px] font-semibold text-text uppercase tracking-wider bg-surface-alt">
+              <UITableHead sticky={stickyHeader} className="min-w-[240px]">Branch</UITableHead>
+              <UITableHead sticky={stickyHeader} className="min-w-[130px]">Type / Business</UITableHead>
+              <UITableHead sticky={stickyHeader} className="min-w-[160px]">Manager / Pharmacist</UITableHead>
+              <UITableHead sticky={stickyHeader} className="min-w-[150px]">Location</UITableHead>
+              <UITableHead sticky={stickyHeader} align="center" className="min-w-[120px] text-center">Members Access</UITableHead>
+              <UITableHead sticky={stickyHeader} align="center" className="min-w-[100px] text-center">Status</UITableHead>
+              <UITableHead sticky={stickyHeader} align="right" className="w-16 text-right">Actions</UITableHead>
             </UITableRow>
           </UITableHeader>
 

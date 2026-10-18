@@ -82,8 +82,6 @@ const accountBalanceSlice = createSlice({
         state.getAccountBalanceStatus = API_STATUS.SUCCESS;
 
         state.currentAccountBalance = action.payload || null;
-
-        state.message = "Account balance fetched successfully";
       })
       .addCase(getAccountBalanceByAccountId.rejected, (state, action) => {
         setRejected(state, action);

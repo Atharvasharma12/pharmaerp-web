@@ -8,8 +8,7 @@ import {
   UIModalBody,
   UIModalFooter,
   UIButton,
-  UIAlert,
-  UISelect,
+  uiToast,
 } from "@/components/ui";
 import {
   Repeat,
@@ -25,6 +24,8 @@ import {
   Minus,
   Sparkles,
   Info,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useActiveShift from "@/features/operations/shifts/hooks/useActiveShift";
@@ -61,12 +62,13 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
   const { currentBranchCash, fetchBranchCash } = useBranchCash();
   const { createCashExchange, createCashExchangeStatus, error: apiError, clearError } = useCashExchange();
 
-  const [partition, setPartition] = useState("running"); // "running" | "frozen"
+  const partition = "running"; // Strictly running cash drawer
   const [receivedMap, setReceivedMap] = useState({ ...INITIAL_DENOM_MAP });
   const [givenMap, setGivenMap] = useState({ ...INITIAL_DENOM_MAP });
   const [narration, setNarration] = useState("");
   const [notes, setNotes] = useState("");
-  const [clientError, setClientError] = useState("");
+
+  const isShiftOpen = Boolean(currentBranchCash?.currentShiftId || activeShift);
 
   // Load branch cash when opening
   useEffect(() => {
@@ -76,26 +78,18 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
       setGivenMap({ ...INITIAL_DENOM_MAP });
       setNarration("");
       setNotes("");
-      setClientError("");
       clearError();
     }
   }, [isOpen, currentBranch?._id, fetchBranchCash, clearError]);
 
-  // Drawer available denominations
+  // Drawer available denominations strictly from running partition
   const availableDenomList = useMemo(() => {
-    if (!currentBranchCash?.denominationBalance) {
-      return (
-        (partition === "running"
-          ? currentBranchCash?.balance?.runningDenominations
-          : currentBranchCash?.balance?.frozenDenominations) || []
-      );
-    }
     return (
-      (partition === "running"
-        ? currentBranchCash.denominationBalance.runningDenominations
-        : currentBranchCash.denominationBalance.frozenDenominations) || []
+      currentBranchCash?.denominationBalance?.runningDenominations ||
+      currentBranchCash?.balance?.runningDenominations ||
+      []
     );
-  }, [currentBranchCash, partition]);
+  }, [currentBranchCash]);
 
   const availableDenomMap = useMemo(() => {
     const map = {};
@@ -105,13 +99,16 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
     return map;
   }, [availableDenomList]);
 
-  // Drawer partition total
+  // Running Drawer total
   const drawerTotal = useMemo(() => {
+    if (currentBranchCash?.runningCash !== undefined && currentBranchCash?.runningCash !== null) {
+      return Number(currentBranchCash.runningCash);
+    }
     return Object.entries(availableDenomMap).reduce(
       (sum, [denom, count]) => sum + Number(denom) * count,
       0
     );
-  }, [availableDenomMap]);
+  }, [currentBranchCash, availableDenomMap]);
 
   // Totals calculation
   const totalReceived = useMemo(() => {
@@ -133,14 +130,16 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
 
   // Handlers for Received
   const handleReceivedChange = (note, val) => {
-    setClientError("");
     const parsed = Math.max(0, parseInt(val, 10) || 0);
     setReceivedMap((prev) => ({ ...prev, [note]: parsed }));
   };
 
+  const handleClearReceived = () => {
+    setReceivedMap({ ...INITIAL_DENOM_MAP });
+  };
+
   // Handlers for Given (clamped to available in drawer)
   const handleGivenChange = (note, val) => {
-    setClientError("");
     const maxAvail = availableDenomMap[note] || 0;
     let parsed = Math.max(0, parseInt(val, 10) || 0);
     if (parsed > maxAvail) {
@@ -149,47 +148,48 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
     setGivenMap((prev) => ({ ...prev, [note]: parsed }));
   };
 
+  const handleClearGiven = () => {
+    setGivenMap({ ...INITIAL_DENOM_MAP });
+  };
+
   const handleReset = () => {
     setReceivedMap({ ...INITIAL_DENOM_MAP });
     setGivenMap({ ...INITIAL_DENOM_MAP });
-    setClientError("");
   };
 
   const handleSubmit = async () => {
-    setClientError("");
-
-    if (!activeShift) {
-      setClientError("An active shift is required to perform cash exchanges.");
+    if (!isShiftOpen) {
+      uiToast.warning("Shift Required", "An active open shift is required to perform cash exchanges in the running drawer.");
       return;
     }
 
     if (totalReceived <= 0) {
-      setClientError("Enter at least one denomination received from the customer.");
+      uiToast.warning("Denominations Required", "Enter at least one denomination received from customer.");
       return;
     }
 
     if (totalGiven <= 0) {
-      setClientError("Enter at least one denomination given to the customer.");
+      uiToast.warning("Denominations Required", "Enter at least one denomination given to customer.");
       return;
     }
 
     if (totalReceived !== totalGiven) {
-      setClientError(
-        `Exchange is imbalanced! Received: ₹${totalReceived.toLocaleString(
-          "en-IN"
-        )}, Given: ₹${totalGiven.toLocaleString("en-IN")}. Both must be equal.`
+      uiToast.error(
+        "Exchange Imbalanced",
+        `Received: ₹${totalReceived.toLocaleString("en-IN")}, Given: ₹${totalGiven.toLocaleString("en-IN")}. Both must be equal.`
       );
       return;
     }
 
-    // Check given denominations against drawer
+    // Check given denominations against running drawer
     for (const [noteStr, count] of Object.entries(givenMap)) {
       const note = Number(noteStr);
       const needed = Number(count);
       const avail = availableDenomMap[note] || 0;
       if (needed > avail) {
-        setClientError(
-          `Drawer only has ${avail} note(s) of ₹${note}. Cannot give ${needed}.`
+        uiToast.error(
+          "Insufficient Running Drawer Stock",
+          `Running drawer only has ${avail} note(s) of ₹${note}. Cannot give ${needed}.`
         );
         return;
       }
@@ -212,7 +212,7 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
     try {
       const payload = {
         exchangeDate: new Date(),
-        cashPartition: partition,
+        cashPartition: "running",
         denominationsReceived,
         denominationsGiven,
         narration: narration.trim() || undefined,
@@ -220,21 +220,21 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
       };
 
       await createCashExchange(payload);
+      uiToast.success(
+        "Cash Exchange Recorded",
+        `Successfully swapped ₹${totalReceived.toLocaleString("en-IN")} in Running Cash Drawer.`
+      );
       if (typeof onSuccess === "function") onSuccess();
       onClose();
     } catch (err) {
-      setClientError(
-        typeof err === "string" ? err : "Failed to record cash exchange."
+      uiToast.error(
+        "Exchange Failed",
+        typeof err === "string" ? err : err?.message || "Failed to record cash exchange."
       );
     }
   };
 
   const isSubmitting = createCashExchangeStatus === API_STATUS.LOADING;
-
-  const partitionOptions = [
-    { value: "running", label: "Running Cash Drawer" },
-    { value: "frozen", label: "Frozen Reserve Vault" },
-  ];
 
   return (
     <UIModal
@@ -254,11 +254,11 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
                 New Cash Exchange
               </UIModalTitle>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                DENOMINATION SWAP
+                RUNNING DRAWER ONLY
               </span>
             </div>
             <p className="text-xs text-text-muted mt-0.5">
-              Swap cash denominations with zero net impact on total drawer balances
+              Swap cash denominations within the active running drawer with zero net impact on balance
             </p>
           </div>
         </div>
@@ -266,17 +266,15 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
 
       {/* ── Modal Body (Scrollable) ── */}
       <UIModalBody className="p-6 overflow-y-auto space-y-5 flex-1 min-h-0 bg-[#f8fafc] dark:bg-bg">
-        {/* Errors / Warnings */}
-        {(clientError || apiError) && (
-          <UIAlert
-            intent="danger"
-            title="Unable to record exchange"
-            description={clientError || apiError}
-            onClose={() => {
-              setClientError("");
-              clearError();
-            }}
-          />
+
+        {/* Warning if no active shift */}
+        {!isShiftOpen && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center gap-3 text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <p className="text-xs font-medium">
+              An active open shift is required to perform cash exchanges in the running cash drawer. Please open a shift first.
+            </p>
+          </div>
         )}
 
         {/* ── Context & Partition Bar ── */}
@@ -293,24 +291,27 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
               <div className="text-xs font-bold text-text truncate">
                 {currentBranch?.name || "Current Branch"}
               </div>
-              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium truncate flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                {activeShift?.name || activeShift?.shiftNo || "Active Shift"}
+              <div className={`text-[10px] font-medium truncate flex items-center gap-1 ${
+                isShiftOpen ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+              }`}>
+                <span className={`size-1.5 rounded-full ${isShiftOpen ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+                {activeShift?.name || activeShift?.shiftNo || (isShiftOpen ? "Active Shift Open" : "No Open Shift")}
               </div>
             </div>
           </div>
 
-          {/* Drawer Partition Selection */}
+          {/* Drawer Source - Fixed Running Cash Drawer */}
           <div className="min-w-0">
-            <label className="text-[10px] uppercase font-bold text-text-muted tracking-wider block mb-1">
-              Select Drawer Source
-            </label>
-            <UISelect
-              value={partition}
-              onChange={(e) => setPartition(e.target.value)}
-              options={partitionOptions}
-              className="text-xs font-medium"
-            />
+            <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block mb-1">
+              Drawer Source
+            </span>
+            <div className="flex items-center gap-2 h-9 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+              <span className="size-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="text-xs font-bold truncate">Running Cash Drawer</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 ml-auto shrink-0 uppercase tracking-wider">
+                Running Only
+              </span>
+            </div>
           </div>
 
           {/* Drawer Balance Display */}
@@ -318,7 +319,7 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
             <div className="flex items-center gap-2 min-w-0">
               <Wallet className="size-4 text-text-muted shrink-0" />
               <div className="min-w-0">
-                <div className="text-[10px] text-text-muted font-medium">Available in Drawer</div>
+                <div className="text-[10px] text-text-muted font-medium">Running Drawer Cash</div>
                 <div className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400">
                   {formatCurrency(drawerTotal)}
                 </div>
@@ -349,10 +350,22 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
                     <p className="text-[10px] text-text-muted">Cash handed in (bigger notes)</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-[10px] text-text-muted font-medium">Total In</div>
-                  <div className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
-                    {formatCurrency(totalReceived)}
+                <div className="flex items-center gap-2">
+                  {totalReceived > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearReceived}
+                      className="text-[10px] font-semibold text-rose-500 hover:text-rose-600 px-1.5 py-0.5 rounded hover:bg-rose-500/10 transition cursor-pointer"
+                      title="Clear received notes"
+                    >
+                      Clear
+                    </button>
+                  )}
+                  <div className="text-right">
+                    <div className="text-[10px] text-text-muted font-medium">Total In</div>
+                    <div className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(totalReceived)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -427,10 +440,22 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
                     <p className="text-[10px] text-text-muted">Cash given out (change)</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-[10px] text-text-muted font-medium">Total Out</div>
-                  <div className="text-sm font-black font-mono text-blue-600 dark:text-blue-400">
-                    {formatCurrency(totalGiven)}
+                <div className="flex items-center gap-2">
+                  {totalGiven > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearGiven}
+                      className="text-[10px] font-semibold text-rose-500 hover:text-rose-600 px-1.5 py-0.5 rounded hover:bg-rose-500/10 transition cursor-pointer"
+                      title="Clear given notes"
+                    >
+                      Clear
+                    </button>
+                  )}
+                  <div className="text-right">
+                    <div className="text-[10px] text-text-muted font-medium">Total Out</div>
+                    <div className="text-sm font-black font-mono text-blue-600 dark:text-blue-400">
+                      {formatCurrency(totalGiven)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -593,7 +618,7 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
           type="button"
           size="sm"
           onClick={handleSubmit}
-          disabled={!isBalanced || isSubmitting}
+          disabled={!isShiftOpen || !isBalanced || isSubmitting}
           isLoading={isSubmitting}
           startIcon={<Repeat className="size-3.5" />}
           className="rounded-xl text-xs font-bold px-5 bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer transition disabled:opacity-40"
@@ -605,4 +630,5 @@ export const CreateCashExchangeModal = ({ isOpen, onClose, onSuccess }) => {
   );
 };
 
+export const CashExchangeDialog = CreateCashExchangeModal;
 export default CreateCashExchangeModal;

@@ -1,29 +1,22 @@
-import React, { useState } from "react";
-import { FiArrowLeft, FiSlash, FiCheckCircle } from "react-icons/fi";
+import React from "react";
+import { FiArrowLeft, FiCheckCircle } from "react-icons/fi";
 
 import {
   AppCard,
   AppHeading,
   AppText,
   AppIconButton,
-  AppButton,
-  AppInput,
 } from "@/components";
 import { formatDate, formatDateTime } from "@/utils";
 
 const CashExchangeDetailsMobilePage = ({
   exchangeDetails,
   isLoading = false,
-  isCancelling = false,
   error,
   message,
   clearFeedback,
-  handleCancelExchange,
   handleBack,
 }) => {
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
-
   if (isLoading || !exchangeDetails) {
     return (
       <section className="min-h-screen bg-bg flex items-center justify-center">
@@ -44,18 +37,7 @@ const CashExchangeDetailsMobilePage = ({
     narration,
     createdBy,
     createdAt,
-    cancelledBy,
-    cancelledAt,
-    cancellationReason,
   } = exchangeDetails;
-
-  const isCancelled = status === "CANCELLED";
-
-  const handleConfirmCancel = async () => {
-    setShowCancelModal(false);
-    await handleCancelExchange(cancelReason);
-    setCancelReason("");
-  };
 
   const getStatusBadge = (s) => {
     switch (s) {
@@ -63,12 +45,6 @@ const CashExchangeDetailsMobilePage = ({
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success-soft text-success text-xs font-bold">
             <FiCheckCircle /> Completed
-          </span>
-        );
-      case "CANCELLED":
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-danger-soft text-danger text-xs font-bold">
-            <FiSlash /> Cancelled
           </span>
         );
       default:
@@ -90,16 +66,6 @@ const CashExchangeDetailsMobilePage = ({
             #{exchangeNumber}
           </AppHeading>
         </div>
-        {!isCancelled && (
-          <AppButton
-            size="sm"
-            variant="danger"
-            onClick={() => setShowCancelModal(true)}
-            disabled={isCancelling}
-          >
-            Cancel
-          </AppButton>
-        )}
       </div>
 
       <div className="p-4 space-y-4">
@@ -188,43 +154,9 @@ const CashExchangeDetailsMobilePage = ({
               <AppText size="sm">{createdBy?.name || "—"}</AppText>
               <AppText size="xs" sx={{ color: "var(--color-text-muted)" }}>{formatDateTime(createdAt)}</AppText>
             </div>
-            {isCancelled && (
-              <div className="pt-3 border-t border-border">
-                <AppText size="xs" sx={{ color: "var(--color-danger)", fontWeight: 600 }}>Cancelled By</AppText>
-                <AppText size="sm">{cancelledBy?.name || "—"}</AppText>
-                <AppText size="xs" sx={{ color: "var(--color-text-muted)" }}>{formatDateTime(cancelledAt)}</AppText>
-                {cancellationReason && (
-                  <div className="mt-2 text-sm text-text bg-bg p-2 rounded">{cancellationReason}</div>
-                )}
-              </div>
-            )}
           </div>
         </AppCard>
       </div>
-
-      {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center p-4">
-          <div className="w-full max-w-sm bg-surface rounded-2xl p-5 shadow-2xl animate-in slide-in-from-bottom-4">
-            <AppHeading level={4} weight={700} sx={{ marginBottom: 8 }}>
-              Cancel Exchange
-            </AppHeading>
-            <AppText size="sm" sx={{ color: "var(--color-text-muted)", marginBottom: 16 }}>
-              Reverse denomination changes in drawer.
-            </AppText>
-            <AppInput
-              placeholder="Reason (optional)"
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              size="sm"
-              sx={{ marginBottom: 20 }}
-            />
-            <div className="flex gap-3">
-              <AppButton className="flex-1" variant="outline" onClick={() => setShowCancelModal(false)}>Keep</AppButton>
-              <AppButton className="flex-1" variant="danger" onClick={handleConfirmCancel} loading={isCancelling}>Cancel It</AppButton>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 };

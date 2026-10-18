@@ -348,6 +348,20 @@ const ChequesMobilePage = ({
                           {formatDate(c.chequeDate)}
                         </span>
                       </div>
+                      <div>
+                        <span className="text-text-muted block font-semibold">Clearance Date</span>
+                        <span className="font-bold text-text block mt-0.5">
+                          {c.clearedAt || c.clearDate || c.clearedDate ? (
+                            formatDate(c.clearedAt || c.clearDate || c.clearedDate)
+                          ) : isCleared ? (
+                            c.updatedAt ? formatDate(c.updatedAt) : "Cleared"
+                          ) : isDeposited ? (
+                            "In-Transit"
+                          ) : (
+                            "Awaiting Bank"
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </AppCard>
                 );

@@ -322,20 +322,7 @@ export const UIDropdownMenu = forwardRef(
             onClick={(e) => e.stopPropagation()}
             {...props}
           >
-            {React.Children.map(children, (child) => {
-              if (!React.isValidElement(child)) return child;
-              return React.cloneElement(child, {
-                onClick: (e) => {
-                  child.props.onClick?.(e);
-                  if (
-                    !child.props.disabled &&
-                    child.type?.displayName === "UIDropdownItem"
-                  ) {
-                    setIsOpen?.(false);
-                  }
-                },
-              });
-            })}
+            {children}
           </motion.div>
         )}
       </AnimatePresence>
@@ -358,19 +345,31 @@ export const UIDropdownItem = forwardRef(
       shortcut,
       destructive = false,
       disabled = false,
+      closeOnSelect = true,
       className,
       onClick,
       ...props
     },
     ref
   ) => {
+    const context = useContext(UIDropdownContext);
+    const setIsOpen = context?.setIsOpen;
+
+    const handleClick = (e) => {
+      if (disabled) return;
+      if (closeOnSelect) {
+        setIsOpen?.(false);
+      }
+      onClick?.(e);
+    };
+
     return (
       <button
         ref={ref}
         role="menuitem"
         type="button"
         disabled={disabled}
-        onClick={disabled ? undefined : onClick}
+        onClick={handleClick}
         className={cn(
           "flex items-center justify-between w-full px-3 py-2 text-xs sm:text-[13px] font-medium rounded-xl cursor-pointer select-none",
           "transition-colors duration-100 ease-out",
@@ -382,6 +381,7 @@ export const UIDropdownItem = forwardRef(
         )}
         {...props}
       >
+
         <div className="flex items-center gap-2.5 min-w-0 pr-2">
           {icon && (
             <span

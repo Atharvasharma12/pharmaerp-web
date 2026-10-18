@@ -87,15 +87,18 @@ const JournalVouchersMobilePage = ({
   handlePageSizeChange,
   handleRefresh,
   handleCreateVoucher,
+  handleCreate: handleCreateProp,
   handleViewVoucher,
   handleEditVoucher,
 }) => {
   const navigate = useNavigate();
 
-  const handleCreateButtonClick = () => {
-    if (handleCreateVoucher) handleCreateVoucher();
+  const handleCreate = () => {
+    if (handleCreateProp) handleCreateProp();
+    else if (handleCreateVoucher) handleCreateVoucher();
     else navigate(ROUTES.CREATE_JOURNAL_VOUCHER);
   };
+  const handleCreateButtonClick = handleCreate;
 
   const handleCardClick = (voucherId) => {
     if (handleViewVoucher) handleViewVoucher(voucherId);

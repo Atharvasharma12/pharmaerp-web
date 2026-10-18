@@ -4,21 +4,6 @@ import bankTransactionService from "../services/bankTransactionService";
 
 import { getErrorMessage } from "@/utils";
 
-// Create Bank Transaction
-export const createBankTransaction = createAsyncThunk(
-  "bankTransaction/createBankTransaction",
-  async (payload, { rejectWithValue }) => {
-    try {
-      const response =
-        await bankTransactionService.createBankTransaction(payload);
-
-      return response.data?.data;
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error));
-    }
-  },
-);
-
 // Get Bank Transactions
 export const getBankTransactions = createAsyncThunk(
   "bankTransaction/getBankTransactions",

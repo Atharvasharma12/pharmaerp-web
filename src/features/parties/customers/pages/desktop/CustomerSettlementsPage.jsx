@@ -171,11 +171,11 @@ export default function CustomerSettlementsPage() {
   }, []);
 
   return (
-    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-3 space-y-2.5 text-text font-sans transition-colors">
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
       {error && <UIAlert variant="danger">{error}</UIAlert>}
 
       {/* ── 1. Compact 4-Card Statistics Grid (Top of Page) ────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
         {/* Card 1: Total Receivables Debt */}
         <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
           <div className="size-9 rounded-lg bg-error-soft text-error flex items-center justify-center shrink-0">
@@ -250,7 +250,7 @@ export default function CustomerSettlementsPage() {
       </div>
 
       {/* ── 2. Streamlined Single-Row Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
         {/* Compact Search Input (Decreased Width, Not Stretching Full Width) */}
         <div className="w-[240px] sm:w-[280px] lg:w-[320px]">
           <UIInput
@@ -335,10 +335,10 @@ export default function CustomerSettlementsPage() {
       </div>
 
       {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ────── */}
-      <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
         <div
           ref={tableContainerRef}
-          className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-175px)] min-h-[500px] flex-1 divide-y divide-border/60"
+          className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0 divide-y divide-border/60"
         >
           <UITable
             stickyHeader
@@ -418,7 +418,7 @@ export default function CustomerSettlementsPage() {
                         {c.mobile ? (
                           <div className="font-mono text-text flex items-center gap-1 text-xs">
                             <Phone className="size-3 text-text-muted shrink-0" />
-                            <span>{c.mobile}</span>
+                            <span className="font-bold text-text/90 font-mono text-[13px]">{c.mobile}</span>
                           </div>
                         ) : (
                           <span className="text-text-muted text-xs">—</span>

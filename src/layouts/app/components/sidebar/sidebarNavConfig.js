@@ -37,7 +37,7 @@ import { ROUTES } from "@/constants";
 //   product:view, global-product:view, category:view, hsn:view, manufacturer:view, salt:view, uom:view, product-form:view, bank-master:view
 //   pos:view, bill:view, purchase:view, sale:view, marketplace-store:view, marketplace-product:view
 //   account:view, account-group:view, account-balance:view, journal-voucher:view, ledger:view, report:view, financial-period:view
-//   bank-account:view, cash-account:view, fund-transfer:view, cheque:view, payment-qr:view, cash-denomination:view, bank-deposit-slip:view
+//   bank-account:view, cash-account:view, fund-transfer:view, cheque:view, payment-qr:view, bank-deposit-slip:view
 //
 // Items WITHOUT a permission/permissions key are always visible to all authenticated users.
 
@@ -51,6 +51,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Billing (POS)",
         path: ROUTES.SALES,
         icon: ShoppingCart,
+        shortcut: "Alt + N",
         permissions: ["pos:view", "bill:view", "sale:view"],
         keywords: ["pos", "billing", "sales", "invoice", "counter"],
       },
@@ -59,6 +60,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Sale Invoices",
         path: ROUTES.BILLING,
         icon: Receipt,
+        shortcut: "Alt + M",
         permissions: ["bill:view", "sale:view"],
         keywords: ["sale invoices", "sales", "invoices", "bills", "sales register"],
       },
@@ -67,22 +69,34 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Purchases",
         path: ROUTES.PURCHASES,
         icon: Truck,
+        shortcut: "Alt + P",
         permission: "purchase:view",
         keywords: ["purchases", "vendor bills", "purchase order"],
       },
       {
         id: "pharmacy-stock",
-        label: "Pharmacy Stock",
+        label: "Custom Products",
         path: ROUTES.WORKSPACE_PRODUCTS,
         icon: Boxes,
+        shortcut: "Alt + I",
         permission: "product:view",
-        keywords: ["stock", "inventory", "medicines", "products"],
+        keywords: ["stock", "inventory", "medicines", "products", "custom products"],
+      },
+      {
+        id: "stock-metrics",
+        label: "Stock Metrics",
+        path: ROUTES.STOCK_METRICS,
+        icon: Layers,
+        shortcut: "Alt + S",
+        permission: "product:view",
+        keywords: ["stock metrics", "stock matrix", "inventory", "batches", "batch stock", "qoh", "expiry"],
       },
       {
         id: "transfer-orders",
         label: "Transfer Orders",
         path: "/inventory/transfer-orders",
         icon: ArrowLeftRight,
+        shortcut: "Alt + T",
         keywords: ["transfer orders", "stock transfer", "inventory transfer", "to"],
       },
       {
@@ -90,6 +104,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Customers",
         path: ROUTES.CUSTOMERS,
         icon: Users,
+        shortcut: "Alt + C",
         permission: "customer:view",
         keywords: ["customers", "parties", "debtors"],
       },
@@ -98,6 +113,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Suppliers",
         path: ROUTES.SUPPLIERS,
         icon: Truck,
+        shortcut: "Alt + U",
         permission: "supplier:view",
         keywords: ["suppliers", "vendors", "creditors"],
       },
@@ -106,6 +122,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Doctors",
         path: ROUTES.DOCTORS,
         icon: Stethoscope,
+        shortcut: "Alt + D",
         permission: "doctor:view",
         keywords: ["doctors", "prescribers", "physicians", "specialists", "clinics"],
       },
@@ -114,14 +131,17 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Business Days",
         path: "/operations/business-days",
         icon: CalendarDays,
+        shortcut: "Alt + Y",
       },
       {
         id: "shifts",
         label: "Shifts",
         path: "/operations/shifts",
         icon: Clock,
+        shortcut: "Alt + F",
       },
     ],
+
   },
   {
     id: "money",
@@ -132,6 +152,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Cash Counter",
         path: ROUTES.BRANCH_CASH,
         icon: Wallet,
+        shortcut: "Alt + B",
         permission: "cash-account:view",
         keywords: ["cash counter", "branch cash", "till"],
       },
@@ -140,6 +161,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Bank Accounts",
         path: ROUTES.BANK_ACCOUNTS,
         icon: Landmark,
+        shortcut: "Alt + Shift + B",
         permission: "bank-account:view",
         keywords: ["bank accounts", "banks list", "bank list", "banks"],
       },
@@ -148,6 +170,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Bank Deposit Slips",
         path: ROUTES.BANK_DEPOSIT_SLIPS,
         icon: FileUp,
+        shortcut: "Alt + K",
         permission: "bank-deposit-slip:view",
         keywords: ["bank slip", "deposit slip", "cash in transit", "bank deposit", "slips"],
       },
@@ -164,6 +187,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Cash Transactions",
         path: ROUTES.CASH_TRANSACTIONS,
         icon: Banknote,
+        shortcut: "Alt + X",
         permission: "cash-transaction:view",
         keywords: [
           "cash transactions",
@@ -178,6 +202,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "UPI Transactions",
         path: ROUTES.UPI_TRANSACTIONS,
         icon: QrCode,
+        shortcut: "Alt + R",
         permission: "payment-qr:view",
         keywords: [
           "upi transactions",
@@ -199,7 +224,6 @@ export const SIDEBAR_NAV_GROUPS = [
           "payment-qr:view",
           "fund-transfer:view",
           "cheque:view",
-          "cash-denomination:view",
           "cash-exchange:view",
         ],
         children: [
@@ -225,17 +249,11 @@ export const SIDEBAR_NAV_GROUPS = [
             label: "Cheques",
             path: ROUTES.CHEQUES,
             icon: FileCheck2,
+            shortcut: "Alt + Q",
             permission: "cheque:view",
             keywords: ["cheques", "cheque management", "checks"],
           },
-          {
-            id: "cash-denominations",
-            label: "Cash Denominations",
-            path: ROUTES.CASH_DENOMINATIONS,
-            icon: Banknote,
-            permission: "cash-denomination:view",
-            keywords: ["cash tally", "cash denominations", "note count"],
-          },
+
           {
             id: "cash-exchanges",
             label: "Cash Exchanges",
@@ -257,6 +275,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Accounts",
         path: ROUTES.ACCOUNTS,
         icon: Layers,
+        shortcut: "Alt + A",
         permission: "account:view",
         keywords: ["accounts", "chart of accounts", "coa", "account list", "ledger accounts"],
       },
@@ -265,6 +284,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "General Ledger",
         path: ROUTES.LEDGER,
         icon: BookOpen,
+        shortcut: "Alt + L",
         permission: "ledger:view",
         keywords: ["general ledger", "ledger", "account statement", "statement"],
       },
@@ -281,6 +301,7 @@ export const SIDEBAR_NAV_GROUPS = [
         label: "Manual Adjustments",
         path: ROUTES.JOURNAL_VOUCHERS,
         icon: FileText,
+        shortcut: "Alt + J",
         permission: "journal-voucher:view",
         keywords: ["manual adjustments", "journal vouchers", "vouchers", "jv"],
       },
@@ -315,9 +336,11 @@ export const SIDEBAR_NAV_GROUPS = [
                 label: "GSTR-1",
                 path: ROUTES.GSTR1,
                 icon: FileText,
+                shortcut: "Alt + G",
                 permission: "ledger:view",
                 keywords: ["gstr1", "gstr-1", "sales tax"],
               },
+
               {
                 id: "gstr-2",
                 label: "GSTR-2",

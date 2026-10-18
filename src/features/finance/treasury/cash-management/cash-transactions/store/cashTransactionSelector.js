@@ -19,9 +19,6 @@ export const selectCashTransactionError = (state) =>
 export const selectCashTransactionMessage = (state) =>
   state.cashTransaction.message;
 
-export const selectCreateCashTransactionStatus = (state) =>
-  state.cashTransaction.createCashTransactionStatus;
-
 export const selectGetCashTransactionsStatus = (state) =>
   state.cashTransaction.getCashTransactionsStatus;
 

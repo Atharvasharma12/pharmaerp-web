@@ -11,6 +11,7 @@ import { useBranchCash } from "../hooks/useBranchCash";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useActiveShift from "@/features/operations/shifts/hooks/useActiveShift";
 import { getOpenBusinessDay } from "@/features/operations/business-days/store/businessDayThunk";
+import { cn } from "@/lib/utils";
 import {
   RefreshCw,
   Lock,
@@ -65,7 +66,7 @@ export const BranchCashPage = () => {
   const dispatch = useDispatch();
   const { currentBranch } = useBranch();
   const { currentBranchCash, fetchBranchCash, fetchStatus, error } = useBranchCash();
-  const { activeShift } = useActiveShift(currentBranch?._id);
+  const { activeShift, refetch: refetchActiveShift } = useActiveShift(currentBranch?._id);
   const { openBusinessDay } = useSelector((state) => state.businessDay || {});
 
   const [activeTab, setActiveTab] = useState("drawers"); // "drawers" | "matrix"
@@ -78,10 +79,13 @@ export const BranchCashPage = () => {
     if (currentBranch?._id) {
       fetchBranchCash(currentBranch._id);
       dispatch(getOpenBusinessDay(currentBranch._id));
+      refetchActiveShift?.();
     }
-  }, [currentBranch?._id, fetchBranchCash, dispatch]);
+  }, [currentBranch?._id, fetchBranchCash, dispatch, refetchActiveShift]);
 
-  const isLoading = fetchStatus === "loading";
+  const isLoading =
+    fetchStatus === "loading" ||
+    (!currentBranchCash && fetchStatus !== "succeeded" && fetchStatus !== "failed" && !error);
 
   // Denominations lists
   const runningDenominations =
@@ -115,24 +119,76 @@ export const BranchCashPage = () => {
         (currentBranchCash.createdAt && !currentBranchCash.isUninitialized))
   );
 
-  const isShiftActive = Boolean(activeShift);
-  const shiftDisplay = activeShift
-    ? `Shift # ${activeShift.code || activeShift.shiftNumber || "SFT-001"} • ${activeShift.name || activeShift.shiftType || "General Shift"}`
-    : "No Active Shift";
+  // Real Shift & Business Day Info (No hardcoded dummy fallbacks)
+  const effectiveShift = activeShift || openBusinessDay?.currentOpenShift || null;
+  const isShiftActive = Boolean(
+    effectiveShift &&
+      (effectiveShift.status === "open" || effectiveShift.status === undefined)
+  );
+  const isBusinessDayOpen = Boolean(
+    openBusinessDay &&
+      (openBusinessDay.status === "open" || openBusinessDay.businessDate)
+  );
 
-  const businessDateDisplay = useMemo(() => {
-    if (!openBusinessDay?.businessDate) return "Today";
+  const realShiftTitle = useMemo(() => {
+    if (!effectiveShift) return null;
+    const name = effectiveShift.shiftName?.trim();
+    const no = effectiveShift.shiftNo;
+    if (name && no) {
+      if (name.toLowerCase().includes("shift")) {
+        return name;
+      }
+      return `Shift #${no} • ${name}`;
+    }
+    if (name) return name;
+    if (no) return `Shift #${no}`;
+    if (effectiveShift.openPeriod) {
+      const period =
+        effectiveShift.openPeriod.charAt(0).toUpperCase() +
+        effectiveShift.openPeriod.slice(1);
+      return `${period} Shift`;
+    }
+    return "Active Shift";
+  }, [effectiveShift]);
+
+  const realShiftSubtext = useMemo(() => {
+    if (!effectiveShift) return null;
+    const cashier =
+      effectiveShift.openedBy?.fullName ||
+      effectiveShift.openedBy?.name ||
+      effectiveShift.openedBy?.email;
+    if (cashier) return `Cashier: ${cashier}`;
+    if (effectiveShift.openedAt) {
+      try {
+        const timeStr = new Date(effectiveShift.openedAt).toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+        return `Opened at ${timeStr}`;
+      } catch {
+        // ignore
+      }
+    }
+    return "Active Shift Session";
+  }, [effectiveShift]);
+
+  const realBusinessDateDisplay = useMemo(() => {
+    if (!openBusinessDay?.businessDate) return null;
     try {
       const d = new Date(openBusinessDay.businessDate);
-      return d.toLocaleDateString("en-GB", {
+      return d.toLocaleDateString("en-IN", {
+        weekday: "short",
         day: "numeric",
-        month: "long",
+        month: "short",
         year: "numeric",
       });
     } catch {
       return String(openBusinessDay.businessDate);
     }
   }, [openBusinessDay]);
+
+  const businessDateDisplay = realBusinessDateDisplay || "Today";
 
   const branchName = currentBranch?.name || "Makati Branch";
 
@@ -168,29 +224,162 @@ export const BranchCashPage = () => {
   }, [runningDenominations, frozenDenominations, totalVault]);
 
   return (
-    <div className="p-4 sm:p-6 bg-[#f8fafc] dark:bg-bg min-h-[calc(100vh-60px)] space-y-6 max-w-[1480px] mx-auto select-none">
-
-
-      {/* ── Page Header: Title & Action Buttons ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-text tracking-tight">
-            Branch Cash & Drawer Management
-          </h1>
-          <p className="text-xs text-text-muted mt-0.5">
-            Manage branch cash, view drawer balances, and handle deposits/withdrawals
-          </p>
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans select-none overflow-hidden">
+      {/* ── 1. Compact 4-Card Statistics Grid (Directly at Top of Page) ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
+        {/* Card 1: Total Vault */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs">
+          <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
+            <Wallet className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">Total Branch Vault</div>
+            <div className="text-xl sm:text-[22px] font-bold font-mono text-text leading-tight tabular-nums">
+              {formatCurrency(totalVault)}
+            </div>
+            <div className="text-[10px] text-text-muted mt-0.5 truncate">
+              Running + Frozen Vault
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        {/* Card 2: Running Cash Drawer */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs">
+          <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
+            <Banknote className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">Running Drawer</div>
+            <div className="text-xl sm:text-[22px] font-bold font-mono text-emerald-600 dark:text-emerald-400 leading-tight tabular-nums">
+              {formatCurrency(runningTotal)}
+            </div>
+            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 truncate">
+              {runningDenomsCount} active denominations
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Frozen Reserve Vault */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs">
+          <div className="size-9 rounded-lg bg-warning-soft text-warning flex items-center justify-center shrink-0">
+            <Lock className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-text-muted truncate">Frozen Reserve</div>
+            <div className="text-xl sm:text-[22px] font-bold font-mono text-amber-700 dark:text-amber-400 leading-tight tabular-nums">
+              {formatCurrency(frozenTotal)}
+            </div>
+            <div className="text-[10px] text-text-muted mt-0.5 truncate">
+              Locked & secured
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Shift & Business Day (Live Real Status) */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs">
+          <div
+            className={cn(
+              "size-9 rounded-lg flex items-center justify-center shrink-0",
+              isShiftActive
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : isBusinessDayOpen
+                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                : "bg-surface-alt text-text-muted"
+            )}
+          >
+            <Clock className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11.5px] font-medium text-text-muted truncate flex items-center justify-between gap-1">
+              <span>Shift & Business Day</span>
+              {isBusinessDayOpen && realBusinessDateDisplay ? (
+                <span className="text-[10px] font-semibold text-primary px-1.5 py-0.2 rounded bg-primary/10 truncate font-mono">
+                  {realBusinessDateDisplay}
+                </span>
+              ) : null}
+            </div>
+            <div className="text-sm sm:text-base font-bold text-text leading-tight flex items-center gap-1.5 truncate mt-0.5">
+              <span
+                className={cn(
+                  "size-2 rounded-full shrink-0",
+                  isShiftActive
+                    ? "bg-emerald-500 animate-pulse"
+                    : isBusinessDayOpen
+                    ? "bg-amber-500"
+                    : "bg-slate-400"
+                )}
+              />
+              <span className="truncate">
+                {isShiftActive
+                  ? realShiftTitle
+                  : isBusinessDayOpen
+                  ? "Shift Closed"
+                  : "Business Day Closed"}
+              </span>
+            </div>
+            <div className="text-[10px] text-text-muted mt-0.5 truncate">
+              {isShiftActive
+                ? realShiftSubtext || (realBusinessDateDisplay ? `Day: ${realBusinessDateDisplay}` : "Shift Active")
+                : isBusinessDayOpen
+                ? `Business Day Open${openBusinessDay?.shifts?.length ? ` • ${openBusinessDay.shifts.length} shift${openBusinessDay.shifts.length === 1 ? "" : "s"} today` : " • Ready for shift"}`
+                : "No active business day"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 2. Streamlined Toolbar: Navigation Tabs & Actions ── */}
+      <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
+        {/* Navigation Tabs */}
+        {isInitialized ? (
+          <div className="flex items-center gap-1 bg-surface-alt/80 p-1 rounded-xl border border-border">
+            <button
+              type="button"
+              onClick={() => setActiveTab("drawers")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === "drawers"
+                  ? "bg-surface text-primary shadow-2xs border border-border/80"
+                  : "text-text-muted hover:text-text"
+              }`}
+            >
+              <Wallet className="size-3.5" />
+              Visual Drawers
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("matrix")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === "matrix"
+                  ? "bg-surface text-primary shadow-2xs border border-border/80"
+                  : "text-text-muted hover:text-text"
+              }`}
+            >
+              <TableIcon className="size-3.5" />
+              Vault Denomination Matrix
+            </button>
+          </div>
+        ) : (
+          <div className="text-xs font-bold text-text-muted">Branch Cash Overview</div>
+        )}
+
+        {/* Action Buttons Cluster */}
+        <div className="flex items-center gap-2 ml-auto">
+          {/* Refresh Button */}
           <UIButton
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => currentBranch?._id && fetchBranchCash(currentBranch._id)}
+            onClick={() => {
+              if (currentBranch?._id) {
+                fetchBranchCash(currentBranch._id);
+                dispatch(getOpenBusinessDay(currentBranch._id));
+                refetchActiveShift?.();
+              }
+            }}
             disabled={isLoading}
-            startIcon={<RefreshCw className={`size-3.5 ${isLoading ? "animate-spin" : ""}`} />}
-            className="rounded-xl text-xs font-semibold px-3 py-2 bg-surface hover:bg-surface-alt shadow-2xs border-border text-text cursor-pointer"
+            startIcon={<RefreshCw className={`size-3.5 ${isLoading ? "animate-spin text-primary" : "text-text-muted"}`} />}
+            className="h-9 px-3 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-alt shadow-2xs border-border text-text cursor-pointer"
+            title="Refresh Vault Cash"
           >
             Refresh
           </UIButton>
@@ -202,7 +391,7 @@ export const BranchCashPage = () => {
               size="sm"
               onClick={() => setIsInitModalOpen(true)}
               startIcon={<Lock className="size-3.5" />}
-              className="rounded-xl text-xs font-bold px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer"
+              className="h-9 px-4 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-white shadow-xs cursor-pointer"
             >
               Initialize Cash
             </UIButton>
@@ -217,7 +406,7 @@ export const BranchCashPage = () => {
                 onClick={() => setIsDepositModalOpen(true)}
                 disabled={isLoading}
                 startIcon={<ArrowDownToLine className="size-3.5" />}
-                className="rounded-xl text-xs font-bold px-4 py-2 bg-[#059669] hover:bg-[#047857] text-white shadow-xs cursor-pointer transition"
+                className="h-9 px-3.5 rounded-xl text-xs font-bold bg-[#059669] hover:bg-[#047857] text-white shadow-xs cursor-pointer transition"
               >
                 Deposit
               </UIButton>
@@ -228,7 +417,7 @@ export const BranchCashPage = () => {
                 onClick={() => setIsWithdrawModalOpen(true)}
                 disabled={isLoading}
                 startIcon={<ArrowUpFromLine className="size-3.5" />}
-                className="rounded-xl text-xs font-bold px-4 py-2 bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-xs cursor-pointer transition"
+                className="h-9 px-3.5 rounded-xl text-xs font-bold bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-xs cursor-pointer transition"
               >
                 Withdraw
               </UIButton>
@@ -237,114 +426,168 @@ export const BranchCashPage = () => {
         </div>
       </div>
 
-      {/* ── Initialized Dashboard: Tabs & Stat Cards ── */}
-      {isInitialized && (
-        <>
-          {/* Navigation Tabs */}
-          <div className="flex items-center gap-8 border-b border-border/80">
-            <button
-              type="button"
-              onClick={() => setActiveTab("drawers")}
-              className={`pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-                activeTab === "drawers"
-                  ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-                  : "border-transparent text-text-muted hover:text-text"
-              }`}
-            >
-              Visual Drawers
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("matrix")}
-              className={`pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-                activeTab === "matrix"
-                  ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-                  : "border-transparent text-text-muted hover:text-text"
-              }`}
-            >
-              Vault Denomination Matrix
-            </button>
-          </div>
-
-          {/* 4 Top Stat Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Card 1: Total Vault */}
-            <div className="bg-surface rounded-2xl border border-border p-4.5 flex items-center gap-3.5 shadow-xs">
-              <div className="size-11 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                <Wallet className="size-5" />
-              </div>
-              <div>
-                <div className="text-[11px] font-medium text-text-muted">Total Vault</div>
-                <div className="text-xl font-black font-mono text-text">
-                  {formatCurrency(totalVault)}
-                </div>
-                <div className="text-[10px] text-text-muted mt-0.5">
-                  Running + Frozen
-                </div>
-              </div>
-            </div>
-
-            {/* Card 2: Running Cash Drawer */}
-            <div className="bg-surface rounded-2xl border border-border p-4.5 flex items-center gap-3.5 shadow-xs">
-              <div className="size-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <Banknote className="size-5" />
-              </div>
-              <div>
-                <div className="text-[11px] font-medium text-text-muted">Running Cash Drawer</div>
-                <div className="text-xl font-black font-mono text-text">
-                  {formatCurrency(runningTotal)}
-                </div>
-                <div className="text-[10px] text-text-muted mt-0.5">
-                  Available for current shift
-                </div>
-              </div>
-            </div>
-
-            {/* Card 3: Frozen Reserve Vault */}
-            <div className="bg-surface rounded-2xl border border-border p-4.5 flex items-center gap-3.5 shadow-xs">
-              <div className="size-11 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                <Lock className="size-5" />
-              </div>
-              <div>
-                <div className="text-[11px] font-medium text-text-muted">Frozen Reserve Vault</div>
-                <div className="text-xl font-black font-mono text-text">
-                  {formatCurrency(frozenTotal)}
-                </div>
-                <div className="text-[10px] text-text-muted mt-0.5">
-                  Locked / Reserved
-                </div>
-              </div>
-            </div>
-
-            {/* Card 4: Current Shift */}
-            <div className="bg-surface rounded-2xl border border-border p-4.5 flex items-center gap-3.5 shadow-xs">
-              <div className="size-11 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-                <Clock className="size-5" />
-              </div>
-              <div>
-                <div className="text-[11px] font-medium text-text-muted">Current Shift</div>
-                <div className="text-base font-bold text-text">
-                  {isShiftActive ? "Active" : "Shift Closed"}
-                </div>
-                <div className="text-[10px] text-text-muted mt-0.5 truncate max-w-[180px]">
-                  {isShiftActive ? shiftDisplay : "No operational shift open"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
       {/* Main Content Area */}
       {isLoading && !currentBranchCash ? (
-        <div className="space-y-4">
-          <UISkeleton className="h-72 rounded-2xl" />
-        </div>
+        activeTab === "drawers" ? (
+          /* SKELETON FOR TAB 1: VISUAL DRAWERS */
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch overflow-hidden animate-pulse">
+            {/* Card 1 Skeleton: Running Cash Drawer */}
+            <div className="lg:col-span-4 bg-surface rounded-xl border border-border p-3.5 sm:p-4 flex flex-col justify-between shadow-2xs space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-9 rounded-xl bg-surface-alt" />
+                    <div className="space-y-1.5">
+                      <div className="h-4 w-32 bg-surface-alt rounded" />
+                      <div className="h-3 w-44 bg-surface-alt rounded" />
+                    </div>
+                  </div>
+                  <div className="h-5 w-14 bg-surface-alt rounded-full" />
+                </div>
+                <div className="pt-2 space-y-1.5">
+                  <div className="h-3 w-20 bg-surface-alt rounded" />
+                  <div className="h-7 w-36 bg-surface-alt rounded" />
+                </div>
+                <div className="flex gap-2">
+                  <div className="h-5 w-24 bg-surface-alt rounded-md" />
+                  <div className="h-5 w-20 bg-surface-alt rounded-md" />
+                </div>
+                <div className="space-y-2 pt-2 border-t border-border/50">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex justify-between items-center py-1">
+                      <div className="h-5 w-14 bg-surface-alt rounded-md" />
+                      <div className="h-4 w-12 bg-surface-alt rounded" />
+                      <div className="h-4 w-16 bg-surface-alt rounded" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="pt-3 border-t border-border/60">
+                <div className="h-8 w-full bg-surface-alt rounded-xl" />
+              </div>
+            </div>
+
+            {/* Card 2 Skeleton: Frozen Reserve Vault */}
+            <div className="lg:col-span-4 bg-surface rounded-xl border border-border p-3.5 sm:p-4 flex flex-col justify-between shadow-2xs space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-9 rounded-xl bg-surface-alt" />
+                    <div className="space-y-1.5">
+                      <div className="h-4 w-32 bg-surface-alt rounded" />
+                      <div className="h-3 w-44 bg-surface-alt rounded" />
+                    </div>
+                  </div>
+                  <div className="h-5 w-14 bg-surface-alt rounded-full" />
+                </div>
+                <div className="pt-2 space-y-1.5">
+                  <div className="h-3 w-20 bg-surface-alt rounded" />
+                  <div className="h-7 w-36 bg-surface-alt rounded" />
+                </div>
+                <div className="flex gap-2">
+                  <div className="h-5 w-24 bg-surface-alt rounded-md" />
+                  <div className="h-5 w-20 bg-surface-alt rounded-md" />
+                </div>
+                <div className="space-y-2 pt-2 border-t border-border/50">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex justify-between items-center py-1">
+                      <div className="h-5 w-14 bg-surface-alt rounded-md" />
+                      <div className="h-4 w-12 bg-surface-alt rounded" />
+                      <div className="h-4 w-16 bg-surface-alt rounded" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="pt-3 border-t border-border/60">
+                <div className="h-8 w-full bg-surface-alt rounded-xl" />
+              </div>
+            </div>
+
+            {/* Card 3 Skeleton: Combined Summary */}
+            <div className="lg:col-span-4 bg-surface rounded-xl border border-border p-3.5 sm:p-4 space-y-3 shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <div className="size-9 rounded-xl bg-surface-alt" />
+                <div className="h-4 w-36 bg-surface-alt rounded" />
+              </div>
+              <div className="space-y-2 py-2">
+                <div className="flex justify-between">
+                  <div className="h-3.5 w-32 bg-surface-alt rounded" />
+                  <div className="h-3.5 w-20 bg-surface-alt rounded" />
+                </div>
+                <div className="flex justify-between">
+                  <div className="h-3.5 w-32 bg-surface-alt rounded" />
+                  <div className="h-3.5 w-20 bg-surface-alt rounded" />
+                </div>
+              </div>
+              <div className="border-t border-border/80 pt-2.5 flex justify-between items-center">
+                <div className="h-4 w-28 bg-surface-alt rounded" />
+                <div className="h-6 w-28 bg-surface-alt rounded" />
+              </div>
+              <div className="border-t border-border/80 pt-2.5 space-y-2.5">
+                <div className="flex justify-between">
+                  <div className="h-3.5 w-24 bg-surface-alt rounded" />
+                  <div className="h-3.5 w-16 bg-surface-alt rounded" />
+                </div>
+                <div className="flex justify-between">
+                  <div className="h-3.5 w-24 bg-surface-alt rounded" />
+                  <div className="h-3.5 w-28 bg-surface-alt rounded" />
+                </div>
+                <div className="flex justify-between">
+                  <div className="h-3.5 w-20 bg-surface-alt rounded" />
+                  <div className="h-3.5 w-24 bg-surface-alt rounded" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* SKELETON FOR TAB 2: VAULT DENOMINATION MATRIX */
+          <div className="flex-1 min-h-0 bg-surface rounded-xl border border-border shadow-2xs overflow-hidden flex flex-col animate-pulse">
+            {/* Header Bar */}
+            <div className="shrink-0 px-4 py-2.5 border-b border-border flex items-center justify-between gap-2 bg-surface">
+              <div className="flex items-center gap-2">
+                <div className="size-7 rounded-lg bg-surface-alt" />
+                <div className="h-4 w-40 bg-surface-alt rounded" />
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-36 bg-surface-alt rounded-lg" />
+                <div className="h-7 w-24 bg-surface-alt rounded-lg" />
+              </div>
+            </div>
+            {/* Table */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-surface-alt/70">
+                  <tr className="border-b border-border/80">
+                    <th className="py-2.5 px-3 w-28"><div className="h-3.5 w-20 bg-surface-alt rounded" /></th>
+                    <th colSpan={2} className="py-2.5 px-3 border-x border-border/60 text-center"><div className="h-3.5 w-32 bg-surface-alt rounded mx-auto" /></th>
+                    <th colSpan={2} className="py-2.5 px-3 border-r border-border/60 text-center"><div className="h-3.5 w-32 bg-surface-alt rounded mx-auto" /></th>
+                    <th colSpan={2} className="py-2.5 px-3 border-r border-border/60 text-center"><div className="h-3.5 w-20 bg-surface-alt rounded mx-auto" /></th>
+                    <th className="py-2.5 px-3 text-left"><div className="h-3.5 w-16 bg-surface-alt rounded" /></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <tr key={i} className="border-b border-border/40">
+                      <td className="py-2.5 px-3"><div className="h-5 w-16 bg-surface-alt rounded-md" /></td>
+                      <td className="py-2.5 px-3 border-l border-border/40 text-center"><div className="h-4 w-10 bg-surface-alt rounded mx-auto" /></td>
+                      <td className="py-2.5 px-3 text-right"><div className="h-4 w-16 bg-surface-alt rounded ml-auto" /></td>
+                      <td className="py-2.5 px-3 border-l border-border/40 text-center"><div className="h-4 w-10 bg-surface-alt rounded mx-auto" /></td>
+                      <td className="py-2.5 px-3 text-right"><div className="h-4 w-16 bg-surface-alt rounded ml-auto" /></td>
+                      <td className="py-2.5 px-3 border-l border-border/40 text-center"><div className="h-4 w-10 bg-surface-alt rounded mx-auto" /></td>
+                      <td className="py-2.5 px-3 text-right"><div className="h-4 w-16 bg-surface-alt rounded ml-auto" /></td>
+                      <td className="py-2.5 px-3"><div className="h-3 w-16 bg-surface-alt rounded" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       ) : !isInitialized ? (
         /* ══════════════════════════════════════════════════════════════════
            SCREEN 4: BEFORE-INITIALIZATION SCREEN (Compact)
            ══════════════════════════════════════════════════════════════════ */
-        <div className="space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-3">
           {/* Center Hero Card */}
           <div className="bg-surface rounded-2xl border border-border py-6 px-6 sm:py-8 sm:px-8 text-center shadow-xs flex flex-col items-center justify-center">
             {/* Cash Box Illustration with coins & warning badge */}
@@ -504,38 +747,38 @@ export const BranchCashPage = () => {
         /* ══════════════════════════════════════════════════════════════════
            SCREEN 1 - TAB 1: VISUAL DRAWERS (Image 1 - Top)
            ══════════════════════════════════════════════════════════════════ */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          {/* ── CARD 1: Running Cash Drawer (5 Cols) ── */}
-          <div className="lg:col-span-4 bg-surface rounded-2xl border border-border p-5 flex flex-col justify-between shadow-xs">
-            <div className="space-y-4">
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch overflow-hidden">
+          {/* ── CARD 1: Running Cash Drawer (4 Cols) ── */}
+          <div className="lg:col-span-4 bg-surface rounded-xl border border-border p-3.5 sm:p-4 flex flex-col justify-between shadow-2xs overflow-y-auto">
+            <div className="space-y-3">
               {/* Header */}
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-2xs">
-                    <Banknote className="size-5" />
+                <div className="flex items-center gap-2.5">
+                  <div className="size-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-2xs shrink-0">
+                    <Banknote className="size-4.5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-text">Running Cash Drawer</h3>
-                    <p className="text-[11px] text-text-muted">Used for daily transactions (POS, sales, etc.)</p>
+                    <h3 className="text-xs sm:text-sm font-bold text-text">Running Cash Drawer</h3>
+                    <p className="text-[10px] sm:text-[11px] text-text-muted">Used for daily transactions (POS, sales, etc.)</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 shrink-0">
                   Active
                 </span>
               </div>
 
               {/* Balance */}
               <div>
-                <div className="text-[11px] font-medium text-text-muted">Current Balance</div>
-                <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                <div className="text-[10px] sm:text-[11px] font-medium text-text-muted">Current Balance</div>
+                <div className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
                   {formatCurrency(runningTotal)}
                 </div>
               </div>
 
               {/* Metrics: Denominations & Total Notes */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-surface-alt/70 border border-border/80 rounded-xl p-3 flex items-center gap-2.5">
-                  <Wallet className="size-4 text-text-muted" />
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="bg-surface-alt/70 border border-border/80 rounded-xl p-2.5 flex items-center gap-2">
+                  <Wallet className="size-3.5 text-text-muted shrink-0" />
                   <div>
                     <div className="text-[10px] text-text-muted">Denominations</div>
                     <div className="text-xs font-black font-mono text-text">
@@ -543,8 +786,8 @@ export const BranchCashPage = () => {
                     </div>
                   </div>
                 </div>
-                <div className="bg-surface-alt/70 border border-border/80 rounded-xl p-3 flex items-center gap-2.5">
-                  <Coins className="size-4 text-text-muted" />
+                <div className="bg-surface-alt/70 border border-border/80 rounded-xl p-2.5 flex items-center gap-2">
+                  <Coins className="size-3.5 text-text-muted shrink-0" />
                   <div>
                     <div className="text-[10px] text-text-muted">Total Notes/Coins</div>
                     <div className="text-xs font-black font-mono text-text">
@@ -557,14 +800,14 @@ export const BranchCashPage = () => {
 
             {/* Actions: Only show when shift is active */}
             {isShiftActive && (
-              <div className="grid grid-cols-2 gap-3 pt-5 border-t border-border/60 mt-4">
+              <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-border/60 mt-3">
                 <UIButton
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setIsDepositModalOpen(true)}
                   startIcon={<ArrowDownToLine className="size-3.5 text-emerald-600" />}
-                  className="w-full rounded-xl text-xs font-bold border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                  className="w-full rounded-xl text-xs font-bold border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
                 >
                   Deposit Cash
                 </UIButton>
@@ -574,7 +817,7 @@ export const BranchCashPage = () => {
                   size="sm"
                   onClick={() => setIsWithdrawModalOpen(true)}
                   startIcon={<ArrowUpFromLine className="size-3.5 text-rose-600" />}
-                  className="w-full rounded-xl text-xs font-bold border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                  className="w-full rounded-xl text-xs font-bold border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
                 >
                   Withdraw Cash
                 </UIButton>
@@ -583,36 +826,36 @@ export const BranchCashPage = () => {
           </div>
 
           {/* ── CARD 2: Frozen Reserve Vault (4 Cols) ── */}
-          <div className="lg:col-span-4 bg-surface rounded-2xl border border-border p-5 flex flex-col justify-between shadow-xs">
-            <div className="space-y-4">
+          <div className="lg:col-span-4 bg-surface rounded-xl border border-border p-3.5 sm:p-4 flex flex-col justify-between shadow-2xs overflow-y-auto">
+            <div className="space-y-3">
               {/* Header */}
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-2xs">
-                    <Lock className="size-5" />
+                <div className="flex items-center gap-2.5">
+                  <div className="size-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-2xs shrink-0">
+                    <Lock className="size-4.5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-text">Frozen Reserve Vault</h3>
-                    <p className="text-[11px] text-text-muted">Reserved cash for security and future use</p>
+                    <h3 className="text-xs sm:text-sm font-bold text-text">Frozen Reserve Vault</h3>
+                    <p className="text-[10px] sm:text-[11px] text-text-muted">Reserved cash for security and future use</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 shrink-0">
                   Locked
                 </span>
               </div>
 
               {/* Balance */}
               <div>
-                <div className="text-[11px] font-medium text-text-muted">Current Balance</div>
-                <div className="text-2xl font-black font-mono text-amber-700 dark:text-amber-400">
+                <div className="text-[10px] sm:text-[11px] font-medium text-text-muted">Current Balance</div>
+                <div className="text-xl sm:text-2xl font-black font-mono text-amber-700 dark:text-amber-400">
                   {formatCurrency(frozenTotal)}
                 </div>
               </div>
 
               {/* Metrics: Denominations & Total Notes */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-surface-alt/70 border border-border/80 rounded-xl p-3 flex items-center gap-2.5">
-                  <Wallet className="size-4 text-text-muted" />
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="bg-surface-alt/70 border border-border/80 rounded-xl p-2.5 flex items-center gap-2">
+                  <Wallet className="size-3.5 text-text-muted shrink-0" />
                   <div>
                     <div className="text-[10px] text-text-muted">Denominations</div>
                     <div className="text-xs font-black font-mono text-text">
@@ -620,8 +863,8 @@ export const BranchCashPage = () => {
                     </div>
                   </div>
                 </div>
-                <div className="bg-surface-alt/70 border border-border/80 rounded-xl p-3 flex items-center gap-2.5">
-                  <Coins className="size-4 text-text-muted" />
+                <div className="bg-surface-alt/70 border border-border/80 rounded-xl p-2.5 flex items-center gap-2">
+                  <Coins className="size-3.5 text-text-muted shrink-0" />
                   <div>
                     <div className="text-[10px] text-text-muted">Total Notes/Coins</div>
                     <div className="text-xs font-black font-mono text-text">
@@ -633,14 +876,14 @@ export const BranchCashPage = () => {
             </div>
 
             {/* Action */}
-            <div className="pt-5 border-t border-border/60 mt-4">
+            <div className="pt-3 border-t border-border/60 mt-3">
               <UIButton
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setActiveTab("matrix")}
                 startIcon={<Lock className="size-3.5 text-amber-600" />}
-                className="w-full rounded-xl text-xs font-bold border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                className="w-full rounded-xl text-xs font-bold border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 cursor-pointer"
               >
                 View Vault Details
               </UIButton>
@@ -648,15 +891,15 @@ export const BranchCashPage = () => {
           </div>
 
           {/* ── CARD 3: Combined Summary (4 Cols) ── */}
-          <div className="lg:col-span-4 bg-surface rounded-2xl border border-border p-5 space-y-4 shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <Layers className="size-5" />
+          <div className="lg:col-span-4 bg-surface rounded-xl border border-border p-3.5 sm:p-4 space-y-3 shadow-2xs overflow-y-auto">
+            <div className="flex items-center gap-2.5">
+              <div className="size-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <Layers className="size-4.5" />
               </div>
-              <h3 className="text-sm font-bold text-text">Combined Summary</h3>
+              <h3 className="text-xs sm:text-sm font-bold text-text">Combined Summary</h3>
             </div>
 
-            <div className="space-y-2 text-xs">
+            <div className="space-y-1.5 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-text-muted">Running Cash (Drawer)</span>
                 <span className="font-mono font-bold text-text">{formatCurrency(runningTotal)}</span>
@@ -667,14 +910,14 @@ export const BranchCashPage = () => {
               </div>
             </div>
 
-            <div className="border-t border-border/80 pt-3 flex items-center justify-between">
+            <div className="border-t border-border/80 pt-2.5 flex items-center justify-between">
               <span className="text-xs font-bold text-text">Total Branch Cash</span>
-              <span className="text-lg font-black font-mono text-blue-600 dark:text-blue-400">
+              <span className="text-base sm:text-lg font-black font-mono text-blue-600 dark:text-blue-400">
                 {formatCurrency(totalVault)}
               </span>
             </div>
 
-            <div className="border-t border-border/80 pt-3 space-y-2.5 text-xs">
+            <div className="border-t border-border/80 pt-2.5 space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-text-muted">Shift Status</span>
                 <span className="font-semibold text-text flex items-center gap-1.5">
@@ -686,14 +929,19 @@ export const BranchCashPage = () => {
                 <span className="text-text-muted">Business Day</span>
                 <div className="flex items-center gap-1.5 font-semibold text-text">
                   <span>{businessDateDisplay}</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                    Open
+                  <span className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 rounded-full",
+                    isBusinessDayOpen
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                      : "bg-surface-alt text-text-muted"
+                  )}>
+                    {isBusinessDayOpen ? "Open" : "Closed"}
                   </span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-text-muted">Branch</span>
-                <span className="font-semibold text-text">{branchName}</span>
+                <span className="font-semibold text-text truncate max-w-[160px]">{branchName}</span>
               </div>
             </div>
           </div>
@@ -702,14 +950,14 @@ export const BranchCashPage = () => {
         /* ══════════════════════════════════════════════════════════════════
            SCREEN 1 - TAB 2: VAULT DENOMINATION MATRIX (Image 1 - Bottom)
            ══════════════════════════════════════════════════════════════════ */
-        <div className="bg-surface rounded-2xl border border-border overflow-hidden shadow-xs">
+        <div className="flex-1 min-h-0 bg-surface rounded-xl border border-border overflow-hidden shadow-2xs flex flex-col">
           {/* Header Bar */}
-          <div className="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface">
-            <div className="flex items-center gap-2.5">
-              <div className="size-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-text-muted flex items-center justify-center">
-                <Lock className="size-4" />
+          <div className="shrink-0 px-4 py-2.5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-surface">
+            <div className="flex items-center gap-2">
+              <div className="size-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-text-muted flex items-center justify-center shrink-0">
+                <Lock className="size-3.5" />
               </div>
-              <h3 className="text-sm font-bold text-text">Denomination Breakdown</h3>
+              <h3 className="text-xs sm:text-sm font-bold text-text">Denomination Breakdown</h3>
             </div>
 
             {/* Toggle Buttons: Denomination Matrix vs Chart View */}
@@ -717,9 +965,9 @@ export const BranchCashPage = () => {
               <button
                 type="button"
                 onClick={() => setMatrixViewMode("matrix")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   matrixViewMode === "matrix"
-                    ? "bg-blue-600 text-white shadow-xs"
+                    ? "bg-blue-600 text-white shadow-2xs"
                     : "bg-surface-alt text-text-muted hover:text-text border border-border"
                 }`}
               >
@@ -729,9 +977,9 @@ export const BranchCashPage = () => {
               <button
                 type="button"
                 onClick={() => setMatrixViewMode("chart")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   matrixViewMode === "chart"
-                    ? "bg-blue-600 text-white shadow-xs"
+                    ? "bg-blue-600 text-white shadow-2xs"
                     : "bg-surface-alt text-text-muted hover:text-text border border-border"
                 }`}
               >
@@ -743,33 +991,33 @@ export const BranchCashPage = () => {
 
           {matrixViewMode === "matrix" ? (
             /* Table View */
-            <div className="overflow-x-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-surface-alt/95 backdrop-blur-xs shadow-2xs">
                   {/* Super Header */}
                   <tr className="border-b border-border/80 text-[11px] font-bold text-text">
-                    <th className="py-2.5 px-4 bg-surface-alt/40">Denomination</th>
-                    <th colSpan={2} className="py-2.5 px-4 text-center bg-emerald-50/70 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 border-x border-border/60">
+                    <th className="py-2 px-3 bg-surface-alt/60">Denomination</th>
+                    <th colSpan={2} className="py-2 px-3 text-center bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border-x border-border/60">
                       Running Cash Drawer
                     </th>
-                    <th colSpan={2} className="py-2.5 px-4 text-center bg-amber-50/70 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 border-r border-border/60">
+                    <th colSpan={2} className="py-2 px-3 text-center bg-amber-50/70 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border-r border-border/60">
                       Frozen Reserve Vault
                     </th>
-                    <th colSpan={2} className="py-2.5 px-4 text-center bg-blue-50/70 dark:bg-blue-950/20 text-blue-800 dark:text-blue-300 border-r border-border/60">
+                    <th colSpan={2} className="py-2 px-3 text-center bg-blue-50/70 dark:bg-blue-950/30 text-blue-800 dark:text-blue-300 border-r border-border/60">
                       Total
                     </th>
-                    <th className="py-2.5 px-4 bg-surface-alt/40 text-left">% of Total</th>
+                    <th className="py-2 px-3 bg-surface-alt/60 text-left">% of Total</th>
                   </tr>
                   {/* Sub Header */}
-                  <tr className="border-b border-border text-[10px] font-bold text-text-muted uppercase tracking-wider bg-surface-alt/20">
-                    <th className="py-2 px-4"></th>
-                    <th className="py-2 px-3 text-center border-l border-border/60">Count</th>
-                    <th className="py-2 px-4 text-right">Amount</th>
-                    <th className="py-2 px-3 text-center border-l border-border/60">Count</th>
-                    <th className="py-2 px-4 text-right">Amount</th>
-                    <th className="py-2 px-3 text-center border-l border-border/60">Count</th>
-                    <th className="py-2 px-4 text-right">Amount</th>
-                    <th className="py-2 px-4 border-l border-border/60"></th>
+                  <tr className="border-b border-border text-[10px] font-bold text-text-muted uppercase tracking-wider bg-surface-alt/40">
+                    <th className="py-1.5 px-3"></th>
+                    <th className="py-1.5 px-2.5 text-center border-l border-border/60">Count</th>
+                    <th className="py-1.5 px-3 text-right">Amount</th>
+                    <th className="py-1.5 px-2.5 text-center border-l border-border/60">Count</th>
+                    <th className="py-1.5 px-3 text-right">Amount</th>
+                    <th className="py-1.5 px-2.5 text-center border-l border-border/60">Count</th>
+                    <th className="py-1.5 px-3 text-right">Amount</th>
+                    <th className="py-1.5 px-3 border-l border-border/60"></th>
                   </tr>
                 </thead>
 
@@ -777,7 +1025,7 @@ export const BranchCashPage = () => {
                   {matrixRows.map((row) => (
                     <tr key={row.note} className="hover:bg-surface-alt/30 transition">
                       {/* Denomination badge */}
-                      <td className="py-2.5 px-4 font-bold text-text">
+                      <td className="py-2 px-3 font-bold text-text">
                         <div className="flex items-center gap-2">
                           <span className={`size-5 rounded flex items-center justify-center text-[9px] font-bold border ${row.color}`}>
                             {row.icon}
@@ -787,36 +1035,36 @@ export const BranchCashPage = () => {
                       </td>
 
                       {/* Running Count */}
-                      <td className="py-2.5 px-3 text-center font-mono font-semibold text-text border-l border-border/40">
+                      <td className="py-2 px-2.5 text-center font-mono font-semibold text-text border-l border-border/40">
                         {row.rCount}
                       </td>
                       {/* Running Amount */}
-                      <td className="py-2.5 px-4 text-right font-mono font-semibold text-text">
+                      <td className="py-2 px-3 text-right font-mono font-semibold text-text">
                         {formatCurrency(row.rAmount)}
                       </td>
 
                       {/* Frozen Count */}
-                      <td className="py-2.5 px-3 text-center font-mono font-semibold text-text border-l border-border/40">
+                      <td className="py-2 px-2.5 text-center font-mono font-semibold text-text border-l border-border/40">
                         {row.fCount}
                       </td>
                       {/* Frozen Amount */}
-                      <td className="py-2.5 px-4 text-right font-mono font-semibold text-text">
+                      <td className="py-2 px-3 text-right font-mono font-semibold text-text">
                         {formatCurrency(row.fAmount)}
                       </td>
 
                       {/* Total Count */}
-                      <td className="py-2.5 px-3 text-center font-mono font-bold text-text border-l border-border/40">
+                      <td className="py-2 px-2.5 text-center font-mono font-bold text-text border-l border-border/40">
                         {row.totalCount}
                       </td>
                       {/* Total Amount */}
-                      <td className="py-2.5 px-4 text-right font-mono font-bold text-text">
+                      <td className="py-2 px-3 text-right font-mono font-bold text-text">
                         {formatCurrency(row.totalAmount)}
                       </td>
 
                       {/* % of Total & Progress Bar */}
-                      <td className="py-2.5 px-4 border-l border-border/40 min-w-[200px]">
-                        <div className="flex items-center gap-3">
-                          <span className="w-10 text-right font-mono font-semibold text-text-muted">
+                      <td className="py-2 px-3 border-l border-border/40 min-w-[180px]">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-9 text-right font-mono font-semibold text-text-muted">
                             {row.pct.toFixed(1)}%
                           </span>
                           <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
@@ -832,37 +1080,37 @@ export const BranchCashPage = () => {
                 </tbody>
 
                 {/* Footer Totals Row */}
-                <tfoot>
-                  <tr className="border-t-2 border-border font-bold text-xs bg-surface-alt/40">
-                    <td className="py-3 px-4 font-black text-text">Total</td>
+                <tfoot className="sticky bottom-0 z-10 bg-surface-alt/95 backdrop-blur-xs shadow-2xs border-t-2 border-border">
+                  <tr className="font-bold text-xs">
+                    <td className="py-2.5 px-3 font-black text-text">Total</td>
                     {/* Running Totals */}
-                    <td className="py-3 px-3 text-center font-mono font-black text-emerald-700 dark:text-emerald-400 border-l border-border/40 bg-emerald-50/40 dark:bg-emerald-950/10">
+                    <td className="py-2.5 px-2.5 text-center font-mono font-black text-emerald-700 dark:text-emerald-400 border-l border-border/40 bg-emerald-50/40 dark:bg-emerald-950/10">
                       {runningNotesCount}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/10">
+                    <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/10">
                       {formatCurrency(runningTotal)}
                     </td>
 
                     {/* Frozen Totals */}
-                    <td className="py-3 px-3 text-center font-mono font-black text-amber-700 dark:text-amber-400 border-l border-border/40 bg-amber-50/40 dark:bg-amber-950/10">
+                    <td className="py-2.5 px-2.5 text-center font-mono font-black text-amber-700 dark:text-amber-400 border-l border-border/40 bg-amber-50/40 dark:bg-amber-950/10">
                       {frozenNotesCount}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-black text-amber-700 dark:text-amber-400 bg-amber-50/40 dark:bg-amber-950/10">
+                    <td className="py-2.5 px-3 text-right font-mono font-black text-amber-700 dark:text-amber-400 bg-amber-50/40 dark:bg-amber-950/10">
                       {formatCurrency(frozenTotal)}
                     </td>
 
                     {/* Grand Totals */}
-                    <td className="py-3 px-3 text-center font-mono font-black text-blue-700 dark:text-blue-400 border-l border-border/40 bg-blue-50/40 dark:bg-blue-950/10">
+                    <td className="py-2.5 px-2.5 text-center font-mono font-black text-blue-700 dark:text-blue-400 border-l border-border/40 bg-blue-50/40 dark:bg-blue-950/10">
                       {totalNotesCount}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-black text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/10">
+                    <td className="py-2.5 px-3 text-right font-mono font-black text-blue-700 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/10">
                       {formatCurrency(totalVault)}
                     </td>
 
                     {/* 100% Bar */}
-                    <td className="py-3 px-4 border-l border-border/40">
-                      <div className="flex items-center gap-3">
-                        <span className="w-10 text-right font-mono font-black text-text">
+                    <td className="py-2.5 px-3 border-l border-border/40">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-9 text-right font-mono font-black text-text">
                           100%
                         </span>
                         <div className="flex-1 h-2 rounded-full bg-blue-600" />
@@ -874,11 +1122,11 @@ export const BranchCashPage = () => {
             </div>
           ) : (
             /* Chart View */
-            <div className="p-6 space-y-4">
-              <div className="text-xs font-semibold text-text-muted mb-2">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+              <div className="text-xs font-semibold text-text-muted mb-1">
                 Denomination Value Distribution (Running vs Frozen Reserve)
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {matrixRows.map((row) => (
                   <div key={row.note} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
@@ -887,7 +1135,7 @@ export const BranchCashPage = () => {
                         {formatCurrency(row.totalAmount)} ({row.pct.toFixed(1)}%)
                       </span>
                     </div>
-                    <div className="h-4 rounded-lg bg-surface-alt overflow-hidden flex">
+                    <div className="h-3.5 rounded-lg bg-surface-alt overflow-hidden flex">
                       <div
                         className="bg-emerald-500 h-full transition-all duration-300"
                         style={{

@@ -49,7 +49,7 @@ const AccountsPage = () => {
 
   const [filters, setFilters] = useState(initialFilters);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(1000);
 
   const [dialogState, setDialogState] = useState({
     isOpen: false,

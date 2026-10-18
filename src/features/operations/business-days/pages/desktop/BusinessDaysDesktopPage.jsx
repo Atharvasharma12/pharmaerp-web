@@ -29,6 +29,7 @@ import {
   UITableHead,
   UITableCell,
   UIInfiniteScroll,
+  UITableLoading,
 } from "@/components/ui";
 
 import {
@@ -158,7 +159,7 @@ export const BusinessDaysDesktopPage = ({
   );
 
   return (
-    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-4 space-y-2.5 text-text font-sans transition-colors">
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
       {/* Global Error Banner */}
       {error && !hasError && (
         <UIAlert
@@ -170,7 +171,7 @@ export const BusinessDaysDesktopPage = ({
       )}
 
       {/* ── 1. Compact 4-Card Statistics Grid ─────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
         {/* Card 1: Total Business Days */}
         <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
           <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
@@ -245,7 +246,7 @@ export const BusinessDaysDesktopPage = ({
       </div>
 
       {/* ── 2. Streamlined Single-Row Filter Toolbar ─────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
         {/* Search Input */}
         <div className="w-[200px] sm:w-[240px] lg:w-[280px]">
           <UIInput
@@ -333,8 +334,35 @@ export const BusinessDaysDesktopPage = ({
       </div>
 
       {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ──── */}
-      {businessDays.length === 0 ? (
-        <div className="bg-surface rounded-2xl border border-border p-8 shadow-2xs">
+      {isLoading && businessDays.length === 0 ? (
+        <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+          <div className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0">
+            <UITable
+              stickyHeader
+              containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+              className="w-full text-xs font-sans"
+            >
+              <UITableHeader sticky className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs">
+                <UITableRow className="border-b border-border text-[11px] font-semibold text-text uppercase tracking-wider bg-surface-alt">
+                  <UITableHead sticky className="min-w-[130px]">Business Date</UITableHead>
+                  <UITableHead sticky className="min-w-[170px]">Branch</UITableHead>
+                  <UITableHead sticky align="center" className="min-w-[110px]">Status</UITableHead>
+                  <UITableHead sticky className="min-w-[120px]">Opening Time</UITableHead>
+                  <UITableHead sticky className="min-w-[120px]">Closing Time</UITableHead>
+                  <UITableHead sticky align="right" className="min-w-[130px]">Total Sales (₹)</UITableHead>
+                  <UITableHead sticky align="right" className="min-w-[130px]">Total Cash (₹)</UITableHead>
+                  <UITableHead sticky align="center" className="min-w-[90px]">Sessions</UITableHead>
+                  <UITableHead sticky align="right" className="w-24">Actions</UITableHead>
+                </UITableRow>
+              </UITableHeader>
+              <UITableBody>
+                <UITableLoading rows={8} columns={9} />
+              </UITableBody>
+            </UITable>
+          </div>
+        </div>
+      ) : businessDays.length === 0 ? (
+        <div className="flex-1 min-h-0 bg-surface rounded-2xl border border-border p-8 shadow-2xs flex items-center justify-center">
           <UIEmptyState
             icon={<CalendarDays className="size-8 text-primary" />}
             title="No business days found"
@@ -368,10 +396,10 @@ export const BusinessDaysDesktopPage = ({
           />
         </div>
       ) : (
-        <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
           <div
             ref={tableContainerRef}
-            className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 divide-y divide-border/60"
+            className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0 divide-y divide-border/60"
           >
             <UITable
               stickyHeader

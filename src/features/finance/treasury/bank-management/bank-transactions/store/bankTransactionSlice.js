@@ -3,7 +3,6 @@ import { createSlice } from "@reduxjs/toolkit";
 import { API_STATUS } from "@/constants";
 
 import {
-  createBankTransaction,
   getBankTransactions,
   getBankTransactionById,
   cancelBankTransaction,
@@ -18,7 +17,6 @@ const initialState = {
   error: null,
   message: null,
 
-  createBankTransactionStatus: API_STATUS.IDLE,
   getBankTransactionsStatus: API_STATUS.IDLE,
   getBankTransactionStatus: API_STATUS.IDLE,
   cancelBankTransactionStatus: API_STATUS.IDLE,
@@ -69,28 +67,6 @@ const bankTransactionSlice = createSlice({
   extraReducers: (builder) => {
     builder
 
-      // CREATE BANK TRANSACTION
-      .addCase(createBankTransaction.pending, (state) => {
-        state.createBankTransactionStatus = API_STATUS.LOADING;
-        state.error = null;
-        state.message = null;
-      })
-      .addCase(createBankTransaction.fulfilled, (state, action) => {
-        state.createBankTransactionStatus = API_STATUS.SUCCESS;
-
-        state.currentBankTransaction = action.payload || null;
-
-        if (action.payload) {
-          state.bankTransactions.unshift(action.payload);
-        }
-
-        state.message = "Bank transaction created successfully";
-      })
-      .addCase(createBankTransaction.rejected, (state, action) => {
-        state.createBankTransactionStatus = API_STATUS.ERROR;
-        state.error = action.payload || "Bank transaction creation failed";
-      })
-
       // GET BANK TRANSACTIONS
       .addCase(getBankTransactions.pending, (state) => {
         state.getBankTransactionsStatus = API_STATUS.LOADING;
@@ -113,8 +89,6 @@ const bankTransactionSlice = createSlice({
         state.getBankTransactionStatus = API_STATUS.SUCCESS;
 
         state.managedBankTransaction = action.payload || null;
-
-        state.message = "Bank transaction fetched successfully";
       })
       .addCase(getBankTransactionById.rejected, (state, action) => {
         setRejected(state, action);

@@ -181,7 +181,7 @@ const SidebarItem = ({
               }
               onItemClick?.(e);
             }}
-            title={item.label}
+            title={item.shortcut ? `${item.label} (${item.shortcut})` : item.label}
             className={() => {
               const isItemActive = item.path.includes("?")
                 ? location.pathname === item.path.split("?")[0] && location.search === `?${item.path.split("?")[1]}`
@@ -203,7 +203,7 @@ const SidebarItem = ({
           <button
             type="button"
             onClick={handleCollapsedParentClick}
-            title={item.label}
+            title={item.shortcut ? `${item.label} (${item.shortcut})` : item.label}
             className={cn(
               "flex size-9 items-center justify-center rounded-[8px] transition-colors duration-150 cursor-pointer relative",
               isLocked && "opacity-50 hover:opacity-80",
@@ -212,6 +212,7 @@ const SidebarItem = ({
                 : "text-text hover:bg-surface-hover"
             )}
           >
+
             {Icon && <Icon className="size-4" />}
             {isLocked && (
               <span className="absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-surface border border-border text-text-muted">
@@ -310,7 +311,7 @@ const SidebarItem = ({
               ? location.pathname === item.path.split("?")[0] && location.search === `?${item.path.split("?")[1]}`
               : location.pathname === item.path;
             return cn(
-              "flex h-9 items-center justify-between gap-2.5 rounded-[8px] px-2.5",
+              "group flex h-9 items-center justify-between gap-2.5 rounded-[8px] px-2.5",
               "text-[13px] font-medium transition-colors duration-150 select-none",
               isItemActive
                 ? "bg-primary/10 text-primary hover:bg-primary/15 font-medium"
@@ -330,8 +331,8 @@ const SidebarItem = ({
             <span className="truncate text-[13px] font-medium text-current">{item.label}</span>
           </div>
 
-          {/* Right side: Quick Filter Pills OR Badge */}
-          <div className="flex items-center gap-1 shrink-0">
+          {/* Right side: Quick Filter Pills, Marg Shortcut Badge, OR Badge */}
+          <div className="flex items-center gap-1.5 shrink-0">
             {item.quickFilters && item.quickFilters.length > 0 && (
               item.quickFilters.map((qf) => {
                 const isFilterActive =
@@ -360,6 +361,12 @@ const SidebarItem = ({
               })
             )}
 
+            {item.shortcut && (
+              <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-[4px] border border-border/70 bg-surface-alt/80 text-[9.5px] font-mono font-medium text-text-muted/80 opacity-0 group-hover:opacity-100 transition-opacity select-none shadow-2xs">
+                {item.shortcut}
+              </kbd>
+            )}
+
             {displayBadge && (
               <UIBadge
                 variant={item.id === "setup-center" && !isSetupComplete ? "primary" : "primary"}
@@ -371,6 +378,7 @@ const SidebarItem = ({
             )}
           </div>
         </NavLink>
+
 
       )}
 

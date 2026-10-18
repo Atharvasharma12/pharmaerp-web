@@ -16,7 +16,6 @@ import {
   LuWallet,
   LuTrendingUp,
   LuQrCode,
-  LuCoins,
   LuTicket,
 } from "react-icons/lu";
 import { MdOutlineDashboard } from "react-icons/md";
@@ -61,18 +60,14 @@ const moduleIcons = {
   cashTransactions: <LuWallet />,
   chequeManagement: <FiCreditCard />,
   paymentQrUpi: <LuQrCode />,
-  cashDenominations: <LuCoins />,
 };
 
 // Map quick action IDs to icons
 const quickActionIcons = {
   addBankAccount: <LuBuilding2 />,
   viewBranchCash: <LuWallet />,
-  recordBankTransaction: <LuBuilding2 />,
-  recordCashTransaction: <LuWallet />,
   fundTransfer: <FiRepeat />,
   manageCheques: <FiCreditCard />,
-  cashDenominations: <LuCoins />,
 };
 
 const TreasuryDesktopPage = ({

@@ -284,8 +284,6 @@ export const ENDPOINTS = {
   },
 
   BANK_TRANSACTION: {
-    CREATE: "/finance/treasury/bank-transactions",
-
     LIST: "/finance/treasury/bank-transactions",
 
     BY_ID: (bankTransactionId) =>
@@ -308,8 +306,6 @@ export const ENDPOINTS = {
   },
 
   CASH_TRANSACTION: {
-    CREATE: "/finance/treasury/cash-transactions",
-
     LIST: "/finance/treasury/cash-transactions",
 
     BY_ID: (cashTransactionId) =>
@@ -317,21 +313,6 @@ export const ENDPOINTS = {
 
     CANCEL: (cashTransactionId) =>
       `/finance/treasury/cash-transactions/${cashTransactionId}/cancel`,
-  },
-
-  CASH_DENOMINATION: {
-    CREATE: "/finance/treasury/cash-denominations",
-
-    LIST: "/finance/treasury/cash-denominations",
-
-    BY_ID: (cashDenominationId) =>
-      `/finance/treasury/cash-denominations/${cashDenominationId}`,
-
-    CONFIRM: (cashDenominationId) =>
-      `/finance/treasury/cash-denominations/${cashDenominationId}/confirm`,
-
-    CANCEL: (cashDenominationId) =>
-      `/finance/treasury/cash-denominations/${cashDenominationId}/cancel`,
   },
 
   FUND_TRANSFER: {
@@ -353,9 +334,6 @@ export const ENDPOINTS = {
 
     BY_ID: (cashExchangeId) =>
       `/finance/treasury/cash-exchanges/${cashExchangeId}`,
-
-    CANCEL: (cashExchangeId) =>
-      `/finance/treasury/cash-exchanges/${cashExchangeId}/cancel`,
   },
 
   PAYMENT_QR: {

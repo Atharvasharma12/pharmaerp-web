@@ -165,14 +165,6 @@ const TreasuryPage = () => {
         permission: "payment-qr:view",
       },
       {
-        id: "cashDenominations",
-        title: "Cash Denominations",
-        description: "Manage cash denominations and cash counting",
-        colorVariant: "purple",
-        path: "/finance/treasury/cash-denominations",
-        permission: "cash-denomination:view",
-      },
-      {
         id: "cashExchanges",
         title: "Cash Exchanges",
         description: "Exchange cash denominations (khulli paisa) with customers",
@@ -236,20 +228,6 @@ const TreasuryPage = () => {
         permission: "cash-account:view",
       },
       {
-        id: "recordBankTransaction",
-        title: "Record Bank Transaction",
-        path: "/finance/treasury/bank-transactions/create",
-        colorVariant: "info",
-        permission: "bank-transaction:create",
-      },
-      {
-        id: "recordCashTransaction",
-        title: "Record Cash Transaction",
-        path: "/finance/treasury/cash-transactions/create",
-        colorVariant: "warning",
-        permission: "cash-transaction:create",
-      },
-      {
         id: "fundTransfer",
         title: "Fund Transfer",
         path: "/finance/treasury/fund-transfers/create",
@@ -266,16 +244,9 @@ const TreasuryPage = () => {
       {
         id: "createBankDepositSlip",
         title: "Create Deposit Slip",
-        path: ROUTES.CREATE_BANK_DEPOSIT_SLIP,
+        path: `${ROUTES.BANK_DEPOSIT_SLIPS}?action=create`,
         colorVariant: "success",
         permission: "bank-deposit-slip:create",
-      },
-      {
-        id: "cashDenominations",
-        title: "Cash Denominations",
-        path: "/finance/treasury/cash-denominations",
-        colorVariant: "purple",
-        permission: "cash-denomination:view",
       },
     ];
 

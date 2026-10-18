@@ -324,7 +324,7 @@ export const HeldBillsModal = ({
                           <div className="min-w-0 pr-2">
                             <span className="font-semibold">{item.name}</span>
                             <div className="text-[10.5px] text-text-muted font-mono flex items-center gap-2">
-                              {item.batch && <span>Batch: {item.batch}</span>}
+                              {item.batch && <span>Batch: <strong className="text-text font-bold">{item.batch}</strong></span>}
                               {item.expiry && <span>Exp: {item.expiry}</span>}
                               {item.rack && <span>Rack: {item.rack}</span>}
                             </div>

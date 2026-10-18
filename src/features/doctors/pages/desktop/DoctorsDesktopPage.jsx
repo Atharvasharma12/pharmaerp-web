@@ -102,12 +102,12 @@ export const DoctorsDesktopPage = ({
   }, [filters]);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-background overflow-hidden p-4 sm:p-5 lg:p-6 space-y-4">
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
       {/* ── 1. Compact 4-Card Statistics Grid (Customer Parity) ─────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
         {/* Card 1: Total Doctors */}
         <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
-          <div className="size-9 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+          <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
             <Stethoscope className="size-4.5 stroke-[1.8]" />
           </div>
           <div className="min-w-0">
@@ -125,7 +125,7 @@ export const DoctorsDesktopPage = ({
 
         {/* Card 2: Active Practitioners */}
         <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
-          <div className="size-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+          <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
             <CheckCircle2 className="size-4.5 stroke-[1.8]" />
           </div>
           <div className="min-w-0">
@@ -135,7 +135,7 @@ export const DoctorsDesktopPage = ({
             <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               {Number(summary.activeDoctors || 0).toLocaleString("en-IN")}
             </div>
-            <div className="text-[10px] text-text-muted truncate mt-0.5">
+            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono truncate mt-0.5">
               Ready for prescription billing
             </div>
           </div>
@@ -143,7 +143,7 @@ export const DoctorsDesktopPage = ({
 
         {/* Card 3: Clinical Specialties */}
         <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
-          <div className="size-9 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+          <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <Award className="size-4.5 stroke-[1.8]" />
           </div>
           <div className="min-w-0">
@@ -161,7 +161,7 @@ export const DoctorsDesktopPage = ({
 
         {/* Card 4: Affiliated Hospitals */}
         <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
-          <div className="size-9 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <div className="size-9 rounded-lg bg-warning-soft text-warning flex items-center justify-center shrink-0">
             <Building2 className="size-4.5 stroke-[1.8]" />
           </div>
           <div className="min-w-0">
@@ -179,7 +179,7 @@ export const DoctorsDesktopPage = ({
       </div>
 
       {/* ── 2. Streamlined Single-Row Toolbar ─────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
         {/* Compact Search Input (Consistent Decreased Width) */}
         <div className="w-[240px] sm:w-[280px] lg:w-[320px]">
           <UIInput
@@ -288,11 +288,11 @@ export const DoctorsDesktopPage = ({
       </div>
 
       {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ────── */}
-      <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
         {/* Internal Scroll Container: Definitive scroll parent */}
         <div
           ref={tableContainerRef}
-          className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-175px)] min-h-[500px] flex-1 divide-y divide-border/60"
+          className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0"
         >
           <UITable
             stickyHeader
@@ -371,12 +371,12 @@ export const DoctorsDesktopPage = ({
                     <UITableRow
                       key={id}
                       onClick={() => onOpenViewDialog(doc)}
-                      className="group cursor-pointer transition-colors hover:bg-surface-hover/70 h-13"
+                      className="group cursor-pointer transition-colors hover:bg-surface-hover/70 h-13 border-b border-border/60 last:border-b-0"
                     >
                       {/* 1. Doctor Profile */}
                       <UITableCell className="py-2">
                         <div className="flex items-center gap-3">
-                          <div className="size-9 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold flex items-center justify-center shrink-0 text-xs shadow-2xs">
+                          <div className="size-9 rounded-lg bg-info-soft text-info font-bold flex items-center justify-center shrink-0 text-xs shadow-2xs">
                             {initials}
                           </div>
                           <div className="min-w-0">
@@ -457,7 +457,7 @@ export const DoctorsDesktopPage = ({
                               onClick={(e) =>
                                 handleCopy(doc.mobile || doc.phone, `mob-${id}`, e)
                               }
-                              className="flex items-center gap-1 text-xs font-mono font-medium text-text hover:text-primary transition cursor-pointer"
+                              className="flex items-center gap-1 font-mono text-[13px] font-bold text-text/90 tracking-tight hover:text-primary transition cursor-pointer"
                               title="Click to copy mobile number"
                             >
                               <Phone className="size-3 text-text-muted" />
