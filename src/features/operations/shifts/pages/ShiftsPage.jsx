@@ -66,7 +66,9 @@ const ShiftsPage = () => {
   const [closeShift, setCloseShift] = useState(null);
   const [isCloseBusinessDayOpen, setIsCloseBusinessDayOpen] = useState(false);
 
-  const isLoading = listShiftsStatus === API_STATUS.LOADING;
+  const isLoading =
+    listShiftsStatus === API_STATUS.LOADING ||
+    listShiftsStatus === API_STATUS.IDLE;
   const hasError = listShiftsStatus === API_STATUS.ERROR;
 
   // Fetch open business day and business day history for default date calculation

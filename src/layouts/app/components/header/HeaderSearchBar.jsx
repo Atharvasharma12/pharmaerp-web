@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ChevronRight, X, Lock } from "lucide-react";
 
-import { usePermission } from "@/hooks";
+import { usePermission, FOCUS_SEARCH_EVENT } from "@/hooks";
 import { ROUTES } from "@/constants";
 import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
 import { uiToast } from "@/components/ui";
@@ -27,7 +27,8 @@ const HeaderSearchBar = ({ className = "" }) => {
   const isMac =
     typeof window !== "undefined" &&
     navigator.platform?.toUpperCase().indexOf("MAC") >= 0;
-  const shortcutText = isMac ? "⌘ F" : "Ctrl + K";
+  const shortcutText = isMac ? "⌘ K" : "Ctrl + K";
+
 
   // Compute all commands the current user is permitted to see
   const accessibleCommands = useMemo(() => {
@@ -88,19 +89,34 @@ const HeaderSearchBar = ({ className = "" }) => {
     setSelectedIndex(0);
   }, [searchQuery, searchFocused]);
 
-  // Global Keyboard Shortcut (Cmd+F / Ctrl+F / Cmd+K / Ctrl+K)
+  // Global Keyboard Shortcut (Cmd+K / Ctrl+K / Alt+/) and Custom Focus Event
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "k")) {
+      const isSearchCombo =
+        ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "k" || e.code === "KeyK")) ||
+        (e.altKey && (e.key === "/" || e.code === "Slash"));
+
+      if (isSearchCombo) {
         e.preventDefault();
         searchInputRef.current?.focus();
         setSearchFocused(true);
       }
     };
 
+    const handleFocusSearchEvent = () => {
+      searchInputRef.current?.focus();
+      setSearchFocused(true);
+    };
+
     window.addEventListener("keydown", handleGlobalKeyDown);
-    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+    window.addEventListener(FOCUS_SEARCH_EVENT, handleFocusSearchEvent);
+
+    return () => {
+      window.removeEventListener("keydown", handleGlobalKeyDown);
+      window.removeEventListener(FOCUS_SEARCH_EVENT, handleFocusSearchEvent);
+    };
   }, []);
+
 
   const handleSelectCommand = (cmd) => {
     if (cmd.isLocked) {

@@ -1,29 +1,39 @@
+// src/features/finance/chart-of-accounts/accounts/components/AccountDialog.jsx
+
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  FiLayers,
-  FiEdit2,
-  FiCopy,
-  FiCheck,
-  FiDollarSign,
-  FiFolder,
-  FiActivity,
-  FiCheckCircle,
-} from "react-icons/fi";
+  Layers,
+  Edit3,
+  Copy,
+  Check,
+  FolderTree,
+  Folder,
+  Activity,
+  CheckCircle2,
+  XCircle,
+  X,
+  FileText,
+  Hash,
+  Scale,
+  Sparkles,
+  ArrowRight,
+  Shield,
+  HelpCircle,
+} from "lucide-react";
 import {
   UIModal,
   UIModalHeader,
   UIModalTitle,
-  UIModalDescription,
   UIModalBody,
   UIModalFooter,
-  UIFormSection,
   UIInput,
   UISelect,
   UIButton,
   UIAlert,
-  UIKeyValueList,
   UIBadge,
+  uiToast,
 } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
 const ALL_CATEGORY_OPTIONS = [
   { label: "Customer Ledger Account", value: "CUSTOMER" },
@@ -65,92 +75,18 @@ const INITIAL_FORM = {
   accountGroupId: "",
   accountNature: "",
   accountCategory: "",
-  openingBalance: 0,
+  openingBalance: "",
   openingBalanceType: "dr",
   description: "",
   status: "active",
 };
 
-/**
- * Top live preview card for the GL Account
- */
-const AccountLiveCard = ({ formData, derivedNature, groupName }) => {
-  const natureBadgeVariant = {
-    ASSET: "success",
-    LIABILITY: "danger",
-    INCOME: "info",
-    EXPENSE: "warning",
-    EQUITY: "purple",
-  }[derivedNature] || "neutral";
-
-  const numBalance = Number(formData.openingBalance || 0);
-  const formattedBalance = `₹${numBalance.toLocaleString("en-IN", {
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
+  return Number(val).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`;
-
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface to-surface-muted/60 p-5 shadow-sm transition-all">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 font-bold text-base shadow-inner">
-            <FiLayers className="text-xl" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-surface-muted border border-border text-text-muted">
-                {formData.accountCode || "CODE-AUTO"}
-              </span>
-              {derivedNature && (
-                <UIBadge variant={natureBadgeVariant} size="sm">
-                  {derivedNature}
-                </UIBadge>
-              )}
-              <UIBadge
-                variant={formData.status === "active" ? "success" : "neutral"}
-                size="sm"
-              >
-                {(formData.status || "active").toUpperCase()}
-              </UIBadge>
-            </div>
-            <h4 className="mt-1 truncate text-base font-bold text-text">
-              {formData.accountName || "New General Ledger Account"}
-            </h4>
-          </div>
-        </div>
-
-        <div className="text-right shrink-0">
-          <span className="text-[11px] font-medium text-text-muted block">
-            Opening Balance
-          </span>
-          <span className="text-sm font-bold text-text">
-            {formattedBalance}{" "}
-            <span className="text-xs text-text-muted uppercase">
-              ({formData.openingBalanceType || "dr"})
-            </span>
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-between text-xs text-text-muted">
-        <div className="flex items-center gap-1.5 truncate">
-          <FiFolder className="text-primary/70 shrink-0" />
-          <span className="truncate">
-            Under Group:{" "}
-            <strong className="text-text font-semibold">
-              {groupName || "Not Selected"}
-            </strong>
-          </span>
-        </div>
-        <div className="shrink-0 font-medium">
-          Category:{" "}
-          <strong className="text-text font-semibold">
-            {formData.accountCategory || "None"}
-          </strong>
-        </div>
-      </div>
-    </div>
-  );
+  });
 };
 
 export function AccountDialog({
@@ -163,7 +99,6 @@ export function AccountDialog({
   onSubmitUpdate,
   onSuccess,
 }) {
-  const [currentMode, setCurrentMode] = useState(mode);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -171,23 +106,23 @@ export function AccountDialog({
   const [copiedKey, setCopiedKey] = useState(null);
 
   useEffect(() => {
-    setCurrentMode(mode);
-  }, [mode, isOpen]);
-
-  useEffect(() => {
     if (isOpen) {
-      if ((currentMode === "edit" || currentMode === "view") && accountData) {
-        const groupObj = accountData.accountGroupId;
+      if ((mode === "edit" || mode === "view") && accountData) {
         const groupId =
-          typeof groupObj === "object" ? groupObj?._id : groupObj || "";
+          typeof accountData.accountGroupId === "object"
+            ? accountData.accountGroupId?._id || accountData.accountGroupId?.id
+            : accountData.accountGroupId || "";
 
         setFormData({
           accountName: accountData.accountName || accountData.name || "",
           accountCode: accountData.accountCode || accountData.code || "",
           accountGroupId: groupId,
-          accountNature: accountData.accountNature || accountData.nature || "",
+          accountNature: accountData.accountNature || accountData.type || "",
           accountCategory: accountData.accountCategory || accountData.category || "",
-          openingBalance: accountData.openingBalance || 0,
+          openingBalance:
+            accountData.openingBalance !== undefined
+              ? String(accountData.openingBalance)
+              : "",
           openingBalanceType: accountData.openingBalanceType || "dr",
           description: accountData.description || "",
           status: accountData.status || "active",
@@ -202,18 +137,21 @@ export function AccountDialog({
       setFormErrors({});
       setServerError(null);
     }
-  }, [isOpen, currentMode, accountData]);
+  }, [isOpen, mode, accountData]);
 
   const groupOptions = useMemo(() => {
-    const opts = [{ label: "Select account group", value: "" }];
-    accountGroups.forEach((g) => {
-      opts.push({ label: g.groupName || g.name, value: g._id || g.id });
+    const opts = [{ label: "Select Account Group...", value: "" }];
+    (accountGroups || []).forEach((g) => {
+      opts.push({
+        label: `${g.groupName || g.name} (${g.nature || "Group"})`,
+        value: g._id || g.id,
+      });
     });
     return opts;
   }, [accountGroups]);
 
   const selectedGroupObj = useMemo(() => {
-    return accountGroups.find(
+    return (accountGroups || []).find(
       (g) => (g._id || g.id) === formData.accountGroupId
     );
   }, [accountGroups, formData.accountGroupId]);
@@ -234,60 +172,36 @@ export function AccountDialog({
     }
 
     if (allowedCategories.length === 0) {
-      return [{ label: "Select Category", value: "" }, ...ALL_CATEGORY_OPTIONS];
+      return [{ label: "Select Category...", value: "" }, ...ALL_CATEGORY_OPTIONS];
     }
 
     const filtered = ALL_CATEGORY_OPTIONS.filter((opt) =>
       allowedCategories.includes(opt.value)
     );
-    return [{ label: "Select Category", value: "" }, ...filtered];
+    return [{ label: "Select Category...", value: "" }, ...filtered];
   }, [derivedNature]);
 
-  const handleFieldChange = (name, valueOrEvent) => {
-    let val = valueOrEvent;
-    if (
-      valueOrEvent &&
-      typeof valueOrEvent === "object" &&
-      "target" in valueOrEvent
-    ) {
-      val =
-        valueOrEvent.target.type === "checkbox"
-          ? valueOrEvent.target.checked
-          : valueOrEvent.target.value;
-    }
-
+  const handleFieldChange = (name, val) => {
     setFormData((prev) => {
       const nextData = { ...prev, [name]: val };
 
       if (name === "accountGroupId") {
-        const group = accountGroups.find((g) => (g._id || g.id) === val);
+        const group = (accountGroups || []).find((g) => (g._id || g.id) === val);
         if (group && group.nature) {
           const nat = group.nature.toUpperCase();
           nextData.accountNature = nat;
 
-          // Auto-select category guess based on group name if not set
           const groupNameNorm = String(group.groupName || "").toLowerCase();
           if (groupNameNorm.includes("bank")) nextData.accountCategory = "BANK";
           else if (groupNameNorm.includes("cash")) nextData.accountCategory = "CASH";
-          else if (
-            groupNameNorm.includes("customer") ||
-            groupNameNorm.includes("debtor")
-          )
+          else if (groupNameNorm.includes("customer") || groupNameNorm.includes("debtor"))
             nextData.accountCategory = "CUSTOMER";
-          else if (
-            groupNameNorm.includes("supplier") ||
-            groupNameNorm.includes("creditor")
-          )
+          else if (groupNameNorm.includes("supplier") || groupNameNorm.includes("creditor"))
             nextData.accountCategory = "SUPPLIER";
-          else if (
-            groupNameNorm.includes("inventory") ||
-            groupNameNorm.includes("stock")
-          )
+          else if (groupNameNorm.includes("inventory") || groupNameNorm.includes("stock"))
             nextData.accountCategory = "INVENTORY";
-          else if (groupNameNorm.includes("purchase"))
-            nextData.accountCategory = "PURCHASE";
-          else if (groupNameNorm.includes("sale"))
-            nextData.accountCategory = "SALES";
+          else if (groupNameNorm.includes("purchase")) nextData.accountCategory = "PURCHASE";
+          else if (groupNameNorm.includes("sale")) nextData.accountCategory = "SALES";
           else if (groupNameNorm.includes("tax") || groupNameNorm.includes("gst"))
             nextData.accountCategory = "GST";
           else nextData.accountCategory = nat === "ASSET" ? "FIXED_ASSET" : nat;
@@ -300,10 +214,11 @@ export function AccountDialog({
     setFormErrors((prev) => ({ ...prev, [name]: "", submit: "" }));
   };
 
-  const copyText = (key, text) => {
+  const handleCopy = (text, key) => {
     if (!text) return;
-    navigator.clipboard?.writeText(text);
+    navigator.clipboard?.writeText(String(text));
     setCopiedKey(key);
+    uiToast.success("Copied to Clipboard", `${text} copied.`);
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
@@ -339,6 +254,7 @@ export function AccountDialog({
     const errors = validate();
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
+      uiToast.error("Validation Error", "Please fill in all required fields.");
       return;
     }
 
@@ -358,438 +274,407 @@ export function AccountDialog({
     };
 
     try {
-      if (currentMode === "create") {
+      if (mode === "create") {
         await onSubmitCreate(payload);
-      } else if (currentMode === "edit" && accountData?._id) {
+        uiToast.success("Account Created", `Account "${payload.accountName}" has been created.`);
+      } else if (mode === "edit" && accountData?._id) {
         await onSubmitUpdate(accountData._id, payload);
+        uiToast.success("Account Updated", `Changes saved for "${payload.accountName}".`);
       }
       onSuccess?.();
       onClose();
     } catch (err) {
-      setServerError(typeof err === "string" ? err : "Failed to save account.");
+      const errMsg = typeof err === "string" ? err : err?.message || "Failed to save account.";
+      setServerError(errMsg);
+      uiToast.error("Save Failed", errMsg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const isView = currentMode === "view";
-  const isEdit = currentMode === "edit";
-  const isCreate = currentMode === "create";
+  const isView = mode === "view";
+  const isEdit = mode === "edit";
+  const isCreate = mode === "create";
 
   const title = isCreate
-    ? "Add Account (COA)"
+    ? "Create Ledger Account"
     : isEdit
-    ? "Edit Account"
-    : "Account Details";
+    ? "Edit Ledger Account"
+    : "Ledger Account Details";
 
   const subtitle = isCreate
-    ? "Create a new general ledger account for financial accounting."
+    ? "Register a new general ledger account into your Chart of Accounts."
     : isEdit
-    ? "Modify account properties, classification, or status."
-    : "View account metadata, classification nature, and opening balance.";
+    ? "Modify account classification, group assignment, or balance."
+    : "Inspect complete account configuration, group linkage, and standing.";
 
-  const natureBadgeVariantMap = {
-    ASSET: "success",
-    LIABILITY: "danger",
-    INCOME: "info",
-    EXPENSE: "warning",
-    EQUITY: "purple",
+  const natureColorMap = {
+    ASSET: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    LIABILITY: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    EQUITY: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    INCOME: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+    EXPENSE: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
   };
 
   return (
     <UIModal
       isOpen={isOpen}
       onClose={onClose}
+      showCloseButton={false}
       size="xl"
       mobileSheet
-      className="w-full max-w-4xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-3xl border border-border bg-surface shadow-2xl overflow-hidden"
+      className="w-full max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden select-none"
     >
-      <UIModalHeader>
-        <div className="flex items-center justify-between gap-3 w-full pr-6">
-          <div>
-            <UIModalTitle>{title}</UIModalTitle>
-            <UIModalDescription>{subtitle}</UIModalDescription>
+      {/* ── Modal Header ── */}
+      <UIModalHeader className="px-6 py-4.5 border-b border-border bg-surface shrink-0 flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          <div className="size-10 rounded-xl bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 text-white flex items-center justify-center shadow-xs shrink-0">
+            <Layers className="size-5" />
           </div>
-          {isView && (
-            <UIButton
-              variant="outline"
-              size="sm"
-              startIcon={<FiEdit2 />}
-              onClick={() => setCurrentMode("edit")}
-              className="shrink-0"
-            >
-              Edit Account
-            </UIButton>
-          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <UIModalTitle className="text-base sm:text-lg font-bold text-text">
+                {title}
+              </UIModalTitle>
+              {isCreate && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1">
+                  <Sparkles className="size-3" /> CHART OF ACCOUNTS
+                </span>
+              )}
+              {isEdit && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                  EDITING
+                </span>
+              )}
+              {isView && accountData && (
+                <span
+                  className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1",
+                    accountData.status === "active"
+                      ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                      : "bg-surface-alt text-text-muted border-border"
+                  )}
+                >
+                  <CheckCircle2 className="size-3" /> {(accountData.status || "active").toUpperCase()}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>
+          </div>
         </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="size-8 rounded-full bg-surface-alt hover:bg-surface-hover text-text-muted hover:text-text flex items-center justify-center transition-colors cursor-pointer"
+          title="Close dialog"
+        >
+          <X className="size-4" />
+        </button>
       </UIModalHeader>
 
-      <UIModalBody className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7 space-y-6">
+      {/* ── Modal Body ── */}
+      <UIModalBody className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1 min-h-0 bg-[#f8fafc] dark:bg-bg">
         {serverError && (
           <UIAlert variant="error" onDismiss={() => setServerError(null)}>
             {serverError}
           </UIAlert>
         )}
 
-        {/* Live Card Preview for Create/Edit */}
-        {!isView && (
-          <AccountLiveCard
-            formData={formData}
-            derivedNature={derivedNature}
-            groupName={selectedGroupObj?.groupName}
-          />
-        )}
-
-        {/* VIEW MODE */}
-        {isView && accountData && (
-          <div className="space-y-6">
-            {/* Hero Profile Banner */}
-            <div className="rounded-2xl border border-border bg-surface-muted/40 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20 font-bold text-xl shadow-inner">
-                  {(accountData.accountName || accountData.name || "GL")
-                    .slice(0, 2)
-                    .toUpperCase()}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-surface border border-border text-text">
-                      {accountData.accountCode || accountData.code || "N/A"}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        copyText(
-                          "code",
-                          accountData.accountCode || accountData.code
-                        )
-                      }
-                      className="text-text-muted hover:text-text transition-colors p-1"
-                      title="Copy Account Code"
-                    >
-                      {copiedKey === "code" ? (
-                        <FiCheck className="text-success text-xs" />
-                      ) : (
-                        <FiCopy className="text-xs" />
+        {/* ── Live Account Preview Card ── */}
+        <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5 shadow-2xs space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="size-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm shrink-0">
+                <Folder className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-md bg-surface-alt border border-border text-text">
+                    {formData.accountCode || "CODE-AUTO"}
+                  </span>
+                  {derivedNature && (
+                    <span
+                      className={cn(
+                        "text-[10.5px] font-bold px-2 py-0.5 rounded-md border uppercase",
+                        natureColorMap[derivedNature] || "bg-surface-alt text-text-muted border-border"
                       )}
-                    </button>
-                    <UIBadge
-                      variant={
-                        natureBadgeVariantMap[derivedNature] || "neutral"
-                      }
                     >
-                      {derivedNature || "ASSET"}
-                    </UIBadge>
-                    <UIBadge
-                      variant={
-                        accountData.status === "active" ? "success" : "neutral"
-                      }
-                    >
-                      {(accountData.status || "active").toUpperCase()}
-                    </UIBadge>
-                  </div>
-                  <h3 className="mt-1 text-xl font-bold text-text">
-                    {accountData.accountName || accountData.name}
-                  </h3>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    {accountData.accountCategory || "General"} Account
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-left sm:text-right shrink-0">
-                <span className="text-xs font-medium text-text-muted block">
-                  Opening Balance
-                </span>
-                <span className="text-2xl font-bold text-text">
-                  ₹
-                  {Number(accountData.openingBalance || 0).toLocaleString(
-                    "en-IN",
-                    {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }
+                      {derivedNature}
+                    </span>
                   )}
-                </span>
-                <span className="text-xs font-semibold text-text-muted uppercase block">
-                  {(accountData.openingBalanceType || "dr") === "dr"
-                    ? "Debit (Dr)"
-                    : "Credit (Cr)"}
-                </span>
+                  {formData.accountCategory && (
+                    <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-md bg-surface-alt text-text-muted border border-border">
+                      {formData.accountCategory}
+                    </span>
+                  )}
+                </div>
+                <h4 className="mt-1 font-bold text-base text-text truncate">
+                  {formData.accountName || "New General Ledger Account"}
+                </h4>
               </div>
             </div>
 
-            {/* 3 KPI Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="rounded-xl border border-border bg-surface p-4 flex items-center gap-3 shadow-xs">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <FiDollarSign className="text-lg" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-text-muted block">
-                    Opening Balance
+            <div className="text-right shrink-0">
+              <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                Opening Balance
+              </span>
+              <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                <span className="text-base font-black font-mono text-text">
+                  ₹{formatCurrency(formData.openingBalance)}
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-alt border border-border text-text-muted uppercase">
+                  {formData.openingBalanceType || "DR"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════════════════════ */}
+        {/* VIEW MODE                                                                 */}
+        {/* ══════════════════════════════════════════════════════════════════════════ */}
+        {isView && accountData && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-surface border border-border rounded-xl p-3.5 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                  Account Code
+                </span>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-sm font-bold font-mono text-text">
+                    {accountData.accountCode || accountData.code || "N/A"}
                   </span>
-                  <span className="text-sm font-bold text-text">
-                    ₹
-                    {Number(accountData.openingBalance || 0).toLocaleString(
-                      "en-IN"
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(accountData.accountCode || accountData.code, "accCode")}
+                    className="text-text-muted hover:text-text cursor-pointer"
+                    title="Copy code"
+                  >
+                    {copiedKey === "accCode" ? (
+                      <Check className="size-3 text-emerald-600" />
+                    ) : (
+                      <Copy className="size-3" />
                     )}
-                  </span>
+                  </button>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border bg-surface p-4 flex items-center gap-3 shadow-xs">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                  <FiActivity className="text-lg" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-text-muted block">
-                    Classification Nature
-                  </span>
-                  <span className="text-sm font-bold text-text">
-                    {derivedNature || "ASSET"}
-                  </span>
-                </div>
+              <div className="bg-surface border border-border rounded-xl p-3.5 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                  Account Group
+                </span>
+                <span className="text-sm font-bold text-text mt-1 block truncate">
+                  {typeof accountData.accountGroupId === "object"
+                    ? accountData.accountGroupId?.groupName
+                    : selectedGroupObj?.groupName || "N/A"}
+                </span>
               </div>
 
-              <div className="rounded-xl border border-border bg-surface p-4 flex items-center gap-3 shadow-xs">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                  <FiFolder className="text-lg" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-text-muted block">
-                    Account Group
-                  </span>
-                  <span className="text-sm font-bold text-text truncate max-w-[150px] block">
-                    {typeof accountData.accountGroupId === "object"
-                      ? accountData.accountGroupId?.groupName
-                      : selectedGroupObj?.groupName || "N/A"}
-                  </span>
-                </div>
+              <div className="bg-surface border border-border rounded-xl p-3.5 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                  Account Nature
+                </span>
+                <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 mt-1 block">
+                  {derivedNature || "ASSET"}
+                </span>
+              </div>
+
+              <div className="bg-surface border border-border rounded-xl p-3.5 shadow-2xs">
+                <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                  Status
+                </span>
+                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-1 block capitalize">
+                  {accountData.status || "active"}
+                </span>
               </div>
             </div>
 
-            {/* Read-only Key Value Details */}
-            <div className="rounded-xl border border-border bg-surface p-5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-4">
-                Ledger Account Metadata
-              </h4>
-              <UIKeyValueList
-                items={[
-                  {
-                    label: "Account Name",
-                    value: accountData.accountName || accountData.name || "N/A",
-                  },
-                  {
-                    label: "Account Code",
-                    value: accountData.accountCode || accountData.code || "N/A",
-                    copyable: true,
-                  },
-                  {
-                    label: "Account Group",
-                    value:
-                      typeof accountData.accountGroupId === "object"
-                        ? accountData.accountGroupId?.groupName
-                        : selectedGroupObj?.groupName || "N/A",
-                  },
-                  {
-                    label: "Nature",
-                    value: (
-                      <UIBadge
-                        variant={
-                          natureBadgeVariantMap[derivedNature] || "neutral"
-                        }
-                      >
-                        {derivedNature || "N/A"}
-                      </UIBadge>
-                    ),
-                  },
-                  {
-                    label: "Category",
-                    value:
-                      accountData.accountCategory ||
-                      accountData.category ||
-                      "N/A",
-                  },
-                  {
-                    label: "Status",
-                    value: (
-                      <UIBadge
-                        variant={
-                          accountData.status === "active"
-                            ? "success"
-                            : "neutral"
-                        }
-                      >
-                        {(accountData.status || "active").toUpperCase()}
-                      </UIBadge>
-                    ),
-                  },
-                  {
-                    label: "System Account",
-                    value: accountData.isSystemAccount ? "Yes (Protected)" : "No",
-                  },
-                  {
-                    label: "Description",
-                    value:
-                      accountData.description || "No description provided",
-                  },
-                ]}
-              />
+            {/* Description note */}
+            <div className="bg-surface border border-border rounded-xl p-4 shadow-2xs space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-text">
+                <FileText className="size-3.5 text-text-muted" />
+                <span>Account Remarks / Description</span>
+              </div>
+              <p className="text-xs text-text-muted bg-surface-alt/50 border border-border/60 rounded-lg p-3 leading-relaxed">
+                {accountData.description || "No specific remarks or description configured for this account."}
+              </p>
             </div>
           </div>
         )}
 
-        {/* CREATE / EDIT MODE */}
+        {/* ══════════════════════════════════════════════════════════════════════════ */}
+        {/* CREATE / EDIT FORM                                                        */}
+        {/* ══════════════════════════════════════════════════════════════════════════ */}
         {!isView && (
-          <form
-            id="account-dialog-form"
-            onSubmit={handleSubmit}
-            className="space-y-6"
-          >
-            <UIFormSection title="Classification & Group">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UISelect
-                  label="Account Group"
-                  value={formData.accountGroupId}
-                  onChange={(val) => handleFieldChange("accountGroupId", val)}
-                  options={groupOptions}
-                  error={Boolean(formErrors.accountGroupId)}
-                  helperText={formErrors.accountGroupId}
-                  required
-                />
+          <form id="account-dialog-form" onSubmit={handleSubmit} className="space-y-4">
+            {/* Classification & Group Card */}
+            <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5 shadow-2xs space-y-3.5">
+              <div className="flex items-center gap-2">
+                <FolderTree className="size-4 text-indigo-500" />
+                <span className="text-xs uppercase font-bold text-text-muted tracking-wider">
+                  Classification & Group Linkage
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="text-xs font-bold text-text block mb-1">
+                    Account Group <span className="text-rose-500">*</span>
+                  </label>
+                  <UISelect
+                    value={formData.accountGroupId}
+                    onChange={(val) => handleFieldChange("accountGroupId", val)}
+                    options={groupOptions}
+                    placeholder="Select Account Group..."
+                    isSearchable
+                    error={Boolean(formErrors.accountGroupId)}
+                    helperText={formErrors.accountGroupId}
+                    required
+                  />
+                </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                    Nature (Auto-derived from Group)
+                  <label className="text-xs font-bold text-text block mb-1">
+                    Category Mapping <span className="text-rose-500">*</span>
                   </label>
-                  <div className="h-10 px-3 flex items-center bg-surface-muted/50 border border-border rounded-xl">
-                    {derivedNature ? (
-                      <UIBadge
-                        variant={
-                          natureBadgeVariantMap[derivedNature] || "neutral"
-                        }
-                      >
-                        {derivedNature}
-                      </UIBadge>
-                    ) : (
-                      <span className="text-xs text-text-muted">
-                        Select group first
-                      </span>
-                    )}
-                  </div>
+                  <UISelect
+                    value={formData.accountCategory}
+                    onChange={(val) => handleFieldChange("accountCategory", val)}
+                    options={categoryOptions}
+                    placeholder="Select Ledger Category..."
+                    isSearchable
+                    error={Boolean(formErrors.accountCategory)}
+                    helperText={formErrors.accountCategory}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Account Details & Balances Card */}
+            <div className="bg-surface border border-border rounded-2xl p-4 sm:p-5 shadow-2xs space-y-3.5">
+              <div className="flex items-center gap-2">
+                <FileText className="size-4 text-indigo-500" />
+                <span className="text-xs uppercase font-bold text-text-muted tracking-wider">
+                  Account Identity & Initial Balance
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-bold text-text block mb-1">
+                    Account Name <span className="text-rose-500">*</span>
+                  </label>
+                  <UIInput
+                    placeholder="e.g. HDFC Current Account, Cash in Register, Rent Expense"
+                    value={formData.accountName}
+                    onChange={(e) => handleFieldChange("accountName", e.target.value)}
+                    error={Boolean(formErrors.accountName)}
+                    helperText={formErrors.accountName}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-text block mb-1">
+                    Account Code <span className="text-rose-500">*</span>
+                  </label>
+                  <UIInput
+                    placeholder="e.g. 1010, BANK01"
+                    value={formData.accountCode}
+                    onChange={(e) => handleFieldChange("accountCode", e.target.value)}
+                    error={Boolean(formErrors.accountCode)}
+                    helperText={formErrors.accountCode}
+                    startIcon={<Hash className="size-3.5 text-text-muted" />}
+                    required
+                  />
                 </div>
               </div>
 
-              <UISelect
-                label="Account Category"
-                value={formData.accountCategory}
-                onChange={(val) => handleFieldChange("accountCategory", val)}
-                options={categoryOptions}
-                error={Boolean(formErrors.accountCategory)}
-                helperText={
-                  formErrors.accountCategory ||
-                  "Filtered based on selected Group Nature"
-                }
-                required
-              />
-            </UIFormSection>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div>
+                  <label className="text-xs font-bold text-text block mb-1">
+                    Opening Balance (₹)
+                  </label>
+                  <UIInput
+                    type="number"
+                    step="any"
+                    placeholder="0.00"
+                    value={formData.openingBalance}
+                    onChange={(e) => handleFieldChange("openingBalance", e.target.value)}
+                    error={Boolean(formErrors.openingBalance)}
+                    helperText={formErrors.openingBalance}
+                    prefix="₹"
+                    inputClassName="font-mono text-right font-bold tabular-nums"
+                  />
+                </div>
 
-            <UIFormSection title="Account Identity">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UIInput
-                  label="Account Name"
-                  placeholder="e.g. HDFC Bank Current Account"
-                  value={formData.accountName}
-                  onChange={(e) =>
-                    handleFieldChange("accountName", e.target.value)
-                  }
-                  error={Boolean(formErrors.accountName)}
-                  helperText={formErrors.accountName}
-                  required
-                />
+                <div>
+                  <label className="text-xs font-bold text-text block mb-1">
+                    Balance Type (Dr / Cr)
+                  </label>
+                  <UISelect
+                    value={formData.openingBalanceType}
+                    onChange={(val) => handleFieldChange("openingBalanceType", val)}
+                    options={balanceTypeOptions}
+                  />
+                </div>
 
-                <UIInput
-                  label="Account Code"
-                  placeholder="e.g. ACC-1001"
-                  value={formData.accountCode}
-                  onChange={(e) =>
-                    handleFieldChange("accountCode", e.target.value)
-                  }
-                  error={Boolean(formErrors.accountCode)}
-                  helperText={formErrors.accountCode}
-                  required
-                />
+                <div>
+                  <label className="text-xs font-bold text-text block mb-1">
+                    Account Status
+                  </label>
+                  <UISelect
+                    value={formData.status}
+                    onChange={(val) => handleFieldChange("status", val)}
+                    options={statusOptions}
+                  />
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-text block mb-1">
+                  Description / Remarks (Optional)
+                </label>
                 <UIInput
-                  type="number"
-                  label="Opening Balance (₹)"
-                  placeholder="0.00"
-                  value={formData.openingBalance}
-                  onChange={(e) =>
-                    handleFieldChange("openingBalance", e.target.value)
-                  }
-                  error={Boolean(formErrors.openingBalance)}
-                  helperText={formErrors.openingBalance}
-                  disabled={isEdit} // Opening balance locked after creation
-                />
-
-                <UISelect
-                  label="Balance Type"
-                  value={formData.openingBalanceType}
-                  onChange={(val) =>
-                    handleFieldChange("openingBalanceType", val)
-                  }
-                  options={balanceTypeOptions}
-                  disabled={isEdit}
+                  placeholder="Additional notes about this ledger account..."
+                  value={formData.description}
+                  onChange={(e) => handleFieldChange("description", e.target.value)}
                 />
               </div>
-
-              <UISelect
-                label="Status"
-                value={formData.status}
-                onChange={(val) => handleFieldChange("status", val)}
-                options={statusOptions}
-              />
-
-              <UIInput
-                label="Description (Optional)"
-                placeholder="Notes or details about this ledger account..."
-                value={formData.description}
-                onChange={(e) =>
-                  handleFieldChange("description", e.target.value)
-                }
-              />
-            </UIFormSection>
+            </div>
           </form>
         )}
       </UIModalBody>
 
-      <UIModalFooter>
-        <UIButton variant="outline" onClick={onClose} disabled={isSubmitting}>
-          {isView ? "Close" : "Cancel"}
-        </UIButton>
+      {/* ── Modal Footer ── */}
+      <UIModalFooter className="px-6 py-4 bg-surface border-t border-border flex items-center justify-between">
+        <div>
+          {!isView && (
+            <span className="text-xs text-text-muted">
+              Classification: <strong className="text-text">{derivedNature || "Not Selected"}</strong>
+            </span>
+          )}
+        </div>
 
-        {isView ? (
-          <UIButton
-            variant="primary"
-            startIcon={<FiEdit2 />}
-            onClick={() => setCurrentMode("edit")}
-          >
-            Edit Account
+        <div className="flex items-center gap-2.5">
+          <UIButton variant="outline" onClick={onClose} disabled={isSubmitting}>
+            {isView ? "Close" : "Cancel"}
           </UIButton>
-        ) : (
-          <UIButton
-            variant="primary"
-            type="submit"
-            form="account-dialog-form"
-            isLoading={isSubmitting}
-          >
-            {isCreate ? "Create Account" : "Save Changes"}
-          </UIButton>
-        )}
+
+          {!isView && (
+            <UIButton
+              variant="primary"
+              type="submit"
+              form="account-dialog-form"
+              isLoading={isSubmitting}
+              startIcon={<CheckCircle2 className="size-4" />}
+            >
+              {isCreate ? "Create Account" : "Save Changes"}
+            </UIButton>
+          )}
+        </div>
       </UIModalFooter>
     </UIModal>
   );

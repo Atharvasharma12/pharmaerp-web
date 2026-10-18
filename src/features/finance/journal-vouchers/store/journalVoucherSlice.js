@@ -110,8 +110,6 @@ const journalVoucherSlice = createSlice({
         state.getJournalVouchersStatus = API_STATUS.SUCCESS;
 
         state.journalVouchers = action.payload?.vouchers || [];
-
-        state.message = "Journal vouchers fetched successfully";
       })
       .addCase(getJournalVouchers.rejected, (state, action) => {
         state.getJournalVouchersStatus = API_STATUS.ERROR;
@@ -125,8 +123,6 @@ const journalVoucherSlice = createSlice({
         state.getJournalVoucherStatus = API_STATUS.SUCCESS;
 
         state.managedJournalVoucher = action.payload || null;
-
-        state.message = "Journal voucher fetched successfully";
       })
       .addCase(getJournalVoucherById.rejected, (state, action) => {
         setRejected(state, action);

@@ -2,7 +2,6 @@ import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
-  createBankTransaction,
   getBankTransactions,
   getBankTransactionById,
   cancelBankTransaction,
@@ -24,7 +23,6 @@ import {
   selectBankTransactionStatus,
   selectBankTransactionError,
   selectBankTransactionMessage,
-  selectCreateBankTransactionStatus,
   selectGetBankTransactionsStatus,
   selectGetBankTransactionStatus,
   selectCancelBankTransactionStatus,
@@ -45,10 +43,6 @@ const useBankTransaction = () => {
 
   const message = useSelector(selectBankTransactionMessage);
 
-  const createBankTransactionStatus = useSelector(
-    selectCreateBankTransactionStatus,
-  );
-
   const getBankTransactionsStatus = useSelector(
     selectGetBankTransactionsStatus,
   );
@@ -58,10 +52,6 @@ const useBankTransaction = () => {
   const cancelBankTransactionStatus = useSelector(
     selectCancelBankTransactionStatus,
   );
-
-  const submitCreateBankTransaction = useCallback((payload) => {
-    return dispatch(createBankTransaction(payload)).unwrap();
-  }, [dispatch]);
 
   const fetchBankTransactions = useCallback((params = {}) => {
     return dispatch(getBankTransactions(params)).unwrap();
@@ -113,12 +103,10 @@ const useBankTransaction = () => {
     error,
     message,
 
-    createBankTransactionStatus,
     getBankTransactionsStatus,
     getBankTransactionStatus,
     cancelBankTransactionStatus,
 
-    createBankTransaction: submitCreateBankTransaction,
     getBankTransactions: fetchBankTransactions,
     getBankTransactionById: fetchBankTransactionById,
     cancelBankTransaction: submitCancelBankTransaction,

@@ -426,7 +426,7 @@ export const AccountBalancesDesktopPage = () => {
   };
 
   return (
-    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-3 space-y-2.5 text-text font-sans transition-colors">
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -443,7 +443,7 @@ export const AccountBalancesDesktopPage = () => {
       </AnimatePresence>
 
       {/* ── 1. Compact 4-Card Statistics Grid (Top of Page) ────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
         {/* Card 1: Total Accounts Tracked */}
         <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
           <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
@@ -540,7 +540,7 @@ export const AccountBalancesDesktopPage = () => {
       </div>
 
       {/* ── 2. Streamlined Single-Row Toolbar (Customer Desktop Page Pattern) ────── */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
         {/* Prominent Search Input */}
         <div className="flex-1 min-w-[240px] sm:min-w-[280px]">
           <UIInput
@@ -628,11 +628,11 @@ export const AccountBalancesDesktopPage = () => {
       </div>
 
       {/* ── 4. Constrained-Height Table with Sticky Header & Infinite Scroll ────── */}
-      <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
         {/* Internal Vertical Scroll Container: The definitive scroll parent */}
         <div
           ref={tableContainerRef}
-          className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-210px)] min-h-[480px] flex-1 divide-y divide-border/60"
+          className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0 divide-y divide-border/60"
         >
           <UITable
             stickyHeader

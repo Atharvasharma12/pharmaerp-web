@@ -58,7 +58,11 @@ const WorkspaceProductsPage = () => {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(25);
+  const [accumulatedProducts, setAccumulatedProducts] = useState([]);
+  const [totalProductsCount, setTotalProductsCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const {
     products,
@@ -74,13 +78,15 @@ const WorkspaceProductsPage = () => {
     clearCurrentWorkspaceProduct,
   } = useWorkspaceProduct();
 
-  const isLoadingList = getWorkspaceProductsStatus === API_STATUS.LOADING;
+  const isLoadingList =
+    getWorkspaceProductsStatus === API_STATUS.LOADING ||
+    getWorkspaceProductsStatus === API_STATUS.IDLE;
   const isDeletingItem = deleteWorkspaceProductStatus === API_STATUS.LOADING;
   const isLoading = isLoadingList || isDeletingItem;
   const hasError = getWorkspaceProductsStatus === API_STATUS.ERROR;
 
   const fetchWorkspaceCatalogData = useCallback(
-    async (pageVal = currentPage, sizeVal = pageSize, filterVal = filters) => {
+    async (pageVal = 1, sizeVal = pageSize, filterVal = filters) => {
       try {
         const apiParams = {
           page: pageVal,
@@ -97,13 +103,81 @@ const WorkspaceProductsPage = () => {
           apiParams.productType = filterVal.productType;
         }
 
-        await getWorkspaceProducts(apiParams);
+        const res = await getWorkspaceProducts(apiParams);
+        const newProducts = res?.products || [];
+        const total = res?.total || newProducts.length;
+
+        if (pageVal === 1) {
+          setAccumulatedProducts(newProducts);
+        } else {
+          setAccumulatedProducts((prev) => {
+            const existingIds = new Set(prev.map((p) => p._id));
+            const freshItems = newProducts.filter((p) => !existingIds.has(p._id));
+            return [...prev, ...freshItems];
+          });
+        }
+
+        setTotalProductsCount(total);
+        setCurrentPage(pageVal);
+        setHasMore(newProducts.length >= sizeVal && pageVal * sizeVal < total);
       } catch {
         // Gracefully trapped via feature state slice boundaries
       }
     },
-    [getWorkspaceProducts],
+    [getWorkspaceProducts, pageSize, filters],
   );
+
+  const handleLoadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore || isLoadingList) return;
+    setIsLoadingMore(true);
+    try {
+      const nextPage = currentPage + 1;
+      const apiParams = {
+        page: nextPage,
+        limit: pageSize,
+      };
+
+      if (filters.search) {
+        apiParams.search = filters.search;
+      }
+      if (filters.status !== "all") {
+        apiParams.status = filters.status;
+      }
+      if (filters.productType !== "all") {
+        apiParams.productType = filters.productType;
+      }
+
+      const res = await getWorkspaceProducts(apiParams);
+      const newProducts = res?.products || [];
+      const total = res?.total || totalProductsCount;
+
+      if (newProducts.length > 0) {
+        setAccumulatedProducts((prev) => {
+          const existingIds = new Set(prev.map((p) => p._id));
+          const freshItems = newProducts.filter((p) => !existingIds.has(p._id));
+          const combined = [...prev, ...freshItems];
+          setHasMore(newProducts.length >= pageSize && combined.length < total);
+          return combined;
+        });
+        setCurrentPage(nextPage);
+      } else {
+        setHasMore(false);
+      }
+    } catch {
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [
+    isLoadingMore,
+    hasMore,
+    isLoadingList,
+    currentPage,
+    pageSize,
+    filters,
+    getWorkspaceProducts,
+    totalProductsCount,
+  ]);
 
   useEffect(() => {
     clearError();
@@ -111,7 +185,7 @@ const WorkspaceProductsPage = () => {
 
     if (!hasFetchedRef.current) {
       hasFetchedRef.current = true;
-      fetchWorkspaceCatalogData(currentPage, pageSize, filters);
+      fetchWorkspaceCatalogData(1, pageSize, filters);
     }
 
     return () => {
@@ -132,10 +206,9 @@ const WorkspaceProductsPage = () => {
   }, [clearMessage, message]);
 
   const mappedProducts = useMemo(() => {
-    return (Array.isArray(products) ? products : []).map(
-      mapWorkspaceProductForView,
-    );
-  }, [products]);
+    const list = accumulatedProducts.length > 0 ? accumulatedProducts : (Array.isArray(products) ? products : []);
+    return list.map(mapWorkspaceProductForView);
+  }, [accumulatedProducts, products]);
 
   const activeFilterChips = useMemo(() => {
     const chips = [];
@@ -174,25 +247,28 @@ const WorkspaceProductsPage = () => {
   }, [products]);
 
   const dashboardStats = useMemo(() => {
-    const totalItems = pagination?.total || mappedProducts.length;
+    const totalItems = totalProductsCount || pagination?.total || mappedProducts.length;
     const activeCount = mappedProducts.filter(
       (p) => p.displayStatus === "active",
     ).length;
-    const inactiveCount = totalItems - activeCount;
+    const inactiveCount = totalItems > activeCount ? totalItems - activeCount : 0;
+    const categoriesCount = new Set(
+      mappedProducts.map((p) => p.displayCategory).filter(Boolean),
+    ).size;
 
     return [
       {
         id: "total_products",
         title: "Total Custom Products",
         value: totalItems,
-        description: "Workspace specific items",
+        description: "Workspace-specific items",
         colorVariant: "primary",
       },
       {
         id: "active_products",
         title: "Active Products",
         value: activeCount,
-        description: "Available for batches",
+        description: "Available for billing/batches",
         colorVariant: "success",
       },
       {
@@ -202,8 +278,15 @@ const WorkspaceProductsPage = () => {
         description: "Disabled stock targets",
         colorVariant: "warning",
       },
+      {
+        id: "categories_count",
+        title: "Product Categories",
+        value: categoriesCount || 1,
+        description: "Unique catalog types",
+        colorVariant: "info",
+      },
     ];
-  }, [pagination, mappedProducts]);
+  }, [totalProductsCount, pagination, mappedProducts]);
 
   const handleFilterChange = useCallback(
     (eventOrValue) => {
@@ -346,16 +429,19 @@ const WorkspaceProductsPage = () => {
     productTypeOptions,
 
     isLoading,
+    isLoadingMore,
+    hasMore,
+    handleLoadMore,
     hasError,
     error,
     message,
 
-    totalProducts: pagination?.total || mappedProducts.length,
+    totalProducts: totalProductsCount || pagination?.total || mappedProducts.length,
     currentPage: pagination?.page || currentPage,
     totalPages: pagination?.totalPages || 1,
     pageSize,
 
-    hasProducts: products.length > 0,
+    hasProducts: (accumulatedProducts.length > 0 ? accumulatedProducts : products).length > 0,
     hasFilteredProducts: mappedProducts.length > 0,
 
     handleFilterChange,

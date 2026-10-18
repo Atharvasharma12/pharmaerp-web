@@ -13,6 +13,7 @@ import {
   UIAlert,
   UIBadge,
   UISkeleton,
+  uiToast,
 } from "@/components/ui";
 import {
   Building2,
@@ -332,6 +333,7 @@ export function BankAccountDialog({
     if (!text) return;
     navigator.clipboard.writeText(String(text));
     setCopiedKey(key);
+    uiToast.success("Copied to Clipboard", `${key || "Value"} copied.`);
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
@@ -424,9 +426,10 @@ export function BankAccountDialog({
       onSuccess?.();
       onClose();
     } catch (err) {
-      setServerError(
-        typeof err === "string" ? err : "Failed to save bank account."
-      );
+      const errorMsg =
+        typeof err === "string" ? err : err?.message || "Failed to save bank account.";
+      setServerError(errorMsg);
+      uiToast.error("Bank Account Error", errorMsg);
     } finally {
       setIsSubmitting(false);
     }

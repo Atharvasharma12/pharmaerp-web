@@ -10,7 +10,7 @@ import PaymentQrsDesktopPage from "./desktop/PaymentQrsDesktopPage";
 import PaymentQrsMobilePage from "./mobile/PaymentQrsMobilePage";
 
 import PaymentQrDialog from "../components/PaymentQrDialog";
-import { UIConfirmDialog } from "@/components/ui";
+import { UIConfirmDialog, uiToast } from "@/components/ui";
 
 const INITIAL_FILTERS = {
   search: "",
@@ -106,6 +106,24 @@ const PaymentQrsPage = () => {
 
     return () => clearTimeout(handler);
   }, [filters.search]);
+
+  // Ephemeral toast feedback for operations from Redux - strictly for CRUD mutations (create, update, delete, primary)
+  useEffect(() => {
+    if (serverMessage) {
+      const isReadOp = /fetch|load|view|retriev|read/i.test(serverMessage);
+      if (!isReadOp) {
+        uiToast.success("Payment QR", serverMessage);
+      }
+      clearMessage();
+    }
+  }, [clearMessage, serverMessage]);
+
+  useEffect(() => {
+    if (serverError) {
+      uiToast.error("Payment QR Error", serverError);
+      clearError();
+    }
+  }, [clearError, serverError]);
 
   // Clean up notifications on unmount
   useEffect(() => {
@@ -206,6 +224,7 @@ const PaymentQrsPage = () => {
       fetchPaymentQrs();
     } catch (err) {
       console.error("Failed to delete QR register:", err);
+      uiToast.error("Delete Failed", err?.message || "Failed to delete payment QR.");
     }
   }, [confirmState.qrId, deletePaymentQr, fetchPaymentQrs]);
 
@@ -216,6 +235,7 @@ const PaymentQrsPage = () => {
         fetchPaymentQrs();
       } catch (err) {
         console.error("Failed to set primary QR register:", err);
+        uiToast.error("Update Failed", err?.message || "Failed to set primary QR code.");
       }
     },
     [setPrimaryPaymentQr, fetchPaymentQrs]

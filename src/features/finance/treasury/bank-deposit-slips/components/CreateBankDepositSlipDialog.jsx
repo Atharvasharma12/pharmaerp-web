@@ -10,6 +10,7 @@ import {
   UIButton,
   UIAlert,
   UISelect,
+  uiToast,
 } from "@/components/ui";
 import {
   ArrowDownToLine,
@@ -256,12 +257,17 @@ export const CreateBankDepositSlipDialog = ({
     };
 
     try {
-      await createBankDepositSlip(payload);
+      const res = await createBankDepositSlip(payload);
+      uiToast.success(
+        "Deposit Slip Created",
+        `Bank deposit slip #${res?.slipNumber || "entry"} for ₹${totalDepositAmount.toLocaleString("en-IN")} submitted.`
+      );
       onClose();
       if (typeof onSuccess === "function") onSuccess();
     } catch (err) {
       const msg = typeof err === "string" ? err : err?.message || "Failed to create bank deposit slip.";
       setValidationError(msg);
+      uiToast.error("Creation Failed", msg);
     }
   };
 
@@ -613,12 +619,14 @@ export const CreateBankDepositSlipDialog = ({
             : "No notes entered"}
         </span>
         <div className="flex items-center gap-2.5">
+
           <UIButton
             type="button"
             variant="outline"
             size="md"
             onClick={onClose}
             disabled={isSubmitting}
+            className="cursor-pointer"
           >
             Cancel
           </UIButton>
@@ -627,13 +635,16 @@ export const CreateBankDepositSlipDialog = ({
             variant="primary"
             size="md"
             onClick={handleSubmit}
+            isLoading={isSubmitting}
+            loadingText="Generating Slip..."
             disabled={isSubmitting || totalDepositAmount <= 0}
-            className="px-5 font-bold shadow-xs"
+            className="px-5 font-bold shadow-xs cursor-pointer"
           >
-            {isSubmitting ? "Generating Slip..." : "Create Deposit Slip"}
+            Create Deposit Slip
           </UIButton>
         </div>
       </UIModalFooter>
+
     </UIModal>
   );
 };

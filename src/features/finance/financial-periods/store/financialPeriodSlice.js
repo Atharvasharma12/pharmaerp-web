@@ -100,8 +100,6 @@ const financialPeriodSlice = createSlice({
         state.getFinancialPeriodsStatus = API_STATUS.SUCCESS;
 
         state.financialPeriods = action.payload?.periods || [];
-
-        state.message = "Financial periods fetched successfully";
       })
       .addCase(getFinancialPeriods.rejected, (state, action) => {
         state.getFinancialPeriodsStatus = API_STATUS.ERROR;
@@ -116,8 +114,6 @@ const financialPeriodSlice = createSlice({
 
         state.managedFinancialPeriod = action.payload || null;
         state.currentFinancialPeriod = action.payload || null;
-
-        state.message = "Current financial period fetched successfully";
       })
       .addCase(getCurrentFinancialPeriod.rejected, (state, action) => {
         setRejected(state, action);

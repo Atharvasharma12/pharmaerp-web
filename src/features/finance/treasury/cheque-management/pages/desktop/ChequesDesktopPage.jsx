@@ -1,45 +1,74 @@
-import React, { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  FiSearch,
-  FiPlus,
-  FiEye,
-  FiCheckCircle,
-  FiClock,
-  FiAlertTriangle,
-  FiSlash,
-  FiTrendingUp,
-  FiMoreVertical,
-  FiRefreshCw,
-  FiEdit2,
-} from "react-icons/fi";
+// src/features/finance/treasury/cheque-management/pages/desktop/ChequesDesktopPage.jsx
 
+import React, { useState, useMemo, useRef, useCallback } from "react";
 import {
-  AppBox,
-  AppBreadcrumb,
-  AppButton,
-  AppCard,
-  AppHeading,
-  AppInput,
-  AppSelect,
-  AppStack,
-  AppTablePagination,
-  AppText,
-  AppTable,
-  AppMenu,
-  PageHeader,
+  CreditCard,
+  Search,
+  Filter,
+  RefreshCw,
+  RotateCcw,
+  Plus,
+  MoreVertical,
+  Eye,
+  Edit2,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Calendar,
+  Building2,
+  Landmark,
+  Banknote,
+  Sparkles,
+  Printer,
+  Ban,
+  Clock,
+  Send,
+  AlertOctagon,
+} from "lucide-react";
+import dayjs from "dayjs";
+import {
+  UIButton,
+  UIInput,
+  UISelect,
+  UITable,
+  UITableHeader,
+  UITableBody,
+  UITableRow,
+  UITableHead,
+  UITableCell,
+  UITableEmpty,
+  UITableLoading,
+  UIInfiniteScroll,
+  UIDropdown,
+  UIDropdownTrigger,
+  UIDropdownMenu,
+  UIDropdownItem,
+  UIDropdownDivider,
+  UIConfirmDialog,
   PermissionGate,
-} from "@/components";
-import { ROUTES } from "@/constants";
-import { formatCurrency, formatDate } from "@/utils";
+  uiToast,
+} from "@/components/ui";
+import { usePermission } from "@/hooks";
+import { cn } from "@/lib/utils";
+import { ClearChequeModal, BounceChequeModal, CancelChequeModal } from "../../components/ChequeActionModals";
 
-const chequeTypeOptions = [
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
+  return Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const CHEQUE_TYPE_OPTIONS = [
   { label: "All Cheque Types", value: "all" },
-  { label: "Received Cheques", value: "RECEIVED" },
-  { label: "Issued Cheques", value: "ISSUED" },
+  { label: "Received Cheques (Customer)", value: "RECEIVED" },
+  { label: "Issued Cheques (Supplier)", value: "ISSUED" },
 ];
 
-const statusOptions = [
+const STATUS_OPTIONS = [
   { label: "All Statuses", value: "all" },
   { label: "Pending", value: "PENDING" },
   { label: "Deposited", value: "DEPOSITED" },
@@ -48,20 +77,14 @@ const statusOptions = [
   { label: "Cancelled", value: "CANCELLED" },
 ];
 
-const ChequesDesktopPage = ({
+const INITIAL_BATCH = 20;
+
+export const ChequesDesktopPage = ({
   cheques = [],
-  searchParams,
-  currentPage,
-  pageSize,
-  totalCheques,
+  searchParams = {},
   isLoading = false,
-  error,
-  message,
-  clearFeedback,
   handleSearchChange,
   handleFilterChange,
-  handlePageChange,
-  handlePageSizeChange,
   handleDeposit,
   handleClear,
   handleBounce,
@@ -71,562 +94,753 @@ const ChequesDesktopPage = ({
   handleEditCheque,
   handleRefresh,
 }) => {
-  const navigate = useNavigate();
+  const { can } = usePermission();
+  const tableContainerRef = useRef(null);
 
-  // Aggregate stats
+  // Client-side infinite scroll state
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Action dialogs state
+  const [depositTargetCheque, setDepositTargetCheque] = useState(null);
+  const [clearModalTarget, setClearModalTarget] = useState(null);
+  const [bounceModalTarget, setBounceModalTarget] = useState(null);
+  const [cancelModalTarget, setCancelModalTarget] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Filter cheques by search, type, and status
+  const filteredCheques = useMemo(() => {
+    const list = Array.isArray(cheques) ? cheques : [];
+    const searchToken = String(searchParams.search || "").trim().toLowerCase();
+    const statusToken = String(searchParams.status || "all").toUpperCase();
+    const typeToken = String(searchParams.chequeType || "all").toUpperCase();
+
+    return list.filter((c) => {
+      const chequeNo = String(c.chequeNumber || "").toLowerCase();
+      const party = String(c.partyName || "").toLowerCase();
+      const bank = String(
+        c.bankAccount?.bank ||
+        c.bankAccount?.accountName ||
+        c.bankAccountId?.accountName ||
+        ""
+      ).toLowerCase();
+      const remarks = String(c.remarks || "").toLowerCase();
+
+      const matchesSearch =
+        !searchToken ||
+        chequeNo.includes(searchToken) ||
+        party.includes(searchToken) ||
+        bank.includes(searchToken) ||
+        remarks.includes(searchToken);
+
+      const matchesStatus =
+        statusToken === "ALL" ||
+        String(c.status || "").toUpperCase() === statusToken;
+
+      const matchesType =
+        typeToken === "ALL" ||
+        String(c.chequeType || c.type || "RECEIVED").toUpperCase() === typeToken;
+
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [cheques, searchParams]);
+
+  // Sliced list for infinite scroll
+  const displayedCheques = useMemo(() => {
+    return filteredCheques.slice(0, visibleCount);
+  }, [filteredCheques, visibleCount]);
+
+  const hasMore = visibleCount < filteredCheques.length;
+
+  const handleLoadMore = useCallback(() => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount((prev) => Math.min(prev + 15, filteredCheques.length));
+      setIsLoadingMore(false);
+    }, 200);
+  }, [isLoadingMore, hasMore, filteredCheques.length]);
+
+  // Dynamic statistics
   const stats = useMemo(() => {
+    const list = Array.isArray(cheques) ? cheques : [];
+    let totalCheques = list.length;
     let pendingAmt = 0;
+    let pendingCount = 0;
+    let clearedAmt = 0;
+    let clearedCount = 0;
     let bouncedCount = 0;
+    let bouncedAmt = 0;
 
-    cheques.forEach((c) => {
-      if (c.status === "PENDING" || c.status === "DEPOSITED") {
-        pendingAmt += c.amount || 0;
-      } else if (c.status === "BOUNCED") {
+    for (const c of list) {
+      const amt = Number(c.amount || 0);
+      const isPending = c.status === "PENDING" || c.status === "DEPOSITED" || c.status === "RECEIVED";
+      const isCleared = c.status === "CLEARED";
+      const isBounced = c.status === "BOUNCED";
+
+      if (isPending) {
+        pendingAmt += amt;
+        pendingCount++;
+      } else if (isCleared) {
+        clearedAmt += amt;
+        clearedCount++;
+      } else if (isBounced) {
+        bouncedAmt += amt;
         bouncedCount++;
       }
-    });
+    }
 
-    return { pendingAmt, bouncedCount, count: totalCheques };
-  }, [cheques, totalCheques]);
+    return {
+      totalCheques,
+      pendingAmt,
+      pendingCount,
+      clearedAmt,
+      clearedCount,
+      bouncedCount,
+      bouncedAmt,
+    };
+  }, [cheques]);
 
-  const getStatusBadge = (status) => {
-    const raw = String(status || "").toUpperCase();
-    let bg = "bg-[#fff9db] text-[#f08c00] border-[#ffe066]";
+  const hasActiveFilters = Boolean(
+    (searchParams.search && searchParams.search.trim()) ||
+    (searchParams.status && searchParams.status !== "all") ||
+    (searchParams.chequeType && searchParams.chequeType !== "all")
+  );
 
-    if (raw === "CLEARED") bg = "bg-[#ebfbee] text-[#2b8a3e] border-[#c3fae8]";
-    else if (raw === "BOUNCED") bg = "bg-[#fff5f5] text-[#fa5252] border-[#ffc9c9]";
-    else if (raw === "CANCELLED") bg = "bg-[#f1f3f5] text-[#868e96] border-[#e9ecef]";
-    else if (raw === "DEPOSITED") bg = "bg-[#e8f0fe] text-[#1a73e8] border-[#adcdfc]";
-
-    return (
-      <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[9.5px] font-bold uppercase border ${bg}`}>
-        {raw}
-      </span>
-    );
+  const handleClearAllFilters = () => {
+    handleSearchChange("");
+    handleFilterChange("status", "all");
+    handleFilterChange("chequeType", "all");
+    setVisibleCount(INITIAL_BATCH);
   };
 
-  const getChequeTypeBadge = (type) => {
-    const isReceived = type === "RECEIVED";
-    const bg = isReceived ? "bg-primary-soft text-primary border border-primary/20" : "bg-purple-soft text-purple border border-purple/20";
-    return (
-      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[9.5px] font-bold uppercase border ${bg}`}>
-        {type}
-      </span>
-    );
+  const confirmDeposit = async () => {
+    if (!depositTargetCheque) return;
+    setActionLoading(true);
+    try {
+      await handleDeposit(depositTargetCheque._id || depositTargetCheque.id);
+      uiToast.success(
+        "Cheque Deposited",
+        `Cheque #${depositTargetCheque.chequeNumber} marked as deposited in bank.`
+      );
+      setDepositTargetCheque(null);
+    } catch (err) {
+      uiToast.error("Deposit Failed", typeof err === "string" ? err : err?.message || "Failed to deposit cheque.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const columns = useMemo(() => [
-    {
-      id: "chequeNumber",
-      label: "Cheque Number",
-      minWidth: 130,
-      render: (_, c) => (
-        <AppText variant="body2" sx={tableValueMonoSx}>
-          {c.chequeNumber}
-        </AppText>
-      ),
-    },
-    {
-      id: "chequeDate",
-      label: "Cheque Date",
-      minWidth: 120,
-      render: (_, c) => (
-        <AppText variant="body2" sx={tableValueMutedSx}>
-          {formatDate(c.chequeDate)}
-        </AppText>
-      ),
-    },
-    {
-      id: "chequeType",
-      label: "Type",
-      minWidth: 110,
-      render: (_, c) => getChequeTypeBadge(c.chequeType),
-    },
-    {
-      id: "drawnBank",
-      label: "Drawn Bank Account",
-      minWidth: 180,
-      render: (_, c) => (
-        <AppText variant="body2" sx={tableValueMutedSx}>
-          {c.bankAccountId?.bankName || "Unknown Bank"}
-        </AppText>
-      ),
-    },
-    {
-      id: "partyName",
-      label: "Party / Payee Name",
-      minWidth: 160,
-      render: (_, c) => (
-        <AppText variant="body2" sx={tableValueSx}>
-          {c.partyName}
-        </AppText>
-      ),
-    },
-    {
-      id: "amount",
-      label: "Amount",
-      minWidth: 120,
-      align: "right",
-      render: (_, c) => (
-        <span className="text-[12.5px] font-black text-text">
-          {formatCurrency(c.amount)}
-        </span>
-      ),
-    },
-    {
-      id: "status",
-      label: "Status",
-      align: "center",
-      minWidth: 110,
-      render: (_, c) => getStatusBadge(c.status),
-    },
-    {
-      id: "actions",
-      label: "Actions",
-      align: "right",
-      width: 100,
-      render: (_, c) => {
-        const isReceived = c.chequeType === "RECEIVED";
-        const isPending = c.status === "PENDING";
-        const isDeposited = c.status === "DEPOSITED";
-        const isCleared = c.status === "CLEARED";
-        const isBounced = c.status === "BOUNCED";
-        const isCancelled = c.status === "CANCELLED";
+  const confirmClear = async (clearData) => {
+    if (!clearModalTarget) return;
+    setActionLoading(true);
+    try {
+      await handleClear(clearModalTarget._id || clearModalTarget.id, clearData);
+      uiToast.success(
+        "Cheque Cleared",
+        `Cheque #${clearModalTarget.chequeNumber} cleared and funds credited.`
+      );
+      setClearModalTarget(null);
+    } catch (err) {
+      uiToast.error("Clearance Failed", typeof err === "string" ? err : err?.message || "Failed to clear cheque.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
-        const menuItems = [
-          {
-            id: "view",
-            label: "View Details",
-            icon: <FiEye />,
-            onClick: () => handleViewDetails(c._id),
-          },
-        ];
+  const confirmBounce = async (bounceData, optionalCharges) => {
+    if (!bounceModalTarget) return;
+    setActionLoading(true);
+    try {
+      const reason = typeof bounceData === "object" && bounceData !== null ? bounceData.reason : bounceData;
+      const charges = typeof bounceData === "object" && bounceData !== null ? bounceData.bounceCharges : optionalCharges;
+      await handleBounce(bounceModalTarget._id || bounceModalTarget.id, reason, charges);
+      uiToast.error(
+        "Cheque Bounced",
+        `Cheque #${bounceModalTarget.chequeNumber} marked as bounced with reason: ${reason || "Unspecified"}`
+      );
+      setBounceModalTarget(null);
+    } catch (err) {
+      uiToast.error("Bounce Record Failed", typeof err === "string" ? err : err?.message || "Failed to mark bounced.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
-        if (c.status === "PENDING" && handleEditCheque) {
-          menuItems.push({
-            id: "edit",
-            label: "Edit Cheque",
-            icon: <FiEdit2 />,
-            onClick: () => handleEditCheque(c._id),
-          });
-        }
+  const confirmCancel = async (cancelData) => {
+    if (!cancelModalTarget) return;
+    setActionLoading(true);
+    try {
+      const reason = typeof cancelData === "object" && cancelData !== null ? cancelData.reason : cancelData;
+      await handleCancel(cancelModalTarget._id || cancelModalTarget.id, reason);
+      uiToast.warning(
+        "Cheque Cancelled",
+        `Cheque #${cancelModalTarget.chequeNumber} has been cancelled.`
+      );
+      setCancelModalTarget(null);
+    } catch (err) {
+      uiToast.error("Cancellation Failed", typeof err === "string" ? err : err?.message || "Failed to cancel cheque.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
-        // Deposit: received + pending
-        if (isReceived && isPending) {
-          menuItems.push({
-            id: "deposit",
-            label: "Deposit Cheque",
-            icon: <FiCheckCircle />,
-            onClick: () => handleDeposit(c._id),
-          });
-        }
-
-        // Clear & Bounce: deposited received or pending issued
-        if ((isReceived && isDeposited) || (!isReceived && isPending)) {
-          menuItems.push({
-            id: "clear",
-            label: "Clear Cheque",
-            icon: <FiCheckCircle />,
-            onClick: () => {
-              const date = prompt("Enter clearance date (YYYY-MM-DD) or leave empty:");
-              if (date !== null) handleClear(c._id, date);
-            },
-          }, {
-            id: "bounce",
-            label: "Bounce Cheque",
-            icon: <FiAlertTriangle />,
-            onClick: () => {
-              const reason = prompt("Enter bounce reason:");
-              if (reason) {
-                const charges = prompt("Enter bounce charges (INR):", "0");
-                handleBounce(c._id, reason, Number(charges) || 0);
-              }
-            },
-          });
-        }
-
-        // Cancel: not cleared, bounced, cancelled
-        if (!isCleared && !isBounced && !isCancelled) {
-          menuItems.push({
-            id: "cancel",
-            label: "Cancel Cheque",
-            icon: <FiSlash />,
-            onClick: () => {
-              const reason = prompt("Enter cancellation reason:");
-              if (reason !== null) handleCancel(c._id, reason);
-            },
-          });
-        }
-
-        return (
-          <AppStack direction="row" gap={0.5} justify="flex-end" align="center">
-            <AppMenu
-              trigger={
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-transparent text-text-muted hover:text-text hover:bg-surface-hover focus:outline-none cursor-pointer"
-                >
-                  <FiMoreVertical className="text-[16px]" />
-                </button>
-              }
-              items={menuItems}
-              dense
-              minWidth={160}
-            />
-          </AppStack>
-        );
-      },
-    },
-  ], [handleViewDetails, handleEditCheque, handleDeposit, handleClear, handleBounce, handleCancel]);
-
-  const showPagination = totalCheques > pageSize;
 
   return (
-    <section className="min-h-[calc(100vh-58px)] bg-bg px-6 py-5">
-      <div className="mx-auto w-full max-w-[1400px]">
-        {/* Page Header */}
-        <PageHeader
-          title="Cheque Management"
-          subtitle="Record incoming customer cheques and outgoing vendor cheque payments."
-          extra={
-            <AppStack direction="row" gap={2} align="center">
-              <AppBreadcrumb
-                size="small"
-                variant="text"
-                items={[
-                  { label: "Dashboard", onClick: () => navigate(ROUTES.DASHBOARD) },
-                  { label: "Finance & Accounting", onClick: () => navigate(ROUTES.FINANCE) },
-                  { label: "Treasury", onClick: () => navigate(ROUTES.TREASURY) },
-                  { label: "Cheques", current: true },
-                ]}
-                sx={breadcrumbSx}
-                itemSx={breadcrumbItemSx}
-                currentItemSx={breadcrumbCurrentSx}
-              />
-              <AppButton
-                variant="outlined"
-                colorVariant="neutral"
-                size="small"
-                rounded="md"
-                startIcon={<FiRefreshCw />}
-                onClick={handleRefresh}
-                loading={isLoading}
-                sx={importButtonSx}
-              >
-                Refresh
-              </AppButton>
-              <PermissionGate permission="cheque:create">
-                <AppButton
-                  variant="filled"
-                  colorVariant="success"
-                  size="small"
-                  rounded="md"
-                  startIcon={<FiPlus />}
-                  onClick={handleCreateNew}
-                  sx={primaryButtonSx}
-                >
-                  New Cheque
-                </AppButton>
-              </PermissionGate>
-            </AppStack>
-          }
-          align="flex-start"
-          justify="space-between"
-          sx={pageHeaderSx}
-          contentSx={pageHeaderContentSx}
-        />
-
-        {/* Stats Grid */}
-        <div className="mt-5 grid grid-cols-3 gap-4">
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Total Cheques</span>
-                <span className="text-[20px] font-extrabold text-text mt-1 block">{stats.count}</span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-surface-alt text-text flex items-center justify-center border border-border">
-                <FiClock className="text-[18px]" />
-              </div>
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
+      {/* ── 1. Compact 4-Card Statistics Grid ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
+        {/* Card 1: Total Cheques */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <CreditCard className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-amber-600 dark:text-amber-400 truncate flex items-center gap-1">
+              <Sparkles className="size-3" />
+              Cheque Register
             </div>
-          </AppCard>
-
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">In Clearance Pipeline</span>
-                <span className="text-[20px] font-extrabold text-[#2b8a3e] mt-1 block">
-                  {formatCurrency(stats.pendingAmt)}
-                </span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-[#ebfbee] text-[#2b8a3e] flex items-center justify-center border border-[#c3fae8]">
-                <FiTrendingUp className="text-[18px]" />
-              </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.totalCheques} Cheques
             </div>
-          </AppCard>
-
-          <AppCard variant="default" rounded="lg" bordered shadow="sm" sx={statCardSx}>
-            <div className="p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase text-text-muted tracking-wider block">Bounced Items</span>
-                <span className="text-[20px] font-extrabold text-[#fa5252] mt-1 block">{stats.bouncedCount}</span>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-[#fff5f5] text-[#fa5252] flex items-center justify-center border border-[#ffc9c9]">
-                <FiAlertTriangle className="text-[18px]" />
-              </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              {stats.pendingCount} In Transit · {stats.clearedCount} Cleared
             </div>
-          </AppCard>
+          </div>
         </div>
 
-        {/* Feedback alerts */}
-        {(error || message) && (
-          <div
-            className={`mt-4 p-3 text-[12.5px] font-semibold rounded-md flex justify-between items-center ${
-              error ? "bg-danger-soft text-danger" : "bg-success-soft text-success"
-            }`}
-          >
-            <span>{error || message}</span>
-            <button
-              onClick={clearFeedback}
-              className={`font-bold hover:underline ${error ? "text-danger" : "text-success"}`}
-            >
-              Dismiss
-            </button>
+        {/* Card 2: Total Pending / In-Transit */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <Clock className="size-4.5 stroke-[1.8]" />
           </div>
-        )}
-
-        {/* Table & Filters Card */}
-        <AppCard
-          variant="default"
-          rounded="lg"
-          bordered
-          shadow="sm"
-          padding="none"
-          sx={mainCardSx}
-        >
-          {/* Filters Toolbar */}
-          <div className="p-4 border-b border-border bg-surface-hover/20 flex items-end justify-between gap-4">
-            <div className="flex items-end gap-4">
-              <AppInput
-                label="Search Cheques"
-                name="search"
-                value={searchParams.search}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search number, drawer..."
-                startIcon={<FiSearch />}
-                size="small"
-                fullWidth={false}
-                formControlSx={{ width: 260 }}
-                inputSx={compactFilterInputSx}
-                labelSx={filterLabelSx}
-              />
-
-              <AppSelect
-                label="Cheque Type"
-                name="chequeType"
-                value={searchParams.chequeType}
-                onChange={(e) => handleFilterChange("chequeType", e.target.value)}
-                options={chequeTypeOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                fullWidth={false}
-                formControlSx={{ width: 180 }}
-                inputSx={compactFilterInputSx}
-                labelSx={filterLabelSx}
-              />
-
-              <AppSelect
-                label="Status"
-                name="status"
-                value={searchParams.status}
-                onChange={(e) => handleFilterChange("status", e.target.value)}
-                options={statusOptions}
-                size="small"
-                variant="bordered"
-                rounded="md"
-                fullWidth={false}
-                formControlSx={{ width: 140 }}
-                inputSx={compactFilterInputSx}
-                labelSx={filterLabelSx}
-              />
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-blue-600 dark:text-blue-400 truncate">
+              Pending / In-Transit
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums text-blue-600 dark:text-blue-400">
+              ₹{formatCurrency(stats.pendingAmt)}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              {stats.pendingCount} Cheques awaiting clearance
             </div>
           </div>
+        </div>
 
-          {/* Table Container */}
-          <div className="w-full relative">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <AppText variant="body1" sx={{ color: "var(--app-color-text-muted)", fontWeight: 650 }}>
-                  Retrieving cheques ledger...
-                </AppText>
-              </div>
-            ) : cheques.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <FiClock className="text-[40px] text-text-muted/40 mb-3" />
-                <AppHeading level={3} weight={600} sx={{ m: 0, fontSize: "14px", color: "var(--app-color-text)" }}>
-                  No Cheques Found
-                </AppHeading>
-                <AppText variant="body2" sx={{ color: "var(--app-color-text-muted)", mt: 0.5 }}>
-                  There are no cheque records matching your filter parameters.
-                </AppText>
-              </div>
-            ) : (
-              <AppTable
-                columns={columns}
-                rows={cheques}
-                getRowId={(row) => row._id}
-                sx={tableSx}
-                headSx={tableHeadSx}
-                cellSx={tableCellSx}
-              />
-            )}
+        {/* Card 3: Cleared Volume */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="size-4.5 stroke-[1.8]" />
           </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-emerald-600 dark:text-emerald-400 truncate">
+              Cleared Volume
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+              ₹{formatCurrency(stats.clearedAmt)}
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              {stats.clearedCount} Successfully deposited & cleared
+            </div>
+          </div>
+        </div>
 
-          {/* Table Footer */}
-          {showPagination && (
-            <AppBox sx={paginationFooterWrapperSx}>
-              <AppTablePagination
-                page={currentPage}
-                pageSize={pageSize}
-                totalItems={totalCheques}
-                onPageChange={handlePageChange}
-                onPageSizeChange={handlePageSizeChange}
-              />
-            </AppBox>
-          )}
-        </AppCard>
+        {/* Card 4: Bounced / Disputed */}
+        <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
+          <div className="size-9 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <AlertTriangle className="size-4.5 stroke-[1.8]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11.5px] font-medium text-rose-600 dark:text-rose-400 truncate">
+              Bounced / Cancelled
+            </div>
+            <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
+              {stats.bouncedCount} Bounced
+            </div>
+            <div className="text-[10px] text-text-muted truncate mt-0.5">
+              ₹{formatCurrency(stats.bouncedAmt)} Disputed value
+            </div>
+          </div>
+        </div>
       </div>
-    </section>
+
+      {/* ── 2. Table Filter Toolbar ── */}
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
+        {/* Cheque Type Selector */}
+        <div className="w-[180px] sm:w-[210px]">
+          <UISelect
+            value={searchParams.chequeType || "all"}
+            onChange={(val) => handleFilterChange("chequeType", val)}
+            options={CHEQUE_TYPE_OPTIONS}
+            placeholder="Cheque Type"
+            size="md"
+          />
+        </div>
+
+        {/* Search Input */}
+        <div className="flex-1 min-w-[220px] sm:min-w-[260px]">
+          <UIInput
+            type="text"
+            value={searchParams.search || ""}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search cheque #, party name, bank, or remarks..."
+            startIcon={<Search className="size-4 text-text-muted" />}
+            size="md"
+            variant="outline"
+            isClearable
+            onClear={() => handleSearchChange("")}
+            className="w-full"
+          />
+        </div>
+
+        {/* Status Selector */}
+        <div className="w-[150px]">
+          <UISelect
+            value={searchParams.status || "all"}
+            onChange={(val) => handleFilterChange("status", val)}
+            options={STATUS_OPTIONS}
+            placeholder="Status"
+            size="md"
+          />
+        </div>
+
+        {/* Reset Filters Button */}
+        {hasActiveFilters && (
+          <UIButton
+            type="button"
+            variant="secondary"
+            size="md"
+            onClick={handleClearAllFilters}
+            startIcon={<RotateCcw className="size-4 text-text-muted" />}
+            className="h-10 px-3.5 shrink-0"
+            title="Reset Filters"
+          >
+            Reset
+          </UIButton>
+        )}
+
+        {/* Refresh Button */}
+        <UIButton
+          type="button"
+          variant="secondary"
+          size="md"
+          disabled={isLoading}
+          onClick={handleRefresh}
+          startIcon={
+            <RefreshCw
+              className={cn("size-4 text-primary", isLoading && "animate-spin")}
+            />
+          }
+          className="h-10 px-3.5 shrink-0"
+          title="Refresh Cheques"
+        >
+          Refresh
+        </UIButton>
+
+        {/* Primary Action Button: Record Cheque */}
+        <PermissionGate permission="cheque:create">
+          <UIButton
+            type="button"
+            variant="primary"
+            size="md"
+            startIcon={<Plus className="size-4" />}
+            onClick={handleCreateNew}
+            className="h-10 px-4 font-bold shadow-xs shrink-0 cursor-pointer bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            Record Cheque
+          </UIButton>
+        </PermissionGate>
+      </div>
+
+      {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ── */}
+      <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        <div
+          ref={tableContainerRef}
+          className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0"
+        >
+          <UITable
+            stickyHeader
+            containerClassName="static overflow-visible rounded-none border-0 shadow-none bg-transparent isolate-auto"
+            className="w-full"
+          >
+            <UITableHeader>
+              <UITableRow className="h-10 hover:bg-transparent border-b border-border bg-surface-alt/75 backdrop-blur-xs">
+                <UITableHead className="w-[170px] font-bold text-xs">
+                  Cheque # & Date
+                </UITableHead>
+                <UITableHead className="w-[160px] font-bold text-xs">
+                  Cheque Type
+                </UITableHead>
+                <UITableHead className="w-[200px] font-bold text-xs">
+                  Party Name
+                </UITableHead>
+                <UITableHead className="w-[190px] font-bold text-xs">
+                  Bank Account
+                </UITableHead>
+                <UITableHead align="right" className="w-[130px] font-bold text-xs">
+                  Amount
+                </UITableHead>
+                <UITableHead className="w-[140px] font-bold text-xs">
+                  Clearance Date
+                </UITableHead>
+                <UITableHead align="center" className="w-[110px] font-bold text-xs">
+                  Status
+                </UITableHead>
+                <UITableHead align="right" className="w-[60px] font-bold text-xs">
+                  Actions
+                </UITableHead>
+              </UITableRow>
+            </UITableHeader>
+
+            <UITableBody>
+              {isLoading && displayedCheques.length === 0 ? (
+                <UITableLoading rows={7} columns={8} />
+              ) : displayedCheques.length === 0 ? (
+                <UITableEmpty
+                  colSpan={8}
+                  title="No Cheques Found"
+                  description={
+                    hasActiveFilters
+                      ? "No cheques matched your filter criteria. Try adjusting your query or reset filters."
+                      : "No bank cheques recorded yet in treasury."
+                  }
+                  action={
+                    hasActiveFilters ? (
+                      <UIButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleClearAllFilters}
+                      >
+                        Clear Filters
+                      </UIButton>
+                    ) : (
+                      <PermissionGate permission="cheque:create">
+                        <UIButton
+                          variant="primary"
+                          size="sm"
+                          startIcon={<Plus className="size-4" />}
+                          onClick={handleCreateNew}
+                          className="bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                          Record First Cheque
+                        </UIButton>
+                      </PermissionGate>
+                    )
+                  }
+                />
+              ) : (
+                displayedCheques.map((c) => {
+                  const isReceived = (c.chequeType || c.type) === "RECEIVED";
+                  const isPending = c.status === "PENDING" || c.status === "RECEIVED";
+                  const isDeposited = c.status === "DEPOSITED";
+                  const isCleared = c.status === "CLEARED";
+                  const isBounced = c.status === "BOUNCED";
+                  const isCancelled = c.status === "CANCELLED";
+
+                  const bankAccount = c.bankAccount || c.bankAccountId || {};
+                  const bankName =
+                    bankAccount.bank ||
+                    bankAccount.accountName ||
+                    "Bank Account";
+
+                  return (
+                    <UITableRow
+                      key={c._id || c.id}
+                      onClick={() => handleViewDetails(c)}
+                      className="group cursor-pointer transition-colors hover:bg-surface-hover/70 h-13 border-b border-border/60 last:border-b-0"
+                    >
+                      {/* 1. Cheque # & Date */}
+                      <UITableCell className="py-2.5">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-mono font-bold text-xs sm:text-sm text-text group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                            #{c.chequeNumber || "—"}
+                          </span>
+                          <span className="text-[11px] text-text-muted mt-0.5">
+                            {dayjs(c.chequeDate).format("DD MMM YYYY")}
+                          </span>
+                        </div>
+                      </UITableCell>
+
+                      {/* 2. Type */}
+                      <UITableCell className="py-2">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border",
+                            isReceived
+                              ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20"
+                              : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
+                          )}
+                        >
+                          {isReceived ? (
+                            <ArrowDownLeft className="size-3" />
+                          ) : (
+                            <ArrowUpRight className="size-3" />
+                          )}
+                          {isReceived ? "Customer Received" : "Supplier Issued"}
+                        </span>
+                      </UITableCell>
+
+                      {/* 3. Party Name */}
+                      <UITableCell className="py-2">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-semibold text-text truncate">
+                            {c.partyName || "Bearer"}
+                          </span>
+                          <span className="text-[11px] text-text-muted truncate mt-0.5">
+                            {isReceived ? "Drawn By Customer" : "Drawn To Vendor"}
+                          </span>
+                        </div>
+                      </UITableCell>
+
+                      {/* 4. Bank Account */}
+                      <UITableCell className="py-2">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-semibold text-text truncate">
+                            {bankName}
+                          </span>
+                          <span className="text-[11px] font-mono text-text-muted truncate mt-0.5">
+                            {bankAccount.accountNumber
+                              ? `•••• ${String(bankAccount.accountNumber).slice(-4)}`
+                              : "Treasury Account"}
+                          </span>
+                        </div>
+                      </UITableCell>
+
+                      {/* 5. Amount */}
+                      <UITableCell
+                        align="right"
+                        className="whitespace-nowrap font-mono tabular-nums text-xs py-2"
+                      >
+                        <span className="font-bold text-text text-xs sm:text-sm text-amber-600 dark:text-amber-400">
+                          ₹{formatCurrency(c.amount)}
+                        </span>
+                      </UITableCell>
+
+                      {/* 6. Clearance Date */}
+                      <UITableCell className="py-2">
+                        {c.clearedAt || c.clearDate || c.clearedDate ? (
+                          <span className="font-mono text-xs font-semibold text-text">
+                            {dayjs(c.clearedAt || c.clearDate || c.clearedDate).format("DD MMM YYYY")}
+                          </span>
+                        ) : isCleared ? (
+                          <span className="font-mono text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                            {c.updatedAt ? dayjs(c.updatedAt).format("DD MMM YYYY") : "Cleared"}
+                          </span>
+                        ) : isBounced ? (
+                          <span className="text-text-muted text-[11px]">Bounced</span>
+                        ) : isCancelled ? (
+                          <span className="text-text-muted text-[11px]">Cancelled</span>
+                        ) : (
+                          <span className="text-text-muted text-[11px]">
+                            {isDeposited ? "Deposited / In-Transit" : "Awaiting Bank"}
+                          </span>
+                        )}
+                      </UITableCell>
+
+                      {/* 7. Status */}
+                      <UITableCell align="center" className="whitespace-nowrap py-2">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase border tracking-wider",
+                            isCleared
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                              : isBounced || isCancelled
+                              ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                              : isDeposited
+                              ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30"
+                              : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "size-1.5 rounded-full",
+                              isCleared
+                                ? "bg-emerald-500"
+                                : isBounced || isCancelled
+                                ? "bg-rose-500"
+                                : isDeposited
+                                ? "bg-blue-500"
+                                : "bg-amber-500"
+                            )}
+                          />
+                          <span>{c.status || "PENDING"}</span>
+                        </span>
+                      </UITableCell>
+
+                      {/* 8. Actions */}
+                      <UITableCell
+                        align="right"
+                        className="py-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <UIDropdown>
+                          <UIDropdownTrigger asChild>
+                            <UIButton
+                              variant="ghost"
+                              size="sm"
+                              className="size-8 p-0 text-text-muted hover:text-text cursor-pointer"
+                              title="Actions"
+                            >
+                              <MoreVertical className="size-4" />
+                            </UIButton>
+                          </UIDropdownTrigger>
+                          <UIDropdownMenu align="end" className="w-48">
+                            <UIDropdownItem
+                              icon={<Eye className="size-4 text-text-muted shrink-0" />}
+                              onClick={() => handleViewDetails(c)}
+                            >
+                              View Cheque Leaf
+                            </UIDropdownItem>
+
+                            {isPending && (
+                              <UIDropdownItem
+                                icon={<Edit2 className="size-4 text-text-muted shrink-0" />}
+                                onClick={() => handleEditCheque(c)}
+                              >
+                                Edit Particulars
+                              </UIDropdownItem>
+                            )}
+
+                            <UIDropdownItem
+                              icon={<Printer className="size-4 text-text-muted shrink-0" />}
+                              onClick={() => {
+                                handleViewDetails(c);
+                                setTimeout(() => window.print(), 300);
+                              }}
+                            >
+                              Print Cheque Slip
+                            </UIDropdownItem>
+
+                            <UIDropdownDivider />
+
+                            {/* Lifecycle Actions */}
+                            {isPending && (
+                              <PermissionGate permission="cheque:deposit">
+                                <UIDropdownItem
+                                  icon={<Send className="size-4 text-blue-600 shrink-0" />}
+                                  onClick={() => setDepositTargetCheque(c)}
+                                >
+                                  Deposit to Bank
+                                </UIDropdownItem>
+                              </PermissionGate>
+                            )}
+
+                            {isDeposited && (
+                              <PermissionGate permission="cheque:clear">
+                                <UIDropdownItem
+                                  icon={<CheckCircle2 className="size-4 text-emerald-600 shrink-0" />}
+                                  onClick={() => setClearModalTarget(c)}
+                                >
+                                  Mark as Cleared
+                                </UIDropdownItem>
+                              </PermissionGate>
+                            )}
+
+                            {(isPending || isDeposited) && (
+                              <PermissionGate permission="cheque:bounce">
+                                <UIDropdownItem
+                                  destructive
+                                  icon={<AlertOctagon className="size-4 text-rose-600 shrink-0" />}
+                                  onClick={() => setBounceModalTarget(c)}
+                                >
+                                  Mark as Bounced
+                                </UIDropdownItem>
+                              </PermissionGate>
+                            )}
+
+                            {!isCleared && !isCancelled && !isBounced && (
+                              <PermissionGate permission="cheque:cancel">
+                                <UIDropdownItem
+                                  destructive
+                                  icon={<Ban className="size-4 text-rose-600 shrink-0" />}
+                                  onClick={() => setCancelModalTarget(c)}
+                                >
+                                  Cancel Cheque
+                                </UIDropdownItem>
+                              </PermissionGate>
+                            )}
+                          </UIDropdownMenu>
+                        </UIDropdown>
+                      </UITableCell>
+                    </UITableRow>
+                  );
+                })
+              )}
+            </UITableBody>
+          </UITable>
+
+          {!isLoading && displayedCheques.length > 0 && (
+            <UIInfiniteScroll
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              onLoadMore={handleLoadMore}
+              rootRef={tableContainerRef}
+              threshold={0.8}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* ── Deposit Cheque Confirmation Dialog ── */}
+      <UIConfirmDialog
+        isOpen={Boolean(depositTargetCheque)}
+        onClose={() => setDepositTargetCheque(null)}
+        onConfirm={confirmDeposit}
+        title="Deposit Cheque to Bank?"
+        description={
+          depositTargetCheque ? (
+            <p className="text-xs text-text-muted mt-1">
+              Mark Cheque{" "}
+              <strong className="text-text font-mono">
+                #{depositTargetCheque.chequeNumber}
+              </strong>{" "}
+              for{" "}
+              <strong className="text-text font-mono">
+                ₹{formatCurrency(depositTargetCheque.amount)}
+              </strong>{" "}
+              as deposited into{" "}
+              <strong className="text-text">
+                {depositTargetCheque.bankAccount?.bank ||
+                  depositTargetCheque.bankAccount?.accountName ||
+                  "Bank"}
+              </strong>
+              ?
+            </p>
+          ) : null
+        }
+        confirmText="Deposit Cheque"
+        cancelText="Cancel"
+        intent="primary"
+        isLoading={actionLoading}
+      />
+
+      {/* ── Action Modals for Clear, Bounce, Cancel ── */}
+      <ClearChequeModal
+        open={Boolean(clearModalTarget)}
+        onClose={() => setClearModalTarget(null)}
+        onConfirm={confirmClear}
+        isLoading={actionLoading}
+        chequeType={clearModalTarget?.type}
+      />
+
+      <BounceChequeModal
+        open={Boolean(bounceModalTarget)}
+        onClose={() => setBounceModalTarget(null)}
+        onConfirm={confirmBounce}
+        isLoading={actionLoading}
+        chequeNumber={bounceModalTarget?.chequeNumber}
+        partyName={bounceModalTarget?.partyName}
+      />
+
+      <CancelChequeModal
+        open={Boolean(cancelModalTarget)}
+        onClose={() => setCancelModalTarget(null)}
+        onConfirm={confirmCancel}
+        isLoading={actionLoading}
+        chequeNumber={cancelModalTarget?.chequeNumber}
+      />
+    </div>
   );
-};
-
-// Styling variables
-const breadcrumbSx = { mt: 0 };
-const breadcrumbItemSx = {
-  fontSize: "12px",
-  color: "var(--app-color-text-muted)",
-  cursor: "pointer",
-  "&:hover": { color: "var(--app-color-primary)" },
-};
-const breadcrumbCurrentSx = {
-  fontSize: "12px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const pageHeaderSx = { width: "100%" };
-const pageHeaderContentSx = {
-  minWidth: 0,
-  "& h1, & h2, & h3, & h4": {
-    m: 0,
-    fontSize: "23px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.4px",
-    color: "var(--app-color-text)",
-  },
-};
-
-const primaryButtonSx = {
-  height: 38,
-  px: 2.5,
-  fontSize: "12.5px",
-  fontWeight: 700,
-  bgcolor: "#00b85c",
-  color: "white",
-  whiteSpace: "nowrap",
-  "&:hover": { bgcolor: "#009e4f" },
-};
-
-const importButtonSx = {
-  height: 38,
-  px: 2.5,
-  fontSize: "12.5px",
-  fontWeight: 650,
-  borderColor: "var(--app-color-border)",
-  color: "var(--app-color-text)",
-  bgcolor: "white",
-  whiteSpace: "nowrap",
-};
-
-const statCardSx = {
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const mainCardSx = {
-  mt: 5,
-  bgcolor: "var(--app-color-surface)",
-  borderColor: "var(--app-color-border)",
-};
-
-const compactFilterInputSx = {
-  height: 32,
-  fontSize: "11.5px",
-  bgcolor: "var(--app-color-surface)",
-};
-
-const filterLabelSx = {
-  fontSize: "11px",
-  fontWeight: 700,
-  color: "var(--app-color-text-muted)",
-  mb: 0.5,
-};
-
-const tableSx = {
-  width: "100%",
-  "& .MuiTable-root": {
-    width: "100%",
-  },
-};
-
-const tableHeadSx = {
-  bgcolor: "color-mix(in_srgb, var(--app-color-surface-alt) 25%, var(--app-color-surface))",
-  "& th": {
-    fontSize: "11px",
-    fontWeight: 750,
-    textTransform: "uppercase",
-    color: "var(--app-color-text-muted)",
-    py: 1.5,
-    borderBottom: "1px solid var(--app-color-divider)",
-  },
-};
-
-const tableCellSx = {
-  py: 1.5,
-  fontSize: "12.5px",
-  borderBottom: "1px solid var(--app-color-divider)",
-};
-
-const tableValueSx = {
-  fontSize: "12.5px",
-  fontWeight: 650,
-  color: "var(--app-color-text)",
-};
-
-const tableValueMutedSx = {
-  fontSize: "12.5px",
-  fontWeight: 650,
-  color: "var(--app-color-text-muted)",
-};
-
-const tableValueMonoSx = {
-  fontSize: "12px",
-  fontFamily: "var(--font-mono, monospace)",
-  fontWeight: 750,
-  color: "var(--app-color-text)",
-};
-
-const paginationFooterWrapperSx = {
-  px: 2,
-  py: 2,
-  borderTop: "1px solid var(--app-color-divider)",
-  display: "flex",
-  justifyContent: "flex-end",
-  alignItems: "center",
-  width: "100%",
-  "& > div": {
-    width: "auto",
-  },
 };
 
 export default ChequesDesktopPage;

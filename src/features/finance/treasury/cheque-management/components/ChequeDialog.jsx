@@ -1,47 +1,64 @@
+// src/features/finance/treasury/cheque-management/components/ChequeDialog.jsx
+
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  FiCheckCircle,
-  FiXCircle,
-  FiAlertTriangle,
-  FiArrowDownLeft,
-  FiArrowUpRight,
-  FiCopy,
-  FiCheck,
-  FiEdit2,
-  FiDollarSign,
-  FiCalendar,
-  FiUser,
-  FiCreditCard,
-} from "react-icons/fi";
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Copy,
+  Check,
+  Edit2,
+  Calendar,
+  User,
+  CreditCard,
+  Landmark,
+  FileText,
+  Sparkles,
+  Printer,
+  Ban,
+  X,
+  Clock,
+  Building2,
+} from "lucide-react";
 import {
   UIModal,
   UIModalHeader,
   UIModalTitle,
-  UIModalDescription,
   UIModalBody,
   UIModalFooter,
-  UIFormSection,
   UIInput,
   UISelect,
   UIButton,
-  UIAlert,
-  UIKeyValueList,
   UIBadge,
   UISkeleton,
+  uiToast,
 } from "@/components/ui";
-
 import useBankAccount from "@/features/finance/treasury/bank-management/bank-accounts/hooks/useBankAccount";
+import useAccount from "@/features/finance/chart-of-accounts/accounts/hooks/useAccount";
+import { cn } from "@/lib/utils";
+import dayjs from "dayjs";
 
 const chequeTypeOptions = [
   { label: "Received Cheque (From Customer)", value: "RECEIVED" },
   { label: "Issued Cheque (To Supplier)", value: "ISSUED" },
 ];
 
+const formatCurrency = (val) => {
+  if (val === undefined || val === null || isNaN(Number(val))) return "0.00";
+  return Number(val).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 const INITIAL_FORM = {
   chequeNumber: "",
   type: "RECEIVED",
   partyName: "",
   bankAccountId: "",
+  counterpartyAccountId: "",
   amount: "",
   chequeDate: new Date().toISOString().split("T")[0],
   remarks: "",
@@ -99,58 +116,62 @@ function numberToWordsINR(num) {
   };
 
   let n = Math.floor(num);
-  let crore = Math.floor(n / 10000000);
+  let str = "";
+
+  const crore = Math.floor(n / 10000000);
   n %= 10000000;
-  let lakh = Math.floor(n / 100000);
+  if (crore > 0) str += inWords(crore) + "Crore ";
+
+  const lakh = Math.floor(n / 100000);
   n %= 100000;
-  let thousand = Math.floor(n / 1000);
+  if (lakh > 0) str += inWords(lakh) + "Lakh ";
+
+  const thousand = Math.floor(n / 1000);
   n %= 1000;
+  if (thousand > 0) str += inWords(thousand) + "Thousand ";
 
-  let res = "";
-  if (crore) res += inWords(crore) + "Crore ";
-  if (lakh) res += inWords(lakh) + "Lakh ";
-  if (thousand) res += inWords(thousand) + "Thousand ";
-  if (n) res += inWords(n);
+  const hundred = n;
+  if (hundred > 0) str += inWords(hundred);
 
-  return (res.trim() || "Zero") + " Rupees Only";
+  return (str.trim() + " Rupees Only").replace(/\s+/g, " ");
 }
 
 /**
- * Top Realistic Cheque Leaf Preview
+ * Realistic Indian Bank Cheque Leaf Preview
  */
-const ChequeLeafCard = ({ formData, bankAccount }) => {
-  const isReceived = formData.type === "RECEIVED";
+export const ChequeLeafCard = ({ formData = {}, bankAccount = null }) => {
+  const isReceived = (formData.type || formData.chequeType) === "RECEIVED";
   const numAmt = parseFloat(formData.amount) || 0;
   const words = numberToWordsINR(numAmt);
 
   const formattedDate = formData.chequeDate
-    ? new Date(formData.chequeDate).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-    : "DD/MM/YYYY";
+    ? new Date(formData.chequeDate)
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
+        .replace(/\//g, "  ")
+    : "D D  M M  Y Y Y Y";
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-50/50 via-surface to-teal-50/30 dark:from-emerald-950/20 dark:via-surface dark:to-teal-950/20 p-5 sm:p-6 shadow-md transition-all font-sans">
-      {/* Decorative watermark pattern */}
-      <div className="absolute inset-0 pointer-events-none opacity-5 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]" />
+    <div className="relative w-full overflow-hidden rounded-2xl border-2 border-border/80 bg-gradient-to-br from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0] dark:from-surface dark:via-surface-alt dark:to-surface p-5 sm:p-6 shadow-sm select-none font-sans transition-all">
+      {/* Background Watermark */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.03] dark:opacity-[0.04]">
+        <Landmark className="size-64 stroke-[1.2]" />
+      </div>
 
-      {/* Top Header Row */}
+      {/* Top Bank Header & Date Box */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-extrabold tracking-wider text-text uppercase">
-              {bankAccount?.bankMasterId?.name ||
-                bankAccount?.accountName ||
-                "TREASURY BANK"}
-            </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-border text-text-muted">
-              IFSC: {bankAccount?.ifscCode || "IFSC0000123"}
+            <Landmark className="size-5 text-primary shrink-0" />
+            <span className="font-extrabold uppercase tracking-wide text-xs sm:text-sm text-text">
+              {bankAccount?.bank || bankAccount?.accountName || "National Commercial Bank"}
             </span>
           </div>
           <p className="text-[11px] text-text-muted mt-0.5">
-            Branch: {bankAccount?.branchName || "Main Commercial Branch"}
+            Branch: {bankAccount?.branchName || bankAccount?.bankBranchName || "Main Commercial Branch"}
           </p>
         </div>
 
@@ -205,9 +226,16 @@ const ChequeLeafCard = ({ formData, bankAccount }) => {
       {/* Bottom Cheque Details Row */}
       <div className="mt-4 pt-3 border-t border-border/80 flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
-          <UIBadge variant={isReceived ? "info" : "warning"} size="sm">
+          <span
+            className={cn(
+              "text-[10px] font-bold px-2 py-0.5 rounded-full border",
+              isReceived
+                ? "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200"
+                : "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200"
+            )}
+          >
             {isReceived ? "CUSTOMER CHEQUE (RECEIVED)" : "SUPPLIER CHEQUE (ISSUED)"}
-          </UIBadge>
+          </span>
           <span className="font-mono text-xs font-bold text-text-muted">
             NO: {formData.chequeNumber || "000000"}
           </span>
@@ -240,34 +268,48 @@ export function ChequeDialog({
   onSuccess,
 }) {
   const { bankAccounts = [], getBankAccounts } = useBankAccount();
+  const { accounts = [], getAccounts } = useAccount();
 
   const [currentMode, setCurrentMode] = useState(mode);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
-  const [serverError, setServerError] = useState(null);
+  const [activeAction, setActiveAction] = useState(null); // 'deposit' | 'clear' | 'bounce' | 'cancel' | null
   const [details, setDetails] = useState(chequeData);
   const [copiedKey, setCopiedKey] = useState(null);
+
+  const handleActionClick = async (actionType, fn) => {
+    if (!fn || activeAction) return;
+    try {
+      setActiveAction(actionType);
+      await fn(details?._id || details?.id);
+    } catch {
+      // Handled by parent or toast
+    } finally {
+      setActiveAction(null);
+    }
+  };
 
   useEffect(() => {
     setCurrentMode(mode);
   }, [mode, isOpen]);
 
-  // Load bank accounts list when modal opens
+  // Load bank accounts and general ledger accounts when modal opens
   useEffect(() => {
     if (isOpen) {
       getBankAccounts().catch(() => {});
+      getAccounts?.({ all: true }).catch(() => {});
     }
-  }, [isOpen, getBankAccounts]);
+  }, [isOpen, getBankAccounts, getAccounts]);
 
   // Load cheque details
   useEffect(() => {
     if (!isOpen) {
       setFormData(INITIAL_FORM);
       setFormErrors({});
-      setServerError(null);
       setDetails(null);
+      setActiveAction(null);
       return;
     }
 
@@ -276,85 +318,101 @@ export function ChequeDialog({
         setDetails(chequeData);
         setFormData({
           chequeNumber: chequeData.chequeNumber || "",
-          type: chequeData.type || "RECEIVED",
+          type: chequeData.chequeType || chequeData.type || "RECEIVED",
           partyName: chequeData.partyName || "",
           bankAccountId:
             typeof chequeData.bankAccountId === "object"
               ? chequeData.bankAccountId?._id
               : chequeData.bankAccountId || "",
+          counterpartyAccountId:
+            typeof chequeData.counterpartyAccountId === "object"
+              ? chequeData.counterpartyAccountId?._id
+              : chequeData.counterpartyAccountId || "",
           amount: String(chequeData.amount || ""),
           chequeDate: chequeData.chequeDate
             ? new Date(chequeData.chequeDate).toISOString().split("T")[0]
             : new Date().toISOString().split("T")[0],
-          remarks: chequeData.remarks || "",
+          remarks: chequeData.narration || chequeData.remarks || "",
         });
       } else if (entityId && onFetchById) {
         setIsFetching(true);
-        setServerError(null);
         onFetchById(entityId)
           .then((data) => {
             setDetails(data);
             setFormData({
               chequeNumber: data.chequeNumber || "",
-              type: data.type || "RECEIVED",
+              type: data.chequeType || data.type || "RECEIVED",
               partyName: data.partyName || "",
               bankAccountId:
                 typeof data.bankAccountId === "object"
                   ? data.bankAccountId?._id
                   : data.bankAccountId || "",
+              counterpartyAccountId:
+                typeof data.counterpartyAccountId === "object"
+                  ? data.counterpartyAccountId?._id
+                  : data.counterpartyAccountId || "",
               amount: String(data.amount || ""),
               chequeDate: data.chequeDate
                 ? new Date(data.chequeDate).toISOString().split("T")[0]
                 : new Date().toISOString().split("T")[0],
-              remarks: data.remarks || "",
+              remarks: data.narration || data.remarks || "",
             });
           })
-          .catch((err) =>
-            setServerError(
-              typeof err === "string" ? err : "Failed to load cheque details."
-            )
-          )
+          .catch((err) => {
+            uiToast.error(
+              "Load Error",
+              typeof err === "string" ? err : err?.message || "Failed to load cheque details."
+            );
+          })
           .finally(() => setIsFetching(false));
       }
     } else {
       setFormData(INITIAL_FORM);
       setFormErrors({});
-      setServerError(null);
     }
   }, [isOpen, currentMode, entityId, chequeData, onFetchById]);
 
   const bankOptions = useMemo(() => {
-    return bankAccounts.map((acc) => ({
-      label: `${acc.accountName} (${acc.accountNumber})`,
-      value: acc._id,
-    }));
+    const list = Array.isArray(bankAccounts) ? bankAccounts : [];
+    return [
+      { label: "Select Bank Account", value: "" },
+      ...list.map((acc) => ({
+        label: `${acc.bank || acc.accountName} - ${acc.accountName} (•••• ${String(acc.accountNumber || "").slice(-4)})`,
+        value: acc._id || acc.id,
+      })),
+    ];
   }, [bankAccounts]);
 
+  const accountOptions = useMemo(() => {
+    const list = Array.isArray(accounts) ? accounts : [];
+    return [
+      { label: "Auto-resolve (Default System Account)", value: "" },
+      ...list.map((acc) => ({
+        label: `${acc.accountCode} — ${acc.accountName}`,
+        value: acc._id || acc.id,
+      })),
+    ];
+  }, [accounts]);
+
   const selectedBank = useMemo(() => {
-    return bankAccounts.find((b) => b._id === formData.bankAccountId);
+    return bankAccounts.find((b) => (b._id || b.id) === formData.bankAccountId);
   }, [bankAccounts, formData.bankAccountId]);
 
-  const handleFieldChange = (name, valueOrEvent) => {
-    let val = valueOrEvent;
-    if (
-      valueOrEvent &&
-      typeof valueOrEvent === "object" &&
-      "target" in valueOrEvent
-    ) {
-      val =
-        valueOrEvent.target.type === "checkbox"
-          ? valueOrEvent.target.checked
-          : valueOrEvent.target.value;
-    }
+  const handleFieldChange = (name, val) => {
     setFormData((prev) => ({ ...prev, [name]: val }));
     setFormErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
-  const copyText = (key, text) => {
+  const handleCopy = (text, key) => {
     if (!text) return;
-    navigator.clipboard?.writeText(text);
+    navigator.clipboard?.writeText(String(text));
     setCopiedKey(key);
+    uiToast.success("Copied to Clipboard", `${text} copied.`);
     setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const validate = () => {
@@ -380,50 +438,48 @@ export function ChequeDialog({
     const errors = validate();
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
+      const firstError = Object.values(errors)[0];
+      uiToast.warning("Form Incomplete", firstError);
       return;
     }
 
     setIsSubmitting(true);
-    setServerError(null);
 
+    const numAmt = parseFloat(formData.amount);
     const payload = {
       chequeNumber: formData.chequeNumber.trim(),
+      chequeType: formData.type,
       type: formData.type,
       partyName: formData.partyName.trim(),
       bankAccountId: formData.bankAccountId,
-      amount: parseFloat(formData.amount),
+      counterpartyAccountId: formData.counterpartyAccountId || undefined,
+      amount: numAmt,
       chequeDate: new Date(formData.chequeDate).toISOString(),
+      narration: formData.remarks.trim() || undefined,
       remarks: formData.remarks.trim() || undefined,
     };
 
     try {
       if (currentMode === "create") {
         await onSubmitCreate?.(payload);
+        uiToast.success(
+          "Cheque Registered",
+          `Cheque #${payload.chequeNumber} for ₹${numAmt.toLocaleString("en-IN")} recorded.`
+        );
       } else if (currentMode === "edit" && (entityId || details?._id)) {
         await onSubmitUpdate?.(entityId || details._id, payload);
+        uiToast.success(
+          "Cheque Updated",
+          `Cheque #${payload.chequeNumber} particulars updated successfully.`
+        );
       }
       onSuccess?.();
       onClose();
     } catch (err) {
-      setServerError(
-        typeof err === "string" ? err : "Failed to register cheque."
+      uiToast.error(
+        "Action Failed",
+        typeof err === "string" ? err : err?.message || "Failed to process cheque."
       );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleAction = async (actionFn, ...args) => {
-    const targetId = entityId || details?._id;
-    if (!targetId || !actionFn) return;
-    setIsSubmitting(true);
-    setServerError(null);
-    try {
-      await actionFn(targetId, ...args);
-      onSuccess?.();
-      onClose();
-    } catch (err) {
-      setServerError(typeof err === "string" ? err : "Action failed.");
     } finally {
       setIsSubmitting(false);
     }
@@ -433,347 +489,419 @@ export function ChequeDialog({
   const isEdit = currentMode === "edit";
   const isCreate = currentMode === "create";
 
-  const title = isCreate
-    ? "Register Cheque"
-    : isEdit
-    ? "Edit Cheque"
-    : "Cheque Details";
-
-  const subtitle = isCreate
-    ? "Record a received or issued bank cheque into treasury."
-    : isEdit
-    ? "Modify cheque particulars or linked party details."
-    : "Review status, bank clearance timeline, and remittance details.";
-
-  const statusVariantMap = {
-    RECEIVED: "info",
-    DEPOSITED: "warning",
-    CLEARED: "success",
-    BOUNCED: "danger",
-    CANCELLED: "neutral",
-  };
-
-  const activeCheque = details || (isView ? null : formData);
+  const isPending = details?.status === "PENDING" || details?.status === "RECEIVED";
+  const isDeposited = details?.status === "DEPOSITED";
+  const isCleared = details?.status === "CLEARED";
+  const isBounced = details?.status === "BOUNCED";
+  const isCancelled = details?.status === "CANCELLED";
 
   return (
     <UIModal
       isOpen={isOpen}
       onClose={onClose}
-      size="xl"
-      mobileSheet
-      className="w-full max-w-3xl max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-3xl border border-border bg-surface shadow-2xl overflow-hidden"
+      showCloseButton={false}
+      className="max-w-[760px] w-full max-h-[92vh] flex flex-col p-0 overflow-hidden select-none"
     >
-      <UIModalHeader>
-        <div className="flex items-center justify-between gap-3 w-full pr-6">
-          <div>
-            <UIModalTitle>{title}</UIModalTitle>
-            <UIModalDescription>{subtitle}</UIModalDescription>
+      {/* ── Modal Header ── */}
+      <UIModalHeader className="px-6 py-4 border-b border-border bg-surface shrink-0 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white flex items-center justify-center shadow-xs">
+            <CreditCard className="size-5" />
           </div>
-          {isView && details && details.status === "RECEIVED" && (
-            <UIButton
-              variant="outline"
-              size="sm"
-              startIcon={<FiEdit2 />}
-              onClick={() => setCurrentMode("edit")}
-              className="shrink-0"
-            >
-              Edit Cheque
-            </UIButton>
-          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <UIModalTitle className="text-base font-bold text-text">
+                {isCreate
+                  ? "Register Cheque"
+                  : isEdit
+                  ? "Edit Cheque"
+                  : `Cheque #${details?.chequeNumber || ""}`}
+              </UIModalTitle>
+              {isView && details?.status && (
+                <span
+                  className={cn(
+                    "text-[10px] font-bold px-2 py-0.5 rounded-full border",
+                    isCleared
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200"
+                      : isBounced || isCancelled
+                      ? "bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border-rose-200"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200"
+                  )}
+                >
+                  {details.status}
+                </span>
+              )}
+              {isCreate && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200">
+                  NEW CHEQUE
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-text-muted mt-0.5">
+              {isView
+                ? `Dated ${dayjs(details?.chequeDate).format("DD MMM YYYY")}`
+                : "Record physical cheque particulars for tracking and bank clearance"}
+            </p>
+          </div>
         </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="size-7 rounded-full bg-surface-alt hover:bg-surface-hover text-text-muted hover:text-text flex items-center justify-center transition-colors cursor-pointer"
+        >
+          <X className="size-4" />
+        </button>
       </UIModalHeader>
 
-      <UIModalBody className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7 space-y-6">
-        {isFetching && <UISkeleton rows={5} />}
-
-        {serverError && !isFetching && (
-          <UIAlert variant="error" onDismiss={() => setServerError(null)}>
-            {serverError}
-          </UIAlert>
-        )}
-
-        {/* Top Interactive Cheque Leaf Preview */}
-        {!isFetching && (
-          <ChequeLeafCard
-            formData={isView && details ? details : formData}
-            bankAccount={
-              selectedBank ||
-              details?.bankAccount ||
-              details?.bankAccountId ||
-              null
-            }
-          />
-        )}
-
-        {/* VIEW MODE */}
-        {isView && !isFetching && details && (
-          <div className="space-y-6">
-            {/* 3 KPI Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="rounded-xl border border-border bg-surface p-4 flex items-center gap-3 shadow-xs">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <FiDollarSign className="text-lg" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-text-muted block">
-                    Cheque Amount
-                  </span>
-                  <span className="text-sm font-bold text-text">
-                    ₹
-                    {Number(details.amount || 0).toLocaleString("en-IN", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </span>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-surface p-4 flex items-center gap-3 shadow-xs">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                  {details.type === "RECEIVED" ? (
-                    <FiArrowDownLeft className="text-lg" />
-                  ) : (
-                    <FiArrowUpRight className="text-lg" />
-                  )}
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-text-muted block">
-                    Cheque Type
-                  </span>
-                  <span className="text-sm font-bold text-text">
-                    {details.type === "RECEIVED" ? "Customer Inflow" : "Supplier Outflow"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-surface p-4 flex items-center gap-3 shadow-xs">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                  <FiCalendar className="text-lg" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-text-muted block">
-                    Current Status
-                  </span>
-                  <UIBadge
-                    variant={statusVariantMap[details.status] || "neutral"}
-                    size="sm"
-                  >
-                    {details.status || "RECEIVED"}
-                  </UIBadge>
-                </div>
-              </div>
-            </div>
-
-            {/* Read-only Key Value Details */}
-            <div className="rounded-xl border border-border bg-surface p-5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-4">
-                Remittance & Instrument Details
-              </h4>
-              <UIKeyValueList
-                items={[
-                  {
-                    label: "Cheque Number",
-                    value: details.chequeNumber,
-                    copyable: true,
-                  },
-                  {
-                    label: "Party Name",
-                    value: details.partyName,
-                  },
-                  {
-                    label: "Bank Account",
-                    value:
-                      details.bankAccount?.accountName ||
-                      details.bankAccountId?.accountName ||
-                      selectedBank?.accountName ||
-                      "Primary Bank Account",
-                  },
-                  {
-                    label: "Amount",
-                    value: `₹ ${(details.amount || 0).toLocaleString("en-IN", {
-                      minimumFractionDigits: 2,
-                    })}`,
-                  },
-                  {
-                    label: "Cheque Date",
-                    value: details.chequeDate
-                      ? new Date(details.chequeDate).toLocaleDateString("en-IN")
-                      : "N/A",
-                  },
-                  {
-                    label: "Clearance Status",
-                    value: (
-                      <UIBadge
-                        variant={statusVariantMap[details.status] || "neutral"}
-                      >
-                        {details.status || "RECEIVED"}
-                      </UIBadge>
-                    ),
-                  },
-                  {
-                    label: "Remarks",
-                    value: details.remarks || "No remarks noted",
-                  },
-                ]}
-              />
+      {/* ── Modal Body ── */}
+      <UIModalBody className="p-6 overflow-y-auto space-y-5 flex-1 min-h-0 bg-[#f8fafc] dark:bg-bg">
+        {isFetching ? (
+          <div className="space-y-4">
+            <UISkeleton className="h-44 rounded-2xl" />
+            <div className="grid grid-cols-3 gap-3">
+              <UISkeleton className="h-20 rounded-xl" />
+              <UISkeleton className="h-20 rounded-xl" />
+              <UISkeleton className="h-20 rounded-xl" />
             </div>
           </div>
-        )}
+        ) : (
+          <>
+            {/* Visual Cheque Leaf Card Preview */}
+            <ChequeLeafCard
+              formData={isView && details ? details : formData}
+              bankAccount={
+                selectedBank ||
+                details?.bankAccount ||
+                details?.bankAccountId ||
+                null
+              }
+            />
 
-        {/* CREATE / EDIT MODE */}
-        {!isView && (
-          <form
-            id="cheque-form"
-            onSubmit={handleSubmit}
-            className="space-y-6"
-          >
-            <UIFormSection title="Cheque Details & Party">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UIInput
-                  label="Cheque Number"
-                  placeholder="e.g. 000123"
-                  value={formData.chequeNumber}
-                  onChange={(e) =>
-                    handleFieldChange("chequeNumber", e.target.value)
-                  }
-                  error={Boolean(formErrors.chequeNumber)}
-                  helperText={formErrors.chequeNumber}
-                  required
-                />
+            {/* ── VIEW MODE DETAILS ── */}
+            {isView && details && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-surface border border-border rounded-xl p-3 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                      Cheque Amount
+                    </span>
+                    <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                      ₹{formatCurrency(details.amount)}
+                    </span>
+                    <span className="text-[10px] text-text-muted">Cleared upon credit</span>
+                  </div>
 
-                <UISelect
-                  label="Cheque Type"
-                  value={formData.type}
-                  onChange={(val) => handleFieldChange("type", val)}
-                  options={chequeTypeOptions}
-                  required
-                />
+                  <div className="bg-surface border border-border rounded-xl p-3 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                      Cheque Type
+                    </span>
+                    <span className="text-xs font-bold text-text mt-0.5 block">
+                      {(details.chequeType || details.type) === "RECEIVED" ? "Customer Inward" : "Supplier Outward"}
+                    </span>
+                    <span className="text-[10px] text-text-muted">
+                      {(details.chequeType || details.type) === "RECEIVED" ? "Receivable" : "Disbursement"}
+                    </span>
+                  </div>
+
+                  <div className="bg-surface border border-border rounded-xl p-3 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                      Party / Drawer
+                    </span>
+                    <span className="text-xs font-bold text-text truncate mt-0.5 block">
+                      {details.partyName || "Bearer"}
+                    </span>
+                    <span className="text-[10px] text-text-muted truncate block">
+                      {details.counterpartyAccountId?.accountName
+                        ? `${details.counterpartyAccountId.accountCode || ""} ${details.counterpartyAccountId.accountName}`
+                        : "Direct Counterparty"}
+                    </span>
+                  </div>
+
+                  <div className="bg-surface border border-border rounded-xl p-3 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                      Bank Clearance
+                    </span>
+                    <span className="text-xs font-bold text-text mt-0.5 block capitalize">
+                      {details.status || "Pending"}
+                    </span>
+                    <span className="text-[10px] text-text-muted">
+                      {details.clearedAt || details.clearDate || details.clearedDate
+                        ? dayjs(details.clearedAt || details.clearDate || details.clearedDate).format("DD MMM YYYY")
+                        : String(details.status || "").toUpperCase() === "CLEARED"
+                        ? (details.updatedAt ? dayjs(details.updatedAt).format("DD MMM YYYY") : "Cleared")
+                        : "Not yet cleared"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Remarks */}
+                <div className="bg-surface border border-border rounded-xl p-3.5 shadow-2xs space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-text">
+                    <FileText className="size-3.5 text-text-muted" />
+                    <span>Cheque Remarks / Narration</span>
+                  </div>
+                  <p className="text-xs text-text-muted bg-surface-alt/50 border border-border/60 rounded-lg p-2.5 leading-relaxed">
+                    {details.narration || details.remarks || "No custom remarks recorded."}
+                  </p>
+                </div>
               </div>
+            )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UIInput
-                  label="Party Name (Customer / Supplier)"
-                  placeholder="Enter party name"
-                  value={formData.partyName}
-                  onChange={(e) =>
-                    handleFieldChange("partyName", e.target.value)
-                  }
-                  error={Boolean(formErrors.partyName)}
-                  helperText={formErrors.partyName}
-                  required
-                />
+            {/* ── CREATE / EDIT FORM ── */}
+            {!isView && (
+              <form id="cheque-form" onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-text block mb-1">
+                      Cheque Type <span className="text-rose-500">*</span>
+                    </label>
+                    <UISelect
+                      value={formData.type}
+                      onChange={(val) => handleFieldChange("type", val)}
+                      options={chequeTypeOptions}
+                    />
+                  </div>
 
-                <UISelect
-                  label="Bank Account"
-                  value={formData.bankAccountId}
-                  onChange={(val) => handleFieldChange("bankAccountId", val)}
-                  options={bankOptions}
-                  error={Boolean(formErrors.bankAccountId)}
-                  helperText={formErrors.bankAccountId}
-                  required
-                />
-              </div>
+                  <div>
+                    <label className="text-xs font-bold text-text block mb-1">
+                      Cheque Number <span className="text-rose-500">*</span>
+                    </label>
+                    <UIInput
+                      type="text"
+                      placeholder="e.g. 000124"
+                      maxLength={12}
+                      value={formData.chequeNumber}
+                      onChange={(e) => handleFieldChange("chequeNumber", e.target.value)}
+                      error={Boolean(formErrors.chequeNumber)}
+                      helperText={formErrors.chequeNumber}
+                    />
+                  </div>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UIInput
-                  type="number"
-                  label="Amount (₹)"
-                  placeholder="0.00"
-                  value={formData.amount}
-                  onChange={(e) =>
-                    handleFieldChange("amount", e.target.value)
-                  }
-                  error={Boolean(formErrors.amount)}
-                  helperText={formErrors.amount}
-                  required
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-text block mb-1">
+                      Party Name (Customer / Vendor) <span className="text-rose-500">*</span>
+                    </label>
+                    <UIInput
+                      type="text"
+                      placeholder="e.g. Apollo Healthcare Ltd"
+                      value={formData.partyName}
+                      onChange={(e) => handleFieldChange("partyName", e.target.value)}
+                      error={Boolean(formErrors.partyName)}
+                      helperText={formErrors.partyName}
+                    />
+                  </div>
 
-                <UIInput
-                  type="date"
-                  label="Cheque Date"
-                  value={formData.chequeDate}
-                  onChange={(e) =>
-                    handleFieldChange("chequeDate", e.target.value)
-                  }
-                  error={Boolean(formErrors.chequeDate)}
-                  helperText={formErrors.chequeDate}
-                  required
-                />
-              </div>
+                  <div>
+                    <label className="text-xs font-bold text-text block mb-1">
+                      Counterparty Ledger Account <span className="text-text-muted font-normal text-[11px]">(Optional)</span>
+                    </label>
+                    <UISelect
+                      value={formData.counterpartyAccountId}
+                      onChange={(val) => handleFieldChange("counterpartyAccountId", val)}
+                      options={accountOptions}
+                    />
+                  </div>
+                </div>
 
-              <UIInput
-                label="Remarks (Optional)"
-                placeholder="Additional narration or payment reference..."
-                value={formData.remarks}
-                onChange={(e) =>
-                  handleFieldChange("remarks", e.target.value)
-                }
-              />
-            </UIFormSection>
-          </form>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-text block mb-1">
+                      Bank Account <span className="text-rose-500">*</span>
+                    </label>
+                    <UISelect
+                      value={formData.bankAccountId}
+                      onChange={(val) => handleFieldChange("bankAccountId", val)}
+                      options={bankOptions}
+                      error={Boolean(formErrors.bankAccountId)}
+                      helperText={formErrors.bankAccountId}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-text block mb-1">
+                      Cheque Date <span className="text-rose-500">*</span>
+                    </label>
+                    <UIInput
+                      type="date"
+                      value={formData.chequeDate}
+                      onChange={(e) => handleFieldChange("chequeDate", e.target.value)}
+                      error={Boolean(formErrors.chequeDate)}
+                      helperText={formErrors.chequeDate}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-text block mb-1">
+                      Cheque Amount (₹) <span className="text-rose-500">*</span>
+                    </label>
+                    <UIInput
+                      type="number"
+                      placeholder="0.00"
+                      min="0.01"
+                      step="0.01"
+                      value={formData.amount}
+                      onChange={(e) => handleFieldChange("amount", e.target.value)}
+                      error={Boolean(formErrors.amount)}
+                      helperText={formErrors.amount}
+                      startIcon={<span className="text-xs font-bold text-text-muted font-mono">₹</span>}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-text block mb-1">
+                      Remarks / Purpose (Optional)
+                    </label>
+                    <UIInput
+                      type="text"
+                      placeholder="e.g., Security deposit, invoice settlement..."
+                      value={formData.remarks}
+                      onChange={(e) => handleFieldChange("remarks", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </form>
+            )}
+          </>
         )}
       </UIModalBody>
 
-      <UIModalFooter>
-        <UIButton variant="outline" onClick={onClose} disabled={isSubmitting}>
-          {isView ? "Close" : "Cancel"}
-        </UIButton>
+      {/* ── Modal Footer ── */}
+      <UIModalFooter className="px-6 py-3 border-t border-border bg-surface shrink-0 flex items-center justify-between">
+        {isView ? (
+          <>
+            <UIButton
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handlePrint}
+              disabled={Boolean(activeAction)}
+              startIcon={<Printer className="size-3.5" />}
+              className="rounded-xl text-xs font-medium cursor-pointer"
+            >
+              Print Receipt
+            </UIButton>
 
-        {/* View Mode Lifecycle Action Buttons */}
-        {isView && details && details.status !== "CLEARED" && details.status !== "BOUNCED" && details.status !== "CANCELLED" && (
-          <div className="flex items-center gap-2 flex-wrap">
-            {details.status === "RECEIVED" && onDepositCheque && (
+            <div className="flex items-center gap-2">
+              {isPending && onDepositCheque && (
+                <UIButton
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  isLoading={activeAction === "deposit"}
+                  loadingText="Depositing..."
+                  disabled={Boolean(activeAction && activeAction !== "deposit")}
+                  onClick={() => handleActionClick("deposit", onDepositCheque)}
+                  className="rounded-xl text-xs font-semibold px-4 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition-all duration-150"
+                >
+                  Deposit to Bank
+                </UIButton>
+              )}
+
+              {isDeposited && onClearCheque && (
+                <UIButton
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  isLoading={activeAction === "clear"}
+                  loadingText="Clearing..."
+                  disabled={Boolean(activeAction && activeAction !== "clear")}
+                  onClick={() => handleActionClick("clear", onClearCheque)}
+                  className="rounded-xl text-xs font-semibold px-4 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-all duration-150"
+                >
+                  Mark Cleared
+                </UIButton>
+              )}
+
+              {isDeposited && onBounceCheque && (
+                <UIButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  isLoading={activeAction === "bounce"}
+                  loadingText="Marking Bounced..."
+                  disabled={Boolean(activeAction && activeAction !== "bounce")}
+                  onClick={() => handleActionClick("bounce", onBounceCheque)}
+                  className="rounded-xl text-xs font-semibold px-4 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 cursor-pointer transition-all duration-150"
+                >
+                  Mark Bounced
+                </UIButton>
+              )}
+
+              {isPending && onCancelCheque && (
+                <UIButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  isLoading={activeAction === "cancel"}
+                  loadingText="Cancelling..."
+                  disabled={Boolean(activeAction && activeAction !== "cancel")}
+                  onClick={() => handleActionClick("cancel", onCancelCheque)}
+                  className="rounded-xl text-xs font-semibold px-4 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 dark:border-rose-900/40 cursor-pointer transition-all duration-150"
+                >
+                  Cancel Cheque
+                </UIButton>
+              )}
+
+
+              {isPending && (
+                <UIButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  startIcon={<Edit2 className="size-3.5" />}
+                  onClick={() => setCurrentMode("edit")}
+                  disabled={Boolean(activeAction)}
+                  className="rounded-xl text-xs font-semibold px-4 cursor-pointer"
+                >
+                  Edit
+                </UIButton>
+              )}
+
               <UIButton
-                variant="primary"
-                onClick={() => handleAction(onDepositCheque)}
-                isLoading={isSubmitting}
+                type="button"
+                size="sm"
+                onClick={onClose}
+                disabled={Boolean(activeAction)}
+                className="rounded-xl text-xs font-semibold px-5 cursor-pointer"
               >
-                Deposit to Bank
+                Close
               </UIButton>
-            )}
+            </div>
+          </>
+        ) : (
+          <>
+            <UIButton
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="rounded-xl text-xs font-semibold px-4 cursor-pointer"
+            >
+              Cancel
+            </UIButton>
 
-            {onClearCheque && (
-              <UIButton
-                variant="success"
-                onClick={() => handleAction(onClearCheque)}
-                isLoading={isSubmitting}
-              >
-                Clear Cheque
-              </UIButton>
-            )}
-
-            {onBounceCheque && (
-              <UIButton
-                variant="danger"
-                onClick={() => handleAction(onBounceCheque)}
-                isLoading={isSubmitting}
-              >
-                Mark Bounced
-              </UIButton>
-            )}
-
-            {onCancelCheque && (
-              <UIButton
-                variant="outline"
-                onClick={() => handleAction(onCancelCheque)}
-                isLoading={isSubmitting}
-              >
-                Cancel Cheque
-              </UIButton>
-            )}
-          </div>
-        )}
-
-        {!isView && (
-          <UIButton
-            variant="primary"
-            type="submit"
-            form="cheque-form"
-            isLoading={isSubmitting}
-          >
-            {isCreate ? "Register Cheque" : "Save Changes"}
-          </UIButton>
+            <UIButton
+              type="submit"
+              form="cheque-form"
+              size="sm"
+              variant="primary"
+              isLoading={isSubmitting}
+              loadingText={isEdit ? "Updating..." : "Registering..."}
+              startIcon={<CreditCard className="size-3.5" />}
+              className="rounded-xl text-xs font-bold px-5 bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer transition"
+            >
+              {isEdit ? "Update Cheque" : "Register Cheque"}
+            </UIButton>
+          </>
         )}
       </UIModalFooter>
+
     </UIModal>
   );
 }

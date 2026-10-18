@@ -177,8 +177,6 @@ export const ROUTES = {
 
   BANK_TRANSACTIONS: "/finance/treasury/bank-transactions",
 
-  CREATE_BANK_TRANSACTION: "/finance/treasury/bank-transactions/create",
-
   BANK_TRANSACTION_DETAILS: (bankTransactionId = ":bankTransactionId") =>
     `/finance/treasury/bank-transactions/${bankTransactionId}`,
 
@@ -186,16 +184,8 @@ export const ROUTES = {
 
   CASH_TRANSACTIONS: "/finance/treasury/cash-transactions",
 
-  CREATE_CASH_TRANSACTION: "/finance/treasury/cash-transactions/create",
-
   CASH_TRANSACTION_DETAILS: (cashTransactionId = ":cashTransactionId") =>
     `/finance/treasury/cash-transactions/${cashTransactionId}`,
-
-  // Finance - Treasury - Cash Denominations
-  CASH_DENOMINATIONS: "/finance/treasury/cash-denominations",
-  CREATE_CASH_DENOMINATION: "/finance/treasury/cash-denominations/create",
-  CASH_DENOMINATION_DETAILS: (cashDenominationId = ":cashDenominationId") =>
-    `/finance/treasury/cash-denominations/${cashDenominationId}`,
 
   // Finance - Treasury - Fund Transfers
   FUND_TRANSFERS: "/finance/treasury/fund-transfers",
@@ -236,6 +226,9 @@ export const ROUTES = {
   WORKSPACE_PRODUCT_DETAILS: "/workspace-products/:productId",
   WORKSPACE_PRODUCT_IMPORT: "/workspace-products/import",
   WORKSPACE_PRODUCT_SEARCH: "/workspace-products/search",
+
+  // Inventory - Stock Metrics
+  STOCK_METRICS: "/inventory/stock-metrics",
 
   // Catalog - HSN Master (Read-Only Workspace View)
   HSN_MASTER: "/catalog/hsn-master",
@@ -295,9 +288,6 @@ export const ROUTES = {
 
   // Billing & Invoices
   BILLING: "/billing",
-
-  // POS Billing Terminal
-  POS_TERMINAL: "/pos-terminal",
 
   // Purchases & Procurement
   PURCHASES: "/purchases",

@@ -22,16 +22,6 @@ const BankTransactionsPage = () => {
 
   const { bankAccounts, getBankAccounts } = useBankAccount();
 
-  // Load bank accounts list for filter selectors once on mount
-  useEffect(() => {
-    if (hasFetchedBanksRef.current) return;
-    hasFetchedBanksRef.current = true;
-
-    getBankAccounts({ all: true }).catch((err) =>
-      console.error("Failed to load bank accounts for filters:", err)
-    );
-  }, [getBankAccounts]);
-
   const [searchParams, setSearchParams] = useState({
     search: "",
     status: "all",
@@ -42,8 +32,19 @@ const BankTransactionsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Trigger query list fetch
+  // Load bank accounts list for filter selectors once on mount for mobile
+  useEffect(() => {
+    if (!isMobile || hasFetchedBanksRef.current) return;
+    hasFetchedBanksRef.current = true;
+
+    getBankAccounts({ all: true }).catch((err) =>
+      console.error("Failed to load bank accounts for filters:", err)
+    );
+  }, [isMobile, getBankAccounts]);
+
+  // Trigger query list fetch for mobile
   const fetchTransactionsData = useCallback(async () => {
+    if (!isMobile) return;
     try {
       const query = {
         page: currentPage,
@@ -57,62 +58,59 @@ const BankTransactionsPage = () => {
     } catch (err) {
       console.error("Failed to query bank transactions list:", err);
     }
-  }, [currentPage, pageSize, searchParams, getBankTransactions]);
+  }, [isMobile, currentPage, pageSize, searchParams, getBankTransactions]);
 
   useEffect(() => {
     fetchTransactionsData();
   }, [fetchTransactionsData]);
 
-  const handleRefresh = useCallback(() => {
+  if (!isMobile) {
+    return <BankTransactionsDesktopPage />;
+  }
+
+  const handleRefresh = () => {
     fetchTransactionsData();
-  }, [fetchTransactionsData]);
-
-  const handleSearchChange = useCallback((value) => {
-    setSearchParams((prev) => ({ ...prev, search: value }));
-    setCurrentPage(1);
-  }, []);
-
-  const handleFilterChange = useCallback((name, value) => {
-    setSearchParams((prev) => ({ ...prev, [name]: value }));
-    setCurrentPage(1);
-  }, []);
-
-  const handlePageChange = useCallback((page) => {
-    setCurrentPage(page);
-  }, []);
-
-  const handlePageSizeChange = useCallback((size) => {
-    setPageSize(size);
-    setCurrentPage(1);
-  }, []);
-
-  const totalTransactions = useMemo(() => {
-    return bankTransactions?.length || 0;
-  }, [bankTransactions]);
-
-  const isLoading = getBankTransactionsStatus === API_STATUS.LOADING;
-
-  const pageProps = {
-    bankTransactions: bankTransactions || [],
-    bankAccounts: bankAccounts || [],
-    searchParams,
-    currentPage,
-    pageSize,
-    totalTransactions,
-    isLoading,
-    error,
-    clearError,
-    handleSearchChange,
-    handleFilterChange,
-    handlePageChange,
-    handlePageSizeChange,
-    handleRefresh,
   };
 
-  return isMobile ? (
-    <BankTransactionsMobilePage {...pageProps} />
-  ) : (
-    <BankTransactionsDesktopPage {...pageProps} />
+  const handleSearchChange = (value) => {
+    setSearchParams((prev) => ({ ...prev, search: value }));
+    setCurrentPage(1);
+  };
+
+  const handleFilterChange = (name, value) => {
+    setSearchParams((prev) => ({ ...prev, [name]: value }));
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (size) => {
+    setPageSize(size);
+    setCurrentPage(1);
+  };
+
+  const totalTransactions = bankTransactions?.length || 0;
+  const isLoading = getBankTransactionsStatus === API_STATUS.LOADING;
+
+  return (
+    <BankTransactionsMobilePage
+      bankTransactions={bankTransactions || []}
+      bankAccounts={bankAccounts || []}
+      searchParams={searchParams}
+      currentPage={currentPage}
+      pageSize={pageSize}
+      totalTransactions={totalTransactions}
+      isLoading={isLoading}
+      error={error}
+      clearError={clearError}
+      handleSearchChange={handleSearchChange}
+      handleFilterChange={handleFilterChange}
+      handlePageChange={handlePageChange}
+      handlePageSizeChange={handlePageSizeChange}
+      handleRefresh={handleRefresh}
+    />
   );
 };
 

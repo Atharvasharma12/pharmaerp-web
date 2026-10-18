@@ -128,8 +128,6 @@ const bankDepositSlipSlice = createSlice({
         state.getBankDepositSlipStatus = API_STATUS.SUCCESS;
 
         state.managedBankDepositSlip = action.payload || null;
-
-        state.message = "Bank deposit slip fetched successfully";
       })
       .addCase(getBankDepositSlipById.rejected, (state, action) => {
         setRejected(state, action);

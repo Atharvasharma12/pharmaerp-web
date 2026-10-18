@@ -298,9 +298,9 @@ const TransferOrdersPage = () => {
     filters.destinationBranchId !== "all";
 
   return (
-    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-4 space-y-2.5 text-text font-sans transition-colors">
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
       {/* ── 1. Compact 4-Card Statistics Grid ─────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
         {/* Card 1: Total Transfers */}
         <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
           <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
@@ -375,7 +375,7 @@ const TransferOrdersPage = () => {
       </div>
 
       {/* ── 2. Streamlined Single-Row Filter Toolbar ─────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
         {/* Status Dropdown */}
         <div className="w-[150px] sm:w-[170px]">
           <UISelect
@@ -456,10 +456,10 @@ const TransferOrdersPage = () => {
       </div>
 
       {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ──── */}
-      <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
         <div
           ref={tableContainerRef}
-          className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 divide-y divide-border/60"
+          className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0 divide-y divide-border/60"
         >
           <UITable
             stickyHeader

@@ -58,7 +58,9 @@ const BusinessDaysPage = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [dialogType, setDialogType] = useState(null); // 'view' | 'close'
 
-  const isLoading = listBusinessDaysStatus === API_STATUS.LOADING;
+  const isLoading =
+    listBusinessDaysStatus === API_STATUS.LOADING ||
+    listBusinessDaysStatus === API_STATUS.IDLE;
   const hasError = listBusinessDaysStatus === API_STATUS.ERROR;
 
   const fetchBusinessDaysData = useCallback(() => {

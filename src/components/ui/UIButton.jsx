@@ -95,7 +95,7 @@ export const UIButton = forwardRef(
           "[&_svg]:shrink-0 [&_svg]:inline-block [&_svg]:align-middle [&_svg]:self-center [&_span]:whitespace-nowrap",
           "transition-colors duration-150 ease-out",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-surface",
-          "disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:shadow-none",
+          "disabled:opacity-50 disabled:shadow-none",
           appliedVariant,
           appliedSize,
           appliedRounded,

@@ -520,7 +520,7 @@ export const CashTransactionsDesktopPage = () => {
   };
 
   return (
-    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-1 pb-4 space-y-3 text-text font-sans transition-colors">
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
       {/* Toast Notification */}
       {toastMessage && (
         <motion.div
@@ -535,7 +535,7 @@ export const CashTransactionsDesktopPage = () => {
       )}
 
       {/* ── 1. Compact 4-Card Statistics Grid ─────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
         {/* Card 1: Total Cash Register Tally */}
         <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
           <div className="size-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -611,7 +611,7 @@ export const CashTransactionsDesktopPage = () => {
       </div>
 
       {/* ── 2. Table Filter Toolbar (Using Reusable UI Components) ───────────────── */}
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
         {/* Cash Partition Selector */}
         <div className="w-[160px] sm:w-[180px]">
           <UISelect
@@ -740,10 +740,10 @@ export const CashTransactionsDesktopPage = () => {
       </div>
 
       {/* ── 3. Constrained-Height Table with Sticky Header & Infinite Scroll ────── */}
-      <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
         <div
           ref={tableContainerRef}
-          className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-240px)] min-h-[440px] flex-1 divide-y divide-border/60"
+          className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0"
         >
           <UITable
             stickyHeader
@@ -846,7 +846,7 @@ export const CashTransactionsDesktopPage = () => {
                     <UITableRow
                       key={txnId}
                       onClick={() => setSelectedTransaction(txn)}
-                      className="cursor-pointer hover:bg-surface-hover/80 transition-colors group text-xs border-b border-border/50"
+                      className="cursor-pointer hover:bg-surface-hover/80 transition-colors group text-xs border-b border-border/50 last:border-b-0"
                     >
                       {/* Transaction # & Sale Bill Link */}
                       <UITableCell className="font-semibold text-text font-mono">

@@ -18,7 +18,21 @@ const FinancialPeriodsPage = () => {
     financialPeriods,
     getFinancialPeriods,
     getFinancialPeriodsStatus,
+    updateFinancialPeriodStatus,
+    updateFinancialPeriodStatusStatus,
+    createFinancialPeriod,
+    error,
+    clearError,
   } = useFinancialPeriod();
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [searchParams, setSearchParams] = useState({
+    search: "",
+    periodType: "all",
+    status: "all",
+  });
+  const [actionError, setActionError] = useState("");
 
   // Dialog state
   const [dialogState, setDialogState] = useState({

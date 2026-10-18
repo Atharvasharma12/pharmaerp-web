@@ -45,7 +45,7 @@ const AccountGroupsPage = () => {
 
   const [filters, setFilters] = useState(initialFilters);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(100);
 
   const [dialogState, setDialogState] = useState({
     isOpen: false,
@@ -309,16 +309,8 @@ const AccountGroupsPage = () => {
   );
 
   const pageProps = {
-    accountGroups: paginatedGroups,
+    accountGroups: filteredGroups,
     totalCount,
-    currentPage,
-    pageSize,
-    totalPages,
-    handlePageChange: setCurrentPage,
-    handlePageSizeChange: (size) => {
-      setPageSize(size);
-      setCurrentPage(1);
-    },
     rawGroups: accountGroups,
     stats,
     filters,

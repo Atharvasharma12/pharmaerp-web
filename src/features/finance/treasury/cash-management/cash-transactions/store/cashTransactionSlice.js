@@ -3,7 +3,6 @@ import { createSlice } from "@reduxjs/toolkit";
 import { API_STATUS } from "@/constants";
 
 import {
-  createCashTransaction,
   getCashTransactions,
   getCashTransactionById,
   cancelCashTransaction,
@@ -18,7 +17,6 @@ const initialState = {
   error: null,
   message: null,
 
-  createCashTransactionStatus: API_STATUS.IDLE,
   getCashTransactionsStatus: API_STATUS.IDLE,
   getCashTransactionStatus: API_STATUS.IDLE,
   cancelCashTransactionStatus: API_STATUS.IDLE,
@@ -69,28 +67,6 @@ const cashTransactionSlice = createSlice({
   extraReducers: (builder) => {
     builder
 
-      // CREATE CASH TRANSACTION
-      .addCase(createCashTransaction.pending, (state) => {
-        state.createCashTransactionStatus = API_STATUS.LOADING;
-        state.error = null;
-        state.message = null;
-      })
-      .addCase(createCashTransaction.fulfilled, (state, action) => {
-        state.createCashTransactionStatus = API_STATUS.SUCCESS;
-
-        state.currentCashTransaction = action.payload || null;
-
-        if (action.payload) {
-          state.cashTransactions.unshift(action.payload);
-        }
-
-        state.message = "Cash transaction created successfully";
-      })
-      .addCase(createCashTransaction.rejected, (state, action) => {
-        state.createCashTransactionStatus = API_STATUS.ERROR;
-        state.error = action.payload || "Cash transaction creation failed";
-      })
-
       // GET CASH TRANSACTIONS
       .addCase(getCashTransactions.pending, (state) => {
         state.getCashTransactionsStatus = API_STATUS.LOADING;
@@ -113,8 +89,6 @@ const cashTransactionSlice = createSlice({
         state.getCashTransactionStatus = API_STATUS.SUCCESS;
 
         state.managedCashTransaction = action.payload || null;
-
-        state.message = "Cash transaction fetched successfully";
       })
       .addCase(getCashTransactionById.rejected, (state, action) => {
         setRejected(state, action);

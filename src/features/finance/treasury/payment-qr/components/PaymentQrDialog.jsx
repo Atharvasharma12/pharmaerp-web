@@ -13,6 +13,7 @@ import {
   UIAlert,
   UIBadge,
   UISkeleton,
+  uiToast,
 } from "@/components/ui";
 import {
   QrCode,
@@ -92,6 +93,7 @@ const CountertopUpiStandee = ({
     if (!cleanUpi) return;
     navigator.clipboard.writeText(cleanUpi);
     setCopied(true);
+    uiToast.success("Copied to Clipboard", `UPI ID ${cleanUpi} copied.`);
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -429,9 +431,10 @@ export function PaymentQrDialog({
       onSuccess?.();
       onClose();
     } catch (err) {
-      setServerError(
-        typeof err === "string" ? err : "Failed to save Payment QR code."
-      );
+      const errorMsg =
+        typeof err === "string" ? err : err?.message || "Failed to save Payment QR code.";
+      setServerError(errorMsg);
+      uiToast.error("Payment QR Error", errorMsg);
     } finally {
       setIsSubmitting(false);
     }

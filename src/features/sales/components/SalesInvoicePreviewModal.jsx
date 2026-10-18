@@ -282,14 +282,14 @@ export const SalesInvoicePreviewModal = ({
                     <tr className="bg-surface-alt/95 backdrop-blur-xs border-b border-border/80 text-[10.5px] font-bold text-text-muted uppercase tracking-wider select-none">
                       <th className="py-2.5 px-2.5 text-center w-9">#</th>
                       <th className="py-2.5 px-3 min-w-[180px]">Item / Medicine</th>
-                      <th className="py-2.5 px-2.5 w-[80px]">Batch</th>
+                      <th className="py-2.5 px-2.5 min-w-[90px] w-[100px]">Batch</th>
                       <th className="py-2.5 px-2 w-[68px]">Exp</th>
                       <th className="py-2.5 px-2 w-[54px] font-mono text-center">Qty</th>
                       <th className="py-2.5 px-2.5 w-[72px] font-mono text-right">MRP</th>
-                      <th className="py-2.5 px-2.5 w-[72px] font-mono text-right">Rate</th>
+                      <th className="py-2.5 px-2.5 w-[75px] font-mono text-right">Rate</th>
                       <th className="py-2.5 px-2 w-[58px] font-mono text-center">Disc%</th>
                       <th className="py-2.5 px-2 w-[58px] font-mono text-center">GST%</th>
-                      <th className="py-2.5 px-3 w-[88px] font-mono text-right">Amount</th>
+                      <th className="py-2.5 px-3 min-w-[95px] w-[105px] font-mono text-right">Amount</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/50 text-[11.5px]">
@@ -305,7 +305,7 @@ export const SalesInvoicePreviewModal = ({
 
                         {/* Name & secondary specs */}
                         <td className="py-2 px-3">
-                          <span className="font-bold text-text block leading-snug truncate max-w-[240px]">
+                          <span className="font-bold text-text block leading-snug truncate max-w-[240px] text-xs sm:text-[12px]">
                             {item.name}
                           </span>
                           <span className="text-[10px] text-text-muted block truncate mt-0.5">
@@ -316,8 +316,10 @@ export const SalesInvoicePreviewModal = ({
                         </td>
 
                         {/* Batch */}
-                        <td className="py-2 px-2.5 font-mono text-[11px] text-text-muted font-medium truncate">
-                          {item.batch}
+                        <td className="py-2 px-2.5 min-w-[90px]">
+                          <span className="font-mono text-xs sm:text-[12px] font-bold text-text tracking-wide truncate block">
+                            {item.batch || "—"}
+                          </span>
                         </td>
 
                         {/* Expiry */}
@@ -338,7 +340,7 @@ export const SalesInvoicePreviewModal = ({
                         </td>
 
                         {/* Unit Rate */}
-                        <td className="py-2 px-2.5 font-mono text-right text-[11px] font-bold text-text tabular-nums">
+                        <td className="py-2 px-2.5 font-mono text-right text-xs sm:text-[12px] font-bold text-text tabular-nums">
                           ₹{item.rate.toFixed(2)}
                         </td>
 
@@ -359,7 +361,7 @@ export const SalesInvoicePreviewModal = ({
                         </td>
 
                         {/* Amount */}
-                        <td className="py-2 px-3 font-mono text-right text-[11.5px] font-extrabold text-text tabular-nums">
+                        <td className="py-2 px-3 font-mono text-right text-[13px] sm:text-[14px] font-black text-primary tabular-nums">
                           ₹{item.finalAmt.toFixed(2)}
                         </td>
                       </tr>

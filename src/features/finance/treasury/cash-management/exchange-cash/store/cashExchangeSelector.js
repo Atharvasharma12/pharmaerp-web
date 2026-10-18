@@ -23,6 +23,3 @@ export const selectGetCashExchangesStatus = (state) =>
 
 export const selectGetCashExchangeStatus = (state) =>
   state.cashExchange.getCashExchangeStatus;
-
-export const selectCancelCashExchangeStatus = (state) =>
-  state.cashExchange.cancelCashExchangeStatus;

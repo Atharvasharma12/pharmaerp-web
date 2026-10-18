@@ -1320,7 +1320,7 @@ export const SalesDesktopPage = () => {
   }
 
   return (
-    <section className="-m-6 pt-2.5 h-[calc(100dvh-58px)] max-h-[calc(100dvh-58px)] w-[calc(100%+3rem)] bg-bg flex flex-col font-sans overflow-hidden">
+    <section className="w-full h-full max-h-full bg-surface rounded-2xl border border-border shadow-2xs flex flex-col font-sans overflow-hidden">
 
       {/* ── TOAST NOTIFICATION ───────────────────────── */}
       <AnimatePresence>
@@ -1340,31 +1340,145 @@ export const SalesDesktopPage = () => {
       {/* ── MAIN BODY ───────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-        {/* ── EDIT INVOICE HEADER BANNER ────────────────────── */}
-        {isEditMode && (
-          <div className="shrink-0 px-4 py-2 bg-amber-500/10 border-b border-amber-500/25 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="px-2 py-0.5 rounded-md bg-amber-500 text-white text-[11px] font-black uppercase tracking-wider shadow-xs">
-                Editing Invoice
-              </span>
-              <span className="text-sm font-bold text-text font-mono">
-                {editInvoiceData?.invoiceNo || initialInvoice?.invoiceNo || routeInvoiceId}
-              </span>
-              <span className="text-xs text-text-muted hidden sm:inline">
-                • In-place bill modification (Inventory and ledger entries will adjust automatically)
-              </span>
+        {/* ── POS BILLING PAGE HEADER (Extra Header) ───────────── */}
+        <div className="shrink-0 px-4 py-2.5 border-b border-border bg-surface-alt/40 flex items-center justify-between gap-3 flex-wrap">
+          {/* Left: Terminal Title & Live Register metadata */}
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 shadow-2xs">
+              <Store className="size-4.5 stroke-[2]" />
             </div>
-            <UIButton
-              variant="outline"
-              size="xs"
-              onClick={() => navigate("/billing")}
-              className="text-text-muted hover:text-text gap-1.5 border-border/80"
-            >
-              <ArrowLeft className="size-3.5" />
-              Cancel Edit
-            </UIButton>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-extrabold text-text tracking-tight leading-tight">
+                  {isEditMode ? "Edit Sales Invoice" : "POS Billing Terminal"}
+                </h2>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Register
+                </span>
+                {isEditMode && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                    {editInvoiceData?.invoiceNo || initialInvoice?.invoiceNo || routeInvoiceId}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-text-muted mt-0.5 font-sans">
+                <span>{currentBranch?.name || "Branch Terminal"}</span>
+                <span>•</span>
+                <span>Shift #{activeShift?.shiftNumber || "1"}</span>
+                {activeShift?.cashierName && (
+                  <>
+                    <span>•</span>
+                    <span>Cashier: {activeShift.cashierName}</span>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* Right: Quick Action Controls (Mode Switch, Hold Bill, Recall Queue, Clear Cart) */}
+          <div className="flex items-center gap-2">
+            {/* Mode Switcher Tabs */}
+            <div className="flex items-center gap-1 bg-surface p-1 rounded-xl border border-border shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setBillingMode("B2C")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  billingMode === "B2C"
+                    ? "bg-primary text-white shadow-xs"
+                    : "text-text-muted hover:text-text hover:bg-surface-hover"
+                )}
+              >
+                <User className="size-3.5" />
+                <span>B2C Retail</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingMode("B2B")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  billingMode === "B2B"
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : "text-text-muted hover:text-text hover:bg-surface-hover"
+                )}
+              >
+                <Building2 className="size-3.5" />
+                <span>B2B Commercial</span>
+              </button>
+            </div>
+
+            {/* Hold Bill Button (F6) */}
+            <UIButton
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleOpenHoldModal}
+              disabled={cart.length === 0}
+              className="gap-1.5 font-semibold text-xs text-text hover:text-primary"
+              title="Hold Current Bill (F6)"
+            >
+              <PauseCircle className="size-3.5 text-amber-500" />
+              <span>Hold Bill</span>
+              <kbd className="hidden sm:inline-block text-[9px] font-mono px-1 py-0.2 rounded bg-surface-alt border border-border/80 text-text-muted">
+                F6
+              </kbd>
+            </UIButton>
+
+            {/* Recall / Held Bills Button (F7) */}
+            <UIButton
+              type="button"
+              variant={heldBillsCount > 0 ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setIsHeldBillsModalOpen(true)}
+              className={cn(
+                "gap-1.5 font-semibold text-xs relative",
+                heldBillsCount > 0 && "border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10"
+              )}
+              title="Recall Held Bills (F7)"
+            >
+              <History className="size-3.5" />
+              <span>Recall Bill</span>
+              {heldBillsCount > 0 && (
+                <span className="size-4.5 rounded-full bg-amber-500 text-white font-mono text-[10px] font-bold flex items-center justify-center">
+                  {heldBillsCount}
+                </span>
+              )}
+              <kbd className="hidden sm:inline-block text-[9px] font-mono px-1 py-0.2 rounded bg-surface-alt border border-border/80 text-text-muted">
+                F7
+              </kbd>
+            </UIButton>
+
+            {/* Clear Cart Button */}
+            {cart.length > 0 && (
+              <UIButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleClearCart}
+                className="text-error hover:bg-error-soft/30 gap-1 text-xs"
+                title="Clear current cart"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Clear</span>
+              </UIButton>
+            )}
+
+            {/* Cancel Edit Button if Edit Mode */}
+            {isEditMode && (
+              <UIButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/billing")}
+                className="text-text-muted hover:text-text gap-1 text-xs"
+              >
+                <ArrowLeft className="size-3.5" />
+                <span>Exit Edit</span>
+              </UIButton>
+            )}
+          </div>
+        </div>
 
         <div className="flex-1 flex overflow-hidden min-h-0">
 
@@ -1372,7 +1486,7 @@ export const SalesDesktopPage = () => {
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
           {/* Customer Strip */}
-          <div className="relative z-30 shrink-0 border-b border-border bg-surface">
+          <div className="relative z-10 shrink-0 border-b border-border bg-surface">
             {billingMode === "B2C" ? (
               <div className="px-4 pt-3.5 pb-2.5">
                 <SalesCustomerDoctorInfo
@@ -1472,7 +1586,7 @@ export const SalesDesktopPage = () => {
             )}
           </div>
 
-          {/* Product Search Bar + Mode Toggle & Hold Bill Controls */}
+          {/* Product Search Bar */}
           <div className="shrink-0 px-4 py-2 border-b border-border bg-surface-alt/30 flex items-center justify-between gap-4">
             <div className="w-full max-w-[540px]">
               <WorkspaceProductSearchBar
@@ -1486,70 +1600,10 @@ export const SalesDesktopPage = () => {
                 showDetailsPreview
               />
             </div>
-
-            {/* Mode Toggle Tab: B2C Retail / B2B Commercial & Hold Bill Action */}
-            <div className="flex items-center gap-2.5 shrink-0">
-              <div className="flex items-center gap-1 bg-surface p-1 rounded-xl border border-border shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => setBillingMode("B2C")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                    billingMode === "B2C"
-                      ? "bg-primary text-white shadow-xs"
-                      : "text-text-muted hover:text-text hover:bg-surface-hover"
-                  )}
-                >
-                  <User className="size-3.5" />
-                  <span>B2C Retail</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBillingMode("B2B")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                    billingMode === "B2B"
-                      ? "bg-purple-600 text-white shadow-xs"
-                      : "text-text-muted hover:text-text hover:bg-surface-hover"
-                  )}
-                >
-                  <Building2 className="size-3.5" />
-                  <span>B2B Commercial</span>
-                </button>
-              </div>
-
-              <UIIconButton
-                icon={
-                  <PauseCircle
-                    className={cn(
-                      "size-4",
-                      cart.length > 0 || heldBillsCount > 0
-                        ? "text-amber-500"
-                        : "text-text-muted"
-                    )}
-                  />
-                }
-                variant="outline"
-                size="md"
-                badge={heldBillsCount > 0 ? heldBillsCount : undefined}
-                badgeColor="warning"
-                title={
-                  cart.length > 0
-                    ? "Hold Active Bill"
-                    : heldBillsCount > 0
-                    ? `Held Bills Queue (${heldBillsCount} held)`
-                    : "Hold Bill (Cart is empty)"
-                }
-                onClick={() => {
-                  if (cart.length > 0) {
-                    handleOpenHoldModal();
-                  } else if (heldBillsCount > 0) {
-                    setIsHeldBillsModalOpen(true);
-                  } else {
-                    handleOpenHoldModal();
-                  }
-                }}
-              />
+            <div className="hidden sm:flex items-center gap-2 text-xs text-text-muted">
+              <span className="font-mono text-[11px] bg-surface px-2.5 py-1 rounded-lg border border-border shadow-2xs">
+                Ctrl + Enter to Pay
+              </span>
             </div>
           </div>
 
@@ -1561,7 +1615,7 @@ export const SalesDesktopPage = () => {
                   <tr className="bg-surface-alt/95 backdrop-blur-xs border-b border-border/80 text-[10px] font-bold text-text-muted uppercase tracking-wider select-none">
                     <th className="py-2 px-2 text-center w-8">#</th>
                     <th className="py-2 px-2 min-w-[160px]">Item</th>
-                    <th className="py-2 px-2 w-[72px]">Batch</th>
+                    <th className="py-2 px-2 min-w-[85px] w-[95px]">Batch</th>
                     <th className="py-2 px-1.5 w-[48px]">Pack</th>
                     <th className="py-2 px-1.5 w-[52px]">Rack</th>
                     <th className="py-2 px-1.5 w-[48px] font-mono">HSN</th>
@@ -1572,11 +1626,11 @@ export const SalesDesktopPage = () => {
                       <th className="py-2 px-1.5 w-[56px] font-mono">Schm%</th>
                     )}
                     <th className="py-2 px-1.5 w-[64px] font-mono text-right">MRP</th>
-                    <th className="py-2 px-1.5 w-[64px] font-mono text-right">Rate</th>
+                    <th className="py-2 px-1.5 w-[70px] font-mono text-right">Rate</th>
                     {billingMode !== "B2C" && <th className="py-2 px-1.5 w-[52px] font-mono text-center">Disc%</th>}
                     <th className="py-2 px-1.5 w-[100px] font-mono text-center">Qty</th>
                     <th className="py-2 px-1.5 w-[52px] font-mono">Expiry</th>
-                    <th className="py-2 px-2 w-[72px] font-mono text-right">Amount</th>
+                    <th className="py-2 px-2 min-w-[85px] w-[95px] font-mono text-right">Amount</th>
                     <th className="py-2 px-1.5 w-8 text-center"></th>
                   </tr>
                 </thead>
@@ -1590,12 +1644,16 @@ export const SalesDesktopPage = () => {
 
                         {/* Item Name */}
                         <td className="py-1.5 px-2">
-                          <span className="font-bold text-text block truncate text-[11px] leading-tight">{item.name}</span>
+                          <span className="font-bold text-text block truncate text-xs sm:text-[12px] leading-tight">{item.name}</span>
                           <span className="text-[10px] text-text-muted block truncate">{item.brand} · {item.category}</span>
                         </td>
 
                         {/* Batch */}
-                        <td className="py-1.5 px-2 font-mono text-[10.5px] text-text-muted font-semibold truncate">{item.batch}</td>
+                        <td className="py-1.5 px-2 min-w-[85px]">
+                          <span className="font-mono text-xs sm:text-[12px] font-bold text-text tracking-wide truncate block">
+                            {item.batch || "—"}
+                          </span>
+                        </td>
 
                         {/* Pack */}
                         <td className="py-1.5 px-1.5 text-[10.5px] text-text-muted truncate">{item.pack}</td>
@@ -1631,7 +1689,7 @@ export const SalesDesktopPage = () => {
                         </td>
 
                         {/* Rate */}
-                        <td className="py-1.5 px-1.5 font-mono text-right text-[10.5px] font-bold text-text">
+                        <td className="py-1.5 px-1.5 font-mono text-right text-xs sm:text-[12px] font-bold text-text tabular-nums">
                           ₹{Number(item.price).toFixed(2)}
                         </td>
 
@@ -1692,7 +1750,7 @@ export const SalesDesktopPage = () => {
                         </td>
 
                         {/* Amount */}
-                        <td className="py-1.5 px-2 font-mono text-right font-extrabold text-primary text-[11px] tabular-nums">
+                        <td className="py-1.5 px-2 font-mono text-right font-black text-primary text-[13px] sm:text-[14px] tabular-nums">
                           ₹{lineAmt.toFixed(2)}
                         </td>
 
@@ -1770,7 +1828,7 @@ export const SalesDesktopPage = () => {
                       : (activeCustomer?.name || "No party selected")}
                   </p>
                   {(billingMode === "B2C" ? (customerPhone || activeCustomer?.phone) : activeCustomer?.phone) && (
-                    <p className="text-[11px] font-mono text-text-muted">
+                    <p className="text-[13px] font-bold font-mono text-text/90">
                       {billingMode === "B2C" ? (customerPhone || activeCustomer?.phone) : activeCustomer?.phone}
                     </p>
                   )}

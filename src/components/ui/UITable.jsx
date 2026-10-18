@@ -43,7 +43,7 @@ export const UITableHeader = forwardRef(({ children, className, sticky = false, 
 UITableHeader.displayName = "UITableHeader";
 
 export const UITableBody = forwardRef(({ children, className, ...props }, ref) => (
-  <tbody ref={ref} className={cn("[&_tr:last-child]:border-0 divide-y divide-border/60", className)} {...props}>
+  <tbody ref={ref} className={cn("[&_tr:last-child]:border-b-0 divide-y divide-border/60", className)} {...props}>
     {children}
   </tbody>
 ));
@@ -55,7 +55,7 @@ export const UITableRow = forwardRef(
       ref={ref}
       data-state={selected ? "selected" : undefined}
       className={cn(
-        "border-b border-border/60 transition-colors duration-100",
+        "border-b border-border/60 transition-colors duration-100 last:border-b-0",
         hoverable && "hover:bg-surface-hover/70",
         selected && "bg-primary/5 font-medium",
         className
@@ -164,21 +164,40 @@ export const UITableEmpty = forwardRef(
 UITableEmpty.displayName = "UITableEmpty";
 
 export const UITableLoading = forwardRef(
-  ({ colSpan = 1, rows = 3, className, ...props }, ref) => (
-    <>
-      {Array.from({ length: rows }).map((_, idx) => (
-        <tr key={idx} ref={idx === 0 ? ref : undefined} className="animate-pulse border-b border-border/40" {...props}>
-          <td colSpan={colSpan} className={cn("p-4", className)}>
-            <div className="flex items-center gap-3">
-              <div className="h-4 bg-surface-alt rounded w-1/4" />
-              <div className="h-4 bg-surface-alt rounded w-1/2" />
-              <div className="h-4 bg-surface-alt rounded w-1/6 ml-auto" />
-            </div>
-          </td>
-        </tr>
-      ))}
-    </>
-  )
+  ({ colSpan, columns, rows = 6, className, ...props }, ref) => {
+    const colsCount = Math.max(1, Number(columns || colSpan || 6));
+    return (
+      <>
+        {Array.from({ length: rows }).map((_, rowIdx) => (
+          <tr
+            key={rowIdx}
+            ref={rowIdx === 0 ? ref : undefined}
+            className="border-b border-border/40 animate-pulse"
+            {...props}
+          >
+            {Array.from({ length: colsCount }).map((_, colIdx) => (
+              <td key={colIdx} className={cn("px-4 py-3.5", className)}>
+                <div
+                  className={cn(
+                    "h-4 bg-surface-alt rounded",
+                    colIdx === 0
+                      ? "w-3/4"
+                      : colIdx === colsCount - 1
+                      ? "w-1/2 ml-auto"
+                      : colIdx % 3 === 0
+                      ? "w-4/5"
+                      : colIdx % 2 === 0
+                      ? "w-2/3"
+                      : "w-3/5"
+                  )}
+                />
+              </td>
+            ))}
+          </tr>
+        ))}
+      </>
+    );
+  }
 );
 UITableLoading.displayName = "UITableLoading";
 

@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Sparkles, Plus, Layers } from "lucide-react";
+import { ChevronRight, Sparkles, Plus, Layers, Command } from "lucide-react";
 
 import { ROUTES } from "@/constants";
 import { useSetupStatus } from "@/features/setup/hooks/useSetupStatus";
@@ -97,10 +97,11 @@ const getPageTitle = (pathname) => {
   if (pathname.startsWith("/doctors")) return "Doctors";
 
   // Inventory & Catalog
-  if (pathname.startsWith("/workspace-products/create")) return "Add Medicine";
-  if (pathname.startsWith("/workspace-products/") && pathname.includes("/edit")) return "Edit Medicine";
-  if (pathname.startsWith("/workspace-products/") && pathname.split("/").length > 2) return "Medicine Details";
-  if (pathname.startsWith("/workspace-products")) return "Pharmacy Stock";
+  if (pathname.startsWith("/inventory/stock-metrics") || pathname.startsWith("/stock-metrics")) return "Stock Metrics";
+  if (pathname.startsWith("/workspace-products/create")) return "Add Custom Product";
+  if (pathname.startsWith("/workspace-products/") && pathname.includes("/edit")) return "Edit Custom Product";
+  if (pathname.startsWith("/workspace-products/") && pathname.split("/").length > 2) return "Custom Product Details";
+  if (pathname.startsWith("/workspace-products")) return "Custom Products";
 
   if (pathname.startsWith("/catalog/hsn-master")) return "HSN Codes Master";
   if (pathname.startsWith("/catalog/manufacturer-master")) return "Manufacturers Master";
@@ -132,7 +133,6 @@ const getPageTitle = (pathname) => {
   if (pathname.startsWith("/finance/treasury/cash-exchanges")) return "Cash Exchanges";
   if (pathname.startsWith("/finance/treasury/cheque-management")) return "Cheque Management";
   if (pathname.startsWith("/finance/treasury/payment-qr")) return "UPI & Payment QR";
-  if (pathname.startsWith("/finance/treasury/cash-denominations")) return "Cash Denominations";
   if (pathname.startsWith("/finance/treasury/branch-cash")) return "Branch Cash";
   if (pathname.startsWith("/operations/shifts")) return "Shifts";
   if (pathname.startsWith("/operations/business-days")) return "Business Days";
@@ -399,28 +399,31 @@ const getBreadcrumbs = (pathname, isSetupComplete = false) => {
   }
 
   // Inventory & Stock
+  if (pathname === "/inventory/stock-metrics" || pathname === "/stock-metrics" || pathname === ROUTES.STOCK_METRICS) {
+    return [root, { label: "Stock Metrics", to: null }];
+  }
   if (pathname === "/workspace-products" || pathname === ROUTES.WORKSPACE_PRODUCTS) {
-    return [root, { label: "Pharmacy Stock", to: null }];
+    return [root, { label: "Custom Products", to: null }];
   }
   if (pathname === "/workspace-products/create") {
     return [
       root,
-      { label: "Pharmacy Stock", to: ROUTES.WORKSPACE_PRODUCTS },
-      { label: "Add Medicine", to: null },
+      { label: "Custom Products", to: ROUTES.WORKSPACE_PRODUCTS },
+      { label: "Add Custom Product", to: null },
     ];
   }
   if (pathname.startsWith("/workspace-products/") && pathname.includes("/edit")) {
     return [
       root,
-      { label: "Pharmacy Stock", to: ROUTES.WORKSPACE_PRODUCTS },
-      { label: "Edit Medicine", to: null },
+      { label: "Custom Products", to: ROUTES.WORKSPACE_PRODUCTS },
+      { label: "Edit Custom Product", to: null },
     ];
   }
   if (pathname.startsWith("/workspace-products/")) {
     return [
       root,
-      { label: "Pharmacy Stock", to: ROUTES.WORKSPACE_PRODUCTS },
-      { label: "Medicine Details", to: null },
+      { label: "Custom Products", to: ROUTES.WORKSPACE_PRODUCTS },
+      { label: "Custom Product Details", to: null },
     ];
   }
 
@@ -568,13 +571,6 @@ const getBreadcrumbs = (pathname, isSetupComplete = false) => {
       { label: "UPI / QR", to: null },
     ];
   }
-  if (pathname.startsWith("/finance/treasury/cash-denominations")) {
-    return [
-      root,
-      { label: "Treasury", to: ROUTES.BANK_ACCOUNTS },
-      { label: "Cash Denominations", to: null },
-    ];
-  }
   if (pathname.startsWith("/finance/treasury/branch-cash")) {
     return [root, { label: "Branch Cash", to: null }];
   }
@@ -662,7 +658,7 @@ const getBreadcrumbs = (pathname, isSetupComplete = false) => {
 import { ProductFacilityTableDialog } from "@/components";
 
 
-export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
+export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240, onOpenShortcuts }) => {
   const effectiveWidth = sidebarWidth ?? (sidebarCollapsed ? 68 : 240);
   const location = useLocation();
   const { isSetupComplete, completedCount } = useSetupStatus();
@@ -704,7 +700,7 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
 
   return (
     <header
-      className="fixed top-0 z-30 h-[62px] border-b border-border bg-surface/95 backdrop-blur-md transition-[left] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
+      className="fixed top-0 z-40 h-[62px] border-b border-border bg-surface/95 backdrop-blur-md transition-[left] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
       style={{
         left: effectiveWidth,
         right: 0,
@@ -753,7 +749,7 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
 
         {/* ── RIGHT: Search Bar, Import Button, Notifications, & POS Button ── */}
         <div className="flex shrink-0 items-center justify-end gap-3 w-auto">
-          {/* Search Bar (kept visible on all pages including POS sales) */}
+          {/* Search Bar (kept visible on all pages) */}
           {isSetupComplete ? (
             <div className="w-[280px] lg:w-[400px]">
               <HeaderSearchBar />
@@ -768,24 +764,31 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
             </Link>
           )}
 
-          {!isSalesPage && (
-            <>
-              {/* Product Facility Stock Matrix Button */}
-              <button
-                type="button"
-                id="header-facility-matrix-btn"
-                onClick={() => setIsStockMatrixOpen(true)}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 shadow-2xs transition-all"
-                title="Stock Matrix (Shift + I)"
-              >
-                <Layers className="size-3.5 text-primary-600" />
-                <span>Stock Matrix</span>
-              </button>
-            </>
-          )}
+          {/* Product Facility Stock Matrix Button */}
+          <button
+            type="button"
+            id="header-facility-matrix-btn"
+            onClick={() => setIsStockMatrixOpen(true)}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 shadow-2xs transition-all"
+            title="Stock Matrix (Shift + I)"
+          >
+            <Layers className="size-3.5 text-primary-600" />
+            <span>Stock Matrix</span>
+          </button>
 
           {/* Dotted Grid Quick App & Dashboard Menu */}
           <HeaderAppMenu />
+
+          {/* Marg Keyboard Shortcuts Trigger Button */}
+          <button
+            type="button"
+            id="header-shortcuts-btn"
+            onClick={onOpenShortcuts}
+            className="flex size-9 items-center justify-center rounded-xl border border-border/80 bg-surface hover:bg-surface-hover text-text-muted hover:text-primary transition-all shadow-2xs cursor-pointer group"
+            title="Marg Shortcuts (Alt + F1 or ?)"
+          >
+            <Command className="size-4 group-hover:scale-110 transition-transform" />
+          </button>
 
           {isSetupComplete && <HeaderNotifications />}
 
@@ -795,16 +798,15 @@ export const AppDesktopHeader = ({ sidebarCollapsed, sidebarWidth = 240 }) => {
             onClose={() => setIsStockMatrixOpen(false)}
           />
 
-          {/* POS Billing Plus Button (hide on sales page) */}
-          {!isSalesPage && (
-            <Link
-              to="/sales"
-              className="flex items-center justify-center size-9 rounded-full bg-primary hover:bg-primary/90 transition-all hover:scale-105 active:scale-95 shadow-sm ring-2 ring-primary/20"
-              title="POS Billing"
-            >
-              <Plus className="size-5 text-white dark:text-white" color="white" />
-            </Link>
-          )}
+          {/* POS Billing Plus Button */}
+          <Link
+            to="/sales"
+            className="flex items-center justify-center size-9 rounded-full bg-primary hover:bg-primary/90 transition-all hover:scale-105 active:scale-95 shadow-sm ring-2 ring-primary/20"
+            title="POS Billing (Alt + N)"
+          >
+            <Plus className="size-5 text-white dark:text-white" color="white" />
+          </Link>
+
         </div>
       </div>
     </header>

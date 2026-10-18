@@ -1,16 +1,20 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+// src/features/finance/treasury/fund-transfers/pages/FundTransfersPage.jsx
 
-import { API_STATUS, ROUTES } from "@/constants";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+
+import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
+import { uiToast } from "@/components/ui";
 
 import useFundTransfer from "../hooks/useFundTransfer";
 import FundTransfersDesktopPage from "./desktop/FundTransfersDesktopPage";
 import FundTransfersMobilePage from "./mobile/FundTransfersMobilePage";
-
 import FundTransferDialog from "../components/FundTransferDialog";
 
 const FundTransfersPage = () => {
   const isMobile = useIsMobile();
+  const [searchParamsUrl, setSearchParamsUrl] = useSearchParams();
 
   const [dialogState, setDialogState] = useState({
     isOpen: false,
@@ -33,6 +37,39 @@ const FundTransfersPage = () => {
     clearMessage,
   } = useFundTransfer();
 
+  // Check URL query ?action=create
+  useEffect(() => {
+    if (searchParamsUrl.get("action") === "create") {
+      setDialogState({
+        isOpen: true,
+        mode: "create",
+        entityId: null,
+        transferData: null,
+      });
+      const newParams = new URLSearchParams(searchParamsUrl);
+      newParams.delete("action");
+      setSearchParamsUrl(newParams, { replace: true });
+    }
+  }, [searchParamsUrl, setSearchParamsUrl]);
+
+  // Reactive feedback via uiToast - strictly for CRUD mutations (create, cancel), never for read/fetch
+  useEffect(() => {
+    if (message) {
+      const isReadOp = /fetch|load|view|retriev|read/i.test(message);
+      if (!isReadOp) {
+        uiToast.success("Fund Transfer", message);
+      }
+      clearMessage();
+    }
+  }, [message, clearMessage]);
+
+  useEffect(() => {
+    if (error) {
+      uiToast.error("Fund Transfer Error", error);
+      clearError();
+    }
+  }, [error, clearError]);
+
   const [searchParams, setSearchParams] = useState({
     search: "",
     transferType: "all",
@@ -40,9 +77,7 @@ const FundTransfersPage = () => {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [actionError, setActionError] = useState("");
-  const [actionMessage, setActionMessage] = useState("");
+  const [pageSize, setPageSize] = useState(100);
 
   const fetchTransfersData = useCallback(() => {
     const query = {
@@ -86,29 +121,22 @@ const FundTransfersPage = () => {
 
   const handleCancelTransfer = useCallback(
     async (fundTransferId, reason = "") => {
-      setActionError("");
-      setActionMessage("");
       try {
         await cancelFundTransfer(fundTransferId, { reason });
-        setActionMessage("Fund transfer cancelled successfully.");
-        const query = {
-          page: currentPage,
-          limit: pageSize,
-          search: searchParams.search || undefined,
-          transferType: searchParams.transferType === "all" ? undefined : searchParams.transferType,
-          status: searchParams.status === "all" ? undefined : searchParams.status,
-        };
-        getFundTransfers(query).catch(() => {});
+        uiToast.success("Transfer Cancelled", "Fund transfer cancelled successfully.");
+        fetchTransfersData();
       } catch (err) {
-        setActionError(typeof err === "string" ? err : "Failed to cancel fund transfer.");
+        uiToast.error(
+          "Cancellation Failed",
+          typeof err === "string" ? err : err?.message || "Failed to cancel fund transfer."
+        );
       }
     },
-    [cancelFundTransfer, currentPage, pageSize, searchParams, getFundTransfers]
+    [cancelFundTransfer, fetchTransfersData]
   );
 
-
   const handleViewDetails = useCallback((fundTransfer) => {
-    const id = typeof fundTransfer === "string" ? fundTransfer : fundTransfer?._id;
+    const id = typeof fundTransfer === "string" ? fundTransfer : fundTransfer?._id || fundTransfer?.id;
     const data = typeof fundTransfer === "object" ? fundTransfer : null;
     setDialogState({
       isOpen: true,
@@ -131,7 +159,9 @@ const FundTransfersPage = () => {
     setDialogState((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
-  const isLoading = getFundTransfersStatus === API_STATUS.LOADING;
+  const isLoading =
+    getFundTransfersStatus === API_STATUS.LOADING ||
+    getFundTransfersStatus === API_STATUS.IDLE;
   const isCancelling = cancelFundTransferStatus === API_STATUS.LOADING;
 
   const totalTransfers = useMemo(() => {
@@ -146,13 +176,11 @@ const FundTransfersPage = () => {
     totalTransfers,
     isLoading,
     isCancelling,
-    error: error || actionError,
-    message: message || actionMessage,
+    error,
+    message,
     clearFeedback: () => {
       clearError();
       clearMessage();
-      setActionError("");
-      setActionMessage("");
     },
     handleSearchChange,
     handleFilterChange,
@@ -164,10 +192,30 @@ const FundTransfersPage = () => {
     handleRefresh,
   };
 
-  return isMobile ? (
-    <FundTransfersMobilePage {...pageProps} />
-  ) : (
-    <FundTransfersDesktopPage {...pageProps} />
+  return (
+    <>
+      {isMobile ? (
+        <FundTransfersMobilePage {...pageProps} />
+      ) : (
+        <FundTransfersDesktopPage {...pageProps} />
+      )}
+
+      {/* ── Fund Transfer Dialog (Create & View) ── */}
+      <FundTransferDialog
+        isOpen={dialogState.isOpen}
+        onClose={handleCloseDialog}
+        mode={dialogState.mode}
+        transferData={dialogState.transferData}
+        entityId={dialogState.entityId}
+        onSubmitCreate={createFundTransfer}
+        onFetchById={getFundTransferById}
+        onCancelTransfer={(id) => {
+          handleCloseDialog();
+          handleCancelTransfer(id);
+        }}
+        onSuccess={handleRefresh}
+      />
+    </>
   );
 };
 

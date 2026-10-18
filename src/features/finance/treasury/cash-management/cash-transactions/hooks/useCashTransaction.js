@@ -2,7 +2,6 @@ import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
-  createCashTransaction,
   getCashTransactions,
   getCashTransactionById,
   cancelCashTransaction,
@@ -24,7 +23,6 @@ import {
   selectCashTransactionStatus,
   selectCashTransactionError,
   selectCashTransactionMessage,
-  selectCreateCashTransactionStatus,
   selectGetCashTransactionsStatus,
   selectGetCashTransactionStatus,
   selectCancelCashTransactionStatus,
@@ -45,10 +43,6 @@ const useCashTransaction = () => {
 
   const message = useSelector(selectCashTransactionMessage);
 
-  const createCashTransactionStatus = useSelector(
-    selectCreateCashTransactionStatus,
-  );
-
   const getCashTransactionsStatus = useSelector(
     selectGetCashTransactionsStatus,
   );
@@ -58,10 +52,6 @@ const useCashTransaction = () => {
   const cancelCashTransactionStatus = useSelector(
     selectCancelCashTransactionStatus,
   );
-
-  const submitCreateCashTransaction = useCallback((payload) => {
-    return dispatch(createCashTransaction(payload)).unwrap();
-  }, [dispatch]);
 
   const fetchCashTransactions = useCallback((params = {}) => {
     return dispatch(getCashTransactions(params)).unwrap();
@@ -113,12 +103,10 @@ const useCashTransaction = () => {
     error,
     message,
 
-    createCashTransactionStatus,
     getCashTransactionsStatus,
     getCashTransactionStatus,
     cancelCashTransactionStatus,
 
-    createCashTransaction: submitCreateCashTransaction,
     getCashTransactions: fetchCashTransactions,
     getCashTransactionById: fetchCashTransactionById,
     cancelCashTransaction: submitCancelCashTransaction,

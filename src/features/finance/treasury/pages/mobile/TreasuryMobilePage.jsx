@@ -12,7 +12,7 @@ import {
   FiArrowUp,
 } from "react-icons/fi";
 import { FaRupeeSign, FaWallet, FaUniversity, FaCoins } from "react-icons/fa";
-import { LuScale, LuBuilding2, LuWallet, LuTrendingUp, LuQrCode, LuCoins, LuTicket } from "react-icons/lu";
+import { LuScale, LuBuilding2, LuWallet, LuTrendingUp, LuQrCode, LuTicket } from "react-icons/lu";
 import { MdOutlineDashboard } from "react-icons/md";
 
 import {
@@ -52,18 +52,14 @@ const moduleIcons = {
   cashTransactions: <LuWallet />,
   chequeManagement: <FiCreditCard />,
   paymentQrUpi: <LuQrCode />,
-  cashDenominations: <LuCoins />,
 };
 
 // Map quick action IDs to icons
 const quickActionIcons = {
   addBankAccount: <LuBuilding2 />,
   viewBranchCash: <LuWallet />,
-  recordBankTransaction: <LuBuilding2 />,
-  recordCashTransaction: <LuWallet />,
   fundTransfer: <FiRepeat />,
   manageCheques: <FiCreditCard />,
-  cashDenominations: <LuCoins />,
 };
 
 const TreasuryMobilePage = ({

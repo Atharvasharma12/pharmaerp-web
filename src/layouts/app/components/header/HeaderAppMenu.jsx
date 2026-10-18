@@ -96,11 +96,19 @@ const DAILY_COUNTER_OPS = [
 const INVENTORY_SUPPLY_OPS = [
   {
     id: "pharmacy-stock",
-    title: "Pharmacy Stock",
+    title: "Custom Products",
     description: "Medicine catalog, batch stock & salts",
     path: ROUTES.WORKSPACE_PRODUCTS,
     icon: Boxes,
     color: "bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400",
+  },
+  {
+    id: "stock-metrics",
+    title: "Stock Metrics",
+    description: "Multi-branch batch stock, QOH & expiry",
+    path: ROUTES.STOCK_METRICS,
+    icon: Layers,
+    color: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400",
   },
   {
     id: "purchases",

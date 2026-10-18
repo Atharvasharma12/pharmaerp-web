@@ -19,9 +19,6 @@ export const selectBankTransactionError = (state) =>
 export const selectBankTransactionMessage = (state) =>
   state.bankTransaction.message;
 
-export const selectCreateBankTransactionStatus = (state) =>
-  state.bankTransaction.createBankTransactionStatus;
-
 export const selectGetBankTransactionsStatus = (state) =>
   state.bankTransaction.getBankTransactionsStatus;
 

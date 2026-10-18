@@ -32,7 +32,7 @@ const ModalHeader = ({ icon, title, subtitle, iconClass, onClose }) => (
     </div>
     <button
       onClick={onClose}
-      className="text-text-muted hover:text-text transition p-1 rounded"
+      className="text-text-muted hover:text-text transition p-1 rounded cursor-pointer"
     >
       <FiX size={16} />
     </button>
@@ -44,14 +44,14 @@ const ModalFooter = ({ onClose, onConfirm, isLoading, confirmLabel, confirmClass
     <button
       onClick={onClose}
       disabled={isLoading}
-      className="px-4 py-2 text-[12px] font-semibold border border-border rounded-lg text-text bg-surface hover:bg-surface-alt/20 transition disabled:opacity-50"
+      className="px-4 py-2 text-[12px] font-semibold border border-border rounded-lg text-text bg-surface hover:bg-surface-alt/20 transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
     >
       Cancel
     </button>
     <button
       onClick={onConfirm}
       disabled={isLoading}
-      className={`px-5 py-2 text-[12px] font-bold rounded-lg text-white transition disabled:opacity-60 flex items-center gap-1.5 ${confirmClass}`}
+      className={`px-5 py-2 text-[12px] font-bold rounded-lg text-white transition disabled:opacity-60 flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed ${confirmClass}`}
     >
       {isLoading ? (
         <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -60,6 +60,7 @@ const ModalFooter = ({ onClose, onConfirm, isLoading, confirmLabel, confirmClass
     </button>
   </div>
 );
+
 
 /* ─────────────────────────────────────────────
    1. CLEAR CHEQUE MODAL
@@ -114,7 +115,7 @@ export const ClearChequeModal = ({ open, onClose, onConfirm, isLoading, chequeTy
             type="date"
             value={clearDate}
             onChange={(e) => setClearDate(e.target.value)}
-            className="w-full px-3 py-2.5 text-[12.5px] font-semibold text-text bg-surface border border-border rounded-lg focus:outline-none focus:border-success/60 focus:ring-2 focus:ring-success/10 transition"
+            className="w-full px-3 py-2.5 text-[12.5px] font-semibold text-text bg-surface border border-border rounded-lg focus:outline-none focus:border-success/60 focus:ring-2 focus:ring-success/10 transition cursor-pointer"
           />
           <p className="text-[10.5px] text-text-muted mt-1">Leave as today if cleared today.</p>
         </div>
@@ -136,10 +137,15 @@ export const ClearChequeModal = ({ open, onClose, onConfirm, isLoading, chequeTy
 
       <ModalFooter
         onClose={onClose}
-        onConfirm={() => onConfirm({ clearDate: clearDate || undefined, narration: narration || undefined })}
+        onConfirm={() =>
+          onConfirm({
+            clearDate: clearDate ? new Date(clearDate).toISOString() : undefined,
+            narration: narration ? narration.trim() : undefined,
+          })
+        }
         isLoading={isLoading}
-        confirmLabel="Confirm Clearance"
-        confirmClass="bg-[#2b8a3e] hover:bg-[#237032]"
+        confirmLabel="Mark Cleared"
+        confirmClass="bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
       />
     </ModalBackdrop>
   );
@@ -252,7 +258,7 @@ export const BounceChequeModal = ({ open, onClose, onConfirm, isLoading, chequeT
         onConfirm={handleConfirm}
         isLoading={isLoading}
         confirmLabel="Confirm Bounce"
-        confirmClass="bg-danger hover:bg-red-700"
+        confirmClass="bg-danger hover:bg-red-700 cursor-pointer"
       />
     </ModalBackdrop>
   );
@@ -277,13 +283,13 @@ export const CancelChequeModal = ({ open, onClose, onConfirm, isLoading }) => {
         icon={<FiSlash />}
         title="Cancel Cheque"
         subtitle="Void this cheque before it is deposited"
-        iconClass="bg-neutral-soft text-text-muted"
+        iconClass="bg-rose-500/10 text-rose-600 dark:text-rose-400"
         onClose={onClose}
       />
 
       <div className="p-5 space-y-4">
         {/* Warning banner */}
-        <div className="p-3 bg-warning-soft/30 border border-warning/30 rounded-lg text-[11.5px] text-warning font-semibold leading-relaxed">
+        <div className="p-3 bg-rose-500/10 border border-rose-200 dark:border-rose-900/40 rounded-lg text-[11.5px] text-rose-700 dark:text-rose-300 font-semibold leading-relaxed">
           This will reverse the original journal entry and mark the cheque as void. This action cannot be undone.
         </div>
 
@@ -298,7 +304,7 @@ export const CancelChequeModal = ({ open, onClose, onConfirm, isLoading }) => {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="e.g. Wrong amount entered, cheque lost, duplicate entry..."
-            className="w-full px-3 py-2.5 text-[12.5px] font-semibold text-text bg-surface border border-border rounded-lg focus:outline-none focus:border-border/60 focus:ring-2 focus:ring-border/20 transition resize-none"
+            className="w-full px-3 py-2.5 text-[12.5px] font-semibold text-text bg-surface border border-border rounded-lg focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/10 transition resize-none"
           />
         </div>
       </div>
@@ -308,8 +314,10 @@ export const CancelChequeModal = ({ open, onClose, onConfirm, isLoading }) => {
         onConfirm={() => onConfirm({ reason: reason.trim() || undefined })}
         isLoading={isLoading}
         confirmLabel="Cancel Cheque"
-        confirmClass="bg-text hover:bg-text/80"
+        confirmClass="bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white cursor-pointer shadow-xs"
       />
+
+
     </ModalBackdrop>
   );
 };

@@ -23,6 +23,7 @@ import {
   UIEmptyState,
   UIAlert,
   UIInfiniteScroll,
+  UITableLoading,
 } from "@/components/ui";
 
 import {
@@ -161,7 +162,7 @@ export const ShiftsDesktopPage = ({
   );
 
   return (
-    <div className="w-full bg-bg min-h-full px-2 sm:px-3 pt-0 pb-4 space-y-2.5 text-text font-sans transition-colors">
+    <div className="w-full h-full max-h-full flex-1 flex flex-col min-h-0 bg-bg px-2 sm:px-3 pt-0 pb-1 gap-2.5 text-text font-sans transition-colors overflow-hidden">
       {/* Global Error Banner */}
       {error && !hasError && (
         <UIAlert
@@ -173,7 +174,7 @@ export const ShiftsDesktopPage = ({
       )}
 
       {/* ── 1. Compact 4-Card Statistics Grid ─────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
         {/* Card 1: Total Shifts */}
         <div className="bg-surface rounded-xl border border-border p-3 flex items-center gap-3 shadow-2xs transition-colors">
           <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
@@ -248,7 +249,7 @@ export const ShiftsDesktopPage = ({
       </div>
 
       {/* ── 2. Streamlined Single-Row Filter Toolbar ─────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
         {/* Search Input */}
         <div className="w-[200px] sm:w-[240px] lg:w-[280px]">
           <UIInput
@@ -386,8 +387,54 @@ export const ShiftsDesktopPage = ({
       </div>
 
       {/* ── 3. Main Data View (Table with Sticky Header or Card Grid) ────────── */}
-      {shifts.length === 0 ? (
-        <div className="bg-surface rounded-2xl border border-border p-8 shadow-2xs">
+      {isLoading && shifts.length === 0 ? (
+        isTableView ? (
+          <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+            <div className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-surface-alt/40 text-[13px] font-semibold text-text select-none">
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">Shift Name</th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">Date & Time</th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">Cashier</th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap text-right">Opening Float</th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap text-right">Cash Sales</th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap text-right">Deposits</th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap text-right">Withdrawals</th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap text-right">Expected Cash</th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap text-right">Actual Cash</th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap text-center">Status</th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  <UITableLoading rows={8} columns={11} />
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-surface rounded-2xl border border-border p-4 space-y-3 animate-pulse shadow-2xs">
+                <div className="flex justify-between items-center">
+                  <div className="h-4 bg-surface-alt rounded w-24" />
+                  <div className="h-5 bg-surface-alt rounded-full w-16" />
+                </div>
+                <div className="space-y-2 py-2">
+                  <div className="h-3.5 bg-surface-alt rounded w-3/4" />
+                  <div className="h-3.5 bg-surface-alt rounded w-1/2" />
+                </div>
+                <div className="pt-2 border-t border-border/60 flex justify-between">
+                  <div className="h-3 bg-surface-alt rounded w-20" />
+                  <div className="h-3 bg-surface-alt rounded w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : shifts.length === 0 ? (
+        <div className="flex-1 min-h-0 bg-surface rounded-2xl border border-border p-8 shadow-2xs flex items-center justify-center">
           <UIEmptyState
             icon={<Clock className="size-8 text-primary" />}
             title="No shifts found"
@@ -418,10 +465,10 @@ export const ShiftsDesktopPage = ({
         </div>
       ) : isTableView ? (
         /* Table View */
-        <div className="rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
+        <div className="flex-1 min-h-0 rounded-2xl border border-border bg-surface shadow-2xs overflow-hidden flex flex-col">
           <div
             ref={tableContainerRef}
-            className="relative overflow-y-auto overflow-x-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 divide-y divide-border/60"
+            className="relative overflow-y-auto overflow-x-auto flex-1 min-h-0 divide-y divide-border/60"
           >
             <ShiftTableView
               shifts={visibleShifts}
@@ -450,7 +497,7 @@ export const ShiftsDesktopPage = ({
         /* Card View */
         <div
           ref={cardContainerRef}
-          className="relative overflow-y-auto max-h-[calc(100vh-240px)] min-h-[420px] flex-1 space-y-4"
+          className="relative overflow-y-auto flex-1 min-h-0 space-y-4"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {visibleShifts.map((shift) => (

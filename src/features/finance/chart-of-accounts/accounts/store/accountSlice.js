@@ -102,8 +102,6 @@ const accountSlice = createSlice({
 
         state.accounts = action.payload?.accounts || [];
         state.totalAccounts = action.payload?.total ?? (action.payload?.accounts?.length || 0);
-
-        state.message = "Accounts fetched successfully";
       })
       .addCase(getAccounts.rejected, (state, action) => {
         state.getAccountsStatus = API_STATUS.ERROR;
@@ -117,8 +115,6 @@ const accountSlice = createSlice({
         state.getAccountStatus = API_STATUS.SUCCESS;
 
         state.managedAccount = action.payload || null;
-
-        state.message = "Account fetched successfully";
       })
       .addCase(getAccountById.rejected, (state, action) => {
         setRejected(state, action);

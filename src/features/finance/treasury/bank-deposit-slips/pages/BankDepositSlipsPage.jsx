@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { API_STATUS } from "@/constants";
 import { useIsMobile } from "@/hooks";
+import { uiToast } from "@/components/ui";
 import useBranch from "@/features/branch/hooks/useBranch";
 
 import useBankDepositSlip from "../hooks/useBankDepositSlip";
@@ -38,8 +39,23 @@ const BankDepositSlipsPage = () => {
     date: "",
   });
 
-  const [actionError, setActionError] = useState("");
-  const [actionMessage, setActionMessage] = useState("");
+  // Ephemeral toast feedback for operations from Redux - strictly for CRUD mutations (create, confirm, cancel)
+  useEffect(() => {
+    if (message) {
+      const isReadOp = /fetch|load|view|retriev|read/i.test(message);
+      if (!isReadOp) {
+        uiToast.success("Bank Deposit Slip", message);
+      }
+      clearMessage();
+    }
+  }, [clearMessage, message]);
+
+  useEffect(() => {
+    if (error) {
+      uiToast.error("Deposit Slip Error", error);
+      clearError();
+    }
+  }, [clearError, error]);
 
   // Dialog states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -89,16 +105,13 @@ const BankDepositSlipsPage = () => {
   const handleConfirmDeposit = useCallback(
     async (slipIdOrSlip, payload = {}) => {
       const slipId = typeof slipIdOrSlip === "object" ? slipIdOrSlip._id : slipIdOrSlip;
-      setActionError("");
-      setActionMessage("");
       try {
         await confirmDeposit(slipId, payload);
-        setActionMessage("Bank deposit slip confirmed successfully.");
+        uiToast.success("Deposit Confirmed", "Bank deposit slip confirmed and credited to ledger.");
         fetchSlipsData();
       } catch (err) {
-        setActionError(
-          typeof err === "string" ? err : err?.message || "Failed to confirm bank deposit slip."
-        );
+        const msg = typeof err === "string" ? err : err?.message || "Failed to confirm bank deposit slip.";
+        uiToast.error("Confirmation Failed", msg);
         throw err;
       }
     },
@@ -108,16 +121,13 @@ const BankDepositSlipsPage = () => {
   const handleCancelSlip = useCallback(
     async (slipIdOrSlip, payload = {}) => {
       const slipId = typeof slipIdOrSlip === "object" ? slipIdOrSlip._id : slipIdOrSlip;
-      setActionError("");
-      setActionMessage("");
       try {
         await cancelBankDepositSlip(slipId, payload);
-        setActionMessage("Bank deposit slip cancelled successfully.");
+        uiToast.warning("Deposit Slip Cancelled", "Bank deposit slip cancelled and vault cash restored.");
         fetchSlipsData();
       } catch (err) {
-        setActionError(
-          typeof err === "string" ? err : err?.message || "Failed to cancel bank deposit slip."
-        );
+        const msg = typeof err === "string" ? err : err?.message || "Failed to cancel bank deposit slip.";
+        uiToast.error("Cancellation Failed", msg);
         throw err;
       }
     },
@@ -154,13 +164,11 @@ const BankDepositSlipsPage = () => {
     totalSlips: bankDepositSlips?.length || 0,
     isLoading,
     isTransitioning,
-    error: error || actionError,
-    message: message || actionMessage,
+    error,
+    message,
     clearFeedback: () => {
       clearError();
       clearMessage();
-      setActionError("");
-      setActionMessage("");
     },
     handleSearchChange,
     handleFilterChange,

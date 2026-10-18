@@ -71,7 +71,6 @@ import branchCashRoutes from "@/features/finance/treasury/cash-management/branch
 import paymentQrRoutes from "@/features/finance/treasury/payment-qr/routes/paymentQrRoutes";
 import bankTransactionRoutes from "@/features/finance/treasury/bank-management/bank-transactions/routes/bankTransactionRoutes";
 import cashTransactionRoutes from "@/features/finance/treasury/cash-management/cash-transactions/routes/cashTransactionRoutes";
-import cashDenominationRoutes from "@/features/finance/treasury/cash-management/cash-denominations/routes/cashDenominationRoutes";
 import financialPeriodRoutes from "@/features/finance/financial-periods/routes/financialPeriodRoutes";
 import ledgerRoutes from "@/features/finance/ledger/routes/ledgerRoutes";
 import gstLedgerRoutes from "@/features/finance/gst-ledger/routes/gstLedgerRoutes";
@@ -82,20 +81,7 @@ import billingRoutes from "@/features/billing/routes/billingRoutes";
 import purchasesRoutes from "@/features/purchases/routes/purchasesRoutes";
 import helpCenterRoutes from "@/features/help-center/routes/helpCenterRoutes";
 import operationsRoutes from "@/features/operations/routes/operationsRoutes";
-
-const NotFoundPage = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-surface px-4">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold text-primary">404</h1>
-        <p className="mt-3 text-lg font-medium text-text">Page Not Found</p>
-        <p className="mt-2 text-sm text-text-muted">
-          The page you are looking for does not exist.
-        </p>
-      </div>
-    </div>
-  );
-};
+import NotFoundPage from "@/pages/NotFoundPage";
 
 /**
  * Guards a list of routes with action-level granularity:
@@ -348,7 +334,6 @@ export const router = createBrowserRouter([
                   "fund-transfer:view",
                   "cheque:view",
                   "payment-qr:view",
-                  "cash-denomination:view",
                   "bank-deposit-slip:view",
                 ]}
               >
@@ -380,9 +365,8 @@ export const router = createBrowserRouter([
               </PermissionGuard>
             ),
           })),
-                  ...guardRouteList(cashDenominationRoutes, "cash-denomination"),
-                ],
-              },
+        ],
+      },
 
               // Inventory & Catalog
           {

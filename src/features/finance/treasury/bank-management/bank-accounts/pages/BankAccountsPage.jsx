@@ -72,7 +72,7 @@ const mapBankAccountForView = (account) => {
 };
 
 import BankAccountDialog from "../components/BankAccountDialog";
-import { UIConfirmDialog } from "@/components/ui";
+import { UIConfirmDialog, uiToast } from "@/components/ui";
 
 const BankAccountsPage = () => {
   const navigate = useNavigate();
@@ -145,13 +145,23 @@ const BankAccountsPage = () => {
     };
   }, [clearError, fetchAccountsData]);
 
+  // Ephemeral toast feedback for operations (creates, updates, deletes, primary) - strictly no read toasts
   useEffect(() => {
-    if (!message) return undefined;
-    const timer = window.setTimeout(() => {
+    if (message) {
+      const isReadOp = /fetch|load|view|retriev|read/i.test(message);
+      if (!isReadOp) {
+        uiToast.success("Bank Account", message);
+      }
       clearMessage();
-    }, 3000);
-    return () => window.clearTimeout(timer);
+    }
   }, [clearMessage, message]);
+
+  useEffect(() => {
+    if (error) {
+      uiToast.error("Bank Account Error", error);
+      clearError();
+    }
+  }, [clearError, error]);
 
   const activeAccountsList = useMemo(() => {
     return Array.isArray(bankAccounts) ? bankAccounts : [];

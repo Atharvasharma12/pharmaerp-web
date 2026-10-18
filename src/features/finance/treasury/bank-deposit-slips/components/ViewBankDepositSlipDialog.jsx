@@ -10,6 +10,7 @@ import {
   UIButton,
   UIBadge,
   UIAlert,
+  uiToast,
 } from "@/components/ui";
 import {
   FileText,
@@ -82,7 +83,9 @@ export const ViewBankDepositSlipDialog = ({
   const submitConfirm = async () => {
     setActionError("");
     if (!bankReference.trim()) {
-      setActionError("Please provide the bank acknowledgment or transaction reference number.");
+      const msg = "Please provide the bank acknowledgment or transaction reference number.";
+      setActionError(msg);
+      uiToast.warning("Reference Required", msg);
       return;
     }
     setIsSubmitting(true);
@@ -94,7 +97,9 @@ export const ViewBankDepositSlipDialog = ({
       setIsConfirming(false);
       onClose();
     } catch (err) {
-      setActionError(typeof err === "string" ? err : err?.message || "Failed to confirm bank deposit.");
+      const msg = typeof err === "string" ? err : err?.message || "Failed to confirm bank deposit.";
+      setActionError(msg);
+      uiToast.error("Confirmation Failed", msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -103,7 +108,9 @@ export const ViewBankDepositSlipDialog = ({
   const submitCancel = async () => {
     setActionError("");
     if (!cancelReason.trim()) {
-      setActionError("Please provide a cancellation reason.");
+      const msg = "Please provide a cancellation reason.";
+      setActionError(msg);
+      uiToast.warning("Reason Required", msg);
       return;
     }
     setIsSubmitting(true);
@@ -114,7 +121,9 @@ export const ViewBankDepositSlipDialog = ({
       setIsCancelling(false);
       onClose();
     } catch (err) {
-      setActionError(typeof err === "string" ? err : err?.message || "Failed to cancel bank deposit slip.");
+      const msg = typeof err === "string" ? err : err?.message || "Failed to cancel bank deposit slip.";
+      setActionError(msg);
+      uiToast.error("Cancellation Failed", msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -344,6 +353,7 @@ export const ViewBankDepositSlipDialog = ({
                 size="sm"
                 onClick={() => setIsConfirming(false)}
                 disabled={isSubmitting}
+                className="cursor-pointer"
               >
                 Back
               </UIButton>
@@ -351,10 +361,12 @@ export const ViewBankDepositSlipDialog = ({
                 variant="primary"
                 size="sm"
                 onClick={submitConfirm}
+                isLoading={isSubmitting}
+                loadingText="Confirming..."
                 disabled={isSubmitting || !bankReference.trim()}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
               >
-                {isSubmitting ? "Confirming..." : "Submit Confirmation"}
+                Submit Confirmation
               </UIButton>
             </div>
           </div>
@@ -385,6 +397,7 @@ export const ViewBankDepositSlipDialog = ({
                 size="sm"
                 onClick={() => setIsCancelling(false)}
                 disabled={isSubmitting}
+                className="cursor-pointer"
               >
                 Back
               </UIButton>
@@ -392,14 +405,17 @@ export const ViewBankDepositSlipDialog = ({
                 variant="danger"
                 size="sm"
                 onClick={submitCancel}
+                isLoading={isSubmitting}
+                loadingText="Cancelling..."
                 disabled={isSubmitting || !cancelReason.trim()}
-                className="font-bold"
+                className="font-bold cursor-pointer"
               >
-                {isSubmitting ? "Cancelling..." : "Confirm Cancellation"}
+                Confirm Cancellation
               </UIButton>
             </div>
           </div>
         )}
+
       </UIModalBody>
 
       {/* ── Modal Footer ── */}
@@ -412,7 +428,7 @@ export const ViewBankDepositSlipDialog = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setIsCancelling(true)}
-                className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-800"
+                className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-800 cursor-pointer"
               >
                 Cancel Slip
               </UIButton>
@@ -421,7 +437,7 @@ export const ViewBankDepositSlipDialog = ({
                 variant="primary"
                 size="sm"
                 onClick={() => setIsConfirming(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
               >
                 Confirm Deposit
               </UIButton>
@@ -434,9 +450,11 @@ export const ViewBankDepositSlipDialog = ({
           variant="secondary"
           size="md"
           onClick={onClose}
+          className="cursor-pointer"
         >
           Close
         </UIButton>
+
       </UIModalFooter>
     </UIModal>
   );

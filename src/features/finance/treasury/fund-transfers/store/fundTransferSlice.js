@@ -113,8 +113,6 @@ const fundTransferSlice = createSlice({
         state.getFundTransferStatus = API_STATUS.SUCCESS;
 
         state.managedFundTransfer = action.payload || null;
-
-        state.message = "Fund transfer fetched successfully";
       })
       .addCase(getFundTransferById.rejected, (state, action) => {
         setRejected(state, action);
