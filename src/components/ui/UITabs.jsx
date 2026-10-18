@@ -42,7 +42,8 @@ export const UITabs = forwardRef(
     },
     ref
   ) => {
-    const generatedId = useId();
+    const rawId = useId();
+    const generatedId = rawId.replace(/[^a-zA-Z0-9_-]/g, "");
     const layoutId = customLayoutId || `tabs-indicator-${generatedId}`;
 
     const isControlled = controlledActiveTab !== undefined;

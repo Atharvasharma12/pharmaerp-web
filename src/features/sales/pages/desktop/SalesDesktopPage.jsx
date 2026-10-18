@@ -30,11 +30,14 @@ import {
   Play,
   AlertCircle,
   ArrowLeft,
+  RotateCcw,
+  Calendar,
 } from "lucide-react";
 import {
   UICard,
   UIButton,
   UIIconButton,
+  UITabs,
   UIBadge,
   UISearchInput,
   WorkspaceProductSearchBar,
@@ -530,6 +533,7 @@ export const SalesDesktopPage = () => {
   const [isHeldBillsModalOpen, setIsHeldBillsModalOpen] = useState(false);
   const [pendingResumeBill, setPendingResumeBill] = useState(null);
   const [isResumeConflictOpen, setIsResumeConflictOpen] = useState(false);
+  const [isReturnInvoice, setIsReturnInvoice] = useState(false);
 
   const { openBusinessDay, getOpenBusinessDayStatus } = useSelector((state) => state.businessDay);
   const [isBusinessDayModalOpen, setIsBusinessDayModalOpen] = useState(false);
@@ -1535,9 +1539,12 @@ export const SalesDesktopPage = () => {
               </div>
             ) : (
               /* B2B Party Strip */
-              <div className="px-4 py-2.5 space-y-2">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex-1 min-w-[200px]">
+              <div className="px-4 pt-3.5 pb-2.5 space-y-2">
+                <div className="flex items-end gap-3 flex-wrap">
+                  <div className="flex-1 min-w-[220px] space-y-0.5">
+                    <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider block">
+                      Party / Business Name *
+                    </span>
                     <B2bCustomerSearchBar
                       ref={b2bCustomerSearchBarRef}
                       selectedCustomer={selectedB2bParty}
@@ -1556,28 +1563,51 @@ export const SalesDesktopPage = () => {
                       size="sm"
                     />
                   </div>
+
                   {/* Party type filter chips */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {[
-                      { value: "all", label: "All", icon: null },
-                      { value: "wholesaler", label: "Wholesaler", icon: <Briefcase className="size-3" /> },
-                      { value: "retailer", label: "Retailer", icon: <Store className="size-3" /> },
-                    ].map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setB2bPartyType(opt.value)}
-                        className={cn(
-                          "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer",
-                          b2bPartyType === opt.value
-                            ? "bg-purple-600 text-white shadow-xs"
-                            : "bg-surface-alt text-text-muted hover:text-text border border-border"
-                        )}
-                      >
-                        {opt.icon}
-                        {opt.label}
-                      </button>
-                    ))}
+                  <div className="space-y-0.5 shrink-0">
+                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
+                      Party Type
+                    </span>
+                    <div className="flex items-center gap-1.5 h-[34px]">
+                      {[
+                        { value: "all", label: "All", icon: null },
+                        { value: "wholesaler", label: "Wholesaler", icon: <Briefcase className="size-3" /> },
+                        { value: "retailer", label: "Retailer", icon: <Store className="size-3" /> },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setB2bPartyType(opt.value)}
+                          className={cn(
+                            "flex items-center gap-1 px-2.5 h-full rounded-lg text-[11px] font-bold transition-all cursor-pointer",
+                            b2bPartyType === opt.value
+                              ? "bg-purple-600 text-white shadow-xs"
+                              : "bg-surface-alt text-text-muted hover:text-text border border-border"
+                          )}
+                        >
+                          {opt.icon}
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Sale Date (read-only chip matching B2C) */}
+                  <div className="w-[130px] shrink-0 space-y-0.5">
+                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
+                      Sale Date
+                    </span>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={saleDate}
+                        readOnly
+                        disabled
+                        className="w-full h-[34px] rounded-lg border border-border pl-7 pr-2 text-[12px] bg-surface-alt text-text-muted cursor-not-allowed outline-none"
+                      />
+                      <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-text-muted pointer-events-none" />
+                    </div>
                   </div>
                 </div>
                 {/* B2B selected party credit info */}
