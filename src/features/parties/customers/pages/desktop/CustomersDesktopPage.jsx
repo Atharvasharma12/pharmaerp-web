@@ -1,6 +1,12 @@
 // src/features/parties/customers/pages/desktop/CustomersDesktopPage.jsx
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -62,6 +68,8 @@ import customerService from "../../services/customerService";
 import CustomerImportPreviewModal from "../../components/CustomerImportPreviewModal";
 import ImportConfigModal from "../../components/ImportConfigModal";
 import OutstandingImportPreviewModal from "../../components/OutstandingImportPreviewModal";
+import B2cCustomerImportModal from "../../components/B2cCustomerImportModal";
+import B2cLegacyHistoryImportModal from "@/features/sales/components/B2cLegacyHistoryImportModal";
 import * as XLSX from "xlsx";
 
 const formatCurrency = (val) => {
@@ -123,7 +131,7 @@ const SCOPE_MODAL_OPTIONS = [
   { value: "b2c", label: "B2C Walk-ins", icon: Contact },
 ];
 
-const PAGE_LIMIT = 20;
+const PAGE_LIMIT = 10;
 
 export const CustomersDesktopPage = ({
   handleCreateCustomer,
@@ -165,7 +173,11 @@ export const CustomersDesktopPage = ({
 
   // Filter & Search States
   const [customerScope, setCustomerScope] = useState(
-    propActiveSegment === "b2b" ? "b2b" : propActiveSegment === "b2c" ? "b2c" : "all"
+    propActiveSegment === "b2b"
+      ? "b2b"
+      : propActiveSegment === "b2c"
+        ? "b2c"
+        : "all",
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -190,7 +202,11 @@ export const CustomersDesktopPage = ({
   // Excel Import States
   const [isImportConfigOpen, setIsImportConfigOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] = useState(false);
+  const [isOutstandingImportModalOpen, setIsOutstandingImportModalOpen] =
+    useState(false);
+  const [isB2cImportModalOpen, setIsB2cImportModalOpen] = useState(false);
+  const [isLegacyHistoryImportModalOpen, setIsLegacyHistoryImportModalOpen] =
+    useState(false);
   const [activeImportType, setActiveImportType] = useState("b2b");
   const [importPreviewData, setImportPreviewData] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -236,11 +252,21 @@ export const CustomersDesktopPage = ({
     const creditLimit = Math.max(0, Number(c.creditLimit || 0));
     const creditDays = Math.max(0, Number(c.creditDays || 0));
 
-    const advanceBalance = Math.max(0, Number(c.advanceBalance ?? c.advance ?? 0));
-    const creditOutstanding = Math.max(0, Number(c.creditOutstanding ?? c.credit ?? c.creditDue ?? 0));
-    const outstandingAmount = Math.max(0, Number(c.outstandingAmount ?? creditOutstanding ?? 0));
+    const advanceBalance = Math.max(
+      0,
+      Number(c.advanceBalance ?? c.advance ?? 0),
+    );
+    const creditOutstanding = Math.max(
+      0,
+      Number(c.creditOutstanding ?? c.credit ?? c.creditDue ?? 0),
+    );
+    const outstandingAmount = Math.max(
+      0,
+      Number(c.outstandingAmount ?? creditOutstanding ?? 0),
+    );
     const balanceType = String(
-      c.balanceType || (creditOutstanding > 0 ? "dr" : advanceBalance > 0 ? "cr" : "zero")
+      c.balanceType ||
+        (creditOutstanding > 0 ? "dr" : advanceBalance > 0 ? "cr" : "zero"),
     ).toLowerCase();
 
     const billingAddress = c.billingAddress || c.address || {};
@@ -301,7 +327,7 @@ export const CustomersDesktopPage = ({
 
       return params;
     },
-    [debouncedSearch, selectedStatus, selectedType, customerScope]
+    [debouncedSearch, selectedStatus, selectedType, customerScope],
   );
 
   // Fetch initial batch (Page 1) or full refresh
@@ -314,8 +340,8 @@ export const CustomersDesktopPage = ({
       const rawList = Array.isArray(resData.customers)
         ? resData.customers
         : Array.isArray(resData)
-        ? resData
-        : [];
+          ? resData
+          : [];
       const total = Number(resData.total ?? rawList.length);
 
       // Extract backend aggregated stats
@@ -323,15 +349,19 @@ export const CustomersDesktopPage = ({
         setStats({
           totalCustomers: total,
           totalDr: Number(resData.stats.totalDr || 0),
-          totalAdvance: Number(resData.stats.totalAdvance || resData.stats.totalCr || 0),
+          totalAdvance: Number(
+            resData.stats.totalAdvance || resData.stats.totalCr || 0,
+          ),
           totalCr: Number(resData.stats.totalCr || 0),
           netRunning: Number(resData.stats.netRunning || 0),
           runningType: resData.stats.runningType || "Dr",
           active: Number(resData.stats.active || 0),
           inactive: Number(resData.stats.inactive || 0),
           blocked: Number(resData.stats.blocked || 0),
-          drCount: rawList.filter((c) => Number(c.creditOutstanding || 0) > 0).length,
-          crCount: rawList.filter((c) => Number(c.advanceBalance || 0) > 0).length,
+          drCount: rawList.filter((c) => Number(c.creditOutstanding || 0) > 0)
+            .length,
+          crCount: rawList.filter((c) => Number(c.advanceBalance || 0) > 0)
+            .length,
         });
       } else {
         let drSum = 0;
@@ -358,8 +388,10 @@ export const CustomersDesktopPage = ({
           active: act,
           inactive: inact,
           blocked: blk,
-          drCount: rawList.filter((c) => Number(c.creditOutstanding || 0) > 0).length,
-          crCount: rawList.filter((c) => Number(c.advanceBalance || 0) > 0).length,
+          drCount: rawList.filter((c) => Number(c.creditOutstanding || 0) > 0)
+            .length,
+          crCount: rawList.filter((c) => Number(c.advanceBalance || 0) > 0)
+            .length,
         });
       }
 
@@ -426,6 +458,44 @@ export const CustomersDesktopPage = ({
     formatCustomerRow,
   ]);
 
+  // Observer on the 8th row (index 7 of each 10-item batch) to trigger loading next 10 items
+  const eighthRowObserverRef = useRef(null);
+  const eighthRowCallbackRef = useCallback(
+    (node) => {
+      if (isLoading || isLoadingMore || !hasMore) return;
+      if (eighthRowObserverRef.current)
+        eighthRowObserverRef.current.disconnect();
+
+      eighthRowObserverRef.current = new IntersectionObserver(
+        (entries) => {
+          if (
+            entries[0]?.isIntersecting &&
+            hasMore &&
+            !isLoadingMore &&
+            !isLoading
+          ) {
+            handleLoadMore();
+          }
+        },
+        {
+          root: tableContainerRef.current,
+          threshold: 0.1,
+        },
+      );
+
+      if (node) eighthRowObserverRef.current.observe(node);
+    },
+    [hasMore, isLoading, isLoadingMore, handleLoadMore],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (eighthRowObserverRef.current) {
+        eighthRowObserverRef.current.disconnect();
+      }
+    };
+  }, []);
+
   // Initial load and auto re-fetch on filter / refreshKey changes
   useEffect(() => {
     fetchInitialCustomers();
@@ -460,19 +530,24 @@ export const CustomersDesktopPage = ({
     // Filter by balance dropdown
     if (selectedBalanceType === "dr") {
       result = result.filter(
-        (c) => c.creditOutstanding > 0 || (c.balanceType === "dr" && c.outstandingAmount > 0)
+        (c) =>
+          c.creditOutstanding > 0 ||
+          (c.balanceType === "dr" && c.outstandingAmount > 0),
       );
     } else if (selectedBalanceType === "cr") {
       result = result.filter(
-        (c) => c.advanceBalance > 0 || (c.balanceType === "cr" && c.outstandingAmount > 0)
+        (c) =>
+          c.advanceBalance > 0 ||
+          (c.balanceType === "cr" && c.outstandingAmount > 0),
       );
     } else if (selectedBalanceType === "overlimit") {
       result = result.filter(
-        (c) => c.creditLimit > 0 && c.creditOutstanding > c.creditLimit
+        (c) => c.creditLimit > 0 && c.creditOutstanding > c.creditLimit,
       );
     } else if (selectedBalanceType === "zero") {
       result = result.filter(
-        (c) => (c.creditOutstanding || 0) === 0 && (c.advanceBalance || 0) === 0
+        (c) =>
+          (c.creditOutstanding || 0) === 0 && (c.advanceBalance || 0) === 0,
       );
     }
 
@@ -512,14 +587,18 @@ export const CustomersDesktopPage = ({
         currentIndex: chunkIndex,
       }));
       setToastMessage(
-        `Import complete! Successful: ${currentStats.successful}, Failed: ${currentStats.failed}`
+        `Import complete! Successful: ${currentStats.successful}, Failed: ${currentStats.failed}`,
       );
       setTimeout(() => setToastMessage(null), 4000);
       handleRefresh();
       return;
     }
 
-    setChunkState((prev) => ({ ...prev, currentIndex: chunkIndex, error: null }));
+    setChunkState((prev) => ({
+      ...prev,
+      currentIndex: chunkIndex,
+      error: null,
+    }));
 
     try {
       const chunk = chunks[chunkIndex];
@@ -541,7 +620,10 @@ export const CustomersDesktopPage = ({
 
       setChunkState((prev) => ({ ...prev, stats: newStats }));
 
-      if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+      if (
+        abortControllerRef.current &&
+        !abortControllerRef.current.signal.aborted
+      ) {
         processChunk(chunkIndex + 1, chunks, newStats);
       }
     } catch (err) {
@@ -549,7 +631,9 @@ export const CustomersDesktopPage = ({
         ...prev,
         isImporting: false,
         error:
-          err?.response?.data?.message || err.message || "Failed to import chunk",
+          err?.response?.data?.message ||
+          err.message ||
+          "Failed to import chunk",
       }));
     }
   };
@@ -558,187 +642,8 @@ export const CustomersDesktopPage = ({
     setActiveImportType(importType);
 
     if (importType === "b2c") {
-      try {
-        setIsUploading(true);
-        setIsImportConfigOpen(false);
-        const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-
-        const rawRows = XLSX.utils.sheet_to_json(worksheet, {
-          header: 1,
-          defval: "",
-        });
-
-        if (rawRows.length === 0) {
-          alert("File is empty or invalid.");
-          setIsUploading(false);
-          return;
-        }
-
-        let headerRowIndex = 0;
-        for (let i = 0; i < Math.min(20, rawRows.length); i++) {
-          const validCells = rawRows[i].filter((c) => String(c).trim() !== "");
-          const rowStr = rawRows[i].map((c) => String(c).toLowerCase()).join(" ");
-
-          if (
-            validCells.length >= 2 &&
-            (rowStr.includes("name") ||
-              rowStr.includes("customer") ||
-              rowStr.includes("patient") ||
-              rowStr.includes("client") ||
-              rowStr.includes("ledger") ||
-              rowStr.includes("party")) &&
-            (rowStr.includes("mobile") ||
-              rowStr.includes("phone") ||
-              rowStr.includes("contact") ||
-              rowStr.includes("sno") ||
-              rowStr.includes("balance") ||
-              rowStr.includes("email") ||
-              rowStr.includes("city") ||
-              rowStr.includes("address"))
-          ) {
-            headerRowIndex = i;
-            break;
-          }
-        }
-
-        let headers = rawRows[headerRowIndex].map((h) =>
-          String(h).toLowerCase().trim()
-        );
-
-        if (
-          !headers.some(
-            (h) =>
-              h.includes("name") ||
-              h.includes("customer") ||
-              h.includes("patient") ||
-              h.includes("client") ||
-              h.includes("ledger") ||
-              h.includes("party")
-          )
-        ) {
-          headers = headers.map((h, i) =>
-            i === 0 ? "name" : i === 1 ? "mobile" : h
-          );
-        }
-
-        const dataRows = rawRows.slice(headerRowIndex + 1);
-
-        const dataObjects = dataRows
-          .map((rowArr) => {
-            const obj = {};
-            let lastHeader = "";
-            headers.forEach((h, idx) => {
-              let currentHeader = h;
-              if (currentHeader) {
-                lastHeader = currentHeader;
-              } else if (
-                lastHeader.includes("mobile") ||
-                lastHeader.includes("phone")
-              ) {
-                currentHeader = `${lastHeader}_${idx}`;
-              }
-
-              if (
-                currentHeader &&
-                rowArr[idx] !== undefined &&
-                rowArr[idx] !== ""
-              ) {
-                obj[currentHeader] = rowArr[idx];
-              }
-            });
-            return obj;
-          })
-          .filter((row) => Object.keys(row).length > 0);
-
-        const validCustomersData = [];
-        for (const lowerRow of dataObjects) {
-          const businessName = String(
-            lowerRow["name"] ||
-              lowerRow["customer name"] ||
-              lowerRow["customer"] ||
-              lowerRow["party name"] ||
-              lowerRow["ledger name"] ||
-              lowerRow["patient name"] ||
-              lowerRow["client name"] ||
-              ""
-          ).trim();
-
-          let mobile = "";
-          const mobileKeys = Object.keys(lowerRow).filter(
-            (k) =>
-              k.includes("mobile") || k.includes("phone") || k.includes("contact")
-          );
-          for (const mk of mobileKeys) {
-            const val = String(lowerRow[mk]).replace(/\D/g, "");
-            if (val.length >= 10) {
-              const potentialMobile = val.substring(val.length - 10);
-              if (/^[6-9][0-9]{9}$/.test(potentialMobile)) {
-                if (!mobile) {
-                  mobile = potentialMobile;
-                }
-              }
-            }
-          }
-
-          let city = String(
-            lowerRow["city"] ||
-              lowerRow["location"] ||
-              lowerRow["district"] ||
-              lowerRow["town"] ||
-              lowerRow["address"] ||
-              ""
-          ).trim();
-
-          const normalizedName = businessName
-            .toLowerCase()
-            .replace(/\s+/g, " ")
-            .trim();
-          if (
-            businessName &&
-            normalizedName !== "ledger name" &&
-            normalizedName !== "name" &&
-            normalizedName !== "customer name"
-          ) {
-            validCustomersData.push({
-              name: businessName,
-              mobile: mobile || undefined,
-              billingAddress: {
-                city: city || undefined,
-              },
-              customerType: "other",
-            });
-          }
-        }
-
-        if (validCustomersData.length === 0) {
-          alert("No valid customers found in the file.");
-          setIsUploading(false);
-          return;
-        }
-
-        const CHUNK_SIZE = 250;
-        const chunks = [];
-        for (let i = 0; i < validCustomersData.length; i += CHUNK_SIZE) {
-          chunks.push(validCustomersData.slice(i, i + CHUNK_SIZE));
-        }
-
-        setChunkState({
-          chunks,
-          currentIndex: 0,
-          isImporting: false,
-          isModalOpen: true,
-          error: null,
-          stats: { successful: 0, failed: 0, errors: [] },
-          totalRecords: validCustomersData.length,
-        });
-      } catch (error) {
-        alert("Failed to parse Excel file locally: " + error.message);
-      } finally {
-        setIsUploading(false);
-      }
+      setIsImportConfigOpen(false);
+      setIsB2cImportModalOpen(true);
       return;
     }
 
@@ -756,11 +661,11 @@ export const CustomersDesktopPage = ({
         const result = res.data.data.importResult;
         if (result?.failed > 0) {
           alert(
-            `Imported ${result.successful} successfully. ${result.failed} failed.\nErrors: ${result.errors?.join(", ")}`
+            `Imported ${result.successful} successfully. ${result.failed} failed.\nErrors: ${result.errors?.join(", ")}`,
           );
         } else {
           alert(
-            `Directly imported ${result?.successful || 0} customers successfully.`
+            `Directly imported ${result?.successful || 0} customers successfully.`,
           );
         }
         handleRefresh();
@@ -786,7 +691,7 @@ export const CustomersDesktopPage = ({
     setIsOutstandingImportModalOpen(false);
     if (failed > 0) {
       alert(
-        `Imported ${successful} successfully. ${failed} failed.\nErrors: ${errors.join(", ")}`
+        `Imported ${successful} successfully. ${failed} failed.\nErrors: ${errors.join(", ")}`,
       );
     } else {
       setToastMessage(`Imported ${successful} customers successfully.`);
@@ -827,8 +732,8 @@ export const CustomersDesktopPage = ({
               {customerScope === "b2b"
                 ? "B2B Accounts"
                 : customerScope === "b2c"
-                ? "B2C Walk-ins"
-                : "Total Customers"}
+                  ? "B2C Walk-ins"
+                  : "Total Customers"}
             </div>
             <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
               {stats.totalCustomers || totalCount || 0}
@@ -837,8 +742,8 @@ export const CustomersDesktopPage = ({
               {customerScope === "b2b"
                 ? "B2B wholesale & commercial"
                 : customerScope === "b2c"
-                ? "B2C retail walk-in accounts"
-                : "Registered customer base"}
+                  ? "B2C retail walk-in accounts"
+                  : "Registered customer base"}
             </div>
           </div>
         </div>
@@ -889,10 +794,18 @@ export const CustomersDesktopPage = ({
               Net Position
             </div>
             <div className="text-xl sm:text-[22px] font-bold text-text leading-tight font-mono tabular-nums">
-              ₹{formatCurrency(stats.netRunning || Math.abs((stats.totalDr || 0) - (stats.totalAdvance || stats.totalCr || 0)))}
+              ₹
+              {formatCurrency(
+                stats.netRunning ||
+                  Math.abs(
+                    (stats.totalDr || 0) -
+                      (stats.totalAdvance || stats.totalCr || 0),
+                  ),
+              )}
             </div>
             <div className="text-[10px] text-text-muted truncate mt-0.5">
-              {(stats.totalDr || 0) >= (stats.totalAdvance || stats.totalCr || 0)
+              {(stats.totalDr || 0) >=
+              (stats.totalAdvance || stats.totalCr || 0)
                 ? "Net Debit Position (Receivable)"
                 : "Net Credit Position (Advance Held)"}
             </div>
@@ -937,12 +850,16 @@ export const CustomersDesktopPage = ({
           onClick={() => setIsFilterModalOpen(true)}
           startIcon={
             <Filter
-              className={cn("size-3.5", activeFilterCount > 0 ? "text-primary" : "text-text-muted")}
+              className={cn(
+                "size-3.5",
+                activeFilterCount > 0 ? "text-primary" : "text-text-muted",
+              )}
             />
           }
           className={cn(
             "h-10 px-3 text-xs sm:text-sm font-semibold gap-1.5 transition-all select-none",
-            activeFilterCount > 0 && "border-primary/40 bg-primary/10 text-primary font-bold shadow-2xs"
+            activeFilterCount > 0 &&
+              "border-primary/40 bg-primary/10 text-primary font-bold shadow-2xs",
           )}
           title="Open filters dialog"
         >
@@ -981,7 +898,10 @@ export const CustomersDesktopPage = ({
             title="Refresh customer table"
           >
             <RefreshCw
-              className={cn("size-4 text-text-muted hover:text-primary", isLoading && "animate-spin text-primary")}
+              className={cn(
+                "size-4 text-text-muted hover:text-primary",
+                isLoading && "animate-spin text-primary",
+              )}
             />
           </UIButton>
 
@@ -989,7 +909,9 @@ export const CustomersDesktopPage = ({
             type="button"
             variant="outline"
             size="md"
-            startIcon={<Receipt className="size-3.5 text-emerald-600 dark:text-emerald-400" />}
+            startIcon={
+              <Receipt className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+            }
             onClick={() => navigate(ROUTES.CUSTOMER_SETTLEMENTS)}
             className="h-10 px-3 text-xs font-semibold hidden md:inline-flex"
             title="Outstanding Collections & Credit Settlements"
@@ -998,18 +920,51 @@ export const CustomersDesktopPage = ({
           </UIButton>
 
           <PermissionGate permission="customer:create">
-            <UIButton
-              type="button"
-              variant="outline"
-              size="md"
-              startIcon={<Download className="size-3.5 text-text-muted" />}
-              onClick={handleImportClick}
-              disabled={isUploading}
-              className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex"
-              title="Import Customer Records from Excel"
-            >
-              {isUploading ? "Uploading..." : "Import"}
-            </UIButton>
+            {customerScope === "b2c" ? (
+              <div className="flex items-center gap-2">
+                <UIButton
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  startIcon={
+                    <Users className="size-3.5 text-purple-600 dark:text-purple-400" />
+                  }
+                  onClick={() => setIsB2cImportModalOpen(true)}
+                  disabled={isUploading}
+                  className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+                  title="Import B2C Customer Records from Excel"
+                >
+                  Import B2C Customers
+                </UIButton>
+                <UIButton
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  startIcon={
+                    <BookOpen className="size-3.5 text-blue-600 dark:text-blue-400" />
+                  }
+                  onClick={() => setIsLegacyHistoryImportModalOpen(true)}
+                  disabled={isUploading}
+                  className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
+                  title="Import Customer Purchase History from Legacy Excel"
+                >
+                  Legacy History Import
+                </UIButton>
+              </div>
+            ) : (
+              <UIButton
+                type="button"
+                variant="outline"
+                size="md"
+                startIcon={<Download className="size-3.5 text-text-muted" />}
+                onClick={handleImportClick}
+                disabled={isUploading}
+                className="h-10 px-3 text-xs font-semibold hidden sm:inline-flex"
+                title="Import Customer Records from Excel"
+              >
+                {isUploading ? "Uploading..." : "Import"}
+              </UIButton>
+            )}
           </PermissionGate>
 
           <PermissionGate permission="customer:create">
@@ -1045,18 +1000,30 @@ export const CustomersDesktopPage = ({
               className="sticky top-0 z-20 bg-surface-alt/95 backdrop-blur-xs select-none shadow-xs border-b border-border"
             >
               <UITableRow className="border-b border-border text-[11px] font-semibold text-text-muted uppercase tracking-wider bg-surface-alt/70 h-10">
-                <UITableHead sticky className="min-w-[240px]">Customer</UITableHead>
-                <UITableHead sticky align="center" className="min-w-[100px]">Segment</UITableHead>
-                <UITableHead sticky align="right" className="min-w-[110px]">Credit Limit</UITableHead>
-                <UITableHead sticky align="right" className="min-w-[125px]">Advance (CR)</UITableHead>
-                <UITableHead sticky align="right" className="min-w-[130px]">Credit Due (DR)</UITableHead>
-                <UITableHead sticky align="right" className="min-w-[80px]">Actions</UITableHead>
+                <UITableHead sticky className="min-w-[240px]">
+                  Customer
+                </UITableHead>
+                <UITableHead sticky align="center" className="min-w-[100px]">
+                  Segment
+                </UITableHead>
+                <UITableHead sticky align="right" className="min-w-[110px]">
+                  Credit Limit
+                </UITableHead>
+                <UITableHead sticky align="right" className="min-w-[125px]">
+                  Advance (CR)
+                </UITableHead>
+                <UITableHead sticky align="right" className="min-w-[130px]">
+                  Credit Due (DR)
+                </UITableHead>
+                <UITableHead sticky align="right" className="min-w-[80px]">
+                  Actions
+                </UITableHead>
               </UITableRow>
             </UITableHeader>
 
             <UITableBody>
               {isLoading ? (
-                <UITableLoading colSpan={6} rows={8} />
+                <UITableLoading colSpan={6} rows={5} />
               ) : filteredAndSortedCustomers.length === 0 ? (
                 <UITableEmpty
                   colSpan={6}
@@ -1088,13 +1055,18 @@ export const CustomersDesktopPage = ({
                   }
                 />
               ) : (
-                filteredAndSortedCustomers.map((c) => {
+                filteredAndSortedCustomers.map((c, index) => {
                   const isOverLimit =
                     c.creditLimit > 0 && c.creditOutstanding > c.creditLimit;
+                  // Trigger loading next 10 items when reaching the 8th row of any 10-row batch
+                  const isTriggerRow =
+                    index % 10 === 7 ||
+                    index === filteredAndSortedCustomers.length - 3;
 
                   return (
                     <UITableRow
                       key={c._id}
+                      ref={isTriggerRow ? eighthRowCallbackRef : null}
                       onClick={() => handleViewCustomer(c.rawCustomer || c)}
                       className="group cursor-pointer transition-colors hover:bg-surface-hover/70 h-13"
                     >
@@ -1114,8 +1086,12 @@ export const CustomersDesktopPage = ({
                               </span>
                               {c.city ? (
                                 <>
-                                  <span className="text-text-muted/40 font-sans">•</span>
-                                  <span className="font-sans text-text-muted/80 text-xs">{c.city}</span>
+                                  <span className="text-text-muted/40 font-sans">
+                                    •
+                                  </span>
+                                  <span className="font-sans text-text-muted/80 text-xs">
+                                    {c.city}
+                                  </span>
                                 </>
                               ) : null}
                             </div>
@@ -1124,14 +1100,20 @@ export const CustomersDesktopPage = ({
                       </UITableCell>
 
                       {/* 2. Segment / Type */}
-                      <UITableCell align="center" className="whitespace-nowrap py-2">
+                      <UITableCell
+                        align="center"
+                        className="whitespace-nowrap py-2"
+                      >
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface-alt border border-border/60 text-text-muted capitalize">
                           {c.customerType}
                         </span>
                       </UITableCell>
 
                       {/* 3. Credit Limit */}
-                      <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-xs py-2">
+                      <UITableCell
+                        align="right"
+                        className="whitespace-nowrap font-mono tabular-nums text-xs py-2"
+                      >
                         {c.creditLimit > 0 ? (
                           <div className="flex flex-col items-end leading-tight">
                             <span className="font-medium text-text">
@@ -1144,12 +1126,17 @@ export const CustomersDesktopPage = ({
                             )}
                           </div>
                         ) : (
-                          <span className="text-text-muted/40 font-mono text-xs">—</span>
+                          <span className="text-text-muted/40 font-mono text-xs">
+                            —
+                          </span>
                         )}
                       </UITableCell>
 
                       {/* 5. Advance Balance (CR) */}
-                      <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-xs py-2">
+                      <UITableCell
+                        align="right"
+                        className="whitespace-nowrap font-mono tabular-nums text-xs py-2"
+                      >
                         {c.advanceBalance > 0 ? (
                           <div className="inline-flex items-baseline gap-1">
                             <span className="font-semibold text-emerald-600 dark:text-emerald-400">
@@ -1160,12 +1147,17 @@ export const CustomersDesktopPage = ({
                             </span>
                           </div>
                         ) : (
-                          <span className="text-text-muted/30 font-mono text-xs">0.00</span>
+                          <span className="text-text-muted/30 font-mono text-xs">
+                            0.00
+                          </span>
                         )}
                       </UITableCell>
 
                       {/* 6. Credit Due (DR) */}
-                      <UITableCell align="right" className="whitespace-nowrap font-mono tabular-nums text-xs py-2">
+                      <UITableCell
+                        align="right"
+                        className="whitespace-nowrap font-mono tabular-nums text-xs py-2"
+                      >
                         {c.creditOutstanding > 0 ? (
                           <div className="flex flex-col items-end leading-tight">
                             <div className="inline-flex items-baseline gap-1">
@@ -1183,11 +1175,11 @@ export const CustomersDesktopPage = ({
                             )}
                           </div>
                         ) : (
-                          <span className="text-text-muted/30 font-mono text-xs">0.00</span>
+                          <span className="text-text-muted/30 font-mono text-xs">
+                            0.00
+                          </span>
                         )}
                       </UITableCell>
-
-
 
                       {/* 8. Refined Row Actions */}
                       <UITableCell align="right" className="py-2">
@@ -1209,9 +1201,14 @@ export const CustomersDesktopPage = ({
                                 <MoreVertical className="size-3.5" />
                               </button>
                             </UIDropdownTrigger>
-                            <UIDropdownMenu align="right" className="w-52 shadow-lg">
+                            <UIDropdownMenu
+                              align="right"
+                              className="w-52 shadow-lg"
+                            >
                               <UIDropdownItem
-                                icon={<Wallet className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                                icon={
+                                  <Wallet className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                }
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleReceiveAdvance(c.rawCustomer || c);
@@ -1220,7 +1217,9 @@ export const CustomersDesktopPage = ({
                                 Receive Advance
                               </UIDropdownItem>
                               <UIDropdownItem
-                                icon={<Receipt className="size-4 text-rose-600 dark:text-rose-400 shrink-0" />}
+                                icon={
+                                  <Receipt className="size-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                                }
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleSettleCredit(c.rawCustomer || c);
@@ -1229,7 +1228,9 @@ export const CustomersDesktopPage = ({
                                 Settle Credit
                               </UIDropdownItem>
                               <UIDropdownItem
-                                icon={<BookOpen className="size-4 text-primary shrink-0" />}
+                                icon={
+                                  <BookOpen className="size-4 text-primary shrink-0" />
+                                }
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleViewTransactions(c.rawCustomer || c);
@@ -1238,7 +1239,9 @@ export const CustomersDesktopPage = ({
                                 Statement & Ledger
                               </UIDropdownItem>
                               <UIDropdownItem
-                                icon={<Eye className="size-4 text-text-muted shrink-0" />}
+                                icon={
+                                  <Eye className="size-4 text-text-muted shrink-0" />
+                                }
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleViewCustomer(c.rawCustomer || c);
@@ -1247,7 +1250,9 @@ export const CustomersDesktopPage = ({
                                 View Details
                               </UIDropdownItem>
                               <UIDropdownItem
-                                icon={<Edit3 className="size-4 text-text-muted shrink-0" />}
+                                icon={
+                                  <Edit3 className="size-4 text-text-muted shrink-0" />
+                                }
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleEditCustomer(c.rawCustomer || c);
@@ -1258,7 +1263,9 @@ export const CustomersDesktopPage = ({
                               <UIDropdownDivider />
                               <UIDropdownItem
                                 destructive
-                                icon={<Trash2 className="size-4 text-error shrink-0" />}
+                                icon={
+                                  <Trash2 className="size-4 text-error shrink-0" />
+                                }
                                 onClick={(e) => {
                                   e?.stopPropagation?.();
                                   handleDeleteCustomer(c.rawCustomer || c);
@@ -1283,6 +1290,7 @@ export const CustomersDesktopPage = ({
               onLoadMore={handleLoadMore}
               hasMore={hasMore}
               isLoading={isLoadingMore}
+              scrollContainerRef={tableContainerRef}
             />
           )}
         </div>
@@ -1300,7 +1308,8 @@ export const CustomersDesktopPage = ({
             Filter & Sort Customers
           </UIModalTitle>
           <UIModalDescription>
-            Configure customer segment scope, balance standing, status, and sort sequence.
+            Configure customer segment scope, balance standing, status, and sort
+            sequence.
           </UIModalDescription>
         </UIModalHeader>
         <UIModalBody>
@@ -1310,7 +1319,9 @@ export const CustomersDesktopPage = ({
               <label className="text-xs font-semibold text-text flex items-center justify-between">
                 <span>Account Segment</span>
                 {customerScope !== "all" && (
-                  <span className="text-[11px] text-primary font-bold">Active Scope</span>
+                  <span className="text-[11px] text-primary font-bold">
+                    Active Scope
+                  </span>
                 )}
               </label>
               <div className="grid grid-cols-3 gap-1.5 p-1 bg-surface-alt border border-border rounded-xl">
@@ -1326,10 +1337,15 @@ export const CustomersDesktopPage = ({
                         "flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                         isSelected
                           ? "bg-surface text-primary border border-primary/20 shadow-xs font-bold"
-                          : "text-text-muted hover:text-text hover:bg-surface/50 border border-transparent"
+                          : "text-text-muted hover:text-text hover:bg-surface/50 border border-transparent",
                       )}
                     >
-                      <Icon className={cn("size-3.5 shrink-0", isSelected ? "text-primary" : "text-text-muted")} />
+                      <Icon
+                        className={cn(
+                          "size-3.5 shrink-0",
+                          isSelected ? "text-primary" : "text-text-muted",
+                        )}
+                      />
                       <span className="truncate">{opt.label}</span>
                     </button>
                   );
@@ -1342,7 +1358,9 @@ export const CustomersDesktopPage = ({
               <label className="text-xs font-semibold text-text flex items-center justify-between">
                 <span>Customer Type</span>
                 {selectedType !== "all" && (
-                  <span className="text-[11px] text-primary font-bold">Active Filter</span>
+                  <span className="text-[11px] text-primary font-bold">
+                    Active Filter
+                  </span>
                 )}
               </label>
               <UISelect
@@ -1359,7 +1377,9 @@ export const CustomersDesktopPage = ({
               <label className="text-xs font-semibold text-text flex items-center justify-between">
                 <span>Balance Standing</span>
                 {selectedBalanceType !== "all" && (
-                  <span className="text-[11px] text-primary font-bold">Active Filter</span>
+                  <span className="text-[11px] text-primary font-bold">
+                    Active Filter
+                  </span>
                 )}
               </label>
               <UISelect
@@ -1379,7 +1399,9 @@ export const CustomersDesktopPage = ({
               <label className="text-xs font-semibold text-text flex items-center justify-between">
                 <span>Customer Status</span>
                 {selectedStatus !== "all" && (
-                  <span className="text-[11px] text-primary font-bold">Active Filter</span>
+                  <span className="text-[11px] text-primary font-bold">
+                    Active Filter
+                  </span>
                 )}
               </label>
               <UISelect
@@ -1396,7 +1418,9 @@ export const CustomersDesktopPage = ({
               <label className="text-xs font-semibold text-text flex items-center justify-between">
                 <span>Sort Sequence</span>
                 {sortOption !== "name-asc" && (
-                  <span className="text-[11px] text-primary font-bold">Custom Sort</span>
+                  <span className="text-[11px] text-primary font-bold">
+                    Custom Sort
+                  </span>
                 )}
               </label>
               <UISelect
@@ -1449,7 +1473,8 @@ export const CustomersDesktopPage = ({
         <UIModalHeader>
           <UIModalTitle>Importing Customers</UIModalTitle>
           <UIModalDescription>
-            Processing customer records in batches. Please do not close your browser.
+            Processing customer records in batches. Please do not close your
+            browser.
           </UIModalDescription>
         </UIModalHeader>
         <UIModalBody>
@@ -1459,7 +1484,9 @@ export const CustomersDesktopPage = ({
                 <span>Progress</span>
                 <span>
                   {Math.round(
-                    (chunkState.currentIndex / (chunkState.chunks.length || 1)) * 100
+                    (chunkState.currentIndex /
+                      (chunkState.chunks.length || 1)) *
+                      100,
                   )}
                   %
                 </span>
@@ -1469,7 +1496,9 @@ export const CustomersDesktopPage = ({
                   className="bg-primary h-2.5 rounded-full transition-all duration-300"
                   style={{
                     width: `${
-                      (chunkState.currentIndex / (chunkState.chunks.length || 1)) * 100
+                      (chunkState.currentIndex /
+                        (chunkState.chunks.length || 1)) *
+                      100
                     }%`,
                   }}
                 />
@@ -1482,13 +1511,15 @@ export const CustomersDesktopPage = ({
                 <span className="font-bold text-text font-mono text-sm">
                   {Math.min(
                     chunkState.currentIndex * 250,
-                    chunkState.totalRecords
+                    chunkState.totalRecords,
                   )}{" "}
                   / {chunkState.totalRecords}
                 </span>
               </div>
               <div className="p-2.5 bg-surface-alt rounded-lg border border-border">
-                <span className="text-text-muted block">Successful / Failed</span>
+                <span className="text-text-muted block">
+                  Successful / Failed
+                </span>
                 <span className="font-bold font-mono text-sm">
                   <span className="text-emerald-600 dark:text-emerald-400">
                     {chunkState.stats.successful}
@@ -1536,11 +1567,13 @@ export const CustomersDesktopPage = ({
                   processChunk(
                     chunkState.currentIndex,
                     chunkState.chunks,
-                    chunkState.stats
+                    chunkState.stats,
                   );
                 }}
               >
-                {chunkState.currentIndex === 0 ? "Start Import" : "Resume Import"}
+                {chunkState.currentIndex === 0
+                  ? "Start Import"
+                  : "Resume Import"}
               </UIButton>
             )}
         </UIModalFooter>
@@ -1565,6 +1598,20 @@ export const CustomersDesktopPage = ({
         previewData={importPreviewData}
         onImportSuccess={handleImportSuccess}
         importType={activeImportType}
+      />
+      <B2cCustomerImportModal
+        isOpen={isB2cImportModalOpen}
+        onClose={() => setIsB2cImportModalOpen(false)}
+        onSuccess={() => {
+          handleRefresh();
+        }}
+      />
+      <B2cLegacyHistoryImportModal
+        isOpen={isLegacyHistoryImportModalOpen}
+        onClose={() => setIsLegacyHistoryImportModalOpen(false)}
+        onSuccess={() => {
+          handleRefresh();
+        }}
       />
     </div>
   );

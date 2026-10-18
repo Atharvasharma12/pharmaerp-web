@@ -7,3 +7,5 @@ export { default as CustomerAdvanceReceiptDialog } from "./CustomerAdvanceReceip
 export { default as CustomerSettlementDialog } from "./CustomerSettlementDialog";
 export { default as CustomerStatementLedgerDialog } from "./CustomerStatementLedgerDialog";
 export { default as CustomerPaymentMethodPanel } from "./CustomerPaymentMethodPanel";
+export { default as B2cCustomerImportModal } from "./B2cCustomerImportModal";
+

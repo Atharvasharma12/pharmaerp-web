@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from "react";
-import { Search, X, Loader2, User, Phone, MapPin, CreditCard, Plus, ChevronRight, Check } from "lucide-react";
+import { Search, X, Loader2, User, Phone, MapPin, CreditCard, Plus, ChevronRight, Check, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import customerService from "../services/customerService";
+import CustomerDialog from "./CustomerDialog";
 
 /**
  * B2cCustomerSearchBar
@@ -15,6 +16,7 @@ export const B2cCustomerSearchBar = forwardRef(
       value: controlledValue,
       selectedCustomer,
       onSelectCustomer,
+      onViewCustomerDetails,
       placeholder = "Search customer by name or phone...",
       size = "md", // "sm" | "md" | "lg"
       debounceMs = 250,
@@ -22,7 +24,7 @@ export const B2cCustomerSearchBar = forwardRef(
       autoFocus = false,
       showAddNewAction = true,
       onAddNewCustomer,
-    onInputChange,
+      onInputChange,
       className = "",
       inputClassName = "",
       dropdownClassName = "",
@@ -37,6 +39,37 @@ export const B2cCustomerSearchBar = forwardRef(
     const [isLoading, setIsLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
+    const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+    const [detailCustomer, setDetailCustomer] = useState(null);
+
+    const handleOpenDetails = useCallback(
+      async (cust) => {
+        if (!cust) return;
+        if (onViewCustomerDetails) {
+          onViewCustomerDetails(cust);
+          return;
+        }
+        // Immediately display dialog with currently known customer data
+        setIsOpen(false);
+        setDetailCustomer(cust);
+        setIsDetailDialogOpen(true);
+
+        // Fetch complete customer profile & relationships from API (matching CustomersPage)
+        const custId = cust?._id || cust?.id;
+        if (custId) {
+          try {
+            const res = await customerService.getCustomerById(custId);
+            const fullCust = res.data?.data || res.data;
+            if (fullCust) {
+              setDetailCustomer(fullCust);
+            }
+          } catch (err) {
+            console.warn("B2cCustomerSearchBar: Failed to fetch full customer details:", err);
+          }
+        }
+      },
+      [onViewCustomerDetails]
+    );
 
     const inputRef = useRef(null);
     const containerRef = useRef(null);
@@ -277,12 +310,29 @@ export const B2cCustomerSearchBar = forwardRef(
             className="w-full h-full bg-transparent border-0 outline-none text-text placeholder:text-text-muted/60 font-medium"
           />
 
+          {/* Customer details button (when a customer is selected) */}
+          {selectedCustomer && (
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenDetails(selectedCustomer);
+              }}
+              className="p-1 text-primary hover:text-primary/80 hover:bg-primary/10 rounded-md transition-colors cursor-pointer ml-1"
+              title="View customer details & relationships"
+              aria-label="View customer details"
+            >
+              <Eye className="size-4" />
+            </button>
+          )}
+
           {currentValue && !disabled && (
             <button
               type="button"
               tabIndex={-1}
               onClick={handleClear}
-              className="p-1 text-text-muted hover:text-text rounded-md hover:bg-surface-hover transition-colors cursor-pointer ml-1.5"
+              className="p-1 text-text-muted hover:text-text rounded-md hover:bg-surface-hover transition-colors cursor-pointer ml-0.5"
             >
               <X className="size-4" />
             </button>
@@ -381,6 +431,18 @@ export const B2cCustomerSearchBar = forwardRef(
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDetails(cust);
+                          }}
+                          className="opacity-0 group-hover/item:opacity-100 p-1.5 rounded-lg text-text-muted hover:text-primary hover:bg-surface-alt transition-all shrink-0 cursor-pointer"
+                          title="View customer details & relationships"
+                          aria-label="View customer details"
+                        >
+                          <Eye className="size-3.5" />
+                        </button>
                         {isSelected && <Check className="size-4 text-primary" />}
                       </div>
                     </div>
@@ -441,6 +503,44 @@ export const B2cCustomerSearchBar = forwardRef(
               </div>
             )}
           </div>
+        )}
+
+        {/* Customer Details Dialog */}
+        {isDetailDialogOpen && detailCustomer && (
+          <CustomerDialog
+            isOpen={isDetailDialogOpen}
+            onClose={() => {
+              setIsDetailDialogOpen(false);
+              setDetailCustomer(null);
+            }}
+            mode="view"
+            customerData={detailCustomer}
+            onSubmitUpdate={async (customerId, payload) => {
+              const res = await customerService.updateCustomer(customerId, payload);
+              const updated = res.data?.data || res.data;
+              if (updated) {
+                setDetailCustomer(updated);
+                if (onSelectCustomer) {
+                  onSelectCustomer(updated);
+                }
+                if (updated.name && !isControlled) {
+                  setSearchTerm(updated.name);
+                }
+              }
+              return updated;
+            }}
+            onSuccess={(updated) => {
+              if (updated) {
+                setDetailCustomer(updated);
+                if (onSelectCustomer) {
+                  onSelectCustomer(updated);
+                }
+                if (updated.name && !isControlled) {
+                  setSearchTerm(updated.name);
+                }
+              }
+            }}
+          />
         )}
       </div>
     );
