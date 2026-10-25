@@ -228,7 +228,22 @@ export const UISelect = forwardRef(
         setInternalValue(option.value);
       }
       if (onChange) {
-        onChange(option.value, option);
+        try {
+          onChange(option.value, option);
+        } catch (err) {
+          // If caller expected a standard React change event (e.target.value) instead of raw value:
+          if (err instanceof TypeError && (err.message.includes("target") || err.message.includes("value"))) {
+            const syntheticEvent = {
+              target: { value: option.value, name: name || selectId },
+              currentTarget: { value: option.value, name: name || selectId },
+              value: option.value,
+              option,
+            };
+            onChange(syntheticEvent, option);
+          } else {
+            throw err;
+          }
+        }
       }
       setIsOpen(false);
       setSearchQuery("");
@@ -241,7 +256,21 @@ export const UISelect = forwardRef(
         setInternalValue("");
       }
       if (onChange) {
-        onChange("", null);
+        try {
+          onChange("", null);
+        } catch (err) {
+          if (err instanceof TypeError && (err.message.includes("target") || err.message.includes("value"))) {
+            const syntheticEvent = {
+              target: { value: "", name: name || selectId },
+              currentTarget: { value: "", name: name || selectId },
+              value: "",
+              option: null,
+            };
+            onChange(syntheticEvent, null);
+          } else {
+            throw err;
+          }
+        }
       }
       setSearchQuery("");
     };

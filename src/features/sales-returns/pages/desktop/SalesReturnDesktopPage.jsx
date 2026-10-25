@@ -14,6 +14,7 @@ import {
   SlidersHorizontal,
   ArrowUpDown,
   Filter,
+  X,
 } from "lucide-react";
 import {
   UIButton,
@@ -66,11 +67,11 @@ const formatTime = (val) => {
 };
 
 const DATE_RANGE_OPTIONS = [
+  { label: "All Time", value: "all" },
   { label: "Today", value: "today" },
   { label: "Yesterday", value: "yesterday" },
   { label: "Last 7 Days", value: "last7days" },
   { label: "This Month", value: "thisMonth" },
-  { label: "All Time", value: "all" },
 ];
 
 const REFUND_TYPE_OPTIONS = [
@@ -91,11 +92,25 @@ export const SalesReturnDesktopPage = () => {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [dateRange, setDateRange] = useState("all");
   const [refundType, setRefundType] = useState("all");
   const [billingMode, setBillingMode] = useState("all");
   const [page, setPage] = useState(1);
   const limit = 25;
+
+  // Debounce search query by 300ms
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Reset page to 1 whenever any filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, dateRange, refundType, billingMode, currentBranch]);
 
   // Selected for Details Drawer
   const [selectedReturn, setSelectedReturn] = useState(null);
@@ -118,27 +133,34 @@ export const SalesReturnDesktopPage = () => {
         page,
         limit,
         branchId: currentBranch?._id || currentBranch?.id || undefined,
-        search: searchQuery.trim() || undefined,
+        search: debouncedSearch || undefined,
         returnType: refundType !== "all" ? refundType : undefined,
         billingMode: billingMode !== "all" ? billingMode : undefined,
       };
 
-      // Date range calculation
+      // Date range calculation with accurate start and end boundaries
       const now = new Date();
       if (dateRange === "today") {
-        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         params.dateFrom = start.toISOString();
+        params.dateTo = end.toISOString();
       } else if (dateRange === "yesterday") {
-        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
         const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
         params.dateFrom = start.toISOString();
         params.dateTo = end.toISOString();
       } else if (dateRange === "last7days") {
         const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         params.dateFrom = start.toISOString();
+        params.dateTo = end.toISOString();
       } else if (dateRange === "thisMonth") {
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         params.dateFrom = start.toISOString();
+        params.dateTo = end.toISOString();
       }
 
       const res = await salesReturnService.getAllSalesReturns(params);
@@ -152,7 +174,7 @@ export const SalesReturnDesktopPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentBranch, searchQuery, dateRange, refundType, billingMode, page]);
+  }, [currentBranch, debouncedSearch, dateRange, refundType, billingMode, page]);
 
   useEffect(() => {
     fetchReturns();
@@ -186,6 +208,21 @@ export const SalesReturnDesktopPage = () => {
       creditNoteAmt,
     };
   }, [returns, totalCount]);
+
+  const hasActiveFilters = Boolean(
+    searchQuery.trim() ||
+      dateRange !== "all" ||
+      refundType !== "all" ||
+      billingMode !== "all"
+  );
+
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setDateRange("all");
+    setRefundType("all");
+    setBillingMode("all");
+    setPage(1);
+  };
 
   const handleOpenDrawer = (item) => {
     setSelectedReturn(item);
@@ -280,37 +317,45 @@ export const SalesReturnDesktopPage = () => {
 
       {/* Filter Strip */}
       <div className="shrink-0 px-6 py-2.5 bg-surface border-b border-border flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 flex-1 max-w-xl">
+        <div className="flex items-center gap-2.5 flex-1 max-w-2xl">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search by Return No, Bill No, Customer name/phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-border bg-surface-alt/40 focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full pl-9 pr-8 py-1.5 text-xs rounded-lg border border-border bg-surface-alt/40 focus:outline-none focus:ring-1 focus:ring-primary"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 rounded"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <UISelect
             value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
+            onChange={(val) => setDateRange(val?.target ? val.target.value : val)}
             options={DATE_RANGE_OPTIONS}
             className="w-36 text-xs h-8"
           />
 
           <UISelect
             value={refundType}
-            onChange={(e) => setRefundType(e.target.value)}
+            onChange={(val) => setRefundType(val?.target ? val.target.value : val)}
             options={REFUND_TYPE_OPTIONS}
             className="w-40 text-xs h-8"
           />
-        </div>
 
-        <div className="flex items-center gap-2">
           <UISelect
             value={billingMode}
-            onChange={(e) => setBillingMode(e.target.value)}
+            onChange={(val) => setBillingMode(val?.target ? val.target.value : val)}
             options={[
               { label: "All Modes", value: "all" },
               { label: "B2C Retail", value: "B2C" },
@@ -318,6 +363,18 @@ export const SalesReturnDesktopPage = () => {
             ]}
             className="w-32 text-xs h-8"
           />
+
+          {hasActiveFilters && (
+            <UIButton
+              variant="ghost"
+              size="sm"
+              icon={RotateCcw}
+              onClick={handleResetFilters}
+              className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 whitespace-nowrap"
+            >
+              Reset
+            </UIButton>
+          )}
         </div>
       </div>
 
@@ -369,7 +426,14 @@ export const SalesReturnDesktopPage = () => {
               ) : (
                 returns.map((item) => {
                   const returnNo = item.returnNo || item.invoiceNo || "RET-MEMO";
-                  const origBill = item.originalInvoiceNo || item.originalInvoiceId?.invoiceNo || "—";
+                  let origBill = item.originalInvoiceNo || item.originalInvoiceId?.invoiceNo;
+                  if (!origBill || origBill === returnNo || origBill.startsWith("RET-")) {
+                    const itOrig = Array.isArray(item.items)
+                      ? item.items.find((it) => it.originalInvoiceNo && !it.originalInvoiceNo.startsWith("RET-"))
+                      : null;
+                    if (itOrig) origBill = itOrig.originalInvoiceNo;
+                  }
+                  origBill = origBill || "—";
                   const cName =
                     item.customerId?.name ||
                     item.customerName ||
@@ -450,20 +514,28 @@ export const SalesReturnDesktopPage = () => {
 
                       {/* Actions */}
                       <UITableCell className="py-2.5 px-3 text-center">
-                        <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-center gap-1">
                           <UIButton
                             variant="ghost"
-                            size="icon-sm"
+                            size="sm"
+                            className="h-7 w-7 p-0 hover:bg-surface-alt/70"
                             title="Inspect Details"
-                            onClick={() => handleOpenDrawer(item)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDrawer(item);
+                            }}
                           >
                             <Eye className="w-3.5 h-3.5 text-text-muted hover:text-text-primary" />
                           </UIButton>
                           <UIButton
                             variant="ghost"
-                            size="icon-sm"
+                            size="sm"
+                            className="h-7 w-7 p-0 hover:bg-surface-alt/70"
                             title="Print Return Memo"
-                            onClick={(e) => handleOpenPrint(item, e)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenPrint(item, e);
+                            }}
                           >
                             <Printer className="w-3.5 h-3.5 text-text-muted hover:text-text-primary" />
                           </UIButton>
@@ -475,6 +547,35 @@ export const SalesReturnDesktopPage = () => {
               )}
             </UITableBody>
           </UITable>
+        </div>
+      </div>
+
+      {/* Pagination Bar */}
+      <div className="shrink-0 px-6 py-2.5 bg-surface border-t border-border flex items-center justify-between text-xs text-text-muted">
+        <div>
+          Showing {returns.length > 0 ? (page - 1) * limit + 1 : 0} to{" "}
+          {Math.min(page * limit, totalCount)} of {totalCount} records
+        </div>
+        <div className="flex items-center gap-2">
+          <UIButton
+            variant="outline"
+            size="sm"
+            disabled={page <= 1 || isLoading}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Previous
+          </UIButton>
+          <span className="font-mono text-xs text-text-primary px-2">
+            Page {page} of {Math.max(1, Math.ceil(totalCount / limit))}
+          </span>
+          <UIButton
+            variant="outline"
+            size="sm"
+            disabled={page * limit >= totalCount || isLoading}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </UIButton>
         </div>
       </div>
 

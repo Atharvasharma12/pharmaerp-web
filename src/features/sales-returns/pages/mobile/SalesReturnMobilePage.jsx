@@ -9,6 +9,7 @@ import {
   Wallet,
   Receipt,
   Banknote,
+  X,
 } from "lucide-react";
 import { UIButton, UIBadge } from "@/components/ui";
 import useBranch from "@/features/branch/hooks/useBranch";
@@ -43,19 +44,30 @@ export const SalesReturnMobilePage = () => {
   const [returns, setReturns] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [refundType, setRefundType] = useState("all");
   const [selectedReturn, setSelectedReturn] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [printReturn, setPrintReturn] = useState(null);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
 
+  // Debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const fetchReturns = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await salesReturnService.getAllSalesReturns({
         branchId: currentBranch?._id || currentBranch?.id || undefined,
-        search: searchQuery.trim() || undefined,
-        limit: 30,
+        search: debouncedSearch || undefined,
+        returnType: refundType !== "all" ? refundType : undefined,
+        limit: 50,
       });
       const data = res?.data?.data || res?.data;
       setReturns(data?.returns || []);
@@ -64,7 +76,7 @@ export const SalesReturnMobilePage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentBranch, searchQuery]);
+  }, [currentBranch, debouncedSearch, refundType]);
 
   useEffect(() => {
     fetchReturns();
@@ -94,17 +106,49 @@ export const SalesReturnMobilePage = () => {
         </UIButton>
       </div>
 
-      {/* Search */}
-      <div className="p-3 bg-surface border-b border-border">
+      {/* Search & Filter Pills */}
+      <div className="p-3 bg-surface border-b border-border space-y-2">
         <div className="relative">
-          <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search return or bill no..."
+            placeholder="Search return or bill no, customer..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-border bg-surface-alt/50 focus:outline-none"
+            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-border bg-surface-alt/50 focus:outline-none"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 rounded"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          {[
+            { label: "All", value: "all" },
+            { label: "Cash", value: "cash_refund" },
+            { label: "Advance", value: "advance_credit" },
+            { label: "Credit Note", value: "credit_note" },
+          ].map((pill) => (
+            <button
+              key={pill.value}
+              type="button"
+              onClick={() => setRefundType(pill.value)}
+              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg shrink-0 transition-colors ${
+                refundType === pill.value
+                  ? "bg-rose-500 text-white shadow-xs"
+                  : "bg-surface-alt/60 text-text-muted hover:text-text-primary"
+              }`}
+            >
+              {pill.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -117,7 +161,14 @@ export const SalesReturnMobilePage = () => {
         ) : (
           returns.map((item) => {
             const returnNo = item.returnNo || item.invoiceNo || "RET-MEMO";
-            const origBill = item.originalInvoiceNo || item.originalInvoiceId?.invoiceNo || "—";
+            let origBill = item.originalInvoiceNo || item.originalInvoiceId?.invoiceNo;
+            if (!origBill || origBill === returnNo || origBill.startsWith("RET-")) {
+              const itOrig = Array.isArray(item.items)
+                ? item.items.find((it) => it.originalInvoiceNo && !it.originalInvoiceNo.startsWith("RET-"))
+                : null;
+              if (itOrig) origBill = itOrig.originalInvoiceNo;
+            }
+            origBill = origBill || "—";
             const cName =
               item.customerId?.name || item.customerName || item.customer?.name || "Walk-in";
             const gTotal = Math.abs(Number(item.grandTotal || item.returnAmount || 0));

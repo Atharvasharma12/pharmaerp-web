@@ -14,6 +14,7 @@ import {
   Receipt,
   User,
   RotateCcw,
+  X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -814,6 +815,31 @@ export const SalesCheckoutModal = ({
             </div>
           </div>
 
+          {/* Prominent Full Error Message Banner */}
+          {errorMessage && (
+            <div className="mx-5 mt-3 p-3 rounded-xl bg-error/10 border-2 border-error/40 text-error flex items-start justify-between gap-3 animate-in fade-in slide-in-from-top-1 shadow-sm shrink-0">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <AlertCircle className="size-4.5 text-error shrink-0 mt-0.5" />
+                <div className="space-y-0.5 min-w-0">
+                  <span className="text-[10px] font-black uppercase tracking-wider block text-error">
+                    Action Required / Error
+                  </span>
+                  <p className="text-xs font-semibold leading-relaxed break-words text-error selection:bg-error/20">
+                    {errorMessage}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                className="p-1 rounded-md hover:bg-error/20 text-error transition-colors shrink-0 cursor-pointer"
+                title="Dismiss error"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          )}
+
           {/* Quick Payment Mode Tabs */}
           <div className="px-5 pt-2.5 pb-2 border-b border-border bg-surface-alt/20 shrink-0">
             <div className="text-[9.5px] font-bold uppercase tracking-wider text-text-muted mb-1.5 flex items-center justify-between">
@@ -1129,7 +1155,9 @@ export const SalesCheckoutModal = ({
                                   })}
                                 </div>
                               </div>
+                              
                             </div>
+                            
                           );
                         })()}
                       </>
@@ -1225,11 +1253,18 @@ export const SalesCheckoutModal = ({
 
           {/* Footer: Compact, Shorter Confirm Button (Fit) */}
           <div className="px-4 py-2.5 border-t border-border bg-surface shrink-0 flex items-center justify-between gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               {errorMessage ? (
-                <span className="text-[11px] font-semibold text-error truncate block">
-                  {errorMessage}
-                </span>
+                <div
+                  className="flex items-center gap-1.5 text-error cursor-pointer hover:underline"
+                  title={errorMessage}
+                  onClick={() => {}}
+                >
+                  <AlertCircle className="size-3.5 shrink-0 text-error" />
+                  <span className="text-[11px] font-bold truncate block">
+                    {errorMessage}
+                  </span>
+                </div>
               ) : hasUncapturedCash ? (
                 <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 truncate block">
                   ⚠️ Select cash denominations to continue

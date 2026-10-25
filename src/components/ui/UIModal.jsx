@@ -19,13 +19,18 @@ let openModalCount = 0;
 export const UIModal = forwardRef(
   (
     {
-      isOpen = false,
+      isOpen: controlledIsOpen,
+      open,
       onClose,
       size = "md",
       closeOnBackdrop = true,
       closeOnEsc = true,
       showCloseButton = true,
       mobileSheet = false,
+      title,
+      description,
+      badge,
+      footer,
       children,
       className,
       overlayClassName,
@@ -33,6 +38,12 @@ export const UIModal = forwardRef(
     },
     ref
   ) => {
+    const isOpen =
+      controlledIsOpen !== undefined
+        ? Boolean(controlledIsOpen)
+        : open !== undefined
+        ? Boolean(open)
+        : false;
     // Body scroll lock
     useEffect(() => {
       if (isOpen) {
@@ -127,7 +138,42 @@ export const UIModal = forwardRef(
                 </button>
               )}
 
-              {children}
+              {/* Optional Direct Header from title prop */}
+              {(title || description || badge) && (
+                <div className="p-5 sm:p-6 border-b border-border flex items-start justify-between gap-4 shrink-0">
+                  <div className="flex-1 min-w-0 pr-8">
+                    <div className="flex items-center gap-2">
+                      {title && (
+                        <div className="text-base sm:text-lg font-bold text-text">
+                          {title}
+                        </div>
+                      )}
+                      {badge && <div className="shrink-0">{badge}</div>}
+                    </div>
+                    {description && (
+                      <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                        {description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Scrollable Body Content */}
+              {title || footer ? (
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+                  {children}
+                </div>
+              ) : (
+                children
+              )}
+
+              {/* Optional Direct Footer from footer prop */}
+              {footer && (
+                <div className="p-4 sm:p-5 border-t border-border bg-surface-alt/40 shrink-0 flex items-center justify-end gap-2.5">
+                  {footer}
+                </div>
+              )}
             </motion.div>
           </div>
         )}

@@ -96,14 +96,6 @@ export const SalesInvoicePreviewModal = ({
   const isPureReturn = isReturnInvoice || ((cart || []).length > 0 && (cart || []).every((i) => i.isReturnItem));
   const isMixed = hasReturnItems && !isPureReturn;
 
-  const originalInvoices = useMemo(() => {
-    const set = new Set();
-    (cart || []).forEach((item) => {
-      if (item.originalInvoiceNo) set.add(item.originalInvoiceNo);
-    });
-    return Array.from(set);
-  }, [cart]);
-
   // Normalize and calculate row details once
   const calculatedItems = useMemo(() => {
     return (cart || []).map((item, idx) => {
@@ -153,9 +145,11 @@ export const SalesInvoicePreviewModal = ({
         gstRate,
         gstAmt,
         finalAmt,
+        returnedQty: Number(item.returnedQty || 0),
+        isReturned: Boolean(item.isReturned || (Number(item.returnedQty || 0) >= qty)),
         isReturnItem: isRet,
-        originalInvoiceNo: item.originalInvoiceNo,
-        originalSoldQty: item.originalSoldQty,
+        originalInvoiceNo: item.originalInvoiceNo || item.originalInvoice || item.returnRefInvoiceNo || null,
+        originalSoldQty: item.originalSoldQty || item.soldQty || null,
       };
     });
   }, [cart, billingMode, isReturnInvoice]);
@@ -179,7 +173,7 @@ export const SalesInvoicePreviewModal = ({
 
   const payableTotal = useMemo(() => {
     if (cartGrandTotal > 0) return Number(cartGrandTotal);
-    return calculatedItems.reduce((acc, it) => acc + it.finalAmt, 0);
+    return Math.round(calculatedItems.reduce((acc, it) => acc + it.finalAmt, 0));
   }, [cartGrandTotal, calculatedItems]);
 
   const totalUnits = useMemo(() => {
@@ -276,11 +270,6 @@ export const SalesInvoicePreviewModal = ({
                     </>
                   )}
                 </span>
-                {originalInvoices.length > 0 && (
-                  <span className="text-[9.5px] font-mono font-bold tracking-wider px-2 py-0.5 rounded bg-surface border border-border text-text-muted">
-                    Against: #{originalInvoices.join(", #")}
-                  </span>
-                )}
               </div>
             </div>
 
@@ -369,12 +358,24 @@ export const SalesInvoicePreviewModal = ({
                             <span className="font-bold text-text block leading-snug truncate max-w-[240px] text-xs sm:text-[12px]">
                               {item.name}
                             </span>
-                            {item.isReturnItem && (
+                            {item.isReturnItem ? (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-error-soft/60 text-error border border-error/30 shrink-0">
                                 <RotateCcw className="size-2.5" />
                                 Return {item.originalInvoiceNo ? `· #${item.originalInvoiceNo}` : ""}
                               </span>
-                            )}
+                            ) : item.returnedQty > 0 ? (
+                              item.returnedQty >= item.qty ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-error-soft/60 text-error border border-error/30 shrink-0">
+                                  <RotateCcw className="size-2.5" />
+                                  Returned ({item.returnedQty}/{item.qty})
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20 shrink-0">
+                                  <RotateCcw className="size-2.5" />
+                                  Partially Returned ({item.returnedQty}/{item.qty})
+                                </span>
+                              )
+                            ) : null}
                           </div>
                           <span className="text-[10px] text-text-muted block truncate mt-0.5">
                             {[item.brand || item.category, item.pack ? `Pk:${item.pack}` : null, item.rack ? `Rk:${item.rack}` : null]
@@ -412,6 +413,11 @@ export const SalesInvoicePreviewModal = ({
                           >
                             {item.qty} {item.isReturnItem ? "(Ret)" : ""}
                           </span>
+                          {!item.isReturnItem && item.returnedQty > 0 && (
+                            <span className="block text-[9.5px] font-normal text-rose-600 dark:text-rose-400 mt-0.5">
+                              Ret: {item.returnedQty}
+                            </span>
+                          )}
                         </td>
 
                         {/* MRP */}

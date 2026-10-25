@@ -21,7 +21,8 @@ let openDrawerCount = 0;
 export const UIDrawer = forwardRef(
   (
     {
-      isOpen = false,
+      isOpen: controlledIsOpen,
+      open,
       onClose,
       position = "right", // "right" | "left" | "bottom" | "top"
       size = "md", // "sm" | "md" | "lg" | "xl" | "full"
@@ -37,6 +38,12 @@ export const UIDrawer = forwardRef(
     },
     ref
   ) => {
+    const isOpen =
+      controlledIsOpen !== undefined
+        ? Boolean(controlledIsOpen)
+        : open !== undefined
+        ? Boolean(open)
+        : false;
     // Keyboard Esc listener
     useEffect(() => {
       const handleKeyDown = (e) => {

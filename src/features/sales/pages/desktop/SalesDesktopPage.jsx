@@ -1268,6 +1268,9 @@ export const SalesDesktopPage = () => {
     if (targetCustomerId) {
       const activeBranchId = saleData.branchId || branchId || saleData.items?.[0]?.branchId || saleData.items?.[0]?.facilityId || null;
       const targetInvoiceNo = editInvoiceData?.invoiceNo || initialInvoice?.invoiceNo || saleData.invoiceNo;
+      const firstOrigItem = (saleData.items || cart || []).find((it) => it.originalInvoiceNo && !it.originalInvoiceNo.startsWith("RET-"));
+      const resolvedOrigInvoiceNo = saleData.originalInvoiceNo || firstOrigItem?.originalInvoiceNo || (targetInvoiceNo?.startsWith("RET-") ? null : targetInvoiceNo);
+      const resolvedOrigInvoiceId = saleData.originalInvoiceId || firstOrigItem?.originalInvoiceId || null;
 
       const payload = {
         customerId: targetCustomerId,
@@ -1290,7 +1293,8 @@ export const SalesDesktopPage = () => {
         shiftId: activeShift?._id || saleData.shiftId || null,
         isReturn: Boolean(isReturnInvoice || saleData.isReturn),
         returnType: saleData.returnType || (isReturnInvoice ? (saleData.payments?.[0]?.paymentType === "Advance" ? "advance_credit" : (saleData.payments?.[0]?.paymentType === "Credit" ? "credit_note" : "cash_refund")) : undefined),
-        originalInvoiceNo: saleData.originalInvoiceNo || targetInvoiceNo,
+        originalInvoiceNo: resolvedOrigInvoiceNo,
+        originalInvoiceId: resolvedOrigInvoiceId,
       };
 
       if (isEditMode && targetInvoiceId) {
@@ -1301,7 +1305,8 @@ export const SalesDesktopPage = () => {
           ...payload,
           isReturn: true,
           returnType: saleData.returnType || (saleData.payments?.[0]?.paymentType === "Advance" ? "advance_credit" : (saleData.payments?.[0]?.paymentType === "Credit" ? "credit_note" : "cash_refund")),
-          originalInvoiceNo: saleData.originalInvoiceNo || targetInvoiceNo,
+          originalInvoiceNo: resolvedOrigInvoiceNo,
+          originalInvoiceId: resolvedOrigInvoiceId,
         };
         const res = await invoiceService.recordCustomerReturn(targetCustomerId, returnPayload);
         savedSaleResult = res?.data?.data || res?.data || null;

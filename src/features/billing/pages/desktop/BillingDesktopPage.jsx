@@ -451,6 +451,15 @@ export const BillingDesktopPage = () => {
       payments: Array.isArray(s.payments) ? s.payments : [],
       denominations: s.denominations || [],
       returnedDenominations: s.returnedDenominations || [],
+      returnInvoices: Array.isArray(s.returnInvoices) ? s.returnInvoices : [],
+      returnInvoiceIds: s.returnInvoiceIds || [],
+      returnStatus: s.returnStatus || "NONE",
+      totalReturnedAmount: Number(s.totalReturnedAmount || 0),
+      isReturned: Boolean(s.isReturned),
+      isFullyReturned: Boolean(s.isFullyReturned),
+      isReturn: Boolean(s.isReturn),
+      originalInvoiceNo: s.originalInvoiceNo || null,
+      originalInvoiceId: s.originalInvoiceId || null,
     };
   };
 

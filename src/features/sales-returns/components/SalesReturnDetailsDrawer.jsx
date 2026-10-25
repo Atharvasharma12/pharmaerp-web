@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+// src/features/sales-returns/components/SalesReturnDetailsDrawer.jsx
+
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Printer,
   Calendar,
@@ -6,16 +8,23 @@ import {
   RotateCcw,
   Banknote,
   Receipt,
-  Boxes,
   FileText,
-  Clock,
   Building2,
-  Tag,
+  ShieldCheck,
+  CheckCircle2,
+  CreditCard,
+  X,
 } from "lucide-react";
-import { UIModal, UIButton, UIBadge } from "@/components/ui";
+import {
+  UIModal,
+  UIButton,
+  UIBadge,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
 import { OrderInvoiceModal } from "@/features/sales/components";
 import useBranch from "@/features/branch/hooks/useBranch";
 import useWorkspace from "@/features/workspace/hooks/useWorkspace";
+import salesReturnService from "../services/salesReturnService";
 
 const DENOM_CONFIG = {
   500: { label: "₹500", color: "text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/20" },
@@ -37,53 +46,224 @@ const formatCurrency = (val) => {
   })}`;
 };
 
-export const SalesReturnDetailsDrawer = ({ open, onClose, returnItem }) => {
+export const SalesReturnDetailsDrawer = ({ open, isOpen: propIsOpen, onClose, returnItem }) => {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const { currentBranch } = useBranch();
   const { currentCompany } = useWorkspace();
 
-  if (!returnItem) return null;
+  const isVisible = Boolean(open ?? propIsOpen);
 
-  const returnNo = returnItem.returnNo || returnItem.invoiceNo || "RET-MEMO";
-  const originalInvoiceNo = returnItem.originalInvoiceNo || returnItem.originalInvoiceId?.invoiceNo || "—";
-  const returnDate = returnItem.date
-    ? new Date(returnItem.date).toLocaleDateString("en-IN", {
+  // Preserve item data during close animation
+  const [activeItem, setActiveItem] = useState(returnItem);
+
+  useEffect(() => {
+    if (returnItem) {
+      setActiveItem(returnItem);
+      const returnId = returnItem._id || returnItem.id;
+      if (returnId && (!returnItem.items || returnItem.items.length === 0)) {
+        salesReturnService
+          .getSalesReturnById(returnId)
+          .then((res) => {
+            const data = res?.data?.data || res?.data;
+            if (data) setActiveItem(data);
+          })
+          .catch(() => {});
+      }
+    }
+  }, [returnItem]);
+
+  // Keyboard shortcut listener: Enter to Print, Esc to Close
+  useEffect(() => {
+    if (!isVisible) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose?.();
+      } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey || !e.shiftKey)) {
+        e.preventDefault();
+        setIsPrintModalOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isVisible, onClose]);
+
+  const itemToDisplay = returnItem || activeItem;
+  const returnNo = itemToDisplay?.returnNo || itemToDisplay?.invoiceNo || "RET-MEMO";
+  let originalInvoiceNo = itemToDisplay?.originalInvoiceNo || itemToDisplay?.originalInvoiceId?.invoiceNo;
+  if (!originalInvoiceNo || originalInvoiceNo === returnNo || originalInvoiceNo.startsWith("RET-")) {
+    const itOrig = Array.isArray(itemToDisplay?.items)
+      ? itemToDisplay.items.find((it) => it.originalInvoiceNo && !it.originalInvoiceNo.startsWith("RET-"))
+      : null;
+    if (itOrig) originalInvoiceNo = itOrig.originalInvoiceNo;
+  }
+  originalInvoiceNo = originalInvoiceNo || "—";
+
+  const returnDate = itemToDisplay?.date
+    ? new Date(itemToDisplay.date).toLocaleDateString("en-IN", {
         day: "2-digit",
         month: "short",
         year: "numeric",
       })
     : "—";
-  const returnTime = returnItem.date
-    ? new Date(returnItem.date).toLocaleTimeString("en-IN", {
+  const returnTime = itemToDisplay?.date
+    ? new Date(itemToDisplay.date).toLocaleTimeString("en-IN", {
         hour: "2-digit",
         minute: "2-digit",
+        hour12: true,
       })
     : "";
 
   const customerName =
-    returnItem.customerId?.name ||
-    returnItem.customerName ||
-    returnItem.customer?.name ||
+    itemToDisplay?.customerId?.name ||
+    itemToDisplay?.customerName ||
+    itemToDisplay?.customer?.name ||
     "Walk-in Customer";
   const customerMobile =
-    returnItem.customerId?.mobile ||
-    returnItem.customerPhone ||
-    returnItem.customer?.phone ||
+    itemToDisplay?.customerId?.mobile ||
+    itemToDisplay?.customerId?.phone ||
+    itemToDisplay?.customerPhone ||
+    itemToDisplay?.customer?.phone ||
     "";
+  const customerGstin = itemToDisplay?.customerId?.gstin || itemToDisplay?.customerGstin || "";
 
-  const grandTotal = Math.abs(Number(returnItem.grandTotal || returnItem.returnAmount || 0));
-  const subtotal = Math.abs(Number(returnItem.subtotal || 0));
-  const tax = Math.abs(Number(returnItem.tax || 0));
-  const discount = Math.abs(Number(returnItem.discount || 0));
+  const branchName =
+    itemToDisplay?.branchName ||
+    itemToDisplay?.branchId?.name ||
+    currentBranch?.name ||
+    "Main Branch";
 
-  const items = Array.isArray(returnItem.items) ? returnItem.items : [];
-  const returnType = String(returnItem.returnType || "").toLowerCase();
+  const cashierName =
+    itemToDisplay?.createdByName ||
+    (itemToDisplay?.createdByEmail ? itemToDisplay.createdByEmail.split("@")[0] : null) ||
+    itemToDisplay?.createdBy?.name ||
+    "Cashier";
+
+  const isB2B = itemToDisplay?.billingMode === "B2B";
+  const rawItems = Array.isArray(itemToDisplay?.items) ? itemToDisplay.items : [];
+
+  // Calculate row details
+  const calculatedItems = useMemo(() => {
+    return rawItems.map((item, idx) => {
+      const qty = Math.max(1, Number(item.qty || item.quantity || 1));
+      const mrp = Number(item.mrp || item.price || item.rate || 0);
+      const rate = Number(item.rate || item.price || item.unitPrice || mrp);
+      const grossTotal = mrp * qty;
+
+      let itemDisc = Number(item.disc || item.discount || item.itemDiscount || 0);
+      let discAmount = 0;
+      if (itemDisc > 0 && itemDisc <= 100 && !item.discAmount) {
+        discAmount = (grossTotal * itemDisc) / 100;
+      } else if (item.discAmount) {
+        discAmount = Number(item.discAmount);
+      } else if (mrp > rate) {
+        discAmount = (mrp - rate) * qty;
+      }
+
+      const taxable = Math.max(0, grossTotal - discAmount);
+      const gstRate = Number(item.gst || item.gstRate || item.hsnTaxpercent || 0);
+      const gstAmt = (taxable * gstRate) / 100;
+      const finalAmt = Number(item.total || item.amount || (itemToDisplay?.billingMode === "B2B" ? taxable + gstAmt : grossTotal - discAmount));
+
+      const batchNo =
+        item.batch ||
+        item.batchNo ||
+        (typeof item.batch === "object" ? item.batch?.batchNumber : null) ||
+        "—";
+      const expDate = item.expiry || item.expDate || item.expiryDate || "—";
+      const pack = item.pack || item.packSize || item.workspaceProduct?.pack || "";
+      const rack = item.rack || item.workspaceProduct?.rack || "";
+      const originalInv = item.originalInvoiceNo && !item.originalInvoiceNo.startsWith("RET-") ? item.originalInvoiceNo : "";
+      const maxQty = item.originalSoldQty || item.maxReturnQty || null;
+
+      return {
+        sr: idx + 1,
+        id: item.id || `item-${idx}`,
+        name: item.name || item.productName || item.displayName || "Pharma Product",
+        brand: item.brand || item.manufacturer || item.workspaceProduct?.brand || "",
+        category: item.category || item.workspaceProduct?.category || "",
+        batch: batchNo,
+        expiry: expDate,
+        pack,
+        rack,
+        hsn: item.hsn || item.hsnCode || "3004",
+        mrp,
+        rate,
+        discPct: itemDisc,
+        discAmount,
+        qty,
+        taxable,
+        gstRate,
+        gstAmt,
+        finalAmt,
+        isReturnItem: true,
+        originalInvoiceNo: originalInv,
+        originalSoldQty: maxQty,
+      };
+    });
+  }, [rawItems, itemToDisplay?.billingMode]);
+
+  // Overall financial totals
+  const totalMrp = useMemo(() => {
+    return calculatedItems.reduce((acc, it) => acc + (it.mrp * it.qty), 0);
+  }, [calculatedItems]);
+
+  const discount = Math.abs(Number(itemToDisplay?.discount || 0));
+  const totalDiscount = useMemo(() => {
+    if (discount > 0) return discount;
+    return calculatedItems.reduce((acc, it) => acc + it.discAmount, 0);
+  }, [calculatedItems, discount]);
+
+  const subtotal = Math.abs(Number(itemToDisplay?.subtotal || 0));
+  const totalTaxable = useMemo(() => {
+    if (subtotal > 0) return subtotal;
+    return calculatedItems.reduce((acc, it) => acc + it.taxable, 0);
+  }, [calculatedItems, subtotal]);
+
+  const tax = Math.abs(Number(itemToDisplay?.tax || 0));
+  const totalGst = useMemo(() => {
+    if (tax > 0) return tax;
+    return calculatedItems.reduce((acc, it) => acc + it.gstAmt, 0);
+  }, [calculatedItems, tax]);
+
+  const grandTotal = Math.abs(Number(itemToDisplay?.grandTotal || itemToDisplay?.returnAmount || 0));
+  const payableTotal = useMemo(() => {
+    if (grandTotal > 0) return grandTotal;
+    return calculatedItems.reduce((acc, it) => acc + it.finalAmt, 0);
+  }, [grandTotal, calculatedItems]);
+
+  const totalUnits = useMemo(() => {
+    return calculatedItems.reduce((acc, it) => acc + it.qty, 0);
+  }, [calculatedItems]);
+
+  // Dynamic GST slabs breakdown
+  const gstSlabs = useMemo(() => {
+    const map = {};
+    calculatedItems.forEach((it) => {
+      const r = it.gstRate;
+      if (!map[r]) {
+        map[r] = { rate: r, taxable: 0, totalTax: 0 };
+      }
+      map[r].taxable += it.taxable;
+      map[r].totalTax += it.gstAmt;
+    });
+
+    return Object.values(map).map((entry) => ({
+      rate: entry.rate,
+      taxable: entry.taxable,
+      cgst: entry.totalTax / 2,
+      sgst: entry.totalTax / 2,
+      totalTax: entry.totalTax,
+    }));
+  }, [calculatedItems]);
+
+  const returnType = String(itemToDisplay?.returnType || itemToDisplay?.refundMethod || "").toLowerCase();
   const isAdvance = returnType.includes("advance");
   const isCredit = returnType.includes("credit");
 
-  const rawDenoms = Array.isArray(returnItem.refundDenominations) && returnItem.refundDenominations.length > 0
-    ? returnItem.refundDenominations
-    : (Array.isArray(returnItem.denominations) ? returnItem.denominations : []);
+  const rawDenoms = Array.isArray(itemToDisplay?.refundDenominations) && itemToDisplay.refundDenominations.length > 0
+    ? itemToDisplay.refundDenominations
+    : (Array.isArray(itemToDisplay?.denominations) ? itemToDisplay.denominations : []);
 
   const denoms = rawDenoms
     .map((d) => ({
@@ -93,213 +273,405 @@ export const SalesReturnDetailsDrawer = ({ open, onClose, returnItem }) => {
     }))
     .filter((d) => d.note > 0 && d.count > 0);
 
+  // Early return strictly after all hooks have been declared
+  if (!isVisible || !itemToDisplay) return null;
+
   return (
     <>
       <UIModal
-        open={open}
+        isOpen={isVisible}
         onClose={onClose}
-        title={
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">
-              <RotateCcw className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-base text-text-primary">{returnNo}</span>
-                <UIBadge variant="destructive" size="sm">
-                  Sales Return
-                </UIBadge>
-                <UIBadge variant="outline" size="sm">
-                  {returnItem.billingMode || "B2C"}
-                </UIBadge>
-              </div>
-              <div className="text-[11px] text-text-muted">
-                {returnDate} {returnTime ? `at ${returnTime}` : ""}
-              </div>
-            </div>
-          </div>
-        }
-        size="lg"
-        footer={
-          <div className="flex items-center justify-between w-full">
-            <UIButton variant="outline" size="sm" onClick={onClose}>
-              Close
-            </UIButton>
-            <UIButton
-              variant="default"
-              size="sm"
-              icon={Printer}
-              onClick={() => setIsPrintModalOpen(true)}
-            >
-              Print Return Memo
-            </UIButton>
-          </div>
-        }
+        closeOnBackdrop={true}
+        closeOnEsc={true}
+        showCloseButton={true}
+        size="xl"
       >
-        <div className="space-y-5 py-2">
-          {/* Header Metadata Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-xl border border-border bg-surface-alt/40">
-            <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Refund Amount</span>
-              <div className="text-lg font-mono font-extrabold text-rose-600 dark:text-rose-400">
-                {formatCurrency(grandTotal)}
+        <div className="p-6 font-sans space-y-5 max-h-[88vh] overflow-y-auto">
+          {/* Header (Matching BillingInvoiceDetailsDrawer.jsx) */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-error/10 text-error flex items-center justify-center font-bold shrink-0">
+                <RotateCcw className="size-5.5 stroke-[2]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold font-mono tracking-tight text-text">
+                    {returnNo}
+                  </h2>
+                  <UIBadge
+                    variant="soft"
+                    color={isB2B ? "info" : "error"}
+                    className="text-[10px] font-bold uppercase tracking-wider"
+                  >
+                    {isB2B ? "B2B Sales Return" : "B2C Sales Return"}
+                  </UIBadge>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted mt-0.5">
+                  <span className="flex items-center gap-1 font-medium">
+                    <Calendar className="size-3 text-text-muted" /> {returnDate}
+                  </span>
+                  {returnTime && (
+                    <span className="font-mono text-[11px] text-text-muted">
+                      • {returnTime}
+                    </span>
+                  )}
+                  {originalInvoiceNo && originalInvoiceNo !== "—" && (
+                    <span className="text-primary font-semibold text-[10.5px]">
+                      • Against Bill: #{originalInvoiceNo}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-            <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Refund Mode</span>
-              <div className="text-sm font-semibold text-text-primary capitalize">
-                {isAdvance ? "Advance Balance" : isCredit ? "Credit Note" : "Cash Refund"}
-              </div>
-            </div>
-            <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Original Bill No</span>
-              <div className="text-sm font-mono font-bold text-primary truncate">
-                {originalInvoiceNo}
-              </div>
-            </div>
-            <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Customer</span>
-              <div className="text-sm font-semibold text-text-primary truncate">
-                {customerName}
-              </div>
-              {customerMobile && (
-                <div className="text-[10.5px] text-text-muted font-mono">{customerMobile}</div>
-              )}
+
+            <div className="flex items-center gap-2">
+              <UIBadge
+                variant="soft"
+                color={isAdvance ? "warning" : isCredit ? "info" : "success"}
+                className="text-xs font-semibold px-2.5 py-1 flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="size-3.5" />
+                {isAdvance ? "Advance Credited" : isCredit ? "Credit Note" : "Refund Disbursed"}
+              </UIBadge>
             </div>
           </div>
 
-          {/* Returned Items Table */}
-          <div className="border border-border rounded-xl overflow-hidden bg-surface">
-            <div className="px-3.5 py-2.5 bg-surface-alt/60 border-b border-border flex items-center justify-between">
-              <span className="text-xs font-bold text-text-primary flex items-center gap-1.5">
-                <Boxes className="w-3.5 h-3.5 text-text-muted" />
-                Returned Products ({items.length})
+          {/* Clean Business Metadata Grid (Matching BillingInvoiceDetailsDrawer.jsx) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-xl bg-surface-alt/40 border border-border/70 text-xs">
+            <div>
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
+                <User className="size-3 text-primary" /> Customer
               </span>
-              <span className="text-[11px] text-text-muted font-medium">Restocked to Inventory</span>
+              <p className="font-bold text-text text-sm mt-0.5 truncate">{customerName}</p>
+              <p className="text-text-muted font-mono text-[11px]">{customerMobile || "No contact"}</p>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div>
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
+                <Building2 className="size-3 text-purple-600 dark:text-purple-400" /> Branch
+              </span>
+              <p className="font-bold text-text mt-0.5 truncate">{branchName}</p>
+              <span className="text-[10.5px] text-text-muted">Retail Facility</span>
+            </div>
+
+            <div>
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
+                <ShieldCheck className="size-3 text-emerald-600 dark:text-emerald-400" /> Processed By
+              </span>
+              <p className="font-bold text-text mt-0.5 truncate">
+                {cashierName}
+              </p>
+              <span className="text-[10.5px] text-text-muted truncate block">POS Terminal</span>
+            </div>
+
+            <div>
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
+                <FileText className="size-3 text-amber-600 dark:text-amber-400" /> Original Bill
+              </span>
+              <p className="font-bold text-text mt-0.5 font-mono truncate">
+                {originalInvoiceNo && originalInvoiceNo !== "—" ? `#${originalInvoiceNo}` : "Direct Return"}
+              </p>
+              <span className="text-[10.5px] text-text-muted truncate block">Reference Memo</span>
+            </div>
+          </div>
+
+          {/* Dedicated Payment & Denominations Breakdown Section (Matching L489-L570 of BillingInvoiceDetailsDrawer.jsx) */}
+          <div className="rounded-xl border border-border bg-surface-alt/30 p-4 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-border/60">
+              <div className="flex items-center gap-2">
+                <span className="p-1 rounded-lg bg-surface border border-border">
+                  {isAdvance ? (
+                    <CreditCard className="size-4 text-amber-600 dark:text-amber-400" />
+                  ) : isCredit ? (
+                    <FileText className="size-4 text-sky-600 dark:text-sky-400" />
+                  ) : (
+                    <Banknote className="size-4 text-emerald-600 dark:text-emerald-400" />
+                  )}
+                </span>
+                <div>
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-text">
+                    Refund & Settlement Details
+                  </h3>
+                  <span className="text-[11px] text-text-muted font-medium">
+                    Method: <strong className="text-text">{isAdvance ? "Customer Advance Credit" : isCredit ? "Credit Note Ledger" : "Cash Refund Disbursed"}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <span className="text-[10.5px] text-text-muted block">Refund Amount</span>
+                <span className="text-base font-bold font-mono text-error tabular-nums">
+                  {formatCurrency(payableTotal)}
+                </span>
+              </div>
+            </div>
+
+            {/* If Pure Cash Refund: Show Disbursed Denominations Breakdown */}
+            {!isAdvance && !isCredit && (
+              <div className="p-3.5 rounded-xl bg-surface border border-border space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-bold text-text-muted uppercase">Return Memo Amount</span>
+                      <p className="font-mono font-bold text-text text-sm">{formatCurrency(payableTotal)}</p>
+                    </div>
+                    <div className="h-6 w-px bg-border" />
+                    <div>
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Cash Disbursed from Drawer</span>
+                      <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                        {formatCurrency(payableTotal)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Disbursed Denominations List */}
+                {denoms.length > 0 ? (
+                  <div className="pt-2.5 border-t border-border space-y-1.5">
+                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
+                      Disbursed Currency Denominations
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {denoms.map((d, i) => {
+                        const config = DENOM_CONFIG[d.note] || { label: `₹${d.note}`, color: "text-text bg-surface-alt border-border" };
+                        return (
+                          <div
+                            key={i}
+                            className={cn(
+                              "inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border text-xs font-mono font-medium shadow-2xs",
+                              config.color
+                            )}
+                          >
+                            <span className="font-bold">{config.label}</span>
+                            <span className="text-text-muted">×</span>
+                            <span className="font-bold text-text">{d.count}</span>
+                            <span className="text-text-muted font-sans">=</span>
+                            <span className="font-bold text-text">₹{d.total.toLocaleString("en-IN")}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-text-muted font-mono pt-1">
+                    Standard cash refund disbursed without individual note counts recorded.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* If Customer Advance Deposit */}
+            {isAdvance && (
+              <div className="p-3.5 rounded-xl bg-amber-500/[0.08] dark:bg-amber-500/[0.12] border border-amber-500/30 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <CreditCard className="size-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">
+                      Customer Advance Deposit
+                    </span>
+                    <p className="font-bold text-text text-sm">
+                      Credited to customer wallet balance
+                    </p>
+                  </div>
+                </div>
+                <div className="font-mono text-right">
+                  <span className="text-[10px] text-text-muted block">Settlement Status</span>
+                  <UIBadge variant="soft" color="warning" size="sm" className="font-semibold">
+                    Advance Credited
+                  </UIBadge>
+                </div>
+              </div>
+            )}
+
+            {/* If Credit Note */}
+            {isCredit && (
+              <div className="p-3.5 rounded-xl bg-sky-500/[0.08] dark:bg-sky-500/[0.12] border border-sky-500/30 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+                    <FileText className="size-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-sky-700 dark:text-sky-400 uppercase tracking-wider block">
+                      GSTR-1 Credit Note Ledger
+                    </span>
+                    <p className="font-bold text-text text-sm">
+                      Adjustable against future B2B purchases
+                    </p>
+                  </div>
+                </div>
+                <div className="font-mono text-right">
+                  <span className="text-[10px] text-text-muted block">Settlement Status</span>
+                  <UIBadge variant="soft" color="info" size="sm" className="font-semibold">
+                    Credit Note Issued
+                  </UIBadge>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Returned Line Items Table (Matching L871-L921 of BillingInvoiceDetailsDrawer.jsx) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-text-muted">
+                Returned Medicines & Products ({calculatedItems.length})
+              </h3>
+              <span className="text-[11.5px] text-text-muted font-mono">
+                {totalUnits} Total Units Returned
+              </span>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-2xs">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-border bg-surface-alt/20 text-text-muted text-[10px] uppercase font-bold tracking-wider">
-                    <th className="py-2 px-3">Item / Medicine</th>
-                    <th className="py-2 px-2.5">Batch</th>
-                    <th className="py-2 px-2.5">Pack</th>
-                    <th className="py-2 px-2.5">Expiry</th>
-                    <th className="py-2 px-2.5 text-right">Qty</th>
-                    <th className="py-2 px-2.5 text-right">Rate</th>
-                    <th className="py-2 px-3 text-right">Amount</th>
+                  <tr className="border-b border-border bg-surface-alt/70 text-[10.5px] font-bold text-text-muted uppercase select-none">
+                    <th className="py-2.5 px-3">Item Name & Brand</th>
+                    <th className="py-2.5 px-2 font-mono">Batch</th>
+                    <th className="py-2.5 px-2 font-mono">Expiry</th>
+                    <th className="py-2.5 px-2 font-mono text-center">GST %</th>
+                    <th className="py-2.5 px-2 text-right">Qty</th>
+                    <th className="py-2.5 px-3 text-right">Unit Rate</th>
+                    <th className="py-2.5 px-3 text-right">Refund Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
-                  {items.map((it, idx) => {
-                    const itemName = it.name || it.productName || it.displayName || "Medicine";
-                    const batchNo = it.batch || it.batchNo || "STANDARD";
-                    const pack = it.pack || "10S";
-                    const exp = it.expiry || it.expiryDate || "—";
-                    const qty = Number(it.qty || 1);
-                    const rate = Number(it.rate || it.price || 0);
-                    const total = Number(it.total || it.amount || rate * qty);
-
-                    return (
-                      <tr key={idx} className="hover:bg-surface-alt/20 transition-colors">
+                <tbody className="divide-y divide-border/60">
+                  {calculatedItems.length > 0 ? (
+                    calculatedItems.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-surface-hover/50">
                         <td className="py-2.5 px-3">
-                          <div className="font-semibold text-text-primary">{itemName}</div>
-                          {it.brand && (
-                            <div className="text-[10px] text-text-muted">{it.brand}</div>
-                          )}
+                          <span className="font-bold text-text block">{item.name}</span>
+                          <span className="text-[10px] text-text-muted">
+                            {[item.brand || "Pharma", item.category || "Medicine", item.pack ? `Pk:${item.pack}` : null, item.rack ? `Rk:${item.rack}` : null]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </span>
                         </td>
-                        <td className="py-2.5 px-2.5 font-mono text-[11px] font-semibold text-text-secondary">
-                          {batchNo}
+                        <td className="py-2.5 px-2 font-mono text-[11px] text-text-muted font-semibold">{item.batch || "—"}</td>
+                        <td className="py-2.5 px-2 font-mono text-[11px] text-text-muted">{item.expiry || "—"}</td>
+                        <td className="py-2.5 px-2 font-mono text-center font-bold text-purple-600 dark:text-purple-400">{item.gstRate}%</td>
+                        <td className="py-2.5 px-2 font-mono text-right font-bold text-error tabular-nums">
+                          <span className="inline-block px-1.5 py-0.5 rounded border bg-error-soft/40 border-error/30 text-error font-bold">
+                            {item.qty} (Ret)
+                          </span>
                         </td>
-                        <td className="py-2.5 px-2.5 text-text-muted text-[11px]">{pack}</td>
-                        <td className="py-2.5 px-2.5 text-text-muted text-[11px]">{exp}</td>
-                        <td className="py-2.5 px-2.5 text-right font-mono font-bold text-text-primary">
-                          {qty}
-                        </td>
-                        <td className="py-2.5 px-2.5 text-right font-mono text-text-muted">
-                          {formatCurrency(rate)}
-                        </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
-                          {formatCurrency(total)}
-                        </td>
+                        <td className="py-2.5 px-3 font-mono text-right text-text-muted tabular-nums">₹{item.rate.toFixed(2)}</td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-right text-error tabular-nums">-₹{item.finalAmt.toFixed(2)}</td>
                       </tr>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="py-6 text-center text-text-muted">
+                        No line items recorded for this return memo.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* Cash Denominations Breakdown (If Cash Refund) */}
-          {denoms.length > 0 && (
-            <div className="p-3 rounded-xl border border-border bg-surface-alt/30 space-y-2">
-              <div className="text-xs font-bold text-text-primary flex items-center gap-1.5">
-                <Banknote className="w-3.5 h-3.5 text-emerald-600" />
-                Cash Drawer Notes Disbursed to Customer
-              </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {denoms.map((d) => {
-                  const cfg = DENOM_CONFIG[d.note] || {
-                    label: `₹${d.note}`,
-                    color: "text-slate-600 bg-slate-500/10 border-slate-500/20",
-                  };
-                  return (
-                    <div
-                      key={d.note}
-                      className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border text-xs font-mono ${cfg.color}`}
-                    >
-                      <span className="font-bold">{cfg.label}</span>
-                      <span className="opacity-60">×</span>
-                      <span className="font-extrabold">{d.count}</span>
-                      <span className="opacity-60">=</span>
-                      <span className="font-bold">{formatCurrency(d.total)}</span>
-                    </div>
-                  );
-                })}
+          {/* Dynamic GST Tax Slab Reversal Breakdown (Matching L923-L957 of BillingInvoiceDetailsDrawer.jsx) */}
+          {gstSlabs.length > 0 && (
+            <div className="space-y-1.5">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-text-muted">
+                GST Tax Slab Reversal Breakdown
+              </h3>
+              <div className="overflow-x-auto rounded-xl border border-border bg-surface-alt/20">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-border bg-surface-alt/70 text-[10.5px] font-bold text-text-muted uppercase select-none">
+                      <th className="py-2 px-3">GST Rate Slab</th>
+                      <th className="py-2 px-3 text-right">Taxable Amount</th>
+                      <th className="py-2 px-3 text-right font-mono">CGST</th>
+                      <th className="py-2 px-3 text-right font-mono">SGST</th>
+                      <th className="py-2 px-3 text-right">Total Tax Reversal</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {gstSlabs.map((s, idx) => (
+                      <tr key={idx} className="hover:bg-surface-hover/30">
+                        <td className="py-2 px-3 font-bold text-purple-600 dark:text-purple-400">{s.rate}% Slab</td>
+                        <td className="py-2 px-3 text-right font-mono text-text">₹{s.taxable.toFixed(2)}</td>
+                        <td className="py-2 px-3 text-right font-mono text-text-muted">₹{s.cgst.toFixed(2)} ({Number(s.rate) / 2}%)</td>
+                        <td className="py-2 px-3 text-right font-mono text-text-muted">₹{s.sgst.toFixed(2)} ({Number(s.rate) / 2}%)</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold text-purple-600 dark:text-purple-400">₹{s.totalTax.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
 
-          {/* Return Memo Financial Summary */}
-          <div className="p-3.5 rounded-xl border border-border bg-surface space-y-1.5 text-xs">
-            <div className="flex justify-between text-text-muted">
-              <span>Taxable Subtotal</span>
-              <span className="font-mono">{formatCurrency(subtotal)}</span>
+          {/* Financial Calculation Summary Box (Matching L959-L981 of BillingInvoiceDetailsDrawer.jsx) */}
+          <div className="p-4 rounded-xl border border-border bg-surface-alt/40 space-y-2 text-xs font-mono">
+            <div className="flex justify-between text-text">
+              <span className="text-text-muted font-sans font-medium">Subtotal Amount:</span>
+              <span className="font-bold">₹{totalTaxable.toFixed(2)}</span>
             </div>
-            {discount > 0 && (
-              <div className="flex justify-between text-text-muted">
-                <span>Discount Reversed</span>
-                <span className="font-mono text-emerald-600">-{formatCurrency(discount)}</span>
+            {totalDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                <span className="font-sans font-medium">Total Discount Reversed:</span>
+                <span>-₹{totalDiscount.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between text-text-muted">
-              <span>GST Adjusted (Credit Note)</span>
-              <span className="font-mono">{formatCurrency(tax)}</span>
+            <div className="flex justify-between text-purple-600 dark:text-purple-400">
+              <span className="font-sans font-medium">GST Tax Reversed:</span>
+              <span>-₹{totalGst.toFixed(2)}</span>
             </div>
-            <div className="pt-2 border-t border-border flex justify-between font-bold text-sm text-text-primary">
-              <span>Net Refund Total</span>
-              <span className="font-mono text-rose-600 dark:text-rose-400 font-extrabold text-base">
-                {formatCurrency(grandTotal)}
+            <div className="flex justify-between text-sm font-extrabold text-text pt-2 border-t border-border">
+              <span className="font-sans">Total Refund Amount:</span>
+              <span className="text-error font-mono text-base font-bold">
+                ₹{payableTotal.toFixed(2)}
               </span>
+            </div>
+          </div>
+
+          {/* Footer Action Bar (Matching L983-L1054 of BillingInvoiceDetailsDrawer.jsx) */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
+            {/* Left side actions */}
+            <div className="flex flex-wrap items-center gap-2">
+              <UIButton
+                variant="outline"
+                size="sm"
+                onClick={() => setIsPrintModalOpen(true)}
+                startIcon={<Printer className="size-4" />}
+              >
+                Print Return Memo
+              </UIButton>
+
+              <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20">
+                <CheckCircle2 className="size-3.5 text-emerald-600" /> Restocked & Reconciled
+              </span>
+            </div>
+
+            {/* Right side actions */}
+            <div className="flex flex-wrap items-center gap-2">
+              <UIButton variant="outline" size="sm" onClick={onClose}>
+                Close
+              </UIButton>
             </div>
           </div>
         </div>
       </UIModal>
 
       {/* Printable Receipt Modal */}
-      <OrderInvoiceModal
-        open={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
-        saleData={{
-          ...returnItem,
-          isReturn: true,
-          invoiceNo: returnNo,
-          customer: returnItem.customerId || { name: customerName, mobile: customerMobile },
-        }}
-        branch={currentBranch}
-        company={currentCompany}
-      />
+      {itemToDisplay && (
+        <OrderInvoiceModal
+          isOpen={isPrintModalOpen}
+          open={isPrintModalOpen}
+          onClose={() => setIsPrintModalOpen(false)}
+          saleData={{
+            ...itemToDisplay,
+            isReturn: true,
+            invoiceNo: returnNo,
+            customer: itemToDisplay.customerId || { name: customerName, mobile: customerMobile },
+          }}
+          branch={currentBranch}
+          company={currentCompany}
+        />
+      )}
     </>
   );
 };
