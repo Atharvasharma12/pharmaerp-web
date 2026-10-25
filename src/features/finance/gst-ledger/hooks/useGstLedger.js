@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import useBranch from "@/features/branch/hooks/useBranch";
 import gstLedgerService from "../services/gstLedgerService";
+import { isCreditNoteEntry } from "../utils/gstr1SummaryCalculator";
 
 export const useGstLedger = (type = "GSTR-1") => {
   const { currentBranch, branches = [], getCompanyBranches } = useBranch();
@@ -167,21 +168,64 @@ export const useGstLedger = (type = "GSTR-1") => {
     }
   }, [type, loading, isLoadingMore, hasMore, total, page, filters]);
 
+  const round2 = (val) => Math.round((Number(val || 0) + Number.EPSILON) * 100) / 100;
+
+  const isDeductionEntry = (entry, ledgerType) => {
+    if (!entry) return false;
+    if (ledgerType === "GSTR-2") {
+      const group = String(entry.groupDescription || "").toUpperCase();
+      const narration = String(entry.narration || "").toUpperCase();
+      const vNum = String(entry.voucherNumber || "").toUpperCase();
+      return (
+        group.includes("DEBIT NOTE") ||
+        narration.includes("DEBIT NOTE") ||
+        narration.includes("PURCHASE RETURN") ||
+        vNum.startsWith("PR-") ||
+        vNum.startsWith("DN-")
+      );
+    }
+    return isCreditNoteEntry(entry);
+  };
+
   const stats = useMemo(() => {
-    if (serverStats) {
+    if (serverStats && serverStats.grossTaxable !== undefined) {
       return serverStats;
     }
     return entries.reduce(
       (acc, curr) => {
+        const isCredit = isDeductionEntry(curr, type);
+        const factor = isCredit ? -1 : 1;
+        const taxable = Number(curr.taxableAmount || 0);
         const cgst = Number(curr.cgst || 0);
         const sgst = Number(curr.sgst || 0);
         const igst = Number(curr.igst || 0);
-        acc.totalTaxable += Number(curr.taxableAmount || 0);
-        acc.totalCgst += cgst;
-        acc.totalSgst += sgst;
-        acc.totalIgst += igst;
-        acc.totalGst += (cgst + sgst + igst);
-        acc.totalAmount += Number(curr.totalAmount || 0);
+        const gst = cgst + sgst + igst;
+        const amt = Number(curr.totalAmount || 0);
+
+        acc.totalTaxable = round2(acc.totalTaxable + factor * taxable);
+        acc.totalCgst = round2(acc.totalCgst + factor * cgst);
+        acc.totalSgst = round2(acc.totalSgst + factor * sgst);
+        acc.totalIgst = round2(acc.totalIgst + factor * igst);
+        acc.totalGst = round2(acc.totalGst + factor * gst);
+        acc.totalAmount = round2(acc.totalAmount + factor * amt);
+
+        if (isCredit) {
+          acc.creditNoteCount += 1;
+          acc.creditTaxable = round2(acc.creditTaxable + taxable);
+          acc.creditCgst = round2(acc.creditCgst + cgst);
+          acc.creditSgst = round2(acc.creditSgst + sgst);
+          acc.creditIgst = round2(acc.creditIgst + igst);
+          acc.creditGst = round2(acc.creditGst + gst);
+          acc.creditTotalAmount = round2(acc.creditTotalAmount + amt);
+        } else {
+          acc.invoiceCount += 1;
+          acc.grossTaxable = round2(acc.grossTaxable + taxable);
+          acc.grossCgst = round2(acc.grossCgst + cgst);
+          acc.grossSgst = round2(acc.grossSgst + sgst);
+          acc.grossIgst = round2(acc.grossIgst + igst);
+          acc.grossGst = round2(acc.grossGst + gst);
+          acc.grossTotalAmount = round2(acc.grossTotalAmount + amt);
+        }
         return acc;
       },
       {
@@ -192,9 +236,23 @@ export const useGstLedger = (type = "GSTR-1") => {
         totalGst: 0,
         totalAmount: 0,
         count: total || entries.length,
+        invoiceCount: 0,
+        creditNoteCount: 0,
+        grossTaxable: 0,
+        grossCgst: 0,
+        grossSgst: 0,
+        grossIgst: 0,
+        grossGst: 0,
+        grossTotalAmount: 0,
+        creditTaxable: 0,
+        creditCgst: 0,
+        creditSgst: 0,
+        creditIgst: 0,
+        creditGst: 0,
+        creditTotalAmount: 0,
       }
     );
-  }, [entries, total, serverStats]);
+  }, [entries, total, serverStats, type]);
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({

@@ -284,7 +284,7 @@ export const OrderInvoiceDocument = ({
                 </span>
                 <span className="text-slate-400 font-light">|</span>
                 <span className="text-base font-bold text-slate-800 uppercase tracking-wide">
-                  Tax Invoice
+                  {saleData.isReturn ? "Credit Note / Sales Return" : "Tax Invoice"}
                 </span>
               </div>
               <p className="text-[10px] text-slate-500 font-medium">Licensed Pharmaceutical Dispensary</p>
@@ -294,7 +294,7 @@ export const OrderInvoiceDocument = ({
           {/* Invoice Number, Order ID & Date */}
           <div className="text-right text-[11px] font-semibold text-slate-700 space-y-0.5">
             <div className="flex items-center justify-end gap-1.5">
-              <span className="text-slate-500 font-normal">Invoice No:</span>
+              <span className="text-slate-500 font-normal">{saleData.isReturn ? "Return Memo:" : "Invoice No:"}</span>
               <span className="font-mono font-bold text-slate-900">{invoiceNo}</span>
             </div>
             <div className="flex items-center justify-end gap-1.5">
@@ -302,7 +302,7 @@ export const OrderInvoiceDocument = ({
               <span className="font-mono text-slate-800">{orderId}</span>
             </div>
             <div className="flex items-center justify-end gap-1.5">
-              <span className="text-slate-500 font-normal">Invoice Date:</span>
+              <span className="text-slate-500 font-normal">{saleData.isReturn ? "Return Date:" : "Invoice Date:"}</span>
               <span className="font-mono text-slate-900">{invoiceDate}</span>
             </div>
           </div>

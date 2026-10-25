@@ -49,6 +49,7 @@ import { CreateShiftDialog } from "@/features/operations/shifts/components/Creat
 import { API_STATUS } from "@/constants";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import invoiceService from "@/features/sales/services/invoiceService";
+import { fetchBranchCash } from "@/features/finance/treasury/cash-management/branch-cash/store/branchCashThunk";
 
 export const SalesMobilePage = () => {
   const navigate = useNavigate();
@@ -292,6 +293,14 @@ export const SalesMobilePage = () => {
         if (isEditMode && targetInvoiceId) {
           const res = await invoiceService.updateCustomerSale(targetCustomerId, targetInvoiceId, saleData);
           savedSale = res?.data?.data || res?.data || null;
+        } else if (saleData.isReturn) {
+          const res = await invoiceService.recordCustomerReturn(targetCustomerId, {
+            ...saleData,
+            isReturn: true,
+            returnType: saleData.returnType,
+            originalInvoiceNo: saleData.originalInvoiceNo || saleData.invoiceNo,
+          });
+          savedSale = res?.data?.data || res?.data || null;
         } else {
           const res = await invoiceService.recordCustomerSale(targetCustomerId, saleData);
           savedSale = res?.data?.data || res?.data || null;
@@ -300,11 +309,22 @@ export const SalesMobilePage = () => {
     } catch (err) {
       console.warn("Mobile sale record/update error:", err);
     }
+
+    if (branchId) {
+      dispatch(fetchBranchCash(branchId));
+    }
+
     const finalData = savedSale ? { ...saleData, ...savedSale } : saleData;
     setCompletedSale(finalData);
     setIsReceiptOpen(true);
     setCart([]);
-    setToastMessage(isEditMode ? `✅ Invoice updated (${finalData.invoiceNo || saleData.invoiceNo})` : `✅ Sale completed (${finalData.invoiceNo || saleData.invoiceNo})`);
+    setToastMessage(
+      isEditMode
+        ? `✅ Invoice updated (${finalData.invoiceNo || saleData.invoiceNo})`
+        : saleData.isReturn
+        ? `✅ Return recorded (${finalData.invoiceNo || saleData.invoiceNo})`
+        : `✅ Sale completed (${finalData.invoiceNo || saleData.invoiceNo})`
+    );
     setTimeout(() => setToastMessage(null), 3500);
   };
 

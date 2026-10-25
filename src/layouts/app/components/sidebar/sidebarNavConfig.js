@@ -27,6 +27,7 @@ import {
   FileUp,
   RefreshCw,
   FolderTree,
+  RotateCcw,
 } from "lucide-react";
 
 import { ROUTES } from "@/constants";
@@ -63,6 +64,14 @@ export const SIDEBAR_NAV_GROUPS = [
         shortcut: "Alt + M",
         permissions: ["bill:view", "sale:view"],
         keywords: ["sale invoices", "sales", "invoices", "bills", "sales register"],
+      },
+      {
+        id: "sales-returns",
+        label: "Sales Returns",
+        path: ROUTES.SALES_RETURNS,
+        icon: RotateCcw,
+        permissions: ["bill:view", "sale:view"],
+        keywords: ["sales returns", "credit notes", "returns", "refund", "return memo"],
       },
       {
         id: "purchases",

@@ -288,6 +288,7 @@ export const ROUTES = {
 
   // Billing & Invoices
   BILLING: "/billing",
+  SALES_RETURNS: "/sales-returns",
 
   // Purchases & Procurement
   PURCHASES: "/purchases",

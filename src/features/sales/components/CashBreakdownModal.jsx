@@ -471,7 +471,9 @@ export function CashBreakdownModal({
             </div>
             <div>
               <h2 className="text-base font-bold text-text leading-tight">
-                {isCancelMode ? "Cash Drawer · Cancel Invoice Refund" : "Cash Drawer & Tender"}
+                {isCancelMode
+                  ? (mode === "refund" ? "Cash Drawer · Sales Return Refund" : "Cash Drawer · Cancel Invoice Refund")
+                  : "Cash Drawer & Tender"}
               </h2>
               <p className="text-xs text-text-muted leading-tight">
                 {isCancelMode

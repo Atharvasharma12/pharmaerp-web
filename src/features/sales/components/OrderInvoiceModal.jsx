@@ -84,17 +84,25 @@ export const OrderInvoiceModal = ({
         <header className="print-toolbar shrink-0 h-13 bg-surface-alt/90 border-b border-border px-4 sm:px-5 flex items-center justify-between z-20">
           {/* Left: Metadata info */}
           <div className="flex items-center gap-2.5">
-            <div className="size-7 rounded-lg bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+            <div className={`size-7 rounded-lg flex items-center justify-center ${
+              saleData.isReturn
+                ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                : "bg-teal-500/15 text-teal-600 dark:text-teal-400"
+            }`}>
               <CheckCircle2 className="size-4" />
             </div>
             <div className="flex items-center gap-2">
               <h2 className="text-xs sm:text-sm font-bold text-text tracking-tight">
-                Bill Invoice Preview
+                {saleData.isReturn ? "Sales Return Memo" : "Bill Invoice Preview"}
               </h2>
               <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-surface border border-border text-text font-semibold">
                 {invoiceNo}
               </span>
-              {isCredit ? (
+              {saleData.isReturn ? (
+                <span className="text-[9.5px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/25">
+                  Refunded
+                </span>
+              ) : isCredit ? (
                 <span className="text-[9.5px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25">
                   Credit
                 </span>

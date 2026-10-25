@@ -78,6 +78,7 @@ import reportsRoutes from "@/features/finance/reports/routes/reportsRoutes";
 
 import salesRoutes from "@/features/sales/routes/salesRoutes";
 import billingRoutes from "@/features/billing/routes/billingRoutes";
+import salesReturnRoutes from "@/features/sales-returns/routes/salesReturnRoutes";
 import purchasesRoutes from "@/features/purchases/routes/purchasesRoutes";
 import helpCenterRoutes from "@/features/help-center/routes/helpCenterRoutes";
 import operationsRoutes from "@/features/operations/routes/operationsRoutes";
@@ -428,6 +429,7 @@ export const router = createBrowserRouter([
                   // Sales & POS, Invoicing & Purchases
                   ...guardRouteList(salesRoutes, "pos"),
                   ...guardRouteList(billingRoutes, "bill"),
+                  ...guardRouteList(salesReturnRoutes, "bill"),
                   ...guardRouteList(purchasesRoutes, "purchase"),
 
                   // Shifts & Closings

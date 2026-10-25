@@ -12,7 +12,8 @@ import {
   Calculator,
   Trash2,
   Receipt,
-  User
+  User,
+  RotateCcw,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -77,6 +78,7 @@ export const SalesCheckoutModal = ({
   activeShift: activeShiftProp,
   shiftId: shiftIdProp,
   existingInvoiceNo = null,
+  isReturnInvoice = false,
 }) => {
   const navigate = useNavigate();
   const { currentBranch } = useBranch();
@@ -86,6 +88,12 @@ export const SalesCheckoutModal = ({
   const reduxActiveShift = useSelector((state) => state.shift?.activeShift);
   const activeShift = activeShiftProp ?? reduxActiveShift;
 
+  const hasReturnItems = useMemo(
+    () => (cartSummary?.items || []).some((i) => i.isReturnItem),
+    [cartSummary]
+  );
+  const isReturn = isReturnInvoice || hasReturnItems;
+
   useEffect(() => {
     if (isOpen && branchId) {
       getPaymentQrs({ branchId, status: "ACTIVE" });
@@ -93,7 +101,7 @@ export const SalesCheckoutModal = ({
     }
   }, [isOpen, branchId, getPaymentQrs, fetchBranchCash]);
 
-  // Branch-scoped serial invoice number (e.g. AEB-2627-0001)
+  // Branch-scoped serial invoice or return memo number (e.g. AEB-2627-0001 or RET-AEB-2627-0001)
   const defaultInvoiceNo = useMemo(() => {
     if (existingInvoiceNo) return existingInvoiceNo;
     const branchInitials = getBranchInitials(currentBranch);
@@ -103,8 +111,8 @@ export const SalesCheckoutModal = ({
     const fyString = month >= 3
       ? `${year.toString().slice(-2)}${(year + 1).toString().slice(-2)}`
       : `${(year - 1).toString().slice(-2)}${year.toString().slice(-2)}`;
-    return `${branchInitials}-${fyString}-0001`;
-  }, [currentBranch, saleDate, existingInvoiceNo]);
+    return isReturn ? `RET-${branchInitials}-${fyString}-0001` : `${branchInitials}-${fyString}-0001`;
+  }, [currentBranch, saleDate, existingInvoiceNo, isReturn]);
 
   const [nextInvoiceNo, setNextInvoiceNo] = useState("");
 
@@ -112,13 +120,25 @@ export const SalesCheckoutModal = ({
     if (existingInvoiceNo) return;
     if (!isOpen || !branchId) return;
     let isMounted = true;
-    invoiceService
-      .getNextInvoiceNumber({
-        branchId,
-        date: saleDate ? new Date(saleDate).toISOString() : new Date().toISOString(),
-      })
+
+    const fetchNumberPromise =
+      isReturn && typeof invoiceService?.getNextReturnNumber === "function"
+        ? invoiceService.getNextReturnNumber({
+            branchId,
+            date: saleDate ? new Date(saleDate).toISOString() : new Date().toISOString(),
+          })
+        : typeof invoiceService?.getNextInvoiceNumber === "function"
+        ? invoiceService.getNextInvoiceNumber({
+            branchId,
+            date: saleDate ? new Date(saleDate).toISOString() : new Date().toISOString(),
+          })
+        : Promise.resolve({});
+
+    fetchNumberPromise
       .then((res) => {
         const fetchedNo =
+          res?.data?.data?.nextReturnNumber ||
+          res?.data?.data?.nextReturnNo ||
           res?.data?.data?.nextInvoiceNo ||
           res?.data?.data?.nextInvoiceNumber ||
           res?.data?.nextInvoiceNo ||
@@ -128,12 +148,12 @@ export const SalesCheckoutModal = ({
         }
       })
       .catch((err) => {
-        console.warn("Could not fetch next invoice number:", err);
+        console.warn("Could not fetch next number:", err);
       });
     return () => {
       isMounted = false;
     };
-  }, [isOpen, branchId, saleDate, existingInvoiceNo]);
+  }, [isOpen, branchId, saleDate, existingInvoiceNo, isReturn]);
 
   const displayInvoiceNo = existingInvoiceNo || nextInvoiceNo || defaultInvoiceNo;
 
@@ -315,6 +335,38 @@ export const SalesCheckoutModal = ({
   const totalPaid = useMemo(() => payments.reduce((sum, p) => sum + Number(p.amount || 0), 0), [payments]);
   const shortfall = Math.max(0, grandTotal - totalPaid);
 
+  const modeTabs = useMemo(() => {
+    if (isReturn) {
+      return [
+        { id: "Cash", label: "Cash Refund", icon: Banknote, color: "text-emerald-600", activeCls: "bg-emerald-500/15 border-emerald-500/50 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30" },
+        { id: "Advance", label: "Keep as Advance", icon: Wallet, color: "text-amber-600", activeCls: "bg-amber-500/15 border-amber-500/50 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/30" },
+        { id: "Credit", label: "Credit Note", icon: Receipt, color: "text-rose-600", activeCls: "bg-rose-500/15 border-rose-500/50 text-rose-700 dark:text-rose-300 ring-1 ring-rose-500/30" },
+        { id: "UPI", label: "UPI / Bank", icon: QrCode, color: "text-purple-600", activeCls: "bg-purple-500/15 border-purple-500/50 text-purple-700 dark:text-purple-300 ring-1 ring-purple-500/30" },
+        { id: "Split", label: "Split", icon: Calculator, color: "text-indigo-600", activeCls: "bg-indigo-500/15 border-indigo-500/50 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/30" },
+      ];
+    }
+    return [
+      { id: "Cash", label: "Cash", icon: Banknote, color: "text-emerald-600", activeCls: "bg-emerald-500/15 border-emerald-500/50 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30" },
+      { id: "UPI", label: "UPI", icon: QrCode, color: "text-purple-600", activeCls: "bg-purple-500/15 border-purple-500/50 text-purple-700 dark:text-purple-300 ring-1 ring-purple-500/30" },
+      { id: "Credit", label: "Credit", icon: Receipt, color: "text-rose-600", activeCls: "bg-rose-500/15 border-rose-500/50 text-rose-700 dark:text-rose-300 ring-1 ring-rose-500/30" },
+      { id: "Advance", label: "Advance", icon: Wallet, color: "text-amber-600", activeCls: "bg-amber-500/15 border-amber-500/50 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/30" },
+      { id: "Split", label: "Split", icon: Calculator, color: "text-indigo-600", activeCls: "bg-indigo-500/15 border-indigo-500/50 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/30" },
+    ];
+  }, [isReturn]);
+
+  const paymentTypeOptions = useMemo(() => {
+    if (isReturn) {
+      return [
+        { value: "Cash", label: "Cash Refund", icon: <Banknote className="size-4 text-emerald-600" /> },
+        { value: "Advance", label: "Keep as Advance (Deposit)", icon: <Wallet className="size-4 text-amber-600" /> },
+        { value: "Credit", label: "Credit Note", icon: <Receipt className="size-4 text-rose-600" /> },
+        { value: "UPI", label: "UPI / Bank Transfer", icon: <QrCode className="size-4 text-purple-600" /> },
+        { value: "Card", label: "Card Refund", icon: <CreditCard className="size-4 text-blue-600" /> },
+      ];
+    }
+    return PAYMENT_TYPE_OPTIONS;
+  }, [isReturn]);
+
   const handleUpdate = (index, field, value) => {
     const next = [...payments];
     const updated = { ...next[index], [field]: value };
@@ -361,8 +413,8 @@ export const SalesCheckoutModal = ({
       const target = Number(p.amount) || 0;
       if (target <= 0) return false;
       if (!p.cashDetails) return true;
-      const received = Number(p.cashDetails.receivedTotal) || 0;
-      const returned = Number(p.cashDetails.returnedTotal) || 0;
+      const received = Number(p.cashDetails.receivedTotal ?? p.cashDetails.dispensedTotal) || 0;
+      const returned = Number(p.cashDetails.returnedTotal ?? p.cashDetails.customerChangeTotal) || 0;
       const expectedChange = Math.max(0, received - target);
       return received < target || returned !== expectedChange;
     });
@@ -477,12 +529,20 @@ export const SalesCheckoutModal = ({
 
   const handleProcessSale = async () => {
     if (totalPaid < grandTotal) {
-      setErrorMessage(`Cannot process sale. Collected amount (₹${totalPaid.toFixed(2)}) is less than Grand Total (₹${grandTotal.toFixed(2)}).`);
+      setErrorMessage(
+        isReturn
+          ? `Cannot process return. Settled refund amount (₹${totalPaid.toFixed(2)}) is less than total refund due (₹${grandTotal.toFixed(2)}).`
+          : `Cannot process sale. Collected amount (₹${totalPaid.toFixed(2)}) is less than Grand Total (₹${grandTotal.toFixed(2)}).`
+      );
       return;
     }
 
     if (hasUncapturedCash) {
-      setErrorMessage("Please capture the exact cash denominations given by the customer for all cash payments.");
+      setErrorMessage(
+        isReturn
+          ? "Please open the cash drawer and select the exact currency notes to dispense for this refund."
+          : "Please capture the exact cash denominations given by the customer for all cash payments."
+      );
       return;
     }
 
@@ -495,13 +555,13 @@ export const SalesCheckoutModal = ({
     if ((hasCredit || hasAdvance) && !hasCust) {
       setErrorMessage(
         hasCredit
-          ? "Credit billing requires selecting a registered customer profile first."
-          : "Advance payment requires selecting a registered customer profile with available deposit."
+          ? (isReturn ? "Credit Note requires selecting a registered customer profile first." : "Credit billing requires selecting a registered customer profile first.")
+          : (isReturn ? "Retaining advance deposit requires selecting a registered customer profile." : "Advance payment requires selecting a registered customer profile with available deposit.")
       );
       return;
     }
 
-    if (hasCredit) {
+    if (!isReturn && hasCredit) {
       const totalCreditReq = payments
         .filter((p) => p.paymentType === "Credit")
         .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -513,7 +573,7 @@ export const SalesCheckoutModal = ({
       }
     }
 
-    if (hasAdvance) {
+    if (!isReturn && hasAdvance) {
       const totalAdvanceReq = payments
         .filter((p) => p.paymentType === "Advance")
         .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -538,6 +598,8 @@ export const SalesCheckoutModal = ({
         date: saleDate ? new Date(saleDate).toISOString() : new Date().toISOString(),
         billingMode,
         partyType: isB2B ? customer?.partyType || "wholesaler" : "retail_consumer",
+        isReturn,
+        returnType: isReturn ? (payments[0]?.paymentType === "Advance" ? "advance_credit" : (payments[0]?.paymentType === "Credit" ? "credit_note" : "cash_refund")) : undefined,
         items,
         subtotal,
         itemDiscount,
@@ -583,7 +645,7 @@ export const SalesCheckoutModal = ({
   };
 
   return (
-    <UIModal isOpen={isOpen} onClose={onClose} size="2xl" title="Sale Preview & Checkout" showCloseButton={false}>
+    <UIModal isOpen={isOpen} onClose={onClose} size="2xl" title={isReturn ? "Return Preview & Refund Settlement" : "Sale Preview & Checkout"} showCloseButton={false}>
       <div className="p-0 font-sans flex flex-col md:flex-row h-[84vh] max-h-[660px] overflow-hidden">
 
         {/* ── LEFT: Receipt Preview (Balanced width, ~48%) ── */}
@@ -592,12 +654,12 @@ export const SalesCheckoutModal = ({
             {/* Receipt Paper */}
             <div className="w-full max-w-sm bg-surface shadow-md border border-border rounded-xl overflow-hidden">
               {/* Receipt Header Band */}
-              <div className="bg-primary px-5 py-3 text-primary-contrast text-center">
+              <div className={cn("px-5 py-3 text-white text-center", isReturn ? "bg-error" : "bg-primary")}>
                 <h2 className="text-[12.5px] font-black uppercase tracking-widest">
-                  {isB2B ? "Tax Invoice" : "Retail Receipt"}
+                  {isReturn ? "Sales Return Memo" : (isB2B ? "Tax Invoice" : "Retail Receipt")}
                 </h2>
                 <div className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full bg-white/20 text-[11px] font-mono font-bold tracking-wider">
-                  <span>Inv:</span>
+                  <span>{isReturn ? "Ret:" : "Inv:"}</span>
                   <span>{displayInvoiceNo}</span>
                 </div>
                 <p className="text-[10px] opacity-75 mt-1">
@@ -723,11 +785,22 @@ export const SalesCheckoutModal = ({
         {/* ── RIGHT: Payment Collection (Balanced width, ~52%, 2-Column fields) ── */}
         <div className="w-full md:w-[52%] flex-1 flex flex-col min-h-0 bg-surface overflow-hidden">
 
-          {/* Amount to Collect Header Bar */}
-          <div className="px-5 py-3 border-b border-border bg-surface-alt/40 shrink-0 flex items-center justify-between">
+          {/* Amount to Collect / Return Header Bar */}
+          <div className={cn(
+            "px-5 py-3 border-b border-border shrink-0 flex items-center justify-between",
+            isReturn ? "bg-rose-500/5" : "bg-surface-alt/40"
+          )}>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Amount to Collect</p>
-              <p className="text-2xl font-black text-text tabular-nums font-mono leading-none mt-0.5">
+              <p className={cn(
+                "text-[10px] font-bold uppercase tracking-wider",
+                isReturn ? "text-error" : "text-text-muted"
+              )}>
+                {isReturn ? "Amount to Return / Refund" : "Amount to Collect"}
+              </p>
+              <p className={cn(
+                "text-2xl font-black tabular-nums font-mono leading-none mt-0.5",
+                isReturn ? "text-error" : "text-text"
+              )}>
                 ₹{grandTotal.toFixed(2)}
               </p>
             </div>
@@ -737,14 +810,14 @@ export const SalesCheckoutModal = ({
                 ? "bg-success-soft text-success border-success/30"
                 : "bg-warning-soft text-warning border-warning/30"
             )}>
-              {shortfall === 0 ? "✓ Balanced" : `Short ₹${shortfall.toFixed(2)}`}
+              {shortfall === 0 ? "✓ Balanced" : isReturn ? `Pending Refund ₹${shortfall.toFixed(2)}` : `Short ₹${shortfall.toFixed(2)}`}
             </div>
           </div>
 
           {/* Quick Payment Mode Tabs */}
           <div className="px-5 pt-2.5 pb-2 border-b border-border bg-surface-alt/20 shrink-0">
             <div className="text-[9.5px] font-bold uppercase tracking-wider text-text-muted mb-1.5 flex items-center justify-between">
-              <span>Payment Mode</span>
+              <span>{isReturn ? "Refund Settlement Mode" : "Payment Mode"}</span>
               {isSplitMode && (
                 <span className="text-[9.5px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
                   Split Mode Active ({payments.length} parts)
@@ -752,13 +825,7 @@ export const SalesCheckoutModal = ({
               )}
             </div>
             <div className="grid grid-cols-5 gap-1.5">
-              {[
-                { id: "Cash", label: "Cash", icon: Banknote, color: "text-emerald-600", activeCls: "bg-emerald-500/15 border-emerald-500/50 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30" },
-                { id: "UPI", label: "UPI", icon: QrCode, color: "text-purple-600", activeCls: "bg-purple-500/15 border-purple-500/50 text-purple-700 dark:text-purple-300 ring-1 ring-purple-500/30" },
-                { id: "Credit", label: "Credit", icon: Receipt, color: "text-rose-600", activeCls: "bg-rose-500/15 border-rose-500/50 text-rose-700 dark:text-rose-300 ring-1 ring-rose-500/30" },
-                { id: "Advance", label: "Advance", icon: Wallet, color: "text-amber-600", activeCls: "bg-amber-500/15 border-amber-500/50 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/30" },
-                { id: "Split", label: "Split", icon: Calculator, color: "text-indigo-600", activeCls: "bg-indigo-500/15 border-indigo-500/50 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-500/30" },
-              ].map((m) => {
+              {modeTabs.map((m) => {
                 const Icon = m.icon;
                 const isActive = isSplitMode ? m.id === "Split" : (!isSplitMode && payments.length === 1 && payments[0]?.paymentType === m.id);
                 return (
@@ -774,7 +841,7 @@ export const SalesCheckoutModal = ({
                     )}
                   >
                     <Icon className={cn("size-3.5", m.color)} />
-                    <span>{m.label}</span>
+                    <span className="truncate">{m.label}</span>
                   </button>
                 );
               })}
@@ -790,12 +857,12 @@ export const SalesCheckoutModal = ({
                 <div className="grid grid-cols-2 gap-3 items-end">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
-                      Payment Method
+                      {isReturn ? "Settlement Method" : "Payment Method"}
                     </label>
                     <UISelect
                       value={row.paymentType}
                       onChange={(val) => handleUpdate(index, "paymentType", val)}
-                      options={PAYMENT_TYPE_OPTIONS}
+                      options={paymentTypeOptions}
                       size="sm"
                     />
                   </div>
@@ -803,7 +870,7 @@ export const SalesCheckoutModal = ({
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">
-                        Amount (₹)
+                        {isReturn ? "Refund Amount (₹)" : "Amount (₹)"}
                       </label>
                       {payments.length > 1 && (
                         <button
@@ -886,7 +953,9 @@ export const SalesCheckoutModal = ({
                           !row.cashDetails ? "border-amber-400/60 text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20" : ""
                         )}
                       >
-                        {row.cashDetails ? "Edit Notes" : "Cash Drawer & Notes *"}
+                        {row.cashDetails
+                          ? (isReturn ? "Edit Refund Notes" : "Edit Notes")
+                          : (isReturn ? "Cash Drawer & Notes *" : "Cash Drawer & Notes *")}
                       </UIButton>
                     </div>
                   </div>
@@ -894,16 +963,16 @@ export const SalesCheckoutModal = ({
 
                 {/* Cash: Captured Denominations Summary (2-column badges) */}
                 {row.paymentType === "Cash" && row.cashDetails && (() => {
-                  const receivedMap = row.cashDetails.received || {};
-                  const returnedMap = row.cashDetails.returned || {};
+                  const receivedMap = row.cashDetails.received || row.cashDetails.dispensed || {};
+                  const returnedMap = row.cashDetails.returned || row.cashDetails.customerChange || {};
                   const receivedEntries = Object.entries(receivedMap).filter(([, qty]) => Number(qty) > 0).sort(([a], [b]) => Number(b) - Number(a));
                   const returnedEntries = Object.entries(returnedMap).filter(([, qty]) => Number(qty) > 0).sort(([a], [b]) => Number(b) - Number(a));
 
                   return (
                     <div className="p-2 rounded-lg border border-success/30 bg-success-soft/10 text-[10.5px] font-mono space-y-1.5 animate-in fade-in">
                       <div className="flex items-center justify-between text-[10px] font-bold text-success">
-                        <span>Notes Received: ₹{Number(row.cashDetails.receivedTotal).toLocaleString("en-IN")}</span>
-                        <span>Net: ₹{Number(row.cashDetails.netApplied || row.amount).toLocaleString("en-IN")}</span>
+                        <span>{isReturn ? "Notes Dispensed:" : "Notes Received:"} ₹{Number(row.cashDetails.receivedTotal ?? row.cashDetails.dispensedTotal).toLocaleString("en-IN")}</span>
+                        <span>Net: ₹{Number(row.cashDetails.netApplied || row.cashDetails.netRefund || row.amount).toLocaleString("en-IN")}</span>
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {receivedEntries.map(([denom, qty]) => (
@@ -912,10 +981,10 @@ export const SalesCheckoutModal = ({
                           </span>
                         ))}
                       </div>
-                      {Number(row.cashDetails.returnedTotal) > 0 && (
+                      {Number(row.cashDetails.returnedTotal ?? row.cashDetails.customerChangeTotal) > 0 && (
                         <div className="pt-1 border-t border-success/20 flex items-center justify-between text-[10px] text-warning font-bold">
-                          <span>Change Returned:</span>
-                          <span>₹{Number(row.cashDetails.returnedTotal).toLocaleString("en-IN")}</span>
+                          <span>{isReturn ? "Change from Customer:" : "Change Returned:"}</span>
+                          <span>₹{Number(row.cashDetails.returnedTotal ?? row.cashDetails.customerChangeTotal).toLocaleString("en-IN")}</span>
                         </div>
                       )}
                     </div>
@@ -926,7 +995,19 @@ export const SalesCheckoutModal = ({
                 {row.paymentType === "Cash" && !row.cashDetails && (
                   <div className="p-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 flex items-center gap-1.5 text-[10.5px] text-amber-700 dark:text-amber-300 font-medium">
                     <AlertCircle className="size-3.5 text-amber-600 shrink-0" />
-                    <span>Exact currency denominations required for this cash payment.</span>
+                    <span>
+                      {isReturn
+                        ? "Open cash drawer and select currency notes to dispense for this refund."
+                        : "Exact currency denominations required for this cash payment."}
+                    </span>
+                  </div>
+                )}
+
+                {/* Cash: warning in return mode if drawer cash is low */}
+                {row.paymentType === "Cash" && isReturn && availableCash < Number(row.amount || 0) && (
+                  <div className="p-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 flex items-center gap-1.5 text-[10.5px] text-amber-700 dark:text-amber-300 font-medium">
+                    <AlertCircle className="size-3.5 text-amber-600 shrink-0" />
+                    <span>Current drawer cash (₹{availableCash.toFixed(2)}) is less than refund amount (₹{Number(row.amount || 0).toFixed(2)}). Consider 'Keep as Advance'.</span>
                   </div>
                 )}
 
@@ -937,6 +1018,26 @@ export const SalesCheckoutModal = ({
                       <div className="p-2 rounded-lg border border-rose-500/30 bg-rose-500/10 text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2">
                         <AlertCircle className="size-4 shrink-0" />
                         <span>Credit billing requires selecting a registered customer profile first.</span>
+                      </div>
+                    ) : isReturn ? (
+                      <div className="p-2.5 rounded-lg border border-rose-500/20 bg-rose-500/5 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-[9px] font-bold text-text-muted uppercase block">Current Outstanding</span>
+                            <span className="text-xs font-mono font-bold text-rose-600">
+                              ₹{creditOutstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9px] font-bold text-text-muted uppercase block">Outstanding After Credit Note</span>
+                            <span className="text-xs font-mono font-bold text-emerald-600">
+                              ₹{Math.max(0, creditOutstanding - Number(row.amount || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-text-muted">
+                          A credit note of ₹{Number(row.amount || 0).toFixed(2)} will be credited to this customer's account ledger.
+                        </p>
                       </div>
                     ) : (
                       <>
@@ -1042,7 +1143,34 @@ export const SalesCheckoutModal = ({
                     {!effectiveCustomer?._id && !effectiveCustomer?.id ? (
                       <div className="p-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs text-amber-600 dark:text-amber-400 font-medium flex items-center gap-2">
                         <AlertCircle className="size-4 shrink-0" />
-                        <span>Advance billing requires selecting a registered customer profile with prepaid deposit.</span>
+                        <span>Advance billing requires selecting a registered customer profile.</span>
+                      </div>
+                    ) : isReturn ? (
+                      <div className="p-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Wallet className="size-4 text-amber-600" />
+                            <div>
+                              <span className="text-[9.5px] font-bold text-text-muted uppercase block leading-none">
+                                Current Customer Advance
+                              </span>
+                              <span className="text-xs font-mono font-bold text-amber-600">
+                                ₹{advanceBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9.5px] font-bold text-text-muted uppercase block leading-none">
+                              New Advance After Refund
+                            </span>
+                            <span className="text-xs font-mono font-bold text-emerald-600">
+                              ₹{(advanceBalance + Number(row.amount || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-amber-700 dark:text-amber-300 font-medium">
+                          ✓ The refund amount of ₹{Number(row.amount || 0).toFixed(2)} will be retained as customer advance deposit for future purchases.
+                        </p>
                       </div>
                     ) : (
                       <>
@@ -1091,7 +1219,7 @@ export const SalesCheckoutModal = ({
               className="w-full py-2 rounded-lg border border-dashed border-primary/40 text-primary text-xs font-bold bg-primary-soft/5 hover:bg-primary-soft/15 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <PlusCircle className="size-3.5" />
-              Add Split Payment Method
+              {isReturn ? "Add Split Refund Method" : "Add Split Payment Method"}
             </button>
           </div>
 
@@ -1108,7 +1236,7 @@ export const SalesCheckoutModal = ({
                 </span>
               ) : (
                 <span className="text-[11px] text-text-muted truncate block">
-                  {items.length} item{items.length !== 1 ? "s" : ""} · {isB2B ? "B2B Invoice" : "B2C Receipt"}
+                  {items.length} item{items.length !== 1 ? "s" : ""} · {isReturn ? "Sales Return Memo" : (isB2B ? "B2B Invoice" : "B2C Receipt")}
                 </span>
               )}
             </div>
@@ -1126,16 +1254,16 @@ export const SalesCheckoutModal = ({
                 }
               >
                 <UIButton
-                  variant="success"
+                  variant={isReturn ? "destructive" : "success"}
                   size="sm"
                   className="px-5 font-bold"
                   isLoading={isSubmitting}
-                  loadingText="Processing..."
+                  loadingText={isReturn ? "Processing Return..." : "Processing..."}
                   disabled={isSubmitting || shortfall > 0 || hasUncapturedCash}
                   onClick={handleProcessSale}
-                  startIcon={<CheckCircle2 className="size-4" />}
+                  startIcon={isReturn ? <RotateCcw className="size-4" /> : <CheckCircle2 className="size-4" />}
                 >
-                  Confirm Sale
+                  {isReturn ? "Confirm Return & Refund" : "Confirm Sale"}
                 </UIButton>
               </PermissionGate>
             </div>
@@ -1150,12 +1278,13 @@ export const SalesCheckoutModal = ({
             isOpen={cashBreakdownTarget !== null}
             onClose={() => setCashBreakdownTarget(null)}
             onConfirm={handleConfirmCashBreakdown}
+            mode={isReturn ? "refund" : "sale"}
             targetAmount={cashBreakdownTarget !== null ? Number(payments[cashBreakdownTarget]?.amount || 0) : 0}
-            initialReceived={cashBreakdownTarget !== null ? payments[cashBreakdownTarget]?.cashDetails?.received : {}}
-            initialReturned={cashBreakdownTarget !== null ? payments[cashBreakdownTarget]?.cashDetails?.returned : {}}
+            initialReceived={cashBreakdownTarget !== null ? (payments[cashBreakdownTarget]?.cashDetails?.received || payments[cashBreakdownTarget]?.cashDetails?.dispensed) : {}}
+            initialReturned={cashBreakdownTarget !== null ? (payments[cashBreakdownTarget]?.cashDetails?.returned || payments[cashBreakdownTarget]?.cashDetails?.customerChange) : {}}
             availableDenominations={runningDenominations || []}
             availableBalance={runningCash || 0}
-            cashAccountName="Branch Cash (Running)"
+            cashAccountName={activeShift ? "Shift Cash Drawer" : "Branch Cash (Running)"}
           />
         );
       })()}

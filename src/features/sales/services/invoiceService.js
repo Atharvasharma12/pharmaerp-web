@@ -28,6 +28,24 @@ const invoiceService = {
   getInvoiceById(invoiceId) {
     return apiClient.get(`/sales/invoices/${invoiceId}`);
   },
+
+  recordCustomerReturn(customerId, payload) {
+    const url = customerId ? `/sales/returns/customer/${customerId}` : `/sales/returns`;
+    return apiClient.post(url, payload);
+  },
+
+  getNextReturnNumber(params = {}) {
+    return apiClient.get("/sales/returns/next-number", { params });
+  },
+
+  getAllCustomerReturns(params = {}) {
+    return apiClient.get("/sales/returns", { params });
+  },
+
+  getReturnById(returnId) {
+    return apiClient.get(`/sales/returns/${returnId}`);
+  },
 };
 
 export default invoiceService;
+

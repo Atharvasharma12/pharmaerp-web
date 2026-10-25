@@ -10,6 +10,7 @@ import {
   Stethoscope,
   AlertCircle,
   Percent,
+  RotateCcw,
 } from "lucide-react";
 import {
   UIModal,
@@ -36,6 +37,7 @@ export const SalesInvoicePreviewModal = ({
   branch: branchProp,
   company: companyProp,
   cartGrandTotal = 0,
+  isReturnInvoice = false,
 }) => {
   const { currentBranch } = useBranch();
   const { currentCompany } = useCompany();
@@ -86,9 +88,26 @@ export const SalesInvoicePreviewModal = ({
       ? (customerPhone || customer?.phone || customer?.mobile || "")
       : (customer?.phone || customer?.mobile || "");
 
+  const hasReturnItems = useMemo(
+    () => (cart || []).some((i) => i.isReturnItem),
+    [cart]
+  );
+  const isReturn = isReturnInvoice || hasReturnItems;
+  const isPureReturn = isReturnInvoice || ((cart || []).length > 0 && (cart || []).every((i) => i.isReturnItem));
+  const isMixed = hasReturnItems && !isPureReturn;
+
+  const originalInvoices = useMemo(() => {
+    const set = new Set();
+    (cart || []).forEach((item) => {
+      if (item.originalInvoiceNo) set.add(item.originalInvoiceNo);
+    });
+    return Array.from(set);
+  }, [cart]);
+
   // Normalize and calculate row details once
   const calculatedItems = useMemo(() => {
     return (cart || []).map((item, idx) => {
+      const isRet = item.isReturnItem || isReturnInvoice;
       const qty = Math.max(1, Number(item.qty) || 1);
       const mrp = Number(item.mrp || item.price || 0);
       const rate = Number(item.price || item.unitPrice || mrp);
@@ -134,9 +153,12 @@ export const SalesInvoicePreviewModal = ({
         gstRate,
         gstAmt,
         finalAmt,
+        isReturnItem: isRet,
+        originalInvoiceNo: item.originalInvoiceNo,
+        originalSoldQty: item.originalSoldQty,
       };
     });
-  }, [cart, billingMode]);
+  }, [cart, billingMode, isReturnInvoice]);
 
   // Overall financial totals
   const totalMrp = useMemo(() => {
@@ -201,28 +223,64 @@ export const SalesInvoicePreviewModal = ({
           <div className="flex items-center justify-between w-full gap-4">
             {/* Title & Bill Badge */}
             <div className="flex items-center gap-3 min-w-0">
-              <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
-                <Receipt className="size-4.5" />
+              <div
+                className={cn(
+                  "size-8 rounded-lg border flex items-center justify-center shrink-0",
+                  isReturn
+                    ? "bg-error/10 border-error/25 text-error shadow-2xs"
+                    : "bg-primary/10 border-primary/20 text-primary"
+                )}
+              >
+                {isReturn ? (
+                  <RotateCcw className="size-4.5" />
+                ) : (
+                  <Receipt className="size-4.5" />
+                )}
               </div>
               <div className="flex items-center gap-2 flex-wrap min-w-0">
                 <UIModalTitle className="text-base font-bold text-text truncate">
-                  Sale Invoice Preview
+                  {isReturn ? "Sales Return / Credit Note Preview" : "Sale Invoice Preview"}
                 </UIModalTitle>
                 <UIBadge
-                  variant="outline"
+                  variant={isReturn ? "destructive" : "outline"}
                   className={cn(
                     "text-[9.5px] uppercase font-bold py-0.5",
-                    billingMode === "B2B"
-                      ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
-                      : "bg-primary/10 text-primary border-primary/20"
+                    !isReturn && (
+                      billingMode === "B2B"
+                        ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
+                        : "bg-primary/10 text-primary border-primary/20"
+                    )
                   )}
                 >
-                  {billingMode === "B2B" ? "B2B Commercial" : "B2C Retail"}
+                  {isReturn
+                    ? (billingMode === "B2B" ? "B2B Sales Return" : "B2C Sales Return")
+                    : (billingMode === "B2B" ? "B2B Commercial" : "B2C Retail")}
                 </UIBadge>
-                <span className="text-[9.5px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25 flex items-center gap-1">
-                  <AlertCircle className="size-3" />
-                  Draft · Unpaid
+                <span
+                  className={cn(
+                    "text-[9.5px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border flex items-center gap-1",
+                    isReturn
+                      ? "bg-error-soft/60 text-error border-error/30"
+                      : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/25"
+                  )}
+                >
+                  {isReturn ? (
+                    <>
+                      <RotateCcw className="size-3" />
+                      Draft · Refund Due
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="size-3" />
+                      Draft · Unpaid
+                    </>
+                  )}
                 </span>
+                {originalInvoices.length > 0 && (
+                  <span className="text-[9.5px] font-mono font-bold tracking-wider px-2 py-0.5 rounded bg-surface border border-border text-text-muted">
+                    Against: #{originalInvoices.join(", #")}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -284,12 +342,14 @@ export const SalesInvoicePreviewModal = ({
                       <th className="py-2.5 px-3 min-w-[180px]">Item / Medicine</th>
                       <th className="py-2.5 px-2.5 min-w-[90px] w-[100px]">Batch</th>
                       <th className="py-2.5 px-2 w-[68px]">Exp</th>
-                      <th className="py-2.5 px-2 w-[54px] font-mono text-center">Qty</th>
+                      <th className="py-2.5 px-2 w-[64px] font-mono text-center">Qty</th>
                       <th className="py-2.5 px-2.5 w-[72px] font-mono text-right">MRP</th>
                       <th className="py-2.5 px-2.5 w-[75px] font-mono text-right">Rate</th>
                       <th className="py-2.5 px-2 w-[58px] font-mono text-center">Disc%</th>
                       <th className="py-2.5 px-2 w-[58px] font-mono text-center">GST%</th>
-                      <th className="py-2.5 px-3 min-w-[95px] w-[105px] font-mono text-right">Amount</th>
+                      <th className="py-2.5 px-3 min-w-[95px] w-[105px] font-mono text-right">
+                        {isReturn ? "Refund" : "Amount"}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/50 text-[11.5px]">
@@ -305,9 +365,17 @@ export const SalesInvoicePreviewModal = ({
 
                         {/* Name & secondary specs */}
                         <td className="py-2 px-3">
-                          <span className="font-bold text-text block leading-snug truncate max-w-[240px] text-xs sm:text-[12px]">
-                            {item.name}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-text block leading-snug truncate max-w-[240px] text-xs sm:text-[12px]">
+                              {item.name}
+                            </span>
+                            {item.isReturnItem && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-error-soft/60 text-error border border-error/30 shrink-0">
+                                <RotateCcw className="size-2.5" />
+                                Return {item.originalInvoiceNo ? `· #${item.originalInvoiceNo}` : ""}
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-text-muted block truncate mt-0.5">
                             {[item.brand || item.category, item.pack ? `Pk:${item.pack}` : null, item.rack ? `Rk:${item.rack}` : null]
                               .filter(Boolean)
@@ -320,6 +388,11 @@ export const SalesInvoicePreviewModal = ({
                           <span className="font-mono text-xs sm:text-[12px] font-bold text-text tracking-wide truncate block">
                             {item.batch || "—"}
                           </span>
+                          {item.isReturnItem && item.originalSoldQty && (
+                            <span className="block text-[8.5px] text-text-muted/70 font-sans font-normal">
+                              max {item.originalSoldQty}
+                            </span>
+                          )}
                         </td>
 
                         {/* Expiry */}
@@ -329,8 +402,15 @@ export const SalesInvoicePreviewModal = ({
 
                         {/* Qty */}
                         <td className="py-2 px-2 font-mono text-center text-[11px] font-bold text-text">
-                          <span className="inline-block px-1.5 py-0.5 rounded bg-surface-alt border border-border/80">
-                            {item.qty}
+                          <span
+                            className={cn(
+                              "inline-block px-1.5 py-0.5 rounded border",
+                              item.isReturnItem
+                                ? "bg-error-soft/40 border-error/30 text-error font-bold"
+                                : "bg-surface-alt border-border/80"
+                            )}
+                          >
+                            {item.qty} {item.isReturnItem ? "(Ret)" : ""}
                           </span>
                         </td>
 
@@ -361,8 +441,13 @@ export const SalesInvoicePreviewModal = ({
                         </td>
 
                         {/* Amount */}
-                        <td className="py-2 px-3 font-mono text-right text-[13px] sm:text-[14px] font-black text-primary tabular-nums">
-                          ₹{item.finalAmt.toFixed(2)}
+                        <td
+                          className={cn(
+                            "py-2 px-3 font-mono text-right text-[13px] sm:text-[14px] font-black tabular-nums",
+                            item.isReturnItem ? "text-error" : "text-primary"
+                          )}
+                        >
+                          {item.isReturnItem ? "-" : ""}₹{item.finalAmt.toFixed(2)}
                         </td>
                       </tr>
                     ))}
@@ -372,9 +457,11 @@ export const SalesInvoicePreviewModal = ({
 
               {/* Table Footer Bar */}
               <div className="px-3.5 py-2 border-t border-border bg-surface-alt/40 flex items-center justify-between text-xs text-text-muted font-mono shrink-0">
-                <span>{calculatedItems.length} Products Listed</span>
+                <span>
+                  {calculatedItems.length} Products {isReturn ? "for Return" : "Listed"}
+                </span>
                 <span className="text-text font-bold">
-                  Total Units: <span className="text-primary">{totalUnits}</span>
+                  Total Units: <span className={isReturn ? "text-error font-extrabold" : "text-primary"}>{totalUnits}</span>
                 </span>
               </div>
             </div>
@@ -388,17 +475,22 @@ export const SalesInvoicePreviewModal = ({
               {/* Header Label */}
               <div className="flex items-center justify-between pb-2 border-b border-border/70">
                 <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
-                  Amount &amp; Tax Summary
+                  {isReturn ? "Return & Refund Summary" : "Amount & Tax Summary"}
                 </span>
-                <span className="text-[11px] font-mono text-purple-600 dark:text-purple-400 font-bold">
-                  GST Included
+                <span
+                  className={cn(
+                    "text-[11px] font-mono font-bold",
+                    isReturn ? "text-error" : "text-purple-600 dark:text-purple-400"
+                  )}
+                >
+                  {isReturn ? "Tax Reversal Included" : "GST Included"}
                 </span>
               </div>
 
               {/* Price / Cost Totals Breakdown (Shown Once) */}
               <div className="p-3.5 rounded-xl border border-border/80 bg-surface space-y-2 font-mono text-xs">
                 <div className="flex justify-between text-text-muted">
-                  <span className="font-sans">Total MRP Value:</span>
+                  <span className="font-sans">{isReturn ? "Total Return MRP Value:" : "Total MRP Value:"}</span>
                   <span className="text-text">₹{totalMrp.toFixed(2)}</span>
                 </div>
 
@@ -410,13 +502,13 @@ export const SalesInvoicePreviewModal = ({
                 )}
 
                 <div className="flex justify-between text-text-muted pt-1.5 border-t border-border/60">
-                  <span className="font-sans">Taxable Subtotal:</span>
+                  <span className="font-sans">{isReturn ? "Return Taxable Value:" : "Taxable Subtotal:"}</span>
                   <span className="text-text font-bold">₹{totalTaxable.toFixed(2)}</span>
                 </div>
 
-                <div className="flex justify-between text-purple-600 dark:text-purple-400">
-                  <span className="font-sans">Total GST Tax:</span>
-                  <span className="font-bold">+₹{totalGst.toFixed(2)}</span>
+                <div className={cn("flex justify-between", isReturn ? "text-error" : "text-purple-600 dark:text-purple-400")}>
+                  <span className="font-sans">{isReturn ? "GST Tax to Reverse / Refund:" : "Total GST Tax:"}</span>
+                  <span className="font-bold">{isReturn ? "-₹" : "+₹"}{totalGst.toFixed(2)}</span>
                 </div>
 
                 {/* Compact GST Slabs Pills */}
@@ -425,45 +517,88 @@ export const SalesInvoicePreviewModal = ({
                     {gstSlabs.map((s, idx) => (
                       <span
                         key={idx}
-                        className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20"
+                        className={cn(
+                          "text-[10px] font-mono px-2 py-0.5 rounded-md border",
+                          isReturn
+                            ? "bg-error/10 text-error border-error/20"
+                            : "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20"
+                        )}
                       >
-                        {s.rate}% GST: ₹{s.totalTax.toFixed(2)}
+                        {s.rate}% GST {isReturn ? "Reversal" : ""}: ₹{s.totalTax.toFixed(2)}
                       </span>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Highlighted Big Payable Amount Box */}
-              <div className="bg-primary/10 border-2 border-primary/30 rounded-xl p-4 flex items-center justify-between shadow-2xs">
+              {/* Highlighted Big Payable / Refund Amount Box */}
+              <div
+                className={cn(
+                  "border-2 rounded-xl p-4 flex items-center justify-between shadow-2xs",
+                  isReturn
+                    ? "bg-error/10 border-error/35"
+                    : "bg-primary/10 border-primary/30"
+                )}
+              >
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary font-sans block">
-                    Total Payable Amount
+                  <span
+                    className={cn(
+                      "text-[10px] font-bold uppercase tracking-wider font-sans block",
+                      isReturn ? "text-error" : "text-primary"
+                    )}
+                  >
+                    {isReturn
+                      ? (isPureReturn ? "Total Refund / Credit Due" : "Net Refund / Payable")
+                      : "Total Payable Amount"}
                   </span>
                   <span className="text-2xl sm:text-3xl font-black text-text font-mono tracking-tight leading-none mt-1 block">
                     ₹{payableTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-lg bg-surface border border-primary/25 text-primary inline-block">
-                    {totalUnits} Units
+                  <span
+                    className={cn(
+                      "text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-lg bg-surface border inline-block",
+                      isReturn
+                        ? "border-error/25 text-error"
+                        : "border-primary/25 text-primary"
+                    )}
+                  >
+                    {totalUnits} Units {isReturn ? "Return" : ""}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons: Checkout + Cancel Edit (No redundant scrolling needed) */}
+            {/* Action Buttons: Checkout / Process Return + Cancel Edit */}
             <div className="space-y-2.5 pt-4">
               <UIButton
                 type="button"
-                variant="primary"
+                variant={isReturn ? "destructive" : "primary"}
                 size="lg"
                 onClick={onProceedToCheckout}
-                endIcon={<CreditCard className="size-4.5" />}
-                className="w-full h-11.5 bg-primary hover:bg-primary-hover text-white font-bold text-sm shadow-md cursor-pointer rounded-xl flex items-center justify-center gap-2"
-                title="Proceed to checkout and collect payment (Enter)"
+                endIcon={
+                  isReturn ? (
+                    <RotateCcw className="size-4.5" />
+                  ) : (
+                    <CreditCard className="size-4.5" />
+                  )
+                }
+                className={cn(
+                  "w-full h-11.5 text-white font-bold text-sm shadow-md cursor-pointer rounded-xl flex items-center justify-center gap-2",
+                  isReturn
+                    ? "bg-error hover:bg-error-hover"
+                    : "bg-primary hover:bg-primary-hover"
+                )}
+                title={
+                  isReturn
+                    ? "Proceed to refund / credit settlement (Enter)"
+                    : "Proceed to checkout and collect payment (Enter)"
+                }
               >
-                <span>Checkout · ₹{payableTotal.toLocaleString("en-IN")}</span>
+                <span>
+                  {isReturn ? "Process Return · Refund" : "Checkout"} · ₹{payableTotal.toLocaleString("en-IN")}
+                </span>
                 <span className="text-[10px] opacity-75 font-mono px-1.5 py-0.5 rounded bg-white/20">
                   Enter ↵
                 </span>

@@ -96,6 +96,7 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
   const [fundFilter, setFundFilter] = useState("all");
   const [viewingQrItem, setViewingQrItem] = useState(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
+  const [expandedReturnId, setExpandedReturnId] = useState(null);
 
   useEffect(() => {
     if (isOpen && shift?._id) {
@@ -190,6 +191,17 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
   const cancelledSplit = Number(summary?.cancelledSplitTotal ?? shift?.cancelledSplitTotal ?? 0);
   const cancelledInvoices = summary?.cancelledInvoices || shift?.cancelledInvoices || [];
   const cancelledBreakdown = summary?.cancelledBreakdown || shift?.cancelledBreakdown || null;
+
+  // Returned Bills Metrics
+  const returnBills = Number(summary?.returnCount ?? summary?.returnInvoiceCount ?? shift?.returnCount ?? shift?.returnInvoiceCount ?? 0);
+  const returnAmount = Number(summary?.returnAmount ?? summary?.returnSalesTotal ?? shift?.returnAmount ?? shift?.returnSalesTotal ?? 0);
+  const returnCash = Number(summary?.returnCashTotal ?? shift?.returnCashTotal ?? 0);
+  const returnUpi = Number(summary?.returnUpiTotal ?? shift?.returnUpiTotal ?? 0);
+  const returnAdvance = Number(summary?.returnAdvanceTotal ?? shift?.returnAdvanceTotal ?? 0);
+  const returnCredit = Number(summary?.returnCreditTotal ?? shift?.returnCreditTotal ?? 0);
+  const returnSplit = Number(summary?.returnSplitTotal ?? shift?.returnSplitTotal ?? 0);
+  const returnInvoices = summary?.returnInvoices || shift?.returnInvoices || [];
+  const returnBreakdown = summary?.returnBreakdown || shift?.returnBreakdown || null;
 
   // Payment Breakdown
   const cashNet = Number(summary?.cashNet ?? shift?.cashNet ?? 0);
@@ -541,7 +553,7 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                         {formatCurrency(cashSales)}
                       </div>
                       <div className="text-[10px] text-text-muted mt-0.5">
-                        Cash Sales
+                        Cash Sales {returnCash > 0 ? `(Net of -${formatCurrency(returnCash)} returns)` : ""}
                       </div>
                     </div>
                   </div>
@@ -577,8 +589,8 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                   </div>
                 </div>
 
-                {/* Advance Summary Highlights (Total Advance Received & Bills Using Advance) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Advance & Sales Return Summary Highlights */}
+                <div className={`grid grid-cols-1 ${returnBills > 0 ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-3`}>
                   {/* Total Advance Received in Shift */}
                   <div className="bg-surface rounded-xl border border-amber-500/30 p-3.5 shadow-xs flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
@@ -632,6 +644,55 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                       Prepaid
                     </UIBadge>
                   </div>
+
+                  {/* Sales Returns & Refunds Highlight */}
+                  {returnBills > 0 && (
+                    <div className="bg-surface rounded-xl border border-rose-500/30 p-3.5 shadow-xs flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="size-9 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                          <ArrowLeftRight className="size-4.5 stroke-[1.8]" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[11px] font-medium text-text-muted">
+                            Sales Returns &amp; Refunds
+                          </div>
+                          <div className="text-base font-bold text-rose-600 dark:text-rose-400 font-mono mt-0.5 truncate">
+                            - {formatCurrency(returnAmount)}
+                          </div>
+                          <div className="text-[10px] text-text-muted mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <span>{returnBills} {returnBills === 1 ? "bill returned" : "bills returned"}</span>
+                            {returnCash > 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="text-rose-600 dark:text-rose-400 font-medium">
+                                  Cash: -{formatCurrency(returnCash)}
+                                </span>
+                              </>
+                            )}
+                            {returnAdvance > 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                  Advance: +{formatCurrency(returnAdvance)}
+                                </span>
+                              </>
+                            )}
+                            {returnCredit > 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="text-sky-600 dark:text-sky-400 font-medium">
+                                  Credit: -{formatCurrency(returnCredit)}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <UIBadge variant="soft" intent="error" className="text-[10px] py-0 px-2 shrink-0">
+                        Refunds
+                      </UIBadge>
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom 2 Cards (Closing Summary & Quick Details) */}
@@ -652,9 +713,18 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                       </div>
 
                       <div className="flex justify-between items-center py-0.5">
-                        <span className="text-text-muted font-medium">Cash Sales</span>
+                        <span className="text-text-muted font-medium">Cash Sales (Net)</span>
                         <span className="font-mono font-bold text-text">{formatCurrency(cashSales)}</span>
                       </div>
+
+                      {returnCash > 0 && (
+                        <div className="flex justify-between items-center py-0.5">
+                          <span className="text-text-muted font-medium">Cash Refunds ({returnBreakdown?.cash?.count ?? (returnCash > 0 ? 1 : 0)} bills)</span>
+                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                            - {formatCurrency(returnCash)}
+                          </span>
+                        </div>
+                      )}
 
                       {advanceCashTotal > 0 && (
                         <div className="flex justify-between items-center py-0.5">
@@ -783,6 +853,22 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                           <div className="text-right font-mono">
                             <span className="font-bold text-rose-600 dark:text-rose-400 text-xs block">{cancelledBills} bills</span>
                             <span className="text-[10px] text-rose-500 block">{formatCurrency(cancelledAmount)}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Returned Bills if any */}
+                      {returnBills > 0 && (
+                        <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                          <div className="flex items-center gap-2">
+                            <div className="size-5 rounded-md bg-amber-500 text-white flex items-center justify-center">
+                              <ArrowLeftRight className="size-3" />
+                            </div>
+                            <span className="text-amber-700 dark:text-amber-300 font-semibold text-[11px]">Returned Bills</span>
+                          </div>
+                          <div className="text-right font-mono">
+                            <span className="font-bold text-amber-700 dark:text-amber-300 text-xs block">{returnBills} bills</span>
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 block">- {formatCurrency(returnAmount)}</span>
                           </div>
                         </div>
                       )}
@@ -925,6 +1011,50 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                   </div>
                 )}
 
+                {/* Returned Bills & Refunds Summary Notice if any */}
+                {returnBills > 0 && (
+                  <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="size-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <ArrowLeftRight className="size-4 stroke-[2]" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                          <span>{returnBills} Return Memo(s) in this Shift</span>
+                          <span className="font-mono text-[11px] font-bold bg-amber-500/20 px-2 py-0.5 rounded-full text-rose-600 dark:text-rose-400">
+                            - {formatCurrency(returnAmount)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-text-muted mt-0.5">
+                          Stock replenished in inventory and refunds settled via cash drawer, advance wallet, or credit note
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] font-mono flex-wrap">
+                      {returnCash > 0 && (
+                        <span className="px-2 py-0.5 rounded-md bg-surface border border-rose-500/20 text-rose-600 dark:text-rose-400">
+                          Cash Refunded: -{formatCurrency(returnCash)}
+                        </span>
+                      )}
+                      {returnAdvance > 0 && (
+                        <span className="px-2 py-0.5 rounded-md bg-surface border border-amber-500/20 text-amber-700 dark:text-amber-300">
+                          Advance Credit: +{formatCurrency(returnAdvance)}
+                        </span>
+                      )}
+                      {returnCredit > 0 && (
+                        <span className="px-2 py-0.5 rounded-md bg-surface border border-sky-500/20 text-sky-600 dark:text-sky-400">
+                          Credit Note: -{formatCurrency(returnCredit)}
+                        </span>
+                      )}
+                      {returnUpi > 0 && (
+                        <span className="px-2 py-0.5 rounded-md bg-surface border border-purple-500/20 text-purple-600 dark:text-purple-400">
+                          UPI Refund: -{formatCurrency(returnUpi)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* 5 Top KPI Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   {/* Total Bills */}
@@ -937,7 +1067,7 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                         {totalBills}
                       </div>
                       <div className="text-[10px] text-text-muted mt-0.5">
-                        Active Bills {cancelledBills > 0 ? `(${cancelledBills} cancelled)` : ""}
+                        Active Bills {cancelledBills > 0 || returnBills > 0 ? `(${[cancelledBills > 0 && `${cancelledBills} cancl`, returnBills > 0 && `${returnBills} ret`].filter(Boolean).join(", ")})` : ""}
                       </div>
                     </div>
                   </div>
@@ -1407,6 +1537,217 @@ export const ViewShiftDialog = ({ isOpen, onClose, shift }) => {
                           </tbody>
                         </table>
                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Returned Bills & Refunds Breakdown Section ── */}
+                <div className="bg-surface rounded-xl border border-border/80 p-4 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between pb-1 border-b border-border/60">
+                    <div className="flex items-center gap-2">
+                      <ArrowLeftRight className="size-4 text-amber-600 dark:text-amber-400" />
+                      <div>
+                        <h3 className="text-xs font-bold text-text">
+                          Returned Bills &amp; Refunds Breakdown
+                        </h3>
+                        <p className="text-[11px] text-text-muted">
+                          Detailed audit log of all sales return memos, customer advance conversions, and refunds in this shift
+                        </p>
+                      </div>
+                    </div>
+                    <UIBadge
+                      variant="soft"
+                      color={returnBills > 0 ? "warning" : "neutral"}
+                      className="text-[10px] font-bold"
+                    >
+                      {returnBills > 0
+                        ? `${returnBills} Returned · -${formatCurrency(returnAmount)}`
+                        : "0 Returned"}
+                    </UIBadge>
+                  </div>
+
+                  {/* 4 Mini Stat Cards */}
+                  {returnBills > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div className="p-2.5 rounded-lg border border-rose-500/20 bg-rose-500/5">
+                        <div className="text-[10px] uppercase font-bold text-rose-700 dark:text-rose-300">
+                          Cash Refunded
+                        </div>
+                        <div className="text-sm font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5">
+                          -{formatCurrency(returnCash)}
+                        </div>
+                        <div className="text-[10px] text-text-muted mt-0.5">
+                          {returnBreakdown?.cash?.count ?? (returnCash > 0 ? 1 : 0)} bills (from Drawer)
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5">
+                        <div className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300">
+                          Advance Credit
+                        </div>
+                        <div className="text-sm font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5">
+                          +{formatCurrency(returnAdvance)}
+                        </div>
+                        <div className="text-[10px] text-text-muted mt-0.5">
+                          {returnBreakdown?.advance?.count ?? (returnAdvance > 0 ? 1 : 0)} bills (Customer Wallet)
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg border border-sky-500/20 bg-sky-500/5">
+                        <div className="text-[10px] uppercase font-bold text-sky-700 dark:text-sky-300">
+                          Credit Note Issued
+                        </div>
+                        <div className="text-sm font-bold font-mono text-sky-600 dark:text-sky-400 mt-0.5">
+                          -{formatCurrency(returnCredit)}
+                        </div>
+                        <div className="text-[10px] text-text-muted mt-0.5">
+                          {returnBreakdown?.credit?.count ?? (returnCredit > 0 ? 1 : 0)} bills (Receivable Adj)
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg border border-purple-500/20 bg-purple-500/5">
+                        <div className="text-[10px] uppercase font-bold text-purple-700 dark:text-purple-300">
+                          UPI / Split Refund
+                        </div>
+                        <div className="text-sm font-bold font-mono text-purple-600 dark:text-purple-400 mt-0.5">
+                          -{formatCurrency(returnUpi + returnSplit)}
+                        </div>
+                        <div className="text-[10px] text-text-muted mt-0.5">
+                          {(returnBreakdown?.upi?.count || 0) + (returnBreakdown?.split?.count || 0)} bills
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Audit Table */}
+                  {returnInvoices.length > 0 ? (
+                    <div className="overflow-hidden">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-border/60 text-text-muted font-semibold text-[11px]">
+                            <th className="py-2 px-3">Return Memo No</th>
+                            <th className="py-2 px-3">Original Invoice</th>
+                            <th className="py-2 px-3">Date &amp; Time</th>
+                            <th className="py-2 px-3">Customer</th>
+                            <th className="py-2 px-3">Refund Settlement</th>
+                            <th className="py-2 px-3 text-center">Items</th>
+                            <th className="py-2 px-3 text-right">Refund Amount</th>
+                            <th className="py-2 px-3 text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/40">
+                          {returnInvoices.map((inv, idx) => {
+                            const isExpanded = expandedReturnId === (inv.invoiceId || inv.invoiceNo || idx);
+                            const retType = String(inv.returnType || "").toLowerCase();
+                            const pMethod = String(inv.paymentMethod || "").toUpperCase();
+                            const isAdvance = retType === "advance_credit" || pMethod.includes("ADVANCE");
+                            const isCredit = retType === "credit_note" || pMethod.includes("CREDIT");
+                            const isSplit = pMethod.includes("SPLIT");
+
+                            return (
+                              <React.Fragment key={inv.invoiceId || inv.invoiceNo || idx}>
+                                <tr
+                                  onClick={() =>
+                                    setExpandedReturnId(isExpanded ? null : (inv.invoiceId || inv.invoiceNo || idx))
+                                  }
+                                  className="hover:bg-amber-500/5 transition-colors cursor-pointer group"
+                                >
+                                  <td className="py-2.5 px-3">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                                        {inv.invoiceNo}
+                                      </span>
+                                      {inv.items?.length > 0 && (
+                                        <span className="text-[10px] text-text-muted group-hover:text-amber-600 transition-colors">
+                                          {isExpanded ? "▲" : "▼"}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-2.5 px-3 font-mono text-[11px] text-text-muted">
+                                    {inv.originalInvoiceNo || "—"}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-text-muted font-mono text-[11px]">
+                                    {formatShortDate(inv.returnedAt)} {formatTimeOnly(inv.returnedAt)}
+                                  </td>
+                                  <td className="py-2.5 px-3 font-medium text-text">
+                                    <div>{inv.customerName || "Walk-in Customer"}</div>
+                                    {inv.customerPhone && (
+                                      <div className="text-[10px] font-mono text-text-muted">{inv.customerPhone}</div>
+                                    )}
+                                  </td>
+                                  <td className="py-2.5 px-3">
+                                    {isAdvance ? (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                        Advance Credit
+                                      </span>
+                                    ) : isCredit ? (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                                        Credit Note
+                                      </span>
+                                    ) : isSplit ? (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                                        Split Refund
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                                        Cash Refund
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-center font-mono">
+                                    <span className="px-1.5 py-0.5 rounded bg-surface-alt text-text text-[11px] font-semibold">
+                                      {inv.itemsCount || inv.items?.length || 0}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
+                                    -{formatCurrency(inv.grandTotal)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-center">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                      Returned
+                                    </span>
+                                  </td>
+                                </tr>
+                                {isExpanded && inv.items?.length > 0 && (
+                                  <tr className="bg-surface-alt/40">
+                                    <td colSpan={8} className="py-2.5 px-4">
+                                      <div className="space-y-1.5 text-[11px]">
+                                        <div className="font-semibold text-text-muted text-[10px] uppercase tracking-wider">
+                                          Returned Items Detail
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                          {inv.items.map((item, itemIdx) => (
+                                            <div
+                                              key={itemIdx}
+                                              className="flex items-center justify-between p-2 rounded-lg bg-surface border border-border/60"
+                                            >
+                                              <div>
+                                                <div className="font-medium text-text">{item.itemName || "Product"}</div>
+                                                <div className="text-[10px] font-mono text-text-muted">
+                                                  Batch: {item.batchNumber || "—"} · Qty: {item.quantity}
+                                                </div>
+                                              </div>
+                                              <div className="text-right font-mono font-semibold text-rose-600 dark:text-rose-400">
+                                                -{formatCurrency(item.total || item.price * item.quantity)}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-text-muted text-xs">
+                      <CheckCircle2 className="size-6 text-emerald-500 mx-auto mb-1 opacity-70" />
+                      No bills were returned during this shift session.
                     </div>
                   )}
                 </div>

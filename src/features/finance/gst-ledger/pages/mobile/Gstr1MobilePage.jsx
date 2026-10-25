@@ -5,7 +5,7 @@ import { ROUTES } from "@/constants";
 import { useGstLedger } from "../../hooks/useGstLedger";
 import { UIInfiniteScroll } from "@/components/ui";
 import useCompany from "@/features/company/hooks/useCompany";
-import { calculateGstr1Summary, deduceGstrGroup } from "../../utils/gstr1SummaryCalculator";
+import { calculateGstr1Summary, deduceGstrGroup, isCreditNoteEntry } from "../../utils/gstr1SummaryCalculator";
 import {
   FiSearch,
   FiFilter,
@@ -166,24 +166,39 @@ const Gstr1MobilePage = () => {
             <span className="text-base font-bold text-slate-900 dark:text-text mt-0.5 block">
               {stats.count}
             </span>
+            {stats.creditNoteCount > 0 && (
+              <span className="text-[9px] text-slate-500 dark:text-text-muted block mt-0.5">
+                {stats.invoiceCount} Inv &middot; <span className="text-rose-600 dark:text-rose-400 font-medium">{stats.creditNoteCount} Ret</span>
+              </span>
+            )}
           </div>
 
           <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs min-w-[130px] flex-1 transition-colors">
             <span className="text-[10px] font-semibold text-slate-400 dark:text-text-muted uppercase tracking-wider block">
-              Taxable Amount
+              Net Taxable
             </span>
             <span className="text-sm font-bold text-slate-900 dark:text-text mt-0.5 block">
               {formatCurrency(stats.totalTaxable)}
             </span>
+            {stats.creditTaxable > 0 && (
+              <span className="text-[9px] text-slate-500 dark:text-text-muted block mt-0.5">
+                Gross: {formatCurrency(stats.grossTaxable)}
+              </span>
+            )}
           </div>
 
           <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs min-w-[120px] flex-1 transition-colors">
             <span className="text-[10px] font-semibold text-slate-400 dark:text-text-muted uppercase tracking-wider block">
-              Total GST (Tax)
+              Net GST (Tax)
             </span>
             <span className="text-sm font-bold text-amber-600 dark:text-amber-400 mt-0.5 block">
               {formatCurrency(stats.totalGst)}
             </span>
+            {stats.creditGst > 0 && (
+              <span className="text-[9px] text-amber-700/80 dark:text-amber-400/80 block mt-0.5">
+                Gross: {formatCurrency(stats.grossGst)}
+              </span>
+            )}
           </div>
         </div>
 
@@ -319,70 +334,107 @@ const Gstr1MobilePage = () => {
               </div>
             ))
           ) : entries.length > 0 ? (
-            entries.map((entry) => (
-              <div
-                key={entry._id}
-                className="bg-white dark:bg-surface p-4 rounded-xl border border-slate-200 dark:border-border shadow-xs space-y-3 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
-                      {entry.voucherNumber}
-                    </span>
-                    {(entry.groupDescription || deduceGstrGroup(entry)) && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-surface-alt text-slate-700 dark:text-text-muted border border-slate-200/80 dark:border-border">
-                        {entry.groupDescription || deduceGstrGroup(entry)}
+            entries.map((entry) => {
+              const isCredit = isCreditNoteEntry(entry);
+              return (
+                <div
+                  key={entry._id}
+                  className={`p-4 rounded-xl border shadow-xs space-y-3 transition-colors ${
+                    isCredit
+                      ? "bg-rose-50/20 dark:bg-rose-500/[0.04] border-rose-200/70 dark:border-rose-500/25"
+                      : "bg-white dark:bg-surface border-slate-200 dark:border-border"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                          isCredit
+                            ? "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20"
+                            : "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20"
+                        }`}
+                      >
+                        {entry.voucherNumber}
                       </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {entry.branchId?.name && (
-                      <span className="text-[10px] bg-slate-100 dark:bg-surface-alt text-slate-600 dark:text-text-muted px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-border/60">
-                        {entry.branchId.name}
-                      </span>
-                    )}
-                    <span className="text-xs text-slate-500 dark:text-text-muted font-medium">
-                      {formatDate(entry.voucherDate)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 dark:border-border/60">
-                  <div>
-                    <span className="text-slate-400 dark:text-text-muted block text-[10px]">Taxable Amount</span>
-                    <span className="font-semibold text-slate-800 dark:text-text">
-                      {formatCurrency(entry.taxableAmount)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 dark:text-text-muted block text-[10px]">CGST / SGST</span>
-                    <span className="font-semibold text-slate-700 dark:text-text-muted">
-                      {formatCurrency(entry.cgst)} / {formatCurrency(entry.sgst)}
-                    </span>
-                  </div>
-                  {entry.igst > 0 && (
-                    <div>
-                      <span className="text-slate-400 dark:text-text-muted block text-[10px]">IGST</span>
-                      <span className="font-semibold text-violet-600 dark:text-violet-400">
-                        {formatCurrency(entry.igst)}
+                      {(entry.groupDescription || deduceGstrGroup(entry)) && (
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            isCredit
+                              ? "bg-rose-100/70 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-200/80 dark:border-rose-500/30"
+                              : "bg-slate-100 dark:bg-surface-alt text-slate-700 dark:text-text-muted border border-slate-200/80 dark:border-border"
+                          }`}
+                        >
+                          {entry.groupDescription || deduceGstrGroup(entry)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {entry.branchId?.name && (
+                        <span className="text-[10px] bg-slate-100 dark:bg-surface-alt text-slate-600 dark:text-text-muted px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-border/60">
+                          {entry.branchId.name}
+                        </span>
+                      )}
+                      <span className="text-xs text-slate-500 dark:text-text-muted font-medium">
+                        {formatDate(entry.voucherDate)}
                       </span>
                     </div>
-                  )}
-                  <div>
-                    <span className="text-slate-400 dark:text-text-muted block text-[10px]">Total Amount</span>
-                    <span className="font-bold text-slate-900 dark:text-text">
-                      {formatCurrency(entry.totalAmount)}
-                    </span>
                   </div>
-                </div>
 
-                {entry.narration && (
-                  <p className="text-xs text-slate-500 dark:text-text-muted bg-slate-50 dark:bg-surface-alt p-2 rounded-lg italic">
-                    {entry.narration}
-                  </p>
-                )}
-              </div>
-            ))
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 dark:border-border/60">
+                    <div>
+                      <span className="text-slate-400 dark:text-text-muted block text-[10px]">Taxable Amount</span>
+                      <span
+                        className={`font-semibold ${
+                          isCredit ? "text-rose-600 dark:text-rose-400 font-bold" : "text-slate-800 dark:text-text"
+                        }`}
+                      >
+                        {isCredit ? `-${formatCurrency(entry.taxableAmount)}` : formatCurrency(entry.taxableAmount)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 dark:text-text-muted block text-[10px]">CGST / SGST</span>
+                      <span
+                        className={`font-semibold ${
+                          isCredit ? "text-rose-600 dark:text-rose-400" : "text-slate-700 dark:text-text-muted"
+                        }`}
+                      >
+                        {isCredit
+                          ? `-${formatCurrency(entry.cgst)} / -${formatCurrency(entry.sgst)}`
+                          : `${formatCurrency(entry.cgst)} / ${formatCurrency(entry.sgst)}`}
+                      </span>
+                    </div>
+                    {entry.igst > 0 && (
+                      <div>
+                        <span className="text-slate-400 dark:text-text-muted block text-[10px]">IGST</span>
+                        <span
+                          className={`font-semibold ${
+                            isCredit ? "text-rose-600 dark:text-rose-400" : "text-violet-600 dark:text-violet-400"
+                          }`}
+                        >
+                          {isCredit ? `-${formatCurrency(entry.igst)}` : formatCurrency(entry.igst)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-slate-400 dark:text-text-muted block text-[10px]">Total Amount</span>
+                      <span
+                        className={`font-bold ${
+                          isCredit ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-text"
+                        }`}
+                      >
+                        {isCredit ? `-${formatCurrency(entry.totalAmount)}` : formatCurrency(entry.totalAmount)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {entry.narration && (
+                    <p className="text-xs text-slate-500 dark:text-text-muted bg-slate-50 dark:bg-surface-alt p-2 rounded-lg italic">
+                      {entry.narration}
+                    </p>
+                  )}
+                </div>
+              );
+            })
           ) : (
             <div className="bg-white dark:bg-surface p-8 rounded-xl border border-slate-200 dark:border-border text-center text-slate-500 dark:text-text-muted space-y-2">
               <FiFileText className="w-8 h-8 text-slate-300 dark:text-text-muted/40 mx-auto" />

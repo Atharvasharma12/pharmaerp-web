@@ -5,7 +5,7 @@ import { ROUTES } from "@/constants";
 import { useGstLedger } from "../../hooks/useGstLedger";
 import { UIInfiniteScroll } from "@/components/ui";
 import useCompany from "@/features/company/hooks/useCompany";
-import { calculateGstr1Summary, deduceGstrGroup } from "../../utils/gstr1SummaryCalculator";
+import { calculateGstr1Summary, deduceGstrGroup, isCreditNoteEntry } from "../../utils/gstr1SummaryCalculator";
 import {
   FiSearch,
   FiCalendar,
@@ -180,11 +180,16 @@ const Gstr1DesktopPage = () => {
                 <FiFileText className="w-3.5 h-3.5" />
               </span>
             </div>
+            {stats.creditNoteCount > 0 && (
+              <span className="text-[10px] text-slate-500 dark:text-text-muted mt-0.5 truncate">
+                {stats.invoiceCount || (stats.count - stats.creditNoteCount)} Inv &middot; <span className="text-rose-600 dark:text-rose-400 font-medium">{stats.creditNoteCount} Return{stats.creditNoteCount > 1 ? "s" : ""}</span>
+              </span>
+            )}
           </div>
 
           <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs flex flex-col justify-between transition-colors">
             <span className="text-[11px] font-semibold text-slate-500 dark:text-text-muted uppercase tracking-wider">
-              Taxable Amount
+              Net Taxable Amount
             </span>
             <div className="mt-1 flex items-baseline justify-between">
               <span className="text-base font-bold text-slate-900 dark:text-text">
@@ -194,11 +199,16 @@ const Gstr1DesktopPage = () => {
                 <FaRupeeSign className="w-3.5 h-3.5" />
               </span>
             </div>
+            {stats.creditTaxable > 0 && (
+              <span className="text-[10px] text-slate-500 dark:text-text-muted mt-0.5 truncate">
+                Gross {formatCurrency(stats.grossTaxable)} &middot; <span className="text-rose-600 dark:text-rose-400 font-medium">-{formatCurrency(stats.creditTaxable)}</span>
+              </span>
+            )}
           </div>
 
           <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs flex flex-col justify-between transition-colors">
             <span className="text-[11px] font-semibold text-slate-500 dark:text-text-muted uppercase tracking-wider">
-              Total CGST
+              Net CGST
             </span>
             <div className="mt-1 flex items-baseline justify-between">
               <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
@@ -208,11 +218,16 @@ const Gstr1DesktopPage = () => {
                 <FaRupeeSign className="w-3.5 h-3.5" />
               </span>
             </div>
+            {stats.creditCgst > 0 && (
+              <span className="text-[10px] text-slate-500 dark:text-text-muted mt-0.5 truncate">
+                Gross {formatCurrency(stats.grossCgst)} &middot; <span className="text-rose-600 dark:text-rose-400 font-medium">-{formatCurrency(stats.creditCgst)}</span>
+              </span>
+            )}
           </div>
 
           <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs flex flex-col justify-between transition-colors">
             <span className="text-[11px] font-semibold text-slate-500 dark:text-text-muted uppercase tracking-wider">
-              Total SGST
+              Net SGST
             </span>
             <div className="mt-1 flex items-baseline justify-between">
               <span className="text-base font-bold text-teal-600 dark:text-teal-400">
@@ -222,11 +237,16 @@ const Gstr1DesktopPage = () => {
                 <FaRupeeSign className="w-3.5 h-3.5" />
               </span>
             </div>
+            {stats.creditSgst > 0 && (
+              <span className="text-[10px] text-slate-500 dark:text-text-muted mt-0.5 truncate">
+                Gross {formatCurrency(stats.grossSgst)} &middot; <span className="text-rose-600 dark:text-rose-400 font-medium">-{formatCurrency(stats.creditSgst)}</span>
+              </span>
+            )}
           </div>
 
           <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-slate-200 dark:border-border shadow-xs flex flex-col justify-between transition-colors">
             <span className="text-[11px] font-semibold text-slate-500 dark:text-text-muted uppercase tracking-wider">
-              Total IGST
+              Net IGST
             </span>
             <div className="mt-1 flex items-baseline justify-between">
               <span className="text-base font-bold text-violet-600 dark:text-violet-400">
@@ -236,11 +256,16 @@ const Gstr1DesktopPage = () => {
                 <FaRupeeSign className="w-3.5 h-3.5" />
               </span>
             </div>
+            {stats.creditIgst > 0 && (
+              <span className="text-[10px] text-slate-500 dark:text-text-muted mt-0.5 truncate">
+                Gross {formatCurrency(stats.grossIgst)} &middot; <span className="text-rose-600 dark:text-rose-400 font-medium">-{formatCurrency(stats.creditIgst)}</span>
+              </span>
+            )}
           </div>
 
           <div className="bg-white dark:bg-surface px-3 py-2 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50/30 dark:bg-amber-500/10 shadow-xs flex flex-col justify-between transition-colors">
             <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-              Total GST (Tax)
+              Net GST Liability
             </span>
             <div className="mt-1 flex items-baseline justify-between">
               <span className="text-base font-bold text-amber-600 dark:text-amber-400">
@@ -250,6 +275,11 @@ const Gstr1DesktopPage = () => {
                 <FaRupeeSign className="w-3.5 h-3.5" />
               </span>
             </div>
+            {stats.creditGst > 0 && (
+              <span className="text-[10px] text-amber-700/80 dark:text-amber-300/80 mt-0.5 truncate">
+                Gross {formatCurrency(stats.grossGst)} &middot; <span className="text-rose-600 dark:text-rose-400 font-semibold">-{formatCurrency(stats.creditGst)}</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -405,48 +435,104 @@ const Gstr1DesktopPage = () => {
                     </tr>
                   ))
                 ) : entries.length > 0 ? (
-                  entries.map((entry) => (
-                    <tr key={entry._id} className="hover:bg-slate-50/80 dark:hover:bg-surface-hover/70 transition-colors">
-                      <td className="py-3.5 px-4 text-slate-700 dark:text-text-muted font-medium whitespace-nowrap">
-                        {formatDate(entry.voucherDate)}
-                      </td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-text whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
-                            {entry.voucherNumber}
-                          </span>
-                          {(entry.groupDescription || deduceGstrGroup(entry)) && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-surface-alt text-slate-700 dark:text-text-muted border border-slate-200/80 dark:border-border">
-                              {entry.groupDescription || deduceGstrGroup(entry)}
+                  entries.map((entry) => {
+                    const isCredit = isCreditNoteEntry(entry);
+                    return (
+                      <tr
+                        key={entry._id}
+                        className={
+                          isCredit
+                            ? "bg-rose-50/25 hover:bg-rose-50/45 dark:bg-rose-500/[0.04] dark:hover:bg-rose-500/[0.08] transition-colors"
+                            : "hover:bg-slate-50/80 dark:hover:bg-surface-hover/70 transition-colors"
+                        }
+                      >
+                        <td className="py-3.5 px-4 text-slate-700 dark:text-text-muted font-medium whitespace-nowrap">
+                          {formatDate(entry.voucherDate)}
+                        </td>
+                        <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-text whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className={
+                                isCredit
+                                  ? "inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20"
+                                  : "inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20"
+                              }
+                            >
+                              {entry.voucherNumber}
                             </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600 dark:text-text-muted font-medium whitespace-nowrap">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-surface-alt text-slate-700 dark:text-text-muted border border-slate-200/60 dark:border-border/60">
-                          {entry.branchId?.name || "-"}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-medium text-slate-800 dark:text-text whitespace-nowrap">
-                        {formatCurrency(entry.taxableAmount)}
-                      </td>
-                      <td className="py-3.5 px-4 text-right text-emerald-600 dark:text-emerald-400 font-medium whitespace-nowrap">
-                        {formatCurrency(entry.cgst)}
-                      </td>
-                      <td className="py-3.5 px-4 text-right text-teal-600 dark:text-teal-400 font-medium whitespace-nowrap">
-                        {formatCurrency(entry.sgst)}
-                      </td>
-                      <td className="py-3.5 px-4 text-right text-violet-600 dark:text-violet-400 font-medium whitespace-nowrap">
-                        {formatCurrency(entry.igst)}
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-bold text-slate-900 dark:text-text whitespace-nowrap">
-                        {formatCurrency(entry.totalAmount)}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 dark:text-text-muted max-w-xs truncate">
-                        {entry.narration || "-"}
-                      </td>
-                    </tr>
-                  ))
+                            {(entry.groupDescription || deduceGstrGroup(entry)) && (
+                              <span
+                                className={
+                                  isCredit
+                                    ? "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-rose-100/70 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-200/80 dark:border-rose-500/30"
+                                    : "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-surface-alt text-slate-700 dark:text-text-muted border border-slate-200/80 dark:border-border"
+                                }
+                              >
+                                {entry.groupDescription || deduceGstrGroup(entry)}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-600 dark:text-text-muted font-medium whitespace-nowrap">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-surface-alt text-slate-700 dark:text-text-muted border border-slate-200/60 dark:border-border/60">
+                            {entry.branchId?.name || "-"}
+                          </span>
+                        </td>
+                        <td
+                          className={`py-3.5 px-4 text-right font-medium whitespace-nowrap ${
+                            isCredit
+                              ? "text-rose-600 dark:text-rose-400 font-semibold"
+                              : "text-slate-800 dark:text-text"
+                          }`}
+                        >
+                          {isCredit ? `-${formatCurrency(entry.taxableAmount)}` : formatCurrency(entry.taxableAmount)}
+                        </td>
+                        <td
+                          className={`py-3.5 px-4 text-right font-medium whitespace-nowrap ${
+                            isCredit
+                              ? "text-rose-600 dark:text-rose-400 font-semibold"
+                              : "text-emerald-600 dark:text-emerald-400"
+                          }`}
+                        >
+                          {isCredit ? `-${formatCurrency(entry.cgst)}` : formatCurrency(entry.cgst)}
+                        </td>
+                        <td
+                          className={`py-3.5 px-4 text-right font-medium whitespace-nowrap ${
+                            isCredit
+                              ? "text-rose-600 dark:text-rose-400 font-semibold"
+                              : "text-teal-600 dark:text-teal-400"
+                          }`}
+                        >
+                          {isCredit ? `-${formatCurrency(entry.sgst)}` : formatCurrency(entry.sgst)}
+                        </td>
+                        <td
+                          className={`py-3.5 px-4 text-right font-medium whitespace-nowrap ${
+                            isCredit
+                              ? "text-rose-600 dark:text-rose-400 font-semibold"
+                              : "text-violet-600 dark:text-violet-400"
+                          }`}
+                        >
+                          {entry.igst > 0
+                            ? isCredit
+                              ? `-${formatCurrency(entry.igst)}`
+                              : formatCurrency(entry.igst)
+                            : formatCurrency(entry.igst)}
+                        </td>
+                        <td
+                          className={`py-3.5 px-4 text-right font-bold whitespace-nowrap ${
+                            isCredit
+                              ? "text-rose-600 dark:text-rose-400"
+                              : "text-slate-900 dark:text-text"
+                          }`}
+                        >
+                          {isCredit ? `-${formatCurrency(entry.totalAmount)}` : formatCurrency(entry.totalAmount)}
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-500 dark:text-text-muted max-w-xs truncate">
+                          {entry.narration || "-"}
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan="9" className="py-12 text-center text-slate-400 dark:text-text-muted">
